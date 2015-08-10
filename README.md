@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/pauxus/config-dsl.svg?branch=master)](https://travis-ci.org/pauxus/config-dsl)
+
 # ConfigDSL Transformation for Groovy
 Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects.
 
@@ -41,41 +43,52 @@ It creates the following methods:
 A factory method named `create` is generated, using either a single closure as parameter, or, in case of a keyed
 object, using a String and a closure parameter.
 
-    @DSLConfig
-    class Config {
-    }
-    
-    @DSLConfig(key = "name"
-    class ConfigWithKey {
-        String name
-    }
+```groovy
+@DSLConfig
+class Config {
+}
+
+@DSLConfig(key = "name"
+class ConfigWithKey {
+    String name
+}
+```
     
         
 creates the following methods:
     
-    static Config create(Closure c)
-    
-    static ConfigWithKey create(String name, Closure c)
-     
+```groovy
+static Config create(Closure c)
+
+static ConfigWithKey create(String name, Closure c)
+```
+
 If create method does already exist, a method named `_create` is created instead.
 
 Additionally, an `apply` method is created, which takes single closure and applies it to an existing object. As with 
 `create`, if the method already exists, a `_apply` method is created.
  
-    def void apply(Closure c)
+```groovy
+def void apply(Closure c)
+```
     
 #### Field setter
 
 - For each simple value field create an accessor named like the field, containing the field type as parameter 
-    
-        @DSLConfig
-        class Config {
-          String name
-        }
-        
+
+   ```groovy
+
+    @DSLConfig
+    class Config {
+      String name
+    }
+    ```
+
     creates the following method:
-    
-        def name(String value)
+
+    ```groovy
+    def name(String value)
+    ```
 
 
 -   for each simple collection, two methods are generated:
@@ -85,15 +98,20 @@ Additionally, an `apply` method is created, which takes single closure and appli
   
     -   an adder method named like the element name of the collection an containing a the element type 
 
-        @DSLConfig
-        class Config {
-          List<String> roles
-        }
+    ```groovy
+    @DSLConfig
+    class Config {
+        List<String> roles
+    }
+    ```
+
         
     creates the following methods:
-    
-        def roles(String... values)
-        def role(String value)
+
+    ```groovy
+    def roles(String... values)
+    def role(String value)
+    ```
 
 TODO: continue
 
