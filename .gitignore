@@ -1,0 +1,7 @@
+/.project
+/build-dsl.sublime-project
+/build-dsl.sublime-workspace
+*.iml
+/.gradle
+/build
+/.idea

@@ -1,0 +1,169 @@
+package com.blackbuild.groovy.configdsl.transform
+
+import com.intellij.psi.PsiAnnotation
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassType
+import com.intellij.psi.PsiEllipsisType
+import com.intellij.psi.PsiField
+import com.intellij.psi.PsiType
+
+
+contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")) {
+    ClassConfig clazz = new ClassConfig(psiClass)
+    method(name: "apply", params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+
+    if (clazz.key)
+        method(name: "create", isStatic: true, params: ["$clazz.key": "java.lang.String", closure: Closure.class.name], type: clazz.type.qualifiedName)
+    else
+        method(name: "create", isStatic: true, params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+
+    classType?.fields?.each { PsiField rawField ->
+
+        def field = new FieldConfig(rawField)
+        def fieldType = field.targetConfig
+
+        if (fieldType) {
+            if (!field.collectionOfDslObjects && fieldType.key)
+                method(name: field.name, params: ["$fieldType.key": "java.lang.String", value: 'Closure'], type: 'void')
+            else
+                method(name: field.name, params: [value: 'Closure'], type: 'void')
+        } else if (field.collectionOfDslObjects) {
+            method(name: field.name, params: [closure: Closure.class.name], type: 'void')
+
+        } else {
+            if (field.isList()) {
+                //noinspection GroovyAssignabilityCheck
+                method(name: field.name, params: [values: field.elementTypeAsVararg.canonicalText], type: 'void')
+                method(name: field.element, params: [value: field.elementType.canonicalText], type: 'void')
+            } else if (field.isMap()) {
+                method(name: field.name, params: [values: field.type.canonicalText], type: 'void')
+                method(name: field.element, params: [key: field.keyType.canonicalText, value: field.valueType.canonicalText], type: 'void')
+            } else {
+                method(name: field.name, params: [value: field.type.canonicalText], type: 'void')
+            }
+        }
+    }
+}
+
+contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
+
+    ClassConfig clazz = new ClassConfig(psiClass)
+
+    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{FieldConfig field -> enclosingCall(field.name) || enclosingCall(field.element)}
+
+    if (innerMostKnownClosureField) {
+
+        def elementType = innerMostKnownClosureField.targetConfig
+
+        if (enclosingCall(innerMostKnownClosureField.element)) {
+            delegatesTo(elementType.type)
+        } else {
+            method(name: innerMostKnownClosureField.element, params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'], type: 'void')
+            method(name: "reuse", params: [value: elementType.type.qualifiedName], type: 'void')
+        }
+    }
+}
+
+@SuppressWarnings("GroovyAssignabilityCheck")
+class FieldConfig {
+    String name
+    boolean optional
+    String element
+    PsiField field
+
+    ClassConfig targetConfig
+    private PsiAnnotation fieldAnnotation
+
+    FieldConfig(PsiField field) {
+        this.field = field
+        this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLField")
+        name = this.fieldAnnotation?.findDeclaredAttributeValue("value")?.node?.text ?: field.name
+        name = name.replace('"', '')
+        optional = this.fieldAnnotation?.findDeclaredAttributeValue("optional")?.node?.text ?: false
+        element = this.fieldAnnotation?.findDeclaredAttributeValue("element")?.node?.text?.replace('"', '')
+
+        if (!element)
+            element = name.endsWith('s') ? name[0..-2] : name
+
+        ClassConfig config = new ClassConfig(field.classType)
+        if (config.dslClass)
+            targetConfig = config
+        else if (isCollectionOfDslObjects())
+            targetConfig = new ClassConfig(elementType.resolve())
+    }
+
+    PsiType getType() {
+        field.type
+    }
+
+    PsiClassType getElementType() {
+
+        isList() ? field.type.parameters[0] as PsiType : isMap() ? getValueType() : null
+    }
+
+    PsiType getKeyType() {
+        field.type.parameters[0] as PsiType
+    }
+
+    PsiType getValueType() {
+        field.type.parameters.length > 1 ? field.type.parameters[1] as PsiType : null
+    }
+
+    PsiEllipsisType getElementTypeAsVararg() {
+        new PsiEllipsisType(elementType)
+    }
+
+    boolean isOfType(String typeString) {
+        field.type instanceof PsiClassType && (field.type.resolve()?.qualifiedName == typeString || field.type.resolve()?.supers?.find { it.qualifiedName == typeString })
+    }
+
+    boolean isList() {
+        isOfType "java.util.List"
+    }
+
+    boolean isMap() {
+        isOfType "java.util.Map"
+    }
+
+    boolean isCollectionOfDslObjects() {
+        elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")
+    }
+
+    @Override
+    String toString() {
+        return "Field: $field.name ($type.canonicalText) [$targetConfig]"
+    }
+}
+
+class ClassConfig {
+    String key
+    PsiClass type
+    boolean dslClass
+
+    ClassConfig(PsiClass type) {
+        this.type = type
+
+        def dslAnnotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")
+        key = dslAnnotation?.findDeclaredAttributeValue("key")?.node?.text?.replace('"', '')
+
+        dslClass = dslAnnotation != null
+    }
+
+    Set<FieldConfig> getAllDslCollectionFields() {
+        def ownFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects }
+
+        def result = ownFields.collect()
+
+        ownFields.each { FieldConfig f ->
+            result.addAll(0, f.targetConfig.allDslCollectionFields)
+        }
+
+        return result as Set
+    }
+
+    @Override
+    String toString() {
+        return "DSLClass: $type.qualifiedName"
+    }
+
+}
