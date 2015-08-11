@@ -1,9 +1,11 @@
 buildscript {
     repositories {
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
     }
 }
 
@@ -11,8 +13,7 @@ ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 
 apply plugin: 'groovy'
 apply plugin: 'jacoco'
-apply plugin: 'maven'
-apply plugin: 'signing'
+apply plugin: 'com.bmuschko.nexus'
 apply plugin: 'io.codearte.nexus-staging'
 
 repositories {
@@ -24,79 +25,46 @@ dependencies {
     compile "org.codehaus.groovy:groovy-all:${groovyVersion}"
     compile "com.intellij:openapi:7.0.3"
     testCompile("org.spockframework:spock-core:${spockVersion}")
-    compile 'com.github.adedayo.intellij.sdk:groovy-psi:142.1'
 }
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.5.0'
 }
 
-task sourcesJar(type: Jar, dependsOn: classes) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
+modifyPom {
+    project {
+        name 'Config DSL'
+        packaging 'jar'
+        description 'A application used as an example on how to set up pushing its components to the Central Repository.'
+        url 'https://github.com/pauxus/config-dsl'
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
+        scm {
+            connection 'scm:svn:https://github.com/pauxus/config-dsl.git'
+            developerConnection 'scm:svn:https://github.com/pauxus/config-dsl.git'
+            url 'https://github.com/pauxus/config-dsl'
+        }
 
-artifacts {
-    archives sourcesJar
-    archives javadocJar
-}
-
-signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask('uploadArchives')}
-    sign configurations.archives
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(
-                        userName: System.env.SONATYPE_USERNAME ?: getProperty('ossrhUsername'),
-                        password: System.env.SONATYPE_PASSWORD ?: getProperty('ossrhPassword')
-                )
+        licenses {
+            license {
+                name 'The Apache License, Version 2.0'
+                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
             }
+        }
 
-            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(
-                        userName: System.env.SONATYPE_USERNAME ?: getProperty('ossrhUsername'),
-                        password: System.env.SONATYPE_PASSWORD ?: getProperty('ossrhPassword')
-                )
+        developers {
+            developer {
+                id 'pauxus'
+                name 'Stephan Pauxberger'
+                email 'stephan@blackbuild.com'
             }
+        }
+    }
+}
 
-            pom.project {
-                name 'Config DSL'
-                packaging 'jar'
-                description 'A application used as an example on how to set up pushing its components to the Central Repository.'
-                url 'https://github.com/pauxus/config-dsl'
-
-                scm {
-                    connection 'scm:svn:https://github.com/pauxus/config-dsl.git'
-                    developerConnection 'scm:svn:https://github.com/pauxus/config-dsl.git'
-                    url 'https://github.com/pauxus/config-dsl'
-                }
-
-                licenses {
-                    license {
-                        name 'The Apache License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id 'pauxus'
-                        name 'Stephan Pauxberger'
-                        email 'stephan@blackbuild.com'
-                    }
-                }
-            }
+afterEvaluate {
+    project.poms.each {
+        it.whenConfigured { pom ->
+                pom.dependencies*.optional = true
         }
     }
 }
