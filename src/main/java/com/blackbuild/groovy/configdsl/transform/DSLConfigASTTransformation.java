@@ -13,7 +13,6 @@ import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
-import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Collections;
@@ -286,7 +285,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     @SuppressWarnings("ConstantConditions")
-    @NotNull
     private GenericsType[] getGenericsTypes(FieldNode fieldNode) {
         GenericsType[] types = fieldNode.getType().getGenericsTypes();
 

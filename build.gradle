@@ -35,7 +35,7 @@ modifyPom {
     project {
         name 'Config DSL'
         packaging 'jar'
-        description 'A application used as an example on how to set up pushing its components to the Central Repository.'
+        description 'A transformation for creating convenient configuration DSLs.'
         url 'https://github.com/pauxus/config-dsl'
 
         scm {
@@ -62,9 +62,8 @@ modifyPom {
 }
 
 afterEvaluate {
-    project.poms.each {
-        it.whenConfigured { pom ->
-                pom.dependencies*.optional = true
-        }
+    project.poms*.whenConfigured { pom ->
+        pom.dependencies.find { it.artifactId == "groovy-all" }.optional = true
+        pom.dependencies.find { it.artifactId == "openapi" }.optional = true
     }
 }
