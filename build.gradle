@@ -1,8 +1,9 @@
-group 'com.blackbuild.groovy.dsl.config'
-version '0.9.2-SNAPSHOT'
+ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 
 apply plugin: 'groovy'
-apply plugin: "jacoco"
+apply plugin: 'jacoco'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 repositories {
     mavenCentral()
@@ -35,3 +36,57 @@ artifacts {
     archives javadocJar
 }
 
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask('uploadArchives')}
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(
+                        userName: System.env.SONATYPE_USERNAME ?: getProperty('ossrhUsername'),
+                        password: System.env.SONATYPE_PASSWORD ?: getProperty('ossrhPassword')
+                )
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(
+                        userName: System.env.SONATYPE_USERNAME ?: getProperty('ossrhUsername'),
+                        password: System.env.SONATYPE_PASSWORD ?: getProperty('ossrhPassword')
+                )
+            }
+
+            pom.project {
+                name 'Config DSL'
+                packaging 'jar'
+                description 'A application used as an example on how to set up pushing its components to the Central Repository.'
+                url 'https://github.com/pauxus/config-dsl'
+
+                scm {
+                    connection 'scm:svn:https://github.com/pauxus/config-dsl.git'
+                    developerConnection 'scm:svn:https://github.com/pauxus/config-dsl.git'
+                    url 'https://github.com/pauxus/config-dsl'
+                }
+
+                licenses {
+                    license {
+                        name 'The Apache License, Version 2.0'
+                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'pauxus'
+                        name 'Stephan Pauxberger'
+                        email 'stephan@blackbuild.com'
+                    }
+                }
+            }
+        }
+    }
+}
