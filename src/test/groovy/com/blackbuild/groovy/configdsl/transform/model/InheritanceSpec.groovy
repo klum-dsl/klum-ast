@@ -21,16 +21,47 @@ class InheritanceSpec extends AbstractDSLSpec {
             }
         ''')
 
+        expect:
+        create("pk.Bar") {}.class.name == "pk.Bar"
+
         when:
         instance = create("pk.Bar") {
             name "Klaus"
             value "High"
-
         }
 
         then:
         instance.name == "Klaus"
         instance.value == "High"
+    }
+
+    def "parent class defines key"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Bar", "Klaus") {
+            parentValue "Low"
+            value "High"
+        }
+
+        then:
+        instance.name == "Klaus"
+        instance.value == "High"
+        instance.parentValue == "Low"
     }
 
 

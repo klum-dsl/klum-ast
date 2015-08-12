@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-@Inherited
+@Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass(classes={CanonicalASTTransformation.class, DSLConfigASTTransformation.class})
 public @interface DSLConfig {
 
@@ -16,6 +16,9 @@ public @interface DSLConfig {
      */
     String key() default "";
 
+    /**
+     * is the Object polymorphic, i.e. should the factory contain an additional class parameter.
+     */
     boolean polymorphic() default false;
 
 }

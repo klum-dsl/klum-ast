@@ -42,7 +42,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
 
-    private AnnotationNode configAnnotation;
     private ClassNode annotatedClass;
     private FieldNode keyField;
 
@@ -51,7 +50,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         init(nodes, source);
 
-        configAnnotation = (AnnotationNode) nodes[0];
         annotatedClass = (ClassNode) nodes[1];
         keyField = getKeyField(annotatedClass);
 
@@ -523,7 +521,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private FieldNode getKeyField(ClassNode target)
     {
-        String keyFieldName = getMemberStringValue(getAnnotation(target, DSL_CONFIG_ANNOTATION), "key");
+        String keyFieldName = getKeyFieldName(target);
 
         if (keyFieldName == null) return null;
 
@@ -545,6 +543,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         return result;
+    }
+
+    private String getKeyFieldName(ClassNode target) {
+        if (target == null) return null;
+
+        String result = getNullSafeMemberStringValue(getAnnotation(target, DSL_CONFIG_ANNOTATION), "key", null);
+
+        return result != null ? result : getKeyFieldName(target.getSuperClass());
     }
 
     private Parameter createAnnotatedClosureParameter(ClassNode target) {
