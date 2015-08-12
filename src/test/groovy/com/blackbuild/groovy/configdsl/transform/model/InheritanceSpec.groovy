@@ -5,7 +5,6 @@ import spock.lang.Ignore
 
 class InheritanceSpec extends AbstractDSLSpec {
 
-    @Ignore
     def "objects inheriting from DSLObjects are also DSLObjects"() {
         given:
         createClass('''
@@ -23,17 +22,15 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        loader.loadClass
+        instance = create("pk.Bar") {
+            name "Klaus"
+            value "High"
 
-        .newInstance()
-        instance.bars {
-            bar { name "Dieter" }
-            bar { name "Klaus"}
         }
 
         then:
-        instance.bars[0].name == "Dieter"
-        instance.bars[1].name == "Klaus"
+        instance.name == "Klaus"
+        instance.value == "High"
     }
 
 
