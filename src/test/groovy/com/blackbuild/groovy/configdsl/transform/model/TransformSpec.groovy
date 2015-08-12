@@ -97,7 +97,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "simple member method for reusable config objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSLConfig
@@ -112,9 +112,12 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def bar = loader.loadClass("pk.Bar").newInstance()
-        bar.apply { name = "Dieter" }
-        instance.inner = bar
+        def bar = create("pk.Bar") {
+            name = "Dieter"
+        }
+        instance = create("pk.Foo") {
+            inner bar
+        }
 
         then:
         instance.inner.name == "Dieter"
@@ -528,8 +531,9 @@ class TransformSpec extends AbstractDSLSpec {
                 String url
             }
         ''')
-        def aBar = loader.loadClass("pk.Bar").newInstance()
-        aBar.url = "welt"
+        def aBar = create("pk.Bar") {
+            url "welt"
+        }
 
         when:
         instance.bars {
@@ -557,9 +561,9 @@ class TransformSpec extends AbstractDSLSpec {
                 String url
             }
         ''')
-        def aBar = loader.loadClass("pk.Bar").newInstance()
-        aBar.name = "klaus"
-        aBar.url = "welt"
+        def aBar = create("pk.Bar", "klaus") {
+            url "welt"
+        }
 
         when:
         instance.bars {

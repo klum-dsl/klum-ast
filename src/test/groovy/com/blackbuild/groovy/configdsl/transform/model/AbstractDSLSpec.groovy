@@ -24,7 +24,20 @@ class AbstractDSLSpec extends Specification {
         instance = clazz.newInstance()
     }
 
+    def newInstanceOf(String className) {
+        return loader.loadClass(className).newInstance()
+    }
+
     def createClass(String code) {
         clazz = loader.parseClass(code)
     }
+
+    def create(String classname, Closure closure) {
+        loader.loadClass(classname).create(closure)
+    }
+
+    def create(String classname, String key, Closure closure) {
+        loader.loadClass(classname).create(key, closure)
+    }
+
 }

@@ -83,18 +83,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         String methodName = getMethodNameForField(fieldNode);
 
-        if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION))
-            createClosureMethod(fieldNode);
+        if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
+            createSingleDSLObjectClosureMethod(fieldNode);
+            createSingleFieldSetterMethod(fieldNode);
+        }
         else if (Map.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
             createMapMethod(fieldNode);
         else if (List.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
             createListMethod(fieldNode);
         else
-            createSimpleMethod(fieldNode);
+            createSingleFieldSetterMethod(fieldNode);
 
     }
 
-    private void createSimpleMethod(FieldNode fieldNode) {
+    private void createSingleFieldSetterMethod(FieldNode fieldNode) {
         String methodName = getMethodNameForField(fieldNode);
 
         annotatedClass.addMethod(
@@ -423,7 +425,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return contextClass;
     }
 
-    private void createClosureMethod(FieldNode fieldNode) {
+    private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
         String methodName = getMethodNameForField(fieldNode);
 
         ClassNode innerType = fieldNode.getType();
