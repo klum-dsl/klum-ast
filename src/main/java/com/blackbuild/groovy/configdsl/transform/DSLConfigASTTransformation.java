@@ -71,12 +71,13 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createKeyConstructor() {
-        annotatedClass.addConstructor(
-                ACC_PUBLIC,
-                params(),
-                NO_EXCEPTIONS,
-                block()
-        );
+        if (annotatedClass.getDeclaredConstructor(params()) == null)
+            annotatedClass.addConstructor(
+                    ACC_PUBLIC,
+                    params(),
+                    NO_EXCEPTIONS,
+                    block()
+            );
 
         annotatedClass.addConstructor(
                 ACC_PUBLIC,

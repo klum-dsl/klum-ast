@@ -96,6 +96,29 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         noExceptionThrown()
         instance.name == "Klaus"
+    }
+
+    def "keyed constructor reuses existing empty constructor"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                int length
+
+                Foo() {
+                    length = 1
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.newInstance("Klaus")
+
+        then:
+        instance.length == 1
 
     }
 
