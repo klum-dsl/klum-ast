@@ -417,6 +417,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         InnerClassNode contextClass = createInnerContextClass(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
+        FieldNode fieldKey = getKeyField(elementType);
 
         contextClass.addMethod(
                 methodName,
@@ -433,6 +434,22 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         ))
                 )
         );
+
+        if (!isFinal(elementType)) {
+                contextClass.addMethod(
+                        methodName,
+                        Opcodes.ACC_PUBLIC,
+                        ClassHelper.VOID_TYPE,
+                        params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
+                        NO_EXCEPTIONS,
+                        block(
+                                declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
+                                stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                                         args(varX("key"), callX(varX("created"), "apply", varX("closure"))))
+                                )
+                        )
+                );
+        }
 
         //noinspection ConstantConditions
         contextClass.addMethod(
