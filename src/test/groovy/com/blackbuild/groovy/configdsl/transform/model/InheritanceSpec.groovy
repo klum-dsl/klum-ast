@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 
 
@@ -63,6 +64,49 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.value == "High"
         instance.parentValue == "Low"
     }
+
+    def "parent class defines no key, child does leads to exception"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSLConfig(key = "name")
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "parent class defines no key, child defines different key"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSLConfig(key = "value")
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 
     def "Polymorphic closure methods"() {
         given:

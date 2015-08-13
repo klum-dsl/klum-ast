@@ -16,9 +16,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
@@ -72,23 +70,19 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createKeyConstructor() {
-        if (annotatedClass.getDeclaredConstructor(params()) == null)
-            annotatedClass.addConstructor(
-                    ACC_PUBLIC,
-                    params(),
-                    NO_EXCEPTIONS,
-                    block()
-            );
-
         annotatedClass.addConstructor(
                 ACC_PUBLIC,
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
-                        ctorThisS(),
+                        isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS() : ctorSuperS(args("key")),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
+    }
+
+    private boolean isDSLObject(ClassNode classNode) {
+        return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) == null;
     }
 
     private void createCanonicalMethods() {
@@ -588,7 +582,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 NO_EXCEPTIONS,
                 block(
                         returnS(callX(
-                                        ctorX(annotatedClass, createKeyAssignExpression(keyField.getName(), "name")),
+                                        ctorX(annotatedClass, args("name")),
                                         "apply", varX("closure")
                                 )
                         )
@@ -645,10 +639,39 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private String getKeyFieldName(ClassNode target) {
         if (target == null) return null;
 
-        String result = getNullSafeMemberStringValue(getAnnotation(target, DSL_CONFIG_ANNOTATION), "key", null);
+        Deque<ClassNode> hierarchy = getHierarchy(new LinkedList<ClassNode>(), target);
 
-        return result != null ? result : getKeyFieldName(target.getSuperClass());
+        String firstKey = getNullSafeMemberStringValue(getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
+
+        for (ClassNode node : hierarchy) {
+            String keyOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "key", null);
+
+            if (firstKey == null && keyOfCurrentNode == null) continue;
+
+            if (firstKey == null) {
+                addCompileError(String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", target, node, keyOfCurrentNode), node);
+                return null;
+            }
+
+            if (keyOfCurrentNode == null) continue;
+
+            if (!firstKey.equals(keyOfCurrentNode)) {
+                addCompileError(String.format("Inconsistent hierarchy: Toplevel defines %s defines key '%s', but child class %s defines '%s'.", target, firstKey, node, keyOfCurrentNode), node);
+                return null;
+            }
+        }
+
+        return firstKey;
     }
+
+    private Deque<ClassNode> getHierarchy(Deque<ClassNode> hierarchy, ClassNode target) {
+        if (target == null) return hierarchy;
+        if (isDSLObject(target)) return hierarchy;
+
+        hierarchy.addFirst(target);
+        return getHierarchy(hierarchy, target.getSuperClass());
+    }
+
 
     private Parameter createAnnotatedClosureParameter(ClassNode target) {
         Parameter result = param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), "closure");
