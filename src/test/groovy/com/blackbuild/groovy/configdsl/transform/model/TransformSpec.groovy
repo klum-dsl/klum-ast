@@ -10,7 +10,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "factory methods should be created"() {
         given:
         createClass('''
-            package com.blackbuild.groovy.configdsl.transform.test
+            package pk
 
             @DSLConfig
             class Foo {
@@ -24,7 +24,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance = clazz.create() {}
 
         then:
-        instance.class.name == "com.blackbuild.groovy.configdsl.transform.test.Foo"
+        instance.class.name == "pk.Foo"
     }
 
     def "factory methods with existing factories"() {
@@ -58,7 +58,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "factory methods with key"() {
         given:
         createClass('''
-            package com.blackbuild.groovy.configdsl.transform.test
+            package pk
 
             @DSLConfig(key = "name")
             class Foo {
@@ -77,6 +77,26 @@ class TransformSpec extends AbstractDSLSpec {
 
         and: "no name() accessor is created"
         !instance.class.declaredMethods.find { it.name == "name" }
+    }
+
+    def "constructor is created for keyed object"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.newInstance("Klaus")
+
+        then:
+        noExceptionThrown()
+        instance.name == "Klaus"
+
     }
 
     def "simple member method"() {

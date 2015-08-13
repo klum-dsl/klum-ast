@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
+import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
@@ -58,12 +59,34 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         annotatedClass = (ClassNode) nodes[1];
         keyField = getKeyField(annotatedClass);
 
+        if (keyField != null)
+            createKeyConstructor();
+
         createApplyMethod();
         createFactoryMethods();
 
         createFieldMethods();
 
         createCanonicalMethods();
+    }
+
+    private void createKeyConstructor() {
+        annotatedClass.addConstructor(
+                ACC_PUBLIC,
+                params(),
+                NO_EXCEPTIONS,
+                block()
+        );
+
+        annotatedClass.addConstructor(
+                ACC_PUBLIC,
+                params(param(STRING_TYPE, "key")),
+                NO_EXCEPTIONS,
+                block(
+                        ctorThisS(),
+                        assignS(propX(varX("this"), keyField.getName()), varX("key"))
+                )
+        );
     }
 
     private void createCanonicalMethods() {

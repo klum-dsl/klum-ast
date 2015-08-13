@@ -99,6 +99,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foo.value == "dieter"
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
     def "Polymorphic list methods"() {
         given:
         createClass('''
@@ -143,6 +144,7 @@ class InheritanceSpec extends AbstractDSLSpec {
 
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
     def "Polymorphic list methods with keys"() {
         given:
         createClass('''
