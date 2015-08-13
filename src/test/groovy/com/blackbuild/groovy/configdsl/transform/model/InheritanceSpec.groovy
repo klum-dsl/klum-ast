@@ -358,5 +358,50 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MissingMethodException)
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "Polymorphic list methods with mappings"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+
+                @DSLField(alternatives=[Foo, Bar])
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                bar {
+                    value = "dieter"
+                }
+                foo {
+                }
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].value == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+
+    }
+
+
 
 }

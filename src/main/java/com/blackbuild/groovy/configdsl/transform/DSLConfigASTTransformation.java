@@ -13,14 +13,13 @@ import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
+import org.codehaus.groovy.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
-import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
@@ -279,6 +278,30 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             }
         }
 
+        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
+        for (ClassNode implementation : classesList) {
+            String alternativeName = uncapitalizedSimpleClassName(implementation);
+
+            contextClass.addMethod(
+                    alternativeName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    fieldKey != null ?
+                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(implementation))
+                            : params(createAnnotatedClosureParameter(implementation)),
+                    NO_EXCEPTIONS,
+                    block(
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "add",
+                                    callX(
+                                            implementation,
+                                            "create",
+                                            fieldKey != null ? args("key", "closure") : args("closure")
+                                    )
+                            ))
+                    )
+            );
+        }
+
         contextClass.addMethod(
                 REUSE_METHOD_NAME,
                 Opcodes.ACC_PUBLIC,
@@ -320,6 +343,24 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         annotatedClass.getModule().addClass(contextClass);
 
         return contextClass;
+    }
+
+    private String uncapitalizedSimpleClassName(ClassNode node) {
+        char[] name = node.getNameWithoutPackage().toCharArray();
+        name[0] = Character.toLowerCase(name[0]);
+        return new String(name);
+    }
+
+    private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
+        AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        if (annotation == null) return Collections.emptyList();
+
+        List<ClassNode> subclasses = getClassList(annotation, "alternatives");
+
+        if (!subclasses.contains(elementType))
+            subclasses.add(elementType);
+
+        return subclasses;
     }
 
     @NotNull

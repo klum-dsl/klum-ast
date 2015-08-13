@@ -12,7 +12,10 @@ class AbstractDSLSpec extends Specification {
 
     def setup() {
         def importCustomizer = new ImportCustomizer()
-        importCustomizer.addImports("com.blackbuild.groovy.configdsl.transform.DSLConfig", "com.blackbuild.groovy.configdsl.transform.DSLField")
+        importCustomizer.addImports(
+                "com.blackbuild.groovy.configdsl.transform.DSLConfig",
+                "com.blackbuild.groovy.configdsl.transform.DSLField"
+        )
 
         CompilerConfiguration config = new CompilerConfiguration()
         config.addCompilationCustomizers(importCustomizer)
