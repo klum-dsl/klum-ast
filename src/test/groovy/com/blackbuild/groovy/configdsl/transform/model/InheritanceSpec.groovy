@@ -402,6 +402,48 @@ class InheritanceSpec extends AbstractDSLSpec {
 
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "Polymorphic map methods with mappings"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSLConfig
+            class Owner {
 
+                @DSLField(alternatives=[Foo, Bar])
+                Map<String, Foo> foos
+            }
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                bar("klaus") {
+                    value = "dieter"
+                }
+                foo("heinz") {
+                }
+            }
+        }
+
+        then:
+        instance.foos.klaus.class.name == "pk.Bar"
+        instance.foos.klaus.name == "klaus"
+        instance.foos.klaus.value == "dieter"
+        instance.foos.heinz.class.name == "pk.Foo"
+        instance.foos.heinz.name == "heinz"
+    }
 }

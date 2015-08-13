@@ -490,6 +490,30 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 );
         }
 
+        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
+        for (ClassNode implementation : classesList) {
+            String alternativeName = uncapitalizedSimpleClassName(implementation);
+
+            contextClass.addMethod(
+                    alternativeName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(implementation)),
+                    NO_EXCEPTIONS,
+                    block(
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                                args(varX("key"),
+                                    callX(
+                                            implementation,
+                                            "create",
+                                            args("key", "closure")
+                                    )
+                                )
+                            ))
+                    )
+            );
+        }
+
         //noinspection ConstantConditions
         contextClass.addMethod(
                 "reuse",
