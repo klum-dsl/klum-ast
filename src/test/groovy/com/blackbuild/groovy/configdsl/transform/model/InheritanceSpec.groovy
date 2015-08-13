@@ -99,4 +99,90 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foo.value == "dieter"
     }
 
+    def "Polymorphic list methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Bar")) {
+                    name = "klaus"
+                    value = "dieter"
+                }
+                foo {
+                    name = "heinz"
+                }
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].name == "klaus"
+        instance.foos[0].value == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+        instance.foos[1].name == "heinz"
+
+    }
+
+    def "Polymorphic list methods with keys"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                List<Foo> foos
+            }
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Bar"), "klaus") {
+                    value = "dieter"
+                }
+                foo("heinz") {
+                }
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].name == "klaus"
+        instance.foos[0].value == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+        instance.foos[1].name == "heinz"
+
+    }
+
 }
