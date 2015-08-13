@@ -64,5 +64,39 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.parentValue == "Low"
     }
 
+    def "Polymorphic closure methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                Foo foo
+            }
+
+            @DSLConfig
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+            foo(getClass("pk.Bar")) {
+                name = "klaus"
+                value = "dieter"
+            }
+        }
+
+        then:
+        instance.foo.class.name == "pk.Bar"
+        instance.foo.name == "klaus"
+        instance.foo.value == "dieter"
+    }
 
 }

@@ -13,14 +13,18 @@ import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
+import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
@@ -199,24 +203,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private InnerClassNode createInnerContextClassForListMembers(FieldNode fieldNode, ClassNode elementType) {
-        InnerClassNode contextClass = new InnerClassNode(
-                annotatedClass,
-                annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
-                ACC_STATIC,
-                ClassHelper.OBJECT_TYPE);
-
-        contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
-        contextClass.addConstructor(
-                0,
-                params(param(newClass(annotatedClass), "outerInstance")),
-                new ClassNode[0],
-                block(
-                        assignS(
-                                propX(varX("this"), "outerInstance"),
-                                varX("outerInstance")
-                        )
-                )
-        );
+        InnerClassNode contextClass = createInnerContextClass(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
 
@@ -231,7 +218,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         : params(createAnnotatedClosureParameter(elementType)),
                 new ClassNode[0],
                 block(
-                        stmt(callX(propX(propX(varX("this"), "outerInstance"), fieldNode.getName()), "add",
+                        stmt(callX(getOuterInstanceXforField(fieldNode), "add",
                                 callX(
                                         elementType,
                                         "create",
@@ -248,7 +235,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 params(param(elementType, "value")),
                 new ClassNode[0],
                 block(
-                        stmt(callX(propX(propX(varX("this"), "outerInstance"), fieldNode.getName()), "add",
+                        stmt(callX(getOuterInstanceXforField(fieldNode), "add",
                                 varX("value")
                         ))
                 )
@@ -281,6 +268,34 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         annotatedClass.getModule().addClass(contextClass);
 
+        return contextClass;
+    }
+
+    @NotNull
+    private Expression getOuterInstanceXforField(FieldNode fieldNode) {
+        return propX(propX(varX("this"), "outerInstance"), fieldNode.getName());
+    }
+
+    @NotNull
+    private InnerClassNode createInnerContextClass(FieldNode fieldNode) {
+        InnerClassNode contextClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
+                ACC_STATIC,
+                ClassHelper.OBJECT_TYPE);
+
+        contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
+        contextClass.addConstructor(
+                0,
+                params(param(newClass(annotatedClass), "outerInstance")),
+                new ClassNode[0],
+                block(
+                        assignS(
+                                propX(varX("this"), "outerInstance"),
+                                varX("outerInstance")
+                        )
+                )
+        );
         return contextClass;
     }
 
@@ -344,24 +359,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private InnerClassNode createInnerContextClassForMapMembers(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
-        InnerClassNode contextClass = new InnerClassNode(
-                annotatedClass,
-                annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
-                ACC_STATIC,
-                ClassHelper.OBJECT_TYPE);
-
-        contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
-        contextClass.addConstructor(
-                0,
-                params(param(newClass(annotatedClass), "outerInstance")),
-                new ClassNode[0],
-                block(
-                        assignS(
-                                propX(varX("this"), "outerInstance"),
-                                varX("outerInstance")
-                        )
-                )
-        );
+        InnerClassNode contextClass = createInnerContextClass(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
 
@@ -372,7 +370,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
                 new ClassNode[0],
                 block(
-                        stmt(callX(propX(propX(varX("this"), "outerInstance"), fieldNode.getName()), "put",
+                        stmt(callX(getOuterInstanceXforField(fieldNode), "put",
                                 args(
                                         varX("key"),
                                         callX(elementType, "create", args("key", "closure"))
@@ -389,7 +387,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 params(param(elementType, "value")),
                 new ClassNode[0],
                 block(
-                        stmt(callX(propX(propX(varX("this"), "outerInstance"), fieldNode.getName()), "put",
+                        stmt(callX(getOuterInstanceXforField(fieldNode), "put",
                                 args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
                         ))
                 )
@@ -447,7 +445,36 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         )
                 )
         );
+
+        if (!isFinal(annotatedClass)) {
+            annotatedClass.addMethod(
+                    methodName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    hasKeyField ?
+                            params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(innerType))
+                            : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(innerType)),
+                    new ClassNode[0],
+                    block(
+                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance")),
+
+
+                            assignS(propX(varX("this"), fieldNode.getName()),
+                                    callX(varX("created"), "apply", varX("closure"))
+                            )
+                    )
+            );
+        }
     }
+
+    private boolean isFinal(ClassNode classNode) {
+        return (classNode.getModifiers() & ACC_FINAL) != 0;
+    }
+
+    private Parameter createSubclassClassParameter(ClassNode annotatedClass) {
+        return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(annotatedClass)), "typeToCreate");
+    }
+
 
     private void createApplyMethod() {
         boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);

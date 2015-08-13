@@ -25,7 +25,7 @@ class AbstractDSLSpec extends Specification {
     }
 
     def newInstanceOf(String className) {
-        return loader.loadClass(className).newInstance()
+        return getClass(className).newInstance()
     }
 
     def createClass(String code) {
@@ -33,11 +33,16 @@ class AbstractDSLSpec extends Specification {
     }
 
     def create(String classname, Closure closure) {
-        loader.loadClass(classname).create(closure)
+        getClass(classname).create(closure)
     }
 
     def create(String classname, String key, Closure closure) {
-        loader.loadClass(classname).create(key, closure)
+        getClass(classname).create(key, closure)
     }
+
+    def Class<?> getClass(String classname) {
+        loader.loadClass(classname)
+    }
+
 
 }
