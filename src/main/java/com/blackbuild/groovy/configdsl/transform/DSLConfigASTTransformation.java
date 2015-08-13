@@ -23,6 +23,7 @@ import java.util.Map;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
@@ -263,8 +264,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
                         NO_EXCEPTIONS,
                         block(
-                                declS(varX("created"), callX(varX("typeToCreate"), "newInstance")),
-                                assignS(propX(varX("created"), fieldKey.getName()), varX("key")),
+                                declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
                                 stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
                         )
                 );
@@ -511,9 +511,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                             : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(innerType)),
                     NO_EXCEPTIONS,
                     block(
-                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance")),
-
-
+                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance", hasKeyField ? args("key") : NO_ARGUMENTS)),
                             assignS(propX(varX("this"), fieldNode.getName()),
                                     callX(varX("created"), "apply", varX("closure"))
                             )
