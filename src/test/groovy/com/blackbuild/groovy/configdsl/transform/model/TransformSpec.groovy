@@ -10,7 +10,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "factory methods should be created"() {
         given:
         createClass('''
-            package com.blackbuild.groovy.configdsl.transform.test
+            package pk
 
             @DSLConfig
             class Foo {
@@ -24,7 +24,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance = clazz.create() {}
 
         then:
-        instance.class.name == "com.blackbuild.groovy.configdsl.transform.test.Foo"
+        instance.class.name == "pk.Foo"
     }
 
     def "factory methods with existing factories"() {
@@ -58,7 +58,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "factory methods with key"() {
         given:
         createClass('''
-            package com.blackbuild.groovy.configdsl.transform.test
+            package pk
 
             @DSLConfig(key = "name")
             class Foo {
@@ -79,6 +79,25 @@ class TransformSpec extends AbstractDSLSpec {
         !instance.class.declaredMethods.find { it.name == "name" }
     }
 
+    def "constructor is created for keyed object"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.newInstance("Klaus")
+
+        then:
+        noExceptionThrown()
+        instance.name == "Klaus"
+    }
+
     def "simple member method"() {
         given:
         createInstance('''
@@ -97,7 +116,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "simple member method for reusable config objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSLConfig
@@ -112,9 +131,12 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def bar = loader.loadClass("pk.Bar").newInstance()
-        bar.apply { name = "Dieter" }
-        instance.inner = bar
+        def bar = create("pk.Bar") {
+            name = "Dieter"
+        }
+        instance = create("pk.Foo") {
+            inner bar
+        }
 
         then:
         instance.inner.name == "Dieter"
@@ -528,8 +550,9 @@ class TransformSpec extends AbstractDSLSpec {
                 String url
             }
         ''')
-        def aBar = loader.loadClass("pk.Bar").newInstance()
-        aBar.url = "welt"
+        def aBar = create("pk.Bar") {
+            url "welt"
+        }
 
         when:
         instance.bars {
@@ -557,9 +580,9 @@ class TransformSpec extends AbstractDSLSpec {
                 String url
             }
         ''')
-        def aBar = loader.loadClass("pk.Bar").newInstance()
-        aBar.name = "klaus"
-        aBar.url = "welt"
+        def aBar = create("pk.Bar", "klaus") {
+            url "welt"
+        }
 
         when:
         instance.bars {

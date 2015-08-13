@@ -12,7 +12,10 @@ class AbstractDSLSpec extends Specification {
 
     def setup() {
         def importCustomizer = new ImportCustomizer()
-        importCustomizer.addImports("com.blackbuild.groovy.configdsl.transform.DSLConfig", "com.blackbuild.groovy.configdsl.transform.DSLField")
+        importCustomizer.addImports(
+                "com.blackbuild.groovy.configdsl.transform.DSLConfig",
+                "com.blackbuild.groovy.configdsl.transform.DSLField"
+        )
 
         CompilerConfiguration config = new CompilerConfiguration()
         config.addCompilationCustomizers(importCustomizer)
@@ -24,7 +27,25 @@ class AbstractDSLSpec extends Specification {
         instance = clazz.newInstance()
     }
 
+    def newInstanceOf(String className) {
+        return getClass(className).newInstance()
+    }
+
     def createClass(String code) {
         clazz = loader.parseClass(code)
     }
+
+    def create(String classname, Closure closure) {
+        getClass(classname).create(closure)
+    }
+
+    def create(String classname, String key, Closure closure) {
+        getClass(classname).create(key, closure)
+    }
+
+    def Class<?> getClass(String classname) {
+        loader.loadClass(classname)
+    }
+
+
 }

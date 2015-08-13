@@ -24,3 +24,5 @@ def c = Config.create {
 }
 
 println c.environments.bal.authorizations
+
+new Environment()

@@ -12,10 +12,12 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
     ClassConfig clazz = new ClassConfig(psiClass)
     method(name: "apply", params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
 
-    if (clazz.key)
+    if (clazz.key) {
         method(name: "create", isStatic: true, params: ["$clazz.key": "java.lang.String", closure: Closure.class.name], type: clazz.type.qualifiedName)
-    else
+        method(constructor: true, params: ["$clazz.key": "java.lang.String"])
+    } else {
         method(name: "create", isStatic: true, params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+    }
 
     classType?.fields?.each { PsiField rawField ->
 
@@ -59,6 +61,7 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
             delegatesTo(elementType.type)
         } else {
             method(name: innerMostKnownClosureField.element, params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'], type: 'void')
+            // TODO: alternatives
             method(name: "reuse", params: [value: elementType.type.qualifiedName], type: 'void')
         }
     }
@@ -127,6 +130,11 @@ class FieldConfig {
 
     boolean isCollectionOfDslObjects() {
         elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")
+    }
+
+    List<PsiClass> getAlternatives() {
+        this.fieldAnnotation?.findAttributeValue("alternatives")
+        // TODO implement
     }
 
     @Override

@@ -30,4 +30,8 @@ public @interface DSLField {
      */
     String element() default "";
 
+    /**
+     * Names the classes that are available as shortcuts for this field. Only used for list/map fields.
+     */
+    Class[] alternatives() default {};
 }
