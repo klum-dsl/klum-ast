@@ -229,24 +229,26 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         FieldNode fieldKey = getKeyField(elementType);
 
-        contextClass.addMethod(
-                methodName,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                fieldKey != null ?
-                        params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType))
-                        : params(createAnnotatedClosureParameter(elementType)),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(getOuterInstanceXforField(fieldNode), "add",
-                                callX(
-                                        elementType,
-                                        "create",
-                                        fieldKey != null ? args("key", "closure") : args("closure")
-                                )
-                        ))
-                )
-        );
+        if (!isAbstract(elementType)) {
+            contextClass.addMethod(
+                    methodName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    fieldKey != null ?
+                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType))
+                            : params(createAnnotatedClosureParameter(elementType)),
+                    NO_EXCEPTIONS,
+                    block(
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "add",
+                                    callX(
+                                            elementType,
+                                            "create",
+                                            fieldKey != null ? args("key", "closure") : args("closure")
+                                    )
+                            ))
+                    )
+            );
+        }
 
         if (!isFinal(elementType)) {
             if (fieldKey != null) {
@@ -413,21 +415,23 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         FieldNode fieldKey = getKeyField(elementType);
 
-        contextClass.addMethod(
-                methodName,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                args(
-                                        varX("key"),
-                                        callX(elementType, "create", args("key", "closure"))
-                                )
-                        ))
-                )
-        );
+        if (!isAbstract(elementType)) {
+            contextClass.addMethod(
+                    methodName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
+                    NO_EXCEPTIONS,
+                    block(
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                                    args(
+                                            varX("key"),
+                                            callX(elementType, "create", args("key", "closure"))
+                                    )
+                            ))
+                    )
+            );
+        }
 
         if (!isFinal(elementType)) {
                 contextClass.addMethod(

@@ -300,7 +300,62 @@ class InheritanceSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
+    }
 
+    def "lists of abstract fields must not have polymorphic accessors"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            abstract class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo {}
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+    }
+
+    def "maps of abstract fields must not have polymorphic accessors"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                Map<String, Foo> foos
+            }
+
+            @DSLConfig(key = "name")
+            abstract class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo("Bla") {}
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
     }
 
 
