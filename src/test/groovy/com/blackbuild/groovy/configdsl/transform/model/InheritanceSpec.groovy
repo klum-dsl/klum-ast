@@ -273,4 +273,35 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos.heinz.name == "heinz"
     }
 
+    def "abstract fields must not have a non polymorphic accessor"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                Foo foo
+            }
+
+            @DSLConfig
+            abstract class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        clazz.getMethod("foo", Closure)
+
+        then:
+        thrown(NoSuchMethodException)
+
+        when:
+        clazz.getMethod("foo", Class, Closure)
+
+        then:
+        noExceptionThrown()
+
+    }
+
+
 }

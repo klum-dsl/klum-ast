@@ -490,36 +490,38 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
         String methodName = getMethodNameForField(fieldNode);
 
-        ClassNode innerType = fieldNode.getType();
-        boolean hasKeyField = getKeyField(innerType) != null;
+        ClassNode fieldType = fieldNode.getType();
+        boolean hasKeyField = getKeyField(fieldType) != null;
 
-        annotatedClass.addMethod(
-                methodName,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                hasKeyField ?
-                        params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(innerType))
-                        : params(createAnnotatedClosureParameter(innerType)),
-                NO_EXCEPTIONS,
-                block(
-                        assignS(propX(varX("this"), fieldNode.getName()),
-                                callX(
-                                        innerType,
-                                        "create",
-                                        hasKeyField ? args("key", "closure") : args("closure")
-                                )
-                        )
-                )
-        );
-
-        if (!isFinal(innerType)) {
+        if (!isAbstract(fieldType)) {
             annotatedClass.addMethod(
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
                     hasKeyField ?
-                            params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(innerType))
-                            : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(innerType)),
+                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(fieldType))
+                            : params(createAnnotatedClosureParameter(fieldType)),
+                    NO_EXCEPTIONS,
+                    block(
+                            assignS(propX(varX("this"), fieldNode.getName()),
+                                    callX(
+                                            fieldType,
+                                            "create",
+                                            hasKeyField ? args("key", "closure") : args("closure")
+                                    )
+                            )
+                    )
+            );
+        }
+
+        if (!isFinal(fieldType)) {
+            annotatedClass.addMethod(
+                    methodName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
+                    hasKeyField ?
+                            params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(fieldType))
+                            : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(fieldType)),
                     NO_EXCEPTIONS,
                     block(
                             declS(varX("created"), callX(varX("typeToCreate"), "newInstance", hasKeyField ? args("key") : NO_ARGUMENTS)),
@@ -533,6 +535,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private boolean isFinal(ClassNode classNode) {
         return (classNode.getModifiers() & ACC_FINAL) != 0;
+    }
+
+    private boolean isAbstract(ClassNode classNode) {
+        return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
 
     private Parameter createSubclassClassParameter(ClassNode annotatedClass) {
