@@ -1,8 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform.model
-
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Ignore
-
 
 class InheritanceSpec extends AbstractDSLSpec {
 
@@ -65,7 +62,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.parentValue == "Low"
     }
 
-    def "parent class defines no key, child does leads to exception"() {
+    def "error: parent class defines no key, but child defines key"() {
         when:
         createClass('''
             package pk
@@ -86,7 +83,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "parent class defines no key, child defines different key"() {
+    def "error: parent class defines key, child defines different key"() {
         when:
         createClass('''
             package pk
@@ -143,6 +140,27 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foo.value == "dieter"
     }
 
+    def "final classes don't create polymorphic closure methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                Foo foo
+            }
+
+            @DSLConfig
+            final class Foo {}
+        ''')
+
+        when:
+        clazz.getDeclaredMethod("foo", Class, Closure)
+
+        then:
+        thrown(NoSuchMethodException)
+    }
+
     @SuppressWarnings("GroovyAssignabilityCheck")
     def "Polymorphic list methods"() {
         given:
@@ -186,6 +204,35 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos[1].class.name == "pk.Foo"
         instance.foos[1].name == "heinz"
 
+    }
+
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "no polymorphic list methods for final elements"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            final class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Foo")) {}
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
@@ -273,6 +320,35 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos.heinz.name == "heinz"
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "no polymorphic map methods for final elements"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+                Map<String, Foo> foos
+            }
+
+            @DSLConfig(key="name")
+            final class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Foo"), "Klaus") {}
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+    }
+
     def "abstract fields must not have a non polymorphic accessor"() {
         given:
         createClass('''
@@ -302,7 +378,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "lists of abstract fields must not have polymorphic accessors"() {
+    def "lists of abstract fields must not have non polymorphic accessors"() {
         given:
         createClass('''
             package pk
@@ -330,7 +406,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MissingMethodException)
     }
 
-    def "maps of abstract fields must not have polymorphic accessors"() {
+    def "maps of abstract fields must not have non polymorphic accessors"() {
         given:
         createClass('''
             package pk

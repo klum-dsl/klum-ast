@@ -13,7 +13,6 @@ import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
-import org.codehaus.groovy.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
@@ -22,9 +21,7 @@ import java.util.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
@@ -714,7 +711,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private String getKeyFieldName(ClassNode target) {
         if (target == null) return null;
 
-        Deque<ClassNode> hierarchy = getHierarchy(new LinkedList<ClassNode>(), target);
+        Deque<ClassNode> hierarchy = getHierarchyUpToFirstDSLObject(new LinkedList<ClassNode>(), target);
 
         String firstKey = getNullSafeMemberStringValue(getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
 
@@ -739,12 +736,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return firstKey;
     }
 
-    private Deque<ClassNode> getHierarchy(Deque<ClassNode> hierarchy, ClassNode target) {
+    private Deque<ClassNode> getHierarchyUpToFirstDSLObject(Deque<ClassNode> hierarchy, ClassNode target) {
         if (target == null) return hierarchy;
         if (isDSLObject(target)) return hierarchy;
 
         hierarchy.addFirst(target);
-        return getHierarchy(hierarchy, target.getSuperClass());
+        return getHierarchyUpToFirstDSLObject(hierarchy, target.getSuperClass());
     }
 
 
@@ -758,10 +755,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
         result.setMember("value", classX(target));
         return result;
-    }
-
-    private boolean hasAnnotationOfType(AnnotatedNode owner, ClassNode annotation) {
-        return getAnnotation(owner, annotation) != null;
     }
 
     AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {

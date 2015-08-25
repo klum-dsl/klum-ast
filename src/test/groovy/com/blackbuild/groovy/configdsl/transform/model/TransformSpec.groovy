@@ -7,6 +7,58 @@ import java.lang.reflect.Method
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
 
+    def "apply method is created"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+            }
+        ''')
+
+        then:
+        clazz.metaClass.getMetaMethod("apply", Closure) != null
+    }
+
+    def "create _apply method when apply exists"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                boolean isCalled
+                Foo apply(Closure c) {
+                    isCalled = true
+                    _apply(c)
+                }
+            }
+        ''')
+
+        when:
+        instance.apply {}
+
+        then:
+        instance.isCalled == true
+    }
+
+    def "if apply and _apply exits, do nothing"() {
+        when:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Foo apply(Closure c) { this }
+                Foo  _apply(Closure c) { this }
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+    }
+
     def "factory methods should be created"() {
         given:
         createClass('''
@@ -16,9 +68,6 @@ class TransformSpec extends AbstractDSLSpec {
             class Foo {
             }
         ''')
-
-        expect:
-        clazz != null
 
         when:
         instance = clazz.create() {}
@@ -45,9 +94,6 @@ class TransformSpec extends AbstractDSLSpec {
             }
         ''')
 
-        expect:
-        clazz.name == "pk.Foo"
-
         when:
         instance = clazz.create() {}
 
@@ -66,9 +112,6 @@ class TransformSpec extends AbstractDSLSpec {
             }
         ''')
 
-        expect:
-        clazz != null
-
         when:
         instance = clazz.create("Dieter") {}
 
@@ -76,7 +119,71 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Dieter"
 
         and: "no name() accessor is created"
-        !instance.class.declaredMethods.find { it.name == "name" }
+        instance.class.metaClass.getMetaMethod("name", String) == null
+    }
+
+    def "factory methods with key and existing factory"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                boolean called
+
+                def static create(String key, Closure c) {
+                    def foo = _create(key, c)
+                    foo.called = true
+                    foo
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create("Klaus") {}
+
+        then:
+        instance.called
+    }
+
+    def "factory method and _create methods already exist"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                def static create(Closure c) {
+                    _create(c)
+                }
+                def static _create(Closure c) {
+                    new Foo()
+                }
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig(key="name")
+            class Foo {
+                String name
+                def static create(String key, Closure c) {
+                    _create(key, c)
+                }
+                def static _create(String key, Closure c) {
+                    new Foo(key)
+                }
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
     }
 
     def "constructor is created for keyed object"() {
