@@ -481,7 +481,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         block(
                                 declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
                                 stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                         args(varX("key"), callX(varX("created"), "apply", varX("closure"))))
+                                                args(varX("key"), callX(varX("created"), "apply", varX("closure"))))
                                 )
                         )
                 );
@@ -676,12 +676,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         );
     }
 
-    private NamedArgumentListExpression createKeyAssignExpression(String key, String name) {
-        return new NamedArgumentListExpression(
-                Collections.singletonList(
-                        new MapEntryExpression(constX(key), varX(name))));
-    }
-
     private FieldNode getKeyField(ClassNode target)
     {
         String keyFieldName = getKeyFieldName(target);
@@ -691,17 +685,18 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         FieldNode result = target.getField(keyFieldName);
 
         if (result == null) {
-            addCompileError(new NoSuchFieldException(
-                    String.format("Designated Key field '%s' is missing", keyFieldName)
-            ));
+            addCompileError(
+                    String.format("Designated Key field '%s' is missing", keyFieldName),
+                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+            );
             return null;
         }
 
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
-            addCompileError(new IllegalArgumentException(
-                    String.format("Key field '%s' must be of type String, but is '%s' instead",
-                            keyFieldName, result.getType().getName())
-            ));
+            addCompileError(
+                    String.format("Key field '%s' must be of type String, but is '%s' instead", keyFieldName, result.getType().getName()),
+                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+            );
             return null;
         }
 
@@ -719,14 +714,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             if (firstKey == null && keyOfCurrentNode == null) continue;
 
             if (firstKey == null) {
-                addCompileError(String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", target, node, keyOfCurrentNode), node);
+                addCompileError(
+                        String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", target, node, keyOfCurrentNode),
+                        node
+                );
                 return null;
             }
 
             if (keyOfCurrentNode == null) continue;
 
             if (!firstKey.equals(keyOfCurrentNode)) {
-                addCompileError(String.format("Inconsistent hierarchy: Toplevel defines %s defines key '%s', but child class %s defines '%s'.", target, firstKey, node, keyOfCurrentNode), node);
+                addCompileError(
+                        String.format("Inconsistent hierarchy: Toplevel defines %s defines key '%s', but child class %s defines '%s'.", target, firstKey, node, keyOfCurrentNode),
+                        node
+                );
                 return null;
             }
         }

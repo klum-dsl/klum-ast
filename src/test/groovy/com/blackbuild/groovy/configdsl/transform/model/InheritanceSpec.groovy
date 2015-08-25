@@ -104,6 +104,26 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "redefining the same key as parent class is allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSLConfig(key = "name")
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+    }
 
     def "Polymorphic closure methods"() {
         given:
@@ -475,7 +495,49 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos[0].class.name == "pk.Bar"
         instance.foos[0].value == "dieter"
         instance.foos[1].class.name == "pk.Foo"
+    }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "Polymorphic list methods with mappings and keysd"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+
+                @DSLField(alternatives=[Foo, Bar])
+                List<Foo> foos
+            }
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+            foos {
+                bar("dieter") {
+                    value = "kurt"
+                }
+                foo("meier") {
+                }
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].name == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+        instance.foos[1].name == "meier"
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
@@ -500,7 +562,6 @@ class InheritanceSpec extends AbstractDSLSpec {
             class Bar extends Foo {
                 String value
             }
-
         ''')
 
         when:
