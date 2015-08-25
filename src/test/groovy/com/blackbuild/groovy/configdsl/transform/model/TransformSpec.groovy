@@ -478,7 +478,7 @@ class TransformSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "simple list element gets initial value"() {
+    def "collections gets initial values"() {
         when:
         createInstance('''
             package pk
@@ -486,12 +486,17 @@ class TransformSpec extends AbstractDSLSpec {
             @DSLConfig
             class Foo {
                 List<String> values
+                Map<String, String> fields
             }
         ''')
 
         then:
         instance.values != null
         instance.values == []
+
+        and:
+        instance.fields != null
+        instance.fields == [:]
     }
 
     def "existing initial values are not overriden"() {
@@ -502,11 +507,15 @@ class TransformSpec extends AbstractDSLSpec {
             @DSLConfig
             class Foo {
                 List<String> values = ['Bla']
+                Map<String, String> fields = [bla: "blub"]
             }
         ''')
 
         then:
         instance.values == ["Bla"]
+
+        and:
+        instance.fields == [bla: "blub"]
     }
 
     def "simple list element"() {

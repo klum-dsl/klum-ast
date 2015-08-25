@@ -4,11 +4,13 @@ import groovy.lang.DelegatesTo;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.ListExpression;
+import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
-import org.codehaus.groovy.control.messages.ExceptionMessage;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
@@ -142,7 +144,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (result != null && result.length() > 0) return result;
 
-         String collectionMethodName = getMethodNameForField(fieldNode);
+        String collectionMethodName = getMethodNameForField(fieldNode);
 
         if (collectionMethodName.endsWith("s"))
             return collectionMethodName.substring(0, collectionMethodName.length() - 1);
@@ -354,7 +356,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         List<ClassNode> subclasses = getClassList(annotation, "alternatives");
 
-        if (!subclasses.contains(elementType))
+        if (!subclasses.contains(elementType) && !isAbstract(elementType))
             subclasses.add(elementType);
 
         return subclasses;
@@ -440,7 +442,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
         if (getKeyField(elementType) == null) {
-            addCompileError(String.format("Value type of map %s (%s) has now key field", fieldNode, elementType), fieldNode);
+            addCompileError(
+                    String.format("Value type of map %s (%s) has now key field", fieldNode, elementType),
+                    fieldNode
+            );
         }
 
         InnerClassNode contextClass = createInnerContextClassForMapMembers(fieldNode, keyType, elementType);
@@ -742,7 +747,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
     }
 
-
     private Parameter createAnnotatedClosureParameter(ClassNode target) {
         Parameter result = param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), "closure");
         result.addAnnotation(createDelegatesToAnnotation(target));
@@ -761,8 +765,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     public void addCompileError(String msg, ASTNode node) {
-
-        SyntaxException se = node != null ? new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber()) : new SyntaxException(msg, -1, -1);
+        SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
 
@@ -770,9 +773,4 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         // TODO Need to convert node into CST node?
         //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
     }
-
-    public void addCompileError(Exception exception) {
-        sourceUnit.getErrorCollector().addFatalError(new ExceptionMessage(exception, false, sourceUnit));
-    }
-
 }

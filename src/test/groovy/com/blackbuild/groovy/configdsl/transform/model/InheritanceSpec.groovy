@@ -498,7 +498,7 @@ class InheritanceSpec extends AbstractDSLSpec {
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
-    def "Polymorphic list methods with mappings and keysd"() {
+    def "Polymorphic list methods with mappings and keys"() {
         given:
         createClass('''
             package pk
@@ -583,4 +583,76 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos.heinz.class.name == "pk.Foo"
         instance.foos.heinz.name == "heinz"
     }
+
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "parent class is implicitly added as alternative"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+
+                @DSLField(alternatives=[Bar])
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+            foos {
+                foo {}
+            }
+        }
+
+        then:
+        noExceptionThrown()
+    }
+
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "parent class is NOT implicitly added as alternative if abstract"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Owner {
+
+                @DSLField(alternatives=[Bar])
+                List<Foo> foos
+            }
+
+            @DSLConfig
+            abstract class Foo {
+                String name
+            }
+
+            @DSLConfig
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+            foos {
+                foo {}
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+    }
+
+
 }
