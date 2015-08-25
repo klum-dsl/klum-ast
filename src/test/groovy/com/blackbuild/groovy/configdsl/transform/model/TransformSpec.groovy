@@ -205,6 +205,35 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Klaus"
     }
 
+    def "key field must exist"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "key field must be of type String"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                int name
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
     def "simple member method"() {
         given:
         createInstance('''

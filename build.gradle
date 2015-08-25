@@ -22,6 +22,10 @@ repositories {
     mavenCentral()
 }
 
+jacoco {
+    toolVersion = "0.7.5.201505241946"
+}
+
 dependencies {
     compile "org.ow2.asm:asm:5.0.3"
     compile "org.codehaus.groovy:groovy-all:${groovyVersion}"

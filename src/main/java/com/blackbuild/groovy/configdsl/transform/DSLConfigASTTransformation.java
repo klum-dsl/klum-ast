@@ -71,14 +71,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
-                        isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS() : ctorSuperS(args("key")),
+                        isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
     }
 
     private boolean isDSLObject(ClassNode classNode) {
-        return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) == null;
+        return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) != null;
     }
 
     private void createCanonicalMethods() {
@@ -709,9 +709,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private String getKeyFieldName(ClassNode target) {
-        if (target == null) return null;
-
-        Deque<ClassNode> hierarchy = getHierarchyUpToFirstDSLObject(new LinkedList<ClassNode>(), target);
+        Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
 
         String firstKey = getNullSafeMemberStringValue(getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
 
@@ -736,12 +734,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return firstKey;
     }
 
-    private Deque<ClassNode> getHierarchyUpToFirstDSLObject(Deque<ClassNode> hierarchy, ClassNode target) {
-        if (target == null) return hierarchy;
-        if (isDSLObject(target)) return hierarchy;
+    private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
+        if (!isDSLObject(target)) return hierarchy;
 
         hierarchy.addFirst(target);
-        return getHierarchyUpToFirstDSLObject(hierarchy, target.getSuperClass());
+        return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
     }
 
 
