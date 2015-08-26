@@ -2,6 +2,7 @@ package com.blackbuild.groovy.configdsl.transform;
 
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
@@ -14,6 +15,7 @@ import java.util.List;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
 public class MethodBuilder {
@@ -34,17 +36,20 @@ public class MethodBuilder {
 
     private BlockStatement body;
 
-    public static MethodBuilder createVoidMethod(String name) {
-        return new MethodBuilder().named(name);
+    public MethodBuilder(String name) {
+        this.name = name;
     }
 
-    public MethodBuilder named(String name) {
-        this.name = name;
-        return this;
+    public static MethodBuilder createPublicVoidMethod(String name) {
+        return new MethodBuilder(name);
     }
 
     @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     public MethodNode addTo(ClassNode target) {
+        if (body == null) {
+            throw new IllegalStateException("Body must not be null");
+        }
+
         return target.addMethod(
                 name,
                 modifiers,
@@ -68,6 +73,14 @@ public class MethodBuilder {
     public MethodBuilder param(Parameter param) {
         parameters.add(param);
         return this;
+    }
+
+    public MethodBuilder param(ClassNode type, String name) {
+        return param(new Parameter(type, name));
+    }
+
+    public MethodBuilder arrayParam(ClassNode type, String name) {
+        return param(new Parameter(type.makeArray(), name));
     }
 
     public MethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
@@ -94,6 +107,18 @@ public class MethodBuilder {
             for (Statement statement : statements)
                 body.addStatement(statement);
         return this;
+    }
+
+    public MethodBuilder statement(Statement statement) {
+        if (body == null)
+            body = new BlockStatement();
+
+        body.addStatement(statement);
+        return this;
+    }
+
+    public MethodBuilder statement(Expression expression) {
+        return statement(stmt(expression));
     }
 
 }

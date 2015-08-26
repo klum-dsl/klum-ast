@@ -21,7 +21,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createVoidMethod;
+import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicVoidMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -170,31 +170,16 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
-        String methodName = getMethodNameForField(fieldNode);
 
-        annotatedClass.addMethod(
-                methodName,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(elementType.makeArray(), "values")),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
-                )
-        );
+        createPublicVoidMethod(getMethodNameForField(fieldNode))
+            .arrayParam(elementType, "values")
+            .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
+            .addTo(annotatedClass);
 
-        String singleElementMethod = getElementNameForCollectionField(fieldNode);
-
-        annotatedClass.addMethod(
-                singleElementMethod,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(elementType, "value")),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
-                )
-        );
+        createPublicVoidMethod(getElementNameForCollectionField(fieldNode))
+                .param(elementType, "value")
+                .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
+                .addTo(annotatedClass);
     }
 
     private void createListOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -204,7 +189,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
 
-        createVoidMethod(getMethodNameForField(fieldNode))
+        createPublicVoidMethod(getMethodNameForField(fieldNode))
                 .delegatingClosureParam(contextClass)
                 .statement(
                         declS(varX("context"), ctorX(contextClass, varX("this"))),
