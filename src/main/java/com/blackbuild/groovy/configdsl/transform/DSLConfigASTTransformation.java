@@ -16,6 +16,9 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
+import static com.blackbuild.groovy.configdsl.transform.DSLUtils.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.groovy.configdsl.transform.DSLUtils.getHierarchyOfDSLObjectAncestors;
+import static com.blackbuild.groovy.configdsl.transform.DSLUtils.getNullSafeMemberStringValue;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -35,8 +38,6 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-    private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
-    private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
     private static final String REUSE_METHOD_NAME = "reuse";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -70,14 +71,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
-                        isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
+                        DSLUtils.isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
-    }
-
-    private boolean isDSLObject(ClassNode classNode) {
-        return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) != null;
     }
 
     private void createCanonicalMethods() {
@@ -111,35 +108,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(DSLUtils.getMethodNameForField(fieldNode))
             .param(fieldNode.getType(), "value")
             .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
             .addTo(annotatedClass);
-    }
-
-    private String getMethodNameForField(FieldNode fieldNode) {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        return getNullSafeMemberStringValue(fieldAnnotation, "value", fieldNode.getName());
-    }
-
-    private String getElementNameForCollectionField(FieldNode fieldNode) {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        String result = getNullSafeMemberStringValue(fieldAnnotation, "element", null);
-
-        if (result != null && result.length() > 0) return result;
-
-        String collectionMethodName = getMethodNameForField(fieldNode);
-
-        if (collectionMethodName.endsWith("s"))
-            return collectionMethodName.substring(0, collectionMethodName.length() - 1);
-
-        return collectionMethodName;
-    }
-
-    private String getNullSafeMemberStringValue(AnnotationNode fieldAnnotation, String value, String name) {
-        return fieldAnnotation == null ? name : getMemberStringValue(fieldAnnotation, value, name);
     }
 
     private void createListMethod(FieldNode fieldNode) {
@@ -160,12 +132,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(DSLUtils.getMethodNameForField(fieldNode))
             .arrayParam(elementType, "values")
             .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
             .addTo(annotatedClass);
 
-        createPublicMethod(getElementNameForCollectionField(fieldNode))
+        createPublicMethod(DSLUtils.getElementNameForCollectionField(fieldNode))
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
                 .addTo(annotatedClass);
@@ -191,35 +163,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return fieldKey != null ? args("key", "closure") : args("closure");
     }
 
-    private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
-        createPublicMethod("invokeMethod")
-                .returning(ClassHelper.OBJECT_TYPE)
-                .stringParam("name")
-                .objectParam("args")
-                .statement(ifElseS(andX(
-                                        isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
-                                        isInstanceOfX(
-                                                indexX(varX("args"), constX(0)),
-                                                ClassHelper.CLOSURE_TYPE)
-                                ),
-                                stmt(callThisX(
-                                        methodName,
-                                        args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
-                                )),
-                                stmt(callSuperX("invokeMethod", args("name", "args")))
-                        )
-                )
-                .addTo(contextClass);
-    }
-
-    private String uncapitalizedSimpleClassName(ClassNode node) {
-        char[] name = node.getNameWithoutPackage().toCharArray();
-        name[0] = Character.toLowerCase(name[0]);
-        return new String(name);
-    }
-
     private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
-        AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        AnnotationNode annotation = DSLUtils.getAnnotation(fieldNode, DSLUtils.DSL_FIELD_ANNOTATION);
         if (annotation == null) return Collections.emptyList();
 
         List<ClassNode> subclasses = getClassList(annotation, "alternatives");
@@ -252,14 +197,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = DSLUtils.getMethodNameForField(fieldNode);
 
         createPublicMethod(methodName)
                 .param(fieldNode.getType(), "values")
                 .callS(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(annotatedClass);
 
-        String singleElementMethod = getElementNameForCollectionField(fieldNode);
+        String singleElementMethod = DSLUtils.getElementNameForCollectionField(fieldNode);
 
         createPublicMethod(singleElementMethod)
                 .param(keyType, "key")
@@ -269,7 +214,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = DSLUtils.getMethodNameForField(fieldNode);
 
         ClassNode fieldType = fieldNode.getType();
         FieldNode keyField = getKeyField(fieldType);
@@ -372,7 +317,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (result == null) {
             addCompileError(
                     String.format("Designated Key field '%s' is missing", keyFieldName),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    DSLUtils.getAnnotation(target, DSL_CONFIG_ANNOTATION)
             );
             return null;
         }
@@ -380,7 +325,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
             addCompileError(
                     String.format("Key field '%s' must be of type String, but is '%s' instead", keyFieldName, result.getType().getName()),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    DSLUtils.getAnnotation(target, DSL_CONFIG_ANNOTATION)
             );
             return null;
         }
@@ -398,16 +343,16 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (result == null) {
             addCompileError(
                     String.format("Designated owner field '%s' is missing", ownerFieldName),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    DSLUtils.getAnnotation(target, DSL_CONFIG_ANNOTATION)
             );
             return null;
         }
 
 
-        if (getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
+        if (DSLUtils.getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
             addCompileError(
                     String.format("Designated owner field '%s' must be a dsl object, but is '%s' instead", ownerFieldName, result.getType().getName()),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    DSLUtils.getAnnotation(target, DSL_CONFIG_ANNOTATION)
             );
             return null;
         }
@@ -418,10 +363,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private String getKeyFieldName(ClassNode target) {
         Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
 
-        String firstKey = getNullSafeMemberStringValue(getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
+        String firstKey = getNullSafeMemberStringValue(DSLUtils.getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
 
         for (ClassNode node : hierarchy) {
-            String keyOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "key", null);
+            String keyOfCurrentNode = getNullSafeMemberStringValue(DSLUtils.getAnnotation(node, DSL_CONFIG_ANNOTATION), "key", null);
 
             if (firstKey == null && keyOfCurrentNode == null) continue;
 
@@ -454,7 +399,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         ClassNode declaringClass = null;
 
         for (ClassNode node : hierarchy) {
-            String ownerOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "owner", null);
+            String ownerOfCurrentNode = getNullSafeMemberStringValue(DSLUtils.getAnnotation(node, DSL_CONFIG_ANNOTATION), "owner", null);
 
             if (owner == null && ownerOfCurrentNode == null) continue;
 
@@ -475,18 +420,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         return owner;
-    }
-
-    private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
-        if (!isDSLObject(target)) return hierarchy;
-
-        hierarchy.addFirst(target);
-        return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
-    }
-
-    private AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
-        List<AnnotationNode> annotation = field.getAnnotations(type);
-        return annotation.isEmpty() ? null : annotation.get(0);
     }
 
     private void addCompileError(String msg, ASTNode node) {
@@ -532,13 +465,9 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createContextClosure();
         }
 
-        public InnerClassNode createInnerClassForMaps() {
+        public void createInnerClassForMaps() {
 
-            contextClass = createInnerContextClass(fieldNode);
-
-            methodName = getElementNameForCollectionField(fieldNode);
-            ownerFieldOfElement = getOwnerField(elementType);
-            ownerFieldOfElementName = getOwnerFieldName(elementType);
+            initialize();
 
             if (!isAbstract(elementType))
                 createUntypedListAdder();
@@ -550,16 +479,21 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 createAlternativeListAdder(implementation);
 
             createReuseMethod();
-            addDynamicKeyedCreatorMethod(contextClass, methodName);
-
+            addDynamicKeyedCreatorMethod();
             addClassToModule();
+        }
 
-            return contextClass;
+        private void initialize() {
+            contextClass = createInnerContextClass();
+            methodName = DSLUtils.getElementNameForCollectionField(fieldNode);
+            fieldKey = getKeyField(elementType);
+            ownerFieldOfElement = getOwnerField(elementType);
+            ownerFieldOfElementName = getOwnerFieldName(elementType);
         }
 
         private void createContextClosure() {
 
-            createPublicMethod(getMethodNameForField(fieldNode))
+            createPublicMethod(DSLUtils.getMethodNameForField(fieldNode))
                     .delegatingClosureParam(contextClass)
                     .declS("context", ctorX(contextClass, varX("this")))
                     .statements(delegateToClosure())
@@ -611,20 +545,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .addTo(contextClass);
         }
 
+        private String uncapitalizedSimpleClassName(ClassNode node) {
+            char[] name = node.getNameWithoutPackage().toCharArray();
+            name[0] = Character.toLowerCase(name[0]);
+            return new String(name);
+        }
+
         void createListOfDSLObjectMethods() {
             createInnerClassForLists();
             createContextClosure();
         }
 
-        public InnerClassNode createInnerClassForLists() {
+        public void createInnerClassForLists() {
 
-            contextClass = createInnerContextClass(fieldNode);
-
-            methodName = getElementNameForCollectionField(fieldNode);
-
-            fieldKey = getKeyField(elementType);
-            ownerFieldOfElement = getOwnerField(elementType);
-            ownerFieldOfElementName = getOwnerFieldName(elementType);
+            initialize();
 
             if (!isAbstract(elementType)) {
                 createPublicMethod(methodName)
@@ -663,16 +597,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .addTo(contextClass);
 
             if (fieldKey != null) {
-                addDynamicKeyedCreatorMethod(contextClass, methodName);
+                addDynamicKeyedCreatorMethod();
             }
 
             addClassToModule();
-
-            return contextClass;
         }
 
         @NotNull
-        private InnerClassNode createInnerContextClass(FieldNode fieldNode) {
+        private InnerClassNode createInnerContextClass() {
             InnerClassNode contextClass = new InnerClassNode(
                     annotatedClass,
                     annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
@@ -684,12 +616,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     0,
                     params(param(newClass(annotatedClass), "outerInstance")),
                     NO_EXCEPTIONS,
-                    block(
-                            assignS(
-                                    propX(varX("this"), "outerInstance"),
-                                    varX("outerInstance")
-                            )
-                    )
+                    block(assignS(propX(varX("this"), "outerInstance"), varX("outerInstance")))
             );
             return contextClass;
         }
@@ -701,6 +628,27 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         @NotNull
         private Expression getOuterInstanceXforField(FieldNode fieldNode) {
             return propX(propX(varX("this"), "outerInstance"), fieldNode.getName());
+        }
+
+        private void addDynamicKeyedCreatorMethod() {
+            createPublicMethod("invokeMethod")
+                    .returning(ClassHelper.OBJECT_TYPE)
+                    .stringParam("name")
+                    .objectParam("args")
+                    .statement(ifElseS(andX(
+                                            isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
+                                            isInstanceOfX(
+                                                    indexX(varX("args"), constX(0)),
+                                                    ClassHelper.CLOSURE_TYPE)
+                                    ),
+                                    stmt(callThisX(
+                                            methodName,
+                                            args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
+                                    )),
+                                    stmt(callSuperX("invokeMethod", args("name", "args")))
+                            )
+                    )
+                    .addTo(contextClass);
         }
     }
 }
