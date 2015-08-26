@@ -37,15 +37,13 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
+    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
     private static final String REUSE_METHOD_NAME = "reuse";
-
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -110,8 +108,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
-        }
-        else if (Map.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
+        } else if (Map.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
             createMapMethod(fieldNode);
         else if (List.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
             createListMethod(fieldNode);
@@ -259,8 +256,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
             BlockStatement methodBody = fieldKey != null ?
                     block(
-                        declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
-                        stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
+                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
                     ) :
                     block(
                             declS(varX("created"), callX(varX("typeToCreate"), "newInstance")),
@@ -351,7 +348,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private void addSetOwnerToOuterInstanceStatement(FieldNode ownerFieldOfElement, BlockStatement reuseMethodBody) {
         if (ownerFieldOfElement != null) {
             reuseMethodBody.addStatement(
-                assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
+                    assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
             );
         }
     }
@@ -528,13 +525,13 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
 
             contextClass.addMethod(
-                        methodName,
-                        Opcodes.ACC_PUBLIC,
-                        ClassHelper.VOID_TYPE,
+                    methodName,
+                    Opcodes.ACC_PUBLIC,
+                    ClassHelper.VOID_TYPE,
                     classKeyAndClosureParams(elementType),
-                        NO_EXCEPTIONS,
+                    NO_EXCEPTIONS,
                     methodBody
-                );
+            );
         }
 
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
@@ -549,13 +546,13 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     NO_EXCEPTIONS,
                     block(
                             stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                args(varX("key"),
-                                    callX(
-                                            implementation,
-                                            "create",
-                                            args("key", "closure")
+                                    args(varX("key"),
+                                            callX(
+                                                    implementation,
+                                                    "create",
+                                                    args("key", "closure")
+                                            )
                                     )
-                                )
                             ))
                     )
             );
@@ -732,8 +729,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         );
     }
 
-    private FieldNode getKeyField(ClassNode target)
-    {
+    private FieldNode getKeyField(ClassNode target) {
         String keyFieldName = getKeyFieldName(target);
 
         if (keyFieldName == null) return null;
@@ -759,8 +755,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
-    private FieldNode getOwnerField(ClassNode target)
-    {
+    private FieldNode getOwnerField(ClassNode target) {
         String ownerFieldName = getOwnerFieldName(target);
 
         if (ownerFieldName == null) return null;
