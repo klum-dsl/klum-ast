@@ -148,7 +148,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
         if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
-            createListOfDSLObjectMethods(fieldNode, elementType);
+            new InnerClassUtil(fieldNode, elementType).createListOfDSLObjectMethods();
         else
             createListOfSimpleElementsMethods(fieldNode, elementType);
     }
@@ -171,20 +171,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createListOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
-        InnerClassNode contextClass = createInnerContextClassForListMembers(fieldNode, elementType);
-        createContextClosure(fieldNode, contextClass);
-    }
-
-    private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
-
-        createPublicMethod(getMethodNameForField(fieldNode))
-                .delegatingClosureParam(contextClass)
-                .declS("context", ctorX(contextClass, varX("this")))
-                .statements(delegateToClosure())
-                .addTo(annotatedClass);
-    }
-
     @NotNull
     private Statement[] delegateToClosure() {
         return new Statement[]{
@@ -197,70 +183,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         };
     }
 
-    private InnerClassNode createInnerContextClassForListMembers(FieldNode fieldNode, ClassNode elementType) {
-        InnerClassNode contextClass = createInnerContextClass(fieldNode);
-
-        String methodName = getElementNameForCollectionField(fieldNode);
-
-        FieldNode fieldKey = getKeyField(elementType);
-        FieldNode ownerFieldOfElement = getOwnerField(elementType);
-        String ownerFieldOfElementName = getOwnerFieldName(elementType);
-
-        if (!isAbstract(elementType)) {
-            createPublicMethod(methodName)
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementType)
-                    .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
-                    .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                    .addTo(contextClass);
-        }
-
-        if (!isFinal(elementType)) {
-            createPublicMethod(methodName)
-                    .classParam("typeToCreate", elementType)
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementType)
-                    .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
-                    .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                    .addTo(contextClass);
-        }
-
-        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
-        for (ClassNode implementation : classesList) {
-            createPublicMethod(uncapitalizedSimpleClassName(implementation))
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementType)
-                    .callS(varX("this"), methodName, argsWithClassOptionalKeyAndClosure(implementation, fieldKey))
-                    .addTo(contextClass);
-        }
-
-        createPublicMethod(REUSE_METHOD_NAME)
-                .param(elementType, "value")
-                .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
-                .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                .addTo(contextClass);
-
-        if (fieldKey != null) {
-            addDynamicKeyedCreatorMethod(contextClass, methodName);
-        }
-
-        annotatedClass.getModule().addClass(contextClass);
-
-        return contextClass;
-    }
-
     private Expression optionalKeyArg(FieldNode fieldKey) {
         return fieldKey != null ? args("key") : NO_ARGUMENTS;
     }
 
     private ArgumentListExpression argsWithOptionalKeyAndClosure(FieldNode fieldKey) {
         return fieldKey != null ? args("key", "closure") : args("closure");
-    }
-
-    private ArgumentListExpression argsWithClassOptionalKeyAndClosure(ClassNode type, FieldNode fieldKey) {
-        return fieldKey != null ? args(classX(type), varX("key"), varX("closure")) : args(classX(type), varX("closure"));
     }
 
     private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
@@ -302,34 +230,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return subclasses;
     }
 
-    @NotNull
-    private Expression getOuterInstanceXforField(FieldNode fieldNode) {
-        return propX(propX(varX("this"), "outerInstance"), fieldNode.getName());
-    }
-
-    @NotNull
-    private InnerClassNode createInnerContextClass(FieldNode fieldNode) {
-        InnerClassNode contextClass = new InnerClassNode(
-                annotatedClass,
-                annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
-                ACC_STATIC,
-                ClassHelper.OBJECT_TYPE);
-
-        contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
-        contextClass.addConstructor(
-                0,
-                params(param(newClass(annotatedClass), "outerInstance")),
-                NO_EXCEPTIONS,
-                block(
-                        assignS(
-                                propX(varX("this"), "outerInstance"),
-                                varX("outerInstance")
-                        )
-                )
-        );
-        return contextClass;
-    }
-
     @SuppressWarnings("ConstantConditions")
     private GenericsType[] getGenericsTypes(FieldNode fieldNode) {
         GenericsType[] types = fieldNode.getType().getGenericsTypes();
@@ -346,7 +246,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
 
         if (hasAnnotation(valueType, DSL_CONFIG_ANNOTATION))
-            createMapOfDSLObjectMethods(fieldNode, keyType, valueType);
+            new InnerClassUtil(fieldNode, keyType, valueType).createMapOfDSLObjectMethods();
         else
             createMapOfSimpleElementsMethods(fieldNode, keyType, valueType);
     }
@@ -366,72 +266,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .param(valueType, "value")
                 .callS(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
                 .addTo(annotatedClass);
-    }
-
-    private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
-        if (getKeyField(elementType) == null) {
-            addCompileError(
-                    String.format("Value type of map %s (%s) has now key field", fieldNode, elementType),
-                    fieldNode
-            );
-        }
-
-        InnerClassNode contextClass = createInnerContextClassForMapMembers(fieldNode, keyType, elementType);
-        createContextClosure(fieldNode, contextClass);
-    }
-
-    private InnerClassNode createInnerContextClassForMapMembers(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
-        InnerClassNode contextClass = createInnerContextClass(fieldNode);
-
-        String methodName = getElementNameForCollectionField(fieldNode);
-        FieldNode ownerFieldOfElement = getOwnerField(elementType);
-        String ownerFieldOfElementName = getOwnerFieldName(elementType);
-
-        if (!isAbstract(elementType)) {
-            createPublicMethod(methodName)
-                    .param(keyType, "key")
-                    .delegatingClosureParam(elementType)
-                    .declS("created", callX(elementType, "create", args("key", "closure")))
-                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                    .addTo(contextClass);
-        }
-
-        if (!isFinal(elementType)) {
-            createPublicMethod(methodName)
-                    .classParam("typeToCreate", elementType)
-                    .param(keyType, "key")
-                    .delegatingClosureParam(elementType)
-                    .declS("created", callX(varX("typeToCreate"), "newInstance", args("key")))
-                    .callS(varX("created"), "apply", varX("closure"))
-                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                    .addTo(contextClass);
-        }
-
-        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
-        for (ClassNode implementation : classesList) {
-            createPublicMethod(uncapitalizedSimpleClassName(implementation))
-                    .param(keyType, "key")
-                    .delegatingClosureParam(elementType)
-                    .callS(varX("this"), methodName, args(classX(implementation), varX("key"), varX("closure")))
-                    .addTo(contextClass);
-        }
-
-        //noinspection ConstantConditions
-        createPublicMethod(REUSE_METHOD_NAME)
-                .param(elementType, "value")
-                .callS(getOuterInstanceXforField(fieldNode), "put",
-                        args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
-                )
-                .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
-                .addTo(contextClass);
-
-        addDynamicKeyedCreatorMethod(contextClass, methodName);
-
-        annotatedClass.getModule().addClass(contextClass);
-
-        return contextClass;
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
@@ -663,5 +497,210 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     public void addCompileWarning(String msg, ASTNode node) {
         // TODO Need to convert node into CST node?
         //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
+    }
+
+    private class InnerClassUtil {
+        private FieldNode fieldNode;
+        private ClassNode keyType;
+        private ClassNode elementType;
+        private InnerClassNode contextClass;
+        private String methodName;
+        private FieldNode ownerFieldOfElement;
+        private FieldNode fieldKey;
+        private String ownerFieldOfElementName;
+
+        public InnerClassUtil(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
+            this.fieldNode = fieldNode;
+            this.keyType = keyType;
+            this.elementType = elementType;
+        }
+
+        public InnerClassUtil(FieldNode fieldNode, ClassNode elementType) {
+            this.fieldNode = fieldNode;
+            this.elementType = elementType;
+        }
+
+        void createMapOfDSLObjectMethods() {
+            if (getKeyField(elementType) == null) {
+                addCompileError(
+                        String.format("Value type of map %s (%s) has now key field", fieldNode, elementType),
+                        fieldNode
+                );
+            }
+
+            createInnerClassForMaps();
+            createContextClosure();
+        }
+
+        public InnerClassNode createInnerClassForMaps() {
+
+            contextClass = createInnerContextClass(fieldNode);
+
+            methodName = getElementNameForCollectionField(fieldNode);
+            ownerFieldOfElement = getOwnerField(elementType);
+            ownerFieldOfElementName = getOwnerFieldName(elementType);
+
+            if (!isAbstract(elementType))
+                createUntypedListAdder();
+
+            if (!isFinal(elementType))
+                createTypedListAdder();
+
+            for (ClassNode implementation : getClassesList(fieldNode, elementType))
+                createAlternativeListAdder(implementation);
+
+            createReuseMethod();
+            addDynamicKeyedCreatorMethod(contextClass, methodName);
+
+            addClassToModule();
+
+            return contextClass;
+        }
+
+        private void createContextClosure() {
+
+            createPublicMethod(getMethodNameForField(fieldNode))
+                    .delegatingClosureParam(contextClass)
+                    .declS("context", ctorX(contextClass, varX("this")))
+                    .statements(delegateToClosure())
+                    .addTo(annotatedClass);
+        }
+
+        private void addClassToModule() {
+            annotatedClass.getModule().addClass(contextClass);
+        }
+
+        private void createReuseMethod() {
+            //noinspection ConstantConditions
+            createPublicMethod(REUSE_METHOD_NAME)
+                    .param(elementType, "value")
+                    .callS(getOuterInstanceXforField(fieldNode), "put",
+                            args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
+                    )
+                    .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
+        }
+
+        private void createAlternativeListAdder(ClassNode implementation) {
+            createPublicMethod(uncapitalizedSimpleClassName(implementation))
+                    .param(keyType, "key")
+                    .delegatingClosureParam(elementType)
+                    .callS(varX("this"), methodName, args(classX(implementation), varX("key"), varX("closure")))
+                    .addTo(contextClass);
+        }
+
+        private void createTypedListAdder() {
+            createPublicMethod(methodName)
+                    .classParam("typeToCreate", elementType)
+                    .param(keyType, "key")
+                    .delegatingClosureParam(elementType)
+                    .declS("created", callX(varX("typeToCreate"), "newInstance", args("key")))
+                    .callS(varX("created"), "apply", varX("closure"))
+                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
+                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
+        }
+
+        private void createUntypedListAdder() {
+            createPublicMethod(methodName)
+                    .param(keyType, "key")
+                    .delegatingClosureParam(elementType)
+                    .declS("created", callX(elementType, "create", args("key", "closure")))
+                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
+                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
+        }
+
+        void createListOfDSLObjectMethods() {
+            createInnerClassForLists();
+            createContextClosure();
+        }
+
+        public InnerClassNode createInnerClassForLists() {
+
+            contextClass = createInnerContextClass(fieldNode);
+
+            methodName = getElementNameForCollectionField(fieldNode);
+
+            fieldKey = getKeyField(elementType);
+            ownerFieldOfElement = getOwnerField(elementType);
+            ownerFieldOfElementName = getOwnerFieldName(elementType);
+
+            if (!isAbstract(elementType)) {
+                createPublicMethod(methodName)
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam(elementType)
+                        .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
+                        .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
+                        .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                        .addTo(contextClass);
+            }
+
+            if (!isFinal(elementType)) {
+                createPublicMethod(methodName)
+                        .classParam("typeToCreate", elementType)
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam(elementType)
+                        .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
+                        .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
+                        .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                        .addTo(contextClass);
+            }
+
+            List<ClassNode> classesList = getClassesList(fieldNode, elementType);
+            for (ClassNode implementation : classesList) {
+                createPublicMethod(uncapitalizedSimpleClassName(implementation))
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam(elementType)
+                        .callS(varX("this"), methodName, argsWithClassOptionalKeyAndClosure(implementation, fieldKey))
+                        .addTo(contextClass);
+            }
+
+            createPublicMethod(REUSE_METHOD_NAME)
+                    .param(elementType, "value")
+                    .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
+                    .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
+
+            if (fieldKey != null) {
+                addDynamicKeyedCreatorMethod(contextClass, methodName);
+            }
+
+            addClassToModule();
+
+            return contextClass;
+        }
+
+        @NotNull
+        private InnerClassNode createInnerContextClass(FieldNode fieldNode) {
+            InnerClassNode contextClass = new InnerClassNode(
+                    annotatedClass,
+                    annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
+                    ACC_STATIC,
+                    ClassHelper.OBJECT_TYPE);
+
+            contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
+            contextClass.addConstructor(
+                    0,
+                    params(param(newClass(annotatedClass), "outerInstance")),
+                    NO_EXCEPTIONS,
+                    block(
+                            assignS(
+                                    propX(varX("this"), "outerInstance"),
+                                    varX("outerInstance")
+                            )
+                    )
+            );
+            return contextClass;
+        }
+
+        private ArgumentListExpression argsWithClassOptionalKeyAndClosure(ClassNode type, FieldNode fieldKey) {
+            return fieldKey != null ? args(classX(type), varX("key"), varX("closure")) : args(classX(type), varX("closure"));
+        }
+
+        @NotNull
+        private Expression getOuterInstanceXforField(FieldNode fieldNode) {
+            return propX(propX(varX("this"), "outerInstance"), fieldNode.getName());
+        }
     }
 }
