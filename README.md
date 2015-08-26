@@ -275,3 +275,5 @@ Future plans:
 - owner references
 - strip common suffixes from alternative names
 - allow custom names for alternatives
+- syntactic sugar for reuse (something like <<, which unfortunately does not work)
+- Ability to clone elements on reuse
