@@ -27,6 +27,71 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         getClass("pk.Bar").metaClass.getMetaMethod("owner", clazz) == null
     }
 
+    def "error: two different owners in hierarchy"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Bar bar
+            }
+
+            @DSLConfig(owner="owner")
+            class Bar {
+                Foo owner
+            }
+
+            @DSLConfig(owner="owner2")
+            class ChildBar extends Bar {
+                Foo owner2
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "error: owner points to not existing field"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Bar bar
+            }
+
+            @DSLConfig(owner="own")
+            class Bar {
+                Foo owner
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "error: owner field is no dsl object"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Bar bar
+            }
+
+            @DSLConfig(owner="owner")
+            class Bar {
+                String owner
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
     def "owner reference for single dsl object"() {
         given:
         createClass('''
