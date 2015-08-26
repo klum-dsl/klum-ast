@@ -13,8 +13,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
 public class MethodBuilder {
@@ -69,6 +72,7 @@ public class MethodBuilder {
         return this;
     }
 
+    @Deprecated
     public MethodBuilder params(Parameter[] params) {
         parameters = Arrays.asList(params);
         return this;
@@ -76,6 +80,19 @@ public class MethodBuilder {
 
     public MethodBuilder param(Parameter param) {
         parameters.add(param);
+        return this;
+    }
+
+    public MethodBuilder classParam(String name, ClassNode upperBound) {
+        return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
+    }
+
+    public MethodBuilder stringParam(String name) {
+        return param(ClassHelper.STRING_TYPE, name);
+    }
+
+    public MethodBuilder optionalStringParam(String name, boolean shouldAdd) {
+        if (shouldAdd) stringParam(name);
         return this;
     }
 

@@ -9,6 +9,7 @@ import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -191,16 +192,19 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         createPublicVoidMethod(getMethodNameForField(fieldNode))
                 .delegatingClosureParam(contextClass)
-                .statements(
-                        declS(varX("context"), ctorX(contextClass, varX("this"))),
-                        assignS(propX(varX("closure"), "delegate"), varX("context")),
-                        assignS(
-                                propX(varX("closure"), "resolveStrategy"),
-                                propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                        ),
-                        stmt(callX(varX("closure"), "call"))
-                )
+                .declS("context", ctorX(contextClass, varX("this")))
+                .statements(delegateToClosure())
                 .addTo(annotatedClass);
+    }
+
+    @NotNull
+    private Statement[] delegateToClosure() {
+        return new Statement[]{assignS(propX(varX("closure"), "delegate"), varX("context")),
+                assignS(
+                        propX(varX("closure"), "resolveStrategy"),
+                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
+                ),
+                stmt(callX(varX("closure"), "call"))};
     }
 
     private InnerClassNode createInnerContextClassForListMembers(FieldNode fieldNode, ClassNode elementType) {
@@ -213,13 +217,16 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             MethodBuilder createMethod = createPublicVoidMethod(methodName)
-                    .params(optionalKeyAndClosureParams(elementType, fieldKey))
-                    .statements(
-                            declS(varX("created"),
-                                    callX(elementType, "create", fieldKey != null ? args("key", "closure") : args("closure"))
-                            ),
-                            stmt(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")))
-                    );
+                    .optionalStringParam("key", fieldKey != null)
+                    .delegatingClosureParam(elementType);
+
+
+            createMethod.declS(
+                    "created",
+                    callX(elementType, "create", fieldKey != null ? args("key", "closure") : args("closure"))
+            );
+
+            createMethod.statement(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")));
 
             if (ownerFieldOfElement != null)
                 createMethod.assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"));
@@ -229,7 +236,9 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isFinal(elementType)) {
             MethodBuilder typedCreateMethod = createPublicVoidMethod(methodName)
-                    .params(subclassOptionalKeyAndClosureParams(elementType, fieldKey));
+                    .classParam("typeToCreate", elementType)
+                    .optionalStringParam("key", fieldKey != null)
+                    .delegatingClosureParam(elementType);
 
             if (fieldKey != null)
                 typedCreateMethod.declS("created", callX(varX("typeToCreate"), "newInstance", args("key")));
@@ -249,7 +258,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             String alternativeName = uncapitalizedSimpleClassName(implementation);
 
             createPublicVoidMethod(alternativeName)
-                    .params(optionalKeyAndClosureParams(elementType, fieldKey))
+                    .optionalStringParam("key", fieldKey != null)
+                    .delegatingClosureParam(elementType)
                     .statement(
                             callX(getOuterInstanceXforField(fieldNode), "add",
                                     callX(
