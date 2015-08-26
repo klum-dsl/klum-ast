@@ -17,8 +17,8 @@ public @interface DSLConfig {
     String key() default "";
 
     /**
-     * is the Object polymorphic, i.e. should the factory contain an additional class parameter.
+     * If set, automatically sets this field to the containing instance when adding.
      */
-    boolean polymorphic() default false;
+    String owner() default "";
 
 }
