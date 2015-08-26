@@ -8,6 +8,7 @@ import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -47,6 +48,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private ClassNode annotatedClass;
     private FieldNode keyField;
+    private FieldNode ownerField;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -55,6 +57,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         annotatedClass = (ClassNode) nodes[1];
         keyField = getKeyField(annotatedClass);
+        ownerField = getOwnerField(annotatedClass);
 
         if (keyField != null)
             createKeyConstructor();
@@ -100,6 +103,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createMethodsForSingleField(FieldNode fieldNode) {
         if (fieldNode == keyField) return;
+        if (fieldNode == ownerField) return;
 
         String methodName = getMethodNameForField(fieldNode);
 
@@ -113,7 +117,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createListMethod(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
-
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
@@ -563,8 +566,27 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         ClassNode fieldType = fieldNode.getType();
         boolean hasKeyField = getKeyField(fieldType) != null;
+        FieldNode ownerFieldOfElement = getOwnerField(fieldType);
 
         if (!isAbstract(fieldType)) {
+            BlockStatement methodBody = block(
+                    assignS(propX(varX("this"), fieldNode.getName()),
+                            callX(
+                                    fieldType,
+                                    "create",
+                                    hasKeyField ? args("key", "closure") : args("closure")
+                            )
+                    )
+            );
+
+            if (ownerFieldOfElement != null) {
+                methodBody.addStatement(
+                        assignS(propX(propX(varX("this"), fieldNode.getName()), ownerFieldOfElement.getName()),
+                                varX("this")
+                        )
+                );
+            }
+
             annotatedClass.addMethod(
                     methodName,
                     Opcodes.ACC_PUBLIC,
@@ -573,15 +595,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                             params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(fieldType))
                             : params(createAnnotatedClosureParameter(fieldType)),
                     NO_EXCEPTIONS,
-                    block(
-                            assignS(propX(varX("this"), fieldNode.getName()),
-                                    callX(
-                                            fieldType,
-                                            "create",
-                                            hasKeyField ? args("key", "closure") : args("closure")
-                                    )
-                            )
-                    )
+                    methodBody
             );
         }
 
@@ -708,6 +722,34 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
+    private FieldNode getOwnerField(ClassNode target)
+    {
+        String ownerFieldName = getOwnerFieldName(target);
+
+        if (ownerFieldName == null) return null;
+
+        FieldNode result = target.getField(ownerFieldName);
+
+        if (result == null) {
+            addCompileError(
+                    String.format("Designated owner field '%s' is missing", ownerFieldName),
+                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+            );
+            return null;
+        }
+
+
+        if (getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
+            addCompileError(
+                    String.format("Designated owner field '%s' must be a dsl object, but is '%s' instead", ownerFieldName, result.getType().getName()),
+                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+            );
+            return null;
+        }
+
+        return result;
+    }
+
     private String getKeyFieldName(ClassNode target) {
         Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
 
@@ -738,6 +780,36 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         return firstKey;
+    }
+
+    private String getOwnerFieldName(ClassNode target) {
+        Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
+
+        String owner = null;
+        ClassNode declaringClass = null;
+
+        for (ClassNode node : hierarchy) {
+            String ownerOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "owner", null);
+
+            if (owner == null && ownerOfCurrentNode == null) continue;
+
+            if (owner == null) {
+                owner = ownerOfCurrentNode;
+                declaringClass = node;
+                continue;
+            }
+
+            if (owner.equals(ownerOfCurrentNode)) continue;
+            if (ownerOfCurrentNode == null) continue;
+
+            addCompileError(
+                    String.format("Inconsistent owner hierarchy: class %s defines owner '%s', but child class %s defines '%s'.", declaringClass, owner, node, ownerOfCurrentNode),
+                    node
+            );
+            return null;
+        }
+
+        return owner;
     }
 
     private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
