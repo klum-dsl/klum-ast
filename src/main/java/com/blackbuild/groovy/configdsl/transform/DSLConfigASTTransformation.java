@@ -1,13 +1,10 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import groovy.lang.DelegatesTo;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -20,10 +17,11 @@ import org.objectweb.asm.Opcodes;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
-import static org.codehaus.groovy.ast.ClassHelper.*;
+import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
@@ -36,10 +34,9 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
-    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
+    private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
-    private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
     private static final String REUSE_METHOD_NAME = "reuse";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -389,7 +386,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
-                    .stringParam("key")
+                    .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", args("key", "closure")))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
@@ -400,7 +397,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (!isFinal(elementType)) {
             createPublicMethod(methodName)
                     .classParam("typeToCreate", elementType)
-                    .stringParam("key")
+                    .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", args("key")))
                     .callS(varX("created"), "apply", varX("closure"))
@@ -412,7 +409,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
             createPublicMethod(uncapitalizedSimpleClassName(implementation))
-                    .stringParam("key")
+                    .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .callS(varX("this"), methodName, args(classX(implementation), varX("key"), varX("closure")))
                     .addTo(contextClass);
@@ -464,10 +461,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isFinal(ClassNode classNode) {
         return (classNode.getModifiers() & ACC_FINAL) != 0;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isAbstract(ClassNode classNode) {
         return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
@@ -648,12 +647,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
     }
 
-    AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
+    private AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
         List<AnnotationNode> annotation = field.getAnnotations(type);
         return annotation.isEmpty() ? null : annotation.get(0);
     }
 
-    public void addCompileError(String msg, ASTNode node) {
+    private void addCompileError(String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
