@@ -191,7 +191,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         createPublicVoidMethod(getMethodNameForField(fieldNode))
                 .delegatingClosureParam(contextClass)
-                .statement(
+                .statements(
                         declS(varX("context"), ctorX(contextClass, varX("this"))),
                         assignS(propX(varX("closure"), "delegate"), varX("context")),
                         assignS(
@@ -212,96 +212,70 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         FieldNode ownerFieldOfElement = getOwnerField(elementType);
 
         if (!isAbstract(elementType)) {
-            BlockStatement methodBody = block(
-                    declS(varX("created"),
-                            callX(
-                                    elementType,
-                                    "create",
-                                    fieldKey != null ? args("key", "closure") : args("closure")
-                            )
-                    ),
-                    stmt(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")))
-            );
+            MethodBuilder createMethod = createPublicVoidMethod(methodName)
+                    .params(optionalKeyAndClosureParams(elementType, fieldKey))
+                    .statements(
+                            declS(varX("created"),
+                                    callX(elementType, "create", fieldKey != null ? args("key", "closure") : args("closure"))
+                            ),
+                            stmt(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")))
+                    );
 
-            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
+            if (ownerFieldOfElement != null)
+                createMethod.assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"));
 
-            contextClass.addMethod(
-                    methodName,
-                    Opcodes.ACC_PUBLIC,
-                    ClassHelper.VOID_TYPE,
-                    optionalKeyAndClosureParams(elementType, fieldKey),
-                    NO_EXCEPTIONS,
-                    methodBody
-            );
+            createMethod.addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
+            MethodBuilder typedCreateMethod = createPublicVoidMethod(methodName)
+                    .params(subclassOptionalKeyAndClosureParams(elementType, fieldKey));
 
-            BlockStatement methodBody = fieldKey != null ?
-                    block(
-                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
-                            stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
-                    ) :
-                    block(
-                            declS(varX("created"), callX(varX("typeToCreate"), "newInstance")),
-                            stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
-                    );
+            if (fieldKey != null)
+                typedCreateMethod.declS("created", callX(varX("typeToCreate"), "newInstance", args("key")));
+            else
+                typedCreateMethod.declS("created", callX(varX("typeToCreate"), "newInstance"));
 
-            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
+            typedCreateMethod.statement(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))));
 
-            contextClass.addMethod(
-                    methodName,
-                    Opcodes.ACC_PUBLIC,
-                    ClassHelper.VOID_TYPE,
-                    subclassOptionalKeyAndClosureParams(elementType, fieldKey),
-                    NO_EXCEPTIONS,
-                    methodBody
-            );
+            if (ownerFieldOfElement != null)
+                typedCreateMethod.assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"));
+
+            typedCreateMethod.addTo(contextClass);
         }
 
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
             String alternativeName = uncapitalizedSimpleClassName(implementation);
 
-            contextClass.addMethod(
-                    alternativeName,
-                    Opcodes.ACC_PUBLIC,
-                    ClassHelper.VOID_TYPE,
-                    optionalKeyAndClosureParams(elementType, fieldKey),
-                    NO_EXCEPTIONS,
-                    block(
-                            stmt(callX(getOuterInstanceXforField(fieldNode), "add",
+            createPublicVoidMethod(alternativeName)
+                    .params(optionalKeyAndClosureParams(elementType, fieldKey))
+                    .statement(
+                            callX(getOuterInstanceXforField(fieldNode), "add",
                                     callX(
                                             implementation,
                                             "create",
                                             fieldKey != null ? args("key", "closure") : args("closure")
                                     )
-                            ))
+                            )
                     )
-            );
+            .addTo(contextClass);
         }
 
-        BlockStatement reuseMethodBody = block(
-                stmt(callX(getOuterInstanceXforField(fieldNode), "add",
+        MethodBuilder reuseMethod = createPublicVoidMethod(REUSE_METHOD_NAME)
+                .param(elementType, "value")
+                .statement(callX(getOuterInstanceXforField(fieldNode), "add",
                         varX("value")
-                ))
-        );
+                ));
 
-        addSetOwnerToOuterInstanceStatement(ownerFieldOfElement, reuseMethodBody);
+        if (ownerFieldOfElement != null)
+            reuseMethod.assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"));
 
-        contextClass.addMethod(
-                REUSE_METHOD_NAME,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(elementType, "value")),
-                NO_EXCEPTIONS,
-                reuseMethodBody
-        );
+        reuseMethod.addTo(contextClass);
 
         if (fieldKey != null) {
             addDynamicKeyedCreatorMethod(contextClass, methodName);
         }
-
 
         annotatedClass.getModule().addClass(contextClass);
 

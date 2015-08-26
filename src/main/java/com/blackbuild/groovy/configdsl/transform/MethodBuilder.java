@@ -10,12 +10,11 @@ import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.codehaus.groovy.ast.ClassHelper.make;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
 public class MethodBuilder {
@@ -70,6 +69,11 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder params(Parameter[] params) {
+        parameters = Arrays.asList(params);
+        return this;
+    }
+
     public MethodBuilder param(Parameter param) {
         parameters.add(param);
         return this;
@@ -100,7 +104,7 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder statement(Statement... statements) {
+    public MethodBuilder statements(Statement... statements) {
         if (body == null)
             body = new BlockStatement(statements, new VariableScope());
         else
@@ -115,6 +119,14 @@ public class MethodBuilder {
 
         body.addStatement(statement);
         return this;
+    }
+
+    public MethodBuilder assignS(Expression target, Expression value) {
+        return statement(GeneralUtils.assignS(target, value));
+    }
+
+    public MethodBuilder declS(String target, Expression init) {
+        return statement(GeneralUtils.declS(varX(target), init));
     }
 
     public MethodBuilder statement(Expression expression) {
