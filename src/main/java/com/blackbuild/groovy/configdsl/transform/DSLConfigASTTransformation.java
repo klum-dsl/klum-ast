@@ -7,7 +7,6 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -20,7 +19,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicVoidMethod;
+import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -115,7 +114,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createPublicVoidMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(getMethodNameForField(fieldNode))
             .param(fieldNode.getType(), "value")
             .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
             .addTo(annotatedClass);
@@ -160,12 +159,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
-        createPublicVoidMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(getMethodNameForField(fieldNode))
             .arrayParam(elementType, "values")
             .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
             .addTo(annotatedClass);
 
-        createPublicVoidMethod(getElementNameForCollectionField(fieldNode))
+        createPublicMethod(getElementNameForCollectionField(fieldNode))
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
                 .addTo(annotatedClass);
@@ -178,7 +177,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
 
-        createPublicVoidMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(getMethodNameForField(fieldNode))
                 .delegatingClosureParam(contextClass)
                 .declS("context", ctorX(contextClass, varX("this")))
                 .statements(delegateToClosure())
@@ -207,7 +206,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         String ownerFieldOfElementName = getOwnerFieldName(elementType);
 
         if (!isAbstract(elementType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
@@ -217,7 +216,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
@@ -229,14 +228,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
-            createPublicVoidMethod(uncapitalizedSimpleClassName(implementation))
+            createPublicMethod(uncapitalizedSimpleClassName(implementation))
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .callS(varX("this"), methodName, argsWithClassOptionalKeyAndClosure(implementation, fieldKey))
                     .addTo(contextClass);
         }
 
-        createPublicVoidMethod(REUSE_METHOD_NAME)
+        createPublicMethod(REUSE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
                 .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
@@ -272,14 +271,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
-        contextClass.addMethod(
-                "invokeMethod",
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.OBJECT_TYPE,
-                params(param(ClassHelper.STRING_TYPE, "name"), param(ClassHelper.OBJECT_TYPE, "args")),
-                NO_EXCEPTIONS,
-                block(
-                        ifElseS(andX(
+        createPublicMethod("invokeMethod")
+                .returning(ClassHelper.OBJECT_TYPE)
+                .stringParam("name")
+                .objectParam("args")
+                .statement(ifElseS(andX(
                                         isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
                                         isInstanceOfX(
                                                 indexX(varX("args"), constX(0)),
@@ -292,7 +288,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                                 stmt(callSuperX("invokeMethod", args("name", "args")))
                         )
                 )
-        );
+                .addTo(contextClass);
     }
 
     private String uncapitalizedSimpleClassName(ClassNode node) {
@@ -366,29 +362,18 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
         String methodName = getMethodNameForField(fieldNode);
 
-        annotatedClass.addMethod(
-                methodName,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(fieldNode.getType(), "values")),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(propX(varX("this"), fieldNode.getName()), "putAll", varX("values")))
-                )
-        );
+        createPublicMethod(methodName)
+                .param(fieldNode.getType(), "values")
+                .callS(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
+                .addTo(annotatedClass);
 
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
-        annotatedClass.addMethod(
-                singleElementMethod,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(keyType, "key"), param(valueType, "value")),
-                NO_EXCEPTIONS,
-                block(
-                        stmt(callX(propX(varX("this"), fieldNode.getName()), "put", args("key", "value")))
-                )
-        );
+        createPublicMethod(singleElementMethod)
+                .param(keyType, "key")
+                .param(valueType, "value")
+                .callS(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
+                .addTo(annotatedClass);
     }
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
@@ -407,12 +392,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         InnerClassNode contextClass = createInnerContextClass(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
-        FieldNode fieldKey = getKeyField(elementType);
         FieldNode ownerFieldOfElement = getOwnerField(elementType);
         String ownerFieldOfElementName = getOwnerFieldName(elementType);
 
         if (!isAbstract(elementType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .stringParam("key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", args("key", "closure")))
@@ -422,7 +406,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .classParam("typeToCreate", elementType)
                     .stringParam("key")
                     .delegatingClosureParam(elementType)
@@ -435,7 +419,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
-            createPublicVoidMethod(uncapitalizedSimpleClassName(implementation))
+            createPublicMethod(uncapitalizedSimpleClassName(implementation))
                     .stringParam("key")
                     .delegatingClosureParam(elementType)
                     .callS(varX("this"), methodName, args(classX(implementation), varX("key"), varX("closure")))
@@ -443,20 +427,13 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         //noinspection ConstantConditions
-        BlockStatement reuseMethodBody = block(
-                stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+        createPublicMethod(REUSE_METHOD_NAME)
+                .param(elementType, "value")
+                .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
-                ))
-        );
-        addSetOwnerToOuterInstanceStatement(ownerFieldOfElement, reuseMethodBody);
-        contextClass.addMethod(
-                REUSE_METHOD_NAME,
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(param(elementType, "value")),
-                NO_EXCEPTIONS,
-                reuseMethodBody
-        );
+                )
+                .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                .addTo(contextClass);
 
         addDynamicKeyedCreatorMethod(contextClass, methodName);
 
@@ -482,7 +459,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         String ownerFieldName = getOwnerFieldName(fieldType);
 
         if (!isAbstract(fieldType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(fieldType, "create", argsWithOptionalKeyAndClosure(keyField)))
@@ -492,7 +469,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(fieldType)) {
-            createPublicVoidMethod(methodName)
+            createPublicMethod(methodName)
                     .classParam("typeToCreate", fieldType)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)

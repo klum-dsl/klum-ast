@@ -42,7 +42,7 @@ public class MethodBuilder {
         this.name = name;
     }
 
-    public static MethodBuilder createPublicVoidMethod(String name) {
+    public static MethodBuilder createPublicMethod(String name) {
         return new MethodBuilder(name);
     }
 
@@ -95,6 +95,10 @@ public class MethodBuilder {
         if (addIfNotNull != null)
             stringParam(name);
         return this;
+    }
+
+    public MethodBuilder objectParam(String name) {
+        return param(ClassHelper.OBJECT_TYPE, name);
     }
 
     public MethodBuilder param(ClassNode type, String name) {
