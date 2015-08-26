@@ -115,6 +115,43 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         instance.bar.owner.is(instance)
+
+        when:
+        instance = clazz.create {
+            bar(getClass("pk.Bar")) {}
+        }
+
+        then:
+        instance.bar.owner.is(instance)
+    }
+
+    def "owner reference for dsl object list"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(owner="owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bars {
+                bar {}
+                bar(getClass("pk.Bar")) {}
+            }
+        }
+
+        then:
+        instance.bars[0].owner.is(instance)
+        instance.bars[1].owner.is(instance)
     }
 
 }
