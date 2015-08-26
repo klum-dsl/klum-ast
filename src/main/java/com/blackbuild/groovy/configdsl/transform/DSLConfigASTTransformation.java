@@ -143,8 +143,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createListMethod(FieldNode fieldNode) {
-        if (!fieldNode.hasInitialExpression())
-            fieldNode.setInitialValueExpression(new ListExpression());
+        initializeField(fieldNode, new ListExpression());
 
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
@@ -152,6 +151,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createListOfDSLObjectMethods(fieldNode, elementType);
         else
             createListOfSimpleElementsMethods(fieldNode, elementType);
+    }
+
+    private void initializeField(FieldNode fieldNode, Expression init) {
+        if (!fieldNode.hasInitialExpression())
+            fieldNode.setInitialValueExpression(init);
     }
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -336,8 +340,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapMethod(FieldNode fieldNode) {
-        if (!fieldNode.hasInitialExpression())
-            fieldNode.setInitialValueExpression(new MapExpression());
+        initializeField(fieldNode, new MapExpression());
 
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
         ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
