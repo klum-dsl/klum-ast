@@ -91,8 +91,9 @@ public class MethodBuilder {
         return param(ClassHelper.STRING_TYPE, name);
     }
 
-    public MethodBuilder optionalStringParam(String name, boolean shouldAdd) {
-        if (shouldAdd) stringParam(name);
+    public MethodBuilder optionalStringParam(String name, Object addIfNotNull) {
+        if (addIfNotNull != null)
+            stringParam(name);
         return this;
     }
 
@@ -150,6 +151,10 @@ public class MethodBuilder {
 
     public MethodBuilder declS(String target, Expression init) {
         return statement(GeneralUtils.declS(varX(target), init));
+    }
+
+    public MethodBuilder callS(Expression receiver, String methodName, Expression args) {
+        return statement(GeneralUtils.callX(receiver, methodName, args));
     }
 
     public MethodBuilder statement(Expression expression) {
