@@ -125,6 +125,59 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bar.owner.is(instance)
     }
 
+    def "reusing of objects in list closure sets owner"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(owner = "owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+        def aBar = create("pk.Bar") {}
+
+        when:
+        instance.bars {
+            reuse(aBar)
+        }
+
+        then:
+        instance.bars[0].owner.is(instance)
+    }
+
+    def "reusing of objects in map closure sets owner"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSLConfig(key = "name", owner = "owner")
+            class Bar {
+                String name
+                Foo owner
+            }
+        ''')
+        def aBar = create("pk.Bar", "Klaus") {}
+
+        when:
+        instance.bars {
+            reuse(aBar)
+        }
+
+        then:
+        instance.bars.Klaus.owner.is(instance)
+    }
+
     def "owner reference for dsl object list"() {
         given:
         createClass('''

@@ -307,17 +307,25 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             );
         }
 
+        BlockStatement reuseMethodBody = block(
+                stmt(callX(getOuterInstanceXforField(fieldNode), "add",
+                        varX("value")
+                ))
+        );
+
+        if (ownerFieldOfElement != null) {
+            reuseMethodBody.addStatement(
+                assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
+            );
+        }
+
         contextClass.addMethod(
                 REUSE_METHOD_NAME,
                 Opcodes.ACC_PUBLIC,
                 ClassHelper.VOID_TYPE,
                 params(param(elementType, "value")),
                 NO_EXCEPTIONS,
-                block(
-                        stmt(callX(getOuterInstanceXforField(fieldNode), "add",
-                                varX("value")
-                        ))
-                )
+                reuseMethodBody
         );
 
         if (fieldKey != null) {
@@ -531,18 +539,25 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             );
         }
 
+
         //noinspection ConstantConditions
+        BlockStatement reuseMethodBody = block(
+                stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                        args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
+                ))
+        );
+        if (ownerFieldOfElement != null) {
+            reuseMethodBody.addStatement(
+                    assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
+            );
+        }
         contextClass.addMethod(
-                "reuse",
+                REUSE_METHOD_NAME,
                 Opcodes.ACC_PUBLIC,
                 ClassHelper.VOID_TYPE,
                 params(param(elementType, "value")),
                 NO_EXCEPTIONS,
-                block(
-                        stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
-                        ))
-                )
+                reuseMethodBody
         );
 
         contextClass.addMethod(
