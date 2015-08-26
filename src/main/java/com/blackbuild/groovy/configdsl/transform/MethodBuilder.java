@@ -73,12 +73,6 @@ public class MethodBuilder {
         return this;
     }
 
-    @Deprecated
-    public MethodBuilder params(Parameter[] params) {
-        parameters = Arrays.asList(params);
-        return this;
-    }
-
     public MethodBuilder param(Parameter param) {
         parameters.add(param);
         return this;
@@ -120,11 +114,6 @@ public class MethodBuilder {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
         result.setMember("value", classX(target));
         return result;
-    }
-
-    public MethodBuilder code(BlockStatement code) {
-        this.body = code;
-        return this;
     }
 
     public MethodBuilder statements(Statement... statements) {

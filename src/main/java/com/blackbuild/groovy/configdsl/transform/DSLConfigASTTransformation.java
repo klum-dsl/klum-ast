@@ -262,14 +262,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return fieldKey != null ? args(classX(type), varX("key"), varX("closure")) : args(classX(type), varX("closure"));
     }
 
-    private void addSetOwnerToOuterInstanceStatement(FieldNode ownerFieldOfElement, BlockStatement reuseMethodBody) {
-        if (ownerFieldOfElement != null) {
-            reuseMethodBody.addStatement(
-                    assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-            );
-        }
-    }
-
     private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
         createPublicMethod("invokeMethod")
                 .returning(ClassHelper.OBJECT_TYPE)
@@ -442,14 +434,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return contextClass;
     }
 
-    private void addOuterInstanceAsOwnerStatementToMethodBody(FieldNode ownerFieldOfElement, BlockStatement methodBody) {
-        if (ownerFieldOfElement != null) {
-            methodBody.addStatement(
-                    assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-            );
-        }
-    }
-
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
         String methodName = getMethodNameForField(fieldNode);
 
@@ -486,10 +470,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     private boolean isAbstract(ClassNode classNode) {
         return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
-    }
-
-    private Parameter createSubclassClassParameter(ClassNode annotatedClass) {
-        return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(annotatedClass)), "typeToCreate");
     }
 
     private void createApplyMethod() {
@@ -538,14 +518,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 1);
         if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 1)) return;
 
-        annotatedClass.addMethod(
-                hasExistingFactory ? "_create" : "create",
-                Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-                newClass(annotatedClass),
-                params(createAnnotatedClosureParameter(annotatedClass)),
-                NO_EXCEPTIONS,
-                block(returnS(callX(ctorX(annotatedClass), "apply", varX("closure"))))
-        );
+        createPublicMethod(hasExistingFactory ? "_create" : "create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .statement(returnS(callX(ctorX(annotatedClass), "apply", varX("closure"))))
+                .addTo(annotatedClass);
     }
 
     private FieldNode getKeyField(ClassNode target) {
@@ -668,18 +646,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         hierarchy.addFirst(target);
         return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
-    }
-
-    private Parameter createAnnotatedClosureParameter(ClassNode target) {
-        Parameter result = param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), "closure");
-        result.addAnnotation(createDelegatesToAnnotation(target));
-        return result;
-    }
-
-    private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
-        AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
-        result.setMember("value", classX(target));
-        return result;
     }
 
     AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
