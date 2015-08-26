@@ -243,11 +243,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     stmt(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")))
             );
 
-            if (ownerFieldOfElement != null) {
-                methodBody.addStatement(
-                        assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-                );
-            }
+            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
 
             contextClass.addMethod(
                     methodName,
@@ -273,11 +269,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                             stmt(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
                     );
 
-            if (ownerFieldOfElement != null) {
-                methodBody.addStatement(
-                        assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-                );
-            }
+            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
 
             contextClass.addMethod(
                     methodName,
@@ -471,38 +463,47 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         String methodName = getElementNameForCollectionField(fieldNode);
         FieldNode fieldKey = getKeyField(elementType);
+        FieldNode ownerFieldOfElement = getOwnerField(elementType);
 
         if (!isAbstract(elementType)) {
+            BlockStatement methodBody = block(
+                    declS(varX("created"),
+                            callX(elementType, "create", args("key", "closure"))
+                    ),
+                    stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                            args(varX("key"), varX("created"))
+                    ))
+            );
+
+            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
+
             contextClass.addMethod(
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
                     params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
                     NO_EXCEPTIONS,
-                    block(
-                            stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                    args(
-                                            varX("key"),
-                                            callX(elementType, "create", args("key", "closure"))
-                                    )
-                            ))
-                    )
+                    methodBody
             );
         }
 
         if (!isFinal(elementType)) {
-                contextClass.addMethod(
+            BlockStatement methodBody = block(
+                    declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
+                    stmt(callX(getOuterInstanceXforField(fieldNode), "put",
+                                    args(varX("key"), callX(varX("created"), "apply", varX("closure"))))
+                    )
+            );
+
+            addOuterInstanceAsOwnerStatementToMethodBody(ownerFieldOfElement, methodBody);
+
+            contextClass.addMethod(
                         methodName,
                         Opcodes.ACC_PUBLIC,
                         ClassHelper.VOID_TYPE,
                         params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
                         NO_EXCEPTIONS,
-                        block(
-                                declS(varX("created"), callX(varX("typeToCreate"), "newInstance", args("key"))),
-                                stmt(callX(getOuterInstanceXforField(fieldNode), "put",
-                                                args(varX("key"), callX(varX("created"), "apply", varX("closure"))))
-                                )
-                        )
+                    methodBody
                 );
         }
 
@@ -570,6 +571,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         annotatedClass.getModule().addClass(contextClass);
 
         return contextClass;
+    }
+
+    private void addOuterInstanceAsOwnerStatementToMethodBody(FieldNode ownerFieldOfElement, BlockStatement methodBody) {
+        if (ownerFieldOfElement != null) {
+            methodBody.addStatement(
+                    assignS(propX(varX("created"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
+            );
+        }
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {

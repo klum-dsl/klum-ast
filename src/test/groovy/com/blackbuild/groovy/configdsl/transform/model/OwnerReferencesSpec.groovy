@@ -154,4 +154,34 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars[1].owner.is(instance)
     }
 
+    def "owner reference for dsl object map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSLConfig(key="name", owner="owner")
+            class Bar {
+                Foo owner
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bars {
+                bar("Klaus") {}
+                bar(getClass("pk.Bar"), "Dieter") {}
+            }
+        }
+
+        then:
+        instance.bars.Klaus.owner.is(instance)
+        instance.bars.Dieter.owner.is(instance)
+    }
+
 }
