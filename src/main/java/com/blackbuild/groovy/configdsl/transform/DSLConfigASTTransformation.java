@@ -492,27 +492,21 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(annotatedClass)), "typeToCreate");
     }
 
-
     private void createApplyMethod() {
         boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);
         if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 1)) return;
 
-        annotatedClass.addMethod(
-                hasExistingApply ? "_apply" : "apply",
-                Opcodes.ACC_PUBLIC,
-                newClass(annotatedClass),
-                params(createAnnotatedClosureParameter(annotatedClass)),
-                NO_EXCEPTIONS,
-                block(
-                        assignS(propX(varX("closure"), "delegate"), varX("this")),
-                        assignS(
-                                propX(varX("closure"), "resolveStrategy"),
-                                propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                        ),
-                        stmt(callX(varX("closure"), "call")),
-                        returnS(varX("this"))
+        createPublicMethod(hasExistingApply ? "_apply" : "apply")
+                .returning(newClass(annotatedClass))
+                .delegatingClosureParam(annotatedClass)
+                .assignS(propX(varX("closure"), "delegate"), varX("this"))
+                .assignS(
+                        propX(varX("closure"), "resolveStrategy"),
+                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
-        );
+                .callS(varX("closure"), "call")
+                .statement(returnS(varX("this")))
+                .addTo(annotatedClass);
     }
 
     private void createFactoryMethods() {
@@ -527,20 +521,17 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 2);
         if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 2)) return;
 
-        annotatedClass.addMethod(
-                hasExistingFactory ? "_create" : "create",
-                Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
-                newClass(annotatedClass),
-                params(param(ClassHelper.STRING_TYPE, "name"), createAnnotatedClosureParameter(annotatedClass)),
-                NO_EXCEPTIONS,
-                block(
-                        returnS(callX(
-                                        ctorX(annotatedClass, args("name")),
-                                        "apply", varX("closure")
-                                )
+        createPublicMethod(hasExistingFactory ? "_create" : "create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .stringParam("name")
+                .delegatingClosureParam(annotatedClass)
+                .statement(returnS(callX(
+                                ctorX(annotatedClass, args("name")),
+                                "apply", varX("closure")
                         )
-                )
-        );
+                ))
+                .addTo(annotatedClass);
     }
 
     private void createSimpleFactoryMethod() {

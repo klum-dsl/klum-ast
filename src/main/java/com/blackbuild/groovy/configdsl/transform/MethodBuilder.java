@@ -3,6 +3,7 @@ package com.blackbuild.groovy.configdsl.transform;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
@@ -155,6 +156,10 @@ public class MethodBuilder {
 
     public MethodBuilder declS(String target, Expression init) {
         return statement(GeneralUtils.declS(varX(target), init));
+    }
+
+    public MethodBuilder callS(Expression receiver, String methodName) {
+        return callS(receiver, methodName, MethodCallExpression.NO_ARGUMENTS);
     }
 
     public MethodBuilder callS(Expression receiver, String methodName, Expression args) {
