@@ -142,6 +142,12 @@ public class MethodBuilder {
         return statement(GeneralUtils.assignS(target, value));
     }
 
+    public MethodBuilder optionalAssignS(Expression target, Expression value, Object marker) {
+        if (marker != null)
+            assignS(target, value);
+        return this;
+    }
+
     public MethodBuilder declS(String target, Expression init) {
         return statement(GeneralUtils.declS(varX(target), init));
     }
