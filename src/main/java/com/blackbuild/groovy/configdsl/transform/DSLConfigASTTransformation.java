@@ -21,6 +21,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
+import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createVoidMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -202,13 +203,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
-        annotatedClass.addMethod(
-                getMethodNameForField(fieldNode),
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.VOID_TYPE,
-                params(createAnnotatedClosureParameter(contextClass)),
-                NO_EXCEPTIONS,
-                block(
+
+        createVoidMethod(getMethodNameForField(fieldNode))
+                .delegatingClosureParam(contextClass)
+                .statement(
                         declS(varX("context"), ctorX(contextClass, varX("this"))),
                         assignS(propX(varX("closure"), "delegate"), varX("context")),
                         assignS(
@@ -217,7 +215,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         ),
                         stmt(callX(varX("closure"), "call"))
                 )
-        );
+                .addTo(annotatedClass);
     }
 
     private InnerClassNode createInnerContextClassForListMembers(FieldNode fieldNode, ClassNode elementType) {
