@@ -1,7 +1,159 @@
 [![Build Status](https://travis-ci.org/pauxus/config-dsl.svg?branch=master)](https://travis-ci.org/pauxus/config-dsl)
 
 # ConfigDSL Transformation for Groovy
-Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects.
+Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
+for this project:
+
+- be as terse as possible while still being readable and using almost no boilerplate code
+
+- Offer as much IDE-based assistance as possible. 
+    - In IDEA this works by including a custom gdsl file (mostly working)
+    - In Eclipse, inclusion of a custom dsld file is planned
+
+## Example
+
+Given the following config classes:
+
+```groovy
+@DSLConfig
+class Config {
+    Map<String, Project> projects
+    boolean debugMode
+    List<String> options
+}
+
+@DSLConfig(key = "name")
+class Project {
+    String name
+    String url
+    MavenConfig mvn
+}
+
+@DSLConfig
+class MavenConfig {
+    List<String> goals
+    List<String> profiles
+    List<String> cliOptions
+}
+```
+
+A config object can be created with the following dsl:
+
+```groovy
+def github = "http://github.com"
+
+
+def config = Config.create {
+
+    debugMode true
+    
+    options "demo", "fast"
+    option "another"
+    
+    projects {
+        project("demo") {
+            url "$github/x/y"
+            
+            mvn {
+                goals "clean", "compile"
+                profile "ci"
+                profile "!developer"
+                
+                cliOptions "-X -pl :abc".split(" ")
+            }
+        }
+        project("demo2") {
+            url "$github/a/b"
+            
+            mvn {
+                goals "compile"
+                profile "ci"
+            }
+        }
+    }
+}
+```
+
+Since complete objects are created, using the configuration is simple:
+
+```groovy
+if (config.debugMode) println "Debug mode is active!"
+
+config.projects.each { name, project ->
+    println "Running $name with '${project.mvn.goals.join(' ')}'"
+}
+
+def projectsWithoutClean = config.projects.findAll { !it.value.mvn.goals.contains("clean")}.values()
+
+if (projectsWithoutClean) {
+    println "WARNING: The following projects do not clean before build:"
+    projectsWithoutClean.each {
+        println it    
+    }
+}
+```
+
+We can also use a simple syntax for different subclasses of Project
+
+```groovy
+@DSLConfig
+class Config {
+    @DSLField(alternatives=[MavenProject, GradleProject])
+    Map<String, Project> projects
+    boolean debugMode
+    List<String> options
+}
+
+@DSLConfig(key = "name")
+abstract class Project {
+    String name
+    String url
+}
+
+@DSLConfig
+class MavenProject extends Project{
+    List<String> goals
+    List<String> profiles
+    List<String> cliOptions
+}
+
+@DSLConfig
+class GradleProject extends Project{
+    List<String> Tasks
+    List<String> options
+}
+```
+
+And use the alternatives syntax in our dsl:
+
+```groovy
+def github = "http://github.com"
+
+def config = Config.create {
+
+    projects {
+        mavenProject("demo") {
+            url "$github/x/y"
+            
+            goals "clean", "compile"
+            profile "ci"
+            profile "!developer"
+            
+            cliOptions "-X -pl :abc".split(" ")
+        }
+        gradleProject("demo2") {
+            url "$github/a/b"
+
+            tasks "build"
+        }
+    }
+}
+```
+
+In this approach, the `@DSLField(alternatives=[MavenProject, GradleProject])` annotation lists all possible subclasses
+of Project and creates appropriate closure methods.
+
+#Details
 
 ## Conventions
 In the following documentation, we differentiate between three kinds of values:
@@ -77,14 +229,13 @@ def void apply(Closure c)
 - For each simple value field create an accessor named like the field, containing the field type as parameter 
 
    ```groovy
-
     @DSLConfig
     class Config {
       String name
     }
     ```
 
-    creates the following method:
+creates the following method:
 
     ```groovy
     def name(String value)
@@ -118,6 +269,9 @@ TODO: continue
 
 Future plans:
 
-- validation of generated objects
-- generated constructors
+- automatic validation of generated objects
 - Map keys should not be restricted to Strings
+- Eclipse dsld
+- owner references
+- strip common suffixes from alternative names
+- allow custom names for alternatives
