@@ -249,9 +249,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    fieldKey != null ?
-                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType))
-                            : params(createAnnotatedClosureParameter(elementType)),
+                    optionalKeyAndClosureParams(elementType, fieldKey),
                     NO_EXCEPTIONS,
                     methodBody
             );
@@ -275,9 +273,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    fieldKey != null
-                            ? params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType))
-                            : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(elementType)),
+                    subclassOptionalKeyAndClosureParams(elementType, fieldKey),
                     NO_EXCEPTIONS,
                     methodBody
             );
@@ -291,9 +287,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     alternativeName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    fieldKey != null ?
-                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(implementation))
-                            : params(createAnnotatedClosureParameter(implementation)),
+                    optionalKeyAndClosureParams(elementType, fieldKey),
                     NO_EXCEPTIONS,
                     block(
                             stmt(callX(getOuterInstanceXforField(fieldNode), "add",
@@ -313,11 +307,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 ))
         );
 
-        if (ownerFieldOfElement != null) {
-            reuseMethodBody.addStatement(
-                assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-            );
-        }
+        addSetOwnerToOuterInstanceStatement(ownerFieldOfElement, reuseMethodBody);
 
         contextClass.addMethod(
                 REUSE_METHOD_NAME,
@@ -329,33 +319,65 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         );
 
         if (fieldKey != null) {
-            contextClass.addMethod(
-                    "invokeMethod",
-                    Opcodes.ACC_PUBLIC,
-                    ClassHelper.OBJECT_TYPE,
-                    params(param(ClassHelper.STRING_TYPE, "name"), param(ClassHelper.OBJECT_TYPE, "args")),
-                    NO_EXCEPTIONS,
-                    block(
-                            ifElseS(andX(
-                                            isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
-                                            isInstanceOfX(
-                                                    indexX(varX("args"), constX(0)),
-                                                    ClassHelper.CLOSURE_TYPE)
-                                    ),
-                                    stmt(callThisX(
-                                            methodName,
-                                            args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
-                                    )),
-                                    stmt(callSuperX("invokeMethod", args("name", "args")))
-                            )
-                    )
-            );
+            addDynamicKeyedCreatorMethod(contextClass, methodName);
         }
 
 
         annotatedClass.getModule().addClass(contextClass);
 
         return contextClass;
+    }
+
+    private Parameter[] subclassOptionalKeyAndClosureParams(ClassNode elementType, FieldNode fieldKey) {
+        return fieldKey != null
+                ? classKeyAndClosureParams(elementType)
+                : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(elementType));
+    }
+
+    private Parameter[] classKeyAndClosureParams(ClassNode elementType) {
+        return params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType));
+    }
+
+    private Parameter[] optionalKeyAndClosureParams(ClassNode elementType, FieldNode fieldKey) {
+        return fieldKey != null ?
+                keyAndClosureParameter(elementType)
+                : params(createAnnotatedClosureParameter(elementType));
+    }
+
+    private Parameter[] keyAndClosureParameter(ClassNode elementType) {
+        return params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType));
+    }
+
+    private void addSetOwnerToOuterInstanceStatement(FieldNode ownerFieldOfElement, BlockStatement reuseMethodBody) {
+        if (ownerFieldOfElement != null) {
+            reuseMethodBody.addStatement(
+                assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
+            );
+        }
+    }
+
+    private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
+        contextClass.addMethod(
+                "invokeMethod",
+                Opcodes.ACC_PUBLIC,
+                ClassHelper.OBJECT_TYPE,
+                params(param(ClassHelper.STRING_TYPE, "name"), param(ClassHelper.OBJECT_TYPE, "args")),
+                NO_EXCEPTIONS,
+                block(
+                        ifElseS(andX(
+                                        isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
+                                        isInstanceOfX(
+                                                indexX(varX("args"), constX(0)),
+                                                ClassHelper.CLOSURE_TYPE)
+                                ),
+                                stmt(callThisX(
+                                        methodName,
+                                        args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
+                                )),
+                                stmt(callSuperX("invokeMethod", args("name", "args")))
+                        )
+                )
+        );
     }
 
     private String uncapitalizedSimpleClassName(ClassNode node) {
@@ -489,7 +511,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
+                    keyAndClosureParameter(elementType),
                     NO_EXCEPTIONS,
                     methodBody
             );
@@ -509,7 +531,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         methodName,
                         Opcodes.ACC_PUBLIC,
                         ClassHelper.VOID_TYPE,
-                        params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(elementType)),
+                    classKeyAndClosureParams(elementType),
                         NO_EXCEPTIONS,
                     methodBody
                 );
@@ -523,7 +545,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     alternativeName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(implementation)),
+                    keyAndClosureParameter(implementation),
                     NO_EXCEPTIONS,
                     block(
                             stmt(callX(getOuterInstanceXforField(fieldNode), "put",
@@ -546,11 +568,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
                 ))
         );
-        if (ownerFieldOfElement != null) {
-            reuseMethodBody.addStatement(
-                    assignS(propX(varX("value"), ownerFieldOfElement.getName()), propX(varX("this"), "outerInstance"))
-            );
-        }
+        addSetOwnerToOuterInstanceStatement(ownerFieldOfElement, reuseMethodBody);
         contextClass.addMethod(
                 REUSE_METHOD_NAME,
                 Opcodes.ACC_PUBLIC,
@@ -560,28 +578,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 reuseMethodBody
         );
 
-        contextClass.addMethod(
-                "invokeMethod",
-                Opcodes.ACC_PUBLIC,
-                ClassHelper.OBJECT_TYPE,
-                params(param(ClassHelper.STRING_TYPE, "name"), param(ClassHelper.OBJECT_TYPE, "args")),
-                NO_EXCEPTIONS,
-                block(
-                        ifElseS(andX(
-                                        isOneX(new PropertyExpression(varX("args"), constX("length"), true)),
-                                        isInstanceOfX(
-                                                indexX(varX("args"), constX(0)),
-                                                ClassHelper.CLOSURE_TYPE)
-                                ),
-                                stmt(callThisX(
-                                        methodName,
-                                        args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
-                                )),
-                                stmt(callSuperX("invokeMethod", args("name", "args")))
-                        )
-                )
-        );
-
+        addDynamicKeyedCreatorMethod(contextClass, methodName);
 
         annotatedClass.getModule().addClass(contextClass);
 
@@ -600,7 +597,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         String methodName = getMethodNameForField(fieldNode);
 
         ClassNode fieldType = fieldNode.getType();
-        boolean hasKeyField = getKeyField(fieldType) != null;
+        FieldNode keyField = getKeyField(fieldType);
+        boolean hasKeyField = keyField != null;
         FieldNode ownerFieldOfElement = getOwnerField(fieldType);
 
         if (!isAbstract(fieldType)) {
@@ -622,9 +620,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    hasKeyField ?
-                            params(param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(fieldType))
-                            : params(createAnnotatedClosureParameter(fieldType)),
+                    optionalKeyAndClosureParams(fieldType, keyField),
                     NO_EXCEPTIONS,
                     methodBody
             );
@@ -644,9 +640,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     methodName,
                     Opcodes.ACC_PUBLIC,
                     ClassHelper.VOID_TYPE,
-                    hasKeyField ?
-                            params(createSubclassClassParameter(annotatedClass), param(ClassHelper.STRING_TYPE, "key"), createAnnotatedClosureParameter(fieldType))
-                            : params(createSubclassClassParameter(annotatedClass), createAnnotatedClosureParameter(fieldType)),
+                    subclassOptionalKeyAndClosureParams(fieldType, keyField),
                     NO_EXCEPTIONS,
                     methodBody
             );
