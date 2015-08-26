@@ -186,12 +186,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
     @NotNull
     private Statement[] delegateToClosure() {
-        return new Statement[]{assignS(propX(varX("closure"), "delegate"), varX("context")),
+        return new Statement[]{
+                assignS(propX(varX("closure"), "delegate"), varX("context")),
                 assignS(
                         propX(varX("closure"), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 ),
-                stmt(callX(varX("closure"), "call"))};
+                stmt(callX(varX("closure"), "call"))
+        };
     }
 
     private InnerClassNode createInnerContextClassForListMembers(FieldNode fieldNode, ClassNode elementType) {
@@ -204,41 +206,24 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         String ownerFieldOfElementName = getOwnerFieldName(elementType);
 
         if (!isAbstract(elementType)) {
-            MethodBuilder createMethod = createPublicVoidMethod(methodName)
+            createPublicVoidMethod(methodName)
                     .optionalStringParam("key", fieldKey != null)
-                    .delegatingClosureParam(elementType);
-
-
-            createMethod.declS(
-                    "created",
-                    callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey))
-            );
-
-            createMethod.statement(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")));
-
-            if (ownerFieldOfElement != null)
-                createMethod.assignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"));
-
-            createMethod.addTo(contextClass);
+                    .delegatingClosureParam(elementType)
+                    .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
+                    .statement(callX(getOuterInstanceXforField(fieldNode), "add", varX("created")))
+                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
-            MethodBuilder typedCreateMethod = createPublicVoidMethod(methodName)
+            createPublicVoidMethod(methodName)
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey != null)
-                    .delegatingClosureParam(elementType);
-
-            if (fieldKey != null)
-                typedCreateMethod.declS("created", callX(varX("typeToCreate"), "newInstance", args("key")));
-            else
-                typedCreateMethod.declS("created", callX(varX("typeToCreate"), "newInstance"));
-
-            typedCreateMethod.statement(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))));
-
-            if (ownerFieldOfElement != null)
-                typedCreateMethod.assignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"));
-
-            typedCreateMethod.addTo(contextClass);
+                    .delegatingClosureParam(elementType)
+                    .declS("created", callX(varX("typeToCreate"), "newInstance", fieldKey != null ? args("key") : NO_ARGUMENTS))
+                    .statement(callX(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure"))))
+                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .addTo(contextClass);
         }
 
         List<ClassNode> classesList = getClassesList(fieldNode, elementType);
