@@ -37,8 +37,6 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
-    private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-    private static final String REUSE_METHOD_NAME = "reuse";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     private ClassNode annotatedClass;
@@ -69,7 +67,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         annotatedClass.addConstructor(
                 ACC_PUBLIC,
                 params(param(STRING_TYPE, "key")),
-                NO_EXCEPTIONS,
+                DSLUtils.NO_EXCEPTIONS,
                 block(
                         DSLUtils.isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
@@ -120,7 +118,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
         if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
-            new InnerClassUtil(fieldNode, elementType).createListOfDSLObjectMethods();
+            new InnerClassCreator(annotatedClass, fieldNode, elementType).createListOfDSLObjectMethods();
         else
             createListOfSimpleElementsMethods(fieldNode, elementType);
     }
@@ -143,36 +141,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    @NotNull
-    private Statement[] delegateToClosure() {
-        return new Statement[]{
-                assignS(propX(varX("closure"), "delegate"), varX("context")),
-                assignS(
-                        propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                ),
-                stmt(callX(varX("closure"), "call"))
-        };
-    }
-
     private Expression optionalKeyArg(FieldNode fieldKey) {
         return fieldKey != null ? args("key") : NO_ARGUMENTS;
     }
 
     private ArgumentListExpression argsWithOptionalKeyAndClosure(FieldNode fieldKey) {
         return fieldKey != null ? args("key", "closure") : args("closure");
-    }
-
-    private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
-        AnnotationNode annotation = DSLUtils.getAnnotation(fieldNode, DSLUtils.DSL_FIELD_ANNOTATION);
-        if (annotation == null) return Collections.emptyList();
-
-        List<ClassNode> subclasses = getClassList(annotation, "alternatives");
-
-        if (!subclasses.contains(elementType) && !isAbstract(elementType))
-            subclasses.add(elementType);
-
-        return subclasses;
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -191,7 +165,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
 
         if (hasAnnotation(valueType, DSL_CONFIG_ANNOTATION))
-            new InnerClassUtil(fieldNode, keyType, valueType).createMapOfDSLObjectMethods();
+            new InnerClassCreator(annotatedClass, fieldNode, keyType, valueType).createMapOfDSLObjectMethods();
         else
             createMapOfSimpleElementsMethods(fieldNode, keyType, valueType);
     }
@@ -221,7 +195,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         FieldNode ownerFieldOfElement = getOwnerField(fieldType);
         String ownerFieldName = getOwnerFieldName(fieldType);
 
-        if (!isAbstract(fieldType)) {
+        if (!DSLUtils.isAbstract(fieldType)) {
             createPublicMethod(methodName)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
@@ -231,7 +205,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
         }
 
-        if (!isFinal(fieldType)) {
+        if (!DSLUtils.isFinal(fieldType)) {
             createPublicMethod(methodName)
                     .classParam("typeToCreate", fieldType)
                     .optionalStringParam("key", keyField)
@@ -241,16 +215,6 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .optionalAssignS(propX(varX("created"), ownerFieldName), varX("this"), ownerFieldOfElement)
                     .addTo(annotatedClass);
         }
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isFinal(ClassNode classNode) {
-        return (classNode.getModifiers() & ACC_FINAL) != 0;
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isAbstract(ClassNode classNode) {
-        return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
 
     private void createApplyMethod() {
@@ -432,7 +396,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
     }
 
-    private class InnerClassUtil {
+    private class InnerClassCreator {
         private FieldNode fieldNode;
         private ClassNode keyType;
         private ClassNode elementType;
@@ -441,14 +405,19 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         private FieldNode ownerFieldOfElement;
         private FieldNode fieldKey;
         private String ownerFieldOfElementName;
+        private ClassNode outerClass;
 
-        public InnerClassUtil(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
+        private static final String REUSE_METHOD_NAME = "reuse";
+
+        public InnerClassCreator(ClassNode outerClass, FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
+            this.outerClass = outerClass;
             this.fieldNode = fieldNode;
             this.keyType = keyType;
             this.elementType = elementType;
         }
 
-        public InnerClassUtil(FieldNode fieldNode, ClassNode elementType) {
+        public InnerClassCreator(ClassNode outerClass, FieldNode fieldNode, ClassNode elementType) {
+            this.outerClass = outerClass;
             this.fieldNode = fieldNode;
             this.elementType = elementType;
         }
@@ -469,10 +438,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
             initialize();
 
-            if (!isAbstract(elementType))
+            if (!DSLUtils.isAbstract(elementType))
                 createUntypedListAdder();
 
-            if (!isFinal(elementType))
+            if (!DSLUtils.isFinal(elementType))
                 createTypedListAdder();
 
             for (ClassNode implementation : getClassesList(fieldNode, elementType))
@@ -497,11 +466,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(contextClass)
                     .declS("context", ctorX(contextClass, varX("this")))
                     .statements(delegateToClosure())
-                    .addTo(annotatedClass);
+                    .addTo(outerClass);
         }
 
         private void addClassToModule() {
-            annotatedClass.getModule().addClass(contextClass);
+            outerClass.getModule().addClass(contextClass);
         }
 
         private void createReuseMethod() {
@@ -560,7 +529,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
             initialize();
 
-            if (!isAbstract(elementType)) {
+            if (!DSLUtils.isAbstract(elementType)) {
                 createPublicMethod(methodName)
                         .optionalStringParam("key", fieldKey)
                         .delegatingClosureParam(elementType)
@@ -570,7 +539,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                         .addTo(contextClass);
             }
 
-            if (!isFinal(elementType)) {
+            if (!DSLUtils.isFinal(elementType)) {
                 createPublicMethod(methodName)
                         .classParam("typeToCreate", elementType)
                         .optionalStringParam("key", fieldKey)
@@ -606,16 +575,16 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         @NotNull
         private InnerClassNode createInnerContextClass() {
             InnerClassNode contextClass = new InnerClassNode(
-                    annotatedClass,
-                    annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
+                    outerClass,
+                    outerClass.getName() + "$" + fieldNode.getName() + "Context",
                     ACC_STATIC,
                     ClassHelper.OBJECT_TYPE);
 
-            contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
+            contextClass.addField("outerInstance", 0, newClass(outerClass), null);
             contextClass.addConstructor(
                     0,
-                    params(param(newClass(annotatedClass), "outerInstance")),
-                    NO_EXCEPTIONS,
+                    params(param(newClass(outerClass), "outerInstance")),
+                    DSLUtils.NO_EXCEPTIONS,
                     block(assignS(propX(varX("this"), "outerInstance"), varX("outerInstance")))
             );
             return contextClass;
@@ -649,6 +618,30 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                             )
                     )
                     .addTo(contextClass);
+        }
+
+        @NotNull
+        private Statement[] delegateToClosure() {
+            return new Statement[]{
+                    assignS(propX(varX("closure"), "delegate"), varX("context")),
+                    assignS(
+                            propX(varX("closure"), "resolveStrategy"),
+                            propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
+                    ),
+                    stmt(callX(varX("closure"), "call"))
+            };
+        }
+
+        private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
+            AnnotationNode annotation = DSLUtils.getAnnotation(fieldNode, DSLUtils.DSL_FIELD_ANNOTATION);
+            if (annotation == null) return Collections.emptyList();
+
+            List<ClassNode> subclasses = getClassList(annotation, "alternatives");
+
+            if (!subclasses.contains(elementType) && !DSLUtils.isAbstract(elementType))
+                subclasses.add(elementType);
+
+            return subclasses;
         }
     }
 }

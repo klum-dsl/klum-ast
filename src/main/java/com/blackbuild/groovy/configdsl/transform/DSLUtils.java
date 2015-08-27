@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -14,6 +15,7 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 public class DSLUtils {
     static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
     static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
+    static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
 
     static boolean isDSLObject(ClassNode classNode) {
         return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) != null;
@@ -54,5 +56,15 @@ public class DSLUtils {
 
     static String getNullSafeMemberStringValue(AnnotationNode fieldAnnotation, String value, String name) {
         return fieldAnnotation == null ? name : AbstractASTTransformation.getMemberStringValue(fieldAnnotation, value, name);
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    static boolean isFinal(ClassNode classNode) {
+        return (classNode.getModifiers() & Opcodes.ACC_FINAL) != 0;
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    static boolean isAbstract(ClassNode classNode) {
+        return (classNode.getModifiers() & Opcodes.ACC_ABSTRACT) != 0;
     }
 }
