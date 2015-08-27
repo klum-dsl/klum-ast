@@ -151,7 +151,7 @@ def config = Config.create {
 ```
 
 In this approach, the `@DSLField(alternatives=[MavenProject, GradleProject])` annotation lists all possible subclasses
-of Project and creates appropriate closure methods.
+of `Project` and creates appropriate closure methods.
 
 #Details
 
@@ -164,7 +164,7 @@ can either be keyed or unkeyed. Keyed means they have a designated field of type
 
 ### Collections
 Collections are (currently either List or Map). Map keys are always Strings, List values and Map values can either be
-simple types ord DSL-Objects. Collections of Collections are currently not supported.
+simple types or DSL-Objects. Collections of Collections are currently not supported.
 
 A collection field has two name properties: the collection name an the element name. The collection name defaults to
 the name of the field, the element name is the name of the field minus any trailing s:
@@ -183,12 +183,27 @@ Are everything else, i.e. simple values as well as more complex not-DSL objects.
 
 ## Basic usage:
 
-ConfigDSL consists of two Annotations:
+ConfigDSL consists of two Annotations: `@DSLConfig` and `@DSLField`. 
+
+`DSLConfig` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
+
+`DSLField` is an optional field to further configure the handling of specific fields.
 
 ### @DSLConfig
 DSLConfig is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.
 
-It creates the following methods:
+#### the `key`-attribute
+
+The key attribute is used to designate a special key field, making the annotated class a keyed class. This has the
+following consequences:
+
+- no setter method is generated for the key field
+- a constructor using a single field of the key type is created (currently, only String is allowed)
+- factory and apply methods get an additional key parameter
+- only keyed classes are allowed as values in a Map
+- keyed objects in collections get a special (experimental) shortcut creator syntax.
+
+The DSLConfig annotation leads to the creation of a couple of useful methods.
 
 #### factory and apply methods
 
@@ -200,12 +215,11 @@ object, using a String and a closure parameter.
 class Config {
 }
 
-@DSLConfig(key = "name"
+@DSLConfig(key = "name")
 class ConfigWithKey {
     String name
 }
 ```
-    
         
 creates the following methods:
     
@@ -223,46 +237,358 @@ Additionally, an `apply` method is created, which takes single closure and appli
 ```groovy
 def void apply(Closure c)
 ```
+
+#### equals() and toString() methods
+
+If not yet present, `equals()` and `toString()` methods are generated using the respective ASTTransformations. You
+can customize them by using the original ASTTransformations.
     
-#### Field setter
+#### Field setter for simple fields
 
-- For each simple value field create an accessor named like the field, containing the field type as parameter 
+For each simple value field create an accessor named like the field, containing the field type as parameter 
 
-   ```groovy
-    @DSLConfig
-    class Config {
-      String name
-    }
-    ```
+```groovy
+@DSLConfig
+class Config {
+ String name
+}
+```
 
 creates the following method:
 
-    ```groovy
-    def name(String value)
-    ```
+```groovy
+def name(String value)
+```
 
+Used by:
+```groovy
+Config.create {
+   name "Hallo"
+}
+```
 
--   for each simple collection, two methods are generated:
+#### Setter for simple collections
+    
+for each simple collection, two methods are generated:
 
-    -   a method with the collection name and a List/Vararg argument for list or a Map argument for maps. These methods
-        *add* the given parameters to the collection 
+-   a method with the collection name and a List/Vararg argument for list or a Map argument for maps. These methods
+    *add* the given parameters to the collection 
+
+-   an adder method named like the element name of the collection an containing a the element type 
+
+```groovy
+@DSLConfig
+class Config {
+    List<String> roles
+    Map<String, Integer> levels
+}
+```
+    
+creates the following methods:
+
+```groovy
+def roles(String... values)
+def role(String value)
+def levels(Map levels)
+def level(String key, Integer value)
+```
+
+Usage:
+```groovy
+Config.create {
+    roles "a", "b"
+    role "another"
+    levels a:5, b:10
+    level "high", 8
+}
+```
+
+If the collection has no initial value, it is automatically initialized.
+
+#### Setters and closures for DSL-Object Fields
+    
+for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
+String parameter. Also, a regular setter method is created for reusing an existing object.
   
-    -   an adder method named like the element name of the collection an containing a the element type 
+```groovy
+@DSLConfig
+class Config {
+    UnKeyed unkeyed
+    Keyed keyed
+}
 
-    ```groovy
-    @DSLConfig
-    class Config {
-        List<String> roles
+@DSLConfig
+class UnKeyed {
+    String name
+}
+
+@DSLConfig(key = "name")
+class Keyed {
+    String name
+    String value
+}
+```
+    
+creates the following methods (in Config):
+
+```groovy
+def unkeyed(UnKeyed reuse) // reuse an exiting object
+def unkeyed(@DelegatesTo(Unkeyed) Closure closure)
+def keyed(UnKeyed reuse) // reuse an exiting object
+def keyed(String key, @DelegatesTo(Unkeyed) Closure closure)
+```
+
+Usage:
+```groovy
+Config.create {
+    unkeyed {
+        name "other"
     }
-    ```
+    keyed("klaus") {
+        value "a Value"
+    }
+}
 
-        
-    creates the following methods:
+def objectForReuse = UnKeyed.create { name = "reuse" }
 
-    ```groovy
-    def roles(String... values)
-    def role(String value)
-    ```
+Config.create {
+    unkeyed objectForReuse
+}
+```
+
+#### Collections of DSL Objects
+
+Collections of DSL-Objects are created using a nested closure. The name of the outer closure is the field name, the 
+name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
+keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
+
+Additionally, a special reuse method is created, which takes an existing object and adds it to the structure.
+
+```groovy
+@DSLConfig
+class Config {
+    List<UnKeyed> elements
+    List<Keyed> keyedElements
+    Map<String, Keyed> mapElements
+}
+
+@DSLConfig
+class UnKeyed {
+    String name
+}
+
+@DSLConfig(key = "name")
+class Keyed {
+    String name
+    String value
+}
+
+def objectForReuse = UnKeyed.create { name = "reuse" }
+
+Config.create {
+    elements {
+        element {
+            name "an element"
+        }
+        element {
+            name "another element"
+        }
+        reuse objectForReuse
+    }
+    keyedElements {
+        keyedElement ("klaus") {
+            value "a Value"
+        }
+    }
+    mapElements {
+        mapElement ("dieter") {
+            value "another"
+        }
+    }
+}
+```
+
+#### Experimental: compact syntax for adding keyed objects
+
+As an experimental feature, you can also use the key-String as name for the closure. This obviously only works
+ for String type keys (which currently is the only supported key type). Also, there is currently no IDE support for
+ this feature:
+ 
+ ```groovy
+ @DSLConfig
+ class Config {
+     List<Keyed> elements
+ }
+ 
+ @DSLConfig(key = "name")
+ class Keyed {
+     String name
+     String value
+ }
+ 
+ Config.create {
+     elements {
+         "Klaus" {  // shortcut for element("Klaus") { ...
+             value "a Value"
+         }
+         "Dieter" {
+             value "a Value"
+         }
+     }
+ }
+ ```
+ 
+#### The owner field
+
+DSL-Objects can have an optional owner field, designated via the `owner`-attribute in the annotation.
+
+When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
+the owner-field is automatically set to the outer instance.
+
+This has two dangers:
+
+- no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
+  type is incorrect
+- If an object is reused, the owner field will simply be overridden with the last owner.
+
+```groovy
+@DSLConfig
+class Foo {
+    Bar bar
+}
+
+@DSLConfig(owner="owner")
+class Bar {
+    Foo owner
+}
+
+def c = Config.create {
+    bar {}
+}
+
+assert c.bar.owner === c
+```
+
+### DSL Object Inheritance
+
+DSLObjects can inherit from other DSL-Objects (but the child class *must* be annotated with DSLConfig as well). This
+allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
+which take an additional Class parameter.
+
+These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract, 
+*only* the typed methods are generated.
+
+```groovy
+@DSLConfig
+class Config {
+    Project project 
+}
+
+@DSLConfig
+class Project {
+    String name
+}
+
+@DSLConfig
+class MavenProject extends Project{
+    List<String> mvnOpts
+}
+
+Config.create {
+    project(MavenProject) {
+        name "demo"
+        mvnOpts "a", "b"
+    }
+}
+```
+
+This works identically with keyed objects.
+
+```groovy
+@DSLConfig
+class Config {
+    Project project 
+}
+
+@DSLConfig(key = "name")
+class Project {
+    String name
+}
+
+@DSLConfig
+class MavenProject extends Project{
+    List<String> mvnOpts
+}
+
+Config.create {
+    project(MavenProject, "demo") {
+        mvnOpts "a", "b"
+    }
+}
+```
+
+Note that it is illegal to let a keyed class inherit from a not keyed class. The topmost dsl class in the hierarchy
+decides whether the whole hierarchy is typed or not. Child classed need not define the key attribute themselves, but
+can do so, as long as they define the *same* key field.
+
+#### Alternatives syntax
+
+There is also a convenient syntax for declaring base classes directly, using the `alternatives` attribute of the 
+`DSLField` annotation. `alternatives` takes a list of classes for which shortcut methods will be created. See the 
+following example:
+ 
+ 
+```groovy
+@DSLConfig
+class Config {
+    @DSLField(alternatives=[MavenProject, GradleProject]) // <-- Theses classes are provided as alternatives for
+                                                          //     the projects closure
+    Map<String, Project> projects
+}
+
+@DSLConfig(key = "name")
+class Project {
+    String name
+    String url
+}
+
+@DSLConfig
+class MavenProject extends Project{
+    List<String> goals
+}
+
+@DSLConfig
+class GradleProject extends Project{
+    List<String> Tasks
+}
+```
+
+And use the alternatives syntax in our dsl:
+
+```groovy
+def config = Config.create {
+
+    projects {
+        mavenProject("demo") {  // method name is the uncapitalized name of the class
+            url "abc"
+            goals "clean", "compile"
+        }
+        gradleProject("demo2") {
+            url "xyz"
+            tasks "build"
+        }
+        project("baseclass") {  // since Project is not abstract, it is automatically added to the list
+            url "nmp"
+        }
+    }
+}
+```
+
+*Future plans for this are to automatically strip the base class name from the method names (i.e. when all subclasses
+end with the name of the parent class - as in the example above - the base class name could be removed,
+leading to `maven`, `gradle` and `project` as the allowed names.*
+
+
 
 TODO: continue
 
@@ -270,10 +596,10 @@ TODO: continue
 Future plans:
 
 - automatic validation of generated objects
-- Map keys should not be restricted to Strings
+- Map keys should not be restricted to Strings (esp enums would be useful)
 - Eclipse dsld
 - owner references
-- strip common suffixes from alternative names
+- strip common suffixes from alternative names (MavenProject, GradleProject -> maven, gradle)
 - allow custom names for alternatives
 - syntactic sugar for reuse (something like <<, which unfortunately does not work)
 - Ability to clone elements on reuse

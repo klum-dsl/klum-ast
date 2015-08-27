@@ -566,14 +566,13 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             return null;
         }
 
-
-        if (getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
-            addCompileError(
-                    String.format("Designated owner field '%s' must be a dsl object, but is '%s' instead", ownerFieldName, result.getType().getName()),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
-            );
-            return null;
-        }
+//        if (getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
+//            addCompileError(
+//                    String.format("Designated owner field '%s' must be a dsl object, but is '%s' instead", ownerFieldName, result.getType().getName()),
+//                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+//            );
+//            return null;
+//        }
 
         return result;
     }

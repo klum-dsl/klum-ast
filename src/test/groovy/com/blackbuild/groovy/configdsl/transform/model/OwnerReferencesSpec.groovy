@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 
 import java.lang.reflect.Method
 
@@ -72,6 +73,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Ignore("Currently, we allow non dsl-owners (for example Object)")
     def "error: owner field is no dsl object"() {
         when:
         createClass('''
