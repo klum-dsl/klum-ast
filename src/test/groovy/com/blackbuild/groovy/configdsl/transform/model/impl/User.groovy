@@ -3,6 +3,11 @@ package com.blackbuild.groovy.configdsl.transform.model.impl
 def c = Config.create {
     name "klaus"
 
+    options {
+        values(_a: "b", c: "d")
+        conition true
+    }
+
     envs {
 
         e("bal") {
@@ -18,6 +23,8 @@ def c = Config.create {
         }
     }
 }
+
+println c.options.allUnderscoreOptions
 
 println c.environments.bil
 
@@ -61,21 +68,20 @@ a.apply {
     more(5)
 
 
+    Authorization.create {
+        others(10)
 
-}
+    }
 
-Authorization.create {
-    others(10)
+    Environment.create("bla") {
 
-}
+        url "hallo"
 
-Environment.create("bla") {
+    }
 
-    url "hallo"
+    Environment.create("name") {
+        url "bla"
 
-}
-
-Environment.create("name") {
-    url "bla"
+    }
 
 }

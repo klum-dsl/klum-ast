@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
-@GroovyASTTransformationClass(classes={CanonicalASTTransformation.class, DSLConfigASTTransformation.class})
+@GroovyASTTransformationClass(classes={DSLConfigASTTransformation.class})
 public @interface DSLConfig {
 
     /**

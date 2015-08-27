@@ -58,9 +58,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         createApplyMethod();
         createFactoryMethods();
-
         createFieldMethods();
-
         createCanonicalMethods();
     }
 

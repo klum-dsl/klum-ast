@@ -12,12 +12,20 @@ class Config {
     @DSLField(optional = true) String value
     int age
 
-    //Environment env
-
     @DSLField(value = "envs", element = "e")
     Map<String, Environment> environments
 
+    Options options
+}
 
+@DSLConfig
+class Options {
+    Map<String, String> values
+    boolean condition
+
+    def getAllUnderscoreOptions() {
+        return values.findAll { key, value -> key.startsWith("_")}
+    }
 }
 
 @DSLConfig(key = "name")
