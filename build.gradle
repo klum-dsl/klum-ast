@@ -37,6 +37,10 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.5.0'
 }
 
+release {
+    tagTemplate = 'v${version}'
+}
+
 modifyPom {
     project {
         name 'Config DSL'
