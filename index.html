@@ -1,0 +1,643 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>ConfigDSL by blackbuild</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">ConfigDSL</h1>
+        <p class="header">Build config files the groovy way</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/blackbuild/config-dsl/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/blackbuild/config-dsl/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/blackbuild/config-dsl">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/blackbuild">blackbuild</a></p>
+
+
+      </header>
+      <section>
+        <h1>
+<a id="configdsl-transformation-for-groovy" class="anchor" href="#configdsl-transformation-for-groovy" aria-hidden="true"><span class="octicon octicon-link"></span></a>ConfigDSL Transformation for Groovy</h1>
+
+<p>Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
+for this project:</p>
+
+<ul>
+<li><p>be as terse as possible while still being readable and using almost no boilerplate code</p></li>
+<li>
+<p>Offer as much IDE-based assistance as possible. </p>
+
+<ul>
+<li>In IDEA this works by including a custom gdsl file (mostly working)</li>
+<li>In Eclipse, inclusion of a custom dsld file is planned</li>
+</ul>
+</li>
+</ul>
+
+<h2>
+<a id="example" class="anchor" href="#example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>Given the following config classes:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">Map&lt;<span class="pl-k">String</span>, <span class="pl-k">Project</span>&gt;</span> projects
+    <span class="pl-k">boolean</span> debugMode
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> options
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Project</span> {
+    <span class="pl-k">String</span> name
+    <span class="pl-k">String</span> url
+    <span class="pl-k">MavenConfig</span> mvn
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">MavenConfig</span> {
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> goals
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> profiles
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> cliOptions
+}</pre></div>
+
+<p>A config object can be created with the following dsl:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> github <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>http://github.com<span class="pl-pds">"</span></span>
+
+
+<span class="pl-k">def</span> config <span class="pl-k">=</span> <span class="pl-k">Config</span><span class="pl-k">.</span>create {
+
+    debugMode <span class="pl-c1">true</span>
+
+    options <span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>fast<span class="pl-pds">"</span></span>
+    option <span class="pl-s"><span class="pl-pds">"</span>another<span class="pl-pds">"</span></span>
+
+    projects {
+        project(<span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>) {
+            url <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">$g<span class="pl-smi">ithub</span></span>/x/y<span class="pl-pds">"</span></span>
+
+            mvn {
+                goals <span class="pl-s"><span class="pl-pds">"</span>clean<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>
+                profile <span class="pl-s"><span class="pl-pds">"</span>ci<span class="pl-pds">"</span></span>
+                profile <span class="pl-s"><span class="pl-pds">"</span>!developer<span class="pl-pds">"</span></span>
+
+                cliOptions <span class="pl-s"><span class="pl-pds">"</span>-X -pl :abc<span class="pl-pds">"</span></span><span class="pl-k">.</span>split(<span class="pl-s"><span class="pl-pds">"</span> <span class="pl-pds">"</span></span>)
+            }
+        }
+        project(<span class="pl-s"><span class="pl-pds">"</span>demo2<span class="pl-pds">"</span></span>) {
+            url <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">$g<span class="pl-smi">ithub</span></span>/a/b<span class="pl-pds">"</span></span>
+
+            mvn {
+                goals <span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>
+                profile <span class="pl-s"><span class="pl-pds">"</span>ci<span class="pl-pds">"</span></span>
+            }
+        }
+    }
+}</pre></div>
+
+<p>Since complete objects are created, using the configuration is simple:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">if</span> (config<span class="pl-k">.</span>debugMode) <span class="pl-c1">println</span> <span class="pl-s"><span class="pl-pds">"</span>Debug mode is active!<span class="pl-pds">"</span></span>
+
+config<span class="pl-k">.</span>projects<span class="pl-k">.</span>each { <span class="pl-v">name</span>, <span class="pl-v">project</span> <span class="pl-k">-&gt;</span>
+    <span class="pl-c1">println</span> <span class="pl-s"><span class="pl-pds">"</span>Running <span class="pl-smi">$n<span class="pl-smi">ame</span></span> with '<span class="pl-s1"><span class="pl-pse">${</span>project.mvn.goals.join(' ')<span class="pl-pse">}</span></span>'<span class="pl-pds">"</span></span>
+}
+
+<span class="pl-k">def</span> projectsWithoutClean <span class="pl-k">=</span> config<span class="pl-k">.</span>projects<span class="pl-k">.</span>findAll { <span class="pl-k">!</span>it<span class="pl-k">.</span>value<span class="pl-k">.</span>mvn<span class="pl-k">.</span>goals<span class="pl-k">.</span>contains(<span class="pl-s"><span class="pl-pds">"</span>clean<span class="pl-pds">"</span></span>)}<span class="pl-k">.</span>values()
+
+<span class="pl-k">if</span> (projectsWithoutClean) {
+    <span class="pl-c1">println</span> <span class="pl-s"><span class="pl-pds">"</span>WARNING: The following projects do not clean before build:<span class="pl-pds">"</span></span>
+    projectsWithoutClean<span class="pl-k">.</span>each {
+        <span class="pl-c1">println</span> it    
+    }
+}</pre></div>
+
+<p>We can also use a simple syntax for different subclasses of Project</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">@DSLField</span>(<span class="pl-c1">alternatives</span><span class="pl-k">=</span>[<span class="pl-k">MavenProject</span>, <span class="pl-k">GradleProject</span>])
+    <span class="pl-k">Map&lt;<span class="pl-k">String</span>, <span class="pl-k">Project</span>&gt;</span> projects
+    <span class="pl-k">boolean</span> debugMode
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> options
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">abstract</span> <span class="pl-k">class</span> <span class="pl-en">Project</span> {
+    <span class="pl-k">String</span> name
+    <span class="pl-k">String</span> url
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">MavenProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> goals
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> profiles
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> cliOptions
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">GradleProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> <span class="pl-k">Tasks</span>
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> options
+}</pre></div>
+
+<p>And use the alternatives syntax in our dsl:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> github <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>http://github.com<span class="pl-pds">"</span></span>
+
+<span class="pl-k">def</span> config <span class="pl-k">=</span> <span class="pl-k">Config</span><span class="pl-k">.</span>create {
+
+    projects {
+        mavenProject(<span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>) {
+            url <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">$g<span class="pl-smi">ithub</span></span>/x/y<span class="pl-pds">"</span></span>
+
+            goals <span class="pl-s"><span class="pl-pds">"</span>clean<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>
+            profile <span class="pl-s"><span class="pl-pds">"</span>ci<span class="pl-pds">"</span></span>
+            profile <span class="pl-s"><span class="pl-pds">"</span>!developer<span class="pl-pds">"</span></span>
+
+            cliOptions <span class="pl-s"><span class="pl-pds">"</span>-X -pl :abc<span class="pl-pds">"</span></span><span class="pl-k">.</span>split(<span class="pl-s"><span class="pl-pds">"</span> <span class="pl-pds">"</span></span>)
+        }
+        gradleProject(<span class="pl-s"><span class="pl-pds">"</span>demo2<span class="pl-pds">"</span></span>) {
+            url <span class="pl-s"><span class="pl-pds">"</span><span class="pl-smi">$g<span class="pl-smi">ithub</span></span>/a/b<span class="pl-pds">"</span></span>
+
+            tasks <span class="pl-s"><span class="pl-pds">"</span>build<span class="pl-pds">"</span></span>
+        }
+    }
+}</pre></div>
+
+<p>In this approach, the <code>@DSLField(alternatives=[MavenProject, GradleProject])</code> annotation lists all possible subclasses
+of <code>Project</code> and creates appropriate closure methods.</p>
+
+<h1>
+<a id="details" class="anchor" href="#details" aria-hidden="true"><span class="octicon octicon-link"></span></a>Details</h1>
+
+<h2>
+<a id="conventions" class="anchor" href="#conventions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conventions</h2>
+
+<p>In the following documentation, we differentiate between three kinds of values:</p>
+
+<h3>
+<a id="dsl-objects" class="anchor" href="#dsl-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>DSL-Objects</h3>
+
+<p>DSL Objects are annotated with "@DSLConfig". These are (potentially complex) objects enhanced by the transformation. They
+can either be keyed or unkeyed. Keyed means they have a designated field of type String acting as key for this class.</p>
+
+<h3>
+<a id="collections" class="anchor" href="#collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collections</h3>
+
+<p>Collections are (currently either List or Map). Map keys are always Strings, List values and Map values can either be
+simple types or DSL-Objects. Collections of Collections are currently not supported.</p>
+
+<p>A collection field has two name properties: the collection name an the element name. The collection name defaults to
+the name of the field, the element name is the name of the field minus any trailing s:</p>
+
+<p>If the field name is <code>roles</code>, the default collection name is <code>roles</code> and the element name is <code>role</code>. </p>
+
+<p>If the field name does not end with an 's', the field name is reused as is (information -&gt; information | information).</p>
+
+<p>Collection name and element name can be customized via the @DSLField Annotation (see below).</p>
+
+<p><em>Collections must be strongly typed using generics!</em></p>
+
+<h3>
+<a id="simple-values" class="anchor" href="#simple-values" aria-hidden="true"><span class="octicon octicon-link"></span></a>Simple Values</h3>
+
+<p>Are everything else, i.e. simple values as well as more complex not-DSL objects.</p>
+
+<h2>
+<a id="basic-usage" class="anchor" href="#basic-usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic usage:</h2>
+
+<p>ConfigDSL consists of two Annotations: <code>@DSLConfig</code> and <code>@DSLField</code>. </p>
+
+<p><code>DSLConfig</code> annotates all domain classes, i.e. classes of objects to be generated via the DSL.</p>
+
+<p><code>DSLField</code> is an optional field to further configure the handling of specific fields.</p>
+
+<h3>
+<a id="dslconfig" class="anchor" href="#dslconfig" aria-hidden="true"><span class="octicon octicon-link"></span></a>@DSLConfig</h3>
+
+<p>DSLConfig is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.</p>
+
+<h4>
+<a id="the-key-attribute" class="anchor" href="#the-key-attribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>the <code>key</code>-attribute</h4>
+
+<p>The key attribute is used to designate a special key field, making the annotated class a keyed class. This has the
+following consequences:</p>
+
+<ul>
+<li>no setter method is generated for the key field</li>
+<li>a constructor using a single field of the key type is created (currently, only String is allowed)</li>
+<li>factory and apply methods get an additional key parameter</li>
+<li>only keyed classes are allowed as values in a Map</li>
+<li>keyed objects in collections get a special (experimental) shortcut creator syntax.</li>
+</ul>
+
+<p>The DSLConfig annotation leads to the creation of a couple of useful methods.</p>
+
+<h4>
+<a id="factory-and-apply-methods" class="anchor" href="#factory-and-apply-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>factory and apply methods</h4>
+
+<p>A factory method named <code>create</code> is generated, using either a single closure as parameter, or, in case of a keyed
+object, using a String and a closure parameter.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">ConfigWithKey</span> {
+    <span class="pl-k">String</span> name
+}</pre></div>
+
+<p>creates the following methods:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">static</span> <span class="pl-k">Config</span> <span class="pl-en">create</span>(<span class="pl-k">Closure</span> <span class="pl-v">c</span>)
+
+<span class="pl-k">static</span> <span class="pl-k">ConfigWithKey</span> <span class="pl-en">create</span>(<span class="pl-k">String</span> <span class="pl-v">name</span>, <span class="pl-k">Closure</span> <span class="pl-v">c</span>)</pre></div>
+
+<p>If create method does already exist, a method named <code>_create</code> is created instead.</p>
+
+<p>Additionally, an <code>apply</code> method is created, which takes single closure and applies it to an existing object. As with 
+<code>create</code>, if the method already exists, a <code>_apply</code> method is created.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> <span class="pl-k">void</span> <span class="pl-en">apply</span>(<span class="pl-k">Closure</span> <span class="pl-v">c</span>)</pre></div>
+
+<h4>
+<a id="equals-and-tostring-methods" class="anchor" href="#equals-and-tostring-methods" aria-hidden="true"><span class="octicon octicon-link"></span></a>equals() and toString() methods</h4>
+
+<p>If not yet present, <code>equals()</code> and <code>toString()</code> methods are generated using the respective ASTTransformations. You
+can customize them by using the original ASTTransformations.</p>
+
+<h4>
+<a id="field-setter-for-simple-fields" class="anchor" href="#field-setter-for-simple-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Field setter for simple fields</h4>
+
+<p>For each simple value field create an accessor named like the field, containing the field type as parameter </p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+ <span class="pl-k">String</span> name
+}</pre></div>
+
+<p>creates the following method:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> <span class="pl-en">name</span>(<span class="pl-k">String</span> <span class="pl-v">value</span>)</pre></div>
+
+<p>Used by:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">Config</span><span class="pl-k">.</span>create {
+   name <span class="pl-s"><span class="pl-pds">"</span>Hallo<span class="pl-pds">"</span></span>
+}</pre></div>
+
+<h4>
+<a id="setter-for-simple-collections" class="anchor" href="#setter-for-simple-collections" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setter for simple collections</h4>
+
+<p>for each simple collection, two methods are generated:</p>
+
+<ul>
+<li><p>a method with the collection name and a List/Vararg argument for list or a Map argument for maps. These methods
+<em>add</em> the given parameters to the collection </p></li>
+<li><p>an adder method named like the element name of the collection an containing a the element type </p></li>
+</ul>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> roles
+    <span class="pl-k">Map&lt;<span class="pl-k">String</span>, <span class="pl-k">Integer</span>&gt;</span> levels
+}</pre></div>
+
+<p>creates the following methods:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> <span class="pl-en">roles</span>(<span class="pl-k">String</span>... <span class="pl-v">values</span>)
+<span class="pl-k">def</span> <span class="pl-en">role</span>(<span class="pl-k">String</span> <span class="pl-v">value</span>)
+<span class="pl-k">def</span> <span class="pl-en">levels</span>(<span class="pl-k">Map</span> <span class="pl-v">levels</span>)
+<span class="pl-k">def</span> <span class="pl-en">level</span>(<span class="pl-k">String</span> <span class="pl-v">key</span>, <span class="pl-k">Integer</span> <span class="pl-v">value</span>)</pre></div>
+
+<p>Usage:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    roles <span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>
+    role <span class="pl-s"><span class="pl-pds">"</span>another<span class="pl-pds">"</span></span>
+    levels <span class="pl-c1">a</span>:<span class="pl-c1">5</span>, <span class="pl-c1">b</span>:<span class="pl-c1">10</span>
+    level <span class="pl-s"><span class="pl-pds">"</span>high<span class="pl-pds">"</span></span>, <span class="pl-c1">8</span>
+}</pre></div>
+
+<p>If the collection has no initial value, it is automatically initialized.</p>
+
+<h4>
+<a id="setters-and-closures-for-dsl-object-fields" class="anchor" href="#setters-and-closures-for-dsl-object-fields" aria-hidden="true"><span class="octicon octicon-link"></span></a>Setters and closures for DSL-Object Fields</h4>
+
+<p>for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
+String parameter. Also, a regular setter method is created for reusing an existing object.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">UnKeyed</span> unkeyed
+    <span class="pl-k">Keyed</span> keyed
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">UnKeyed</span> {
+    <span class="pl-k">String</span> name
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Keyed</span> {
+    <span class="pl-k">String</span> name
+    <span class="pl-k">String</span> value
+}</pre></div>
+
+<p>creates the following methods (in Config):</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> <span class="pl-en">unkeyed</span>(<span class="pl-k">UnKeyed</span> <span class="pl-v">reuse</span>) <span class="pl-c">// reuse an exiting object</span>
+<span class="pl-k">def</span> <span class="pl-en">unkeyed</span>(<span class="pl-k">@DelegatesTo</span>(<span class="pl-k">Unkeyed</span>) <span class="pl-k">Closure</span> <span class="pl-v">closure</span>)
+<span class="pl-k">def</span> <span class="pl-en">keyed</span>(<span class="pl-k">UnKeyed</span> <span class="pl-v">reuse</span>) <span class="pl-c">// reuse an exiting object</span>
+<span class="pl-k">def</span> <span class="pl-en">keyed</span>(<span class="pl-k">String</span> <span class="pl-v">key</span>, <span class="pl-k">@DelegatesTo</span>(<span class="pl-k">Unkeyed</span>) <span class="pl-k">Closure</span> <span class="pl-v">closure</span>)</pre></div>
+
+<p>Usage:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    unkeyed {
+        name <span class="pl-s"><span class="pl-pds">"</span>other<span class="pl-pds">"</span></span>
+    }
+    keyed(<span class="pl-s"><span class="pl-pds">"</span>klaus<span class="pl-pds">"</span></span>) {
+        value <span class="pl-s"><span class="pl-pds">"</span>a Value<span class="pl-pds">"</span></span>
+    }
+}
+
+<span class="pl-k">def</span> objectForReuse <span class="pl-k">=</span> <span class="pl-k">UnKeyed</span><span class="pl-k">.</span>create { name <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>reuse<span class="pl-pds">"</span></span> }
+
+<span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    unkeyed objectForReuse
+}</pre></div>
+
+<h4>
+<a id="collections-of-dsl-objects" class="anchor" href="#collections-of-dsl-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Collections of DSL Objects</h4>
+
+<p>Collections of DSL-Objects are created using a nested closure. The name of the outer closure is the field name, the 
+name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
+keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).</p>
+
+<p>Additionally, a special reuse method is created, which takes an existing object and adds it to the structure.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">List&lt;<span class="pl-k">UnKeyed</span>&gt;</span> elements
+    <span class="pl-k">List&lt;<span class="pl-k">Keyed</span>&gt;</span> keyedElements
+    <span class="pl-k">Map&lt;<span class="pl-k">String</span>, <span class="pl-k">Keyed</span>&gt;</span> mapElements
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">UnKeyed</span> {
+    <span class="pl-k">String</span> name
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Keyed</span> {
+    <span class="pl-k">String</span> name
+    <span class="pl-k">String</span> value
+}
+
+<span class="pl-k">def</span> objectForReuse <span class="pl-k">=</span> <span class="pl-k">UnKeyed</span><span class="pl-k">.</span>create { name <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>reuse<span class="pl-pds">"</span></span> }
+
+<span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    elements {
+        element {
+            name <span class="pl-s"><span class="pl-pds">"</span>an element<span class="pl-pds">"</span></span>
+        }
+        element {
+            name <span class="pl-s"><span class="pl-pds">"</span>another element<span class="pl-pds">"</span></span>
+        }
+        reuse objectForReuse
+    }
+    keyedElements {
+        keyedElement (<span class="pl-s"><span class="pl-pds">"</span>klaus<span class="pl-pds">"</span></span>) {
+            value <span class="pl-s"><span class="pl-pds">"</span>a Value<span class="pl-pds">"</span></span>
+        }
+    }
+    mapElements {
+        mapElement (<span class="pl-s"><span class="pl-pds">"</span>dieter<span class="pl-pds">"</span></span>) {
+            value <span class="pl-s"><span class="pl-pds">"</span>another<span class="pl-pds">"</span></span>
+        }
+    }
+}</pre></div>
+
+<h4>
+<a id="experimental-compact-syntax-for-adding-keyed-objects" class="anchor" href="#experimental-compact-syntax-for-adding-keyed-objects" aria-hidden="true"><span class="octicon octicon-link"></span></a>Experimental: compact syntax for adding keyed objects</h4>
+
+<p>As an experimental feature, you can also use the key-String as name for the closure. This obviously only works
+ for String type keys (which currently is the only supported key type). Also, there is currently no IDE support for
+ this feature:</p>
+
+<div class="highlight highlight-groovy"><pre> <span class="pl-k">@DSLConfig</span>
+ <span class="pl-k">class</span> <span class="pl-en">Config</span> {
+     <span class="pl-k">List&lt;<span class="pl-k">Keyed</span>&gt;</span> elements
+ }
+
+ <span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+ <span class="pl-k">class</span> <span class="pl-en">Keyed</span> {
+     <span class="pl-k">String</span> name
+     <span class="pl-k">String</span> value
+ }
+
+ <span class="pl-k">Config</span><span class="pl-k">.</span>create {
+     elements {
+         <span class="pl-s"><span class="pl-pds">"</span>Klaus<span class="pl-pds">"</span></span> {  <span class="pl-c">// shortcut for element("Klaus") { ...</span>
+             value <span class="pl-s"><span class="pl-pds">"</span>a Value<span class="pl-pds">"</span></span>
+         }
+         <span class="pl-s"><span class="pl-pds">"</span>Dieter<span class="pl-pds">"</span></span> {
+             value <span class="pl-s"><span class="pl-pds">"</span>a Value<span class="pl-pds">"</span></span>
+         }
+     }
+ }</pre></div>
+
+<h4>
+<a id="the-owner-field" class="anchor" href="#the-owner-field" aria-hidden="true"><span class="octicon octicon-link"></span></a>The owner field</h4>
+
+<p>DSL-Objects can have an optional owner field, designated via the <code>owner</code>-attribute in the annotation.</p>
+
+<p>When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
+the owner-field is automatically set to the outer instance.</p>
+
+<p>This has two dangers:</p>
+
+<ul>
+<li>no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
+type is incorrect</li>
+<li>If an object is reused, the owner field will simply be overridden with the last owner.</li>
+</ul>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Foo</span> {
+    <span class="pl-k">Bar</span> bar
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">owner</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>owner<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Bar</span> {
+    <span class="pl-k">Foo</span> owner
+}
+
+<span class="pl-k">def</span> c <span class="pl-k">=</span> <span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    bar {}
+}
+
+<span class="pl-k">assert</span> c<span class="pl-k">.</span>bar<span class="pl-k">.</span>owner <span class="pl-k">===</span> c</pre></div>
+
+<h3>
+<a id="dsl-object-inheritance" class="anchor" href="#dsl-object-inheritance" aria-hidden="true"><span class="octicon octicon-link"></span></a>DSL Object Inheritance</h3>
+
+<p>DSLObjects can inherit from other DSL-Objects (but the child class <em>must</em> be annotated with DSLConfig as well). This
+allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
+which take an additional Class parameter.</p>
+
+<p>These typed methods are not generated, if the declared type is final. Likewise, if the declared type is abstract, 
+<em>only</em> the typed methods are generated.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">Project</span> project 
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Project</span> {
+    <span class="pl-k">String</span> name
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">MavenProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> mvnOpts
+}
+
+<span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    project(<span class="pl-k">MavenProject</span>) {
+        name <span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>
+        mvnOpts <span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>
+    }
+}</pre></div>
+
+<p>This works identically with keyed objects.</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">Project</span> project 
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Project</span> {
+    <span class="pl-k">String</span> name
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">MavenProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> mvnOpts
+}
+
+<span class="pl-k">Config</span><span class="pl-k">.</span>create {
+    project(<span class="pl-k">MavenProject</span>, <span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>) {
+        mvnOpts <span class="pl-s"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>
+    }
+}</pre></div>
+
+<p>Note that it is illegal to let a keyed class inherit from a not keyed class. The topmost dsl class in the hierarchy
+decides whether the whole hierarchy is typed or not. Child classed need not define the key attribute themselves, but
+can do so, as long as they define the <em>same</em> key field.</p>
+
+<h4>
+<a id="alternatives-syntax" class="anchor" href="#alternatives-syntax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Alternatives syntax</h4>
+
+<p>There is also a convenient syntax for declaring base classes directly, using the <code>alternatives</code> attribute of the 
+<code>DSLField</code> annotation. <code>alternatives</code> takes a list of classes for which shortcut methods will be created. See the 
+following example:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">Config</span> {
+    <span class="pl-k">@DSLField</span>(<span class="pl-c1">alternatives</span><span class="pl-k">=</span>[<span class="pl-k">MavenProject</span>, <span class="pl-k">GradleProject</span>]) <span class="pl-c">// &lt;-- Theses classes are provided as alternatives for</span>
+                                                          <span class="pl-c">//     the projects closure</span>
+    <span class="pl-k">Map&lt;<span class="pl-k">String</span>, <span class="pl-k">Project</span>&gt;</span> projects
+}
+
+<span class="pl-k">@DSLConfig</span>(<span class="pl-c1">key</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">Project</span> {
+    <span class="pl-k">String</span> name
+    <span class="pl-k">String</span> url
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">MavenProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> goals
+}
+
+<span class="pl-k">@DSLConfig</span>
+<span class="pl-k">class</span> <span class="pl-en">GradleProject</span> <span class="pl-k">extends</span> <span class="pl-e">Project</span>{
+    <span class="pl-k">List&lt;<span class="pl-k">String</span>&gt;</span> <span class="pl-k">Tasks</span>
+}</pre></div>
+
+<p>And use the alternatives syntax in our dsl:</p>
+
+<div class="highlight highlight-groovy"><pre><span class="pl-k">def</span> config <span class="pl-k">=</span> <span class="pl-k">Config</span><span class="pl-k">.</span>create {
+
+    projects {
+        mavenProject(<span class="pl-s"><span class="pl-pds">"</span>demo<span class="pl-pds">"</span></span>) {  <span class="pl-c">// method name is the uncapitalized name of the class</span>
+            url <span class="pl-s"><span class="pl-pds">"</span>abc<span class="pl-pds">"</span></span>
+            goals <span class="pl-s"><span class="pl-pds">"</span>clean<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>compile<span class="pl-pds">"</span></span>
+        }
+        gradleProject(<span class="pl-s"><span class="pl-pds">"</span>demo2<span class="pl-pds">"</span></span>) {
+            url <span class="pl-s"><span class="pl-pds">"</span>xyz<span class="pl-pds">"</span></span>
+            tasks <span class="pl-s"><span class="pl-pds">"</span>build<span class="pl-pds">"</span></span>
+        }
+        project(<span class="pl-s"><span class="pl-pds">"</span>baseclass<span class="pl-pds">"</span></span>) {  <span class="pl-c">// since Project is not abstract, it is automatically added to the list</span>
+            url <span class="pl-s"><span class="pl-pds">"</span>nmp<span class="pl-pds">"</span></span>
+        }
+    }
+}</pre></div>
+
+<p><em>Future plans for this are to automatically strip the base class name from the method names (i.e. when all subclasses
+end with the name of the parent class - as in the example above - the base class name could be removed,
+leading to <code>maven</code>, <code>gradle</code> and <code>project</code> as the allowed names.</em></p>
+
+<p>TODO: continue</p>
+
+<p>Future plans:</p>
+
+<ul>
+<li>automatic validation of generated objects</li>
+<li>Map keys should not be restricted to Strings (esp enums would be useful)</li>
+<li>Eclipse dsld</li>
+<li>owner references</li>
+<li>strip common suffixes from alternative names (MavenProject, GradleProject -&gt; maven, gradle)</li>
+<li>allow custom names for alternatives</li>
+<li>syntactic sugar for reuse (something like &lt;&lt;, which unfortunately does not work)</li>
+<li>Ability to clone elements on reuse</li>
+</ul>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		          <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-28019006-2");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
