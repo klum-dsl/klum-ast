@@ -35,13 +35,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
         } else {
             if (field.isList()) {
                 //noinspection GroovyAssignabilityCheck
-                method(name: field.name, params: [values: field.elementTypeAsVararg.canonicalText], type: 'void')
-                method(name: field.element, params: [value: field.elementType.canonicalText], type: 'void')
+                method(name: field.name, params: [values: field.elementTypeAsVararg?.canonicalText], type: 'void')
+                method(name: field.element, params: [value: field.elementType?.canonicalText], type: 'void')
             } else if (field.isMap()) {
-                method(name: field.name, params: [values: field.type.canonicalText], type: 'void')
-                method(name: field.element, params: [key: field.keyType.canonicalText, value: field.valueType.canonicalText], type: 'void')
+                method(name: field.name, params: [values: field.type?.canonicalText], type: 'void')
+                method(name: field.element, params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText], type: 'void')
             } else {
-                method(name: field.name, params: [value: field.type.canonicalText], type: 'void')
+                method(name: field.name, params: [value: field.type?.canonicalText], type: 'void')
             }
         }
     }
