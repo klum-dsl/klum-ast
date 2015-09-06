@@ -103,7 +103,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
     }
 }
 
-contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
+contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
@@ -136,11 +136,7 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
 
         def call = enclosingCall(field.name)
         if (call) {
-
-            def method = call.bind()
-
-            println method.containingClass
-            delegatesTo(field.type)
+            delegatesTo(field.type.resolve())
         }
     }
 }

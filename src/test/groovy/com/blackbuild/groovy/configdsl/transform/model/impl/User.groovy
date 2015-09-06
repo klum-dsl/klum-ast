@@ -5,9 +5,9 @@ def c = Config.create {
     name "klaus"
 
     options {
-
         values(_a: "b", c: "d")
         conition true
+
     }
 
     envs {
@@ -24,6 +24,11 @@ def c = Config.create {
         bil {
         }
     }
+}
+
+Options.create {
+    oValue("bla", "blub")
+
 }
 
 println c.options.allUnderscoreOptions
