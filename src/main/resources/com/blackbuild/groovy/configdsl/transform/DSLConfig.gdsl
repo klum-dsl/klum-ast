@@ -131,6 +131,18 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
             )
         }
     }
+
+    clazz.allSingleDSLFields.each { field ->
+
+        def call = enclosingCall(field.name)
+        if (call) {
+
+            def method = call.bind()
+
+            println method.containingClass
+            delegatesTo(field.type)
+        }
+    }
 }
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -142,6 +154,8 @@ class FieldConfig {
 
     ClassConfig targetConfig
     private PsiAnnotation fieldAnnotation
+
+    boolean isDslObject
 
     FieldConfig(PsiField field) {
         this.field = field
@@ -155,8 +169,10 @@ class FieldConfig {
             element = name.endsWith('s') ? name[0..-2] : name
 
         ClassConfig config = new ClassConfig(field.classType)
-        if (config.dslClass)
+        if (config.dslClass) {
             targetConfig = config
+            isDslObject = true
+        }
         else if (isCollectionOfDslObjects())
             targetConfig = new ClassConfig(elementType.resolve())
     }
@@ -233,6 +249,10 @@ class ClassConfig {
         }
 
         return result as Set
+    }
+
+    Set<FieldConfig> getAllSingleDSLFields() {
+        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
     }
 
     @Override

@@ -5,6 +5,7 @@ def c = Config.create {
     name "klaus"
 
     options {
+
         values(_a: "b", c: "d")
         conition true
     }
