@@ -10,13 +10,30 @@ import com.intellij.psi.PsiType
 
 contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")) {
     ClassConfig clazz = new ClassConfig(psiClass)
-    method(name: "apply", params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+    method(
+            name: "apply",
+            doc: "Applies the configuration in the closure." as String,
+            params: [closure: Closure.class.name],
+            type: clazz.type.qualifiedName
+    )
 
     if (clazz.key) {
-        method(name: "create", isStatic: true, params: ["$clazz.key": "java.lang.String", closure: Closure.class.name], type: clazz.type.qualifiedName)
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key" as String,
+                isStatic: true,
+                params: ["$clazz.key": "java.lang.String", closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
         method(constructor: true, params: ["$clazz.key": "java.lang.String"])
     } else {
-        method(name: "create", isStatic: true, params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName}" as String,
+                isStatic: true,
+                params: [closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
     }
 
     classType?.fields?.each { PsiField rawField ->
@@ -26,22 +43,60 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
 
         if (fieldType) {
             if (!field.collectionOfDslObjects && fieldType.key)
-                method(name: field.name, params: ["$fieldType.key": "java.lang.String", value: 'Closure'], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name, using the key as $fieldType.key." as String,
+                        params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
+                        type: 'void'
+                )
             else
-                method(name: field.name, params: [value: 'Closure'], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name" as String,
+                        params: [value: 'Closure'],
+                        type: 'void'
+                )
         } else if (field.collectionOfDslObjects) {
-            method(name: field.name, params: [closure: Closure.class.name], type: 'void')
-
+            method(
+                    name: field.name,
+                    doc: "Enter $field.name via closure" as String,
+                    params: [closure: Closure.class.name],
+                    type: 'void'
+            )
         } else {
             if (field.isList()) {
                 //noinspection GroovyAssignabilityCheck
-                method(name: field.name, params: [values: field.elementTypeAsVararg?.canonicalText], type: 'void')
-                method(name: field.element, params: [value: field.elementType?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Adds a number of ${field.elementType}s to $field.name list" as String,
+                        params: [values: field.elementTypeAsVararg?.canonicalText],
+                        type: 'void'
+                )
+                method(
+                        name: field.element,
+                        doc: "Adds a single ${field.elementType} to $field.name list" as String,
+                        params: [value: field.elementType?.canonicalText],
+                        type: 'void'
+                )
             } else if (field.isMap()) {
-                method(name: field.name, params: [values: field.type?.canonicalText], type: 'void')
-                method(name: field.element, params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Adds a map of entries to $field.name list" as String,
+                        params: [values: field.type?.canonicalText],
+                        type: 'void'
+                )
+                method(
+                        name: field.element,
+                        doc: "Adds a single ${field.elementType} to $field.name map using key as the key." as String,
+                        params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText],
+                        type: 'void'
+                )
             } else {
-                method(name: field.name, params: [value: field.type?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name" as String,
+                        params: [value: field.type?.canonicalText],
+                        type: 'void')
             }
         }
     }

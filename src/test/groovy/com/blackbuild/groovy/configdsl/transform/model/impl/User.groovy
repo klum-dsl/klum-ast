@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
+
 def c = Config.create {
     name "klaus"
 
