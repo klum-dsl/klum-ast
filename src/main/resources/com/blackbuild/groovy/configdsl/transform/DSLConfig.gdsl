@@ -96,7 +96,8 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
                         name: field.name,
                         doc: "Sets the $field.name" as String,
                         params: [value: field.type?.canonicalText],
-                        type: 'void')
+                        type: 'void'
+                )
             }
         }
     }
@@ -115,9 +116,19 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
         if (enclosingCall(innerMostKnownClosureField.element)) {
             delegatesTo(elementType.type)
         } else {
-            method(name: innerMostKnownClosureField.element, params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'], type: 'void')
+            method(
+                    name: innerMostKnownClosureField.element,
+                    doc: "Creates s single instance of $innerMostKnownClosureField.element and adds it." as String,
+                    params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                    type: 'void'
+            )
             // TODO: alternatives
-            method(name: "reuse", params: [value: elementType.type.qualifiedName], type: 'void')
+            method(
+                    name: "reuse",
+                    doc: "Reuses an existing instance of $elementType.type.qualifiedName" as String,
+                    params: [value: elementType.type.qualifiedName],
+                    type: 'void'
+            )
         }
     }
 }

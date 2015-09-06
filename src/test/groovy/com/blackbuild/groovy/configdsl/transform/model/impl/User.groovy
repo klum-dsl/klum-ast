@@ -29,6 +29,8 @@ println c.options.allUnderscoreOptions
 
 println c.environments.bil
 
+def auth = Authorization.create {}
+
 Environment.create("Bla") {
     authorizations {
         authorization {
@@ -38,6 +40,7 @@ Environment.create("Bla") {
         authorization {
 
         }
+        reuse()
     }
 }
 
