@@ -1,8 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
-
 import com.blackbuild.groovy.configdsl.transform.DSLConfig
 import com.blackbuild.groovy.configdsl.transform.DSLField
-import groovy.transform.Canonical
 
 @DSLConfig
 class Config {
@@ -20,7 +18,7 @@ class Config {
 
 @DSLConfig
 class Options {
-    Map<String, String> values
+    Map<String, String> oValues
     boolean condition
 
     def getAllUnderscoreOptions() {

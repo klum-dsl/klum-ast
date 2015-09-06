@@ -10,13 +10,30 @@ import com.intellij.psi.PsiType
 
 contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")) {
     ClassConfig clazz = new ClassConfig(psiClass)
-    method(name: "apply", params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+    method(
+            name: "apply",
+            doc: "Applies the configuration in the closure." as String,
+            params: [closure: Closure.class.name],
+            type: clazz.type.qualifiedName
+    )
 
     if (clazz.key) {
-        method(name: "create", isStatic: true, params: ["$clazz.key": "java.lang.String", closure: Closure.class.name], type: clazz.type.qualifiedName)
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key" as String,
+                isStatic: true,
+                params: ["$clazz.key": "java.lang.String", closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
         method(constructor: true, params: ["$clazz.key": "java.lang.String"])
     } else {
-        method(name: "create", isStatic: true, params: [closure: Closure.class.name], type: clazz.type.qualifiedName)
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName}" as String,
+                isStatic: true,
+                params: [closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
     }
 
     classType?.fields?.each { PsiField rawField ->
@@ -26,28 +43,67 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
 
         if (fieldType) {
             if (!field.collectionOfDslObjects && fieldType.key)
-                method(name: field.name, params: ["$fieldType.key": "java.lang.String", value: 'Closure'], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name, using the key as $fieldType.key." as String,
+                        params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
+                        type: 'void'
+                )
             else
-                method(name: field.name, params: [value: 'Closure'], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name" as String,
+                        params: [value: 'Closure'],
+                        type: 'void'
+                )
         } else if (field.collectionOfDslObjects) {
-            method(name: field.name, params: [closure: Closure.class.name], type: 'void')
-
+            method(
+                    name: field.name,
+                    doc: "Enter $field.name via closure" as String,
+                    params: [closure: Closure.class.name],
+                    type: 'void'
+            )
         } else {
             if (field.isList()) {
                 //noinspection GroovyAssignabilityCheck
-                method(name: field.name, params: [values: field.elementTypeAsVararg?.canonicalText], type: 'void')
-                method(name: field.element, params: [value: field.elementType?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Adds a number of ${field.elementType}s to $field.name list" as String,
+                        params: [values: field.elementTypeAsVararg?.canonicalText],
+                        type: 'void'
+                )
+                method(
+                        name: field.element,
+                        doc: "Adds a single ${field.elementType} to $field.name list" as String,
+                        params: [value: field.elementType?.canonicalText],
+                        type: 'void'
+                )
             } else if (field.isMap()) {
-                method(name: field.name, params: [values: field.type?.canonicalText], type: 'void')
-                method(name: field.element, params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Adds a map of entries to $field.name list" as String,
+                        params: [values: field.type?.canonicalText],
+                        type: 'void'
+                )
+                method(
+                        name: field.element,
+                        doc: "Adds a single ${field.elementType} to $field.name map using key as the key." as String,
+                        params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText],
+                        type: 'void'
+                )
             } else {
-                method(name: field.name, params: [value: field.type?.canonicalText], type: 'void')
+                method(
+                        name: field.name,
+                        doc: "Sets the $field.name" as String,
+                        params: [value: field.type?.canonicalText],
+                        type: 'void'
+                )
             }
         }
     }
 }
 
-contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
+contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
@@ -60,9 +116,27 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
         if (enclosingCall(innerMostKnownClosureField.element)) {
             delegatesTo(elementType.type)
         } else {
-            method(name: innerMostKnownClosureField.element, params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'], type: 'void')
+            method(
+                    name: innerMostKnownClosureField.element,
+                    doc: "Creates s single instance of $innerMostKnownClosureField.element and adds it." as String,
+                    params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                    type: 'void'
+            )
             // TODO: alternatives
-            method(name: "reuse", params: [value: elementType.type.qualifiedName], type: 'void')
+            method(
+                    name: "reuse",
+                    doc: "Reuses an existing instance of $elementType.type.qualifiedName" as String,
+                    params: [value: elementType.type.qualifiedName],
+                    type: 'void'
+            )
+        }
+    }
+
+    clazz.allSingleDSLFields.each { field ->
+
+        def call = enclosingCall(field.name)
+        if (call) {
+            delegatesTo(field.type.resolve())
         }
     }
 }
@@ -77,6 +151,8 @@ class FieldConfig {
     ClassConfig targetConfig
     private PsiAnnotation fieldAnnotation
 
+    boolean isDslObject
+
     FieldConfig(PsiField field) {
         this.field = field
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLField")
@@ -89,8 +165,10 @@ class FieldConfig {
             element = name.endsWith('s') ? name[0..-2] : name
 
         ClassConfig config = new ClassConfig(field.classType)
-        if (config.dslClass)
+        if (config.dslClass) {
             targetConfig = config
+            isDslObject = true
+        }
         else if (isCollectionOfDslObjects())
             targetConfig = new ClassConfig(elementType.resolve())
     }
@@ -167,6 +245,10 @@ class ClassConfig {
         }
 
         return result as Set
+    }
+
+    Set<FieldConfig> getAllSingleDSLFields() {
+        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
     }
 
     @Override

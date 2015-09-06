@@ -1,11 +1,13 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
+
 def c = Config.create {
     name "klaus"
 
     options {
         values(_a: "b", c: "d")
         conition true
+
     }
 
     envs {
@@ -24,9 +26,16 @@ def c = Config.create {
     }
 }
 
+Options.create {
+    oValue("bla", "blub")
+
+}
+
 println c.options.allUnderscoreOptions
 
 println c.environments.bil
+
+def auth = Authorization.create {}
 
 Environment.create("Bla") {
     authorizations {
@@ -37,6 +46,7 @@ Environment.create("Bla") {
         authorization {
 
         }
+        reuse()
     }
 }
 
