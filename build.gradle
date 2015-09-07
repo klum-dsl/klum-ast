@@ -41,6 +41,10 @@ release {
     tagTemplate = 'v${version}'
 }
 
+nexusStaging {
+    packageGroup = "com.blackbuild"
+}
+
 modifyPom {
     project {
         name 'Config DSL'
