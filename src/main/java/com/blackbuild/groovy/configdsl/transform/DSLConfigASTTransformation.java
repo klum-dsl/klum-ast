@@ -84,7 +84,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createEquals(annotatedClass, false, false, true, null, null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
-            createToString(annotatedClass, false, false, null, null, false);
+            if (ownerField == null)
+                createToString(annotatedClass, false, false, null, null, false);
+            else
+                createToString(annotatedClass, false, false, Collections.singletonList(ownerField.getName()), null, false);
         }
     }
 

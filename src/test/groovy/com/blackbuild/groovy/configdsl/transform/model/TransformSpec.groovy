@@ -753,4 +753,31 @@ class TransformSpec extends AbstractDSLSpec {
         clazz.declaredMethods.find { Method method -> method.name == "toString"}
     }
 
+    def "Bug: toString() with owner field throws StackOverflowError"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Bar bar
+            }
+
+            @DSLConfig(owner = "owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bar {}
+        }
+        instance.toString()
+
+        then:
+        notThrown(StackOverflowError)
+
+    }
+
 }
