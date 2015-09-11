@@ -209,22 +209,26 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
@@ -390,16 +394,19 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", args("key", "closure")))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
@@ -407,6 +414,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .callS(varX("created"), "apply", varX("closure"))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
