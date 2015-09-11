@@ -310,4 +310,66 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars.Dieter.owner.is(instance)
     }
 
+    def "owner may not be overriden"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(owner="owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+        def bar = create("pk.Bar") {}
+        bar.owner = instance
+
+        when:
+        bar.owner = instance
+
+        then:
+        def e = thrown(IllegalStateException)
+        e.message == "Owner must not be overridden."
+
+    }
+
+    def "Multiple uses of an object are not allowed"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(owner="owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+        def aBar
+        instance = clazz.create {
+            bars {
+               aBar = bar {}
+            }
+        }
+
+        when:
+        clazz.create {
+            bars {
+                _use aBar
+            }
+        }
+
+        then:
+        def e = thrown(IllegalStateException)
+        e.message == "Owner must not be overridden."
+
+    }
+
 }

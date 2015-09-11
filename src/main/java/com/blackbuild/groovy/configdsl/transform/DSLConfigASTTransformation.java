@@ -5,6 +5,8 @@ import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -61,6 +63,27 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
+
+        if (ownerField != null)
+            createGuardingSetter();
+    }
+
+    private void createGuardingSetter() {
+
+        createPublicMethod(setterName(ownerField))
+                .param(ownerField.getType(), "value")
+                .statement(
+                        ifS(
+                                notNullX(propX(varX("this"), ownerField.getName())),
+                                new ThrowStatement(ctorX(
+                                        ClassHelper.make(IllegalStateException.class),
+                                        args(constX("Owner must not be overridden.")))
+                                )
+                        )
+                )
+                .assignS(propX(varX("this"), ownerField.getName()), varX("value"))
+                .addTo(annotatedClass);
+
     }
 
     private void createKeyConstructor() {
@@ -299,6 +322,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         char[] name = node.getNameWithoutPackage().toCharArray();
         name[0] = Character.toLowerCase(name[0]);
         return new String(name);
+    }
+
+    private String setterName(FieldNode node) {
+        char[] name = node.getName().toCharArray();
+        name[0] = Character.toUpperCase(name[0]);
+        return "set" + new String(name);
     }
 
     private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {

@@ -474,11 +474,10 @@ This has two dangers:
 
 - no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
   type is incorrect
-- If an object is used using the `_use()` method, the owner field will simply be overridden with the last owner.
-  Thus, an object should normally only be used once (either directly or using the `_use()` method). In other words,
-  `_use()` should be only used for objects created outside of the configuration structure. Later versions of config-dsl
-  might throw an exception when trying to override an existing owner.
-- if an object is reused, the owner field will not be overridden.
+- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
+  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
+  `_use()` can only be used for objects created outside of the configuration structure.
+- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
 
 ```groovy
 @DSLConfig
