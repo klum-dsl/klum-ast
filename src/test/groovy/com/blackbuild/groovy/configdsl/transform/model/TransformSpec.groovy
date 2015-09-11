@@ -796,7 +796,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _reuse(aBar)
         }
 
         then:
@@ -826,7 +826,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _reuse(aBar)
         }
 
         then:

@@ -53,7 +53,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "error: owner points to not existing field"() {
+    def "error: owner points to non existing field"() {
         when:
         createClass('''
             package pk
@@ -127,7 +127,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bar.owner.is(instance)
     }
 
-    def "reusing of objects in list closure sets owner"() {
+    def "using of existing objects in list closure sets owner"() {
         given:
         createInstance('''
             package pk
@@ -146,15 +146,46 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _use aBar
         }
 
         then:
         instance.bars[0].owner.is(instance)
     }
 
-    @Ignore("yet")
-    def "reusing of objects in map closure does not set owner"() {
+    def "reusing of objects in list closure does not set owner"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(owner = "owner")
+            class Bar {
+                Foo owner
+            }
+        ''')
+
+        when:
+        def aBar
+        instance.bars {
+            aBar = bar {}
+        }
+
+        def otherInstance = create("pk.Foo") {
+            bars {
+                _reuse(aBar)
+            }
+        }
+
+        then: "bar's owner should still be the first object"
+        otherInstance.bars[0].owner.is(instance)
+    }
+
+    def "reusing of existing objects in map closure does not set owner"() {
         given:
         createClass('''
             package pk
@@ -184,7 +215,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         create("pk.Fum") {
             bars {
-                reuse aBar
+                _reuse aBar
             }
         }
 
@@ -193,7 +224,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
     }
 
 
-    def "reusing of objects in map closure sets owner"() {
+    def "using exisiting objects in map closure sets owner"() {
         given:
         createInstance('''
             package pk
@@ -213,7 +244,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _use(aBar)
         }
 
         then:

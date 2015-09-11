@@ -37,7 +37,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
-    private static final String REUSE_METHOD_NAME = "reuse";
+    public static final String REUSE_METHOD_NAME = "_reuse";
+    public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     private ClassNode annotatedClass;
@@ -244,6 +245,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         createPublicMethod(REUSE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
+                .addTo(contextClass);
+
+        createPublicMethod(USE_METHOD_NAME)
+                .param(elementType, "value")
+                .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
                 .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
                 .addTo(contextClass);
 
@@ -429,6 +435,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         //noinspection ConstantConditions
         createPublicMethod(REUSE_METHOD_NAME)
+                .param(elementType, "value")
+                .callS(getOuterInstanceXforField(fieldNode), "put",
+                        args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
+                )
+                .addTo(contextClass);
+
+        //noinspection ConstantConditions
+        createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))

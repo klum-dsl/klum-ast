@@ -377,7 +377,13 @@ Collections of DSL-Objects are created using a nested closure. The name of the o
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
-Additionally, a special reuse method is created, which takes an existing object and adds it to the structure.
+Additionally, two special methods are created that takes an existing object and adds it to the structure:
+
+- `_use()` takes an existing object. This allows for structuring your cod (for example by creating the object in a method)
+
+- `_reuse()` does the same, but does not set the owner field of the inner object to the new container.
+
+- if the added element does not have an owner field, both methods behave identically.
 
 As with simple objects, the inner closures return the existing object for reuse
 
@@ -411,7 +417,7 @@ Config.create {
         element {
             name "another element"
         }
-        reuse objectForReuse
+        _use objectForReuse
     }
     keyedElements {
         anotherObjectForReuse = keyedElement ("klaus") {
@@ -422,7 +428,7 @@ Config.create {
         mapElement ("dieter") {
             value "another"
         }
-        reuse anotherObjectForReuse
+        _reuse anotherObjectForReuse
     }
 }
 ```
@@ -468,7 +474,11 @@ This has two dangers:
 
 - no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
   type is incorrect
-- If an object is reused, the owner field will simply be overridden with the last owner.
+- If an object is used using the `_use()` method, the owner field will simply be overridden with the last owner.
+  Thus, an object should normally only be used once (either directly or using the `_use()` method). In other words,
+  `_use()` should be only used for objects created outside of the configuration structure. Later versions of config-dsl
+  might throw an exception when trying to override an existing owner.
+- if an object is reused, the owner field will not be overridden.
 
 ```groovy
 @DSLConfig
