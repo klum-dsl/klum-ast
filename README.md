@@ -333,9 +333,9 @@ creates the following methods (in Config):
 
 ```groovy
 def unkeyed(UnKeyed reuse) // reuse an exiting object
-def unkeyed(@DelegatesTo(Unkeyed) Closure closure)
+Unkeyed unkeyed(@DelegatesTo(Unkeyed) Closure closure)
 def keyed(UnKeyed reuse) // reuse an exiting object
-def keyed(String key, @DelegatesTo(Unkeyed) Closure closure)
+Keyed keyed(String key, @DelegatesTo(Unkeyed) Closure closure)
 ```
 
 Usage:
@@ -356,13 +356,36 @@ Config.create {
 }
 ```
 
+The closure methods return the created objects, so you can also do the following:
+
+```groovy
+def objectForReuse
+Config.create {
+    objectForReuse = unkeyed {
+        name "other"
+    }
+}
+
+Config.create {
+    unkeyed objectForReuse
+}
+```
+
 #### Collections of DSL Objects
 
 Collections of DSL-Objects are created using a nested closure. The name of the outer closure is the field name, the 
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
-Additionally, a special reuse method is created, which takes an existing object and adds it to the structure.
+Additionally, two special methods are created that takes an existing object and adds it to the structure:
+
+- `_use()` takes an existing object. This allows for structuring your cod (for example by creating the object in a method)
+
+- `_reuse()` does the same, but does not set the owner field of the inner object to the new container.
+
+- if the added element does not have an owner field, both methods behave identically.
+
+As with simple objects, the inner closures return the existing object for reuse
 
 ```groovy
 @DSLConfig
@@ -384,6 +407,7 @@ class Keyed {
 }
 
 def objectForReuse = UnKeyed.create { name = "reuse" }
+def anotherObjectForReuse
 
 Config.create {
     elements {
@@ -393,10 +417,10 @@ Config.create {
         element {
             name "another element"
         }
-        reuse objectForReuse
+        _use objectForReuse
     }
     keyedElements {
-        keyedElement ("klaus") {
+        anotherObjectForReuse = keyedElement ("klaus") {
             value "a Value"
         }
     }
@@ -404,6 +428,7 @@ Config.create {
         mapElement ("dieter") {
             value "another"
         }
+        _reuse anotherObjectForReuse
     }
 }
 ```
@@ -449,7 +474,10 @@ This has two dangers:
 
 - no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
   type is incorrect
-- If an object is reused, the owner field will simply be overridden with the last owner.
+- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
+  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
+  `_use()` can only be used for objects created outside of the configuration structure.
+- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
 
 ```groovy
 @DSLConfig

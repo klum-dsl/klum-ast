@@ -124,7 +124,13 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
             )
             // TODO: alternatives
             method(
-                    name: "reuse",
+                    name: DSLConfigASTTransformation.REUSE_METHOD_NAME,
+                    doc: "Reuses an existing instance of $elementType.type.qualifiedName" as String,
+                    params: [value: elementType.type.qualifiedName],
+                    type: 'void'
+            )
+            method(
+                    name: DSLConfigASTTransformation.USE_METHOD_NAME,
                     doc: "Reuses an existing instance of $elementType.type.qualifiedName" as String,
                     params: [value: elementType.type.qualifiedName],
                     type: 'void'

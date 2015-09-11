@@ -5,6 +5,8 @@ import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -37,7 +39,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
-    private static final String REUSE_METHOD_NAME = "reuse";
+    public static final String REUSE_METHOD_NAME = "_reuse";
+    public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     private ClassNode annotatedClass;
@@ -60,6 +63,27 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
+
+        if (ownerField != null)
+            createGuardingSetter();
+    }
+
+    private void createGuardingSetter() {
+
+        createPublicMethod(setterName(ownerField))
+                .param(ownerField.getType(), "value")
+                .statement(
+                        ifS(
+                                notNullX(propX(varX("this"), ownerField.getName())),
+                                new ThrowStatement(ctorX(
+                                        ClassHelper.make(IllegalStateException.class),
+                                        args(constX("Owner must not be overridden.")))
+                                )
+                        )
+                )
+                .assignS(propX(varX("this"), ownerField.getName()), varX("value"))
+                .addTo(annotatedClass);
+
     }
 
     private void createKeyConstructor() {
@@ -209,22 +233,26 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
@@ -238,6 +266,11 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         }
 
         createPublicMethod(REUSE_METHOD_NAME)
+                .param(elementType, "value")
+                .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
+                .addTo(contextClass);
+
+        createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
                 .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
@@ -289,6 +322,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         char[] name = node.getNameWithoutPackage().toCharArray();
         name[0] = Character.toLowerCase(name[0]);
         return new String(name);
+    }
+
+    private String setterName(FieldNode node) {
+        char[] name = node.getName().toCharArray();
+        name[0] = Character.toUpperCase(name[0]);
+        return "set" + new String(name);
     }
 
     private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
@@ -390,16 +429,19 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", args("key", "closure")))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
         if (!isFinal(elementType)) {
             createPublicMethod(methodName)
+                    .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
@@ -407,6 +449,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                     .callS(varX("created"), "apply", varX("closure"))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
                     .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
@@ -421,6 +464,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         //noinspection ConstantConditions
         createPublicMethod(REUSE_METHOD_NAME)
+                .param(elementType, "value")
+                .callS(getOuterInstanceXforField(fieldNode), "put",
+                        args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
+                )
+                .addTo(contextClass);
+
+        //noinspection ConstantConditions
+        createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
@@ -445,22 +496,26 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
 
         if (!isAbstract(fieldType)) {
             createPublicMethod(methodName)
+                    .returning(fieldType)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(fieldType, "create", argsWithOptionalKeyAndClosure(keyField)))
                     .assignS(propX(varX("this"), fieldNode.getName()), varX("created"))
                     .optionalAssignS(propX(varX("created"), ownerFieldName), varX("this"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
 
         if (!isFinal(fieldType)) {
             createPublicMethod(methodName)
+                    .returning(fieldType)
                     .classParam("typeToCreate", fieldType)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(keyField)))
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .optionalAssignS(propX(varX("created"), ownerFieldName), varX("this"), ownerFieldOfElement)
+                    .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
     }

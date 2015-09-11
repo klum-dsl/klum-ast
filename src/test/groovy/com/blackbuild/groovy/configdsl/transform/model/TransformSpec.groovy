@@ -340,12 +340,15 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.inner {
+        def inner = instance.inner {
             name "Dieter"
         }
 
         then:
         instance.inner.name == "Dieter"
+
+        and: "object should be returned by closure"
+        inner != null
     }
 
     def "create inner object via key and closure"() {
@@ -366,13 +369,16 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.inner("Dieter") {
+        def inner = instance.inner("Dieter") {
             value 15
         }
 
         then:
         instance.inner.name == "Dieter"
         instance.inner.value == 15
+
+        and: "object should be returned by closure"
+        inner != null
     }
 
     def "create list of inner objects"() {
@@ -400,6 +406,35 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.bars[0].name == "Dieter"
         instance.bars[1].name == "Klaus"
+    }
+
+    def "inner list objects closure should return the object"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig
+            class Bar {
+                String name
+            }
+        ''')
+
+        when:
+        def bar1
+        def bar2
+        instance.bars {
+            bar1 = bar { name "Dieter" }
+            bar2 = bar { name "Klaus"}
+        }
+
+        then:
+        bar1.name == "Dieter"
+        bar2.name == "Klaus"
     }
 
     def "create list of named inner objects"() {
@@ -430,6 +465,36 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[0].url == "1"
         instance.bars[1].name == "Klaus"
         instance.bars[1].url == "2"
+    }
+
+    def "inner list objects closure with named objects should return the created object"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSLConfig(key="name")
+            class Bar {
+                String name
+                String url
+            }
+        ''')
+
+        when:
+        def bar1
+        def bar2
+        instance.bars {
+            bar1 = bar("Dieter") { url "1" }
+            bar2 = bar("Klaus") { url "2" }
+        }
+
+        then:
+        bar1.name == "Dieter"
+        bar2.name == "Klaus"
     }
 
     def "create list of named inner objects using name method"() {
@@ -680,6 +745,36 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars.Klaus.url == "2"
     }
 
+    def "creation of inner objects in map should return the create object"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSLConfig(key="name")
+            class Bar {
+                String name
+                String url
+            }
+        ''')
+
+        when:
+        def bar1
+        def bar2
+        instance.bars {
+            bar1 = bar("Dieter") { url "1" }
+            bar2 = bar("Klaus") { url "2" }
+        }
+
+        then:
+        bar1.url == "1"
+        bar2.url == "2"
+    }
+
     def "reusing of objects in closure"() {
         given:
         createInstance('''
@@ -701,7 +796,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _reuse(aBar)
         }
 
         then:
@@ -731,7 +826,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            reuse(aBar)
+            _reuse(aBar)
         }
 
         then:
