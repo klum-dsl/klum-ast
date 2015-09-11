@@ -340,12 +340,15 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.inner {
+        def inner = instance.inner {
             name "Dieter"
         }
 
         then:
         instance.inner.name == "Dieter"
+
+        and: "object should be returned by closure"
+        inner != null
     }
 
     def "create inner object via key and closure"() {
@@ -366,13 +369,16 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.inner("Dieter") {
+        def inner = instance.inner("Dieter") {
             value 15
         }
 
         then:
         instance.inner.name == "Dieter"
         instance.inner.value == 15
+
+        and: "object should be returned by closure"
+        inner != null
     }
 
     def "create list of inner objects"() {

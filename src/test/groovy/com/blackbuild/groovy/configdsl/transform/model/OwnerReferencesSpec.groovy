@@ -153,6 +153,46 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars[0].owner.is(instance)
     }
 
+    @Ignore("yet")
+    def "reusing of objects in map closure does not set owner"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                Bar bar
+            }
+
+            @DSLConfig(key = "name", owner = "owner")
+            class Bar {
+                String name
+                Foo owner
+            }
+
+            @DSLConfig
+            class Fum {
+                Map<String, Bar> bars
+            }
+        ''')
+
+        when:
+        def aBar
+        instance = create("pk.Foo") {
+            aBar = bar("Klaus") {}
+        }
+
+        create("pk.Fum") {
+            bars {
+                reuse aBar
+            }
+        }
+
+        then:
+        aBar.owner.is(instance)
+    }
+
+
     def "reusing of objects in map closure sets owner"() {
         given:
         createInstance('''
