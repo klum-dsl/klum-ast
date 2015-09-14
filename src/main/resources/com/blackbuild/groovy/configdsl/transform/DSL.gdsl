@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.intellij.psi.PsiAnnotation
+import com.intellij.psi.PsiAnnotationMemberValue
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiEllipsisType
@@ -122,22 +123,38 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
-    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{FieldConfig field -> enclosingCall(field.name) || enclosingCall(field.memberName)}
+    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{
+        FieldConfig field -> return enclosingCall(field.name) ?: enclosingCall(field.memberName) ?: field.alternatives
+    }
 
     if (innerMostKnownClosureField) {
 
         def elementType = innerMostKnownClosureField.targetConfig
 
         if (enclosingCall(innerMostKnownClosureField.memberName)) {
+            // this is a single element closure
             delegatesTo(elementType.type)
         } else {
-            method(
-                    name: innerMostKnownClosureField.memberName,
-                    doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                    params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
-                    type: 'void'
-            )
-            // TODO: alternatives
+            // collection closure
+            if (innerMostKnownClosureField.alternatives) {
+                innerMostKnownClosureField.alternatives.each { name, type ->
+                    method(
+                            name: name,
+                            doc: "Creates s single instance of $type and adds it." as String,
+                            params: type.key ? ["$type.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                            type: 'void'
+                    )
+                }
+
+            } else {
+                method(
+                        name: innerMostKnownClosureField.memberName,
+                        doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                        params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                        type: 'void'
+                )
+            }
+
             method(
                     name: "_reuse",
                     doc: """Reuses an existing instance of $elementType.type.qualifiedName.
@@ -175,6 +192,8 @@ class FieldConfig {
 
     boolean isDslObject
 
+    Map<String, ClassConfig> alternatives
+
     FieldConfig(PsiField field) {
         this.field = field
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
@@ -189,8 +208,26 @@ class FieldConfig {
             targetConfig = config
             isDslObject = true
         }
-        else if (isCollectionOfDslObjects())
+        else if (isCollectionOfDslObjects()) {
             targetConfig = new ClassConfig(elementType.resolve())
+
+            alternatives = [:]
+            def alternativesValues = fieldAnnotation?.findDeclaredAttributeValue("alternatives")
+
+            if (alternativesValues) {
+                alternativesValues.children.each {
+                    PsiClass alternativ = it.resolve()
+                    alternatives[uncapitalizeName(alternativ.name)] = new ClassConfig(alternativ)
+                }
+
+                def basetype = elementType.resolve()
+                alternatives[uncapitalizeName(basetype.name)] = new ClassConfig(basetype)
+            }
+        }
+    }
+
+    private uncapitalizeName(String name) {
+        name[0].toLowerCase() + name.substring(1)
     }
 
     PsiType getType() {
@@ -228,11 +265,6 @@ class FieldConfig {
 
     boolean isCollectionOfDslObjects() {
         elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
-    }
-
-    List<PsiClass> getAlternatives() {
-        this.fieldAnnotation?.findAttributeValue("alternatives")
-        // TODO implement
     }
 
     @Override

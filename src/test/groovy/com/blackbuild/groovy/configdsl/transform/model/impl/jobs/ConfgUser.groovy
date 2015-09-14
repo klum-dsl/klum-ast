@@ -17,13 +17,18 @@ def c = Config.create() {
                     authForComponentDeploy "developer"
 
                     versionFilter NO_SNAPSHOT_FILTER
-                    mail {
-                        recipient 'a@b'
-                        recipient 'c@d'
-                    }
+
+
                 }
             }
         }
+    }
+
+    projects {
+        mavenProject("test") {
+
+        }
+
     }
 }
 
