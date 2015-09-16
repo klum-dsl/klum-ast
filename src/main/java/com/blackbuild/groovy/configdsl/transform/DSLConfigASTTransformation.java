@@ -74,6 +74,17 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
 
         createPublicMethod("createTemplate")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .assignS(propX(classX(annotatedClass), "TEMPLATE"),  callX(
+                                keyField != null ? ctorX(annotatedClass, args(constX(null))) : ctorX(annotatedClass),
+                                "apply", varX("closure")
+                        )
+                )
+                .addTo(annotatedClass);
+
+        createPublicMethod("createTemplate")
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
                 .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(annotatedClass, "create", varX("closure")))

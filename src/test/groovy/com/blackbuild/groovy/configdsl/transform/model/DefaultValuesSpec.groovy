@@ -112,4 +112,34 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
+    def "create method should apply template for keyed objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig(key = "name")
+            class Foo {
+                String name
+                String value
+                String value2
+            }
+        ''')
+
+        and:
+        clazz.createTemplate {
+            value "DefaultValue"
+            value2 "DefaultValue2"
+        }
+
+        when:
+        instance = clazz.create("Hallo") {
+            value "own"
+        }
+
+        then:
+        instance.name == "Hallo"
+        instance.value == "own"
+        instance.value2 == "DefaultValue2"
+    }
+
 }
