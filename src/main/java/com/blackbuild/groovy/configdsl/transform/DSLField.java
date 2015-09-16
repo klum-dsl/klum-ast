@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.lang.Closure;
 import org.codehaus.groovy.transform.CanonicalASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 

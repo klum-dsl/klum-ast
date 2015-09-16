@@ -32,6 +32,9 @@ class Environment {
     String name
     String url
     List<Authorization> authorizations
+
+    @DSLField
+    String bla;
 }
 
 @DSLConfig

@@ -6,7 +6,6 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -19,6 +18,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
+import static org.codehaus.groovy.ast.ClassHelper.CLOSURE_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -43,6 +43,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
+    public static final String TEMPLATE_FIELD_NAME = "TEMPLATE";
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -59,13 +60,40 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (keyField != null)
             createKeyConstructor();
 
-        createApplyMethod();
+        createApplyMethods();
+        createTemplyApplyMethod();
         createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
 
         if (ownerField != null)
             createGuardingSetter();
+    }
+
+    private void createTemplyApplyMethod() {
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
+
+        MethodBuilder templateApply = createPublicMethod("apply")
+                .returning(newClass(annotatedClass))
+                .param(newClass(annotatedClass), "template")
+                .statement(ifS(
+                                notNullX(propX(classX(annotatedClass), "TEMPLATE")),
+                                returnS(varX("this"))
+                        )
+                );
+
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (fieldNode == ownerField || fieldNode == keyField) continue;
+
+            templateApply.statement(
+                    ifS(
+                            notX(propX(varX("this"), fieldNode.getName())),
+                            assignS(propX(varX("this"), fieldNode.getName()), propX(varX("template"), fieldNode.getName()))
+                    )
+            );
+        }
+
+        templateApply.addTo(annotatedClass);
     }
 
     private void createGuardingSetter() {
@@ -530,9 +558,9 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
 
-    private void createApplyMethod() {
-        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);
-        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 1)) return;
+    private void createApplyMethods() {
+        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", ClassHelper.CLOSURE_TYPE);
+        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", ClassHelper.CLOSURE_TYPE)) return;
 
         createPublicMethod(hasExistingApply ? "_apply" : "apply")
                 .returning(newClass(annotatedClass))
@@ -547,6 +575,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
+    public static boolean hasDeclaredMethod(ClassNode cNode, String name, ClassNode... requestedParameters) {
+        List<MethodNode> ms = cNode.getDeclaredMethods(name);
+        for (MethodNode m : ms) {
+            Parameter[] paras = m.getParameters();
+            if (paras != null && paras.length == requestedParameters.length) {
+                for (int i = 0; i < paras.length; i++) {
+                    if (paras[i].getType().equals(requestedParameters[i]))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private void createFactoryMethods() {
 
         if (keyField == null)
@@ -556,8 +598,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethodWithKeyParameter() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 2);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 2)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", STRING_TYPE, CLOSURE_TYPE);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", STRING_TYPE, CLOSURE_TYPE)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
@@ -573,8 +615,8 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSimpleFactoryMethod() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 1);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 1)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", CLOSURE_TYPE);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", CLOSURE_TYPE)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
