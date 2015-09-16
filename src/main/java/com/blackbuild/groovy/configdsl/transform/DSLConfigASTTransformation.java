@@ -77,7 +77,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "TEMPLATE"),  callX(
+                .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(
                                 keyField != null ? ctorX(annotatedClass, args(constX(null))) : ctorX(annotatedClass),
                                 "apply", varX("closure")
                         )
@@ -98,12 +98,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (fieldNode == ownerField || fieldNode == keyField) continue;
 
-            templateApply.statement(
-                    ifS(
-                            notX(propX(varX("this"), fieldNode.getName())),
-                            assignS(propX(varX("this"), fieldNode.getName()), propX(varX("template"), fieldNode.getName()))
-                    )
-            );
+            if (isMap(fieldNode.getType()) || isList(fieldNode.getType()))
+                templateApply.statement(
+                        ifS(
+                                propX(varX("template"), fieldNode.getName()),
+                                assignS(propX(varX("this"), fieldNode.getName()), callX(propX(varX("template"), fieldNode.getName()), "clone"))
+                        )
+                );
+            else
+                templateApply.statement(
+                        ifS(
+                                propX(varX("template"), fieldNode.getName()),
+                                assignS(propX(varX("this"), fieldNode.getName()), propX(varX("template"), fieldNode.getName()))
+                        )
+                );
         }
 
         templateApply
@@ -170,12 +178,20 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
-        } else if (Map.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
+        } else if (isMap(fieldNode.getType()))
             createMapMethod(fieldNode);
-        else if (List.class.isAssignableFrom(fieldNode.getType().getTypeClass()))
+        else if (isList(fieldNode.getType()))
             createListMethod(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
+    }
+
+    private boolean isList(ClassNode type) {
+        return type.equals(ClassHelper.LIST_TYPE) || type.implementsInterface(ClassHelper.LIST_TYPE);
+    }
+
+    private boolean isMap(ClassNode type) {
+        return type.equals(ClassHelper.MAP_TYPE) || type.implementsInterface(ClassHelper.MAP_TYPE);
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {

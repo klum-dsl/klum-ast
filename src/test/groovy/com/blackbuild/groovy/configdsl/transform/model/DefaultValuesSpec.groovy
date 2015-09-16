@@ -32,7 +32,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         !instance.is(template)
     }
 
-    def "template copyFrom does not override default values"() {
+    def "empty template fields are not copied"() {
         given:
         createClass('''
             package pk
@@ -40,25 +40,27 @@ class DefaultValuesSpec extends AbstractDSLSpec {
             @DSLConfig
             class Foo {
                 String name
-                String value = "hallo"
+                String value
             }
         ''')
 
         when:
         def template = clazz.create {
             name "Welt"
-            value "override"
+            value null
         }
 
         instance = clazz.create {
+            name "toOverride"
+            value "orig"
             copyFrom template
         }
 
         then:
         instance.name == "Welt"
 
-        and: "value has a default value, is not overriden"
-        instance.value == "hallo"
+        and: "empty values are not copied"
+        instance.value == "orig"
     }
 
     def "create template method is created"() {
@@ -140,6 +142,29 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.name == "Hallo"
         instance.value == "own"
         instance.value2 == "DefaultValue2"
+    }
+
+    def "Lists and Maps in template object should be cloned"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                List<String> names
+            }
+        ''')
+
+        and:
+        clazz.createTemplate {
+            names "a", "b"
+        }
+
+        when:
+        instance = clazz.create {}
+
+        then:
+        !instance.names.is(clazz.TEMPLATE.names)
     }
 
 }
