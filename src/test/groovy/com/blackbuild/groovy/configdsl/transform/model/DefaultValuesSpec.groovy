@@ -14,7 +14,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.metaClass.getMetaMethod("apply", getClass("pk.Foo")) != null
+        clazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
 
         when:
         def template = clazz.create {
@@ -22,7 +22,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         }
 
         instance = clazz.create {
-            apply template
+            copyFrom template
         }
 
         then:
@@ -32,7 +32,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         !instance.is(template)
     }
 
-    def "template apply does not override default values"() {
+    def "template copyFrom does not override default values"() {
         given:
         createClass('''
             package pk
@@ -51,7 +51,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         }
 
         instance = clazz.create {
-            apply template
+            copyFrom template
         }
 
         then:

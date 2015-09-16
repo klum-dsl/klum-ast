@@ -79,7 +79,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(annotatedClass, "create", varX("closure")))
                 .addTo(annotatedClass);
 
-        MethodBuilder templateApply = createPublicMethod("apply")
+        MethodBuilder templateApply = createPublicMethod("copyFrom")
                 .returning(newClass(annotatedClass))
                 .param(newClass(annotatedClass), "template")
                 .statement(ifS(notX(varX("template")), returnS(varX("this"))));
@@ -611,8 +611,12 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .stringParam("name")
                 .delegatingClosureParam(annotatedClass)
                 .statement(returnS(callX(
-                                ctorX(annotatedClass, args("name")),
-                                "apply", varX("closure")
+                            callX(
+                                    ctorX(annotatedClass, args("name")),
+                                    "copyFrom",
+                                    propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
+                            ),
+                            "apply", varX("closure")
                         )
                 ))
                 .addTo(annotatedClass);
@@ -627,7 +631,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
                 .statement(returnS(callX(
-                        callX(ctorX(annotatedClass), "apply", propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)), "apply", varX("closure"))))
+                                        callX(
+                                                ctorX(annotatedClass),
+                                                "copyFrom",
+                                                propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
+                                        ),
+                                        "apply", varX("closure"))
+                        )
+                )
                 .addTo(annotatedClass);
 
     }
