@@ -1,3 +1,7 @@
+0.11.0
+======
+- Introduced template objects to configure default values.
+
 0.10.0
 ======
 - reuse changes/improvements [#6](https://github.com/blackbuild/config-dsl/pull/6)
@@ -19,6 +23,6 @@
 
 0.9.3
 =====
-- Code refactorings (extracted method creating code to separate class `MethodBuilder`
+- Code refactorings (extracted method creating code to separate class `MethodBuilder`)
 - Introduced owner fields
 - Allow inheritance in DSLObjects

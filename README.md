@@ -238,6 +238,12 @@ Additionally, an `apply` method is created, which takes single closure and appli
 def void apply(Closure c)
 ```
 
+#### copyFrom() method
+
+Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
+object over to this objects, excluding key and owner fields. For non collection fields, only a reference is copied,
+for Lists and Maps, shallow copies are created.
+
 #### equals() and toString() methods
 
 If not yet present, `equals()` and `toString()` methods are generated using the respective ASTTransformations. You
@@ -462,7 +468,42 @@ As an experimental feature, you can also use the key-String as name for the clos
      }
  }
  ```
+
+#### Template objects
+
+The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
+
+Each DSLObject class contains a special static `TEMPLATE` field. The field can be initialized using the `createTemplate()`
+ method which creates a new instance using a closure, similar to the `create()` (createTemplate() is always unkeyed), but
+ instead of returning the new instance, it is assigned to the `TEMPLATE` field.
  
+Whenever a new instance is created using the `create()` methods, all non-null / non-empty fields are copied over from 
+template. For Lists and Maps, shallow copies will be created.
+
+```groovy
+@DSLConfig
+class Config {
+    String url
+    List<String> roles
+}
+```
+
+Usage:
+```groovy
+Config.createTemplate {
+    url "http://x.y"
+    roles "developer", "guest"
+}
+
+def c = Config.create {
+    roles "productowner"
+}
+
+assert c.url == "http://x.y"
+assert c.roles == [ "developer", "guest", "productowner" ]
+```
+
+  
 #### The owner field
 
 DSL-Objects can have an optional owner field, designated via the `owner`-attribute in the annotation.
@@ -624,10 +665,8 @@ TODO: continue
 Future plans:
 
 - automatic validation of generated objects
-- Map keys should not be restricted to Strings (esp enums would be useful)
+- Map keys should not be restricted to Strings (esp. enums would be useful)
 - Eclipse dsld
-- owner references
 - strip common suffixes from alternative names (MavenProject, GradleProject -> maven, gradle)
 - allow custom names for alternatives
 - syntactic sugar for reuse (something like <<, which unfortunately does not work)
-- Ability to clone elements on reuse
