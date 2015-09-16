@@ -84,4 +84,32 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         clazz.TEMPLATE.value == "Hallo"
     }
 
+    def "create method should apply template"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        clazz.createTemplate {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        instance = clazz.create {
+            name "own"
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
 }

@@ -82,11 +82,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
         MethodBuilder templateApply = createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .param(newClass(annotatedClass), "template")
-                .statement(ifS(
-                                notNullX(propX(classX(annotatedClass), "TEMPLATE")),
-                                returnS(varX("this"))
-                        )
-                );
+                .statement(ifS(notX(varX("template")), returnS(varX("this"))));
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (fieldNode == ownerField || fieldNode == keyField) continue;
@@ -99,7 +95,9 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             );
         }
 
-        templateApply.addTo(annotatedClass);
+        templateApply
+                .statement(returnS(varX("this")))
+                .addTo(annotatedClass);
     }
 
     private void createGuardingSetter() {
@@ -628,8 +626,10 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .statement(returnS(callX(ctorX(annotatedClass), "apply", varX("closure"))))
+                .statement(returnS(callX(
+                        callX(ctorX(annotatedClass), "apply", propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)), "apply", varX("closure"))))
                 .addTo(annotatedClass);
+
     }
 
     private FieldNode getKeyField(ClassNode target) {
