@@ -17,6 +17,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
             type: clazz.type.qualifiedName
     )
 
+    method(
+            name: "copyFrom",
+            doc: "Copies fields from template (excluding key and owner fields)" as String,
+            params: [template: psiClass.qualifiedName],
+            type: clazz.type.qualifiedName
+    )
+
     if (clazz.key) {
         method(
                 name: "create",
@@ -35,6 +42,14 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
                 type: clazz.type.qualifiedName
         )
     }
+
+    method(
+            name: "createTemplate",
+            doc: "Creates the template for new instances of ${clazz.type.qualifiedName}" as String,
+            isStatic: true,
+            params: [closure: Closure.class.name],
+            type: clazz.type.qualifiedName
+    )
 
     classType?.fields?.each { PsiField rawField ->
 

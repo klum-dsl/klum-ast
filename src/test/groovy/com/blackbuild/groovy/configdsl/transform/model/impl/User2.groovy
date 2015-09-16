@@ -17,7 +17,11 @@ def c = Config.create {
                     partner("Hans", "Dieter")
                 }
 
-                reuse(auth)
+                _reuse(auth)
+
+                authorization {
+                    copyFrom(auth)
+                }
             }
         }
     }
