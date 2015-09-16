@@ -61,7 +61,7 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createKeyConstructor();
 
         createApplyMethods();
-        createTemplyApplyMethod();
+        createTemplateMethods();
         createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
@@ -70,8 +70,14 @@ public class DSLConfigASTTransformation extends AbstractASTTransformation {
             createGuardingSetter();
     }
 
-    private void createTemplyApplyMethod() {
+    private void createTemplateMethods() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
+
+        createPublicMethod("createTemplate")
+                .mod(Opcodes.ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(annotatedClass, "create", varX("closure")))
+                .addTo(annotatedClass);
 
         MethodBuilder templateApply = createPublicMethod("apply")
                 .returning(newClass(annotatedClass))

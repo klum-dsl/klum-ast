@@ -32,5 +32,56 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         !instance.is(template)
     }
 
+    def "template apply does not override default values"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                String name
+                String value = "hallo"
+            }
+        ''')
+
+        when:
+        def template = clazz.create {
+            name "Welt"
+            value "override"
+        }
+
+        instance = clazz.create {
+            apply template
+        }
+
+        then:
+        instance.name == "Welt"
+
+        and: "value has a default value, is not overriden"
+        instance.value == "hallo"
+    }
+
+    def "create template method is created"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSLConfig
+            class Foo {
+                String name
+                String value = "hallo"
+            }
+        ''')
+
+        when:
+        clazz.createTemplate {
+            name "Welt"
+            value "Hallo"
+        }
+
+        then:
+        clazz.TEMPLATE.name == "Welt"
+        clazz.TEMPLATE.value == "Hallo"
+    }
 
 }
