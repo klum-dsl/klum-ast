@@ -1,4 +1,4 @@
-pending
+0.12.0
 =======
 - **Breaking change**
 - Major renaming of annotations:
