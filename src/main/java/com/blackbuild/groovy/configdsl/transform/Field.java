@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
-public @interface DSLField {
+public @interface Field {
 
     /**
      * Name of the method(s) of the dsl for this field. If empty, use fieldname. If the annotated field is a collection,

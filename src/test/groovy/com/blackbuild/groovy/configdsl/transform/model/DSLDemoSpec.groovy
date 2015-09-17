@@ -7,16 +7,16 @@ class DSLDemoSpec extends AbstractDSLSpec {
         createClass('''
             package com.blackbuild.groovy.configdsl.transform.test
 
-            @DSLConfig
+            @DSL
             class Config {
                 String name
 
                 Map<String, Environment> envs
             }
 
-            @DSLConfig(key = "name")
+            @DSL
             class Environment {
-                String name
+                @Key String name
                 String value
             }
         ''')

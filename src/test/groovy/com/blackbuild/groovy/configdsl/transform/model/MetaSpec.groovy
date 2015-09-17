@@ -13,7 +13,7 @@ class MetaSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
@@ -34,9 +34,9 @@ class MetaSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
                 String value
             }
         ''')

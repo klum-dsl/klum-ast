@@ -1,3 +1,11 @@
+pending
+=======
+- **Breaking change**
+- Major renaming of annotations:
+  - DSLConfig -> DSL
+  - DSLField -> Field
+- Owner and Keys are now decorated by own annotations
+
 0.11.0
 ======
 - Introduced template objects to configure default values.

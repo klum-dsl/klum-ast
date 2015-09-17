@@ -1,22 +1,24 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
-import com.blackbuild.groovy.configdsl.transform.DSLConfig
-import com.blackbuild.groovy.configdsl.transform.DSLField
 
-@DSLConfig
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Field
+import com.blackbuild.groovy.configdsl.transform.Key
+
+@DSL
 class Config {
 
     String name
 
-    @DSLField(optional = true) String value
+    @Field(optional = true) String value
     int age
 
-    @DSLField(value = "envs", element = "e")
+    @Field(value = "envs", element = "e")
     Map<String, Environment> environments
 
     Options options
 }
 
-@DSLConfig
+@DSL
 class Options {
     Map<String, String> oValues
     boolean condition
@@ -26,18 +28,18 @@ class Options {
     }
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Environment {
 
-    String name
+    @Key String name
     String url
     List<Authorization> authorizations
 
-    @DSLField
+    @Field
     String bla;
 }
 
-@DSLConfig
+@DSL
 class Authorization {
 
     ArrayList<String> roles
@@ -46,10 +48,10 @@ class Authorization {
 
     List<Integer> everything;
 
-    @DSLField("rens")
+    @Field("rens")
     List<Integer> renamed;
 
-    @DSLField(value = "others", element = "more")
+    @Field(value = "others", element = "more")
     List<Integer> another;
 
 }

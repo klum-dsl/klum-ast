@@ -8,7 +8,7 @@ import com.intellij.psi.PsiField
 import com.intellij.psi.PsiType
 
 
-contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")) {
+contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")) {
     ClassConfig clazz = new ClassConfig(psiClass)
     method(
             name: "apply",
@@ -118,7 +118,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLCo
     }
 }
 
-contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig"))) {
+contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL"))) {
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
@@ -178,7 +178,7 @@ class FieldConfig {
 
     FieldConfig(PsiField field) {
         this.field = field
-        this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLField")
+        this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
         name = this.fieldAnnotation?.findDeclaredAttributeValue("value")?.node?.text ?: field.name
         name = name.replace('"', '')
         optional = this.fieldAnnotation?.findDeclaredAttributeValue("optional")?.node?.text ?: false
@@ -230,7 +230,7 @@ class FieldConfig {
     }
 
     boolean isCollectionOfDslObjects() {
-        elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")
+        elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
     }
 
     List<PsiClass> getAlternatives() {
@@ -252,8 +252,12 @@ class ClassConfig {
     ClassConfig(PsiClass type) {
         this.type = type
 
-        def dslAnnotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSLConfig")
-        key = dslAnnotation?.findDeclaredAttributeValue("key")?.node?.text?.replace('"', '')
+        def dslAnnotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
+
+        type.allFields.each {
+            if (it.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Key"))
+                key = it.name
+        }
 
         dslClass = dslAnnotation != null
     }

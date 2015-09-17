@@ -9,11 +9,3 @@ def c = Config.create {
 
 }
 
-Bla {
-
-    options {
-
-    }
-
-
-}

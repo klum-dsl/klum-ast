@@ -14,7 +14,7 @@ class DocDemoSpec extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            @DSLConfig
+            @DSL
             class Config {
 
                 Map<String, Project> projects
@@ -24,15 +24,15 @@ class DocDemoSpec extends AbstractDSLSpec {
 
             }
 
-            @DSLConfig(key = "name")
+            @DSL
             class Project {
-                String name
+                @Key String name
                 String url
 
                 MavenConfig mvn
             }
 
-            @DSLConfig
+            @DSL
             class MavenConfig {
                 List<String> goals
                 List<String> profiles
@@ -42,7 +42,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
         when:
         def github = "http://github.com"
-        def config = clazz.create {
+        clazz.create {
 
             debugMode true
 
@@ -78,28 +78,28 @@ class DocDemoSpec extends AbstractDSLSpec {
     def "second example with sublasses"() {
         given:
         createClass('''
-            @DSLConfig
+            @DSL
             class Config {
-                @DSLField(alternatives=[MavenProject, GradleProject])
+                @Field(alternatives=[MavenProject, GradleProject])
                 Map<String, Project> projects
                 boolean debugMode
                 List<String> options
             }
 
-            @DSLConfig(key = "name")
+            @DSL
             abstract class Project {
-                String name
+                @Key String name
                 String url
             }
 
-            @DSLConfig
+            @DSL
             class MavenProject extends Project{
                 List<String> goals
                 List<String> profiles
                 List<String> cliOptions
             }
 
-            @DSLConfig
+            @DSL
             class GradleProject extends Project{
                 List<String> tasks
                 List<String> options
@@ -108,7 +108,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
         when:
         def github = "http://github.com"
-        def config = clazz.create {
+        clazz.create {
 
             projects {
                 mavenProject("demo") {

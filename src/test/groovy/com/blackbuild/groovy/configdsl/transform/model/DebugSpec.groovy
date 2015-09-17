@@ -9,26 +9,26 @@ class DebugSpec extends AbstractDSLSpec {
     def "Can be debugged"() {
         when:
         createClass('''
-@DSLConfig
+@DSL
 class Config {
 
     String name
 
-    @DSLField(optional = true) String value
+    @Field(optional = true) String value
     int age
 
-    //@DSLField("env")
+    //@Field("env")
     //Map<String, Environment> environments = [:]
 }
 
-@DSLConfig
+@DSL
 class Environment {
 
     String name
     String url
     Authorization authorization
 }
-@DSLConfig
+@DSL
 class Authorization {
 
     String roles

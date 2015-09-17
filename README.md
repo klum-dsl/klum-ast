@@ -15,21 +15,21 @@ for this project:
 Given the following config classes:
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     Map<String, Project> projects
     boolean debugMode
     List<String> options
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
     String url
     MavenConfig mvn
 }
 
-@DSLConfig
+@DSL
 class MavenConfig {
     List<String> goals
     List<String> profiles
@@ -96,28 +96,28 @@ if (projectsWithoutClean) {
 We can also use a simple syntax for different subclasses of Project
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
-    @DSLField(alternatives=[MavenProject, GradleProject])
+    @Field(alternatives=[MavenProject, GradleProject])
     Map<String, Project> projects
     boolean debugMode
     List<String> options
 }
 
-@DSLConfig(key = "name")
+@DSL
 abstract class Project {
-    String name
+    @Key String name
     String url
 }
 
-@DSLConfig
+@DSL
 class MavenProject extends Project{
     List<String> goals
     List<String> profiles
     List<String> cliOptions
 }
 
-@DSLConfig
+@DSL
 class GradleProject extends Project{
     List<String> Tasks
     List<String> options
@@ -150,7 +150,7 @@ def config = Config.create {
 }
 ```
 
-In this approach, the `@DSLField(alternatives=[MavenProject, GradleProject])` annotation lists all possible subclasses
+In this approach, the `@Field(alternatives=[MavenProject, GradleProject])` annotation lists all possible subclasses
 of `Project` and creates appropriate closure methods.
 
 #Details
@@ -159,8 +159,9 @@ of `Project` and creates appropriate closure methods.
 In the following documentation, we differentiate between three kinds of values:
 
 ### DSL-Objects
-DSL Objects are annotated with "@DSLConfig". These are (potentially complex) objects enhanced by the transformation. They
-can either be keyed or unkeyed. Keyed means they have a designated field of type String acting as key for this class.
+DSL Objects are annotated with `@DSL`. These are (potentially complex) objects enhanced by the transformation. They
+can either be keyed or unkeyed. Keyed means they have a designated field of type String (currently) decorated with the
+ `@Key` annotation, acting as key for this class.
 
 ### Collections
 Collections are (currently either List or Map). Map keys are always Strings, List values and Map values can either be
@@ -173,7 +174,7 @@ If the field name is `roles`, the default collection name is `roles` and the ele
 
 If the field name does not end with an 's', the field name is reused as is (information -> information | information).
 
-Collection name and element name can be customized via the @DSLField Annotation (see below).
+Collection name and element name can be customized via the @Field Annotation (see below).
  
 *Collections must be strongly typed using generics!*
  
@@ -183,27 +184,20 @@ Are everything else, i.e. simple values as well as more complex not-DSL objects.
 
 ## Basic usage:
 
-ConfigDSL consists of two Annotations: `@DSLConfig` and `@DSLField`. 
+ConfigDSL consists of four Annotations: `@DSL`, `@Field`, `@Key` and `@Owner`. 
 
-`DSLConfig` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
+`DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
 
-`DSLField` is an optional field to further configure the handling of specific fields.
+`Key` annotates the optional key field of a dsl object (see below).
 
-### @DSLConfig
-DSLConfig is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.
+`Owner` annotates the optional owner field of a dsl object.
 
-#### the `key`-attribute
+`Field` is an optional field to further configure the handling of specific fields (esp. naming).
 
-The key attribute is used to designate a special key field, making the annotated class a keyed class. This has the
-following consequences:
+### @DSL
+DSL is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.
 
-- no setter method is generated for the key field
-- a constructor using a single field of the key type is created (currently, only String is allowed)
-- factory and apply methods get an additional key parameter
-- only keyed classes are allowed as values in a Map
-- keyed objects in collections get a special (experimental) shortcut creator syntax.
-
-The DSLConfig annotation leads to the creation of a couple of useful methods.
+The DSL annotation leads to the creation of a couple of useful methods.
 
 #### factory and apply methods
 
@@ -211,13 +205,13 @@ A factory method named `create` is generated, using either a single closure as p
 object, using a String and a closure parameter.
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
 }
 
-@DSLConfig(key = "name")
+@DSL
 class ConfigWithKey {
-    String name
+    @Key String name
 }
 ```
         
@@ -254,7 +248,7 @@ can customize them by using the original ASTTransformations.
 For each simple value field create an accessor named like the field, containing the field type as parameter 
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
  String name
 }
@@ -283,7 +277,7 @@ for each simple collection, two methods are generated:
 -   an adder method named like the element name of the collection an containing a the element type 
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     List<String> roles
     Map<String, Integer> levels
@@ -317,20 +311,20 @@ for each dsl-object field, a closure method is generated, if the field is a keye
 String parameter. Also, a regular setter method is created for reusing an existing object.
   
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     UnKeyed unkeyed
     Keyed keyed
 }
 
-@DSLConfig
+@DSL
 class UnKeyed {
     String name
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Keyed {
-    String name
+    @Key String name
     String value
 }
 ```
@@ -394,21 +388,21 @@ Additionally, two special methods are created that takes an existing object and 
 As with simple objects, the inner closures return the existing object for reuse
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     List<UnKeyed> elements
     List<Keyed> keyedElements
     Map<String, Keyed> mapElements
 }
 
-@DSLConfig
+@DSL
 class UnKeyed {
     String name
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Keyed {
-    String name
+    @Key String name
     String value
 }
 
@@ -446,14 +440,14 @@ As an experimental feature, you can also use the key-String as name for the clos
  this feature:
  
  ```groovy
- @DSLConfig
+ @DSL
  class Config {
      List<Keyed> elements
  }
  
- @DSLConfig(key = "name")
+ @DSL
  class Keyed {
-     String name
+     @Key String name
      String value
  }
  
@@ -469,7 +463,53 @@ As an experimental feature, you can also use the key-String as name for the clos
  }
  ```
 
-#### Template objects
+### the @Key annotation
+
+The key annotation is used to designate a special key field, making the annotated class a keyed class. This has the
+following consequences:
+
+- no setter method is generated for the key field
+- a constructor using a single field of the key type is created (currently, only String is allowed)
+- factory and apply methods get an additional key parameter
+- only keyed classes are allowed as values in a Map
+- keyed objects in collections get a special (experimental) shortcut creator syntax.
+
+### The @Owner annotation
+
+DSL-Objects can have an optional owner field, decorated with the `@Owner` annotation.
+
+When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
+the owner-field is automatically set to the outer instance.
+
+This has two dangers:
+
+- no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
+  type is incorrect
+- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
+  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
+  `_use()` can only be used for objects created outside of the configuration structure.
+- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
+
+```groovy
+@DSL
+class Foo {
+    Bar bar
+}
+
+@DSL
+class Bar {
+    @Owner Foo owner
+}
+
+def c = Config.create {
+    bar {}
+}
+
+assert c.bar.owner === c
+```
+
+
+## Template objects
 
 The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
 
@@ -481,7 +521,7 @@ Whenever a new instance is created using the `create()` methods, all non-null / 
 template. For Lists and Maps, shallow copies will be created.
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     String url
     List<String> roles
@@ -503,44 +543,9 @@ assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
 ```
 
-  
-#### The owner field
+## DSL Object Inheritance
 
-DSL-Objects can have an optional owner field, designated via the `owner`-attribute in the annotation.
-
-When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
-the owner-field is automatically set to the outer instance.
-
-This has two dangers:
-
-- no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
-  type is incorrect
-- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
-  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
-  `_use()` can only be used for objects created outside of the configuration structure.
-- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
-
-```groovy
-@DSLConfig
-class Foo {
-    Bar bar
-}
-
-@DSLConfig(owner="owner")
-class Bar {
-    Foo owner
-}
-
-def c = Config.create {
-    bar {}
-}
-
-assert c.bar.owner === c
-```
-
-### DSL Object Inheritance
-
-DSLObjects can inherit from other DSL-Objects (but the child class *must* be annotated with DSLConfig as well). This
+DSLObjects can inherit from other DSL-Objects (but the child class *must* be annotated with DSL as well). This
 allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
 which take an additional Class parameter.
 
@@ -548,17 +553,17 @@ These typed methods are not generated, if the declared type is final. Likewise, 
 *only* the typed methods are generated.
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     Project project 
 }
 
-@DSLConfig
+@DSL
 class Project {
     String name
 }
 
-@DSLConfig
+@DSL
 class MavenProject extends Project{
     List<String> mvnOpts
 }
@@ -574,17 +579,17 @@ Config.create {
 This works identically with keyed objects.
 
 ```groovy
-@DSLConfig
+@DSL
 class Config {
     Project project 
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
 }
 
-@DSLConfig
+@DSL
 class MavenProject extends Project{
     List<String> mvnOpts
 }
@@ -600,33 +605,33 @@ Note that it is illegal to let a keyed class inherit from a not keyed class. The
 decides whether the whole hierarchy is typed or not. Child classed need not define the key attribute themselves, but
 can do so, as long as they define the *same* key field.
 
-#### Alternatives syntax
+### Alternatives syntax
 
 There is also a convenient syntax for declaring base classes directly, using the `alternatives` attribute of the 
-`DSLField` annotation. `alternatives` takes a list of classes for which shortcut methods will be created. See the 
+`Field` annotation. `alternatives` takes a list of classes for which shortcut methods will be created. See the 
 following example:
  
  
 ```groovy
-@DSLConfig
+@DSL
 class Config {
-    @DSLField(alternatives=[MavenProject, GradleProject]) // <-- Theses classes are provided as alternatives for
+    @Field(alternatives=[MavenProject, GradleProject]) // <-- Theses classes are provided as alternatives for
                                                           //     the projects closure
     Map<String, Project> projects
 }
 
-@DSLConfig(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
     String url
 }
 
-@DSLConfig
+@DSL
 class MavenProject extends Project{
     List<String> goals
 }
 
-@DSLConfig
+@DSL
 class GradleProject extends Project{
     List<String> Tasks
 }
