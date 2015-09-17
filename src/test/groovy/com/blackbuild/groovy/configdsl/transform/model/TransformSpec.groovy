@@ -12,7 +12,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
             }
         ''')
@@ -26,7 +26,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 boolean isCalled
                 Foo apply(Closure c) {
@@ -48,7 +48,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Foo apply(Closure c) { this }
                 Foo  _apply(Closure c) { this }
@@ -64,7 +64,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
             }
         ''')
@@ -81,7 +81,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
 
                 boolean called
@@ -106,7 +106,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
@@ -127,7 +127,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
                 boolean called
@@ -152,7 +152,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 def static create(Closure c) {
                     _create(c)
@@ -170,7 +170,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Foo {
                 String name
                 def static create(String key, Closure c) {
@@ -191,7 +191,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
@@ -210,7 +210,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
             }
         ''')
@@ -224,7 +224,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 int name
             }
@@ -237,7 +237,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "simple member method"() {
         given:
         createInstance('''
-            @DSLConfig
+            @DSL
             class Foo {
                 String value
             }
@@ -255,12 +255,12 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar inner
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String name
             }
@@ -281,9 +281,9 @@ class TransformSpec extends AbstractDSLSpec {
     def "simple member method with renaming annotation"() {
         given:
         createInstance('''
-            @DSLConfig
+            @DSL
             class Foo {
-                @DSLField("firstname") String name
+                @Field("firstname") String name
                 String lastname
             }
         ''')
@@ -297,7 +297,7 @@ class TransformSpec extends AbstractDSLSpec {
     def "test existing method"() {
         given:
         createInstance('''
-            @DSLConfig
+            @DSL
             class Foo {
                 String name, lastname
                 def name(String value) {return "run"}
@@ -311,9 +311,9 @@ class TransformSpec extends AbstractDSLSpec {
     def "test existing method with renaming"() {
         given:
         createInstance('''
-            @DSLConfig
+            @DSL
             class Foo {
-                @DSLField("firstname") String name
+                @Field("firstname") String name
                 String lastname
                 def firstname(String value) {return "run"}
             }
@@ -328,12 +328,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar inner
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String name
             }
@@ -356,12 +356,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar inner
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Bar {
                 String name
                 int value
@@ -386,12 +386,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String name
             }
@@ -408,17 +408,18 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[1].name == "Klaus"
     }
 
+    @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure should return the object"() {
         given:
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String name
             }
@@ -442,12 +443,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Bar {
                 String name
                 String url
@@ -467,17 +468,18 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[1].url == "2"
     }
 
+    @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure with named objects should return the created object"() {
         given:
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Bar {
                 String name
                 String url
@@ -502,12 +504,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Bar {
                 String name
                 String url
@@ -532,9 +534,9 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
-                @DSLField
+                @Field
                 String name
             }
         ''')
@@ -548,7 +550,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<String> values
                 Map<String, String> fields
@@ -569,7 +571,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<String> values = ['Bla']
                 Map<String, String> fields = [bla: "blub"]
@@ -588,7 +590,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<String> values
             }
@@ -618,9 +620,9 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
-                @DSLField(element="more")
+                @Field(element="more")
                 List<String> values
             }
         ''')
@@ -638,7 +640,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<String> something
             }
@@ -657,7 +659,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List values
             }
@@ -672,7 +674,7 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, String> values
             }
@@ -702,12 +704,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String name
             }
@@ -722,12 +724,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Bar {
                 String name
                 String url
@@ -745,17 +747,18 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars.Klaus.url == "2"
     }
 
+    @SuppressWarnings("GroovyVariableNotAssigned")
     def "creation of inner objects in map should return the create object"() {
         given:
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             class Bar {
                 String name
                 String url
@@ -780,12 +783,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig
+            @DSL
             class Bar {
                 String url
             }
@@ -809,12 +812,12 @@ class TransformSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Bar {
                 String name
                 String url
@@ -838,7 +841,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
@@ -853,12 +856,12 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner = "owner")
+            @DSL(owner = "owner")
             class Bar {
                 Foo owner
             }

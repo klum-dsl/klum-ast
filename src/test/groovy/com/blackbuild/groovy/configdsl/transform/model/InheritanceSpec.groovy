@@ -8,12 +8,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -38,13 +38,13 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
                 String parentValue
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -67,13 +67,13 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
                 String parentValue
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Bar extends Foo {
                 String value
             }
@@ -88,13 +88,13 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
                 String parentValue
             }
 
-            @DSLConfig(key = "value")
+            @DSL(key = "value")
             class Bar extends Foo {
                 String value
             }
@@ -109,13 +109,13 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
                 String parentValue
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Bar extends Foo {
                 String value
             }
@@ -130,17 +130,17 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Foo foo
             }
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -165,12 +165,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Foo foo
             }
 
-            @DSLConfig
+            @DSL
             final class Foo {}
         ''')
 
@@ -187,17 +187,17 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -232,12 +232,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             final class Foo {
                 String name
             }
@@ -261,17 +261,17 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 List<Foo> foos
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -304,17 +304,17 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Map<String, Foo> foos
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -346,12 +346,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Map<String, Foo> foos
             }
 
-            @DSLConfig(key="name")
+            @DSL(key="name")
             final class Foo {
                 String name
             }
@@ -374,12 +374,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Foo foo
             }
 
-            @DSLConfig
+            @DSL
             abstract class Foo {
                 String name
             }
@@ -403,12 +403,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             abstract class Foo {
                 String name
             }
@@ -431,12 +431,12 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
                 Map<String, Foo> foos
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             abstract class Foo {
                 String name
             }
@@ -460,19 +460,19 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
 
-                @DSLField(alternatives=[Foo, Bar])
+                @Field(alternatives=[Foo, Bar])
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -503,19 +503,19 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
 
-                @DSLField(alternatives=[Foo, Bar])
+                @Field(alternatives=[Foo, Bar])
                 List<Foo> foos
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -546,19 +546,19 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
 
-                @DSLField(alternatives=[Foo, Bar])
+                @Field(alternatives=[Foo, Bar])
                 Map<String, Foo> foos
             }
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -590,19 +590,19 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
 
-                @DSLField(alternatives=[Bar])
+                @Field(alternatives=[Bar])
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }
@@ -625,19 +625,19 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Owner {
 
-                @DSLField(alternatives=[Bar])
+                @Field(alternatives=[Bar])
                 List<Foo> foos
             }
 
-            @DSLConfig
+            @DSL
             abstract class Foo {
                 String name
             }
 
-            @DSLConfig
+            @DSL
             class Bar extends Foo {
                 String value
             }

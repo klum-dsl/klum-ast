@@ -29,16 +29,16 @@ import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.c
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
 /**
- * Transformation class for the @DSLConfig annotation.
+ * Transformation class for the @DSL annotation.
  *
  * @author Stephan Pauxberger
  */
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
-public class DSLConfigASTTransformation extends AbstractASTTransformation {
+public class DSLASTTransformation extends AbstractASTTransformation {
 
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-    private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSLConfig.class);
-    private static final ClassNode DSL_FIELD_ANNOTATION = make(DSLField.class);
+    private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
+    private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final String REUSE_METHOD_NAME = "_reuse";
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);

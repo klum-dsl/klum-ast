@@ -1,18 +1,18 @@
 package com.blackbuild.groovy.configdsl.transform.model.mockup
 
-import com.blackbuild.groovy.configdsl.transform.DSLField
+import com.blackbuild.groovy.configdsl.transform.Field
 import groovy.transform.Canonical
 
-//@DSLConfig
+//@DSL
 @Canonical
 class Config {
 
     String name
 
-    @DSLField(optional = true) String value
+    @Field(optional = true) String value
     int age
 
-    @DSLField("env")
+    @Field("env")
     Map<String, Environment> environments = [:]
 
 
@@ -49,6 +49,7 @@ class Config {
             environments[name] = value.validate()
         }
 
+        @SuppressWarnings("GroovyAssignabilityCheck")
         @Override
         Object invokeMethod(String name, Object args) {
             if (args?.length == 1 && args[0] instanceof Closure) {
@@ -98,6 +99,7 @@ class Authorization {
 @Canonical
 class User {
 
+    @SuppressWarnings("GrMethodMayBeStatic")
     def config(@DelegatesTo(Config) Closure closure) {
         Config config = new Config()
 
@@ -111,7 +113,7 @@ class User {
 
     def doIt() {
 
-        def c = config {
+        config {
             name("Klaus")
             environments {
                 environment("DEV") {

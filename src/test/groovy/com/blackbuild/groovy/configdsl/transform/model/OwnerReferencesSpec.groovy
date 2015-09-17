@@ -13,12 +13,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }
@@ -33,17 +33,17 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }
 
-            @DSLConfig(owner="owner2")
+            @DSL(owner="owner2")
             class ChildBar extends Bar {
                 Foo owner2
             }
@@ -58,12 +58,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner="own")
+            @DSL(owner="own")
             class Bar {
                 Foo owner
             }
@@ -79,12 +79,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 String owner
             }
@@ -99,12 +99,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }
@@ -132,12 +132,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(owner = "owner")
+            @DSL(owner = "owner")
             class Bar {
                 Foo owner
             }
@@ -158,12 +158,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(owner = "owner")
+            @DSL(owner = "owner")
             class Bar {
                 Foo owner
             }
@@ -190,18 +190,18 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Bar bar
             }
 
-            @DSLConfig(key = "name", owner = "owner")
+            @DSL(key = "name", owner = "owner")
             class Bar {
                 String name
                 Foo owner
             }
 
-            @DSLConfig
+            @DSL
             class Fum {
                 Map<String, Bar> bars
             }
@@ -229,12 +229,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig(key = "name", owner = "owner")
+            @DSL(key = "name", owner = "owner")
             class Bar {
                 String name
                 Foo owner
@@ -256,12 +256,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }
@@ -285,12 +285,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 Map<String, Bar> bars
             }
 
-            @DSLConfig(key="name", owner="owner")
+            @DSL(key="name", owner="owner")
             class Bar {
                 Foo owner
                 String name
@@ -315,12 +315,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createInstance('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }
@@ -342,12 +342,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<Bar> bars
             }
 
-            @DSLConfig(owner="owner")
+            @DSL(owner="owner")
             class Bar {
                 Foo owner
             }

@@ -7,7 +7,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
             }
@@ -37,7 +37,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
                 String value
@@ -68,7 +68,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
                 String value = "hallo"
@@ -91,7 +91,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 String name
                 String value
@@ -119,7 +119,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig(key = "name")
+            @DSL(key = "name")
             class Foo {
                 String name
                 String value
@@ -149,7 +149,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSLConfig
+            @DSL
             class Foo {
                 List<String> names
             }

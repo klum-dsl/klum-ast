@@ -1,8 +1,8 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl.jobs
 
-import com.blackbuild.groovy.configdsl.transform.DSLConfig
+import com.blackbuild.groovy.configdsl.transform.DSL
 
-@DSLConfig
+@DSL
 class Config {
 
     Map<String, System> systems
@@ -13,14 +13,14 @@ class Config {
 
 }
 
-@DSLConfig(key = "name")
+@DSL(key = "name")
 class System {
     String name
 
     Map<String, Environment> environments
 }
 
-@DSLConfig(key = "name", owner = "system")
+@DSL(key = "name", owner = "system")
 class Environment {
 
     String name
@@ -46,14 +46,14 @@ class Environment {
     }
 }
 
-@DSLConfig
+@DSL
 class Mail {
 
     List<String> recipients
 
 }
 
-@DSLConfig(key = "name")
+@DSL(key = "name")
 class Container {
 
     String name
@@ -62,7 +62,7 @@ class Container {
 
 }
 
-@DSLConfig(key = "name")
+@DSL(key = "name")
 abstract class Buildable {
 
     String name
@@ -73,7 +73,7 @@ abstract class Buildable {
     }
 }
 
-@DSLConfig
+@DSL
 class MavenProject extends Buildable {
 
     String parent
