@@ -264,22 +264,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.inner.name == "Dieter"
     }
 
-    def "simple member method with renaming annotation"() {
-        given:
-        createInstance('''
-            @DSL
-            class Foo {
-                @Field("firstname") String name
-                String lastname
-            }
-        ''')
-
-        when:
-        instance.firstname "Dieter"
-
-        then:
-        instance.name == "Dieter"
-    }
     def "test existing method"() {
         given:
         createInstance('''
@@ -292,21 +276,6 @@ class TransformSpec extends AbstractDSLSpec {
 
         expect: "Original method is called"
         instance.name("Dieter") == "run"
-    }
-
-    def "test existing method with renaming"() {
-        given:
-        createInstance('''
-            @DSL
-            class Foo {
-                @Field("firstname") String name
-                String lastname
-                def firstname(String value) {return "run"}
-            }
-        ''')
-
-        expect: "Original method is called"
-        instance.firstname("Dieter") == "run"
     }
 
     def "create inner object via closure"() {
@@ -608,7 +577,7 @@ class TransformSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                @Field(element="more")
+                @Field(members="more")
                 List<String> values
             }
         ''')

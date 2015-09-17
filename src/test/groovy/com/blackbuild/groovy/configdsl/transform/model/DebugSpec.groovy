@@ -4,6 +4,9 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import spock.lang.Specification
 
+/**
+ * No actual test, just a place to quickly debug Transformation.
+ */
 class DebugSpec extends AbstractDSLSpec {
 
     def "Can be debugged"() {
@@ -14,11 +17,8 @@ class Config {
 
     String name
 
-    @Field(optional = true) String value
+    @Field String value
     int age
-
-    //@Field("env")
-    //Map<String, Environment> environments = [:]
 }
 
 @DSL

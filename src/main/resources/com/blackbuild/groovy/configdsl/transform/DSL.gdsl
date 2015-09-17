@@ -182,7 +182,7 @@ class FieldConfig {
         name = this.fieldAnnotation?.findDeclaredAttributeValue("value")?.node?.text ?: field.name
         name = name.replace('"', '')
         optional = this.fieldAnnotation?.findDeclaredAttributeValue("optional")?.node?.text ?: false
-        element = this.fieldAnnotation?.findDeclaredAttributeValue("element")?.node?.text?.replace('"', '')
+        element = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
 
         if (!element)
             element = name.endsWith('s') ? name[0..-2] : name

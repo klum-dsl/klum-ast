@@ -211,7 +211,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private String getElementNameForCollectionField(FieldNode fieldNode) {
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
-        String result = getNullSafeMemberStringValue(fieldAnnotation, "element", null);
+        String result = getNullSafeMemberStringValue(fieldAnnotation, "members", null);
 
         if (result != null && result.length() > 0) return result;
 
