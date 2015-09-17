@@ -861,7 +861,24 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         notThrown(StackOverflowError)
-
     }
+
+    def "error: more than one key"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                @Key String name2
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+
 
 }

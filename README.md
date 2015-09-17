@@ -22,9 +22,9 @@ class Config {
     List<String> options
 }
 
-@DSL(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
     String url
     MavenConfig mvn
 }
@@ -104,9 +104,9 @@ class Config {
     List<String> options
 }
 
-@DSL(key = "name")
+@DSL
 abstract class Project {
-    String name
+    @Key String name
     String url
 }
 
@@ -159,8 +159,9 @@ of `Project` and creates appropriate closure methods.
 In the following documentation, we differentiate between three kinds of values:
 
 ### DSL-Objects
-DSL Objects are annotated with "@DSL". These are (potentially complex) objects enhanced by the transformation. They
-can either be keyed or unkeyed. Keyed means they have a designated field of type String acting as key for this class.
+DSL Objects are annotated with `@DSL`. These are (potentially complex) objects enhanced by the transformation. They
+can either be keyed or unkeyed. Keyed means they have a designated field of type String (currently) decorated with the
+ `@Key` annotation, acting as key for this class.
 
 ### Collections
 Collections are (currently either List or Map). Map keys are always Strings, List values and Map values can either be
@@ -183,25 +184,18 @@ Are everything else, i.e. simple values as well as more complex not-DSL objects.
 
 ## Basic usage:
 
-ConfigDSL consists of two Annotations: `@DSL` and `@Field`. 
+ConfigDSL consists of four Annotations: `@DSL`, `@Field`, `@Key` and `@Owner`. 
 
 `DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
 
-`Field` is an optional field to further configure the handling of specific fields.
+`Key` annotates the optional key field of a dsl object (see below).
+
+`Owner` annotates the optional owner field of a dsl object.
+
+`Field` is an optional field to further configure the handling of specific fields (esp. naming).
 
 ### @DSL
 DSL is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.
-
-#### the `key`-attribute
-
-The key attribute is used to designate a special key field, making the annotated class a keyed class. This has the
-following consequences:
-
-- no setter method is generated for the key field
-- a constructor using a single field of the key type is created (currently, only String is allowed)
-- factory and apply methods get an additional key parameter
-- only keyed classes are allowed as values in a Map
-- keyed objects in collections get a special (experimental) shortcut creator syntax.
 
 The DSL annotation leads to the creation of a couple of useful methods.
 
@@ -215,9 +209,9 @@ object, using a String and a closure parameter.
 class Config {
 }
 
-@DSL(key = "name")
+@DSL
 class ConfigWithKey {
-    String name
+    @Key String name
 }
 ```
         
@@ -328,9 +322,9 @@ class UnKeyed {
     String name
 }
 
-@DSL(key = "name")
+@DSL
 class Keyed {
-    String name
+    @Key String name
     String value
 }
 ```
@@ -406,9 +400,9 @@ class UnKeyed {
     String name
 }
 
-@DSL(key = "name")
+@DSL
 class Keyed {
-    String name
+    @Key String name
     String value
 }
 
@@ -451,9 +445,9 @@ As an experimental feature, you can also use the key-String as name for the clos
      List<Keyed> elements
  }
  
- @DSL(key = "name")
+ @DSL
  class Keyed {
-     String name
+     @Key String name
      String value
  }
  
@@ -469,7 +463,53 @@ As an experimental feature, you can also use the key-String as name for the clos
  }
  ```
 
-#### Template objects
+### the @Key annotation
+
+The key annotation is used to designate a special key field, making the annotated class a keyed class. This has the
+following consequences:
+
+- no setter method is generated for the key field
+- a constructor using a single field of the key type is created (currently, only String is allowed)
+- factory and apply methods get an additional key parameter
+- only keyed classes are allowed as values in a Map
+- keyed objects in collections get a special (experimental) shortcut creator syntax.
+
+### The @Owner annotation
+
+DSL-Objects can have an optional owner field, decorated with the `@Owner` annotation.
+
+When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
+the owner-field is automatically set to the outer instance.
+
+This has two dangers:
+
+- no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
+  type is incorrect
+- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
+  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
+  `_use()` can only be used for objects created outside of the configuration structure.
+- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
+
+```groovy
+@DSL
+class Foo {
+    Bar bar
+}
+
+@DSL
+class Bar {
+    @Owner Foo owner
+}
+
+def c = Config.create {
+    bar {}
+}
+
+assert c.bar.owner === c
+```
+
+
+## Template objects
 
 The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
 
@@ -503,42 +543,7 @@ assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
 ```
 
-  
-#### The owner field
-
-DSL-Objects can have an optional owner field, designated via the `owner`-attribute in the annotation.
-
-When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
-the owner-field is automatically set to the outer instance.
-
-This has two dangers:
-
-- no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
-  type is incorrect
-- If an object that already has an existing owner is added using the `_use()` method, an IllegalStateException is thrown.
-  Thus, an object can only be _used_ once (either directly or using the `_use()` method). In other words,
-  `_use()` can only be used for objects created outside of the configuration structure.
-- if an object is _reused_ instead (using `_reuse()`, the owner field will not be overridden.
-
-```groovy
-@DSL
-class Foo {
-    Bar bar
-}
-
-@DSL(owner="owner")
-class Bar {
-    Foo owner
-}
-
-def c = Config.create {
-    bar {}
-}
-
-assert c.bar.owner === c
-```
-
-### DSL Object Inheritance
+## DSL Object Inheritance
 
 DSLObjects can inherit from other DSL-Objects (but the child class *must* be annotated with DSL as well). This
 allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
@@ -579,9 +584,9 @@ class Config {
     Project project 
 }
 
-@DSL(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
 }
 
 @DSL
@@ -600,7 +605,7 @@ Note that it is illegal to let a keyed class inherit from a not keyed class. The
 decides whether the whole hierarchy is typed or not. Child classed need not define the key attribute themselves, but
 can do so, as long as they define the *same* key field.
 
-#### Alternatives syntax
+### Alternatives syntax
 
 There is also a convenient syntax for declaring base classes directly, using the `alternatives` attribute of the 
 `Field` annotation. `alternatives` takes a list of classes for which shortcut methods will be created. See the 
@@ -615,9 +620,9 @@ class Config {
     Map<String, Project> projects
 }
 
-@DSL(key = "name")
+@DSL
 class Project {
-    String name
+    @Key String name
     String url
 }
 
