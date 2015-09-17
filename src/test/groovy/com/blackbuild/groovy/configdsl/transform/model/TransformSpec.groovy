@@ -848,6 +848,33 @@ class TransformSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "error: alternatives field of Field annotation is only allowed on collections"() {
+        when:
+        createClass('''
+            package pk
 
+            @DSL
+            class Foo {
+                @Field(alternatives = [Foo]) String name
+            }
+        ''')
 
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "error: members field of Field annotation is only allowed on collections"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(members = "bla") String name
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
 }
