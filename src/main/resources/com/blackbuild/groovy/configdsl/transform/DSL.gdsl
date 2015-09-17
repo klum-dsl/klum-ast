@@ -88,7 +88,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                         type: 'void'
                 )
                 method(
-                        name: field.element,
+                        name: field.memberName,
                         doc: "Adds a single ${field.elementType} to $field.name list" as String,
                         params: [value: field.elementType?.canonicalText],
                         type: 'void'
@@ -101,7 +101,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                         type: 'void'
                 )
                 method(
-                        name: field.element,
+                        name: field.memberName,
                         doc: "Adds a single ${field.elementType} to $field.name map using key as the key." as String,
                         params: [key: field.keyType?.canonicalText, value: field.valueType?.canonicalText],
                         type: 'void'
@@ -122,18 +122,18 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
-    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{FieldConfig field -> enclosingCall(field.name) || enclosingCall(field.element)}
+    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{FieldConfig field -> enclosingCall(field.name) || enclosingCall(field.memberName)}
 
     if (innerMostKnownClosureField) {
 
         def elementType = innerMostKnownClosureField.targetConfig
 
-        if (enclosingCall(innerMostKnownClosureField.element)) {
+        if (enclosingCall(innerMostKnownClosureField.memberName)) {
             delegatesTo(elementType.type)
         } else {
             method(
-                    name: innerMostKnownClosureField.element,
-                    doc: "Creates s single instance of $innerMostKnownClosureField.element and adds it." as String,
+                    name: innerMostKnownClosureField.memberName,
+                    doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
                     params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
                     type: 'void'
             )
@@ -167,8 +167,7 @@ The added objects must not have an owner yet.""" as String,
 @SuppressWarnings("GroovyAssignabilityCheck")
 class FieldConfig {
     String name
-    boolean optional
-    String element
+    String memberName
     PsiField field
 
     ClassConfig targetConfig
@@ -179,13 +178,11 @@ class FieldConfig {
     FieldConfig(PsiField field) {
         this.field = field
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
-        name = this.fieldAnnotation?.findDeclaredAttributeValue("value")?.node?.text ?: field.name
-        name = name.replace('"', '')
-        optional = this.fieldAnnotation?.findDeclaredAttributeValue("optional")?.node?.text ?: false
-        element = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
+        name = field.name
+        memberName = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
 
-        if (!element)
-            element = name.endsWith('s') ? name[0..-2] : name
+        if (!memberName)
+            memberName = name.endsWith('s') ? name[0..-2] : name
 
         ClassConfig config = new ClassConfig(field.classType)
         if (config.dslClass) {

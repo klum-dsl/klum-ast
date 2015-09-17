@@ -6,13 +6,13 @@ def c = Config.create {
 
     options {
         values(_a: "b", c: "d")
-        conition true
+        condition true
 
     }
 
-    envs {
+    environments  {
 
-        e("bal") {
+        env("bal") {
 
             authorizations {
 
@@ -27,7 +27,7 @@ def c = Config.create {
 }
 
 Options.create {
-    oValue("bla", "blub")
+    value("bla", "blub")
 
 }
 
@@ -46,15 +46,13 @@ Environment.create("Bla") {
         authorization {
 
         }
-        reuse()
+        _use(auth)
     }
 }
 
 println c.name
 
 def a = new Authorization()
-
-a.another
 
 a.roles "Klaus", "Dieter"
 a.role "Dieter"
@@ -66,32 +64,3 @@ a.partner("Klas", "Han")
 
 a.everything(1, 2)
 a.everything 2
-
-a.ren(10)
-a.rens(10,15)
-
-a.others(10, 5)
-a.more(8)
-
-a.apply {
-    others(10)
-    more(5)
-
-
-    Authorization.create {
-        others(10)
-
-    }
-
-    Environment.create("bla") {
-
-        url "hallo"
-
-    }
-
-    Environment.create("name") {
-        url "bla"
-
-    }
-
-}

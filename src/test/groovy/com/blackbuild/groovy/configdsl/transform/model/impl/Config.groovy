@@ -12,7 +12,7 @@ class Config {
     @Field String value
     int age
 
-    @Field(members = "e")
+    @Field(members = "env")
     Map<String, Environment> environments
 
     Options options
@@ -20,7 +20,7 @@ class Config {
 
 @DSL
 class Options {
-    Map<String, String> oValues
+    Map<String, String> values
     boolean condition
 
     def getAllUnderscoreOptions() {

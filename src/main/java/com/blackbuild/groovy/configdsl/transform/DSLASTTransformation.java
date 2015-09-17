@@ -196,16 +196,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .param(fieldNode.getType(), "value")
                 .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
                 .addTo(annotatedClass);
-    }
-
-    private String getMethodNameForField(FieldNode fieldNode) {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        return getNullSafeMemberStringValue(fieldAnnotation, "value", fieldNode.getName());
     }
 
     private String getElementNameForCollectionField(FieldNode fieldNode) {
@@ -215,7 +209,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (result != null && result.length() > 0) return result;
 
-        String collectionMethodName = getMethodNameForField(fieldNode);
+        String collectionMethodName = fieldNode.getName();
 
         if (collectionMethodName.endsWith("s"))
             return collectionMethodName.substring(0, collectionMethodName.length() - 1);
@@ -245,7 +239,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
@@ -263,7 +257,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
 
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .delegatingClosureParam(contextClass)
                 .declS("context", ctorX(contextClass, varX("this")))
                 .statements(delegateToClosure())
@@ -452,7 +446,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = fieldNode.getName();
 
         createPublicMethod(methodName)
                 .param(fieldNode.getType(), "values")
@@ -547,7 +541,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = fieldNode.getName();
 
         ClassNode fieldType = fieldNode.getType();
         FieldNode keyField = getKeyField(fieldType);
