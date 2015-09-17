@@ -38,9 +38,9 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
                 String parentValue
             }
 
@@ -73,9 +73,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 String parentValue
             }
 
-            @DSL(key = "name")
+            @DSL
             class Bar extends Foo {
-                String value
+                @Key String value
             }
         ''')
 
@@ -88,41 +88,20 @@ class InheritanceSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
                 String parentValue
             }
 
-            @DSL(key = "value")
+            @DSL
             class Bar extends Foo {
-                String value
+                @Key String value
             }
         ''')
 
         then:
         thrown(MultipleCompilationErrorsException)
-    }
-
-    def "redefining the same key as parent class is allowed"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL(key = "name")
-            class Foo {
-                String name
-                String parentValue
-            }
-
-            @DSL(key = "name")
-            class Bar extends Foo {
-                String value
-            }
-        ''')
-
-        then:
-        noExceptionThrown()
     }
 
     def "Polymorphic closure methods"() {
@@ -266,9 +245,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 List<Foo> foos
             }
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
 
             @DSL
@@ -309,9 +288,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 Map<String, Foo> foos
             }
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
 
             @DSL
@@ -351,9 +330,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 Map<String, Foo> foos
             }
 
-            @DSL(key="name")
+            @DSL
             final class Foo {
-                String name
+                @Key String name
             }
         ''')
 
@@ -436,9 +415,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 Map<String, Foo> foos
             }
 
-            @DSL(key = "name")
+            @DSL
             abstract class Foo {
-                String name
+                @Key String name
             }
         ''')
 
@@ -510,9 +489,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 List<Foo> foos
             }
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
 
             @DSL
@@ -553,9 +532,9 @@ class InheritanceSpec extends AbstractDSLSpec {
                 Map<String, Foo> foos
             }
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
 
             @DSL

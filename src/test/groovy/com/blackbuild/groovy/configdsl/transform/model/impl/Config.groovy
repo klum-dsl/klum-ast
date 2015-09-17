@@ -2,6 +2,7 @@ package com.blackbuild.groovy.configdsl.transform.model.impl
 
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.groovy.configdsl.transform.Field
+import com.blackbuild.groovy.configdsl.transform.Key
 
 @DSL
 class Config {
@@ -27,10 +28,10 @@ class Options {
     }
 }
 
-@DSL(key = "name")
+@DSL
 class Environment {
 
-    String name
+    @Key String name
     String url
     List<Authorization> authorizations
 

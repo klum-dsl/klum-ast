@@ -24,9 +24,9 @@ class DocDemoSpec extends AbstractDSLSpec {
 
             }
 
-            @DSL(key = "name")
+            @DSL
             class Project {
-                String name
+                @Key String name
                 String url
 
                 MavenConfig mvn
@@ -86,9 +86,9 @@ class DocDemoSpec extends AbstractDSLSpec {
                 List<String> options
             }
 
-            @DSL(key = "name")
+            @DSL
             abstract class Project {
-                String name
+                @Key String name
                 String url
             }
 

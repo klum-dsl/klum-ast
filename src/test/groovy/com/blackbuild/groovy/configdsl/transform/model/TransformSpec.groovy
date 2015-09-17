@@ -106,9 +106,9 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
         ''')
 
@@ -127,9 +127,9 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
                 boolean called
 
                 def static create(String key, Closure c) {
@@ -170,7 +170,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key="name")
+            @DSL
             class Foo {
                 String name
                 def static create(String key, Closure c) {
@@ -191,9 +191,9 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                String name
+                @Key String name
             }
         ''')
 
@@ -205,28 +205,14 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Klaus"
     }
 
-    def "key field must exist"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL(key = "name")
-            class Foo {
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
-    }
-
     def "key field must be of type String"() {
         when:
         createClass('''
             package pk
 
-            @DSL(key = "name")
+            @DSL
             class Foo {
-                int name
+                @Key int name
             }
         ''')
 
@@ -361,9 +347,9 @@ class TransformSpec extends AbstractDSLSpec {
                 Bar inner
             }
 
-            @DSL(key = "name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 int value
             }
         ''')
@@ -448,9 +434,9 @@ class TransformSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(key="name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -479,9 +465,9 @@ class TransformSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(key="name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -509,9 +495,9 @@ class TransformSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(key="name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -729,9 +715,9 @@ class TransformSpec extends AbstractDSLSpec {
                 Map<String, Bar> bars
             }
 
-            @DSL(key="name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -758,9 +744,9 @@ class TransformSpec extends AbstractDSLSpec {
                 Map<String, Bar> bars
             }
 
-            @DSL(key="name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -817,9 +803,9 @@ class TransformSpec extends AbstractDSLSpec {
                 Map<String, Bar> bars
             }
 
-            @DSL(key = "name")
+            @DSL
             class Bar {
-                String name
+                @Key String name
                 String url
             }
         ''')
@@ -861,9 +847,9 @@ class TransformSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(owner = "owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 

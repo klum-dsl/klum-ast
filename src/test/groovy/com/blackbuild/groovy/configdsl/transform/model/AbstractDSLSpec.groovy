@@ -14,6 +14,8 @@ class AbstractDSLSpec extends Specification {
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addImports(
                 "com.blackbuild.groovy.configdsl.transform.DSL",
+                "com.blackbuild.groovy.configdsl.transform.Owner",
+                "com.blackbuild.groovy.configdsl.transform.Key",
                 "com.blackbuild.groovy.configdsl.transform.Field"
         )
 

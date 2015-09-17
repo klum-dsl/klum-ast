@@ -18,9 +18,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 
@@ -38,14 +38,14 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
 
             @DSL(owner="owner2")
             class ChildBar extends Bar {
-                Foo owner2
+                @Owner Foo owner2
             }
         ''')
 
@@ -65,7 +65,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL(owner="own")
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 
@@ -84,9 +84,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                String owner
+                @Owner String owner
             }
         ''')
 
@@ -104,9 +104,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 
@@ -137,9 +137,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(owner = "owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
         def aBar = create("pk.Bar") {}
@@ -163,9 +163,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(owner = "owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 
@@ -195,10 +195,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Bar bar
             }
 
-            @DSL(key = "name", owner = "owner")
+            @DSL
             class Bar {
-                String name
-                Foo owner
+                @Key String name
+                @Owner Foo owner
             }
 
             @DSL
@@ -234,10 +234,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Map<String, Bar> bars
             }
 
-            @DSL(key = "name", owner = "owner")
+            @DSL
             class Bar {
-                String name
-                Foo owner
+                @Key String name
+                @Owner Foo owner
             }
         ''')
         def aBar = create("pk.Bar", "Klaus") {}
@@ -261,9 +261,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
 
@@ -290,10 +290,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 Map<String, Bar> bars
             }
 
-            @DSL(key="name", owner="owner")
+            @DSL
             class Bar {
-                Foo owner
-                String name
+                @Owner Foo owner
+                @Key String name
             }
         ''')
 
@@ -320,9 +320,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
         def bar = create("pk.Bar") {}
@@ -347,9 +347,9 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 List<Bar> bars
             }
 
-            @DSL(owner="owner")
+            @DSL
             class Bar {
-                Foo owner
+                @Owner Foo owner
             }
         ''')
         def aBar

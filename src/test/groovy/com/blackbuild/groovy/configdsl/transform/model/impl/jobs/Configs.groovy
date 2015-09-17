@@ -1,6 +1,8 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl.jobs
 
 import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.groovy.configdsl.transform.Owner
 
 @DSL
 class Config {
@@ -13,17 +15,19 @@ class Config {
 
 }
 
-@DSL(key = "name")
+@DSL
 class System {
+    @Key
     String name
 
     Map<String, Environment> environments
 }
 
-@DSL(key = "name", owner = "system")
+@DSL
 class Environment {
+    @Key String name
+    @Owner System system
 
-    String name
     String description
     List<String> smokeTests
 
@@ -33,7 +37,6 @@ class Environment {
 
     Mail mail
 
-    System system
 
     String getFullName() {
         return "${system}_${name}"
@@ -53,19 +56,19 @@ class Mail {
 
 }
 
-@DSL(key = "name")
+@DSL
 class Container {
 
-    String name
+    @Key String name
 
 
 
 }
 
-@DSL(key = "name")
+@DSL
 abstract class Buildable {
 
-    String name
+    @Key String name
     String gitRepo
 
     String getGitRepo() {

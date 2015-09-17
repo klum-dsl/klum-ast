@@ -14,9 +14,9 @@ class DSLDemoSpec extends AbstractDSLSpec {
                 Map<String, Environment> envs
             }
 
-            @DSL(key = "name")
+            @DSL
             class Environment {
-                String name
+                @Key String name
                 String value
             }
         ''')

@@ -18,9 +18,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
-import static org.codehaus.groovy.ast.ClassHelper.CLOSURE_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
@@ -39,6 +37,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    private static final ClassNode KEY_ANNOTATION = make(Key.class);
+    private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
+
     public static final String REUSE_METHOD_NAME = "_reuse";
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
@@ -196,9 +197,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
         createPublicMethod(getMethodNameForField(fieldNode))
-            .param(fieldNode.getType(), "value")
-            .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
-            .addTo(annotatedClass);
+                .param(fieldNode.getType(), "value")
+                .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
+                .addTo(annotatedClass);
     }
 
     private String getMethodNameForField(FieldNode fieldNode) {
@@ -245,9 +246,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
         createPublicMethod(getMethodNameForField(fieldNode))
-            .arrayParam(elementType, "values")
-            .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
-            .addTo(annotatedClass);
+                .arrayParam(elementType, "values")
+                .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
+                .addTo(annotatedClass);
 
         createPublicMethod(getElementNameForCollectionField(fieldNode))
                 .param(elementType, "value")
@@ -470,7 +471,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
         if (getKeyField(elementType) == null) {
             addCompileError(
-                    String.format("Value type of map %s (%s) has now key field", fieldNode, elementType),
+                    String.format("Value type of map %s (%s) has no key field", fieldNode.getName(), elementType.getName()),
                     fieldNode
             );
         }
@@ -638,12 +639,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .stringParam("name")
                 .delegatingClosureParam(annotatedClass)
                 .statement(returnS(callX(
-                            callX(
-                                    ctorX(annotatedClass, args("name")),
-                                    "copyFrom",
-                                    propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
-                            ),
-                            "apply", varX("closure")
+                                callX(
+                                        ctorX(annotatedClass, args("name")),
+                                        "copyFrom",
+                                        propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
+                                ),
+                                "apply", varX("closure")
                         )
                 ))
                 .addTo(annotatedClass);
@@ -670,118 +671,101 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     }
 
+    private String getQualifiedName(FieldNode node) {
+        return node.getOwner().getName() + "." + node.getName();
+    }
+
     private FieldNode getKeyField(ClassNode target) {
-        String keyFieldName = getKeyFieldName(target);
 
-        if (keyFieldName == null) return null;
+        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, KEY_ANNOTATION);
 
-        FieldNode result = target.getField(keyFieldName);
+        if (annotatedFields.isEmpty()) return null;
 
-        if (result == null) {
+        if (annotatedFields.size() > 1) {
             addCompileError(
-                    String.format("Designated Key field '%s' is missing", keyFieldName),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    String.format(
+                            "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
+                    annotatedFields.get(0)
             );
             return null;
         }
+
+        FieldNode result = annotatedFields.get(0);
 
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
             addCompileError(
-                    String.format("Key field '%s' must be of type String, but is '%s' instead", keyFieldName, result.getType().getName()),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
+                    result
             );
             return null;
         }
+
+        ClassNode ancestor = getHierarchyOfDSLObjectAncestors(target).getFirst();
+
+        if (target.equals(ancestor)) return result;
+
+        FieldNode firstKey = getKeyField(ancestor);
+
+        if (firstKey == null) {
+            addCompileError(
+                    String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
+                    result
+            );
+            return null;
+        }
+
+        return result;
+    }
+
+    private List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
+        List<FieldNode> result = new ArrayList<FieldNode>();
+
+        for (ClassNode level : getHierarchyOfDSLObjectAncestors(target)) {
+            result.addAll(getAnnotatedFieldOfClass(level, annotation));
+        }
+
+        return result;
+    }
+
+    private List<FieldNode> getAnnotatedFieldOfClass(ClassNode target, ClassNode annotation) {
+        List<FieldNode> result = new ArrayList<FieldNode>();
+
+        for (FieldNode fieldNode : target.getFields())
+            if (!fieldNode.getAnnotations(annotation).isEmpty())
+                result.add(fieldNode);
 
         return result;
     }
 
     private FieldNode getOwnerField(ClassNode target) {
-        String ownerFieldName = getOwnerFieldName(target);
 
-        if (ownerFieldName == null) return null;
+        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, OWNER_ANNOTATION);
 
-        FieldNode result = target.getField(ownerFieldName);
+        if (annotatedFields.isEmpty()) return null;
 
-        if (result == null) {
+        if (annotatedFields.size() > 1) {
             addCompileError(
-                    String.format("Designated owner field '%s' is missing", ownerFieldName),
-                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
+                    String.format(
+                            "Found more than owner key fields, only one is allowed in hierarchy (%s, %s)",
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
+                    annotatedFields.get(0)
             );
             return null;
         }
 
-//        if (getAnnotation(result.getType(), DSL_CONFIG_ANNOTATION) == null) {
-//            addCompileError(
-//                    String.format("Designated owner field '%s' must be a dsl object, but is '%s' instead", ownerFieldName, result.getType().getName()),
-//                    getAnnotation(target, DSL_CONFIG_ANNOTATION)
-//            );
-//            return null;
-//        }
-
-        return result;
-    }
-
-    private String getKeyFieldName(ClassNode target) {
-        Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
-
-        String firstKey = getNullSafeMemberStringValue(getAnnotation(hierarchy.removeFirst(), DSL_CONFIG_ANNOTATION), "key", null);
-
-        for (ClassNode node : hierarchy) {
-            String keyOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "key", null);
-
-            if (firstKey == null && keyOfCurrentNode == null) continue;
-
-            if (firstKey == null) {
-                addCompileError(
-                        String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", target, node, keyOfCurrentNode),
-                        node
-                );
-                return null;
-            }
-
-            if (keyOfCurrentNode == null) continue;
-
-            if (!firstKey.equals(keyOfCurrentNode)) {
-                addCompileError(
-                        String.format("Inconsistent hierarchy: Toplevel defines %s defines key '%s', but child class %s defines '%s'.", target, firstKey, node, keyOfCurrentNode),
-                        node
-                );
-                return null;
-            }
-        }
-
-        return firstKey;
+        return annotatedFields.get(0);
     }
 
     private String getOwnerFieldName(ClassNode target) {
-        Deque<ClassNode> hierarchy = getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
+        FieldNode ownerFieldOfElement = getOwnerField(target);
+        return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
+    }
 
-        String owner = null;
-        ClassNode declaringClass = null;
-
-        for (ClassNode node : hierarchy) {
-            String ownerOfCurrentNode = getNullSafeMemberStringValue(getAnnotation(node, DSL_CONFIG_ANNOTATION), "owner", null);
-
-            if (owner == null && ownerOfCurrentNode == null) continue;
-
-            if (owner == null) {
-                owner = ownerOfCurrentNode;
-                declaringClass = node;
-                continue;
-            }
-
-            if (owner.equals(ownerOfCurrentNode)) continue;
-            if (ownerOfCurrentNode == null) continue;
-
-            addCompileError(
-                    String.format("Inconsistent owner hierarchy: class %s defines owner '%s', but child class %s defines '%s'.", declaringClass, owner, node, ownerOfCurrentNode),
-                    node
-            );
-            return null;
-        }
-
-        return owner;
+    private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(ClassNode target) {
+        return getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
     }
 
     private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
