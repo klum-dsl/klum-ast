@@ -602,8 +602,7 @@ Config.create {
 ```
 
 Note that it is illegal to let a keyed class inherit from a not keyed class. The topmost dsl class in the hierarchy
-decides whether the whole hierarchy is typed or not. Child classed need not define the key attribute themselves, but
-can do so, as long as they define the *same* key field.
+decides whether the whole hierarchy is keyed or not. 
 
 ### Alternatives syntax
 
