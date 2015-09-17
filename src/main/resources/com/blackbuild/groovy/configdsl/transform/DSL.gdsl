@@ -253,7 +253,11 @@ class ClassConfig {
         this.type = type
 
         def dslAnnotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
-        key = dslAnnotation?.findDeclaredAttributeValue("key")?.node?.text?.replace('"', '')
+
+        type.allFields.each {
+            if (it.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Key"))
+                key = it.name
+        }
 
         dslClass = dslAnnotation != null
     }
