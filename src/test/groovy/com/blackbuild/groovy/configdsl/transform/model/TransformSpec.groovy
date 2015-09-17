@@ -570,7 +570,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd"]
     }
 
-    def "simple list element with different element name"() {
+    def "simple list element with different member name"() {
         given:
         createInstance('''
             package pk
