@@ -9,10 +9,10 @@ class Config {
 
     String name
 
-    @Field(optional = true) String value
+    @Field String value
     int age
 
-    @Field("env")
+    @Field
     Map<String, Environment> environments = [:]
 
 

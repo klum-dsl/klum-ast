@@ -61,6 +61,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (keyField != null)
             createKeyConstructor();
 
+        validateFieldAnnotations();
         createApplyMethods();
         createTemplateMethods();
         createFactoryMethods();
@@ -69,6 +70,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (ownerField != null)
             createGuardingSetter();
+    }
+
+    private void validateFieldAnnotations() {
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+
+            if (annotation == null) continue;
+
+            if (isListOrMap(fieldNode.getType())) return;
+
+            if (annotation.getMember("members") != null) {
+                addCompileError(
+                        String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
+                        annotation
+                );
+            }
+            if (annotation.getMember("alternatives") != null) {
+                addCompileError(
+                        String.format("@Field.alternatives is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
+                        annotation
+                );
+            }
+        }
     }
 
     private void createTemplateMethods() {
@@ -99,7 +123,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (fieldNode == ownerField || fieldNode == keyField) continue;
 
-            if (isMap(fieldNode.getType()) || isList(fieldNode.getType()))
+            if (isListOrMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
@@ -187,6 +211,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
+    private boolean isListOrMap(ClassNode type) {
+        return isList(type) || isMap(type);
+    }
+
     private boolean isList(ClassNode type) {
         return type.equals(ClassHelper.LIST_TYPE) || type.implementsInterface(ClassHelper.LIST_TYPE);
     }
@@ -196,26 +224,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .param(fieldNode.getType(), "value")
                 .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
                 .addTo(annotatedClass);
     }
 
-    private String getMethodNameForField(FieldNode fieldNode) {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        return getNullSafeMemberStringValue(fieldAnnotation, "value", fieldNode.getName());
-    }
-
     private String getElementNameForCollectionField(FieldNode fieldNode) {
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
-        String result = getNullSafeMemberStringValue(fieldAnnotation, "element", null);
+        String result = getNullSafeMemberStringValue(fieldAnnotation, "members", null);
 
         if (result != null && result.length() > 0) return result;
 
-        String collectionMethodName = getMethodNameForField(fieldNode);
+        String collectionMethodName = fieldNode.getName();
 
         if (collectionMethodName.endsWith("s"))
             return collectionMethodName.substring(0, collectionMethodName.length() - 1);
@@ -245,7 +267,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
@@ -263,7 +285,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
 
-        createPublicMethod(getMethodNameForField(fieldNode))
+        createPublicMethod(fieldNode.getName())
                 .delegatingClosureParam(contextClass)
                 .declS("context", ctorX(contextClass, varX("this")))
                 .statements(delegateToClosure())
@@ -452,7 +474,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = fieldNode.getName();
 
         createPublicMethod(methodName)
                 .param(fieldNode.getType(), "values")
@@ -474,6 +496,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     String.format("Value type of map %s (%s) has no key field", fieldNode.getName(), elementType.getName()),
                     fieldNode
             );
+            return;
         }
 
         InnerClassNode contextClass = createInnerContextClassForMapMembers(fieldNode, keyType, elementType);
@@ -547,7 +570,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
-        String methodName = getMethodNameForField(fieldNode);
+        String methodName = fieldNode.getName();
 
         ClassNode fieldType = fieldNode.getType();
         FieldNode keyField = getKeyField(fieldType);

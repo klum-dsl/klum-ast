@@ -264,22 +264,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.inner.name == "Dieter"
     }
 
-    def "simple member method with renaming annotation"() {
-        given:
-        createInstance('''
-            @DSL
-            class Foo {
-                @Field("firstname") String name
-                String lastname
-            }
-        ''')
-
-        when:
-        instance.firstname "Dieter"
-
-        then:
-        instance.name == "Dieter"
-    }
     def "test existing method"() {
         given:
         createInstance('''
@@ -292,21 +276,6 @@ class TransformSpec extends AbstractDSLSpec {
 
         expect: "Original method is called"
         instance.name("Dieter") == "run"
-    }
-
-    def "test existing method with renaming"() {
-        given:
-        createInstance('''
-            @DSL
-            class Foo {
-                @Field("firstname") String name
-                String lastname
-                def firstname(String value) {return "run"}
-            }
-        ''')
-
-        expect: "Original method is called"
-        instance.firstname("Dieter") == "run"
     }
 
     def "create inner object via closure"() {
@@ -601,14 +570,14 @@ class TransformSpec extends AbstractDSLSpec {
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd"]
     }
 
-    def "simple list element with different element name"() {
+    def "simple list element with different member name"() {
         given:
         createInstance('''
             package pk
 
             @DSL
             class Foo {
-                @Field(element="more")
+                @Field(members="more")
                 List<String> values
             }
         ''')
@@ -879,6 +848,33 @@ class TransformSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "error: alternatives field of Field annotation is only allowed on collections"() {
+        when:
+        createClass('''
+            package pk
 
+            @DSL
+            class Foo {
+                @Field(alternatives = [Foo]) String name
+            }
+        ''')
 
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "error: members field of Field annotation is only allowed on collections"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(members = "bla") String name
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
 }

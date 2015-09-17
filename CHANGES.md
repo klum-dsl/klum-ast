@@ -3,8 +3,9 @@ pending
 - **Breaking change**
 - Major renaming of annotations:
   - DSLConfig -> DSL
-  - DSLField -> Field
 - Owner and Keys are now decorated by own annotations
+- Removed Ability to rename fields using the field annotation
+- The ability to rename the inner values is retained.
 
 0.11.0
 ======

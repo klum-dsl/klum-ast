@@ -9,10 +9,10 @@ class Config {
 
     String name
 
-    @Field(optional = true) String value
+    @Field String value
     int age
 
-    @Field(value = "envs", element = "e")
+    @Field(members = "env")
     Map<String, Environment> environments
 
     Options options
@@ -20,7 +20,7 @@ class Config {
 
 @DSL
 class Options {
-    Map<String, String> oValues
+    Map<String, String> values
     boolean condition
 
     def getAllUnderscoreOptions() {
@@ -47,13 +47,6 @@ class Authorization {
     Map<String, String> partners;
 
     List<Integer> everything;
-
-    @Field("rens")
-    List<Integer> renamed;
-
-    @Field(value = "others", element = "more")
-    List<Integer> another;
-
 }
 
 class Other {

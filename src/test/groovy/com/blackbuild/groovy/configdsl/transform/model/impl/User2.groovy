@@ -7,9 +7,9 @@ def auth = Authorization.create {
 def c = Config.create {
     name "klaus"
 
-    envs {
+    environments {
 
-        e("bal") {
+        env("bal") {
             age 10
             authorizations {
 
@@ -29,4 +29,3 @@ def c = Config.create {
 
 println c.environments.bal.authorizations
 
-new Environment()
