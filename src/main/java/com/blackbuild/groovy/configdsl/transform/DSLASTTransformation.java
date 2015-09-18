@@ -625,8 +625,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", ClassHelper.CLOSURE_TYPE);
-        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", ClassHelper.CLOSURE_TYPE)) return;
+        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);
+        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 1)) return;
 
         createPublicMethod(hasExistingApply ? "_apply" : "apply")
                 .returning(newClass(annotatedClass))
@@ -641,20 +641,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    public static boolean hasDeclaredMethod(ClassNode cNode, String name, ClassNode... requestedParameters) {
-        List<MethodNode> ms = cNode.getDeclaredMethods(name);
-        for (MethodNode m : ms) {
-            Parameter[] paras = m.getParameters();
-            if (paras != null && paras.length == requestedParameters.length) {
-                for (int i = 0; i < paras.length; i++) {
-                    if (paras[i].getType().equals(requestedParameters[i]))
-                        return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private void createFactoryMethods() {
 
         if (keyField == null)
@@ -664,8 +650,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethodWithKeyParameter() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", STRING_TYPE, CLOSURE_TYPE);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", STRING_TYPE, CLOSURE_TYPE)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 2);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 2)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
@@ -685,8 +671,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSimpleFactoryMethod() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", CLOSURE_TYPE);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", CLOSURE_TYPE)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 1);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 1)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
