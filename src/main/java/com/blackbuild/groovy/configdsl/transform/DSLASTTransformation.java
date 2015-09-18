@@ -45,7 +45,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String TEMPLATE_FIELD = "TEMPLATE";
+    public static final String TEMPLATE_FIELD = "$TEMPLATE";
     public static final String TEMPLATE_FIELD_NAME = TEMPLATE_FIELD;
     private ClassNode annotatedClass;
     private FieldNode keyField;
@@ -53,7 +53,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
-
         init(nodes, source);
 
         annotatedClass = (ClassNode) nodes[1];
@@ -105,8 +104,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
                 .assignS(propX(classX(annotatedClass), TEMPLATE_FIELD), callX(
-                                keyField != null ? ctorX(annotatedClass, args(constX(null))) : ctorX(annotatedClass),
-                                "apply", varX("closure")
+                                classX(annotatedClass),
+                                "create",
+                                keyField != null ? args(constX(null), varX("closure")) : args("closure")
                         )
                 )
                 .addTo(annotatedClass);
@@ -117,15 +117,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                  // see DefaultValuesSpec."template for parent class affects child instances"()
                 .param(newClass(getHighestAncestorDSLObject(annotatedClass)), "template");
 
-
         ClassNode parentClass = annotatedClass.getSuperClass();
 
         if (isDSLObject(parentClass)) {
-            templateApply.statement(callSuperX("copyFrom", args(propX(classX(parentClass), TEMPLATE_FIELD))));
-            templateApply.statement(callSuperX("copyFrom", args("template")));
-        }
+            templateApply.statement(ifS(
+                            notX(isInstanceOfX(varX("template"), annotatedClass)),
+                            returnS(callSuperX("copyFrom", args(propX(classX(parentClass), TEMPLATE_FIELD))))
+                    )
+            );
 
-        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
+            templateApply.statement(callSuperX("copyFrom", args("template")));
+        } else {
+            templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
+        }
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (fieldNode == ownerField || fieldNode == keyField) continue;

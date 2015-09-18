@@ -82,8 +82,8 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         }
 
         then:
-        clazz.TEMPLATE.name == "Welt"
-        clazz.TEMPLATE.value == "Hallo"
+        clazz.$TEMPLATE.name == "Welt"
+        clazz.$TEMPLATE.value == "Hallo"
     }
 
     def "create method should apply template"() {
@@ -164,7 +164,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        !instance.names.is(clazz.TEMPLATE.names)
+        !instance.names.is(clazz.$TEMPLATE.names)
     }
 
     def "template for parent class affects child instances"() {
@@ -280,8 +280,8 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         }
 
         expect:
-        getClass("pk.Parent").TEMPLATE.class == getClass("pk.Parent")
-        getClass("pk.Child").TEMPLATE.class == getClass("pk.Child")
+        getClass("pk.Parent").$TEMPLATE.class == getClass("pk.Parent")
+        getClass("pk.Child").$TEMPLATE.class == getClass("pk.Child")
 
         when:
         instance = create("pk.Child") {}
@@ -360,6 +360,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.child.name == "parent"
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
     def "Default value in list closures"() {
         given:
         createClass('''
@@ -398,5 +399,106 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.children[0].name == "child"
     }
 
+    def "order of precedence for templates"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSL
+            class Parent {
+                String name = "default"
+            }
+
+            @DSL
+            class Child extends Parent {
+            }
+        ''')
+
+        expect:
+        create("pk.Child") {}.name == "default";
+
+        when:
+        getClass("pk.Parent").createTemplate {
+            name "parent"
+        }
+
+        then:
+        create("pk.Child") {}.name == "parent";
+
+        when:
+        getClass("pk.Child").createTemplate {
+            name "child"
+        }
+
+        then:
+        create("pk.Child") {}.name == "child";
+
+        and:
+        create("pk.Child") { name "explicit" }.name == "explicit"
+    }
+
+    def "templates add to parent templates collections"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                List<String> names = ["default"]
+            }
+
+            @DSL
+            class Child extends Parent {
+            }
+        ''')
+
+        expect:
+        create("pk.Child") {}.names == ["default"];
+
+        when:
+        getClass("pk.Parent").createTemplate {
+            names "parent"
+        }
+
+        then:
+        create("pk.Child") {}.names == ["default", "parent"];
+
+        when:
+        getClass("pk.Child").createTemplate {
+            names "child"
+        }
+
+        then:
+        create("pk.Child") {}.names == ["default", "parent", "child"];
+
+        and:
+        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"];
+    }
+
+    def "explicitly overrid parent templates collections"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                List<String> names = ["default"]
+            }
+
+            @DSL
+            class Child extends Parent {
+            }
+        ''')
+        getClass("pk.Parent").createTemplate {
+            names "parent"
+        }
+
+        when:
+        getClass("pk.Child").createTemplate {
+            names = ["child"]
+        }
+
+        then:
+        create("pk.Child") { name "explicit"}.names == ["child", "explicit"];
+    }
 }

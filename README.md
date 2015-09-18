@@ -513,12 +513,13 @@ assert c.bar.owner === c
 
 The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
 
-Each DSLObject class contains a special static `TEMPLATE` field. The field can be initialized using the `createTemplate()`
+Each DSLObject class contains a special static `$TEMPLATE` field. The field can be initialized using the `createTemplate()`
  method which creates a new instance using a closure, similar to the `create()` (createTemplate() is always unkeyed), but
- instead of returning the new instance, it is assigned to the `TEMPLATE` field.
+ instead of returning the new instance, it is assigned to the `$TEMPLATE` field.
  
-Whenever a new instance is created using the `create()` methods, all non-null / non-empty fields are copied over from 
-template. For Lists and Maps, shallow copies will be created. It is NOT invoked using the constructor!
+Whenever a new instance is created using the `create()` methods, all non-null / non-empty fields in the template are 
+copied over from template. For Lists and Maps, shallow copies will be created. This happens only when using the `create()`
+method, it is NOT invoked using the constructor!
 
 ```groovy
 @DSL
@@ -542,6 +543,105 @@ def c = Config.create {
 assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
 ```
+
+Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
+it is also applied when creating child class instances. Child template values can override parent templates.
+
+### Order of precedence
+
+The order of precedence is
+
+- initialization / constructor values
+- values in a custom create method
+- templates of parent classes
+- own templates
+- explicit setter methods
+
+I.e. given the following code:
+
+```groovy
+@DSL
+class Parent {
+    String name = "default"
+}
+
+@DSL
+class Child extends Parent {
+}
+
+Parent.createTemplate {
+    name "parent-template" // overrides default value
+}
+
+Child.createTemplate {
+    name "child-template" // overrides parent template value
+}
+
+def c = Child.create {}
+
+assert c.name == "child-template"
+
+def d = Child.create {
+    name "explicit" // overrides template value
+}
+
+assert d.name == "explicit"
+```
+
+Note that templates for collections **add** to lower precedence values, they do **not** replace them: 
+
+```groovy
+@DSL
+class Parent {
+    List<String> names = ["default"]
+}
+
+@DSL
+class Child extends Parent {
+}
+
+Parent.createTemplate {
+    names "parent" // adds to default value
+}
+
+Child.createTemplate {
+    names "child" // adds to parent template value
+}
+
+def c = Child.create {
+    name == "explicit" // adds to template value
+}
+
+assert c.names == ["default", "parent", "child", "explicit"]
+```
+
+If you want child template to replace the parent, you have to do so explicity by not using the generated setter:
+
+```groovy
+@DSL
+class Parent {
+    List<String> names = ["default"]
+}
+
+@DSL
+class Child extends Parent {
+}
+
+Parent.createTemplate {
+    names "parent" // adds to default value
+}
+
+Child.createTemplate {
+    names = ["child"] // explicitly override parent template
+}
+
+def c = Child.create {
+    name == "explicit" // adds to template value
+}
+
+assert c.names == ["child", "explicit"]
+```
+
 
 ## DSL Object Inheritance
 
