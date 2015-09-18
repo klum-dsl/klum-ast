@@ -518,7 +518,7 @@ Each DSLObject class contains a special static `TEMPLATE` field. The field can b
  instead of returning the new instance, it is assigned to the `TEMPLATE` field.
  
 Whenever a new instance is created using the `create()` methods, all non-null / non-empty fields are copied over from 
-template. For Lists and Maps, shallow copies will be created.
+template. For Lists and Maps, shallow copies will be created. It is NOT invoked using the constructor!
 
 ```groovy
 @DSL

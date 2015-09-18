@@ -167,4 +167,236 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         !instance.names.is(clazz.TEMPLATE.names)
     }
 
+    def "template for parent class affects child instances"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Parent").createTemplate {
+            name "default"
+        }
+
+        when:
+        instance = create("pk.Child") {}
+
+        then:
+        instance.name == "default"
+    }
+
+    def "template for child class sets parent fields"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Child").createTemplate {
+            name "default"
+        }
+
+        when:
+        instance = create("pk.Child") {}
+
+        then:
+        instance.name == "default"
+    }
+
+    def "template for child class sets child fields"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        println "Creating template"
+        getClass("pk.Child").createTemplate {
+            name "default"
+            value "defaultValue"
+        }
+
+        when:
+        println "Creating instance"
+        instance = create("pk.Child") {}
+
+        then:
+        instance.name == "default"
+        instance.value == "defaultValue"
+    }
+
+    def "child template overrides parent template"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Parent").createTemplate {
+            name "parent"
+        }
+        getClass("pk.Child").createTemplate {
+            name "child"
+        }
+
+        expect:
+        getClass("pk.Parent").TEMPLATE.class == getClass("pk.Parent")
+        getClass("pk.Child").TEMPLATE.class == getClass("pk.Child")
+
+        when:
+        instance = create("pk.Child") {}
+
+        then:
+        instance.name == "child"
+    }
+
+    def "Default value in sub closures"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Config {
+                Child child
+            }
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Child").createTemplate {
+            name "child"
+        }
+
+        when:
+        instance = clazz.create {
+            child {}
+        }
+
+        then:
+        instance.child.name == "child"
+    }
+
+    def "Default value in sub closures with parent template"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Config {
+                Child child
+            }
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Parent").createTemplate {
+            name "parent"
+        }
+
+        when:
+        instance = clazz.create {
+            child {}
+        }
+
+        then:
+        instance.child.name == "parent"
+    }
+
+    def "Default value in list closures"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Config {
+                @Field(members = "child")
+                List<Child> children
+            }
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        and:
+        getClass("pk.Child").createTemplate {
+            name "child"
+        }
+
+        when:
+        instance = clazz.create {
+            children {
+                child {}
+            }
+        }
+
+        then:
+        instance.children[0].name == "child"
+    }
+
+
 }

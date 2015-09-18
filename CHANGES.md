@@ -1,3 +1,9 @@
+0.12.1
+======
+- Fixed a corner case of template inheritance
+- Now, if Child extends Parent and a template is created for Parent only, 
+  this template will also be applied to all created instances of Child
+
 0.12.0
 =======
 - **Breaking change**

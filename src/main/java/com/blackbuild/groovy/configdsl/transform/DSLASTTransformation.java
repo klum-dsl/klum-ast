@@ -6,6 +6,7 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -44,7 +45,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String TEMPLATE_FIELD_NAME = "TEMPLATE";
+    public static final String TEMPLATE_FIELD = "TEMPLATE";
+    public static final String TEMPLATE_FIELD_NAME = TEMPLATE_FIELD;
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -102,23 +104,28 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(
+                .assignS(propX(classX(annotatedClass), TEMPLATE_FIELD), callX(
                                 keyField != null ? ctorX(annotatedClass, args(constX(null))) : ctorX(annotatedClass),
                                 "apply", varX("closure")
                         )
                 )
                 .addTo(annotatedClass);
 
-        createPublicMethod("createTemplate")
-                .mod(Opcodes.ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "TEMPLATE"), callX(annotatedClass, "create", varX("closure")))
-                .addTo(annotatedClass);
-
         MethodBuilder templateApply = createPublicMethod("copyFrom")
                 .returning(newClass(annotatedClass))
-                .param(newClass(annotatedClass), "template")
-                .statement(ifS(notX(varX("template")), returnS(varX("this"))));
+                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
+                 // see DefaultValuesSpec."template for parent class affects child instances"()
+                .param(newClass(getHighestAncestorDSLObject(annotatedClass)), "template");
+
+
+        ClassNode parentClass = annotatedClass.getSuperClass();
+
+        if (isDSLObject(parentClass)) {
+            templateApply.statement(callSuperX("copyFrom", args(propX(classX(parentClass), TEMPLATE_FIELD))));
+            templateApply.statement(callSuperX("copyFrom", args("template")));
+        }
+
+        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (fieldNode == ownerField || fieldNode == keyField) continue;
@@ -725,7 +732,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return null;
         }
 
-        ClassNode ancestor = getHierarchyOfDSLObjectAncestors(target).getFirst();
+        ClassNode ancestor = getHighestAncestorDSLObject(target);
 
         if (target.equals(ancestor)) return result;
 
@@ -740,6 +747,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         return result;
+    }
+
+    private ClassNode getHighestAncestorDSLObject(ClassNode target) {
+        return getHierarchyOfDSLObjectAncestors(target).getFirst();
     }
 
     private List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
