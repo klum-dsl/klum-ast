@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl.jobs
 
 import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Field
 import com.blackbuild.groovy.configdsl.transform.Key
 import com.blackbuild.groovy.configdsl.transform.Owner
 
@@ -11,7 +12,8 @@ class Config {
 
     Map<String, Container> containers
 
-    Map<String, MavenProject> mavenProjects
+    @Field(alternatives = [MavenProject, GradleProject])
+    Map<String, Buildable> projects
 
 }
 
@@ -80,7 +82,10 @@ abstract class Buildable {
 class MavenProject extends Buildable {
 
     String parent
+}
 
-
+@DSL
+class GradleProject extends Buildable {
+    String cli
 }
 

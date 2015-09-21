@@ -51,34 +51,57 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             type: clazz.type.qualifiedName
     )
 
-    classType?.fields?.each { PsiField rawField ->
+    classType?.allFields?.each { PsiField rawField ->
 
         def field = new FieldConfig(rawField)
         def fieldType = field.targetConfig
 
-        if (fieldType) {
-            if (!field.collectionOfDslObjects && fieldType.key)
-                method(
-                        name: field.name,
-                        doc: "Sets the $field.name, using the key as $fieldType.key." as String,
-                        params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
-                        type: 'void'
-                )
-            else
-                method(
-                        name: field.name,
-                        doc: "Sets the $field.name" as String,
-                        params: [value: 'Closure'],
-                        type: 'void'
-                )
-        } else if (field.collectionOfDslObjects) {
+        if (field.collectionOfDslObjects) {
+            // inner class closure
             method(
                     name: field.name,
                     doc: "Enter $field.name via closure" as String,
                     params: [closure: Closure.class.name],
                     type: 'void'
             )
+        } else if (fieldType) {
+            // single dsl field
+            if (fieldType.key) {
+
+                // keyed
+                if (!fieldType.isAbstract())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name, using the key as $fieldType.key." as String,
+                            params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
+                            type: 'void'
+                    )
+                if (!fieldType.isFinal())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name, using the key as $fieldType.key, using a fixed type" as String,
+                            params: [type: "Class<? extends $fieldType.type.qualifiedName>", "$fieldType.key": "java.lang.String", value: 'Closure'],
+                            type: 'void'
+                    )
+            } else {
+                // unkeyed
+                if (!fieldType.isAbstract())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name" as String,
+                            params: [value: 'Closure'],
+                            type: 'void'
+                    )
+                if (!fieldType.isFinal())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name" as String,
+                            params: [type: "Class<? extends $fieldType.type.qualifiedName>", value: 'Closure'],
+                            type: 'void'
+                    )
+            }
         } else {
+            // simple field
             if (field.isList()) {
                 //noinspection GroovyAssignabilityCheck
                 method(
@@ -122,36 +145,86 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
-    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{FieldConfig field -> enclosingCall(field.name) || enclosingCall(field.memberName)}
+    def dslCollectionFields = clazz.allDslCollectionFields
 
-    if (innerMostKnownClosureField) {
+    ClassConfig targetAlternative = dslCollectionFields.findResult { FieldConfig field ->
+        field.alternatives.findResult { ClassConfig type ->
+            enclosingCall(type.uncapitalizedName) ? type : null
+        }
+    }
 
-        def elementType = innerMostKnownClosureField.targetConfig
+    if (targetAlternative) {
+        delegatesTo(targetAlternative.type)
+    } else {
 
-        if (enclosingCall(innerMostKnownClosureField.memberName)) {
-            delegatesTo(elementType.type)
-        } else {
-            method(
-                    name: innerMostKnownClosureField.memberName,
-                    doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                    params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
-                    type: 'void'
-            )
-            // TODO: alternatives
-            method(
-                    name: "_reuse",
-                    doc: """Reuses an existing instance of $elementType.type.qualifiedName.
+        def innerMostKnownClosureField = dslCollectionFields.find {
+            FieldConfig field -> return enclosingCall(field.name) ?: enclosingCall(field.memberName)
+        }
+
+        if (innerMostKnownClosureField) {
+
+            def elementType = innerMostKnownClosureField.targetConfig
+
+            def call = enclosingCall(innerMostKnownClosureField.memberName)
+
+            if (call) {
+                // this is a single element closure
+                if (call.arguments) {
+                    if (call.arguments[0].type.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                        println call.arguments[0].type.parameters[0]
+                        delegatesTo(call.arguments[0].type.parameters[0].resolve())
+                    } else {
+                        delegatesTo(elementType.type)
+                    }
+                } else {
+                    delegatesTo(elementType.type)
+                }
+            } else {
+                // collection closure
+                if (innerMostKnownClosureField.alternatives) {
+                    innerMostKnownClosureField.alternatives.each { ClassConfig config ->
+                        method(
+                                name: config.uncapitalizedName,
+                                doc: "Creates s single instance of $config.type and adds it." as String,
+                                params: config.key ? ["$config.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
+
+                } else {
+                    if (!elementType.isAbstract()) {
+                        method(
+                                name: innerMostKnownClosureField.memberName,
+                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                                params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
+                    if (!elementType.isFinal()) {
+                        method(
+                                name: innerMostKnownClosureField.memberName,
+                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                                params: elementType.key ? [type: "Class<? extends $elementType.type.qualifiedName>", "$elementType.key": "java.lang.String", value: 'Closure'] : [type: "Class<? extends $elementType.type.qualifiedName>", value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
+                }
+
+                method(
+                        name: "_reuse",
+                        doc: """Reuses an existing instance of $elementType.type.qualifiedName.
 This will not affect the owner of the added object.""" as String,
-                    params: [value: elementType.type.qualifiedName],
-                    type: 'void'
-            )
-            method(
-                    name: '_use',
-                    doc: """Adds an existing instance of $elementType.type.qualifiedName.
+                        params: [value: elementType.type.qualifiedName],
+                        type: 'void'
+                )
+                method(
+                        name: '_use',
+                        doc: """Adds an existing instance of $elementType.type.qualifiedName.
 The added objects must not have an owner yet.""" as String,
-                    params: [value: elementType.type.qualifiedName],
-                    type: 'void'
-            )
+                        params: [value: elementType.type.qualifiedName],
+                        type: 'void'
+                )
+            }
         }
     }
 
@@ -175,6 +248,8 @@ class FieldConfig {
 
     boolean isDslObject
 
+    Set<ClassConfig> alternatives
+
     FieldConfig(PsiField field) {
         this.field = field
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
@@ -189,8 +264,21 @@ class FieldConfig {
             targetConfig = config
             isDslObject = true
         }
-        else if (isCollectionOfDslObjects())
+        else if (isCollectionOfDslObjects()) {
             targetConfig = new ClassConfig(elementType.resolve())
+
+            alternatives = [] as Set
+            def alternativesValues = fieldAnnotation?.findDeclaredAttributeValue("alternatives")
+
+            if (alternativesValues) {
+                alternativesValues.children.each {
+                    PsiClass alternativ = it.resolve()
+                    alternatives << new ClassConfig(alternativ)
+                }
+
+                alternatives << targetConfig
+            }
+        }
     }
 
     PsiType getType() {
@@ -228,11 +316,6 @@ class FieldConfig {
 
     boolean isCollectionOfDslObjects() {
         elementType?.resolve()?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
-    }
-
-    List<PsiClass> getAlternatives() {
-        this.fieldAnnotation?.findAttributeValue("alternatives")
-        // TODO implement
     }
 
     @Override
@@ -275,9 +358,22 @@ class ClassConfig {
         return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
     }
 
+    String getUncapitalizedName() {
+        String name = type.name
+        name[0].toLowerCase() + name.substring(1)
+    }
+
     @Override
     String toString() {
         return "DSLClass: $type.qualifiedName"
+    }
+
+    boolean isFinal() {
+        type.getModifierList().hasExplicitModifier("final")
+    }
+
+    boolean isAbstract() {
+        type.getModifierList().hasExplicitModifier("abstract")
     }
 
 }

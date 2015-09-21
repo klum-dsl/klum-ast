@@ -13,6 +13,8 @@ def c = Config.create {
             age 10
             authorizations {
 
+                au
+
                 authorization {
                     partner("Hans", "Dieter")
                 }
