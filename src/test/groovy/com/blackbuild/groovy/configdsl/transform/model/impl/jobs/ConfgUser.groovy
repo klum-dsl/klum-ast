@@ -25,9 +25,16 @@ def c = Config.create() {
     projects {
         mavenProject("test") {
             gitRepo "repo"
+            parent("bla")
         }
 
     }
+}
+
+
+
+MavenProject.create("bla") {
+
 }
 
 println c

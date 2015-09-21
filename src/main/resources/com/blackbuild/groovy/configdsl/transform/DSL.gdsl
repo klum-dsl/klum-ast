@@ -51,7 +51,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             type: clazz.type.qualifiedName
     )
 
-    classType?.fields?.each { PsiField rawField ->
+    classType?.allFields?.each { PsiField rawField ->
 
         def field = new FieldConfig(rawField)
         def fieldType = field.targetConfig
