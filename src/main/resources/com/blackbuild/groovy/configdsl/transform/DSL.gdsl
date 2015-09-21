@@ -57,20 +57,37 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
         def fieldType = field.targetConfig
 
         if (fieldType) {
-            if (!field.collectionOfDslObjects && fieldType.key)
-                method(
-                        name: field.name,
-                        doc: "Sets the $field.name, using the key as $fieldType.key." as String,
-                        params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
-                        type: 'void'
-                )
-            else
-                method(
-                        name: field.name,
-                        doc: "Sets the $field.name" as String,
-                        params: [value: 'Closure'],
-                        type: 'void'
-                )
+            if (!field.collectionOfDslObjects && fieldType.key) {
+                if (!fieldType.isAbstract())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name, using the key as $fieldType.key." as String,
+                            params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
+                            type: 'void'
+                    )
+                if (!fieldType.isFinal())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name, using the key as $fieldType.key, using a fixed type" as String,
+                            params: [type: "Class<? extends $fieldType.type.qualifiedName>", "$fieldType.key": "java.lang.String", value: 'Closure'],
+                            type: 'void'
+                    )
+            } else {
+                if (!fieldType.isAbstract())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name" as String,
+                            params: [value: 'Closure'],
+                            type: 'void'
+                    )
+                if (!fieldType.isFinal())
+                    method(
+                            name: field.name,
+                            doc: "Sets the $field.name" as String,
+                            params: [type: "Class<? extends $fieldType.type.qualifiedName>", value: 'Closure'],
+                            type: 'void'
+                    )
+            }
         } else if (field.collectionOfDslObjects) {
             method(
                     name: field.name,
@@ -159,12 +176,22 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
                     }
 
                 } else {
-                    method(
-                            name: innerMostKnownClosureField.memberName,
-                            doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                            params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
-                            type: 'void'
-                    )
+                    if (!elementType.isAbstract()) {
+                        method(
+                                name: innerMostKnownClosureField.memberName,
+                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                                params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
+                    if (!elementType.isFinal()) {
+                        method(
+                                name: innerMostKnownClosureField.memberName,
+                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                                params: elementType.key ? [type: "Class<? extends $elementType.type.qualifiedName>", "$elementType.key": "java.lang.String", value: 'Closure'] : [type: "Class<? extends $elementType.type.qualifiedName>", value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
                 }
 
                 method(
@@ -323,6 +350,14 @@ class ClassConfig {
     @Override
     String toString() {
         return "DSLClass: $type.qualifiedName"
+    }
+
+    boolean isFinal() {
+        type.getModifierList().hasExplicitModifier("final")
+    }
+
+    boolean isAbstract() {
+        type.getModifierList().hasExplicitModifier("abstract")
     }
 
 }
