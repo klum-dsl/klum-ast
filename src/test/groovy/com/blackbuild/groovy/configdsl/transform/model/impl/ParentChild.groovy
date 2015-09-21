@@ -5,7 +5,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 @DSL
 class ParentChildContainer {
 
-    Parent parent
+    List<Parent> parents
 }
 
 @DSL
@@ -25,9 +25,13 @@ ParentChildContainer.create {
 
 
 
+    parents {
+        parent(Child) {
 
-    parent(Child) {
+        }
+        parent {
 
+        }
     }
 
 }

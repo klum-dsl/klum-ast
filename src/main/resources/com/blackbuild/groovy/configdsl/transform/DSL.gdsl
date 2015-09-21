@@ -56,8 +56,19 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
         def field = new FieldConfig(rawField)
         def fieldType = field.targetConfig
 
-        if (fieldType) {
-            if (!field.collectionOfDslObjects && fieldType.key) {
+        if (field.collectionOfDslObjects) {
+            // inner class closure
+            method(
+                    name: field.name,
+                    doc: "Enter $field.name via closure" as String,
+                    params: [closure: Closure.class.name],
+                    type: 'void'
+            )
+        } else if (fieldType) {
+            // single dsl field
+            if (fieldType.key) {
+
+                // keyed
                 if (!fieldType.isAbstract())
                     method(
                             name: field.name,
@@ -73,6 +84,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                             type: 'void'
                     )
             } else {
+                // unkeyed
                 if (!fieldType.isAbstract())
                     method(
                             name: field.name,
@@ -88,14 +100,8 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                             type: 'void'
                     )
             }
-        } else if (field.collectionOfDslObjects) {
-            method(
-                    name: field.name,
-                    doc: "Enter $field.name via closure" as String,
-                    params: [closure: Closure.class.name],
-                    type: 'void'
-            )
         } else {
+            // simple field
             if (field.isList()) {
                 //noinspection GroovyAssignabilityCheck
                 method(
@@ -138,7 +144,6 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
 contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL"))) {
 
     ClassConfig clazz = new ClassConfig(psiClass)
-
 
     def dslCollectionFields = clazz.allDslCollectionFields
 
