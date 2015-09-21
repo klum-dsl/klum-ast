@@ -17,8 +17,6 @@ def c = Config.create() {
                     authForComponentDeploy "developer"
 
                     versionFilter NO_SNAPSHOT_FILTER
-
-
                 }
             }
         }
@@ -26,7 +24,7 @@ def c = Config.create() {
 
     projects {
         mavenProject("test") {
-
+            gitRepo "repo"
         }
 
     }

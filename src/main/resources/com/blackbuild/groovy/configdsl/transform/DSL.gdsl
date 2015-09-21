@@ -1,7 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.intellij.psi.PsiAnnotation
-import com.intellij.psi.PsiAnnotationMemberValue
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiEllipsisType
@@ -123,52 +122,66 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
-    def innerMostKnownClosureField = clazz.allDslCollectionFields.find{
-        FieldConfig field -> return enclosingCall(field.name) ?: enclosingCall(field.memberName) ?: field.alternatives
+
+    def dslCollectionFields = clazz.allDslCollectionFields
+
+    ClassConfig targetAlternative = dslCollectionFields.findResult { FieldConfig field ->
+        field.alternatives.findResult { ClassConfig type ->
+            enclosingCall(type.uncapitalizedName) ? type : null
+        }
     }
 
-    if (innerMostKnownClosureField) {
+    if (targetAlternative) {
+        delegatesTo(targetAlternative.type)
+    } else {
 
-        def elementType = innerMostKnownClosureField.targetConfig
+        def innerMostKnownClosureField = dslCollectionFields.find {
+            FieldConfig field -> return enclosingCall(field.name) ?: enclosingCall(field.memberName)
+        }
 
-        if (enclosingCall(innerMostKnownClosureField.memberName)) {
-            // this is a single element closure
-            delegatesTo(elementType.type)
-        } else {
-            // collection closure
-            if (innerMostKnownClosureField.alternatives) {
-                innerMostKnownClosureField.alternatives.each { name, type ->
+        if (innerMostKnownClosureField) {
+
+            def elementType = innerMostKnownClosureField.targetConfig
+
+            if (enclosingCall(innerMostKnownClosureField.memberName)) {
+                // this is a single element closure
+                delegatesTo(elementType.type)
+            } else {
+                // collection closure
+                if (innerMostKnownClosureField.alternatives) {
+                    innerMostKnownClosureField.alternatives.each { ClassConfig config ->
+                        method(
+                                name: config.uncapitalizedName,
+                                doc: "Creates s single instance of $config.type and adds it." as String,
+                                params: config.key ? ["$config.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                                type: 'void'
+                        )
+                    }
+
+                } else {
                     method(
-                            name: name,
-                            doc: "Creates s single instance of $type and adds it." as String,
-                            params: type.key ? ["$type.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                            name: innerMostKnownClosureField.memberName,
+                            doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                            params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
                             type: 'void'
                     )
                 }
 
-            } else {
                 method(
-                        name: innerMostKnownClosureField.memberName,
-                        doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                        params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                        name: "_reuse",
+                        doc: """Reuses an existing instance of $elementType.type.qualifiedName.
+This will not affect the owner of the added object.""" as String,
+                        params: [value: elementType.type.qualifiedName],
+                        type: 'void'
+                )
+                method(
+                        name: '_use',
+                        doc: """Adds an existing instance of $elementType.type.qualifiedName.
+The added objects must not have an owner yet.""" as String,
+                        params: [value: elementType.type.qualifiedName],
                         type: 'void'
                 )
             }
-
-            method(
-                    name: "_reuse",
-                    doc: """Reuses an existing instance of $elementType.type.qualifiedName.
-This will not affect the owner of the added object.""" as String,
-                    params: [value: elementType.type.qualifiedName],
-                    type: 'void'
-            )
-            method(
-                    name: '_use',
-                    doc: """Adds an existing instance of $elementType.type.qualifiedName.
-The added objects must not have an owner yet.""" as String,
-                    params: [value: elementType.type.qualifiedName],
-                    type: 'void'
-            )
         }
     }
 
@@ -192,7 +205,7 @@ class FieldConfig {
 
     boolean isDslObject
 
-    Map<String, ClassConfig> alternatives
+    Set<ClassConfig> alternatives
 
     FieldConfig(PsiField field) {
         this.field = field
@@ -211,23 +224,18 @@ class FieldConfig {
         else if (isCollectionOfDslObjects()) {
             targetConfig = new ClassConfig(elementType.resolve())
 
-            alternatives = [:]
+            alternatives = [] as Set
             def alternativesValues = fieldAnnotation?.findDeclaredAttributeValue("alternatives")
 
             if (alternativesValues) {
                 alternativesValues.children.each {
                     PsiClass alternativ = it.resolve()
-                    alternatives[uncapitalizeName(alternativ.name)] = new ClassConfig(alternativ)
+                    alternatives << new ClassConfig(alternativ)
                 }
 
-                def basetype = elementType.resolve()
-                alternatives[uncapitalizeName(basetype.name)] = new ClassConfig(basetype)
+                alternatives << targetConfig
             }
         }
-    }
-
-    private uncapitalizeName(String name) {
-        name[0].toLowerCase() + name.substring(1)
     }
 
     PsiType getType() {
@@ -305,6 +313,11 @@ class ClassConfig {
 
     Set<FieldConfig> getAllSingleDSLFields() {
         return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
+    }
+
+    String getUncapitalizedName() {
+        String name = type.name
+        name[0].toLowerCase() + name.substring(1)
     }
 
     @Override
