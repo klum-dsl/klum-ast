@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/pauxus/config-dsl.svg?branch=master)](https://travis-ci.org/pauxus/config-dsl)
+[![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
 # ConfigDSL Transformation for Groovy
 Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
