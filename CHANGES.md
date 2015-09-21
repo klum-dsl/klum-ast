@@ -1,11 +1,14 @@
-0.12.1
-======
+## 0.12.2
+No functional changes, only gdsl improvements
+- alternatives
+- typed closures
+
+## 0.12.1
 - Fixed a corner case of template inheritance
 - Now, if Child extends Parent and a template is created for Parent only, 
   this template will also be applied to all created instances of Child
 
-0.12.0
-=======
+## 0.12.0
 - **Breaking change**
 - Major renaming of annotations:
   - DSLConfig -> DSL
@@ -13,31 +16,26 @@
 - Removed Ability to rename fields using the field annotation
 - The ability to rename the inner values is retained.
 
-0.11.0
-======
+## 0.11.0
 - Introduced template objects to configure default values.
 
-0.10.0
-======
+## 0.10.0
 - reuse changes/improvements [#6](https://github.com/blackbuild/config-dsl/pull/6)
   - `reuse()` renamed to `_reuse()`, does NOT set owner field
   - new `_use()` method which *does* set the owner field
   - overwriting the owner field content leads to `IllegalStateException`
   - inner collection closures (bars -> bar) now return the created object to allow easier reuse
   
-0.9.5
-=====
+## 0.9.5
 - Fixed a StackOverflowError in `toString()` methods with owner fields 
 
-0.9.4
-=====
+## 0.9.4
 - gdsl improvements
   - NPE Guards
   - Documentation for generated methods
   - Fixed most cases for single object closures
 
-0.9.3
-=====
+## 0.9.3
 - Code refactorings (extracted method creating code to separate class `MethodBuilder`)
 - Introduced owner fields
 - Allow inheritance in DSLObjects
