@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
 import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Key
 
 @DSL
 class ParentChildContainer {
@@ -11,6 +12,7 @@ class ParentChildContainer {
 @DSL
 class Parent {
 
+    @Key String name
     String parentField
 }
 
@@ -26,11 +28,14 @@ ParentChildContainer.create {
 
 
     parents {
-        parent(Child) {
+        parent(Child, "blub") {
+            parentField("bla")
+            childField "hallo"
+
 
         }
-        parent {
-
+        parent("bli") {
+            parentField "holla"
         }
     }
 

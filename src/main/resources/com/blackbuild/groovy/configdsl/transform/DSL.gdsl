@@ -165,9 +165,20 @@ contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.g
 
             def elementType = innerMostKnownClosureField.targetConfig
 
-            if (enclosingCall(innerMostKnownClosureField.memberName)) {
+            def call = enclosingCall(innerMostKnownClosureField.memberName)
+
+            if (call) {
                 // this is a single element closure
-                delegatesTo(elementType.type)
+                if (call.arguments) {
+                    if (call.arguments[0].type.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                        println call.arguments[0].type.parameters[0]
+                        delegatesTo(call.arguments[0].type.parameters[0].resolve())
+                    } else {
+                        delegatesTo(elementType.type)
+                    }
+                } else {
+                    delegatesTo(elementType.type)
+                }
             } else {
                 // collection closure
                 if (innerMostKnownClosureField.alternatives) {
