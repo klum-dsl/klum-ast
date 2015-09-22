@@ -247,6 +247,8 @@ class FieldConfig {
     private PsiAnnotation fieldAnnotation
 
     boolean isDslObject
+    boolean isKey
+    boolean isOwner
 
     Set<ClassConfig> alternatives
 
@@ -279,6 +281,9 @@ class FieldConfig {
                 alternatives << targetConfig
             }
         }
+
+        isKey = field.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Key")
+        isOwner = field.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Owner")
     }
 
     PsiType getType() {
@@ -327,19 +332,21 @@ class FieldConfig {
 class ClassConfig {
     String key
     PsiClass type
-    boolean dslClass
+    private annotation
 
     ClassConfig(PsiClass type) {
         this.type = type
 
-        def dslAnnotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
+        annotation = type?.getAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
 
-        type.allFields.each {
+        type?.allFields?.each {
             if (it.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Key"))
                 key = it.name
         }
+    }
 
-        dslClass = dslAnnotation != null
+    boolean isDslClass() {
+        annotation != null
     }
 
     Set<FieldConfig> getAllDslCollectionFields() {

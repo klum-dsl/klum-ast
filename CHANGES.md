@@ -1,3 +1,6 @@
+## 0.12.3
+NPE Guard in GDSL
+
 ## 0.12.2
 No functional changes, only gdsl improvements
 - alternatives
