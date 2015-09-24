@@ -6,7 +6,6 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -45,8 +44,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String TEMPLATE_FIELD = "$TEMPLATE";
-    public static final String TEMPLATE_FIELD_NAME = TEMPLATE_FIELD;
+    public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -69,8 +67,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFieldMethods();
         createCanonicalMethods();
 
-        if (ownerField != null)
+        if (annotedClassIsTopOfDSLHierarchy())
             createGuardingSetter();
+    }
+
+    private boolean annotedClassIsTopOfDSLHierarchy() {
+        return ownerField != null && annotatedClass.getDeclaredField(ownerField.getName()) != null;
     }
 
     private void validateFieldAnnotations() {
@@ -103,7 +105,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), TEMPLATE_FIELD), callX(
+                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), callX(
                                 classX(annotatedClass),
                                 "create",
                                 keyField != null ? args(constX(null), varX("closure")) : args("closure")
@@ -122,7 +124,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (isDSLObject(parentClass)) {
             templateApply.statement(ifS(
                             notX(isInstanceOfX(varX("template"), annotatedClass)),
-                            returnS(callSuperX("copyFrom", args(propX(classX(parentClass), TEMPLATE_FIELD))))
+                            returnS(callSuperX("copyFrom", args(propX(classX(parentClass), "$TEMPLATE"))))
                     )
             );
 
@@ -321,8 +323,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
 
         FieldNode fieldKey = getKeyField(elementType);
-        FieldNode ownerFieldOfElement = getOwnerField(elementType);
-        String ownerFieldOfElementName = getOwnerFieldName(elementType);
+        String targetOwner = getOwnerFieldName(elementType);
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
@@ -331,7 +332,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -344,12 +345,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
                     .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
-        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
+        List<ClassNode> classesList = getAlternativesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
             createPublicMethod(uncapitalizedSimpleClassName(implementation))
                     .optionalStringParam("key", fieldKey)
@@ -366,7 +367,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
-                .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                .optionalAssignPropertyFromPropertyS("value", targetOwner, "this", "outerInstance", targetOwner)
                 .addTo(contextClass);
 
         if (fieldKey != null) {
@@ -423,7 +424,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return "set" + new String(name);
     }
 
-    private List<ClassNode> getClassesList(AnnotatedNode fieldNode, ClassNode elementType) {
+    private List<ClassNode> getAlternativesList(AnnotatedNode fieldNode, ClassNode elementType) {
         AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
         if (annotation == null) return Collections.emptyList();
 
@@ -518,8 +519,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         InnerClassNode contextClass = createInnerContextClass(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
-        FieldNode ownerFieldOfElement = getOwnerField(elementType);
-        String ownerFieldOfElementName = getOwnerFieldName(elementType);
+        String targetOwner = getOwnerFieldName(elementType);
 
         if (!isAbstract(elementType)) {
             createPublicMethod(methodName)
@@ -528,7 +528,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(elementType, "create", args("key", "closure")))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -542,12 +542,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declS("created", callX(varX("typeToCreate"), "newInstance", args("key")))
                     .callS(varX("created"), "apply", varX("closure"))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                    .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
 
-        List<ClassNode> classesList = getClassesList(fieldNode, elementType);
+        List<ClassNode> classesList = getAlternativesList(fieldNode, elementType);
         for (ClassNode implementation : classesList) {
             createPublicMethod(uncapitalizedSimpleClassName(implementation))
                     .param(keyType, "key")
@@ -570,7 +570,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
                 )
-                .optionalAssignS(propX(varX("value"), ownerFieldOfElementName), propX(varX("this"), "outerInstance"), ownerFieldOfElement)
+                .optionalAssignPropertyFromPropertyS("value", targetOwner, "this", "outerInstance", targetOwner)
                 .addTo(contextClass);
 
         addDynamicKeyedCreatorMethod(contextClass, methodName);
@@ -585,7 +585,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode fieldType = fieldNode.getType();
         FieldNode keyField = getKeyField(fieldType);
-        FieldNode ownerFieldOfElement = getOwnerField(fieldType);
         String ownerFieldName = getOwnerFieldName(fieldType);
 
         if (!isAbstract(fieldType)) {
@@ -595,7 +594,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(fieldType, "create", argsWithOptionalKeyAndClosure(keyField)))
                     .assignS(propX(varX("this"), fieldNode.getName()), varX("created"))
-                    .optionalAssignS(propX(varX("created"), ownerFieldName), varX("this"), ownerFieldOfElement)
+                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
@@ -608,7 +607,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(keyField)))
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
-                    .optionalAssignS(propX(varX("created"), ownerFieldName), varX("this"), ownerFieldOfElement)
+                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }

@@ -633,5 +633,27 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MissingMethodException)
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    def "bug: owner setter on child class throws StackOverflowException"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSL
+            class Foo {
+                @Owner Object container
+            }
+
+            @DSL
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        create("pk.Bar") {}.container = null
+
+        then:
+        notThrown(StackOverflowError)
+    }
 }

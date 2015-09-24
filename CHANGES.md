@@ -1,3 +1,6 @@
+## 0.12.4
+Fixed a StackOverflowError with which occured when using Owner fields with inheritance 
+
 ## 0.12.3
 NPE Guard in GDSL
 

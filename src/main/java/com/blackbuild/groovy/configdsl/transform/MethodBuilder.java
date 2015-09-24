@@ -7,11 +7,9 @@ import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
@@ -137,9 +135,15 @@ public class MethodBuilder {
         return statement(GeneralUtils.assignS(target, value));
     }
 
-    public MethodBuilder optionalAssignS(Expression target, Expression value, Object marker) {
+    public MethodBuilder optionalAssignPropertyFromPropertyS(String target, String targetProperty, String value, String valueProperty, Object marker) {
         if (marker != null)
-            assignS(target, value);
+            assignS(propX(varX(target), targetProperty), propX(varX(value), valueProperty));
+        return this;
+    }
+
+    public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty, Object marker) {
+        if (marker != null)
+            return callS(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
         return this;
     }
 
@@ -158,5 +162,4 @@ public class MethodBuilder {
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
     }
-
 }

@@ -20,7 +20,7 @@ class Config {
 
 @DSL
 class Options {
-    Map<String, String> values
+    Map<String, String> vaslues
     boolean condition
 
     def getAllUnderscoreOptions() {
