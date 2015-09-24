@@ -48,12 +48,3 @@ class Authorization {
 
     List<Integer> everything;
 }
-
-class Other {
-
-    static Other create(Closure c) {
-        _create(c)
-    }
-
-}
-

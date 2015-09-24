@@ -9,6 +9,7 @@ import com.intellij.psi.PsiType
 
 
 contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")) {
+
     ClassConfig clazz = new ClassConfig(psiClass)
     method(
             name: "apply",
@@ -52,6 +53,8 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
     )
 
     classType?.allFields?.each { PsiField rawField ->
+        if (rawField.name == "metaClass") return
+
 
         def field = new FieldConfig(rawField)
         def fieldType = field.targetConfig
@@ -141,7 +144,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
     }
 }
 
-contributor(context(scope: closureScope(), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL"))) {
+contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL"))) {
 
     ClassConfig clazz = new ClassConfig(psiClass)
 

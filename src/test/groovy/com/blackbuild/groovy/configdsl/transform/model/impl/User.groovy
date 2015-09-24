@@ -24,7 +24,14 @@ def c = Config.create {
         bil {
         }
     }
+
 }
+
+c.apply {
+
+
+}
+
 
 Options.create {
     value("bla", "blub")

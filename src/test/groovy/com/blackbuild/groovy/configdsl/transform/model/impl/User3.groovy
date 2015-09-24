@@ -1,11 +1,17 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
-def c = Config.create {
+Config.create {
+
     options {
-        oValues(_a: "b", c: "d")
-        condition true
+        condition(true)
+        value("bla", "blub")
     }
 
 
+
+    meta
+
 }
+
+
 
