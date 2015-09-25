@@ -146,7 +146,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            _use aBar
+            bar aBar
         }
 
         then:
@@ -177,7 +177,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         def otherInstance = create("pk.Foo") {
             bars {
-                _reuse(aBar)
+                bar(aBar)
             }
         }
 
@@ -198,7 +198,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Bar {
                 @Key String name
-                @Owner Foo owner
+                @Owner Object owner
             }
 
             @DSL
@@ -215,7 +215,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         create("pk.Fum") {
             bars {
-                _reuse aBar
+                bar aBar
             }
         }
 
@@ -224,7 +224,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
     }
 
 
-    def "using exisiting objects in map closure sets owner"() {
+    def "using existing objects in map closure sets owner"() {
         given:
         createInstance('''
             package pk
@@ -244,7 +244,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            _use(aBar)
+            bar(aBar)
         }
 
         then:
@@ -310,7 +310,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars.Dieter.owner.is(instance)
     }
 
-    def "owner may not be overriden"() {
+    def "owner will not be overriden"() {
         given:
         createInstance('''
             package pk
@@ -329,46 +329,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         bar.owner = instance
 
         when:
-        bar.owner = instance
+        bar.owner = clazz.create {}
 
         then:
-        def e = thrown(IllegalStateException)
-        e.message == "Owner must not be overridden."
-
-    }
-
-    def "Multiple uses of an object are not allowed"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                List<Bar> bars
-            }
-
-            @DSL
-            class Bar {
-                @Owner Foo owner
-            }
-        ''')
-        def aBar
-        instance = clazz.create {
-            bars {
-               aBar = bar {}
-            }
-        }
-
-        when:
-        clazz.create {
-            bars {
-                _use aBar
-            }
-        }
-
-        then:
-        def e = thrown(IllegalStateException)
-        e.message == "Owner must not be overridden."
+        bar.owner == instance
 
     }
 

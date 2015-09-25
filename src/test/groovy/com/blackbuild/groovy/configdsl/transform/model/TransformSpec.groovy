@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 
 import java.lang.reflect.Method
 
@@ -754,7 +755,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            _reuse(aBar)
+            bar(aBar)
         }
 
         then:
@@ -784,7 +785,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.bars {
-            _reuse(aBar)
+            bar(aBar)
         }
 
         then:

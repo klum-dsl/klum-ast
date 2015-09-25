@@ -1,3 +1,8 @@
+## 0.13.0
+- Completely dropped _use and _reuse (they never looked nice anyway).
+- Both are now replace with an element adder method taking a single existing object.
+- Owner is only overriden if not yet set.
+
 ## 0.12.4
 Fixed a StackOverflowError with which occured when using Owner fields with inheritance 
 

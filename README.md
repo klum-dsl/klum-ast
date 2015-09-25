@@ -377,13 +377,10 @@ Collections of DSL-Objects are created using a nested closure. The name of the o
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
-Additionally, two special methods are created that takes an existing object and adds it to the structure:
-
-- `_use()` takes an existing object. This allows for structuring your cod (for example by creating the object in a method)
-
-- `_reuse()` does the same, but does not set the owner field of the inner object to the new container.
-
-- if the added element does not have an owner field, both methods behave identically.
+The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
+In that case, **the owner field of the added object is only set, when it does not yet have an owner**.
+ 
+This syntax is especially useful for delegating the creation of objects into a separate method.
 
 As with simple objects, the inner closures return the existing object for reuse
 
@@ -402,12 +399,17 @@ class UnKeyed {
 
 @DSL
 class Keyed {
+    @Owner owner
     @Key String name
     String value
 }
 
-def objectForReuse = UnKeyed.create { name = "reuse" }
+def objectForReuse = UnKeyed.create { name "reuse" }
 def anotherObjectForReuse
+
+def createAnObject(String name, String value) {
+    Keyed.create(name) { value(value) }
+}
 
 Config.create {
     elements {
@@ -417,7 +419,7 @@ Config.create {
         element {
             name "another element"
         }
-        _use objectForReuse
+        element objectForReuse
     }
     keyedElements {
         anotherObjectForReuse = keyedElement ("klaus") {
@@ -428,7 +430,8 @@ Config.create {
         mapElement ("dieter") {
             value "another"
         }
-        _reuse anotherObjectForReuse
+        mapElement anotherObjectForReuse // owner is NOT changed
+        mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
     }
 }
 ```
@@ -773,4 +776,3 @@ Future plans:
 - Eclipse dsld
 - strip common suffixes from alternative names (MavenProject, GradleProject -> maven, gradle)
 - allow custom names for alternatives
-- syntactic sugar for reuse (something like <<, which unfortunately does not work)
