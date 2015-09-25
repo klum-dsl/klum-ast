@@ -177,7 +177,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         def otherInstance = create("pk.Foo") {
             bars {
-                _reuse(aBar)
+                bar(aBar)
             }
         }
 
@@ -215,7 +215,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         create("pk.Fum") {
             bars {
-                _reuse aBar
+                bar aBar
             }
         }
 

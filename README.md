@@ -377,13 +377,11 @@ Collections of DSL-Objects are created using a nested closure. The name of the o
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
-Additionally, two special methods are created that takes an existing object and adds it to the structure:
+Additionally, a special `_use()` method is created that takes an existing object and adds it to the structure. This 
+allows for structuring your code (for example by creating the object in a method)
 
-- `_use()` takes an existing object. This allows for structuring your cod (for example by creating the object in a method)
-
-- `_reuse()` does the same, but does not set the owner field of the inner object to the new container.
-
-- if the added element does not have an owner field, both methods behave identically.
+Existing object can also be added using the simple collection adders. In that case, **the owner field of the added 
+objects** are not set. 
 
 As with simple objects, the inner closures return the existing object for reuse
 
@@ -428,7 +426,7 @@ Config.create {
         mapElement ("dieter") {
             value "another"
         }
-        _reuse anotherObjectForReuse
+        mapElement anotherObjectForReuse
     }
 }
 ```

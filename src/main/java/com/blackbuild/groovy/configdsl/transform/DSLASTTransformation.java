@@ -359,7 +359,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(contextClass);
         }
 
-        createPublicMethod(REUSE_METHOD_NAME)
+        createPublicMethod(methodName)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
                 .addTo(contextClass);
@@ -557,7 +557,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         //noinspection ConstantConditions
-        createPublicMethod(REUSE_METHOD_NAME)
+        createPublicMethod(methodName)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
