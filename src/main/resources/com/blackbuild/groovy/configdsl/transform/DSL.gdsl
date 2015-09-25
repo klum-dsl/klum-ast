@@ -215,14 +215,7 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
                 method(
                         name: innerMostKnownClosureField.memberName,
                         doc: """Reuses an existing instance of $elementType.type.qualifiedName.
-This will not affect the owner of the added object.""" as String,
-                        params: [value: elementType.type.qualifiedName],
-                        type: 'void'
-                )
-                method(
-                        name: '_use',
-                        doc: """Adds an existing instance of $elementType.type.qualifiedName.
-The added objects must not have an owner yet.""" as String,
+This will only set the owner is value has not yet an owner set.""" as String,
                         params: [value: elementType.type.qualifiedName],
                         type: 'void'
                 )
