@@ -377,11 +377,10 @@ Collections of DSL-Objects are created using a nested closure. The name of the o
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
-Additionally, a special `_use()` method is created that takes an existing object and adds it to the structure. This 
-allows for structuring your code (for example by creating the object in a method)
-
-Existing object can also be added using the simple collection adders. In that case, **the owner field of the added 
-objects** are not set. 
+The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
+In that case, **the owner field of the added object is only set, when it does not yet have an owner**.
+ 
+This syntax is especially useful for delegating the creation of objects into a separate method.
 
 As with simple objects, the inner closures return the existing object for reuse
 
@@ -400,12 +399,17 @@ class UnKeyed {
 
 @DSL
 class Keyed {
+    @Owner owner
     @Key String name
     String value
 }
 
-def objectForReuse = UnKeyed.create { name = "reuse" }
+def objectForReuse = UnKeyed.create { name "reuse" }
 def anotherObjectForReuse
+
+def createAnObject(String name, String value) {
+    Keyed.create(name) { value(value) }
+}
 
 Config.create {
     elements {
@@ -415,7 +419,7 @@ Config.create {
         element {
             name "another element"
         }
-        _use objectForReuse
+        element objectForReuse
     }
     keyedElements {
         anotherObjectForReuse = keyedElement ("klaus") {
@@ -426,7 +430,8 @@ Config.create {
         mapElement ("dieter") {
             value "another"
         }
-        mapElement anotherObjectForReuse
+        mapElement anotherObjectForReuse // owner is NOT changed
+        mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
     }
 }
 ```

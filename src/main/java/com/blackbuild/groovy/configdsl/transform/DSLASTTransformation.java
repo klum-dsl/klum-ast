@@ -5,7 +5,6 @@ import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.ast.stmt.ThrowStatement;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -40,8 +39,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode KEY_ANNOTATION = make(Key.class);
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
 
-    public static final String REUSE_METHOD_NAME = "_reuse";
-    public static final String USE_METHOD_NAME = "_use";
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
@@ -68,7 +65,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createCanonicalMethods();
 
         if (annotedClassIsTopOfDSLHierarchy())
-            createGuardingSetter();
+            preventOwnerOverride();
     }
 
     private boolean annotedClassIsTopOfDSLHierarchy() {
@@ -157,22 +154,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createGuardingSetter() {
+    private void preventOwnerOverride() {
 
         createPublicMethod(setterName(ownerField))
                 .param(ownerField.getType(), "value")
                 .statement(
                         ifS(
-                                notNullX(propX(varX("this"), ownerField.getName())),
-                                new ThrowStatement(ctorX(
-                                        ClassHelper.make(IllegalStateException.class),
-                                        args(constX("Owner must not be overridden.")))
-                                )
+                                notX(propX(varX("this"), ownerField.getName())),
+                                assignX(propX(varX("this"), ownerField.getName()), varX("value"))
                         )
                 )
-                .assignS(propX(varX("this"), ownerField.getName()), varX("value"))
                 .addTo(annotatedClass);
-
     }
 
     private void createKeyConstructor() {
@@ -360,11 +352,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         createPublicMethod(methodName)
-                .param(elementType, "value")
-                .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
-                .addTo(contextClass);
-
-        createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "add", varX("value"))
                 .optionalAssignPropertyFromPropertyS("value", targetOwner, "this", "outerInstance", targetOwner)
@@ -558,14 +545,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         //noinspection ConstantConditions
         createPublicMethod(methodName)
-                .param(elementType, "value")
-                .callS(getOuterInstanceXforField(fieldNode), "put",
-                        args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
-                )
-                .addTo(contextClass);
-
-        //noinspection ConstantConditions
-        createPublicMethod(USE_METHOD_NAME)
                 .param(elementType, "value")
                 .callS(getOuterInstanceXforField(fieldNode), "put",
                         args(propX(varX("value"), getKeyField(elementType).getName()), varX("value"))
