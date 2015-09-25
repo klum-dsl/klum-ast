@@ -776,4 +776,3 @@ Future plans:
 - Eclipse dsld
 - strip common suffixes from alternative names (MavenProject, GradleProject -> maven, gradle)
 - allow custom names for alternatives
-- syntactic sugar for reuse (something like <<, which unfortunately does not work)
