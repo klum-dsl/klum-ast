@@ -294,11 +294,11 @@ class FieldConfig {
 
     PsiClassType getElementType() {
 
-        isList() ? field.type.parameters[0] as PsiType : isMap() ? getValueType() : null
+        isList() ? keyType : isMap() ? getValueType() : null
     }
 
     PsiType getKeyType() {
-        field.type.parameters[0] as PsiType
+        field.type.parameters.length > 0 ? field.type.parameters[0] as PsiType : null
     }
 
     PsiType getValueType() {
@@ -306,7 +306,7 @@ class FieldConfig {
     }
 
     PsiEllipsisType getElementTypeAsVararg() {
-        new PsiEllipsisType(elementType)
+        return elementType ? new PsiEllipsisType(elementType) : null
     }
 
     boolean isOfType(String typeString) {

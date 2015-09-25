@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 
 import java.lang.reflect.Method
 
@@ -789,6 +790,42 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.bars.klaus.url == "welt"
+    }
+
+    @Ignore
+    def "direct reusing using simple collection accessors"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Key String name
+                String url
+            }
+        ''')
+        def aBar = create("pk.Bar", "klaus") {
+            url "welt"
+        }
+        instance.bars {
+            bar("dieter") {}
+        }
+
+        when:
+        instance bar(aBar)
+
+        then:
+        instance.bars.dieter.url != null
+        instance.bars.klaus != null
+
+        and: "Owner of reused object is not"
+        instance.bars.klaus.owner == null
+
     }
 
     def "equals, hashcode and toString methods are created"() {
