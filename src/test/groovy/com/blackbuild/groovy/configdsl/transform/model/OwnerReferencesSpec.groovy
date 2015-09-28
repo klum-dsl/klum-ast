@@ -375,5 +375,49 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         secondFoo.bars[0].owner == aFoo
     }
 
+    def "owner must be set before calling the closure"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSL
+            class Foo {
+                Bar bar
+                List<Bar> listBars
+                Map<String, Keyed> keyeds
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo foo
+            }
+
+            @DSL
+            class Keyed {
+                @Owner Foo foo
+                @Key String name
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bar {
+                assert foo != null
+            }
+            listBars {
+                bar {
+                    assert foo != null
+                }
+            }
+            keyeds {
+                keyed("bla") {
+                    assert foo != null
+                }
+            }
+
+        }
+
+        then:
+        noExceptionThrown()
+    }
 }

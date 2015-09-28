@@ -379,9 +379,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
-                    .declS("created", callX(elementType, "create", argsWithOptionalKeyAndClosure(fieldKey)))
-                    .callS(getOuterInstanceXforField(fieldNode), "add", varX("created"))
+                    .declS("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
                     .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
+                    .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -393,8 +393,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
-                    .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
                     .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
+                    .callS(getOuterInstanceXforField(fieldNode), "add", callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -570,9 +570,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
-                    .declS("created", callX(elementType, "create", args("key", "closure")))
-                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
+                    .declS("created", callX(classX(elementType), "newInstance", args("key")))
                     .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
+                    .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
+                    .callS(varX("created"), "apply", varX("closure"))
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -584,9 +585,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", args("key")))
-                    .callS(varX("created"), "apply", varX("closure"))
                     .callS(getOuterInstanceXforField(fieldNode), "put", args(varX("key"), varX("created")))
                     .optionalAssignPropertyFromPropertyS("created", targetOwner, "this", "outerInstance", targetOwner)
+                    .callS(varX("created"), "apply", varX("closure"))
                     .statement(returnS(varX("created")))
                     .addTo(contextClass);
         }
@@ -628,9 +629,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(fieldType)
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
-                    .declS("created", callX(fieldType, "create", argsWithOptionalKeyAndClosure(keyField)))
-                    .assignS(propX(varX("this"), fieldNode.getName()), varX("created"))
+                    .declS("created", callX(classX(fieldType), "newInstance", optionalKeyArg(keyField)))
                     .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
@@ -642,8 +643,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", keyField)
                     .delegatingClosureParam(fieldType)
                     .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(keyField)))
-                    .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
@@ -666,6 +667,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createPublicMethod(hasExistingApply ? "_apply" : "apply")
                 .returning(newClass(annotatedClass))
                 .delegatingClosureParam(annotatedClass)
+                .statement(callThisX("copyFrom", propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)))
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -694,11 +696,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .stringParam("name")
                 .delegatingClosureParam(targetClass)
                 .statement(returnS(callX(
-                                callX(
-                                        ctorX(targetClass, args("name")),
-                                        "copyFrom",
-                                        propX(classX(targetClass), TEMPLATE_FIELD_NAME)
-                                ),
+                                ctorX(targetClass, args("name")),
                                 "apply", varX("closure")
                         )
                 ))
@@ -714,11 +712,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(targetClass)
                 .statement(returnS(callX(
-                                        callX(
-                                                ctorX(targetClass),
-                                                "copyFrom",
-                                                propX(classX(targetClass), TEMPLATE_FIELD_NAME)
-                                        ),
+                                        ctorX(targetClass),
                                         "apply", varX("closure"))
                         )
                 )
