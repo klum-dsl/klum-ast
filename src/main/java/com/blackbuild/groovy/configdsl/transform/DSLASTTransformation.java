@@ -165,11 +165,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private ClassNode createTemplateClass() {
 
-        if (annotatedClass.getAbstractMethods() != null) {
-            addCompileError(String.format("Class %s has abstract methods. You need to provide an explicit class for the template using the 'template' attribute", annotatedClass.getName()), annotatedClass);
-            return null;
-        }
-
         InnerClassNode contextClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$Template",
@@ -191,9 +186,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createFactoryMethods(contextClass);
 
+        List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
+        if (abstractMethods != null) {
+            for (MethodNode abstractMethod : abstractMethods) {
+                implementAbstractMethod(contextClass, abstractMethod);
+            }
+        }
+
         annotatedClass.getModule().addClass(contextClass);
 
         return contextClass;
+    }
+
+    private void implementAbstractMethod(ClassNode target, MethodNode abstractMethod) {
+        target.addSyntheticMethod(
+                abstractMethod.getName(),
+                abstractMethod.getModifiers() ^ ACC_ABSTRACT,
+                abstractMethod.getReturnType(),
+                cloneParams(abstractMethod.getParameters()),
+                abstractMethod.getExceptions(),
+                block()
+        );
     }
 
     private void preventOwnerOverride() {

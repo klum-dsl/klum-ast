@@ -197,37 +197,14 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.name == "default"
     }
 
-    def "template for abstract classes can be manually defined"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL(template = Child)
-            abstract class Parent {
-            }
-
-            @DSL
-            class Child extends Parent {
-                String value
-            }
-        ''')
-
-        when:
-        getClass("pk.Parent").createTemplate {
-        }
-
-        then:
-        notThrown(InstantiationException)
-        getClass("pk.Parent").$TEMPLATE.class.name == "pk.Child"
-    }
-
-    def "abstract class without template creates a artifical implementation"() {
+    def "abstract class creates a artifical implementation"() {
         given:
         createClass('''
             package pk
 
             @DSL
             abstract class Parent {
+              def abstract String calcName()
             }
         ''')
 
@@ -240,21 +217,6 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         notThrown(InstantiationException)
-    }
-
-    def "abstract class with abstract methods must provde explicit implementation"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            abstract class Parent {
-              def abstract String calcName()
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
     }
 
     def "template for child class sets parent fields"() {

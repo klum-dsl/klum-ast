@@ -1,3 +1,6 @@
+## 0.14.0
+- Allow templates for abstract classes
+
 ## 0.13.0
 **Minor breaking change**
 - Completely dropped `_use()` and `_reuse()` (they never looked nice anyway).
