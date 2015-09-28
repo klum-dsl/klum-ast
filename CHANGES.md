@@ -1,3 +1,6 @@
+## 0.14.1
+Fixed small typing bug with synthetic template class
+
 ## 0.14.0
 - Allow templates for abstract classes
 
