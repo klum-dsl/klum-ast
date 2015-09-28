@@ -219,6 +219,28 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         notThrown(InstantiationException)
     }
 
+    def "abstract keyed class creates a artifical implementation"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Parent {
+              @Key String name
+            }
+        ''')
+
+        expect:
+        getClass('pk.Parent$Template') != null
+
+        when:
+        getClass("pk.Parent").createTemplate {
+        }
+
+        then:
+        notThrown(InstantiationException)
+    }
+
     def "template for child class sets parent fields"() {
         given:
         createClass('''

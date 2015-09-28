@@ -169,7 +169,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass,
                 annotatedClass.getName() + "$Template",
                 ACC_STATIC,
-                annotatedClass);
+                newClass(annotatedClass));
 
         contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_SYNTHETIC, newClass(contextClass), null);
 
