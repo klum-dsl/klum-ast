@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore
 
 import java.lang.reflect.Method
@@ -310,7 +311,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars.Dieter.owner.is(instance)
     }
 
-    def "owner will not be overriden"() {
+    def "owner will not be overridden"() {
         given:
         createInstance('''
             package pk
@@ -333,7 +334,46 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         bar.owner == instance
-
     }
+
+    def "bug: Reusing an object in a different structure throws ClassCatException"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSL
+            class OtherOwner {
+                List<Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo owner
+            }
+        ''')
+
+        when:
+        def aFoo = create("pk.Foo") {
+            bars {
+                bar {}
+            }
+        }
+
+        def secondFoo = create("pk.OtherOwner") {
+            bars {
+                bar aFoo.bars[0]
+            }
+        }
+
+        then:
+        notThrown(GroovyCastException)
+        secondFoo.bars[0].owner == aFoo
+    }
+
 
 }

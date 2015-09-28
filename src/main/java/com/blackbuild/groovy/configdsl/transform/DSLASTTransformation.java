@@ -212,10 +212,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void preventOwnerOverride() {
 
         createPublicMethod(setterName(ownerField))
-                .param(ownerField.getType(), "value")
+                .param(OBJECT_TYPE, "value")
                 .statement(
                         ifS(
-                                notX(propX(varX("this"), ownerField.getName())),
+                                andX(
+                                        isInstanceOfX(varX("value"), ownerField.getType()),
+                                        notX(propX(varX("this"), ownerField.getName()))),
                                 assignX(propX(varX("this"), ownerField.getName()), varX("value"))
                         )
                 )

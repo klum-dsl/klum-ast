@@ -1,3 +1,6 @@
+## 0.14.2
+Fixed a ClassCast Exception when reusing an Object in a different structure
+
 ## 0.14.1
 Fixed small typing bug with synthetic template class
 
