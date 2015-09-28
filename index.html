@@ -405,13 +405,10 @@ String parameter. Also, a regular setter method is created for reusing an existi
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).</p>
 
-<p>Additionally, two special methods are created that takes an existing object and adds it to the structure:</p>
+<p>The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
+In that case, <strong>the owner field of the added object is only set, when it does not yet have an owner</strong>.</p>
 
-<ul>
-<li><p><code>_use()</code> takes an existing object. This allows for structuring your cod (for example by creating the object in a method)</p></li>
-<li><p><code>_reuse()</code> does the same, but does not set the owner field of the inner object to the new container.</p></li>
-<li><p>if the added element does not have an owner field, both methods behave identically.</p></li>
-</ul>
+<p>This syntax is especially useful for delegating the creation of objects into a separate method.</p>
 
 <p>As with simple objects, the inner closures return the existing object for reuse</p>
 
@@ -429,12 +426,17 @@ keyed members to a list and to a map is identical (obviously, only keyed objects
 
 <span class="pl-k">@DSL</span>
 <span class="pl-k">class</span> <span class="pl-en">Keyed</span> {
+    <span class="pl-k">@Owner</span> owner
     <span class="pl-k">@Key</span> <span class="pl-k">String</span> name
     <span class="pl-k">String</span> value
 }
 
-<span class="pl-k">def</span> objectForReuse <span class="pl-k">=</span> <span class="pl-k">UnKeyed</span><span class="pl-k">.</span>create { name <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>reuse<span class="pl-pds">"</span></span> }
+<span class="pl-k">def</span> objectForReuse <span class="pl-k">=</span> <span class="pl-k">UnKeyed</span><span class="pl-k">.</span>create { name <span class="pl-s"><span class="pl-pds">"</span>reuse<span class="pl-pds">"</span></span> }
 <span class="pl-k">def</span> anotherObjectForReuse
+
+<span class="pl-k">def</span> <span class="pl-en">createAnObject</span>(<span class="pl-k">String</span> <span class="pl-v">name</span>, <span class="pl-k">String</span> <span class="pl-v">value</span>) {
+    <span class="pl-k">Keyed</span><span class="pl-k">.</span>create(name) { value(value) }
+}
 
 <span class="pl-k">Config</span><span class="pl-k">.</span>create {
     elements {
@@ -444,7 +446,7 @@ keyed members to a list and to a map is identical (obviously, only keyed objects
         element {
             name <span class="pl-s"><span class="pl-pds">"</span>another element<span class="pl-pds">"</span></span>
         }
-        _use objectForReuse
+        element objectForReuse
     }
     keyedElements {
         anotherObjectForReuse <span class="pl-k">=</span> keyedElement (<span class="pl-s"><span class="pl-pds">"</span>klaus<span class="pl-pds">"</span></span>) {
@@ -455,7 +457,8 @@ keyed members to a list and to a map is identical (obviously, only keyed objects
         mapElement (<span class="pl-s"><span class="pl-pds">"</span>dieter<span class="pl-pds">"</span></span>) {
             value <span class="pl-s"><span class="pl-pds">"</span>another<span class="pl-pds">"</span></span>
         }
-        _reuse anotherObjectForReuse
+        mapElement anotherObjectForReuse <span class="pl-c">// owner is NOT changed</span>
+        mapElement createAnObject(<span class="pl-s"><span class="pl-pds">"</span>Hans<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>Franz<span class="pl-pds">"</span></span>) <span class="pl-c">// owner is set to Config instance</span>
     }
 }</pre></div>
 
@@ -786,7 +789,6 @@ leading to <code>maven</code>, <code>gradle</code> and <code>project</code> as t
 <li>Eclipse dsld</li>
 <li>strip common suffixes from alternative names (MavenProject, GradleProject -&gt; maven, gradle)</li>
 <li>allow custom names for alternatives</li>
-<li>syntactic sugar for reuse (something like &lt;&lt;, which unfortunately does not work)</li>
 </ul>
       </section>
       <footer>
