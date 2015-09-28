@@ -98,7 +98,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createTemplateMethods() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
         ClassNode templateClass = getMemberClassValue(dslAnnotation, "template");
 
@@ -171,11 +171,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ACC_STATIC,
                 annotatedClass);
 
-        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(contextClass), null);
+        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_SYNTHETIC, newClass(contextClass), null);
 
         if (keyField != null) {
             contextClass.addConstructor(
-                    0,
+                    ACC_SYNTHETIC,
                     params(param(keyField.getType(), "key")),
                     NO_EXCEPTIONS,
                     block(
@@ -224,7 +224,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createKeyConstructor() {
         annotatedClass.addConstructor(
-                ACC_PUBLIC,
+                ACC_PUBLIC | ACC_SYNTHETIC,
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
@@ -493,7 +493,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
         contextClass.addConstructor(
-                0,
+                ACC_SYNTHETIC,
                 params(param(newClass(annotatedClass), "outerInstance")),
                 NO_EXCEPTIONS,
                 block(
