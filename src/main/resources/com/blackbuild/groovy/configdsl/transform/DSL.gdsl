@@ -361,8 +361,8 @@ class ClassConfig {
     }
 
     String getUncapitalizedName() {
-        String name = type.name
-        name[0].toLowerCase() + name.substring(1)
+        String name = type?.name
+        name ? name[0].toLowerCase() + name.substring(1) : ''
     }
 
     @Override

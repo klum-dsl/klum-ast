@@ -195,6 +195,30 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.name == "default"
     }
 
+    def "bug: template for keyed parent class results in instantiation exception"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                @Key String name
+            }
+
+            @DSL
+            class Child extends Parent {
+                String value
+            }
+        ''')
+
+        when:
+        getClass("pk.Parent").createTemplate {
+        }
+
+        then:
+        notThrown(InstantiationException)
+    }
+
     def "template for child class sets parent fields"() {
         given:
         createClass('''
