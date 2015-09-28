@@ -1,10 +1,12 @@
 ## 0.13.0
-- Completely dropped _use and _reuse (they never looked nice anyway).
-- Both are now replace with an element adder method taking a single existing object.
-- Owner is only overriden if not yet set.
+**Minor breaking change**
+- Completely dropped `_use()` and `_reuse()` (they never looked nice anyway).
+- Both are now replaced with an element adder method taking a single existing object.
+- Owner is only overridden if not yet set (previously, `use() did set the owner, while `_reuse()` did not, attempting to override existing owner threw exception.
+
 
 ## 0.12.4
-Fixed a StackOverflowError with which occured when using Owner fields with inheritance 
+Fixed a StackOverflowError with which occurred when using Owner fields with inheritance 
 
 ## 0.12.3
 NPE Guard in GDSL
