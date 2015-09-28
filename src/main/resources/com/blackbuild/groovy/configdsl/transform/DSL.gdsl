@@ -173,7 +173,7 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
             if (call) {
                 // this is a single element closure
                 if (call.arguments) {
-                    if (call.arguments[0].type.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                    if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
                         delegatesTo(call.arguments[0].type.parameters[0].resolve())
                     } else {
                         delegatesTo(elementType.type)
