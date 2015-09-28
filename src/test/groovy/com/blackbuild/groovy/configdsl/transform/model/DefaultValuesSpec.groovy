@@ -1,5 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
+
 class DefaultValuesSpec extends AbstractDSLSpec {
 
     def "apply method using a preexisting object is created"() {
@@ -195,14 +197,13 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.name == "default"
     }
 
-    def "bug: template for keyed parent class results in instantiation exception"() {
+    def "template for abstract classes can be manually defined"() {
         given:
         createClass('''
             package pk
 
-            @DSL
-            class Parent {
-                @Key String name
+            @DSL(template = Child)
+            abstract class Parent {
             }
 
             @DSL
@@ -217,6 +218,43 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         notThrown(InstantiationException)
+        getClass("pk.Parent").$TEMPLATE.class.name == "pk.Child"
+    }
+
+    def "abstract class without template creates a artifical implementation"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Parent {
+            }
+        ''')
+
+        expect:
+        getClass('pk.Parent$Template') != null
+
+        when:
+        getClass("pk.Parent").createTemplate {
+        }
+
+        then:
+        notThrown(InstantiationException)
+    }
+
+    def "abstract class with abstract methods must provde explicit implementation"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Parent {
+              def abstract String calcName()
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
     }
 
     def "template for child class sets parent fields"() {

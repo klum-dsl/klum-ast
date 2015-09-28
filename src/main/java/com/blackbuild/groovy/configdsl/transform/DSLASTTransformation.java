@@ -45,6 +45,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
+    private AnnotationNode dslAnnotation;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -53,6 +54,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass = (ClassNode) nodes[1];
         keyField = getKeyField(annotatedClass);
         ownerField = getOwnerField(annotatedClass);
+        dslAnnotation = (AnnotationNode) nodes[0];
 
         if (keyField != null)
             createKeyConstructor();
@@ -60,7 +62,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         validateFieldAnnotations();
         createApplyMethods();
         createTemplateMethods();
-        createFactoryMethods();
+        createFactoryMethods(annotatedClass);
         createFieldMethods();
         createCanonicalMethods();
 
@@ -98,12 +100,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createTemplateMethods() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
 
+        ClassNode templateClass = getMemberClassValue(dslAnnotation, "template");
+
+        if (templateClass == null && isAbstract(annotatedClass))
+            templateClass = createTemplateClass();
+        else if (templateClass == null)
+            templateClass = annotatedClass;
+
         createPublicMethod("createTemplate")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
                 .assignS(propX(classX(annotatedClass), "$TEMPLATE"), callX(
-                                classX(annotatedClass),
+                                classX(templateClass),
                                 "create",
                                 keyField != null ? args(constX(null), varX("closure")) : args("closure")
                         )
@@ -152,6 +161,39 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         templateApply
                 .statement(returnS(varX("this")))
                 .addTo(annotatedClass);
+    }
+
+    private ClassNode createTemplateClass() {
+
+        if (annotatedClass.getAbstractMethods() != null) {
+            addCompileError(String.format("Class %s has abstract methods. You need to provide an explicit class for the template using the 'template' attribute", annotatedClass.getName()), annotatedClass);
+            return null;
+        }
+
+        InnerClassNode contextClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$Template",
+                ACC_STATIC,
+                annotatedClass);
+
+        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(contextClass), null);
+
+        if (keyField != null) {
+            contextClass.addConstructor(
+                    0,
+                    params(param(keyField.getType(), "key")),
+                    NO_EXCEPTIONS,
+                    block(
+                            ctorSuperS(args(constX(null)))
+                    )
+            );
+        }
+
+        createFactoryMethods(contextClass);
+
+        annotatedClass.getModule().addClass(contextClass);
+
+        return contextClass;
     }
 
     private void preventOwnerOverride() {
@@ -619,53 +661,53 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createFactoryMethods() {
+    private void createFactoryMethods(ClassNode targetClass) {
 
         if (keyField == null)
-            createSimpleFactoryMethod();
+            createSimpleFactoryMethod(targetClass);
         else
-            createFactoryMethodWithKeyParameter();
+            createFactoryMethodWithKeyParameter(targetClass);
     }
 
-    private void createFactoryMethodWithKeyParameter() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 2);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 2)) return;
+    private void createFactoryMethodWithKeyParameter(ClassNode targetClass) {
+        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 2);
+        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 2)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(annotatedClass))
+                .returning(newClass(targetClass))
                 .mod(Opcodes.ACC_STATIC)
                 .stringParam("name")
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(targetClass)
                 .statement(returnS(callX(
                                 callX(
-                                        ctorX(annotatedClass, args("name")),
+                                        ctorX(targetClass, args("name")),
                                         "copyFrom",
-                                        propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
+                                        propX(classX(targetClass), TEMPLATE_FIELD_NAME)
                                 ),
                                 "apply", varX("closure")
                         )
                 ))
-                .addTo(annotatedClass);
+                .addTo(targetClass);
     }
 
-    private void createSimpleFactoryMethod() {
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", 1);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", 1)) return;
+    private void createSimpleFactoryMethod(ClassNode targetClass) {
+        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 1);
+        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 1)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(annotatedClass))
+                .returning(newClass(targetClass))
                 .mod(Opcodes.ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(targetClass)
                 .statement(returnS(callX(
                                         callX(
-                                                ctorX(annotatedClass),
+                                                ctorX(targetClass),
                                                 "copyFrom",
-                                                propX(classX(annotatedClass), TEMPLATE_FIELD_NAME)
+                                                propX(classX(targetClass), TEMPLATE_FIELD_NAME)
                                         ),
                                         "apply", varX("closure"))
                         )
                 )
-                .addTo(annotatedClass);
+                .addTo(targetClass);
 
     }
 
