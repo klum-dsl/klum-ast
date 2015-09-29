@@ -1,7 +1,13 @@
+# Eclipse
 /.project
-/build-dsl.sublime-project
-/build-dsl.sublime-workspace
-*.iml
+/.classpath
+/.settings/
+# SublimeText3
+/*.sublime-project
+/*.sublime-workspace
+# Gradle
 /.gradle
 /build
+# IDEA
+/*.iml
 /.idea
