@@ -1,0 +1,272 @@
+package dsld
+
+import static org.codehaus.groovy.ast.ClassHelper.*
+import static dsld.ConfigDSLHelper.*
+
+import java.util.ArrayList
+import java.util.List
+
+import groovy.transform.Field
+import groovy.transform.Undefined
+import groovyjarjarasm.asm.Opcodes
+
+import org.codehaus.groovy.ast.*
+import org.codehaus.groovy.ast.expr.*
+
+class ConfigDSLHelper {
+
+	static final ClassNode DSL_CONFIG_ANNOTATION = make("com.blackbuild.groovy.transform.DSL")
+	static final ClassNode DSL_FIELD_ANNOTATION = make("com.blackbuild.groovy.transform.Field")
+	static final ClassNode KEY_ANNOTATION = make("com.blackbuild.groovy.transform.Key")
+	static final ClassNode OWNER_ANNOTATION = make("com.blackbuild.groovy.transform.Owner")
+	
+	static AnnotationNode getAnnotation(AnnotatedNode owner, ClassNode annotation) {
+		def annos = annotation?.getAnnotations(annotation)
+		return annos ? annos[0] : null
+	}
+	
+	static String getMemberStringValue(AnnotationNode node, String name, String defaultValue = null) {
+		if (!node) return null
+		final Expression member = node.getMember(name)
+		if (member != null && member instanceof ConstantExpression) {
+			def result = member.value
+			if (result instanceof String && Undefined.isUndefined(result)) result = null
+			if (result) return result.toString()
+		}
+		return defaultValue
+	}
+	
+	static List<ClassNode> getClassList(AnnotationNode anno, String name) {
+		if (!anno) return []
+		List<ClassNode> list = []
+		Expression expr = anno.getMember(name)
+		if (expr instanceof ListExpression) {
+			
+			expr.each { Expression -> itemExpr
+				if (itemExpr instanceof ClassExpression) {
+					ClassNode cn = itemExpr.type
+					if (cn != null) list.add(cn)
+				}
+			}
+		} else if (expr instanceof ClassExpression) {
+			ClassNode cn = expr.type
+			if (cn) list.add(cn)
+		}
+		return list
+	}
+	
+	static String getUncapitalizedName(ClassNode type) {
+		String name = type?.nameWithoutPackage
+		name ? name[0].toLowerCase() + name.substring(1) : ''
+	}
+
+}
+
+currentType(annotatedBy("com.blackbuild.groovy.transform.DSL")).accept {
+	provider = "Config DSL transform"
+	
+	method(
+		name: "apply",
+		type: currentType,
+		doc: "Applies the configuration in the closure." as String,
+		params: [closure: Closure],
+	)
+	method(
+		name: "copyFrom",
+		doc: "Copies fields from template (excluding key and owner fields)" as String,
+		params: [template: currentType],
+		type: currentType
+	)
+
+	DSLClass currentDSLClass = DSLClass.create(currentType)
+	log currentDSLClass
+	
+	if (currentDSLClass.key) {
+		method(
+			name: "create",
+			doc: "Creates a new instance of ${currentType.name} using 'key' as $currentDSLClass.key.name" as String,
+			isStatic: true,
+			params: [(currentDSLClass.key.name): "java.lang.String", closure: Closure],
+			type: currentType
+		)
+
+		// TODO: how to create constructors?
+		// method(constructor: true, params: ["$clazz.key": "java.lang.String"])
+	} else {
+		method(
+			name: "create",
+			doc: "Creates a new instance of ${currentType.name}" as String,
+			isStatic: true,
+			params: [closure: Closure],
+			type: currentType
+		)
+	}
+
+	method(
+        name: "createTemplate",
+        doc: "Creates the template for new instances of ${currentType.qualifiedName}" as String,
+		isStatic: true,
+		params: [closure: Closure],
+		type: currentType
+	)
+
+	currentType.fields.each { FieldNode rawField ->
+		
+		
+		
+		
+	}
+	
+}
+
+
+class DSLField {
+	String name
+	String memberName
+	FieldNode field
+
+	DSLClass targetConfig
+	AnnotationNode fieldAnnotation
+
+	boolean isDslObject
+	boolean isKey
+	boolean isOwner
+
+	Map<String, DSLClass> alternatives
+
+	DSLField(FieldNode field, DSLClass owner) {
+		this.field = field
+		this.fieldAnnotation = getAnnotation(field, DSL_FIELD_ANNOTATION)
+		name = field.name
+		
+		memberName = getMemberStringValue(fieldAnnotation, "members")
+		
+		if (!memberName)
+			memberName = name.endsWith('s') ? name[0..-2] : name
+
+		DSLClass config = DSLClass.create(field.type)
+		
+		if (config.dslClass) {
+			targetConfig = config
+			isDslObject = true
+		} else if (isCollectionOfDslObjects()) {
+			targetConfig = DSLClass.create(elementType)
+
+			alternatives = getClassList(fieldAnnotation, "alternatives").collectEntries {
+				alternative -> [(getUncapitalizedName(alternative)), DSLClass.create(alternative)]
+			}
+			
+			if (config.isAbstract())
+				alternatives << targetConfig
+		}
+
+		isKey = getAnnotation(field, KEY_ANNOTATION)
+		isOwner = getAnnotation(field, OWNER_ANNOTATION)
+	}
+
+	ClassNode getType() {
+		field.type
+	}
+
+	ClassNode getElementType() {
+		isList() ? keyType : isMap() ? valueType : null
+	}
+
+	ClassNode getKeyType() {
+		field.type.genericsTypes?.length > 0 ? field.type.genericsTypes[0].type : null
+	}
+
+	ClassNode getValueType() {
+		field.type.genericsTypes?.length > 1 ? field.type.genericsTypes[1].type : null
+	}
+
+	Parameter getElementTypeAsVararg() {
+		return elementType ? new Parameter(elementType.makeArray(), name) : null
+	}
+
+	boolean isMap() {
+		isOfType(MAP_TYPE)
+	}
+	boolean isList() {
+		isOfType(LIST_TYPE)
+	}
+
+	boolean isOfType(ClassNode targetType) { 
+		return type.equals(targetType) || type.implementsInterface(targetType);
+	}
+
+	boolean isCollectionOfDslObjects() {
+		getAnnotation(elementType, DSL_CONFIG_ANNOTATION)
+	}
+
+	@Override
+	String toString() {
+		return "Field: $field.name ($type.canonicalText) [$targetConfig]"
+	}
+}
+
+class DSLClass {
+	
+	FieldNode key
+	FieldNode owner
+	ClassNode type
+	AnnotationNode annotation
+ 
+	DSLClass create(ClassNode type) {
+		if (!getAnnotation(type, DSL_CONFIG_ANNOTATION)) return null;
+		
+		new DSLClass(type)
+	}
+	
+	DSLClass(ClassNode type) {
+		this.type = type
+		annotation = getAnnotation(type, DSL_CONFIG_ANNOTATION)
+
+		type?.fields.each {
+			if (it.getAnnotations(KEY_ANNOTATION)) {
+				key = it
+			} else if (it.getAnnotations(OWNER_ANNOTATION)) {
+				owner = it
+			}
+		}
+	} 
+
+	boolean isDslClass() {
+		annotation != null
+	}
+	
+//	Set<FieldConfig> getAllDslCollectionFields() {
+//		def ownFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects }
+//
+//		def result = ownFields.collect()
+//
+//		ownFields.each { FieldConfig f ->
+//			result.addAll(0, f.targetConfig.allDslCollectionFields)
+//		}
+//
+//		return result as Set
+//	}
+//
+//	Set<FieldConfig> getAllSingleDSLFields() {
+//		return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
+//	}
+//
+//	String getUncapitalizedName() {
+//		String name = type?.name
+//		name ? name[0].toLowerCase() + name.substring(1) : ''
+//	}
+
+	@Override
+	String toString() { 
+		return "DSLClass: ${type?.name}"
+	}
+
+    boolean isFinal() {
+        return (type?.modifiers & Opcodes.ACC_FINAL) != 0
+    }
+
+    boolean isAbstract() {
+        return (type.modifiers & Opcodes.ACC_ABSTRACT) != 0
+    }
+
+}

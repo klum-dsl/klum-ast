@@ -1,8 +1,16 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
+new Config().apply {
+	
+}
+
+
 def auth = Authorization.create {
+	
     partner("A", "b")
 }
+
+
 
 def c = Config.create {
     name "klaus"
@@ -29,5 +37,11 @@ def c = Config.create {
     }
 }
 
+Config.cre
+
 println c.environments.bal.authorizations
+
+new Config().apply {
+	
+}
 
