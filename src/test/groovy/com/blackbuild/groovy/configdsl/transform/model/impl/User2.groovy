@@ -1,5 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model.impl
 
+Config.cre
+
 new Config().apply {
 	
 }

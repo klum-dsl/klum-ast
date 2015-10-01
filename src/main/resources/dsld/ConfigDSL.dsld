@@ -64,6 +64,7 @@ class ConfigDSLHelper {
 
 currentType(annotatedBy("com.blackbuild.groovy.transform.DSL")).accept {
 	provider = "Config DSL transform"
+	log "Here"
 	
 	method(
 		name: "apply",
@@ -110,12 +111,7 @@ currentType(annotatedBy("com.blackbuild.groovy.transform.DSL")).accept {
 		type: currentType
 	)
 
-	currentType.fields.each { FieldNode rawField ->
-		
-		
-		
-		
-	}
+	currentDSLClass.each { }
 	
 }
 
@@ -134,7 +130,7 @@ class DSLField {
 
 	Map<String, DSLClass> alternatives
 
-	DSLField(FieldNode field, DSLClass owner) {
+	DSLField(FieldNode field) {
 		this.field = field
 		this.fieldAnnotation = getAnnotation(field, DSL_FIELD_ANNOTATION)
 		name = field.name
@@ -207,12 +203,11 @@ class DSLField {
 
 class DSLClass {
 	
-	FieldNode key
-	FieldNode owner
 	ClassNode type
 	AnnotationNode annotation
+	Map<String, DSLField> fields
  
-	DSLClass create(ClassNode type) {
+	static DSLClass create(ClassNode type) {
 		if (!getAnnotation(type, DSL_CONFIG_ANNOTATION)) return null;
 		
 		new DSLClass(type)
@@ -222,17 +217,19 @@ class DSLClass {
 		this.type = type
 		annotation = getAnnotation(type, DSL_CONFIG_ANNOTATION)
 
-		type?.fields.each {
-			if (it.getAnnotations(KEY_ANNOTATION)) {
-				key = it
-			} else if (it.getAnnotations(OWNER_ANNOTATION)) {
-				owner = it
-			}
-		}
+		type?.fields.collectEntries { [it.name, new DSLField(it)] }
 	} 
 
 	boolean isDslClass() {
 		annotation != null
+	}
+	
+	FieldNode getKey() {
+		fields.values().find { it.isKey() }
+	}
+	
+	FieldNode getOwner() {
+		fields.values().find { it.isOwner() }
 	}
 	
 //	Set<FieldConfig> getAllDslCollectionFields() {
