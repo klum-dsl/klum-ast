@@ -569,6 +569,12 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd"]
+
+        when:
+        instance.values(["asList"])
+
+        then:
+        instance.values == ["Dieter", "Klaus", "Heinz", "singleadd", "asList"]
     }
 
     def "simple list element with different member name"() {
@@ -605,9 +611,10 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         instance.something "Dieter", "Klaus" // list adder
         instance.something "Heinz" // single added
+        instance.something(["Franz"]) // List adder
 
         then:
-        instance.something == ["Dieter", "Klaus", "Heinz"]
+        instance.something == ["Dieter", "Klaus", "Heinz", "Franz"]
     }
 
     def "List field without generics throws exception"() {

@@ -16,6 +16,8 @@ class Config {
     Map<String, Environment> environments
 
     Options options
+
+    List<String> attributes
 }
 
 @DSL

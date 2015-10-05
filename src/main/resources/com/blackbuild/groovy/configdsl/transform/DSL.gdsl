@@ -114,6 +114,12 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                         type: 'void'
                 )
                 method(
+                        name: field.name,
+                        doc: "Adds a number of ${field.elementType}s to $field.name list" as String,
+                        params: [values: "List<${field.elementType?.canonicalText ?: "?"}>"],
+                        type: 'void'
+                )
+                method(
                         name: field.memberName,
                         doc: "Adds a single ${field.elementType} to $field.name list" as String,
                         params: [value: field.elementType?.canonicalText],

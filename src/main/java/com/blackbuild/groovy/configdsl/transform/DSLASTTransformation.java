@@ -334,6 +334,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
+        createPublicMethod(fieldNode.getName())
+                .param(fieldNode.getType(), "values")
+                .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
+                .addTo(annotatedClass);
+
         createPublicMethod(getElementNameForCollectionField(fieldNode))
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
@@ -360,7 +365,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 assignS(propX(varX("closure"), "delegate"), varX("context")),
                 assignS(
                         propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
+                        propX(classX(CLOSURE_TYPE), "DELEGATE_FIRST")
                 ),
                 stmt(callX(varX("closure"), "call"))
         };
