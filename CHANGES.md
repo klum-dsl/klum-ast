@@ -1,3 +1,6 @@
+## 0.14.3
+Changed Source/Target compatibility to 1.6
+
 ## 0.14.2
 - Fixed a ClassCast Exception when reusing an Object in a different structure
 - Owner fields are now set before applying the closure itself, allow to access the owner inside the closure
