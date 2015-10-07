@@ -1,6 +1,7 @@
 ## 0.14.2
 - Fixed a ClassCast Exception when reusing an Object in a different structure
-- Owner fields are now set before applying the closure itself, allow to access the owner inside the closure 
+- Owner fields are now set before applying the closure itself, allow to access the owner inside the closure
+- Simple list field elements can now also be added using a list instead of varargs.
 
 ## 0.14.1
 Fixed small typing bug with synthetic template class
