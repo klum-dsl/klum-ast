@@ -171,7 +171,6 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
         }
 
         if (innerMostKnownClosureField) {
-
             def elementType = innerMostKnownClosureField.targetConfig
 
             def call = enclosingCall(innerMostKnownClosureField.memberName)
@@ -309,7 +308,7 @@ class FieldConfig {
     }
 
     boolean isOfType(String typeString) {
-        field.type instanceof PsiClassType && (field.type.resolve()?.qualifiedName == typeString || field.type.resolve()?.supers?.find { it.qualifiedName == typeString })
+        field?.type instanceof PsiClassType && (field.type.resolve()?.qualifiedName == typeString || field.type.resolve()?.supers?.find { it.qualifiedName == typeString })
     }
 
     boolean isList() {
@@ -327,6 +326,15 @@ class FieldConfig {
     @Override
     String toString() {
         return "Field: $field.name ($type.canonicalText) [$targetConfig]"
+    }
+
+    @Override
+    boolean equals(Object obj) {
+        if (!(obj instanceof FieldConfig)) return false
+        if (obj.field?.containingClass?.name != this.field?.containingClass?.name)
+        if (obj.field?.name != this.field.name) return false
+
+        true
     }
 }
 
@@ -351,15 +359,18 @@ class ClassConfig {
     }
 
     Set<FieldConfig> getAllDslCollectionFields() {
-        def ownFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects }
+        def ownDSLCollectionFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects } as Set
 
-        def result = ownFields.collect()
+        List<FieldConfig> result = ownDSLCollectionFields.collect()
 
-        ownFields.each { FieldConfig f ->
-            result.addAll(0, f.targetConfig.allDslCollectionFields)
+        ownDSLCollectionFields.each { FieldConfig f ->
+            if (f.targetConfig != this) {
+                result.add(0, f)
+                result.addAll(0, f.targetConfig.allDslCollectionFields)
+            }
         }
 
-        return result as Set
+        return result.unique() as Set
     }
 
     Set<FieldConfig> getAllSingleDSLFields() {
@@ -384,4 +395,10 @@ class ClassConfig {
         type.getModifierList().hasExplicitModifier("abstract")
     }
 
+    @Override
+    boolean equals(Object obj) {
+        if (!(obj instanceof ClassConfig)) return false
+
+        return (obj.type.name == this.type.name)
+    }
 }
