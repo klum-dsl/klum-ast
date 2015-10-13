@@ -15,6 +15,8 @@ class Group {
     @Key String name
     List<Group> groups
     List<Item> items
+
+    Item mainItem
 }
 
 @DSL
@@ -29,15 +31,28 @@ class Item {
 NestedConfigContainer.create {
 
     groups {
+
         group("Bla") {
             items {
-                ite
+                item("blub") {
+                    value("bli")
+                }
 
             }
             groups {
                 group("blub") {
-                    items {
 
+                    groups {
+
+                    }
+
+                    mainItem("Bla") {
+
+                        value "blub"
+                    }
+
+                    items {
+                        item
                         item("i") {
 
                         }

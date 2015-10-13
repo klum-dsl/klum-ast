@@ -72,13 +72,14 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             if (fieldType.key) {
 
                 // keyed
-                if (!fieldType.isAbstract())
+                if (!fieldType.isAbstract()) {
                     method(
                             name: field.name,
                             doc: "Sets the $field.name, using the key as $fieldType.key." as String,
                             params: ["$fieldType.key": "java.lang.String", value: 'Closure'],
                             type: 'void'
                     )
+                }
                 if (!fieldType.isFinal())
                     method(
                             name: field.name,
@@ -178,7 +179,9 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
             if (call) {
                 // this is a single element closure
                 if (call.arguments) {
+                    //noinspection GroovyAssignabilityCheck
                     if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                        //noinspection GroovyAssignabilityCheck
                         delegatesTo(call.arguments[0].type.parameters[0].resolve())
                     } else {
                         delegatesTo(elementType.type)
@@ -225,14 +228,6 @@ This will only set the owner is value has not yet an owner set.""" as String,
                         type: 'void'
                 )
             }
-        }
-    }
-
-    clazz.allSingleDSLFields.each { field ->
-
-        def call = enclosingCall(field.name)
-        if (call) {
-            delegatesTo(field.type.resolve())
         }
     }
 }
@@ -331,7 +326,7 @@ class FieldConfig {
     @Override
     boolean equals(Object obj) {
         if (!(obj instanceof FieldConfig)) return false
-        if (obj.field?.containingClass?.name != this.field?.containingClass?.name)
+        if (obj.field?.containingClass?.name != this.field?.containingClass?.name) return false
         if (obj.field?.name != this.field.name) return false
 
         true
@@ -366,6 +361,7 @@ class ClassConfig {
         ownDSLCollectionFields.each { FieldConfig f ->
             if (f.targetConfig != this) {
                 result.add(0, f)
+                result.addAll(0, getAllSingleDSLFields())
                 result.addAll(0, f.targetConfig.allDslCollectionFields)
             }
         }
