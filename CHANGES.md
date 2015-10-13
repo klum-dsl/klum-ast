@@ -1,3 +1,8 @@
+## 0.14.4
+- no functional changes
+- Fixed nessted gdsl cases
+- Reduced groovy dependency to 2.3
+
 ## 0.14.3
 Changed Source/Target compatibility to 1.6
 
