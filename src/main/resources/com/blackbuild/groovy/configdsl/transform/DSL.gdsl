@@ -1,10 +1,14 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.intellij.psi.PsiAnnotation
+import com.intellij.psi.PsiCall
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassType
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiEllipsisType
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.PsiType
 
 
@@ -163,20 +167,43 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
         }
     }
 
+
     if (targetAlternative) {
         delegatesTo(targetAlternative.type)
     } else {
+        def imcStruct = dslCollectionFields.findResult {
+            FieldConfig field ->
+                def mc = field.memberName ? enclosingCall(field.memberName) : null
+                if (mc) return [field, null, mc]
 
-        def innerMostKnownClosureField = dslCollectionFields.find {
-            FieldConfig field -> return enclosingCall(field.name) ?: enclosingCall(field.memberName)
+                def fc = enclosingCall(field.name)
+                if (fc) return [field, fc, null]
+
+                return  null
         }
 
+        def (innerMostKnownClosureField, fieldCall, memberCall) = imcStruct ?: [null, null, null]
+
         if (innerMostKnownClosureField) {
+
             def elementType = innerMostKnownClosureField.targetConfig
 
-            def call = enclosingCall(innerMostKnownClosureField.memberName)
-
-            if (call) {
+            if (memberCall) {
+                def call = memberCall
+                // this is a single element closure
+                if (call.arguments) {
+                    //noinspection GroovyAssignabilityCheck
+                    if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                        //noinspection GroovyAssignabilityCheck
+                        delegatesTo(call.arguments[0].type.parameters[0].resolve())
+                    } else {
+                        delegatesTo(elementType.type)
+                    }
+                } else {
+                    delegatesTo(elementType.type)
+                }
+            } else if (innerMostKnownClosureField.isDslObject) {
+                def call = fieldCall
                 // this is a single element closure
                 if (call.arguments) {
                     //noinspection GroovyAssignabilityCheck
@@ -251,10 +278,13 @@ class FieldConfig {
         this.field = field
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
         name = field.name
-        memberName = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
 
-        if (!memberName)
-            memberName = name.endsWith('s') ? name[0..-2] : name
+        if (isCollectionOfDslObjects()) {
+            memberName = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
+
+            if (!memberName)
+                memberName = name.endsWith('s') ? name[0..-2] : name
+        }
 
         ClassConfig config = new ClassConfig(field.classType)
         if (config.dslClass) {
@@ -358,10 +388,11 @@ class ClassConfig {
 
         List<FieldConfig> result = ownDSLCollectionFields.collect()
 
+        result.addAll(0, getAllSingleDSLFields())
+
         ownDSLCollectionFields.each { FieldConfig f ->
             if (f.targetConfig != this) {
                 result.add(0, f)
-                result.addAll(0, getAllSingleDSLFields())
                 result.addAll(0, f.targetConfig.allDslCollectionFields)
             }
         }
@@ -370,7 +401,7 @@ class ClassConfig {
     }
 
     Set<FieldConfig> getAllSingleDSLFields() {
-        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject } as Set
+        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject && !f.isOwner } as Set
     }
 
     String getUncapitalizedName() {

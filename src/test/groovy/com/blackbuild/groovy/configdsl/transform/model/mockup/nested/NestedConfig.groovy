@@ -26,6 +26,13 @@ class Item {
 
     String value
 
+    Deploy deploy
+
+}
+
+@DSL
+class Deploy {
+    String groupId
 }
 
 NestedConfigContainer.create {
@@ -33,7 +40,22 @@ NestedConfigContainer.create {
     groups {
 
         group("Bla") {
+
+            mainItem("bli") {
+                value("1")
+            }
+
             items {
+                item("bli") {
+                    deploy {
+                        groupId "gg"
+
+                    }
+                }
+            }
+
+            items {
+
                 item("blub") {
                     value("bli")
                 }
@@ -52,7 +74,7 @@ NestedConfigContainer.create {
                     }
 
                     items {
-                        item
+
                         item("i") {
 
                         }
