@@ -279,7 +279,7 @@ class FieldConfig {
         this.fieldAnnotation = field.getAnnotation("com.blackbuild.groovy.configdsl.transform.Field")
         name = field.name
 
-        if (isCollectionOfDslObjects()) {
+        if (isList() || isMap()) {
             memberName = this.fieldAnnotation?.findDeclaredAttributeValue("members")?.node?.text?.replace('"', '')
 
             if (!memberName)
