@@ -242,8 +242,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
-            createHashCode(annotatedClass, false, false, false, null, null);
-            createEquals(annotatedClass, false, false, true, null, null);
+            createHashCode(annotatedClass, false, false, true, null, null);
+            createEquals(annotatedClass, false, true, true, null, null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
             if (ownerField == null)

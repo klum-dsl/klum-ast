@@ -656,4 +656,26 @@ class InheritanceSpec extends AbstractDSLSpec {
         then:
         notThrown(StackOverflowError)
     }
+
+    def "BUG: equals does not work correctly for inherited objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+
+            @DSL
+            class Bar extends Foo { }
+        ''')
+
+        when:
+        def left = getClass("pk.Bar").newInstance(name: "a")
+        def right = getClass("pk.Bar").newInstance(name: "b")
+
+        then:
+        !left.equals(right)
+    }
 }

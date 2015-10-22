@@ -1,6 +1,12 @@
+## 0.14.7
+- Bugfix: equals/hashcode did not take parent classes into account
+
+## 0.14.6
+- gdsl improvements
+
 ## 0.14.4
 - no functional changes
-- Fixed nessted gdsl cases
+- Fixed nested gdsl cases
 - Reduced groovy dependency to 2.3
 
 ## 0.14.3
