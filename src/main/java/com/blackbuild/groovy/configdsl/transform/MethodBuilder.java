@@ -53,7 +53,7 @@ public class MethodBuilder {
             throw new IllegalStateException("Body must not be null");
         }
 
-        return target.addSyntheticMethod(
+        return target.addMethod(
                 name,
                 modifiers,
                 returnType,

@@ -1,3 +1,6 @@
+## 0.14.8
+- created methods should **not** be synthetic to allow proper code completion when using precompiled DSLs.
+
 ## 0.14.7
 - Bugfix: equals/hashcode did not take parent classes into account
 
