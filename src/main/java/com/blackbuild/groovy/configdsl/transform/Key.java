@@ -19,6 +19,6 @@ import java.lang.annotation.Target;
  * of type String are allowed.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 public @interface Key {
 }

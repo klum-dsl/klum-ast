@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
  * collection fields.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 public @interface Field {
 
     /**

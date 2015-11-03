@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
  * containing class is added to another DSL-Object.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.CLASS)
 public @interface Owner {
 }
