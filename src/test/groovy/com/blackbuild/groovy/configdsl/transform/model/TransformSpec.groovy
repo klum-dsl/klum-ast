@@ -237,6 +237,24 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "Dieter"
     }
 
+    def "simple boolean member setter should have 'true' as default"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                boolean helpful
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            helpful()
+        }
+
+        then:
+        instance.helpful == true
+    }
+
     def "simple member method for reusable config objects"() {
         given:
         createClass('''

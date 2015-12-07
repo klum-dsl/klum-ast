@@ -1,3 +1,12 @@
+## 0.14.10
+- Shortcut syntax for boolean setters. Now the boolean setter can be called without argument, defaulting to
+  true. (e.g. you yould write "skipSonar()" instead of "skipSonar(true)")
+
+## 0.14.9
+- GDSL improvements
+- Changed Retention of DSL annotations to class to allow extending DSLs from a jar (i.e. have a dependency
+  on a jar containing parent DSL classes).
+
 ## 0.14.8
 - created methods should **not** be synthetic to allow proper code completion when using precompiled DSLs.
 

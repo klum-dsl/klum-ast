@@ -290,6 +290,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(fieldNode.getType(), "value")
                 .assignS(propX(varX("this"), fieldNode.getName()), varX("value"))
                 .addTo(annotatedClass);
+
+        if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
+            createPublicMethod(fieldNode.getName())
+                    .callS(varX("this"), fieldNode.getName(), constX(true))
+                    .addTo(annotatedClass);
+        }
     }
 
     private String getElementNameForCollectionField(FieldNode fieldNode) {

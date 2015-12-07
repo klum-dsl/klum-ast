@@ -150,6 +150,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                         params: [value: field.type?.canonicalText],
                         type: 'void'
                 )
+                if (field.type?.canonicalText == "boolean") {
+                    method(
+                        name: field.name,
+                        doc: "Sets the $field.name to true" as String,
+                        type: 'void'
+                    )
+                }
             }
         }
     }
