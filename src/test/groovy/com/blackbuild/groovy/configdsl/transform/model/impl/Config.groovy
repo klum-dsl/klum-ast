@@ -18,6 +18,8 @@ class Config {
     Options options
 
     List<String> attributes
+
+    boolean skip
 }
 
 @DSL

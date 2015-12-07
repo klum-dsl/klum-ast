@@ -10,6 +10,8 @@ def c = Config.create {
 
     }
 
+    skip()
+
     environments  {
 
         env("bal") {
