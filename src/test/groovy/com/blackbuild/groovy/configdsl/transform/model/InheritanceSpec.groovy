@@ -62,6 +62,40 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.parentValue == "Low"
     }
 
+    def "grandparent class defines key"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class A {
+                @Key String name
+            }
+
+            @DSL
+            class B extends A {
+            }
+
+            @DSL
+            class C extends B {
+            }
+
+            @DSL
+            class D extends C {
+            }
+
+            @DSL
+            class E extends D {
+            }
+        ''')
+
+        when:
+        instance = create("pk.E", "Klaus") {}
+
+        then:
+        instance.name == "Klaus"
+    }
+
     def "error: parent class defines no key, but child defines key"() {
         when:
         createClass('''

@@ -98,7 +98,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createTemplateMethods() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_SYNTHETIC, newClass(annotatedClass), null);
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
 
         ClassNode templateClass = getMemberClassValue(dslAnnotation, "template");
 
@@ -171,11 +171,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ACC_STATIC,
                 newClass(annotatedClass));
 
-        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_SYNTHETIC, newClass(contextClass), null);
+        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(contextClass), null);
 
         if (keyField != null) {
             contextClass.addConstructor(
-                    ACC_SYNTHETIC,
+                    0,
                     params(param(keyField.getType(), "key")),
                     NO_EXCEPTIONS,
                     block(
@@ -199,7 +199,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void implementAbstractMethod(ClassNode target, MethodNode abstractMethod) {
-        target.addSyntheticMethod(
+        target.addMethod(
                 abstractMethod.getName(),
                 abstractMethod.getModifiers() ^ ACC_ABSTRACT,
                 abstractMethod.getReturnType(),
@@ -226,7 +226,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createKeyConstructor() {
         annotatedClass.addConstructor(
-                ACC_PUBLIC | ACC_SYNTHETIC,
+                ACC_PUBLIC,
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
@@ -506,7 +506,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
         contextClass.addConstructor(
-                ACC_SYNTHETIC,
+                0,
                 params(param(newClass(annotatedClass), "outerInstance")),
                 NO_EXCEPTIONS,
                 block(
