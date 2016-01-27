@@ -1,7 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
-import org.codehaus.groovy.control.MultipleCompilationErrorsException
-
 class DefaultValuesSpec extends AbstractDSLSpec {
 
     def "apply method using a preexisting object is created"() {
@@ -546,5 +544,35 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         create("pk.Child") { name "explicit"}.names == ["child", "explicit"];
+    }
+
+    def "BUG: apply overrides overridden values again"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+        clazz.createTemplate {
+            value "default"
+        }
+
+        when:
+        instance = create("pk.Foo") {
+            value "non-default"
+        }
+
+        then:
+        instance.value == "non-default"
+
+        when:
+        instance.apply {}
+
+        then:
+        instance.value == "non-default"
+
     }
 }

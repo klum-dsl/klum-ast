@@ -1,3 +1,6 @@
+## 0.14.11
+- apply did override values with template values. Fixed
+
 ## 0.14.10
 - Shortcut syntax for boolean setters. Now the boolean setter can be called without argument, defaulting to
   true. (e.g. you yould write "skipSonar()" instead of "skipSonar(true)")
