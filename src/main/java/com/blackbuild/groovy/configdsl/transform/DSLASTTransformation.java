@@ -146,7 +146,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (fieldNode == ownerField || fieldNode == keyField) continue;
+            if (shouldFieldBeIgnored(fieldNode)) continue;
 
             if (isListOrMap(fieldNode.getType()))
                 templateApply.statement(
@@ -265,9 +265,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMethodsForSingleField(FieldNode fieldNode) {
-        if (fieldNode == keyField) return;
-        if (fieldNode == ownerField) return;
-        if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return;
+        if (shouldFieldBeIgnored(fieldNode)) return;
 
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
@@ -278,6 +276,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createListMethod(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
+    }
+
+    private boolean shouldFieldBeIgnored(FieldNode fieldNode) {
+        if (fieldNode == keyField) return true;
+        if (fieldNode == ownerField) return true;
+        if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
+        if (fieldNode.isFinal()) return true;
+        return false;
     }
 
     private boolean isListOrMap(ClassNode type) {

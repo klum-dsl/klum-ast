@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 import java.lang.reflect.Method
 
@@ -251,6 +252,20 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         thrown MissingMethodException
+    }
+
+    @Issue('#21')
+    def "final fields are ignored"() {
+        when:
+        createInstance('''
+            @DSL
+            class Foo {
+                final String value = "bla"
+            }
+        ''')
+
+        then:
+        notThrown MultipleCompilationErrorsException
     }
 
     def "simple boolean member setter should have 'true' as default"() {

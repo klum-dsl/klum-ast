@@ -1,9 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import groovy.lang.Closure;
-import org.codehaus.groovy.transform.CanonicalASTTransformation;
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
