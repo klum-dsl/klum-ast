@@ -1,5 +1,6 @@
 ## 0.14.13
 - Fixed Compilation fails on final fields ([#21](https://github.com/blackbuild/config-dsl/issues/21))
+- Fixed Helper Methods for $TEMPLATE fields are created ([#22](https://github.com/blackbuild/config-dsl/issues/22))
 
 ## 0.14.12
 - allow fields to be marked as ignored using an annotation ([#18](https://github.com/blackbuild/config-dsl/issues/18))

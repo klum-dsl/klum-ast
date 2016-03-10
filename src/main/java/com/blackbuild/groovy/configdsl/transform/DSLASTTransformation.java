@@ -283,6 +283,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode == ownerField) return true;
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
+        if (fieldNode.getName().equals(TEMPLATE_FIELD_NAME)) return true;
         return false;
     }
 

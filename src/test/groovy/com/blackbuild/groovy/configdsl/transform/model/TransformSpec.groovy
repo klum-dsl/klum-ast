@@ -268,6 +268,19 @@ class TransformSpec extends AbstractDSLSpec {
         notThrown MultipleCompilationErrorsException
     }
 
+    @Issue('#22')
+    def 'no helper methods are generated for $TEMPLATE field'() {
+        when:
+        createInstance('''
+            @DSL
+            class Foo {
+            }
+        ''')
+
+        then:
+        !clazz.metaClass.methods.find { it.name == '$TEMPLATE' }
+    }
+
     def "simple boolean member setter should have 'true' as default"() {
         given:
         createClass('''
