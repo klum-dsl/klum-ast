@@ -38,6 +38,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     private static final ClassNode KEY_ANNOTATION = make(Key.class);
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
+    private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -266,6 +267,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMethodsForSingleField(FieldNode fieldNode) {
         if (fieldNode == keyField) return;
         if (fieldNode == ownerField) return;
+        if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return;
 
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);

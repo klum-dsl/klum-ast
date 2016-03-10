@@ -1,3 +1,6 @@
+## 0.14.12
+- allow fields to be marked as ignored using an annotation ([#18](https://github.com/blackbuild/config-dsl/issues/18))
+
 ## 0.14.11
 - apply did override values with template values. Fixed
 

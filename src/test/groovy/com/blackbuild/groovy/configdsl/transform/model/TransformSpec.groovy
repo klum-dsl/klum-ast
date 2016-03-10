@@ -1,7 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Ignore
 
 import java.lang.reflect.Method
 
@@ -235,6 +234,23 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.value == "Dieter"
+    }
+
+    def "@Ignore members are ignored"() {
+        given:
+        createInstance('''
+            @DSL
+            class Foo {
+                @Ignore
+                String value
+            }
+        ''')
+
+        when:
+        instance.value "Dieter"
+
+        then:
+        thrown MissingMethodException
     }
 
     def "simple boolean member setter should have 'true' as default"() {
