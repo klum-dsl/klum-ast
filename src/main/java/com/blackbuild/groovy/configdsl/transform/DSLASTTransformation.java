@@ -175,12 +175,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), callX(
-                                classX(templateClass),
-                                "create",
-                                keyField != null ? args(constX(null), varX("closure")) : args("closure")
-                        )
-                )
+                .declS("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
+                .callS(varX("result"), "copyFromTemplate")
+                .callS(varX("result"), "apply", varX("closure"))
+                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), varX("result"))
                 .addTo(annotatedClass);
 
         createPublicMethod("copyFromTemplate")
@@ -767,49 +765,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callS(varX("closure"), "call")
-                .statement(callThisX(VALIDATE_METHOD))
                 .statement(returnS(varX("this")))
                 .addTo(annotatedClass);
     }
 
     private void createFactoryMethods(ClassNode targetClass) {
+        int argsCount = keyField == null ? 1 : 2;
 
-        if (keyField == null)
-            createSimpleFactoryMethod(targetClass);
-        else
-            createFactoryMethodWithKeyParameter(targetClass);
-    }
-
-    private void createFactoryMethodWithKeyParameter(ClassNode targetClass) {
-        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 2);
-        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 2)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", argsCount);
+        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", argsCount)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(targetClass))
                 .mod(Opcodes.ACC_STATIC)
-                .stringParam("name")
+                .optionalStringParam("name", keyField)
                 .delegatingClosureParam(targetClass)
-                .declS("result", ctorX(targetClass, args("name")))
+                .declS("result", keyField != null ? ctorX(targetClass, args("name")) : ctorX(targetClass))
                 .callS(varX("result"), "copyFromTemplate")
                 .callS(varX("result"), "apply", varX("closure"))
+                .callS(varX("result"), VALIDATE_METHOD)
                 .statement(returnS(varX("result")))
                 .addTo(targetClass);
-    }
-
-    private void createSimpleFactoryMethod(ClassNode targetClass) {
-        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 1);
-        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 1)) return;
-
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(targetClass))
-                .mod(Opcodes.ACC_STATIC)
-                .delegatingClosureParam(targetClass)
-                .declS("result", ctorX(targetClass))
-                .callS(varX("result"), "copyFromTemplate")
-                .callS(varX("result"), "apply", varX("closure"))
-                .statement(returnS(varX("result")))
-                .addTo(targetClass);
-
     }
 
     private String getQualifiedName(FieldNode node) {

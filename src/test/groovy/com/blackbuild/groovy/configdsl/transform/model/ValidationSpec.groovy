@@ -22,6 +22,25 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(ValidationException)
     }
 
+    def "validation is not performed on templates"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate String validated
+                String nonValidated
+            }
+        ''')
+
+        when:
+        instance = clazz.createTemplate {
+            nonValidated "bla"
+        }
+
+        then:
+        notThrown(ValidationException)
+    }
+
     @Ignore
     def "non annotated fields are not validated"() {
         given:
