@@ -10,5 +10,5 @@ import java.lang.annotation.*;
 @GroovyASTTransformationClass(classes={DSLASTTransformation.class})
 public @interface DSL {
 
-    ValidationMode validation() default ValidationMode.NONE;
+    ValidationMode validation() default ValidationMode.IGNORE_UNMARKED;
 }

@@ -5,6 +5,6 @@ package com.blackbuild.groovy.configdsl.transform;
  */
 public enum ValidationMode {
 
-    NONE, IGNORE_UNMARKED, VALIDATE_UNMARKED
+    IGNORE_UNMARKED, VALIDATE_UNMARKED
 
 }

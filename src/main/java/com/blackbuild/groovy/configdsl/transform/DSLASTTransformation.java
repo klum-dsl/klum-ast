@@ -1,10 +1,11 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.sun.xml.internal.ws.api.model.ExceptionType;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -16,6 +17,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.*;
 
+import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -36,9 +38,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     private static final ClassNode KEY_ANNOTATION = make(Key.class);
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
+
+    private static final ClassNode GROOVY_TRUTH_CLOSURE_TYPE = make(Validate.GroovyTruth.class);
+    private static final ClassNode EXCEPTION_TYPE = make(Exception.class);
+    private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(ValidationException.class);
+    private static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
 
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -66,9 +74,63 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryMethods(annotatedClass);
         createFieldMethods();
         createCanonicalMethods();
+        createValidateMethod();
 
         if (annotedClassIsTopOfDSLHierarchy())
             preventOwnerOverride();
+    }
+
+    private void createValidateMethod() {
+        MethodBuilder methodBuilder = createProtectedMethod("$validate");
+
+        BlockStatement block = new BlockStatement();
+        validateFields(block);
+        validateCustomMethods(block);
+
+        TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
+        tryCatchStatement.addCatch(new CatchStatement(
+                param(ASSERTION_ERROR_TYPE, "e"),
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args("e")))
+                )
+        );
+        tryCatchStatement.addCatch(new CatchStatement(
+                param(EXCEPTION_TYPE, "e"),
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args("e")))
+                )
+        );
+
+        methodBuilder
+                .statement(tryCatchStatement)
+                .addTo(annotatedClass);
+    }
+
+    private void validateCustomMethods(BlockStatement block) {
+    }
+
+    private void validateFields(BlockStatement block) {
+        ValidationMode mode = (ValidationMode) getMemberValue(dslAnnotation, "validation");
+        if (mode == null)
+            mode = ValidationMode.IGNORE_UNMARKED;
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (shouldFieldBeIgnored(fieldNode)) continue;
+
+            ClassNode validationClosure = GROOVY_TRUTH_CLOSURE_TYPE;
+            String message = null;
+
+            AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
+            if (validateAnnotation != null) {
+                validationClosure = getMemberClassValue(validateAnnotation, "value", GROOVY_TRUTH_CLOSURE_TYPE);
+                message = getMemberStringValue(validateAnnotation, "message");
+            }
+
+            if (validateAnnotation != null || mode == ValidationMode.VALIDATE_UNMARKED) {
+
+                StaticMethodCallExpression closureInstanceX = callX(validationClosure, "newInstance", args(ConstantExpression.NULL, ConstantExpression.NULL));
+                MethodCallExpression closureCall = callX(closureInstanceX, "call", args(varX(fieldNode.getName())));
+
+                block.addStatement(new AssertStatement(new BooleanExpression(closureCall)));
+            }
+        }
     }
 
     private boolean annotedClassIsTopOfDSLHierarchy() {
@@ -101,11 +163,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createTemplateMethods() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
 
-        ClassNode templateClass = getMemberClassValue(dslAnnotation, "template");
+        ClassNode templateClass;
 
-        if (templateClass == null && isAbstract(annotatedClass))
+        if (isAbstract(annotatedClass))
             templateClass = createTemplateClass();
-        else if (templateClass == null)
+        else
             templateClass = annotatedClass;
 
         createPublicMethod("createTemplate")
