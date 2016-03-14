@@ -123,39 +123,35 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateFields(BlockStatement block) {
-        Validation.Options mode = getEnumMemberValue(
+        Validation.Option mode = getEnumMemberValue(
                 getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
-                "target",
-                Validation.Options.class,
-                Validation.Options.IGNORE_UNMARKED);
+                "option",
+                Validation.Option.class,
+                Validation.Option.IGNORE_UNMARKED);
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnored(fieldNode)) continue;
 
-            ClosureExpression validationClosure = null;
+            ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
             String message = null;
 
             AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
             if (validateAnnotation != null) {
                 Expression member = validateAnnotation.getMember("value");
-                if (member == null)
-                    validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
-                else if (member instanceof ClassExpression) {
+                if (member instanceof ClassExpression) {
                     ClassNode memberType = member.getType();
-                    if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
-                        validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
-                    else if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
                         continue;
-                    else {
+                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
                         addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
                         break;
                     }
-                } else {
+                } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
                 }
                 message = getMemberStringValue(validateAnnotation, "message");
             }
 
-            if (validateAnnotation != null || mode == Validation.Options.VALIDATE_UNMARKED) {
+            if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
                 block.addStatement(new AssertStatement(
                         new BooleanExpression(
                                 callX(validationClosure, "call", args(varX(fieldNode.getName())))
@@ -382,7 +378,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode == ownerField) return true;
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
-        if (fieldNode.getName().equals(TEMPLATE_FIELD_NAME)) return true;
+        if (fieldNode.getName().startsWith("$")) return true;
         return false;
     }
 

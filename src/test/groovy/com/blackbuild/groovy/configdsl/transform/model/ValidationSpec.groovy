@@ -224,6 +224,31 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
+        clazz.create {
+            validated "bla"
+        }
+
+        then:
+        notThrown(ValidationException)
+    }
+
+    def "Option.VALIDATE_UNMARKED validates all unmarked fields"() {
+        given:
+        createClass('''
+            @DSL
+            @Validation(option = Validation.Option.VALIDATE_UNMARKED)
+            class Foo {
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.create {}
+
+        then:
+        thrown(ValidationException)
+
+        when:
         instance = clazz.create {
             validated "bla"
         }

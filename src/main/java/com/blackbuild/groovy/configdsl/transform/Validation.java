@@ -1,8 +1,15 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.CLASS)
 public @interface Validation {
 
-    Options target() default Options.IGNORE_UNMARKED;
+    Option option() default Option.IGNORE_UNMARKED;
 
     Mode mode() default Mode.AUTOMATIC;
 
@@ -10,7 +17,7 @@ public @interface Validation {
         AUTOMATIC, MANUAL
     }
 
-    enum Options {
+    enum Option {
         IGNORE_UNMARKED, VALIDATE_UNMARKED
     }
 }
