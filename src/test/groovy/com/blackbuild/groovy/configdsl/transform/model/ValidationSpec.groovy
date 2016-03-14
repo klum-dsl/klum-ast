@@ -57,7 +57,8 @@ class ValidationSpec extends AbstractDSLSpec {
     def "defer validation via annotation"() {
         given:
         createClass('''
-            @DSL(validationMode = ValidationMode.MANUAL)
+            @DSL
+            @Validation(mode = Validation.Mode.MANUAL)
             class Foo {
                 @Validate
                 String validated

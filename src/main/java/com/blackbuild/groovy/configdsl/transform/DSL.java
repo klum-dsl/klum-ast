@@ -9,7 +9,4 @@ import java.lang.annotation.*;
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass(classes={DSLASTTransformation.class})
 public @interface DSL {
-
-    ValidationTarget validationTarget() default ValidationTarget.IGNORE_UNMARKED;
-    ValidationMode validationMode() default ValidationMode.AUTOMATIC;
 }

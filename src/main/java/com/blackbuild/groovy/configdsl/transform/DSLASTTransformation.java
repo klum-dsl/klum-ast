@@ -39,6 +39,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
+    private static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     private static final ClassNode KEY_ANNOTATION = make(Key.class);
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
@@ -82,9 +83,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
-        ValidationMode mode = getEnumMemberValue(dslAnnotation, "validationMode", ValidationMode.class, ValidationMode.AUTOMATIC);
+        Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
-        annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == ValidationMode.MANUAL));
+        annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
         MethodBuilder.createPublicMethod("manualValidation")
                 .param(Boolean_TYPE, "validation")
                 .assignS(varX("$manualValidation"), varX("validation"))
@@ -122,9 +123,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateFields(BlockStatement block) {
-        ValidationTarget mode = (ValidationTarget) getMemberValue(dslAnnotation, "validationTarget");
-        if (mode == null)
-            mode = ValidationTarget.IGNORE_UNMARKED;
+        Validation.Target mode = getEnumMemberValue(
+                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
+                "target",
+                Validation.Target.class,
+                Validation.Target.IGNORE_UNMARKED);
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnored(fieldNode)) continue;
 
@@ -137,7 +140,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 message = getMemberStringValue(validateAnnotation, "message");
             }
 
-            if (validateAnnotation != null || mode == ValidationTarget.VALIDATE_UNMARKED) {
+            if (validateAnnotation != null || mode == Validation.Target.VALIDATE_UNMARKED) {
 
                 StaticMethodCallExpression closureInstanceX = callX(validationClosure, "newInstance", args(ConstantExpression.NULL, ConstantExpression.NULL));
                 MethodCallExpression closureCall = callX(closureInstanceX, "call", args(varX(fieldNode.getName())));
