@@ -1,6 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import com.sun.xml.internal.ws.api.model.ExceptionType;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
@@ -51,6 +50,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
+    public static final String VALIDATE_METHOD = "$validate";
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -105,6 +105,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateCustomMethods(BlockStatement block) {
+        // TODO implement
     }
 
     private void validateFields(BlockStatement block) {
@@ -766,6 +767,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callS(varX("closure"), "call")
+                .statement(callThisX(VALIDATE_METHOD))
                 .statement(returnS(varX("this")))
                 .addTo(annotatedClass);
     }

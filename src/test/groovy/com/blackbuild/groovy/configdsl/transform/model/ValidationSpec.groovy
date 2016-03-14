@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import com.blackbuild.groovy.configdsl.transform.ValidationException
+import spock.lang.Ignore
 
 class ValidationSpec extends AbstractDSLSpec {
 
@@ -16,12 +17,31 @@ class ValidationSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.create {}
+
+        then:
+        thrown(ValidationException)
+    }
+
+    @Ignore
+    def "non annotated fields are not validated"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+
+                String notvalidated
+            }
+        ''')
+
+        when:
+        instance = clazz.create {}
         instance.$validate()
 
 
         then:
         thrown(ValidationException)
     }
-
 
 }
