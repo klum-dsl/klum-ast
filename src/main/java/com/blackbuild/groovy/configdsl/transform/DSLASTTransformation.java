@@ -19,6 +19,7 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
+import static groovy.transform.Undefined.isUndefined;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -44,7 +45,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
-    private static final ClassNode GROOVY_TRUTH_CLOSURE_TYPE = make(Validate.GroovyTruth.class);
     private static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(ValidationException.class);
     private static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
@@ -123,31 +123,53 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateFields(BlockStatement block) {
-        Validation.Target mode = getEnumMemberValue(
+        Validation.Options mode = getEnumMemberValue(
                 getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
                 "target",
-                Validation.Target.class,
-                Validation.Target.IGNORE_UNMARKED);
+                Validation.Options.class,
+                Validation.Options.IGNORE_UNMARKED);
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnored(fieldNode)) continue;
 
-            ClassNode validationClosure = GROOVY_TRUTH_CLOSURE_TYPE;
+            ClosureExpression validationClosure = null;
             String message = null;
 
             AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
             if (validateAnnotation != null) {
-                validationClosure = getMemberClassValue(validateAnnotation, "value", GROOVY_TRUTH_CLOSURE_TYPE);
+                Expression member = validateAnnotation.getMember("value");
+                if (member == null)
+                    validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
+                else if (member instanceof ClassExpression) {
+                    ClassNode memberType = member.getType();
+                    if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
+                        validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
+                    else if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                        continue;
+                    else {
+                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
+                        break;
+                    }
+                } else {
+                    validationClosure = (ClosureExpression) member;
+                }
                 message = getMemberStringValue(validateAnnotation, "message");
             }
 
-            if (validateAnnotation != null || mode == Validation.Target.VALIDATE_UNMARKED) {
-
-                StaticMethodCallExpression closureInstanceX = callX(validationClosure, "newInstance", args(ConstantExpression.NULL, ConstantExpression.NULL));
-                MethodCallExpression closureCall = callX(closureInstanceX, "call", args(varX(fieldNode.getName())));
-
-                block.addStatement(new AssertStatement(new BooleanExpression(closureCall)));
+            if (validateAnnotation != null || mode == Validation.Options.VALIDATE_UNMARKED) {
+                block.addStatement(new AssertStatement(
+                        new BooleanExpression(
+                                callX(validationClosure, "call", args(varX(fieldNode.getName())))
+                        )
+                ));
             }
         }
+    }
+
+    @NotNull
+    private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
+        ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
+        result.setVariableScope(scope.copy());
+        return result;
     }
 
     private boolean annotedClassIsTopOfDSLHierarchy() {

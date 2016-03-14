@@ -2,7 +2,7 @@ package com.blackbuild.groovy.configdsl.transform;
 
 public @interface Validation {
 
-    Target target() default Target.IGNORE_UNMARKED;
+    Options target() default Options.IGNORE_UNMARKED;
 
     Mode mode() default Mode.AUTOMATIC;
 
@@ -10,7 +10,7 @@ public @interface Validation {
         AUTOMATIC, MANUAL
     }
 
-    enum Target {
+    enum Options {
         IGNORE_UNMARKED, VALIDATE_UNMARKED
     }
 }

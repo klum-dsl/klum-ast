@@ -8,36 +8,11 @@ import groovy.lang.Closure;
  */
 public @interface Validate {
 
-    Class<? extends Closure> value() default GroovyTruth.class;
+    Class value() default GroovyTruth.class;
 
     String message() default "";
 
-    class GroovyTruth extends Closure {
-        public GroovyTruth(Object owner, Object thisObject) {
-            super(owner, thisObject);
-        }
+    class GroovyTruth {}
 
-        public GroovyTruth(Object owner) {
-            super(owner);
-        }
-
-        public Object doCall(Object value) {
-            return value;
-        }
-    }
-
-    class Ignore extends Closure {
-        public Ignore(Object owner, Object thisObject) {
-            super(owner, thisObject);
-        }
-
-        public Ignore(Object owner) {
-            super(owner);
-        }
-
-        public Object doCall(Object value) {
-            return Boolean.TRUE;
-        }
-    }
-
+    class Ignore {}
 }

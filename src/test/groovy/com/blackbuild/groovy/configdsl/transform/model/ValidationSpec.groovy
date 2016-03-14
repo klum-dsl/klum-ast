@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import com.blackbuild.groovy.configdsl.transform.ValidationException
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 
 class ValidationSpec extends AbstractDSLSpec {
@@ -16,10 +17,116 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {}
+        clazz.create {}
 
         then:
         thrown(ValidationException)
+    }
+
+    def "validation with explicit Groovy Truth"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(Validate.GroovyTruth)
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        thrown(ValidationException)
+    }
+
+    def "validation with Ignore"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(Validate.Ignore)
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        notThrown(ValidationException)
+    }
+
+    def "validation with Closure"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ it.length > 3 })
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        clazz.create { validated "bla"}
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        clazz.create { validated "valid"}
+
+        then:
+        thrown(ValidationException)
+    }
+
+    def "validation with named Closure"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ string -> string.length > 3 })
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        clazz.create { validated "bla"}
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        clazz.create { validated "valid"}
+
+        then:
+        thrown(ValidationException)
+    }
+
+    def "validation only allows GroovyTruth, Ignore or literal closure"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(String.class)
+                String validated
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
     }
 
     def "defer validation via method"() {
