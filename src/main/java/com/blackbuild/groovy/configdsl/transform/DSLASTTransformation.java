@@ -50,7 +50,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
-    public static final String VALIDATE_METHOD = "$validate";
+    public static final String VALIDATE_METHOD = "validate";
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -71,7 +71,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         validateFieldAnnotations();
         createApplyMethods();
         createTemplateMethods();
-        createFactoryMethods(annotatedClass);
+        createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
         createValidateMethod();
@@ -81,7 +81,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
-        MethodBuilder methodBuilder = createProtectedMethod("$validate");
+        MethodBuilder methodBuilder = createProtectedMethod(VALIDATE_METHOD);
+
+        if (isDSLObject(annotatedClass.getSuperClass())) {
+            methodBuilder.statement(callSuperX(VALIDATE_METHOD));
+        }
 
         BlockStatement block = new BlockStatement();
         validateFields(block);
@@ -140,6 +144,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void validateFieldAnnotations() {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (shouldFieldBeIgnored(fieldNode)) continue;
+
             AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
             if (annotation == null) continue;
@@ -250,8 +256,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     )
             );
         }
-
-        createFactoryMethods(contextClass);
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null) {
@@ -769,23 +773,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createFactoryMethods(ClassNode targetClass) {
+    private void createFactoryMethods() {
         int argsCount = keyField == null ? 1 : 2;
 
-        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", argsCount);
-        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", argsCount)) return;
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", argsCount);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", argsCount)) return;
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(targetClass))
+                .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(targetClass)
-                .declS("result", keyField != null ? ctorX(targetClass, args("name")) : ctorX(targetClass))
+                .delegatingClosureParam(annotatedClass)
+                .declS("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callS(varX("result"), "copyFromTemplate")
                 .callS(varX("result"), "apply", varX("closure"))
                 .callS(varX("result"), VALIDATE_METHOD)
                 .statement(returnS(varX("result")))
-                .addTo(targetClass);
+                .addTo(annotatedClass);
     }
 
     private String getQualifiedName(FieldNode node) {

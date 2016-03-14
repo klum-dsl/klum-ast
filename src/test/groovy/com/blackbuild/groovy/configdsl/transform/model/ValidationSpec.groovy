@@ -62,4 +62,28 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(ValidationException)
     }
 
+    def "validation is inherited"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+            }
+
+            @DSL
+            class Bar extends Foo {
+                String child
+            }
+        ''')
+
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        thrown(ValidationException)
+    }
+
 }
