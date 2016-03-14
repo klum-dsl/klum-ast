@@ -81,6 +81,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
+        ValidationMode mode = (ValidationMode) getMemberValue(dslAnnotation, "validationMode");
+        if (mode == null) mode = ValidationMode.AUTOMATIC;
+
+        annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == ValidationMode.MANUAL));
+        MethodBuilder.createPublicMethod("manualValidation")
+                .param(Boolean_TYPE, "validation")
+                .assignS(varX("$manualValidation"), varX("validation"))
+                .addTo(annotatedClass);
+
         MethodBuilder methodBuilder = createProtectedMethod(VALIDATE_METHOD);
 
         if (isDSLObject(annotatedClass.getSuperClass())) {
@@ -787,7 +796,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .declS("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callS(varX("result"), "copyFromTemplate")
                 .callS(varX("result"), "apply", varX("closure"))
-                .callS(varX("result"), VALIDATE_METHOD)
+                .statement(ifS(notX(propX(varX("result"),"$manualValidation")), callX(varX("result"), VALIDATE_METHOD)))
                 .statement(returnS(varX("result")))
                 .addTo(annotatedClass);
     }

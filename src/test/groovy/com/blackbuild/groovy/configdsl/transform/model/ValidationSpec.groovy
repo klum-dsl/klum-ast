@@ -22,6 +22,38 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(ValidationException)
     }
 
+    def "defer validation via method"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            manualValidation(true)
+        }
+
+        then:
+        notThrown(ValidationException)
+
+        when:
+        instance.validate()
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        instance.validated "bla"
+        instance.validate()
+
+        then:
+        notThrown(ValidationException)
+    }
+
     def "validation is not performed on templates"() {
         given:
         createClass('''

@@ -11,5 +11,5 @@ import java.lang.annotation.*;
 public @interface DSL {
 
     ValidationTarget validationTarget() default ValidationTarget.IGNORE_UNMARKED;
-
+    ValidationMode validationMode() default ValidationMode.AUTOMATIC;
 }
