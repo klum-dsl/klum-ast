@@ -41,7 +41,6 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(ValidationException)
     }
 
-    @Ignore
     def "non annotated fields are not validated"() {
         given:
         createClass('''
@@ -55,12 +54,12 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {}
-        instance.$validate()
-
+        instance = clazz.create {
+            validated "bla"
+        }
 
         then:
-        thrown(ValidationException)
+        notThrown(ValidationException)
     }
 
 }
