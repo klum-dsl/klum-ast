@@ -14,6 +14,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
@@ -81,8 +82,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
-        ValidationMode mode = (ValidationMode) getMemberValue(dslAnnotation, "validationMode");
-        if (mode == null) mode = ValidationMode.AUTOMATIC;
+        ValidationMode mode = getEnumMemberValue(dslAnnotation, "validationMode", ValidationMode.class, ValidationMode.AUTOMATIC);
 
         annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == ValidationMode.MANUAL));
         MethodBuilder.createPublicMethod("manualValidation")
@@ -788,15 +788,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", argsCount);
         if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", argsCount)) return;
 
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
+        MethodBuilder factoryMethod = createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
                 .delegatingClosureParam(annotatedClass)
                 .declS("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callS(varX("result"), "copyFromTemplate")
-                .callS(varX("result"), "apply", varX("closure"))
-                .statement(ifS(notX(propX(varX("result"),"$manualValidation")), callX(varX("result"), VALIDATE_METHOD)))
+                .callS(varX("result"), "apply", varX("closure"));
+
+        factoryMethod.statement(ifS(notX(propX(varX("result"),"$manualValidation")), callX(varX("result"), VALIDATE_METHOD)));
+
+        factoryMethod
                 .statement(returnS(varX("result")))
                 .addTo(annotatedClass);
     }
@@ -917,6 +920,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void addCompileError(String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Enum> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
+        if (node == null) return defaultValue;
+
+        final PropertyExpression member = (PropertyExpression) node.getMember(name);
+        if (member == null)
+            return defaultValue;
+
+        if (!type.equals(member.getObjectExpression().getType().getTypeClass()))
+            return defaultValue;
+
+        try {
+            String value = member.getPropertyAsString();
+            Method fromString = type.getMethod("valueOf", String.class);
+            return (T) fromString.invoke(null, value);
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
 
     public void addCompileWarning(String msg, ASTNode node) {
