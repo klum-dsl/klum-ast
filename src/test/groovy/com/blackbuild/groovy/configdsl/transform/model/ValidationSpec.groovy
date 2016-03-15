@@ -23,6 +23,24 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(ValidationException)
     }
 
+    def "validation with message"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(message = "We need a name")
+                String name
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        def e = thrown(ValidationException)
+        e.message == "We need a name"
+    }
+
     def "validation with explicit Groovy Truth"() {
         given:
         createClass('''

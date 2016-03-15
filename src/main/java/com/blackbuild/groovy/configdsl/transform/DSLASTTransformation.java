@@ -138,6 +138,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
             if (validateAnnotation != null) {
+                message = getMemberStringValue(validateAnnotation, "message");
                 Expression member = validateAnnotation.getMember("value");
                 if (member instanceof ClassExpression) {
                     ClassNode memberType = member.getType();
@@ -147,17 +148,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
                         break;
                     }
+                    if (message == null)
+                        message = "'" + fieldNode.getName() + "' must be set!";
                 } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
                 }
-                message = getMemberStringValue(validateAnnotation, "message");
             }
 
             if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
                 block.addStatement(new AssertStatement(
                         new BooleanExpression(
                                 callX(validationClosure, "call", args(varX(fieldNode.getName())))
-                        )
+                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
                 ));
             }
         }
