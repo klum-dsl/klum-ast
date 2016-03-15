@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * Activates validation for the given Field. The actual validation logic can be configured using a closure.
  * If no closure is set, validation is done using groovy truth.
  */
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)
 public @interface Validate {
 

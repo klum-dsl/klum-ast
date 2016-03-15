@@ -43,7 +43,7 @@ class ValidationSpec extends AbstractDSLSpec {
     def "validation with Ignore"() {
         given:
         createClass('''
-            @DSL
+            @DSL @Validation(option = Validation.Option.VALIDATE_UNMARKED)
             class Foo {
                 @Validate(Validate.Ignore)
                 String validated
