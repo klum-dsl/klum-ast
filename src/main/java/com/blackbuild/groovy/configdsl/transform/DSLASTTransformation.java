@@ -119,7 +119,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateCustomMethods(BlockStatement block) {
-        // TODO implement
+        if (!annotatedClass.hasMethod("doValidate", Parameter.EMPTY_ARRAY)) return;
+
+        block.addStatement(stmt(callX(varX("this"), "doValidate")));
     }
 
     private void validateFields(BlockStatement block) {

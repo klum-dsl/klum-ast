@@ -281,4 +281,37 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(ValidationException)
     }
 
+    def "explicit validation method"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                def doValidate() {
+                    assert value1.length() < value2.length()
+                }
+            }
+        ''')
+
+        when:
+        clazz.create {
+            value1 "bla"
+            value2 "b"
+        }
+
+        then:
+        thrown(ValidationException)
+
+        when:
+        clazz.create {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(ValidationException)
+    }
+
 }
