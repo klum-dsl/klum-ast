@@ -1,3 +1,6 @@
+## 0.15.0
+- New Feature: Validation (https://github.com/blackbuild/config-dsl#validation)
+
 ## 0.14.13
 - Fixed Compilation fails on final fields ([#21](https://github.com/blackbuild/config-dsl/issues/21))
 - Fixed Helper Methods for $TEMPLATE fields are created ([#22](https://github.com/blackbuild/config-dsl/issues/22))
@@ -10,7 +13,7 @@
 
 ## 0.14.10
 - Shortcut syntax for boolean setters. Now the boolean setter can be called without argument, defaulting to
-  true. (e.g. you yould write "skipSonar()" instead of "skipSonar(true)")
+  true. (e.g. you could write "skipSonar()" instead of "skipSonar(true)")
 
 ## 0.14.9
 - GDSL improvements
