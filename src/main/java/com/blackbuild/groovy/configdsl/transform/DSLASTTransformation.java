@@ -19,7 +19,6 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
-import static groovy.transform.Undefined.isUndefined;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -146,7 +145,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         continue;
                     else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
                         addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
-                        break;
                     }
                     if (message == null)
                         message = "'" + fieldNode.getName() + "' must be set!";
@@ -748,32 +746,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
         String methodName = fieldNode.getName();
 
-        ClassNode fieldType = fieldNode.getType();
-        FieldNode keyField = getKeyField(fieldType);
-        String ownerFieldName = getOwnerFieldName(fieldType);
+        ClassNode targetFieldType = fieldNode.getType();
+        FieldNode targetTypeKeyField = getKeyField(targetFieldType);
+        String targetOwnerFieldName = getOwnerFieldName(targetFieldType);
 
-        if (!isAbstract(fieldType)) {
+        if (!isAbstract(targetFieldType)) {
             createPublicMethod(methodName)
-                    .returning(fieldType)
-                    .optionalStringParam("key", keyField)
-                    .delegatingClosureParam(fieldType)
-                    .declS("created", callX(classX(fieldType), "newInstance", optionalKeyArg(keyField)))
+                    .returning(targetFieldType)
+                    .optionalStringParam("key", targetTypeKeyField)
+                    .delegatingClosureParam(targetFieldType)
+                    .declS("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callS(varX("created"), "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName, targetOwnerFieldName)
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
 
-        if (!isFinal(fieldType)) {
+        if (!isFinal(targetFieldType)) {
             createPublicMethod(methodName)
-                    .returning(fieldType)
-                    .classParam("typeToCreate", fieldType)
-                    .optionalStringParam("key", keyField)
-                    .delegatingClosureParam(fieldType)
-                    .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(keyField)))
+                    .returning(targetFieldType)
+                    .classParam("typeToCreate", targetFieldType)
+                    .optionalStringParam("key", targetTypeKeyField)
+                    .delegatingClosureParam(targetFieldType)
+                    .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callS(varX("created"), "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName, targetOwnerFieldName)
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
