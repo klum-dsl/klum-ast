@@ -45,7 +45,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
     private static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(ValidationException.class);
+    private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
     private static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
 
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
@@ -103,12 +103,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
         tryCatchStatement.addCatch(new CatchStatement(
                 param(ASSERTION_ERROR_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args("e")))
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
                 )
         );
         tryCatchStatement.addCatch(new CatchStatement(
                 param(EXCEPTION_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args("e")))
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
                 )
         );
 
@@ -137,7 +137,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
             if (validateAnnotation != null) {
-                message = getMemberStringValue(validateAnnotation, "message");
+                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
                 Expression member = validateAnnotation.getMember("value");
                 if (member instanceof ClassExpression) {
                     ClassNode memberType = member.getType();
@@ -146,8 +146,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
                         addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
                     }
-                    if (message == null)
-                        message = "'" + fieldNode.getName() + "' must be set!";
                 } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
                 }

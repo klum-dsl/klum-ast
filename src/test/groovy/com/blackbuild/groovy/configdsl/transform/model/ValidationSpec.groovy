@@ -1,8 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
-import com.blackbuild.groovy.configdsl.transform.ValidationException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Ignore
 
 class ValidationSpec extends AbstractDSLSpec {
 
@@ -20,7 +18,25 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
+    }
+
+    def "validation with default message"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String name
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        def e = thrown(IllegalStateException)
+        e.message.startsWith("'name' must be set!")
     }
 
     def "validation with message"() {
@@ -37,8 +53,8 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        def e = thrown(ValidationException)
-        e.message == "We need a name"
+        def e = thrown(IllegalStateException)
+        e.message.startsWith("We need a name")
     }
 
     def "validation with explicit Groovy Truth"() {
@@ -55,7 +71,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
     }
 
     def "validation with Ignore"() {
@@ -72,7 +88,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "validation with Closure"() {
@@ -89,19 +105,19 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         clazz.create { validated "bla"}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         clazz.create { validated "valid"}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
     }
 
     def "validation with named Closure"() {
@@ -118,19 +134,19 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         clazz.create { validated "bla"}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         clazz.create { validated "valid"}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
     }
 
     def "validation only allows GroovyTruth, Ignore or literal closure"() {
@@ -163,20 +179,20 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
 
         when:
         instance.validate()
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         instance.validated "bla"
         instance.validate()
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "defer validation via annotation"() {
@@ -194,20 +210,20 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
 
         when:
         instance.validate()
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         instance.validated "bla"
         instance.validate()
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "validation is not performed on templates"() {
@@ -226,7 +242,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "non annotated fields are not validated"() {
@@ -247,7 +263,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "Option.VALIDATE_UNMARKED validates all unmarked fields"() {
@@ -264,7 +280,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         instance = clazz.create {
@@ -272,7 +288,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
     def "validation is inherited"() {
@@ -296,7 +312,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
     }
 
     def "explicit validation method"() {
@@ -320,7 +336,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(ValidationException)
+        thrown(IllegalStateException)
 
         when:
         clazz.create {
@@ -329,7 +345,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(ValidationException)
+        notThrown(IllegalStateException)
     }
 
 }
