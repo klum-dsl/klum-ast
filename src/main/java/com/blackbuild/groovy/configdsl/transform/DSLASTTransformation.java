@@ -4,7 +4,7 @@ import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
@@ -14,8 +14,10 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
+import java.lang.reflect.Method;
 import java.util.*;
 
+import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -36,13 +38,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
+    private static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     private static final ClassNode KEY_ANNOTATION = make(Key.class);
     private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
+    private static final ClassNode EXCEPTION_TYPE = make(Exception.class);
+    private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
+    private static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
+
     private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
+    public static final String VALIDATE_METHOD = "validate";
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private FieldNode ownerField;
@@ -63,12 +72,100 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         validateFieldAnnotations();
         createApplyMethods();
         createTemplateMethods();
-        createFactoryMethods(annotatedClass);
+        createFactoryMethods();
         createFieldMethods();
         createCanonicalMethods();
+        createValidateMethod();
 
         if (annotedClassIsTopOfDSLHierarchy())
             preventOwnerOverride();
+    }
+
+    private void createValidateMethod() {
+        Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
+
+        annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
+        MethodBuilder.createPublicMethod("manualValidation")
+                .param(Boolean_TYPE, "validation")
+                .assignS(varX("$manualValidation"), varX("validation"))
+                .addTo(annotatedClass);
+
+        MethodBuilder methodBuilder = createProtectedMethod(VALIDATE_METHOD);
+
+        if (isDSLObject(annotatedClass.getSuperClass())) {
+            methodBuilder.statement(callSuperX(VALIDATE_METHOD));
+        }
+
+        BlockStatement block = new BlockStatement();
+        validateFields(block);
+        validateCustomMethods(block);
+
+        TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
+        tryCatchStatement.addCatch(new CatchStatement(
+                param(ASSERTION_ERROR_TYPE, "e"),
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
+                )
+        );
+        tryCatchStatement.addCatch(new CatchStatement(
+                param(EXCEPTION_TYPE, "e"),
+                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
+                )
+        );
+
+        methodBuilder
+                .statement(tryCatchStatement)
+                .addTo(annotatedClass);
+    }
+
+    private void validateCustomMethods(BlockStatement block) {
+        if (!annotatedClass.hasMethod("doValidate", Parameter.EMPTY_ARRAY)) return;
+
+        block.addStatement(stmt(callX(varX("this"), "doValidate")));
+    }
+
+    private void validateFields(BlockStatement block) {
+        Validation.Option mode = getEnumMemberValue(
+                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
+                "option",
+                Validation.Option.class,
+                Validation.Option.IGNORE_UNMARKED);
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (shouldFieldBeIgnored(fieldNode)) continue;
+
+            ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
+            String message = null;
+
+            AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
+            if (validateAnnotation != null) {
+                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
+                Expression member = validateAnnotation.getMember("value");
+                if (member instanceof ClassExpression) {
+                    ClassNode memberType = member.getType();
+                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                        continue;
+                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
+                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
+                    }
+                } else if (member instanceof ClosureExpression){
+                    validationClosure = (ClosureExpression) member;
+                }
+            }
+
+            if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
+                block.addStatement(new AssertStatement(
+                        new BooleanExpression(
+                                callX(validationClosure, "call", args(varX(fieldNode.getName())))
+                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
+                ));
+            }
+        }
+    }
+
+    @NotNull
+    private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
+        ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
+        result.setVariableScope(scope.copy());
+        return result;
     }
 
     private boolean annotedClassIsTopOfDSLHierarchy() {
@@ -77,6 +174,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void validateFieldAnnotations() {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (shouldFieldBeIgnored(fieldNode)) continue;
+
             AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
             if (annotation == null) continue;
@@ -101,23 +200,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createTemplateMethods() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
 
-        ClassNode templateClass = getMemberClassValue(dslAnnotation, "template");
+        ClassNode templateClass;
 
-        if (templateClass == null && isAbstract(annotatedClass))
+        if (isAbstract(annotatedClass))
             templateClass = createTemplateClass();
-        else if (templateClass == null)
+        else
             templateClass = annotatedClass;
 
         createPublicMethod("createTemplate")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), callX(
-                                classX(templateClass),
-                                "create",
-                                keyField != null ? args(constX(null), varX("closure")) : args("closure")
-                        )
-                )
+                .declS("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
+                .callS(varX("result"), "copyFromTemplate")
+                .callS(varX("result"), "apply", varX("closure"))
+                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), varX("result"))
                 .addTo(annotatedClass);
 
         createPublicMethod("copyFromTemplate")
@@ -189,8 +286,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     )
             );
         }
-
-        createFactoryMethods(contextClass);
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null) {
@@ -283,7 +378,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode == ownerField) return true;
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
-        if (fieldNode.getName().equals(TEMPLATE_FIELD_NAME)) return true;
+        if (fieldNode.getName().startsWith("$")) return true;
         return false;
     }
 
@@ -649,32 +744,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
         String methodName = fieldNode.getName();
 
-        ClassNode fieldType = fieldNode.getType();
-        FieldNode keyField = getKeyField(fieldType);
-        String ownerFieldName = getOwnerFieldName(fieldType);
+        ClassNode targetFieldType = fieldNode.getType();
+        FieldNode targetTypeKeyField = getKeyField(targetFieldType);
+        String targetOwnerFieldName = getOwnerFieldName(targetFieldType);
 
-        if (!isAbstract(fieldType)) {
+        if (!isAbstract(targetFieldType)) {
             createPublicMethod(methodName)
-                    .returning(fieldType)
-                    .optionalStringParam("key", keyField)
-                    .delegatingClosureParam(fieldType)
-                    .declS("created", callX(classX(fieldType), "newInstance", optionalKeyArg(keyField)))
+                    .returning(targetFieldType)
+                    .optionalStringParam("key", targetTypeKeyField)
+                    .delegatingClosureParam(targetFieldType)
+                    .declS("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callS(varX("created"), "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName, targetOwnerFieldName)
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
         }
 
-        if (!isFinal(fieldType)) {
+        if (!isFinal(targetFieldType)) {
             createPublicMethod(methodName)
-                    .returning(fieldType)
-                    .classParam("typeToCreate", fieldType)
-                    .optionalStringParam("key", keyField)
-                    .delegatingClosureParam(fieldType)
-                    .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(keyField)))
+                    .returning(targetFieldType)
+                    .classParam("typeToCreate", targetFieldType)
+                    .optionalStringParam("key", targetTypeKeyField)
+                    .delegatingClosureParam(targetFieldType)
+                    .declS("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callS(varX("created"), "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", ownerFieldName, ownerFieldName)
+                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName, targetOwnerFieldName)
                     .assignS(propX(varX("this"), fieldNode.getName()), callX(varX("created"), "apply", varX("closure")))
                     .statement(returnS(varX("created")))
                     .addTo(annotatedClass);
@@ -708,44 +803,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createFactoryMethods(ClassNode targetClass) {
+    private void createFactoryMethods() {
+        int argsCount = keyField == null ? 1 : 2;
 
-        if (keyField == null)
-            createSimpleFactoryMethod(targetClass);
-        else
-            createFactoryMethodWithKeyParameter(targetClass);
-    }
+        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", argsCount);
+        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", argsCount)) return;
 
-    private void createFactoryMethodWithKeyParameter(ClassNode targetClass) {
-        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 2);
-        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 2)) return;
-
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(targetClass))
+        MethodBuilder factoryMethod = createPublicMethod(hasExistingFactory ? "_create" : "create")
+                .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
-                .stringParam("name")
-                .delegatingClosureParam(targetClass)
-                .declS("result", ctorX(targetClass, args("name")))
+                .optionalStringParam("name", keyField)
+                .delegatingClosureParam(annotatedClass)
+                .declS("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callS(varX("result"), "copyFromTemplate")
-                .callS(varX("result"), "apply", varX("closure"))
+                .callS(varX("result"), "apply", varX("closure"));
+
+        factoryMethod.statement(ifS(notX(propX(varX("result"),"$manualValidation")), callX(varX("result"), VALIDATE_METHOD)));
+
+        factoryMethod
                 .statement(returnS(varX("result")))
-                .addTo(targetClass);
-    }
-
-    private void createSimpleFactoryMethod(ClassNode targetClass) {
-        boolean hasExistingFactory = hasDeclaredMethod(targetClass, "create", 1);
-        if (hasExistingFactory && hasDeclaredMethod(targetClass, "_create", 1)) return;
-
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
-                .returning(newClass(targetClass))
-                .mod(Opcodes.ACC_STATIC)
-                .delegatingClosureParam(targetClass)
-                .declS("result", ctorX(targetClass))
-                .callS(varX("result"), "copyFromTemplate")
-                .callS(varX("result"), "apply", varX("closure"))
-                .statement(returnS(varX("result")))
-                .addTo(targetClass);
-
+                .addTo(annotatedClass);
     }
 
     private String getQualifiedName(FieldNode node) {
@@ -864,6 +941,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void addCompileError(String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Enum> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
+        if (node == null) return defaultValue;
+
+        final PropertyExpression member = (PropertyExpression) node.getMember(name);
+        if (member == null)
+            return defaultValue;
+
+        if (!type.equals(member.getObjectExpression().getType().getTypeClass()))
+            return defaultValue;
+
+        try {
+            String value = member.getPropertyAsString();
+            Method fromString = type.getMethod("valueOf", String.class);
+            return (T) fromString.invoke(null, value);
+        } catch (Exception e) {
+            return defaultValue;
+        }
     }
 
     public void addCompileWarning(String msg, ASTNode node) {

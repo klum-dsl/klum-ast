@@ -63,7 +63,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "orig"
     }
 
-    def "create template method is created"() {
+    def "create template method create template class field"() {
         given:
         createClass('''
             package pk

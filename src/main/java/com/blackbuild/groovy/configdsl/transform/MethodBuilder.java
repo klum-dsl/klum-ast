@@ -23,7 +23,7 @@ public class MethodBuilder {
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
 
-    private int modifiers = Opcodes.ACC_PUBLIC;
+    private int modifiers;
 
     private String name;
 
@@ -40,7 +40,15 @@ public class MethodBuilder {
     }
 
     public static MethodBuilder createPublicMethod(String name) {
-        return new MethodBuilder(name);
+        return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC);
+    }
+
+    public static MethodBuilder createProtectedMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PROTECTED);
+    }
+
+    public static MethodBuilder createPrivateMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PRIVATE);
     }
 
     @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
