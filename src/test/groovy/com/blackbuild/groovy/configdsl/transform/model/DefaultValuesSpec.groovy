@@ -167,6 +167,33 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         !instance.names.is(clazz.$TEMPLATE.names)
     }
 
+    def "BUG Redefining a template should completely drop the old template"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> names
+            }
+        ''')
+
+        and:
+        clazz.createTemplate {
+            names "a", "b"
+        }
+
+        clazz.createTemplate {
+            names "c", "d"
+        }
+
+        when:
+        instance = clazz.create {}
+
+        then:
+        instance.names == ["c", "d"]
+    }
+
     def "template for parent class affects child instances"() {
         given:
         createClass('''

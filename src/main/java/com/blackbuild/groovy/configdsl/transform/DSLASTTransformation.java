@@ -211,6 +211,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
+                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), constX(null))
                 .declS("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callS(varX("result"), "copyFromTemplate")
                 .callS(varX("result"), "apply", varX("closure"))

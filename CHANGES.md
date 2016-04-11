@@ -1,3 +1,8 @@
+## 0.15.1
+- Fixed: Validation changes broke template behaviour. Previously, each call of `createTemplate` created a 
+ new instance as the template. Now the new template was accidently created based on the previous
+ template.
+
 ## 0.15.0
 - New Feature: Validation (https://github.com/blackbuild/config-dsl#validation)
 
