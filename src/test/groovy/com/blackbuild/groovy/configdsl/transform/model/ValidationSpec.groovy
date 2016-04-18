@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
 
@@ -20,6 +21,57 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         thrown(IllegalStateException)
     }
+
+    @Issue("25")
+    def "validation of nested elements does not work"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+
+                @Validate
+                Inner inner
+            }
+
+            @DSL
+            class Inner {
+                @Validate
+                String value
+            }
+        ''')
+
+        when:
+        clazz.create {
+            validated "works"
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "works"
+            inner {}
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "works"
+            inner {
+                value "works, too"
+            }
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+
 
     def "validation with default message"() {
         given:
