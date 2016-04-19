@@ -162,7 +162,7 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder declS(String target, Expression init) {
+    public MethodBuilder declareVariable(String target, Expression init) {
         return statement(GeneralUtils.declS(varX(target), init));
     }
 
@@ -190,11 +190,11 @@ public class MethodBuilder {
         return statement(stmt(expression));
     }
 
-    public MethodBuilder returnS(String varName) {
-        return returnS(varX(varName));
+    public MethodBuilder doReturn(String varName) {
+        return doReturn(varX(varName));
     }
 
-    public MethodBuilder returnS(Expression expression) {
+    public MethodBuilder doReturn(Expression expression) {
         return statement(GeneralUtils.returnS(expression));
     }
 
