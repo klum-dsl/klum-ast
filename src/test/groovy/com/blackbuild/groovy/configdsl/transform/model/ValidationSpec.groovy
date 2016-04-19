@@ -42,17 +42,17 @@ class ValidationSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:
+        when: 'missing inner instance'
         clazz.create {
-            validated "works"
+            validated "correct"
         }
 
         then:
         thrown(IllegalStateException)
 
-        when:
+        when: 'inner instance does not validate'
         clazz.create {
-            validated "works"
+            validated "correct"
             inner {}
         }
 
@@ -61,9 +61,117 @@ class ValidationSpec extends AbstractDSLSpec {
 
         when:
         clazz.create {
-            validated "works"
+            validated "correct"
             inner {
-                value "works, too"
+                value "valid"
+            }
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+    @Issue("25")
+    def "validation of nested list elements"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+
+                @Validate
+                List<Inner> inners
+            }
+
+            @DSL
+            class Inner {
+                @Validate
+                String value
+            }
+        ''')
+
+        when: 'inners is empty'
+        clazz.create {
+            validated "correct"
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "correct"
+            inners {
+                inner {}
+            }
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "correct"
+            inners {
+                inner {
+                    value "valid"
+                }
+            }
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+    @Issue("25")
+    def "validation of nested map elements"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+
+                @Validate
+                Map<String, Inner> inners
+            }
+
+            @DSL
+            class Inner {
+                @Key
+                String name
+                @Validate
+                String value
+            }
+        ''')
+
+        when: 'inners is empty'
+        clazz.create {
+            validated "correct"
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "correct"
+            inners {
+                inner("bla") {}
+            }
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            validated "correct"
+            inners {
+                inner("bla") {
+                    value "valid"
+                }
             }
         }
 
