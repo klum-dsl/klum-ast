@@ -1,3 +1,6 @@
+## 0.15.2
+- Fixed: validation of nested elements does not work ([#25](https://github.com/blackbuild/config-dsl/issues/25))
+
 ## 0.15.1
 - Fixed: Validation changes broke template behaviour. Previously, each call of `createTemplate` created a 
  new instance as the template. Now the new template was accidently created based on the previous
