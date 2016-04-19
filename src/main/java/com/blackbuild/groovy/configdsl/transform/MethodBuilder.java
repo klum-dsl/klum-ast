@@ -12,6 +12,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.DSLASTTransformation.VALIDATE_METHOD;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -137,6 +138,14 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder assignToProperty(String propertyName, Expression value) {
+        String[] split = propertyName.split("\\.", 2);
+        if (split.length == 1)
+            return assignS(propX(varX("this"), propertyName), value);
+
+        return assignS(propX(varX(split[0]), split[1]), value);
+    }
+
     public MethodBuilder assignS(Expression target, Expression value) {
         return statement(GeneralUtils.assignS(target, value));
     }
@@ -149,7 +158,7 @@ public class MethodBuilder {
 
     public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty, Object marker) {
         if (marker != null)
-            return callS(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
+            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
         return this;
     }
 
@@ -157,15 +166,43 @@ public class MethodBuilder {
         return statement(GeneralUtils.declS(varX(target), init));
     }
 
-    public MethodBuilder callS(Expression receiver, String methodName) {
-        return callS(receiver, methodName, MethodCallExpression.NO_ARGUMENTS);
+    public MethodBuilder callMethod(Expression receiver, String methodName) {
+        return callMethod(receiver, methodName, MethodCallExpression.NO_ARGUMENTS);
     }
 
-    public MethodBuilder callS(Expression receiver, String methodName, Expression args) {
+    public MethodBuilder callMethod(String receiverName, String methodName) {
+        return callMethod(varX(receiverName), methodName);
+    }
+
+    public MethodBuilder callMethod(Expression receiver, String methodName, Expression args) {
         return statement(GeneralUtils.callX(receiver, methodName, args));
+    }
+
+    public MethodBuilder callMethod(String receiverName, String methodName, Expression args) {
+        return callMethod(varX(receiverName), methodName, args);
+    }
+
+    public MethodBuilder callThis(String methodName, Expression args) {
+        return callMethod("this", methodName, args);
     }
 
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
+    }
+
+    public MethodBuilder returnS(String varName) {
+        return returnS(varX(varName));
+    }
+
+    public MethodBuilder returnS(Expression expression) {
+        return statement(GeneralUtils.returnS(expression));
+    }
+
+    public MethodBuilder callValidationOn(String target) {
+        return callValidationMethodOn(varX(target));
+    }
+
+    private MethodBuilder callValidationMethodOn(Expression targetX) {
+        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, VALIDATE_METHOD)));
     }
 }
