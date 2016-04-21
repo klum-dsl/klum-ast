@@ -836,7 +836,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("result")
                 .addTo(annotatedClass);
 
-        createPublicMethod("createFrom")
+        createPublicMethod("createFromScript")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .classParam("configType", ClassHelper.SCRIPT_TYPE)

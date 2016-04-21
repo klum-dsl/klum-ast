@@ -211,7 +211,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.createFromScript(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
