@@ -1,3 +1,6 @@
+## 0.16.0
+- New Feature: Convenience Factories (https://github.com/blackbuild/config-dsl#Convenience-Factories)
+
 ## 0.15.2
 - Fixed: validation of nested elements does not work ([#25](https://github.com/blackbuild/config-dsl/issues/25))
 
