@@ -237,6 +237,42 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    def "convenience factory with static methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+                Bar bar
+            }
+
+            @DSL
+            class Bar {
+                String bValue
+            }
+        ''')
+
+        def configText = '''
+            pk.Bar.createTemplate {
+                bValue "default"
+            }
+            value "bla"
+
+            bar {}
+
+        '''
+
+        when:
+        instance = clazz.createFromConfig(configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.bar.bValue == "default"
+    }
+
     def "convenience factory from String with keyed object"() {
         given:
         createClass('''

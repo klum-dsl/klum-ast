@@ -6,6 +6,7 @@ import spock.lang.Specification
 
 class AbstractDSLSpec extends Specification {
 
+    protected ClassLoader oldLoader
     protected GroovyClassLoader loader
     protected def instance
     protected Class<?> clazz
@@ -19,6 +20,11 @@ class AbstractDSLSpec extends Specification {
         CompilerConfiguration config = new CompilerConfiguration()
         config.addCompilationCustomizers(importCustomizer)
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), config)
+        Thread.currentThread().contextClassLoader = loader
+    }
+
+    def cleanup() {
+        Thread.currentThread().contextClassLoader = oldLoader
     }
 
     def createInstance(String code) {

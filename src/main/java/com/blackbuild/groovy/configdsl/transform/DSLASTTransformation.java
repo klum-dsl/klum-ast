@@ -19,7 +19,6 @@ import org.objectweb.asm.Opcodes;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -93,7 +92,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .assignS(varX("$manualValidation"), varX("validation"))
                 .addTo(annotatedClass);
 
-        MethodBuilder methodBuilder = createProtectedMethod(VALIDATE_METHOD);
+        MethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
 
         if (isDSLObject(annotatedClass.getSuperClass())) {
             methodBuilder.statement(callSuperX(VALIDATE_METHOD));
