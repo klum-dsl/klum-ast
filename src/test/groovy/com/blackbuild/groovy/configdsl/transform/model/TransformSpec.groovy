@@ -187,6 +187,33 @@ class TransformSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    def "convenience factory from script class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+        def scriptClass = createSecondaryClass('''
+            import pk.Foo
+
+            Foo.create {
+                value "bla"
+            }
+        ''')
+
+        when:
+        instance = clazz.createFrom(scriptClass)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
     def "constructor is created for keyed object"() {
         given:
         createClass('''

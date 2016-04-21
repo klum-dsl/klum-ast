@@ -32,6 +32,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  *
  * @author Stephan Pauxberger
  */
+@SuppressWarnings("WeakerAccess")
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
@@ -374,6 +375,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
+    @SuppressWarnings("RedundantIfStatement")
     private boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if (fieldNode == keyField) return true;
         if (fieldNode == ownerField) return true;
@@ -830,6 +832,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod("result", "apply", varX("closure"))
                 .callValidationOn("result")
                 .doReturn("result")
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFrom")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .classParam("configType", ClassHelper.SCRIPT_TYPE)
+                .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
                 .addTo(annotatedClass);
     }
 

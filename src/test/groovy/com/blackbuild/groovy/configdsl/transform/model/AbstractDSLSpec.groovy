@@ -34,6 +34,10 @@ class AbstractDSLSpec extends Specification {
         clazz = loader.parseClass(code)
     }
 
+    def createSecondaryClass(String code) {
+        return loader.parseClass(code)
+    }
+
     def create(String classname, Closure closure) {
         getClass(classname).create(closure)
     }
