@@ -1,12 +1,16 @@
 package com.blackbuild.groovy.configdsl.transform.model
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
 
 import java.lang.reflect.Method
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
+
+    @Rule TemporaryFolder temp = new TemporaryFolder()
 
     def "apply method is created"() {
         when:
@@ -230,7 +234,7 @@ class TransformSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromConfig(configText)
+        instance = clazz.createFromSnippet(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -265,7 +269,7 @@ class TransformSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromConfig(configText)
+        instance = clazz.createFromSnippet(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -290,12 +294,60 @@ class TransformSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromConfig("blub", configText)
+        instance = clazz.createFromSnippet("blub", configText)
 
         then:
         instance.class.name == "pk.Foo"
         instance.name == "blub"
         instance.value == "bla"
+    }
+
+    def "convenience factory from file"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+        File src = temp.newFile("blub.config")
+        src.text = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromSnippet(src)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
+    def "keyed convenience factory from file"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+            }
+        ''')
+        File src = temp.newFile("blub.config")
+        src.text = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromSnippet(src)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.name == "blub"
     }
 
     def "constructor is created for keyed object"() {

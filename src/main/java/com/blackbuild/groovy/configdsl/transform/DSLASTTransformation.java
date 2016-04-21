@@ -16,6 +16,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -846,7 +847,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 Arrays.asList(constX("{ ->"), constX("}")),
                 Collections.singletonList((Expression) varX("text")));
 
-        createPublicMethod("createFromConfig")
+        createPublicMethod("createFromSnippet")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
@@ -855,6 +856,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
                 .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
                 .doReturn(callX(annotatedClass, "create", keyField != null ? args("name", "closure") : args("closure")))
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFromSnippet")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .param(make(File.class), "src")
+                .declareVariable("simpleName", callX(callX(propX(varX("src"), "name"), "tokenize", args(constX("."))), "first"))
+                .declareVariable("text", propX(varX("src"), "text"))
+                .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args("simpleName", "text") : args("text")))
                 .addTo(annotatedClass);
     }
 

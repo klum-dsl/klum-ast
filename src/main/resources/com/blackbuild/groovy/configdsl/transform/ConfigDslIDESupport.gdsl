@@ -28,7 +28,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 type: clazz.type.qualifiedName
         )
         method(
-                name: "createFromConfig",
+                name: "createFromSnippet",
                 doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key, using the given String as closure content" as String,
                 isStatic: true,
                 params: ["$clazz.key": "java.lang.String", content: "java.lang.String"],
@@ -44,7 +44,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 type: clazz.type.qualifiedName
         )
         method(
-                name: "createFromConfig",
+                name: "createFromSnippet",
                 doc: "Creates a new instance of ${clazz.type.qualifiedName}, using the given String as closure content" as String,
                 isStatic: true,
                 params: [content: "java.lang.String"],
@@ -57,6 +57,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             doc: "Creates a new instance of ${clazz.type.qualifiedName} reading from the given script" as String,
             isStatic: true,
             params: [type: "groovy.lang.Script"],
+            type: clazz.type.qualifiedName
+    )
+    method(
+            name: "createFromSnippet",
+            doc: "Creates a new instance of ${clazz.type.qualifiedName}, using the content of the given file" as String,
+            isStatic: true,
+            params: [source: "java.io.File"],
             type: clazz.type.qualifiedName
     )
 
