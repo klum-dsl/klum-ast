@@ -12,6 +12,7 @@ class AbstractDSLSpec extends Specification {
     protected Class<?> clazz
 
     def setup() {
+        oldLoader = Thread.currentThread().contextClassLoader
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
                 "com.blackbuild.groovy.configdsl.transform"
