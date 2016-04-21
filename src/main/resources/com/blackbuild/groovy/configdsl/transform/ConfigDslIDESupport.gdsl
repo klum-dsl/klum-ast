@@ -1,16 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform
 
-import com.intellij.psi.PsiAnnotation
-import com.intellij.psi.PsiCall
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiClassType
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiEllipsisType
-import com.intellij.psi.PsiField
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiType
-
+import com.intellij.psi.*
 
 contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")) {
 
@@ -37,6 +27,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 params: ["$clazz.key": "java.lang.String", closure: Closure.class.name],
                 type: clazz.type.qualifiedName
         )
+        method(
+                name: "createFromSnippet",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key, using the given String as closure content" as String,
+                isStatic: true,
+                params: ["$clazz.key": "java.lang.String", content: "java.lang.String"],
+                type: clazz.type.qualifiedName
+        )
         method(constructor: true, params: ["$clazz.key": "java.lang.String"])
     } else {
         method(
@@ -46,7 +43,29 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 params: [closure: Closure.class.name],
                 type: clazz.type.qualifiedName
         )
+        method(
+                name: "createFromSnippet",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName}, using the given String as closure content" as String,
+                isStatic: true,
+                params: [content: "java.lang.String"],
+                type: clazz.type.qualifiedName
+        )
     }
+
+    method(
+            name: "createFromScript",
+            doc: "Creates a new instance of ${clazz.type.qualifiedName} reading from the given script" as String,
+            isStatic: true,
+            params: [type: "groovy.lang.Script"],
+            type: clazz.type.qualifiedName
+    )
+    method(
+            name: "createFromSnippet",
+            doc: "Creates a new instance of ${clazz.type.qualifiedName}, using the content of the given file" as String,
+            isStatic: true,
+            params: [source: "java.io.File"],
+            type: clazz.type.qualifiedName
+    )
 
     method(
             name: "createTemplate",
@@ -54,6 +73,17 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             isStatic: true,
             params: [closure: Closure.class.name],
             type: clazz.type.qualifiedName
+    )
+
+    method(
+            name: "manualValidation",
+            doc: "Controls whether validation will automatically executed after create." as String,
+            params: [validate: Boolean.class.name]
+    )
+    method(
+            name: "validate",
+            doc: "Performs a manual validation" as String,
+            params: []
     )
 
     classType?.allFields?.each { PsiField rawField ->

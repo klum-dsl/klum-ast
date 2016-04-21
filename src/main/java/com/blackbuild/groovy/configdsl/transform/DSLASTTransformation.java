@@ -1,5 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
@@ -14,10 +16,10 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.Opcodes;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -32,6 +34,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  *
  * @author Stephan Pauxberger
  */
+@SuppressWarnings("WeakerAccess")
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
@@ -90,7 +93,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .assignS(varX("$manualValidation"), varX("validation"))
                 .addTo(annotatedClass);
 
-        MethodBuilder methodBuilder = createProtectedMethod(VALIDATE_METHOD);
+        MethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
 
         if (isDSLObject(annotatedClass.getSuperClass())) {
             methodBuilder.statement(callSuperX(VALIDATE_METHOD));
@@ -374,6 +377,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
+    @SuppressWarnings("RedundantIfStatement")
     private boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if (fieldNode == keyField) return true;
         if (fieldNode == ownerField) return true;
@@ -830,6 +834,37 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod("result", "apply", varX("closure"))
                 .callValidationOn("result")
                 .doReturn("result")
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFromScript")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .classParam("configType", ClassHelper.SCRIPT_TYPE)
+                .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
+                .addTo(annotatedClass);
+
+        GStringExpression closureWrapper = new GStringExpression("{ -> $text }",
+                Arrays.asList(constX("{ ->"), constX("}")),
+                Collections.singletonList((Expression) varX("text")));
+
+        createPublicMethod("createFromSnippet")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .optionalStringParam("name", keyField)
+                .stringParam("text")
+                .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
+                .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
+                .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
+                .doReturn(callX(annotatedClass, "create", keyField != null ? args("name", "closure") : args("closure")))
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFromSnippet")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .param(make(File.class), "src")
+                .declareVariable("simpleName", callX(callX(propX(varX("src"), "name"), "tokenize", args(constX("."))), "first"))
+                .declareVariable("text", propX(varX("src"), "text"))
+                .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args("simpleName", "text") : args("text")))
                 .addTo(annotatedClass);
     }
 

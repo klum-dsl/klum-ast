@@ -232,6 +232,35 @@ Additionally, an `apply` method is created, which takes single closure and appli
 def void apply(Closure c)
 ```
 
+#### Convenience Factories
+
+since 0.16, config-dsl supports convenience factory methods that allow reading a configuration directly from a file or
+String:
+
+`MyConfig.createFromScript(Class<Script>)` runs the given Script and returns the result. The script must return the
+proper type, for example:
+
+```groovy
+MyConfig.create {
+  value("bla")
+}
+```
+
+`MyConfig.createFromSnippet(text)` or `MyConfig.createFromSnippet(key, text)` convert the given text to a closure that
+is used to configure an new instance of the dsl object:
+
+```groovy
+value("bla")
+```
+
+Snippets must not contain import statements, i.e. all classes that are not imported by Groovy default need to be
+used fully qualified.
+
+Snippets can also be loaded directly from a file: `MyConfig.createFromSnippet(text)`, in case of a keyed object, the
+key is derived from the filename (the first segment). By using a small dsld-snipped in your IDEA, you even get complete
+code completion and syntax highlighting an specialized config files.
+
+
 #### copyFrom() method
 
 Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
