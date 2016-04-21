@@ -1,5 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
@@ -839,6 +841,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(Opcodes.ACC_STATIC)
                 .classParam("configType", ClassHelper.SCRIPT_TYPE)
                 .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
+                .addTo(annotatedClass);
+
+        GStringExpression closureWrapper = new GStringExpression("{ -> $text }",
+                Arrays.asList(constX("{ ->"), constX("}")),
+                Collections.singletonList((Expression) varX("text")));
+
+        createPublicMethod("createFromConfig")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .optionalStringParam("name", keyField)
+                .stringParam("text")
+                .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
+                .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
+                .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
+                .doReturn(callX(annotatedClass, "create", keyField != null ? args("name", "closure") : args("closure")))
                 .addTo(annotatedClass);
     }
 

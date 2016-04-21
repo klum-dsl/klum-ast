@@ -186,6 +186,11 @@ public class MethodBuilder {
         return callMethod("this", methodName, args);
     }
 
+    @Deprecated
+    public MethodBuilder println(Expression args) {
+        return callThis("println", args);
+    }
+
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
     }

@@ -214,6 +214,54 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    def "convenience factory from String"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+        def configText = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromConfig(configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
+    def "convenience factory from String with keyed object"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+            }
+        ''')
+
+        def configText = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromConfig("blub", configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.name == "blub"
+        instance.value == "bla"
+    }
+
     def "constructor is created for keyed object"() {
         given:
         createClass('''
