@@ -350,6 +350,31 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "blub"
     }
 
+    def "keyed convenience factory from URL"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+            }
+        ''')
+        File src = temp.newFile("blub.config")
+        src.text = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromSnippet(src.toURI().toURL())
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.name == "blub"
+    }
+
     def "constructor is created for keyed object"() {
         given:
         createClass('''

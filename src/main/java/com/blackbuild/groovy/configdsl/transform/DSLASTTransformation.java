@@ -18,6 +18,7 @@ import org.objectweb.asm.Opcodes;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.MethodBuilder.createPublicMethod;
@@ -847,24 +848,43 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 Arrays.asList(constX("{ ->"), constX("}")),
                 Collections.singletonList((Expression) varX("text")));
 
-        createPublicMethod("createFromSnippet")
-                .returning(newClass(annotatedClass))
-                .mod(Opcodes.ACC_STATIC)
-                .optionalStringParam("name", keyField)
-                .stringParam("text")
-                .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
-                .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
-                .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
-                .doReturn(callX(annotatedClass, "create", keyField != null ? args("name", "closure") : args("closure")))
-                .addTo(annotatedClass);
+        if (keyField != null) {
+            createPublicMethod("createFromSnippet")
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .stringParam("name")
+                    .stringParam("text")
+                    .declareVariable("simpleName", callX(callX(callX(callX(varX("name"), "tokenize", args(constX("."))), "first"), "tokenize", args(constX("/"))), "last"))
+                    .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
+                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
+                    .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
+                    .doReturn(callX(annotatedClass, "create", args("simpleName", "closure")))
+                    .addTo(annotatedClass);
+        } else {
+            createPublicMethod("createFromSnippet")
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .stringParam("text")
+                    .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
+                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
+                    .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
+                    .doReturn(callX(annotatedClass, "create", args("closure")))
+                    .addTo(annotatedClass);
+        }
 
         createPublicMethod("createFromSnippet")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .param(make(File.class), "src")
-                .declareVariable("simpleName", callX(callX(propX(varX("src"), "name"), "tokenize", args(constX("."))), "first"))
+                .doReturn(callX(annotatedClass, "createFromSnippet", args(callX(callX(varX("src"), "toURI"), "toURL"))))
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFromSnippet")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .param(make(URL.class), "src")
                 .declareVariable("text", propX(varX("src"), "text"))
-                .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args("simpleName", "text") : args("text")))
+                .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
                 .addTo(annotatedClass);
     }
 

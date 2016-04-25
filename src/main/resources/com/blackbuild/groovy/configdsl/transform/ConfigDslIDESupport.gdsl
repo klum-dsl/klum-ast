@@ -66,6 +66,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             params: [source: "java.io.File"],
             type: clazz.type.qualifiedName
     )
+    method(
+            name: "createFromSnippet",
+            doc: "Creates a new instance of ${clazz.type.qualifiedName}, using the content of the given file" as String,
+            isStatic: true,
+            params: [source: "java.net.URL"],
+            type: clazz.type.qualifiedName
+    )
 
     method(
             name: "createTemplate",
