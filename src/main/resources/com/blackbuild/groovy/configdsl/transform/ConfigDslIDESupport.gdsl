@@ -56,7 +56,7 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
             name: "createFromScript",
             doc: "Creates a new instance of ${clazz.type.qualifiedName} reading from the given script" as String,
             isStatic: true,
-            params: [type: "groovy.lang.Script"],
+            params: [type: "java.lang.Class<? extends groovy.lang.Script>"],
             type: clazz.type.qualifiedName
     )
     method(
