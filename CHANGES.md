@@ -1,3 +1,6 @@
+## 0.16.1
+- Convenience factory for URLs
+
 ## 0.16.0
 - New Feature: Convenience Factories (https://github.com/blackbuild/config-dsl#Convenience-Factories)
 

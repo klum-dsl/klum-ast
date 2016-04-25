@@ -256,7 +256,7 @@ value("bla")
 Snippets must not contain import statements, i.e. all classes that are not imported by Groovy default need to be
 used fully qualified.
 
-Snippets can also be loaded directly from a file: `MyConfig.createFromSnippet(text)`, in case of a keyed object, the
+Snippets can also be loaded directly from a file or URL `MyConfig.createFromSnippet(fileOrURL)`, in case of a keyed object, the
 key is derived from the filename (the first segment). By using a small dsld-snipped in your IDEA, you even get complete
 code completion and syntax highlighting an specialized config files.
 
