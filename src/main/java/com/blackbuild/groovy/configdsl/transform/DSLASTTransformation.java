@@ -89,13 +89,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new ValidationBuilder().invoke();
     }
 
-    @NotNull
-    private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
-        ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
-        result.setVariableScope(scope.copy());
-        return result;
-    }
-
     private boolean annotedClassIsTopOfDSLHierarchy() {
         return ownerField != null && annotatedClass.getDeclaredField(ownerField.getName()) != null;
     }
@@ -957,10 +950,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private class ValidationBuilder {
 
-        private Validation.Mode validationMode;
+        public /*static*/ final ClassNode IGNORE = ClassHelper.make(Validate.Ignore.class);
+        public /*static*/ final ClassNode GROOVY_TRUTH = ClassHelper.make(Validate.GroovyTruth.class);
+
+        private Validation.Mode mode;
+        private Validation.Option option;
         private MethodBuilder validationMethod;
         private BlockStatement validationBlock;
-        private Validation.Option validationOption;
 
         public void invoke() {
             readValidateAnnotation();
@@ -1008,7 +1004,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         private void addManualValidationToggle() {
-            annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(validationMode == Validation.Mode.MANUAL));
+            annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
             MethodBuilder.createPublicMethod("manualValidation")
                     .param(Boolean_TYPE, "validation")
                     .assignS(varX("$manualValidation"), varX("validation"))
@@ -1016,13 +1012,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         private void readValidateAnnotation() {
-            validationMode = getEnumMemberValue(
+            mode = getEnumMemberValue(
                     getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
                     "mode",
                     Validation.Mode.class,
                     Validation.Mode.AUTOMATIC
             );
-            validationOption = getEnumMemberValue(
+            option = getEnumMemberValue(
                     getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
                     "option",
                     Validation.Option.class,
@@ -1035,35 +1031,55 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
         }
 
+        private FieldNode currentField;
+        private AnnotationNode annotationOfCurrentField;
+
         private void addValidationForSingleFieldTo(FieldNode fieldToValidate) {
             if (shouldFieldBeIgnored(fieldToValidate)) return;
+            currentField = fieldToValidate;
+            annotationOfCurrentField = getAnnotation(fieldToValidate, VALIDATE_ANNOTATION);
 
-            ClosureExpression validationClosure = createGroovyTruthClosureExpression(validationBlock.getVariableScope());
-            String message = null;
-
-            AnnotationNode validateAnnotation = getAnnotation(fieldToValidate, VALIDATE_ANNOTATION);
-            if (validateAnnotation != null) {
-                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldToValidate.getName() + "' must be set!");
-                Expression member = validateAnnotation.getMember("value");
+            if (annotationOfCurrentField != null) {
+                Expression member = annotationOfCurrentField.getMember("value");
                 if (member instanceof ClassExpression) {
                     ClassNode memberType = member.getType();
-                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                    if (memberType.equals(IGNORE))
                         return;
-                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
+                    else if (memberType.equals(GROOVY_TRUTH)) {
+                        addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
+                    } else {
                         addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldToValidate);
                     }
                 } else if (member instanceof ClosureExpression){
-                    validationClosure = (ClosureExpression) member;
+                    addAssertFieldMeetsClosureStatement((ClosureExpression) member);
+                } else {
+                    addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
                 }
+            } else if (option == Validation.Option.VALIDATE_UNMARKED) {
+                addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
             }
+        }
 
-            if (validateAnnotation != null || validationOption == Validation.Option.VALIDATE_UNMARKED) {
-                validationBlock.addStatement(new AssertStatement(
-                        new BooleanExpression(
-                                callX(validationClosure, "call", args(varX(fieldToValidate.getName())))
-                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
-                ));
-            }
+        private void addAssertFieldMeetsClosureStatement(ClosureExpression validationClosure) {
+            validationBlock.addStatement(new AssertStatement(
+                    new BooleanExpression(
+                            callX(validationClosure, "call", args(varX(currentField.getName())))
+                    ), getValidationMessage()
+            ));
+        }
+
+        private ConstantExpression getValidationMessage() {
+            if (annotationOfCurrentField != null)
+                return new ConstantExpression(getMemberStringValue(annotationOfCurrentField, "message", "'" + currentField.getName() + "' must be set!"));
+            else
+                return ConstantExpression.NULL;
+        }
+
+        @NotNull
+        private ClosureExpression createGroovyTruthClosureExpression() {
+            ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
+            result.setVariableScope(validationBlock.getVariableScope().copy());
+            return result;
         }
 
         private void addCallToCustomValidationMethod() {
