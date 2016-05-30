@@ -101,19 +101,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             if (annotation == null) continue;
 
-            if (isListOrMap(fieldNode.getType())) return;
+            if (!isListOrMap(fieldNode.getType())) {
 
-            if (annotation.getMember("members") != null) {
-                addCompileError(
-                        String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
-                        annotation
-                );
-            }
-            if (annotation.getMember("alternatives") != null) {
-                addCompileError(
-                        String.format("@Field.alternatives is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
-                        annotation
-                );
+                if (annotation.getMember("members") != null) {
+                    addCompileError(
+                            String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
+                            annotation
+                    );
+                }
+                if (annotation.getMember("alternatives") != null) {
+                    addCompileError(
+                            String.format("@Field.alternatives is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
+                            annotation
+                    );
+                }
             }
         }
     }
@@ -961,7 +962,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         public void invoke() {
             readValidateAnnotation();
             addManualValidationToggle();
-
             createValidationMethod();
         }
 
@@ -1039,24 +1039,34 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             currentField = fieldToValidate;
             annotationOfCurrentField = getAnnotation(fieldToValidate, VALIDATE_ANNOTATION);
 
-            if (annotationOfCurrentField != null) {
-                Expression member = annotationOfCurrentField.getMember("value");
-                if (member instanceof ClassExpression) {
-                    ClassNode memberType = member.getType();
-                    if (memberType.equals(IGNORE))
-                        return;
-                    else if (memberType.equals(GROOVY_TRUTH)) {
-                        addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
-                    } else {
-                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldToValidate);
-                    }
-                } else if (member instanceof ClosureExpression){
-                    addAssertFieldMeetsClosureStatement((ClosureExpression) member);
-                } else {
-                    addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
-                }
-            } else if (option == Validation.Option.VALIDATE_UNMARKED) {
-                addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
+            if (annotationOfCurrentField != null)
+                createValidationFromAnnotation();
+            else if (option == Validation.Option.VALIDATE_UNMARKED)
+                createGroovyTruthValidation();
+        }
+
+        private void createGroovyTruthValidation() {
+            addAssertFieldMeetsClosureStatement(createGroovyTruthClosureExpression());
+        }
+
+        private void createValidationFromAnnotation() {
+            Expression member = annotationOfCurrentField.getMember("value");
+            if (member instanceof ClassExpression)
+                addConstantValidation(member);
+            else if (member instanceof ClosureExpression)
+                addAssertFieldMeetsClosureStatement((ClosureExpression) member);
+            else
+                createGroovyTruthValidation();
+        }
+
+        private void addConstantValidation(Expression member) {
+            ClassNode memberType = member.getType();
+            if (memberType.equals(IGNORE))
+                return;
+            else if (memberType.equals(GROOVY_TRUTH)) {
+                createGroovyTruthValidation();
+            } else {
+                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", currentField);
             }
         }
 
