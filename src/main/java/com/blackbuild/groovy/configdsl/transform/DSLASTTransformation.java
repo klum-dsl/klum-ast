@@ -86,83 +86,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
-        Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
-
-        annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
-        MethodBuilder.createPublicMethod("manualValidation")
-                .param(Boolean_TYPE, "validation")
-                .assignS(varX("$manualValidation"), varX("validation"))
-                .addTo(annotatedClass);
-
-        MethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
-
-        if (isDSLObject(annotatedClass.getSuperClass())) {
-            methodBuilder.statement(callSuperX(VALIDATE_METHOD));
-        }
-
-        BlockStatement block = new BlockStatement();
-        validateFields(block);
-        validateCustomMethods(block);
-
-        TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
-        tryCatchStatement.addCatch(new CatchStatement(
-                param(ASSERTION_ERROR_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
-                )
-        );
-        tryCatchStatement.addCatch(new CatchStatement(
-                param(EXCEPTION_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
-                )
-        );
-
-        methodBuilder
-                .statement(tryCatchStatement)
-                .addTo(annotatedClass);
-    }
-
-    private void validateCustomMethods(BlockStatement block) {
-        if (!annotatedClass.hasMethod("doValidate", Parameter.EMPTY_ARRAY)) return;
-
-        block.addStatement(stmt(callX(varX("this"), "doValidate")));
-    }
-
-    private void validateFields(BlockStatement block) {
-        Validation.Option mode = getEnumMemberValue(
-                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
-                "option",
-                Validation.Option.class,
-                Validation.Option.IGNORE_UNMARKED);
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnored(fieldNode)) continue;
-
-            ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
-            String message = null;
-
-            AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
-            if (validateAnnotation != null) {
-                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
-                Expression member = validateAnnotation.getMember("value");
-                if (member instanceof ClassExpression) {
-                    ClassNode memberType = member.getType();
-                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                        continue;
-                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
-                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
-                    }
-                } else if (member instanceof ClosureExpression){
-                    validationClosure = (ClosureExpression) member;
-                }
-            }
-
-            if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
-                block.addStatement(new AssertStatement(
-                        new BooleanExpression(
-                                callX(validationClosure, "call", args(varX(fieldNode.getName())))
-                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
-                ));
-            }
-        }
+        new ValidationBuilder().invoke();
     }
 
     @NotNull
@@ -1029,5 +953,123 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public void addCompileWarning(String msg, ASTNode node) {
         // TODO Need to convert node into CST node?
         //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
+    }
+
+    private class ValidationBuilder {
+
+        private Validation.Mode validationMode;
+        private MethodBuilder validationMethod;
+        private BlockStatement validationBlock;
+        private Validation.Option validationOption;
+
+        public void invoke() {
+            readValidateAnnotation();
+            addManualValidationToggle();
+
+            createValidationMethod();
+        }
+
+        private void createValidationMethod() {
+            validationMethod = createPublicMethod(VALIDATE_METHOD);
+
+            addSuperClassValidation();
+
+            validationBlock = new BlockStatement();
+            addFieldValidations();
+            addCallToCustomValidationMethod();
+
+            TryCatchStatement tryCatchStatement = addExceptionHandling();
+
+            validationMethod
+                    .statement(tryCatchStatement)
+                    .addTo(annotatedClass);
+        }
+
+        @NotNull
+        private TryCatchStatement addExceptionHandling() {
+            TryCatchStatement tryCatchStatement = new TryCatchStatement(validationBlock, EmptyStatement.INSTANCE);
+            tryCatchStatement.addCatch(new CatchStatement(
+                    param(ASSERTION_ERROR_TYPE, "e"),
+                    new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
+                    )
+            );
+            tryCatchStatement.addCatch(new CatchStatement(
+                    param(EXCEPTION_TYPE, "e"),
+                    new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
+                    )
+            );
+            return tryCatchStatement;
+        }
+
+        private void addSuperClassValidation() {
+            if (isDSLObject(annotatedClass.getSuperClass())) {
+                validationMethod.statement(callSuperX(VALIDATE_METHOD));
+            }
+        }
+
+        private void addManualValidationToggle() {
+            annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(validationMode == Validation.Mode.MANUAL));
+            MethodBuilder.createPublicMethod("manualValidation")
+                    .param(Boolean_TYPE, "validation")
+                    .assignS(varX("$manualValidation"), varX("validation"))
+                    .addTo(annotatedClass);
+        }
+
+        private void readValidateAnnotation() {
+            validationMode = getEnumMemberValue(
+                    getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
+                    "mode",
+                    Validation.Mode.class,
+                    Validation.Mode.AUTOMATIC
+            );
+            validationOption = getEnumMemberValue(
+                    getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
+                    "option",
+                    Validation.Option.class,
+                    Validation.Option.IGNORE_UNMARKED);
+        }
+
+        private void addFieldValidations() {
+            for (FieldNode fieldNode : annotatedClass.getFields()) {
+                addValidationForSingleFieldTo(fieldNode);
+            }
+        }
+
+        private void addValidationForSingleFieldTo(FieldNode fieldToValidate) {
+            if (shouldFieldBeIgnored(fieldToValidate)) return;
+
+            ClosureExpression validationClosure = createGroovyTruthClosureExpression(validationBlock.getVariableScope());
+            String message = null;
+
+            AnnotationNode validateAnnotation = getAnnotation(fieldToValidate, VALIDATE_ANNOTATION);
+            if (validateAnnotation != null) {
+                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldToValidate.getName() + "' must be set!");
+                Expression member = validateAnnotation.getMember("value");
+                if (member instanceof ClassExpression) {
+                    ClassNode memberType = member.getType();
+                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                        return;
+                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
+                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldToValidate);
+                    }
+                } else if (member instanceof ClosureExpression){
+                    validationClosure = (ClosureExpression) member;
+                }
+            }
+
+            if (validateAnnotation != null || validationOption == Validation.Option.VALIDATE_UNMARKED) {
+                validationBlock.addStatement(new AssertStatement(
+                        new BooleanExpression(
+                                callX(validationClosure, "call", args(varX(fieldToValidate.getName())))
+                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
+                ));
+            }
+        }
+
+        private void addCallToCustomValidationMethod() {
+            if (!annotatedClass.hasMethod("doValidate", Parameter.EMPTY_ARRAY)) return;
+
+            validationBlock.addStatement(stmt(callX(varX("this"), "doValidate")));
+        }
     }
 }
