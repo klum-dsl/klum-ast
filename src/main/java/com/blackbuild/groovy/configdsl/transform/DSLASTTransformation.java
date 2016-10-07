@@ -76,6 +76,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createKeyConstructor();
 
         validateFieldAnnotations();
+        assertMembersNamesAreUnique();
         createApplyMethods();
         createTemplateMethods();
         createFactoryMethods();
@@ -194,11 +195,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         annotation
                 );
             }
-            if (annotation.getMember("alternatives") != null) {
-                addCompileError(
-                        String.format("@Field.alternatives is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
-                        annotation
-                );
+        }
+    }
+
+    private void assertMembersNamesAreUnique() {
+        Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<String, FieldNode>();
+
+        for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
+            for (FieldNode field : level.getFields()) {
+                if (!isListOrMap(field.getType())) continue;
+
+                String memberName = getElementNameForCollectionField(field);
+
+                FieldNode conflictingField = allDslCollectionFieldNodesOfHierarchy.get(memberName);
+
+                if (conflictingField != null) {
+                    addCompileError(
+                            String.format("Member name %s is used more than once: %s:%s and %s:%s", memberName, field.getOwner().getName(), field.getName(), conflictingField.getOwner().getName(), conflictingField.getName()),
+                            field
+                    );
+                    return;
+                }
+
+                allDslCollectionFieldNodesOfHierarchy.put(memberName, field);
             }
         }
     }
@@ -547,89 +566,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return fieldKey != null ? args("key") : NO_ARGUMENTS;
     }
 
-    private ArgumentListExpression argsWithOptionalKeyAndClosure(FieldNode fieldKey) {
-        return fieldKey != null ? args("key", "closure") : args("closure");
-    }
-
-    private ArgumentListExpression argsWithClassOptionalKeyAndClosure(ClassNode type, FieldNode fieldKey) {
-        return fieldKey != null ? args(classX(type), varX("key"), varX("closure")) : args(classX(type), varX("closure"));
-    }
-
-    private void addDynamicKeyedCreatorMethod(InnerClassNode contextClass, String methodName) {
-        createPublicMethod("invokeMethod")
-                .returning(ClassHelper.OBJECT_TYPE)
-                .stringParam("name")
-                .objectParam("args")
-                .statement(ifElseS(andX(
-                                        isOneX(safePropertyX("args", "length")),
-                                        isInstanceOfX(
-                                                indexX(varX("args"), constX(0)),
-                                                ClassHelper.CLOSURE_TYPE)
-                                ),
-                                stmt(callThisX(
-                                        methodName,
-                                        args(varX("name"), castX(ClassHelper.CLOSURE_TYPE, indexX(varX("args"), constX(0))))
-                                )),
-                                stmt(callSuperX("invokeMethod", args("name", "args")))
-                        )
-                )
-                .addTo(contextClass);
-    }
-
-    private static PropertyExpression safePropertyX(String owner, String value) {
-        return new PropertyExpression(varX(owner), constX(value), true);
-    }
-
-    private String uncapitalizedSimpleClassName(ClassNode node) {
-        char[] name = node.getNameWithoutPackage().toCharArray();
-        name[0] = Character.toLowerCase(name[0]);
-        return new String(name);
-    }
-
     private String setterName(FieldNode node) {
         char[] name = node.getName().toCharArray();
         name[0] = Character.toUpperCase(name[0]);
         return "set" + new String(name);
-    }
-
-    private List<ClassNode> getAlternativesList(AnnotatedNode fieldNode, ClassNode elementType) {
-        AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-        if (annotation == null) return Collections.emptyList();
-
-        List<ClassNode> subclasses = getClassList(annotation, "alternatives");
-
-        if (!subclasses.contains(elementType) && !isAbstract(elementType))
-            subclasses.add(elementType);
-
-        return subclasses;
-    }
-
-    @NotNull
-    private Expression getOuterInstanceXforField(FieldNode fieldNode) {
-        return propX(propX(varX("this"), "outerInstance"), fieldNode.getName());
-    }
-
-    @NotNull
-    private InnerClassNode createInnerContextClass(FieldNode fieldNode) {
-        InnerClassNode contextClass = new InnerClassNode(
-                annotatedClass,
-                annotatedClass.getName() + "$" + fieldNode.getName() + "Context",
-                ACC_STATIC,
-                ClassHelper.OBJECT_TYPE);
-
-        contextClass.addField("outerInstance", 0, newClass(annotatedClass), null);
-        contextClass.addConstructor(
-                0,
-                params(param(newClass(annotatedClass), "outerInstance")),
-                NO_EXCEPTIONS,
-                block(
-                        assignS(
-                                propX(varX("this"), "outerInstance"),
-                                varX("outerInstance")
-                        )
-                )
-        );
-        return contextClass;
     }
 
     @SuppressWarnings("ConstantConditions")

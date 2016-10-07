@@ -6,6 +6,8 @@ the following features were dropped:
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional
+- member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
+  members value)
 
 # Upcoming breaking changes:
 

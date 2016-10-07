@@ -549,4 +549,27 @@ class InheritanceSpec extends AbstractDSLSpec {
         then:
         !left.equals(right)
     }
+
+    def "member names must be unique across hierarchies"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(members = 'it')
+                List<String> values
+            }
+
+            @DSL
+            class Bar extends Foo {
+                @Field(members = 'it')
+                List<String> things
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }

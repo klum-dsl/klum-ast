@@ -3,7 +3,7 @@
   - alternatives syntax has been dropped
   - named map elements have been dropped
   - the outer closure for collections is now optional
-  - field member names (either implicit or explicit) must now be unique
+  - field member names (either implicit or explicit) must now be unique across the whole hierarchy
 - transient fields are not enriched
 
 ## 0.16.1
