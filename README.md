@@ -88,6 +88,9 @@ def config = Config.create {
 }
 ```
 
+Note that since 0.17.0, the `projects` closure is only optional syntactic sugar, `project` entry could also be out
+directly under config.
+
 Since complete objects are created, using the configuration is simple:
 
 ```groovy
@@ -356,7 +359,7 @@ Config.create {
 
 #### Collections of DSL Objects
 
-Collections of DSL-Objects are created using a nested closure. The name of the outer closure is the field name, the 
+Collections of DSL-Objects are created using a nested closure. The name of the (optional) outer closure is the field name, the
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
 
@@ -417,37 +420,28 @@ Config.create {
         mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
     }
 }
+
+// flat syntax without nested closures:
+Config.create {
+    element {
+        name "an element"
+    }
+    element {
+        name "another element"
+    }
+    element objectForReuse
+    anotherObjectForReuse = keyedElement ("klaus") {
+        value "a Value"
+    }
+    mapElement ("dieter") {
+        value "another"
+    }
+    mapElement anotherObjectForReuse // owner is NOT changed
+    mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
+}
+
+
 ```
-
-#### Experimental: compact syntax for adding keyed objects
-
-As an experimental feature, you can also use the key-String as name for the closure. This obviously only works
- for String type keys (which currently is the only supported key type). Also, there is currently no IDE support for
- this feature:
- 
- ```groovy
- @DSL
- class Config {
-     List<Keyed> elements
- }
- 
- @DSL
- class Keyed {
-     @Key String name
-     String value
- }
- 
- Config.create {
-     elements {
-         "Klaus" {  // shortcut for element("Klaus") { ...
-             value "a Value"
-         }
-         "Dieter" {
-             value "a Value"
-         }
-     }
- }
- ```
 
 ### the @Key annotation
 
@@ -496,6 +490,9 @@ assert c.bar.owner === c
 
 
 ## Template objects
+
+*This feature will be changed in 0.18.0, the createTemplate method will be removed and replaced with an explicit
+template mechanism, see: https://github.com/blackbuild/config-dsl/issues/34*
 
 The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
 
