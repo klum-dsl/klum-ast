@@ -456,6 +456,22 @@ class TransformSpec extends AbstractDSLSpec {
         notThrown MultipleCompilationErrorsException
     }
 
+    def "transient fields are ignored"() {
+        given:
+        createInstance('''
+            @DSL
+            class Foo {
+                transient String value
+            }
+        ''')
+
+        when:
+        instance.value "value"
+
+        then:
+        thrown MissingMethodException
+    }
+
     @Issue('#22')
     def 'no helper methods are generated for $TEMPLATE field'() {
         when:

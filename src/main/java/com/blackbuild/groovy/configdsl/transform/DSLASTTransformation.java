@@ -385,6 +385,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
+        if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         return false;
     }
 
