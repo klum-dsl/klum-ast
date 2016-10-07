@@ -1,8 +1,4 @@
 package com.blackbuild.groovy.configdsl.transform.model
-
-import spock.lang.Specification
-
-
 /**
  * Tests for the documentation examples
  */
@@ -80,7 +76,6 @@ class DocDemoSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Config {
-                @Field(alternatives=[MavenProject, GradleProject])
                 Map<String, Project> projects
                 boolean debugMode
                 List<String> options
@@ -111,7 +106,7 @@ class DocDemoSpec extends AbstractDSLSpec {
         clazz.create {
 
             projects {
-                mavenProject("demo") {
+                project(getClass("MavenProject"), "demo") {
                     url "$github/x/y"
 
                     goals "clean", "compile"
@@ -120,7 +115,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
                     cliOptions "-X -pl :abc".split(" ")
                 }
-                gradleProject("demo2") {
+                project(getClass("GradleProject"), "demo2") {
                     url "$github/a/b"
 
                     tasks "build"

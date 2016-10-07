@@ -1,3 +1,11 @@
+## 0.17.0
+- Breaking changes:
+  - alternatives syntax has been dropped
+  - named map elements have been dropped
+  - the outer closure for collections is now optional
+  - field member names (either implicit or explicit) must now be unique
+- transient fields are not enriched
+
 ## 0.16.1
 - Convenience factory for URLs
 

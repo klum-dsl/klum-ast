@@ -240,6 +240,43 @@ class InheritanceSpec extends AbstractDSLSpec {
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
+    def "list methods with abstract element type must force polymorphic"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Owner {
+                List<Foo> foos
+            }
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+
+            @DSL
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Owner") {
+
+            foos {
+                foo {
+                    name = "heinz"
+                }
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+
+    }
+
+    @SuppressWarnings("GroovyAssignabilityCheck")
     def "no polymorphic list methods for final elements"() {
         given:
         createClass('''
@@ -460,206 +497,6 @@ class InheritanceSpec extends AbstractDSLSpec {
 
             foos {
                 foo("Bla") {}
-            }
-        }
-
-        then:
-        thrown(MissingMethodException)
-    }
-
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    def "Polymorphic list methods with mappings"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Owner {
-
-                @Field(alternatives=[Foo, Bar])
-                List<Foo> foos
-            }
-
-            @DSL
-            class Foo {
-                String name
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-
-        ''')
-
-        when:
-        instance = create("pk.Owner") {
-
-            foos {
-                bar {
-                    value = "dieter"
-                }
-                foo {
-                }
-            }
-        }
-
-        then:
-        instance.foos[0].class.name == "pk.Bar"
-        instance.foos[0].value == "dieter"
-        instance.foos[1].class.name == "pk.Foo"
-    }
-
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    def "Polymorphic list methods with mappings and keys"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Owner {
-
-                @Field(alternatives=[Foo, Bar])
-                List<Foo> foos
-            }
-
-            @DSL
-            class Foo {
-                @Key String name
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-
-        ''')
-
-        when:
-        instance = create("pk.Owner") {
-            foos {
-                bar("dieter") {
-                    value = "kurt"
-                }
-                foo("meier") {
-                }
-            }
-        }
-
-        then:
-        instance.foos[0].class.name == "pk.Bar"
-        instance.foos[0].name == "dieter"
-        instance.foos[1].class.name == "pk.Foo"
-        instance.foos[1].name == "meier"
-    }
-
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    def "Polymorphic map methods with mappings"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Owner {
-
-                @Field(alternatives=[Foo, Bar])
-                Map<String, Foo> foos
-            }
-
-            @DSL
-            class Foo {
-                @Key String name
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-        ''')
-
-        when:
-        instance = create("pk.Owner") {
-
-            foos {
-                bar("klaus") {
-                    value = "dieter"
-                }
-                foo("heinz") {
-                }
-            }
-        }
-
-        then:
-        instance.foos.klaus.class.name == "pk.Bar"
-        instance.foos.klaus.name == "klaus"
-        instance.foos.klaus.value == "dieter"
-        instance.foos.heinz.class.name == "pk.Foo"
-        instance.foos.heinz.name == "heinz"
-    }
-
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    def "parent class is implicitly added as alternative"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Owner {
-
-                @Field(alternatives=[Bar])
-                List<Foo> foos
-            }
-
-            @DSL
-            class Foo {
-                String name
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-        ''')
-
-        when:
-        instance = create("pk.Owner") {
-            foos {
-                foo {}
-            }
-        }
-
-        then:
-        noExceptionThrown()
-    }
-
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    def "parent class is NOT implicitly added as alternative if abstract"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Owner {
-
-                @Field(alternatives=[Bar])
-                List<Foo> foos
-            }
-
-            @DSL
-            abstract class Foo {
-                String name
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-        ''')
-
-        when:
-        instance = create("pk.Owner") {
-            foos {
-                foo {}
             }
         }
 

@@ -1,5 +1,17 @@
 [![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
+# Breaking changes in 0.17
+
+the following features were dropped:
+- named alternatives for dsl collections
+- shortcut named mappings
+- under the hood: the inner class for dsl-collections is now optional
+
+# Upcoming breaking changes:
+
+- the implicit template feature will likely be dropped and replaced by an explicit templating mechanism
+
+
 # ConfigDSL Transformation for Groovy
 Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
 for this project:
@@ -92,66 +104,6 @@ if (projectsWithoutClean) {
     }
 }
 ```
-
-We can also use a simple syntax for different subclasses of Project
-
-```groovy
-@DSL
-class Config {
-    @Field(alternatives=[MavenProject, GradleProject])
-    Map<String, Project> projects
-    boolean debugMode
-    List<String> options
-}
-
-@DSL
-abstract class Project {
-    @Key String name
-    String url
-}
-
-@DSL
-class MavenProject extends Project{
-    List<String> goals
-    List<String> profiles
-    List<String> cliOptions
-}
-
-@DSL
-class GradleProject extends Project{
-    List<String> Tasks
-    List<String> options
-}
-```
-
-And use the alternatives syntax in our dsl:
-
-```groovy
-def github = "http://github.com"
-
-def config = Config.create {
-
-    projects {
-        mavenProject("demo") {
-            url "$github/x/y"
-            
-            goals "clean", "compile"
-            profile "ci"
-            profile "!developer"
-            
-            cliOptions "-X -pl :abc".split(" ")
-        }
-        gradleProject("demo2") {
-            url "$github/a/b"
-
-            tasks "build"
-        }
-    }
-}
-```
-
-In this approach, the `@Field(alternatives=[MavenProject, GradleProject])` annotation lists all possible subclasses
-of `Project` and creates appropriate closure methods.
 
 #Details
 

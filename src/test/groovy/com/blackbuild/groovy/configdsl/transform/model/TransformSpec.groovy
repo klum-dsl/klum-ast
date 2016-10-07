@@ -721,36 +721,6 @@ class TransformSpec extends AbstractDSLSpec {
         bar2.name == "Klaus"
     }
 
-    def "create list of named inner objects using name method"() {
-        given:
-        createInstance('''
-            package pk
-
-            @DSL
-            class Foo {
-                List<Bar> bars
-            }
-
-            @DSL
-            class Bar {
-                @Key String name
-                String url
-            }
-        ''')
-
-        when:
-        instance.bars {
-            "Dieter" { url "1" }
-            "Klaus" { url "2" }
-        }
-
-        then:
-        instance.bars[0].name == "Dieter"
-        instance.bars[0].url == "1"
-        instance.bars[1].name == "Klaus"
-        instance.bars[1].url == "2"
-    }
-
     def "Bug: DSLField without value leads to NPE"() {
         when:
         createInstance('''

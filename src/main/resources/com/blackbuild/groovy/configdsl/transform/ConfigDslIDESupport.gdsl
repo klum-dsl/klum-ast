@@ -205,101 +205,78 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
 
     def dslCollectionFields = clazz.allDslCollectionFields
 
-    ClassConfig targetAlternative = dslCollectionFields.findResult { FieldConfig field ->
-        field.alternatives.findResult { ClassConfig type ->
-            enclosingCall(type.uncapitalizedName) ? type : null
-        }
+    def imcStruct = dslCollectionFields.findResult {
+        FieldConfig field ->
+            def mc = field.memberName ? enclosingCall(field.memberName) : null
+            if (mc) return [field, null, mc]
+
+            def fc = enclosingCall(field.name)
+            if (fc) return [field, fc, null]
+
+            return  null
     }
 
+    def (innerMostKnownClosureField, fieldCall, memberCall) = imcStruct ?: [null, null, null]
 
-    if (targetAlternative) {
-        delegatesTo(targetAlternative.type)
-    } else {
-        def imcStruct = dslCollectionFields.findResult {
-            FieldConfig field ->
-                def mc = field.memberName ? enclosingCall(field.memberName) : null
-                if (mc) return [field, null, mc]
+    if (innerMostKnownClosureField) {
 
-                def fc = enclosingCall(field.name)
-                if (fc) return [field, fc, null]
+        def elementType = innerMostKnownClosureField.targetConfig
 
-                return  null
-        }
-
-        def (innerMostKnownClosureField, fieldCall, memberCall) = imcStruct ?: [null, null, null]
-
-        if (innerMostKnownClosureField) {
-
-            def elementType = innerMostKnownClosureField.targetConfig
-
-            if (memberCall) {
-                def call = memberCall
-                // this is a single element closure
-                if (call.arguments) {
+        if (memberCall) {
+            def call = memberCall
+            // this is a single element closure
+            if (call.arguments) {
+                //noinspection GroovyAssignabilityCheck
+                if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
                     //noinspection GroovyAssignabilityCheck
-                    if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
-                        //noinspection GroovyAssignabilityCheck
-                        delegatesTo(call.arguments[0].type.parameters[0].resolve())
-                    } else {
-                        delegatesTo(elementType.type)
-                    }
-                } else {
-                    delegatesTo(elementType.type)
-                }
-            } else if (innerMostKnownClosureField.isDslObject) {
-                def call = fieldCall
-                // this is a single element closure
-                if (call.arguments) {
-                    //noinspection GroovyAssignabilityCheck
-                    if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
-                        //noinspection GroovyAssignabilityCheck
-                        delegatesTo(call.arguments[0].type.parameters[0].resolve())
-                    } else {
-                        delegatesTo(elementType.type)
-                    }
+                    delegatesTo(call.arguments[0].type.parameters[0].resolve())
                 } else {
                     delegatesTo(elementType.type)
                 }
             } else {
-                // collection closure
-                if (innerMostKnownClosureField.alternatives) {
-                    innerMostKnownClosureField.alternatives.each { ClassConfig config ->
-                        method(
-                                name: config.uncapitalizedName,
-                                doc: "Creates s single instance of $config.type and adds it." as String,
-                                params: config.key ? ["$config.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
-                                type: 'void'
-                        )
-                    }
-
+                delegatesTo(elementType.type)
+            }
+        } else if (innerMostKnownClosureField.isDslObject) {
+            def call = fieldCall
+            // this is a single element closure
+            if (call.arguments) {
+                //noinspection GroovyAssignabilityCheck
+                if (call.arguments[0].type?.rawType()?.canonicalText?.equals("java.lang.Class")) {
+                    //noinspection GroovyAssignabilityCheck
+                    delegatesTo(call.arguments[0].type.parameters[0].resolve())
                 } else {
-                    if (!elementType.isAbstract()) {
-                        method(
-                                name: innerMostKnownClosureField.memberName,
-                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                                params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
-                                type: 'void'
-                        )
-                    }
-                    if (!elementType.isFinal()) {
-                        method(
-                                name: innerMostKnownClosureField.memberName,
-                                doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
-                                params: elementType.key ? [type: "Class<? extends $elementType.type.qualifiedName>", "$elementType.key": "java.lang.String", value: 'Closure'] : [type: "Class<? extends $elementType.type.qualifiedName>", value: 'Closure'],
-                                type: 'void'
-                        )
-                    }
+                    delegatesTo(elementType.type)
                 }
-
+            } else {
+                delegatesTo(elementType.type)
+            }
+        } else {
+            // collection closure
+            if (!elementType.isAbstract()) {
                 method(
                         name: innerMostKnownClosureField.memberName,
-                        doc: """Reuses an existing instance of $elementType.type.qualifiedName.
-This will only set the owner is value has not yet an owner set.""" as String,
-                        params: [value: elementType.type.qualifiedName],
+                        doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                        params: elementType.key ? ["$elementType.key": "java.lang.String", value: 'Closure'] : [value: 'Closure'],
+                        type: 'void'
+                )
+            }
+            if (!elementType.isFinal()) {
+                method(
+                        name: innerMostKnownClosureField.memberName,
+                        doc: "Creates s single instance of $innerMostKnownClosureField.memberName and adds it." as String,
+                        params: elementType.key ? [type: "Class<? extends $elementType.type.qualifiedName>", "$elementType.key": "java.lang.String", value: 'Closure'] : [type: "Class<? extends $elementType.type.qualifiedName>", value: 'Closure'],
                         type: 'void'
                 )
             }
         }
+
+        method(
+                name: innerMostKnownClosureField.memberName,
+                doc: """Reuses an existing instance of $elementType.type.qualifiedName.
+This will only set the owner is value has not yet an owner set.""" as String,
+                params: [value: elementType.type.qualifiedName],
+                type: 'void'
+        )
     }
 }
 
@@ -315,8 +292,6 @@ class FieldConfig {
     boolean isDslObject
     boolean isKey
     boolean isOwner
-
-    Set<ClassConfig> alternatives
 
     FieldConfig(PsiField field) {
         this.field = field
@@ -337,18 +312,6 @@ class FieldConfig {
         }
         else if (isCollectionOfDslObjects()) {
             targetConfig = new ClassConfig(elementType.resolve())
-
-            alternatives = [] as Set
-            def alternativesValues = fieldAnnotation?.findDeclaredAttributeValue("alternatives")
-
-            if (alternativesValues) {
-                alternativesValues.children.each {
-                    PsiClass alternativ = it.resolve()
-                    alternatives << new ClassConfig(alternativ)
-                }
-
-                alternatives << targetConfig
-            }
         }
 
         isKey = field.hasAnnotation("com.blackbuild.groovy.configdsl.transform.Key")

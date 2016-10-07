@@ -122,10 +122,6 @@ class User {
                 environment("NEO_Development") {
                     url "123"
                 }
-
-                "SI" {
-                    url "345"
-                }
             }
         }
     }
