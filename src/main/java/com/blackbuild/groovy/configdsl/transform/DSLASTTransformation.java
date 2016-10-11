@@ -488,15 +488,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private void createContextClosure(FieldNode fieldNode, InnerClassNode contextClass) {
-
-        createPublicMethod(fieldNode.getName())
-                .delegatingClosureParam(contextClass)
-                .declareVariable("context", ctorX(contextClass, varX("this")))
-                .statements(delegateToClosure())
-                .addTo(annotatedClass);
-    }
-
     @NotNull
     private Statement[] delegateToClosure() {
         return new Statement[]{
