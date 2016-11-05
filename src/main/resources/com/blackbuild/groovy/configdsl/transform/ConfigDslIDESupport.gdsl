@@ -203,7 +203,7 @@ contributor(context(scope: closureScope(isArg: true), ctype:hasAnnotation("com.b
 
     ClassConfig clazz = new ClassConfig(psiClass)
 
-    def dslCollectionFields = clazz.allDslCollectionFields
+    def dslCollectionFields = clazz.getAllDslCollectionFields([] as Set)
 
     def imcStruct = dslCollectionFields.findResult {
         FieldConfig field ->
@@ -390,7 +390,8 @@ class ClassConfig {
         annotation != null
     }
 
-    Set<FieldConfig> getAllDslCollectionFields() {
+    Set<FieldConfig> getAllDslCollectionFields(Set visited) {
+        visited << this
         def ownDSLCollectionFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects } as Set
 
         List<FieldConfig> result = ownDSLCollectionFields.collect()
@@ -398,7 +399,7 @@ class ClassConfig {
         result.addAll(0, getAllSingleDSLFields())
 
         ownDSLCollectionFields.each { FieldConfig f ->
-            if (f.targetConfig != this) {
+            if (!visited.contains(this)) {
                 result.add(0, f)
                 result.addAll(0, f.targetConfig.allDslCollectionFields)
             }
