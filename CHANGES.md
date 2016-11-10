@@ -4,8 +4,7 @@
 - new Features:
   - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
 - Closures for create method are now optional (This is especially useful in combination with named parameters) ([#20](https://github.com/blackbuild/config-dsl/issues/20))
-
-- minor dsld fix (Stackoverflow for nested objects)
+- Resolved a potential Stackoverflow in GDSL (which happened in a two step recursion, i.e. A contains B and B contains A)
 
 ## 0.17.0
 - Breaking changes:

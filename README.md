@@ -14,13 +14,16 @@ the following features were dropped:
   before 1.0 release ([#38]()https://github.com/blackbuild/config-dsl/issues/38)
 - named alternatives for dsl collections
 - shortcut named mappings
-- under the hood: the inner class for dsl-collections is now optional
+- under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
 - member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
   members value)
 
 # Upcoming breaking changes:
 
-- the implicit template feature will likely be dropped and replaced by an explicit templating mechanism, see ([#37](https://github.com/blackbuild/config-dsl/issues/37))
+- the implicit template feature will likely be dropped ~~and replaced by an explicit templating mechanism~~
+- The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
+  or using the new named templates (`Model.create(copyFrom: myTemplate) {..}`)
+- Still thinking about a more convenient, yet more explicit solution to replace templates
 
 
 # ConfigDSL Transformation for Groovy
@@ -189,39 +192,14 @@ static Config create(Closure c)
 static ConfigWithKey create(String name, Closure c)
 ```
 
-~~If create method does already exist, a method named `_create` is created instead.~~
+If create method does already exist, a method named `_create` is created instead.
 
-Additionally, an `apply` method is created, which takes single closure and applies it to an existing object. ~~As with 
-`create`, if the method already exists, a `_apply` method is created.~~
-
-```groovy
-void apply(Closure c)
-```
-
-Both methods additionally support named parameter as convenience
+Additionally, an `apply` method is created, which takes single closure and applies it to an existing object. As with 
+`create`, if the method already exists, a `_apply` method is created.
  
 ```groovy
-void apply(Map<String, ?> params, Closure c)
-static Config create(Map<String, ?> params, Closure c)
-static ConfigWithKey create(Map<String, ?> params, String name, Closure c)
+def void apply(Closure c)
 ```
-
-Note: The named parameters are converted to method calls, not to property set calls, allowing to set single (or even multiple) 
-elements for a collection:
-
-```groovy
-@DSL
-class Model {
-    List<String> values
- }
- 
-def model = Model.create(value: 'bla') // uses the generated adder method 'value(String)'
-assert model.values == ['bla']
-
-model = Model.create(values: ['bla', 'blub']) // uses the generated multi adder method 'values(String...)' 
-assert model.values == ['bla', 'blub']
-```
-
 
 #### Convenience Factories
 
