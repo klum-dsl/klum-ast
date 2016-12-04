@@ -720,12 +720,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);
-        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 1)) return;
+        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 2);
+        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 2)) return;
 
         createPublicMethod(hasExistingApply ? "_apply" : "apply")
                 .returning(newClass(annotatedClass))
+                .namedParams()
                 .delegatingClosureParam(annotatedClass)
+                .applyNamedParams()
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -734,6 +736,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod("closure", "call")
                 .doReturn("this")
                 .addTo(annotatedClass);
+
+        createPublicMethod(hasExistingApply ? "_apply" : "apply")
+                .returning(newClass(annotatedClass))
+                .delegatingClosureParam(annotatedClass)
+                .callThis("apply", args(new MapExpression(), varX("closure")))
+                .doReturn("this")
+                .addTo(annotatedClass);
+
     }
 
     private void createFactoryMethods() {

@@ -2,9 +2,11 @@ package com.blackbuild.groovy.configdsl.transform;
 
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.objectweb.asm.Opcodes;
@@ -82,6 +84,35 @@ public class MethodBuilder {
         parameters.add(param);
         return this;
     }
+
+    public MethodBuilder namedParams() {
+        return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), "params");
+    }
+
+    public MethodBuilder applyNamedParams() {
+        VariableScope scope = new VariableScope();
+        ClosureExpression applyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY,
+                block(scope,
+                        new ExpressionStatement(
+                                new MethodCallExpression(
+                                        varX("this"),
+                                        "setProperty",
+                                        args(propX(varX("it"), "key"), propX(varX("it"), "value"))
+                                )
+                        )
+                )
+        );
+        applyClosure.setVariableScope(scope);
+
+        callMethod("params", "each",
+                args(
+                        applyClosure
+                )
+        );
+
+        return this;
+    }
+
 
     public MethodBuilder classParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);

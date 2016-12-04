@@ -3,6 +3,7 @@ package com.blackbuild.groovy.configdsl.transform.model
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.reflect.Method
@@ -23,9 +24,10 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.metaClass.getMetaMethod("apply", Closure) != null
+        clazz.metaClass.getMetaMethod("apply", Map, Closure) != null
     }
 
+    @Ignore("Need to think about whether _apply and _create are really feasible")
     def "create _apply method when apply exists"() {
         given:
         createInstance('''
@@ -62,6 +64,31 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    def "apply method allows named parameters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+                int another
+            }
+        ''')
+
+        when:
+        instance = clazz.create() {}
+        instance.apply(value: 'bla') {
+            another 12
+        }
+
+        then:
+        instance.value == 'bla'
+        instance.another == 12
+
+
     }
 
     def "factory methods should be created"() {
