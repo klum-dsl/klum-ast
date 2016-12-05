@@ -24,17 +24,14 @@ public class MethodBuilder {
     private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
+    public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
 
     private int modifiers;
-
     private String name;
-
     private ClassNode returnType = ClassHelper.VOID_TYPE;
-
     private List<ClassNode> exceptions = new ArrayList<ClassNode>();
-
     private List<Parameter> parameters = new ArrayList<Parameter>();
-
+    private boolean deprecated;
     private BlockStatement body;
 
     public MethodBuilder(String name) {
@@ -59,7 +56,7 @@ public class MethodBuilder {
             throw new IllegalStateException("Body must not be null");
         }
 
-        return target.addMethod(
+        MethodNode method = target.addMethod(
                 name,
                 modifiers,
                 returnType,
@@ -67,6 +64,11 @@ public class MethodBuilder {
                 exceptions.toArray(EMPTY_EXCEPTIONS),
                 body
         );
+
+        if (deprecated)
+            method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
+
+        return method;
     }
 
     public MethodBuilder returning(ClassNode returnType) {
@@ -81,6 +83,11 @@ public class MethodBuilder {
 
     public MethodBuilder param(Parameter param) {
         parameters.add(param);
+        return this;
+    }
+
+    public MethodBuilder deprecated() {
+        deprecated = true;
         return this;
     }
 

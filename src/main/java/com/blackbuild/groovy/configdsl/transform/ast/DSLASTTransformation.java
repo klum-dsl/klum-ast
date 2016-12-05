@@ -846,6 +846,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         MethodBuilder.createPublicMethod("createFromScript")
                 .returning(newClass(annotatedClass))
+                .deprecated()
                 .mod(Opcodes.ACC_STATIC)
                 .classParam("configType", ClassHelper.SCRIPT_TYPE)
                 .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
@@ -871,6 +872,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
 
             MethodBuilder.createPublicMethod("createFromSnippet")
+                    .deprecated()
                     .returning(newClass(annotatedClass))
                     .mod(Opcodes.ACC_STATIC)
                     .stringParam("name")
@@ -895,6 +897,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
 
             MethodBuilder.createPublicMethod("createFromSnippet")
+                    .deprecated()
                     .returning(newClass(annotatedClass))
                     .mod(Opcodes.ACC_STATIC)
                     .stringParam("text")
@@ -910,6 +913,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         MethodBuilder.createPublicMethod("createFromSnippet")
+                .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .param(make(File.class), "src")
@@ -925,6 +929,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         MethodBuilder.createPublicMethod("createFromSnippet")
+                .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .param(make(URL.class), "src")

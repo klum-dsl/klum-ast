@@ -57,6 +57,24 @@ class ConvenienceFactories extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    def "createFromSnippet is deprecated"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+        when:
+        def method = clazz.getDeclaredMethod("createFromSnippet", String)
+
+        then:
+        method.getAnnotation(Deprecated) != null
+    }
+
     def "convenience factory with static methods"() {
         given:
         createClass('''
