@@ -243,6 +243,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             templateClass = annotatedClass;
 
         MethodBuilder.createPublicMethod("createTemplate")
+                .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
@@ -254,6 +255,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         MethodBuilder.createPublicMethod("copyFromTemplate")
+                .deprecated()
                 .returning(newClass(annotatedClass))
                 .doReturn(callThisX("copyFrom", args(propX(classX(annotatedClass), "$TEMPLATE"))))
                 .addTo(annotatedClass);
