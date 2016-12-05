@@ -20,11 +20,10 @@ the following features were dropped:
 
 # Upcoming breaking changes:
 
-- the implicit template feature will likely be dropped ~~and replaced by an explicit templating mechanism~~
+- the implicit template feature will be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), it basically
+  uses global variables, which is of course bad design
 - The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
   or using the new named templates (`Model.create(copyFrom: myTemplate) {..}`)
-- Still thinking about a more convenient, yet more explicit solution to replace templates
-
 
 # ConfigDSL Transformation for Groovy
 Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
