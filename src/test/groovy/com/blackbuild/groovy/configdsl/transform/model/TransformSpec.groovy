@@ -142,6 +142,12 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.class.name == "pk.Foo"
+
+        when: 'Closure is optional'
+        instance = clazz.create()
+
+        then:
+        noExceptionThrown()
     }
 
     def "factory methods with named parameters"() {
@@ -161,6 +167,13 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.class.name == "pk.Foo"
         instance.value == 'bla'
+
+        when: 'Closure is optional'
+        instance = clazz.create(value: 'blub')
+
+        then:
+        noExceptionThrown()
+        instance.value == 'blub'
     }
 
     @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
@@ -208,6 +221,13 @@ class TransformSpec extends AbstractDSLSpec {
 
         and: "no name() accessor is created"
         instance.class.metaClass.getMetaMethod("name", String) == null
+
+        when: 'Closure is optional'
+        instance = clazz.create("Klaus")
+
+        then:
+        noExceptionThrown()
+        instance.name == "Klaus"
     }
 
     def "factory methods with key and named parameters"() {
@@ -231,6 +251,14 @@ class TransformSpec extends AbstractDSLSpec {
 
         and: "no name() accessor is created"
         instance.class.metaClass.getMetaMethod("name", String) == null
+
+        when: 'Closure is optional'
+        instance = clazz.create("Klaus", value: 'blub')
+
+        then:
+        noExceptionThrown()
+        instance.name == "Klaus"
+        instance.value == 'blub'
     }
 
     @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")

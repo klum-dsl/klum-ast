@@ -736,6 +736,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
+                .namedParams()
+                .applyNamedParams()
+                .doReturn("this")
+                .addTo(annotatedClass);
+
+        createPublicMethod("apply")
+                .returning(newClass(annotatedClass))
                 .delegatingClosureParam(annotatedClass)
                 .callThis("apply", args(new MapExpression(), varX("closure")))
                 .doReturn("this")
@@ -760,6 +767,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
+                .namedParams()
+                .optionalStringParam("name", keyField)
+                .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
+                .callMethod("result", "copyFromTemplate")
+                .callMethod("result", "apply", args("params"))
+                .callValidationOn("result")
+                .doReturn("result")
+                .addTo(annotatedClass);
+
+        createPublicMethod("create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
                 .delegatingClosureParam(annotatedClass)
                 .doReturn(callX(annotatedClass, "create",
@@ -767,7 +786,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         args(new MapExpression(), varX("name"), varX("closure"))
                         : args(new MapExpression(), varX("closure"))
                 ))
+                .addTo(annotatedClass);
 
+        createPublicMethod("create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .optionalStringParam("name", keyField)
+                .doReturn(callX(annotatedClass, "create",
+                        keyField != null ?
+                        args(new MapExpression(), varX("name"))
+                        : args(new MapExpression())
+                ))
                 .addTo(annotatedClass);
 
         createPublicMethod("createFromScript")
