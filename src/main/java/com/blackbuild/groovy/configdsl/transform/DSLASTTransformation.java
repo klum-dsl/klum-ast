@@ -720,10 +720,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        boolean hasExistingApply = !annotatedClass.getDeclaredMethods("apply").isEmpty();
-        if (hasExistingApply && !annotatedClass.getDeclaredMethods("_apply").isEmpty()) return;
-
-        createPublicMethod(hasExistingApply ? "_apply" : "apply")
+        createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .namedParams()
                 .delegatingClosureParam(annotatedClass)
@@ -737,7 +734,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        createPublicMethod(hasExistingApply ? "_apply" : "apply")
+        createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .delegatingClosureParam(annotatedClass)
                 .callThis("apply", args(new MapExpression(), varX("closure")))
@@ -747,10 +744,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethods() {
-        boolean hasExistingFactory = !annotatedClass.getDeclaredMethods("create").isEmpty();
-        if (hasExistingFactory && !annotatedClass.getDeclaredMethods("_create").isEmpty()) return;
-
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .namedParams()
@@ -763,7 +757,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("result")
                 .addTo(annotatedClass);
 
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)

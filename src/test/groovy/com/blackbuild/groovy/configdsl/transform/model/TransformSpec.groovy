@@ -27,7 +27,7 @@ class TransformSpec extends AbstractDSLSpec {
         clazz.metaClass.getMetaMethod("apply", Map, Closure) != null
     }
 
-    @Ignore("Need to think about whether _apply and _create are really feasible")
+    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
     def "create _apply method when apply exists"() {
         given:
         createInstance('''
@@ -127,6 +127,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == 'bla'
     }
 
+    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
     def "factory methods with existing factories"() {
         given:
         createClass('''
@@ -196,6 +197,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.class.metaClass.getMetaMethod("name", String) == null
     }
 
+    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
     def "factory methods with key and existing factory"() {
         given:
         createClass('''
@@ -221,6 +223,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.called
     }
 
+    @Ignore("This test doesn't really test anything, check")
     def "factory method and _create methods already exist"() {
         when:
         createClass('''
