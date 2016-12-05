@@ -1,4 +1,4 @@
-package com.blackbuild.groovy.configdsl.transform.model
+package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer

@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.*;

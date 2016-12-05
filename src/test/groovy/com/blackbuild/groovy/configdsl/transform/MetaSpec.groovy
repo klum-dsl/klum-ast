@@ -1,4 +1,4 @@
-package com.blackbuild.groovy.configdsl.transform.model
+package com.blackbuild.groovy.configdsl.transform
 
 import spock.lang.Specification
 

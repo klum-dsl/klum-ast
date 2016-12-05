@@ -1,4 +1,4 @@
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
@@ -14,7 +14,6 @@ import org.objectweb.asm.Opcodes;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.DSLASTTransformation.VALIDATE_METHOD;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -246,6 +245,6 @@ public class MethodBuilder {
     }
 
     private MethodBuilder callValidationMethodOn(Expression targetX) {
-        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, VALIDATE_METHOD)));
+        return statement(GeneralUtils.ifS(notX(propX(targetX,"$manualValidation")), GeneralUtils.callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 }

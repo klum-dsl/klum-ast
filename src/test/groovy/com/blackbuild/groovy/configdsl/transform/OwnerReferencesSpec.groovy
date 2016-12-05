@@ -1,4 +1,4 @@
-package com.blackbuild.groovy.configdsl.transform.model
+package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException

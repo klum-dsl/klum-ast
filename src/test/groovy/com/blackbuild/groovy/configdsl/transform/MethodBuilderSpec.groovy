@@ -1,6 +1,6 @@
-package com.blackbuild.groovy.configdsl.transform.model
+package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.groovy.configdsl.transform.MethodBuilder
+import com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 import org.objectweb.asm.Opcodes
