@@ -191,4 +191,29 @@ class ConvenienceFactories extends AbstractDSLSpec {
         instance.name == "blub"
     }
 
+    def "convenience factory from String with imports"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+        def configText = '''
+            import java.util.List
+
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFromSnippet(configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
 }
