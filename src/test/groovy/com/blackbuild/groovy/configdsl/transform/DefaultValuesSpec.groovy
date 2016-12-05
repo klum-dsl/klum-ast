@@ -59,4 +59,27 @@ class DefaultValuesSpec extends AbstractDSLSpec {
     }
 
 
+    def "closure default values"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            
+                @Default(code ={ name.toLowerCase() })
+                String lower
+            }
+'''
+        when:
+        instance = create("pk.Foo") {
+            name "Hans"
+        }
+
+        then:
+        instance.lower == "hans"
+
+    }
+
 }

@@ -2,6 +2,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.expr.ClassExpression;
@@ -19,7 +20,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 
 /**
- * Created by stephan on 05.12.2016.
+ * Helper class for default values.
  */
 public class DefaultMethods {
     private DSLASTTransformation transformation;
@@ -55,7 +56,18 @@ public class DefaultMethods {
     }
 
     private void createClosureMethod(FieldNode fieldNode, ClosureExpression code) {
-        throw new UnsupportedOperationException();
+        String ownGetter = getGetterName(fieldNode.getName());
+
+        createPublicMethod(ownGetter)
+                .returning(fieldNode.getType())
+                .declareVariable("closure", code)
+                .assignS(propX(varX("closure"), "delegate"), varX("this"))
+                .assignS(
+                        propX(varX("closure"), "resolveStrategy"),
+                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
+                )
+                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX("closure"), "call")))
+                .addTo(transformation.annotatedClass);
     }
 
     private void createDelegateMethod(FieldNode fieldNode, String delegate) {
