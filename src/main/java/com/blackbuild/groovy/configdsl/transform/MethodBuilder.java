@@ -85,11 +85,11 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder namedParams() {
-        return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), "params");
+    public MethodBuilder namedParams(String name) {
+        return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), name);
     }
 
-    public MethodBuilder applyNamedParams() {
+    public MethodBuilder applyNamedParams(String name) {
         VariableScope scope = new VariableScope();
         ClosureExpression applyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY,
                 block(scope,
@@ -104,7 +104,7 @@ public class MethodBuilder {
         );
         applyClosure.setVariableScope(scope);
 
-        callMethod("params", "each",
+        callMethod(name, "each",
                 args(
                         applyClosure
                 )
@@ -141,7 +141,14 @@ public class MethodBuilder {
     }
 
     public MethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
-        Parameter param = GeneralUtils.param(nonGeneric(ClassHelper.CLOSURE_TYPE), "closure");
+        VariableScope scope = new VariableScope();
+        ClosureExpression closureExpression = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
+        closureExpression.setVariableScope(scope);
+        Parameter param = GeneralUtils.param(
+                nonGeneric(ClassHelper.CLOSURE_TYPE),
+                "closure",
+                closureExpression
+        );
         param.addAnnotation(createDelegatesToAnnotation(delegationTarget));
         return param(param);
     }

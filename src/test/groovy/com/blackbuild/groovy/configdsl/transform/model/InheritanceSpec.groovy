@@ -171,6 +171,16 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foo.class.name == "pk.Bar"
         instance.foo.name == "klaus"
         instance.foo.value == "dieter"
+
+        when: 'Named parameters'
+        instance = create("pk.Owner") {
+            foo(getClass("pk.Bar"), name: "klaus", value: "dieter")
+        }
+
+        then:
+        instance.foo.class.name == "pk.Bar"
+        instance.foo.name == "klaus"
+        instance.foo.value == "dieter"
     }
 
     def "final classes don't create polymorphic closure methods"() {
@@ -237,6 +247,21 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos[1].class.name == "pk.Foo"
         instance.foos[1].name == "heinz"
 
+        when: 'named parameters'
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Bar"), name: "klaus", value: "dieter")
+                foo(name: "heinz")
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].name == "klaus"
+        instance.foos[0].value == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+        instance.foos[1].name == "heinz"
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
@@ -346,6 +371,21 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance.foos[1].class.name == "pk.Foo"
         instance.foos[1].name == "heinz"
 
+        when: 'with named parameters'
+        instance = create("pk.Owner") {
+
+            foos {
+                foo(getClass("pk.Bar"), "klaus", value: "dieter")
+                foo("heinz")
+            }
+        }
+
+        then:
+        instance.foos[0].class.name == "pk.Bar"
+        instance.foos[0].name == "klaus"
+        instance.foos[0].value == "dieter"
+        instance.foos[1].class.name == "pk.Foo"
+        instance.foos[1].name == "heinz"
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")

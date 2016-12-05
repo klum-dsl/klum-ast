@@ -707,6 +707,12 @@ class TransformSpec extends AbstractDSLSpec {
 
         and: "object should be returned by closure"
         inner != null
+
+        when: 'Allow named parameters'
+        inner = instance.inner(name: 'Hans')
+
+        then:
+        inner.name == 'Hans'
     }
 
     def "create inner object via key and closure"() {
@@ -737,6 +743,14 @@ class TransformSpec extends AbstractDSLSpec {
 
         and: "object should be returned by closure"
         inner != null
+
+        when: "Allow named arguments for simple objects"
+        inner = instance.inner("Hans", value: 16)
+
+        then:
+        inner.name == "Hans"
+        inner.value == 16
+
     }
 
     def "create list of inner objects"() {
@@ -764,6 +778,16 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.bars[0].name == "Dieter"
         instance.bars[1].name == "Klaus"
+
+        when: 'Allow named parameters'
+        instance.bars {
+            bar(name: "Kurt")
+            bar(name: "Felix")
+        }
+
+        then:
+        instance.bars[2].name == "Kurt"
+        instance.bars[3].name == "Felix"
     }
 
     @SuppressWarnings("GroovyVariableNotAssigned")
@@ -894,7 +918,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.fields == [:]
     }
 
-    def "existing initial values are not overriden"() {
+    def "existing initial values are not overridden"() {
         when:
         createInstance('''
             package pk
@@ -1080,6 +1104,16 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.bars.Dieter.url == "1"
         instance.bars.Klaus.url == "2"
+
+        when: "named parameters"
+        instance.bars {
+            bar("Kurt", url: "3")
+            bar("Felix", url: "4")
+        }
+
+        then:
+        instance.bars.Kurt.url == "3"
+        instance.bars.Felix.url == "4"
     }
 
     @SuppressWarnings("GroovyVariableNotAssigned")

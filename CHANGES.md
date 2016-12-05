@@ -1,3 +1,6 @@
+## 0.18.1
+- Named parameters should be available for inner objects as well
+
 ## 0.18.0
 - Breaking changes:
   - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
