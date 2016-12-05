@@ -1,6 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform
 
-class DefaultValuesSpec extends AbstractDSLSpec {
+class TemplatesSpec extends AbstractDSLSpec {
 
     def "apply method using a preexisting object is created"() {
         when:
