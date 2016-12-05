@@ -265,6 +265,46 @@ Config.create {
 }
 ```
 
+#### Default Values
+
+Fields can also be annotated with `@Default` to designate a default value, which is returned in case the value is not
+Groovy true. Default values can either be simple values delegating to a different property, or complex closures.
+
+```groovy
+@DSL
+class Config {
+ String name
+ @Default('name') String id
+ @Default(code={name.toLowerCase()}) String lower
+}
+```
+
+creates the following methods:
+
+
+```groovy
+String getId() {
+    id ?: getName()
+}
+
+String getLower() {
+    lower ?: name.toLowerCase() // actually a closure is called, including setting of delegate etc...
+}
+```
+
+Usage:
+
+```groovy
+def config = Config.create {
+    name 'Hans'
+}
+
+assert config.id == 'Hans' // defaults to name 
+assert config.lower == 'hans' // defaults to lowercase name
+```
+
+Note that default values do work with DSL fields and collections as well.
+
 #### Setter for simple collections
     
 for each simple collection, two methods are generated:

@@ -1,3 +1,6 @@
+## 0.19
+- Implemented [Default values](https://github.com/blackbuild/config-dsl#Default-Values) (see [#29](https://github.com/blackbuild/config-dsl/issues/29))
+
 ## 0.18.1
 - Named parameters should be available for inner objects as well
 
@@ -21,7 +24,7 @@
 - Convenience factory for URLs
 
 ## 0.16.0
-- New Feature: Convenience Factories (https://github.com/blackbuild/config-dsl#Convenience-Factories)
+- New Feature: [Convenience Factories](https://github.com/blackbuild/config-dsl#Convenience-Factories)
 
 ## 0.15.2
 - Fixed: validation of nested elements does not work ([#25](https://github.com/blackbuild/config-dsl/issues/25))
