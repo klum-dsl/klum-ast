@@ -108,6 +108,25 @@ class TransformSpec extends AbstractDSLSpec {
         instance.class.name == "pk.Foo"
     }
 
+    def "factory methods with named parameters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+        when:
+        instance = clazz.create(value: 'bla') {}
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == 'bla'
+    }
+
     def "factory methods with existing factories"() {
         given:
         createClass('''
@@ -149,6 +168,29 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.name == "Dieter"
+
+        and: "no name() accessor is created"
+        instance.class.metaClass.getMetaMethod("name", String) == null
+    }
+
+    def "factory methods with key and named parameters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+            }
+        ''')
+
+        when:
+        instance = clazz.create("Dieter", value: 'bla') {}
+
+        then:
+        instance.name == "Dieter"
+        instance.value == 'bla'
 
         and: "no name() accessor is created"
         instance.class.metaClass.getMetaMethod("name", String) == null

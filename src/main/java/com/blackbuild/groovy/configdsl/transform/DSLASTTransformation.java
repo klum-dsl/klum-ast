@@ -720,8 +720,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 2);
-        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 2)) return;
+        boolean hasExistingApply = !annotatedClass.getDeclaredMethods("apply").isEmpty();
+        if (hasExistingApply && !annotatedClass.getDeclaredMethods("_apply").isEmpty()) return;
 
         createPublicMethod(hasExistingApply ? "_apply" : "apply")
                 .returning(newClass(annotatedClass))
@@ -747,21 +747,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethods() {
-        int argsCount = keyField == null ? 1 : 2;
+        boolean hasExistingFactory = !annotatedClass.getDeclaredMethods("create").isEmpty();
+        if (hasExistingFactory && !annotatedClass.getDeclaredMethods("_create").isEmpty()) return;
 
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", argsCount);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", argsCount)) return;
+        createPublicMethod(hasExistingFactory ? "_create" : "create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .namedParams()
+                .optionalStringParam("name", keyField)
+                .delegatingClosureParam(annotatedClass)
+                .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
+                .callMethod("result", "copyFromTemplate")
+                .callMethod("result", "apply", args("params", "closure"))
+                .callValidationOn("result")
+                .doReturn("result")
+                .addTo(annotatedClass);
 
         createPublicMethod(hasExistingFactory ? "_create" : "create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
                 .delegatingClosureParam(annotatedClass)
-                .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
-                .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "apply", varX("closure"))
-                .callValidationOn("result")
-                .doReturn("result")
+                .doReturn(callX(annotatedClass, "create",
+                        keyField != null ?
+                        args(new MapExpression(), varX("name"), varX("closure"))
+                        : args(new MapExpression(), varX("closure"))
+                ))
+
                 .addTo(annotatedClass);
 
         createPublicMethod("createFromScript")
