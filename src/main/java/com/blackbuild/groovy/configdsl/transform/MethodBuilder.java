@@ -96,7 +96,7 @@ public class MethodBuilder {
                         new ExpressionStatement(
                                 new MethodCallExpression(
                                         varX("this"),
-                                        "setProperty",
+                                        "invokeMethod",
                                         args(propX(varX("it"), "key"), propX(varX("it"), "value"))
                                 )
                         )

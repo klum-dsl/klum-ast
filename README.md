@@ -206,6 +206,23 @@ static Config create(Map<String, ?> params, Closure c)
 static ConfigWithKey create(Map<String, ?> params, String name, Closure c)
 ```
 
+Note: The named parameters are converted to method calls, not to property set calls, allowing to set single (or even multiple) 
+elements for a collection:
+
+```groovy
+@DSL
+class Model {
+    List<String> values
+ }
+ 
+def model = Model.create(value: 'bla') // uses the generated adder method 'value(String)'
+assert model.values == ['bla']
+
+model = Model.create(values: ['bla', 'blub']) // uses the generated multi adder method 'values(String...)' 
+assert model.values == ['bla', 'blub']
+```
+
+
 #### Convenience Factories
 
 since 0.16, config-dsl supports convenience factory methods that allow reading a configuration directly from a file or

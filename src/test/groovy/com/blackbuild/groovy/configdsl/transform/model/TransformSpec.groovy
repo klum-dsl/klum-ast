@@ -87,8 +87,44 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.value == 'bla'
         instance.another == 12
+    }
 
+    def "named parameters also work for collection adders"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSL
+            class Foo {
+                List<String> values
+            }
+        ''')
+
+        when:
+        instance = clazz.create() {}
+        instance.apply(value: 'bla') {}
+
+        then:
+        instance.values == ['bla']
+    }
+
+    def "named parameters also work for collection multi adders"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> values
+            }
+        ''')
+
+        when:
+        instance = clazz.create() {}
+        instance.apply(values: ['bla', 'blub']) {}
+
+        then:
+        instance.values == ['bla', 'blub']
     }
 
     def "factory methods should be created"() {
