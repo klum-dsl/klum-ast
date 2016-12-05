@@ -1,8 +1,17 @@
 [![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
-# Breaking changes in 0.17
+# Targetting 1.0
+We are rapidly releasing the 1.0, this means a lot of API clean up, which sadly means some incompatible changes. See
+the CHANGES.md and the Issues for more details.
+
+Config-DSL will also be renamed a get some additional companion tools...
+
+
+# Breaking changes since 0.17
 
 the following features were dropped:
+- pre using existing `create` and `apply` methods is no longer supported, this will be replace by a lifecycle mechanism 
+  before 1.0 release ([#38]()https://github.com/blackbuild/config-dsl/issues/38)
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional
@@ -11,7 +20,7 @@ the following features were dropped:
 
 # Upcoming breaking changes:
 
-- the implicit template feature will likely be dropped and replaced by an explicit templating mechanism
+- the implicit template feature will likely be dropped and replaced by an explicit templating mechanism, see ([#37](https://github.com/blackbuild/config-dsl/issues/37))
 
 
 # ConfigDSL Transformation for Groovy
@@ -180,13 +189,21 @@ static Config create(Closure c)
 static ConfigWithKey create(String name, Closure c)
 ```
 
-If create method does already exist, a method named `_create` is created instead.
+~~If create method does already exist, a method named `_create` is created instead.~~
 
-Additionally, an `apply` method is created, which takes single closure and applies it to an existing object. As with 
-`create`, if the method already exists, a `_apply` method is created.
+Additionally, an `apply` method is created, which takes single closure and applies it to an existing object. ~~As with 
+`create`, if the method already exists, a `_apply` method is created.~~
+
+```groovy
+void apply(Closure c)
+```
+
+Both methods additionally support named parameter as convenience
  
 ```groovy
-def void apply(Closure c)
+void apply(Map<String, ?> params, Closure c)
+static Config create(Map<String, ?> params, Closure c)
+static ConfigWithKey create(Map<String, ?> params, String name, Closure c)
 ```
 
 #### Convenience Factories

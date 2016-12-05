@@ -1,3 +1,12 @@
+## 0.18.0
+- Breaking changes:
+  - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
+- new Features:
+  - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
+
+
+- minor dsld fix (Stackoverflow for nested objects)
+
 ## 0.17.0
 - Breaking changes:
   - alternatives syntax has been dropped
