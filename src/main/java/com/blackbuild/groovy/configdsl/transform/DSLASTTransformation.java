@@ -720,12 +720,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        boolean hasExistingApply = hasDeclaredMethod(annotatedClass, "apply", 1);
-        if (hasExistingApply && hasDeclaredMethod(annotatedClass, "_apply", 1)) return;
-
-        createPublicMethod(hasExistingApply ? "_apply" : "apply")
+        createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
+                .namedParams()
                 .delegatingClosureParam(annotatedClass)
+                .applyNamedParams()
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -734,24 +733,41 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod("closure", "call")
                 .doReturn("this")
                 .addTo(annotatedClass);
+
+        createPublicMethod("apply")
+                .returning(newClass(annotatedClass))
+                .delegatingClosureParam(annotatedClass)
+                .callThis("apply", args(new MapExpression(), varX("closure")))
+                .doReturn("this")
+                .addTo(annotatedClass);
+
     }
 
     private void createFactoryMethods() {
-        int argsCount = keyField == null ? 1 : 2;
-
-        boolean hasExistingFactory = hasDeclaredMethod(annotatedClass, "create", argsCount);
-        if (hasExistingFactory && hasDeclaredMethod(annotatedClass, "_create", argsCount)) return;
-
-        createPublicMethod(hasExistingFactory ? "_create" : "create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
+                .namedParams()
                 .optionalStringParam("name", keyField)
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "apply", varX("closure"))
+                .callMethod("result", "apply", args("params", "closure"))
                 .callValidationOn("result")
                 .doReturn("result")
+                .addTo(annotatedClass);
+
+        createPublicMethod("create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .optionalStringParam("name", keyField)
+                .delegatingClosureParam(annotatedClass)
+                .doReturn(callX(annotatedClass, "create",
+                        keyField != null ?
+                        args(new MapExpression(), varX("name"), varX("closure"))
+                        : args(new MapExpression(), varX("closure"))
+                ))
+
                 .addTo(annotatedClass);
 
         createPublicMethod("createFromScript")
