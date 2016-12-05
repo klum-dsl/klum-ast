@@ -1,16 +1,19 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
+import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
+import groovy.util.DelegatingScript;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
+import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
@@ -843,40 +846,66 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         MethodBuilder.createPublicMethod("createFromScript")
                 .returning(newClass(annotatedClass))
+                .deprecated()
                 .mod(Opcodes.ACC_STATIC)
                 .classParam("configType", ClassHelper.SCRIPT_TYPE)
                 .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
                 .addTo(annotatedClass);
 
-        GStringExpression closureWrapper = new GStringExpression("{ -> $text }",
-                Arrays.asList(constX("{ ->"), constX("}")),
-                Collections.singletonList((Expression) varX("text")));
-
         if (keyField != null) {
-            MethodBuilder.createPublicMethod("createFromSnippet")
+            MethodBuilder.createPublicMethod("createFrom")
                     .returning(newClass(annotatedClass))
                     .mod(Opcodes.ACC_STATIC)
                     .stringParam("name")
                     .stringParam("text")
                     .declareVariable("simpleName", callX(callX(callX(callX(varX("name"), "tokenize", args(constX("."))), "first"), "tokenize", args(constX("/"))), "last"))
+                    .declareVariable("result", callX(annotatedClass, "create", args("simpleName")))
                     .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
-                    .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
-                    .doReturn(callX(annotatedClass, "create", args("simpleName", "closure")))
+                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
+                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
+                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
+                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
+                    .declareVariable("script", callX(varX("shell"), "parse", args("text")))
+                    .callMethod("script", "setDelegate", args("result"))
+                    .callMethod("script", "run")
+                    .doReturn("result")
+                    .addTo(annotatedClass);
+
+            MethodBuilder.createPublicMethod("createFromSnippet")
+                    .deprecated()
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .stringParam("name")
+                    .stringParam("text")
+                    .doReturn(callX(annotatedClass, "createFrom", args("name", "text")))
                     .addTo(annotatedClass);
         } else {
-            MethodBuilder.createPublicMethod("createFromSnippet")
+            MethodBuilder.createPublicMethod("createFrom")
                     .returning(newClass(annotatedClass))
                     .mod(Opcodes.ACC_STATIC)
                     .stringParam("text")
+                    .declareVariable("result", callX(annotatedClass, "create"))
                     .declareVariable("loader", ctorX(ClassHelper.make(GroovyClassLoader.class), args(callX(callX(ClassHelper.make(Thread.class), "currentThread"), "getContextClassLoader"))))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader")))
-                    .declareVariable("closure", callX(varX("shell"), "evaluate", args(closureWrapper)))
-                    .doReturn(callX(annotatedClass, "create", args("closure")))
+                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
+                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
+                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
+                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
+                    .declareVariable("script", callX(varX("shell"), "parse", args("text")))
+                    .callMethod("script", "setDelegate", args("result"))
+                    .callMethod("script", "run")
+                    .doReturn("result")
+                    .addTo(annotatedClass);
+
+            MethodBuilder.createPublicMethod("createFromSnippet")
+                    .deprecated()
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .stringParam("text")
+                    .doReturn(callX(annotatedClass, "createFrom", args("text")))
                     .addTo(annotatedClass);
         }
 
-        MethodBuilder.createPublicMethod("createFromSnippet")
+        MethodBuilder.createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .param(make(File.class), "src")
@@ -884,11 +913,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         MethodBuilder.createPublicMethod("createFromSnippet")
+                .deprecated()
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .param(make(File.class), "src")
+                .doReturn(callX(annotatedClass, "createFrom", args("src")))
+                .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .param(make(URL.class), "src")
                 .declareVariable("text", propX(varX("src"), "text"))
                 .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
+                .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod("createFromSnippet")
+                .deprecated()
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .param(make(URL.class), "src")
+                .doReturn(callX(annotatedClass, "createFrom", args("src")))
                 .addTo(annotatedClass);
     }
 

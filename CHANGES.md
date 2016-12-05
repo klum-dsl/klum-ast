@@ -1,5 +1,9 @@
 ## 0.19
 - Implemented [Default values](https://github.com/blackbuild/config-dsl#Default-Values) (see [#29](https://github.com/blackbuild/config-dsl/issues/29))
+- Implemented better [Convenience Factories](https://github.com/blackbuild/config-dsl#Convenience-Factories), (see [#33](https://github.com/blackbuild/config-dsl/issues/33))
+
+- __Deprecation__:
+    - `createFromSnippet` has been renamed to simply `createFrom`, `createFromSnippet` will eventually be dropped.
 
 ## 0.18.1
 - Named parameters should be available for inner objects as well

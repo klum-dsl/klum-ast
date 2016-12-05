@@ -215,19 +215,44 @@ MyConfig.create {
 }
 ```
 
-`MyConfig.createFromSnippet(text)` or `MyConfig.createFromSnippet(key, text)` convert the given text to a closure that
-is used to configure an new instance of the dsl object:
+`MyConfig.createFrom(text)` or `MyConfig.createFrom(key, text)` handles the given text as the content of the create 
+closure and is usually used with a File or an URL as argument.
+
+For example
 
 ```groovy
-value("bla")
+def config = Config.createFrom(new File("bla.groovy"))
 ```
 
-Snippets must not contain import statements, i.e. all classes that are not imported by Groovy default need to be
-used fully qualified.
+and the file bla.groovy
+```groovy
+value("blub")
+```
 
-Snippets can also be loaded directly from a file or URL `MyConfig.createFromSnippet(fileOrURL)`, in case of a keyed object, the
-key is derived from the filename (the first segment). By using a small dsld-snipped in your IDEA, you even get complete
-code completion and syntax highlighting an specialized config files.
+result in the following:
+
+```groovy
+assert config.value == "blub"
+```
+
+In case of a keyed object, the key is derived from the filename (the first segment, in the example above, the key would 
+be "bla"). By using a small dsld-snippet in your IDE, you even get complete code completion and syntax highlighting an 
+specialized config files.
+
+This allows splitting configurations into different files, which might be automatically resolved by something like:
+ 
+```groovy
+Config.create {
+    environments {
+        new File("envdir").eachFile { file -> 
+            environment(Environment.createFrom(file)) 
+        }    
+    }
+}
+```
+ 
+__Note__: Currently, `createFrom` does not support any polymorphic creation. This might be added later,
+ see: ([#43](https://github.com/blackbuild/config-dsl/issues/43))
 
 
 #### copyFrom() method
@@ -235,6 +260,8 @@ code completion and syntax highlighting an specialized config files.
 Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
 object over to this objects, excluding key and owner fields. For non collection fields, only a reference is copied,
 for Lists and Maps, shallow copies are created.
+
+Currently, it is in discussion whether this should be deep clone instead, see: ([#36](https://github.com/blackbuild/config-dsl/issues/36))
 
 #### equals() and toString() methods
 
