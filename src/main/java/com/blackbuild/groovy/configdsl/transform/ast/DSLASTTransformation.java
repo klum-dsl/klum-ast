@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -41,27 +42,27 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
-    private static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-    private static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
-    private static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
-    private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
-    private static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
-    private static final ClassNode KEY_ANNOTATION = make(Key.class);
-    private static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    private static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
+    static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
+    static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
+    static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
+    static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
+    static final ClassNode KEY_ANNOTATION = make(Key.class);
+    static final ClassNode OWNER_ANNOTATION = make(Owner.class);
+    static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
-    private static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    private static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
-    private static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
+    static final ClassNode EXCEPTION_TYPE = make(Exception.class);
+    static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
+    static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
 
-    private static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
-    private static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
-    public static final String VALIDATE_METHOD = "validate";
-    private ClassNode annotatedClass;
-    private FieldNode keyField;
-    private FieldNode ownerField;
-    private AnnotationNode dslAnnotation;
+    static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
+    static final ClassNode TOSTRING_ANNOT = make(ToString.class);
+    static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
+    static final String VALIDATE_METHOD = "validate";
+    ClassNode annotatedClass;
+    FieldNode keyField;
+    FieldNode ownerField;
+    AnnotationNode dslAnnotation;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -83,9 +84,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFieldMethods();
         createCanonicalMethods();
         createValidateMethod();
+        createDefaultMethods();
 
         if (annotedClassIsTopOfDSLHierarchy())
             preventOwnerOverride();
+    }
+
+    private void createDefaultMethods() {
+        new DefaultMethods(this).execute();
+
     }
 
     private void createValidateMethod() {
@@ -99,7 +106,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         MethodBuilder methodBuilder = MethodBuilder.createPublicMethod(VALIDATE_METHOD);
 
-        if (isDSLObject(annotatedClass.getSuperClass())) {
+        if (ASTHelper.isDSLObject(annotatedClass.getSuperClass())) {
             methodBuilder.statement(callSuperX(VALIDATE_METHOD));
         }
 
@@ -201,7 +208,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void assertMembersNamesAreUnique() {
         Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<String, FieldNode>();
 
-        for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
+        for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             for (FieldNode field : level.getFields()) {
                 if (!isListOrMap(field.getType())) continue;
 
@@ -252,11 +259,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                  // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                  // see DefaultValuesSpec."template for parent class affects child instances"()
-                .param(newClass(getHighestAncestorDSLObject(annotatedClass)), "template");
+                .param(newClass(ASTHelper.getHighestAncestorDSLObject(annotatedClass)), "template");
 
         ClassNode parentClass = annotatedClass.getSuperClass();
 
-        if (isDSLObject(parentClass)) {
+        if (ASTHelper.isDSLObject(parentClass)) {
             templateApply.statement(ifS(
                             notX(isInstanceOfX(varX("template"), annotatedClass)),
                             returnS(callSuperX("copyFrom", args(propX(classX(parentClass), "$TEMPLATE"))))
@@ -357,14 +364,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
-                        isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
+                        ASTHelper.isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
-    }
-
-    private boolean isDSLObject(ClassNode classNode) {
-        return getAnnotation(classNode, DSL_CONFIG_ANNOTATION) != null;
     }
 
     private void createCanonicalMethods() {
@@ -920,7 +923,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return null;
         }
 
-        ClassNode ancestor = getHighestAncestorDSLObject(target);
+        ClassNode ancestor = ASTHelper.getHighestAncestorDSLObject(target);
 
         if (target.equals(ancestor)) return result;
 
@@ -937,14 +940,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
-    private ClassNode getHighestAncestorDSLObject(ClassNode target) {
-        return getHierarchyOfDSLObjectAncestors(target).getFirst();
-    }
-
     private List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
         List<FieldNode> result = new ArrayList<FieldNode>();
 
-        for (ClassNode level : getHierarchyOfDSLObjectAncestors(target)) {
+        for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(target)) {
             result.addAll(getAnnotatedFieldOfClass(level, annotation));
         }
 
@@ -984,22 +983,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private String getOwnerFieldName(ClassNode target) {
         FieldNode ownerFieldOfElement = getOwnerField(target);
         return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
-    }
-
-    private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(ClassNode target) {
-        return getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
-    }
-
-    private Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
-        if (!isDSLObject(target)) return hierarchy;
-
-        hierarchy.addFirst(target);
-        return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
-    }
-
-    private AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
-        List<AnnotationNode> annotation = field.getAnnotations(type);
-        return annotation.isEmpty() ? null : annotation.get(0);
     }
 
     private void addCompileError(String msg, ASTNode node) {
