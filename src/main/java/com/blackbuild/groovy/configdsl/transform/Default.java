@@ -1,8 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -16,7 +13,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)
-@GroovyASTTransformationClass(classes={DSLASTTransformation.class})public @interface Default {
+public @interface Default {
 
     String value() default "";
 
