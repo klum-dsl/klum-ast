@@ -14,7 +14,13 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
     method(
             name: "apply",
             doc: "Applies the configuration in the closure." as String,
-            params: [params: 'Map<String,?>', closure: Closure.class.name],
+            params: [params: 'java.util.Map<String,?>', closure: Closure.class.name],
+            type: clazz.type.qualifiedName
+    )
+    method(
+            name: "apply",
+            doc: "Applies the configuration in the closure." as String,
+            params: [params: 'java.util.Map<String,?>'],
             type: clazz.type.qualifiedName
     )
 
@@ -30,7 +36,14 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 name: "create",
                 doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key" as String,
                 isStatic: true,
-                params: [params: 'Map<String,?>', "$clazz.key": "java.lang.String", closure: Closure.class.name],
+                params: [params: 'java.util.Map<String,?>', "$clazz.key": "java.lang.String", closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName} using 'key' as $clazz.key" as String,
+                isStatic: true,
+                params: [params: 'java.util.Map<String,?>', "$clazz.key": "java.lang.String"],
                 type: clazz.type.qualifiedName
         )
         method(
@@ -46,7 +59,14 @@ contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")
                 name: "create",
                 doc: "Creates a new instance of ${clazz.type.qualifiedName}" as String,
                 isStatic: true,
-                params: [params: 'Map<String,?>', closure: Closure.class.name],
+                params: [params: 'java.util.Map<String,?>', closure: Closure.class.name],
+                type: clazz.type.qualifiedName
+        )
+        method(
+                name: "create",
+                doc: "Creates a new instance of ${clazz.type.qualifiedName}" as String,
+                isStatic: true,
+                params: [params: 'java.util.Map<String,?>'],
                 type: clazz.type.qualifiedName
         )
         method(
