@@ -1,17 +1,21 @@
 [![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
 # Targetting 1.0
-We are rapidly releasing the 1.0, this means a lot of API clean up, which sadly means some incompatible changes. See
+We are slowly approaching the 1.0 release, this means a lot of API clean up, which sadly means some incompatible changes. See
 the CHANGES.md and the Issues for more details.
 
-Config-DSL will also be renamed a get some additional companion tools...
+The goal is to stabilize the API and prune experimental features before releasing 1.0. Backward compatibility for pre 1.0
+versions is in our focus, but not our main goal.
+
+Config-DSL will also be renamed a get some additional companion tools. Whether this renaming also means a coordinate
+(likely) and / or a package name change (possible) remains to be decided.
 
 
 # Breaking changes since 0.17
 
 the following features were dropped:
 - pre using existing `create` and `apply` methods is no longer supported, this will be replace by a lifecycle mechanism 
-  before 1.0 release ([#38]()https://github.com/blackbuild/config-dsl/issues/38)
+  before 1.0 release ([#38](https://github.com/blackbuild/config-dsl/issues/38))
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
