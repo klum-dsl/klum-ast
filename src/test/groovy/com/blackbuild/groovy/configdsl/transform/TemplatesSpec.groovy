@@ -82,8 +82,9 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        clazz.$TEMPLATE.name == "Welt"
-        clazz.$TEMPLATE.value == "Hallo"
+        clazz.$TEMPLATE instanceof ThreadLocal
+        clazz.$TEMPLATE.get().name == "Welt"
+        clazz.$TEMPLATE.get().value == "Hallo"
     }
 
     def "create method should apply template"() {
@@ -164,7 +165,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        !instance.names.is(clazz.$TEMPLATE.names)
+        !instance.names.is(clazz.$TEMPLATE.get().names)
     }
 
     def "BUG Redefining a template should completely drop the old template"() {
@@ -351,8 +352,8 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         expect:
-        getClass("pk.Parent").$TEMPLATE.class == getClass("pk.Parent")
-        getClass("pk.Child").$TEMPLATE.class == getClass("pk.Child")
+        getClass("pk.Parent").$TEMPLATE.get().class == getClass("pk.Parent")
+        getClass("pk.Child").$TEMPLATE.get().class == getClass("pk.Child")
 
         when:
         instance = create("pk.Child") {}
@@ -486,7 +487,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        create("pk.Child") {}.name == "default";
+        create("pk.Child") {}.name == "default"
 
         when:
         getClass("pk.Parent").createTemplate {
@@ -494,7 +495,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.name == "parent";
+        create("pk.Child") {}.name == "parent"
 
         when:
         getClass("pk.Child").createTemplate {
@@ -502,7 +503,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.name == "child";
+        create("pk.Child") {}.name == "child"
 
         and:
         create("pk.Child") { name "explicit" }.name == "explicit"
@@ -524,7 +525,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        create("pk.Child") {}.names == ["default"];
+        create("pk.Child") {}.names == ["default"]
 
         when:
         getClass("pk.Parent").createTemplate {
@@ -532,7 +533,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.names == ["default", "parent"];
+        create("pk.Child") {}.names == ["default", "parent"]
 
         when:
         getClass("pk.Child").createTemplate {
@@ -540,10 +541,10 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.names == ["default", "parent", "child"];
+        create("pk.Child") {}.names == ["default", "parent", "child"]
 
         and:
-        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"];
+        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"]
     }
 
     def "explicitly overrid parent templates collections"() {
@@ -570,7 +571,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") { name "explicit"}.names == ["child", "explicit"];
+        create("pk.Child") { name "explicit"}.names == ["child", "explicit"]
     }
 
     def "BUG: apply overrides overridden values again"() {

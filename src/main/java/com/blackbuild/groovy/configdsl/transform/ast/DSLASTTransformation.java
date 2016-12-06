@@ -31,6 +31,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotat
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
@@ -233,7 +234,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createTemplateMethods() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(annotatedClass), null);
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
 
         ClassNode templateClass;
 
@@ -247,17 +248,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), constX(null))
+                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod("result", "copyFromTemplate")
                 .callMethod("result", "apply", varX("closure"))
-                .assignS(propX(classX(annotatedClass), "$TEMPLATE"), varX("result"))
+                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", args("result"))
+                .doReturn("result")
                 .addTo(annotatedClass);
 
         MethodBuilder.createPublicMethod("copyFromTemplate")
                 .deprecated()
                 .returning(newClass(annotatedClass))
-                .doReturn(callThisX("copyFrom", args(propX(classX(annotatedClass), "$TEMPLATE"))))
+                .doReturn(callThisX("copyFrom", args(callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get"))))
                 .addTo(annotatedClass);
 
         MethodBuilder templateApply = MethodBuilder.createPublicMethod("copyFrom")
@@ -271,7 +273,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (ASTHelper.isDSLObject(parentClass)) {
             templateApply.statement(ifS(
                             notX(isInstanceOfX(varX("template"), annotatedClass)),
-                            returnS(callSuperX("copyFrom", args(propX(classX(parentClass), "$TEMPLATE"))))
+                            returnS(callSuperX("copyFrom", args(callX(propX(classX(parentClass), TEMPLATE_FIELD_NAME), "get"))))
                     )
             );
 
@@ -279,6 +281,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         } else {
             templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
         }
+
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnored(fieldNode)) continue;
