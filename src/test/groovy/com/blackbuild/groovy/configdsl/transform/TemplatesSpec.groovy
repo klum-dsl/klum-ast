@@ -63,6 +63,22 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "orig"
     }
 
+    def "createTemplate is deprecated"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value = "hallo"
+            }
+        ''')
+
+        then:
+        clazz.getMethod("createTemplate", Closure).getAnnotation(Deprecated) != null
+    }
+
     def "create template method create template class field"() {
         given:
         createClass('''
