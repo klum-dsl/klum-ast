@@ -14,7 +14,10 @@ import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
+import org.codehaus.groovy.control.messages.WarningMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
+import org.codehaus.groovy.syntax.Token;
+import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
@@ -927,8 +930,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     public void addCompileWarning(String msg, ASTNode node) {
-        // TODO Need to convert node into CST node?
-        //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
+        Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
+        sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, token, sourceUnit);
     }
 
 }
