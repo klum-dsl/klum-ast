@@ -563,7 +563,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"]
     }
 
-    def "explicitly overrid parent templates collections"() {
+    def "explicitly override parent templates collections"() {
         given:
         createClass('''
             package pk
@@ -709,5 +709,38 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "own"
         instance.value == null
     }
+
+    def "parent child collections with map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                List<String> names = ["default"]
+            }
+
+            @DSL
+            class Child extends Parent {
+            }
+        ''')
+        when:
+        getClass("pk.Parent").withTemplates(tm('pk.Parent': [names: "parent"], 'pk.Child' : [names : ["child"]])) {
+            instance = create("pk.Child") { name "explicit" }
+        }
+
+        then:
+        instance.names == ["default", "child", "explicit"]
+    }
+
+    Map<Class, Object> tm(Map<String, Map<String, Object>> definition) {
+
+        return definition.collectEntries { className, template ->
+
+            [(getClass(className)) : getClass(className).create(template)]
+        }
+    }
+
+
 
 }

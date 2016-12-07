@@ -86,7 +86,6 @@ class TemplateMethods {
                                     param(newClass(CLOSURE_TYPE), "c")
                             ),
                             block(
-                                    stmt(callThisX("println", varX("t"))),
                                     stmt(
                                             callX(
                                                     annotatedClass,
