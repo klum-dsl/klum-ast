@@ -256,4 +256,11 @@ public class MethodBuilder {
     private MethodBuilder callValidationMethodOn(Expression targetX) {
         return statement(GeneralUtils.ifS(notX(propX(targetX,"$manualValidation")), GeneralUtils.callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
+
+    VariableScope getVariableScope() {
+        if (body == null)
+            body = new BlockStatement();
+
+        return body.getVariableScope();
+    }
 }

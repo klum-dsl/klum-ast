@@ -1,18 +1,23 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.runtime.MethodClosure;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.createClosureExpression;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
@@ -41,6 +46,7 @@ class TemplateMethods {
         copyFromTemplateMethod();
         copyFromMethod();
         withTemplateMethod();
+        withTemplatesMethod();
     }
 
     private void withTemplateMethod() {
@@ -56,6 +62,52 @@ class TemplateMethods {
                                         stmt(callX(varX("closure"), "call"))
                                 ),
                                 stmt(setTemplateValueExpression(varX("oldTemplate")))
+                        )
+                )
+                .addTo(annotatedClass);
+    }
+
+    private void withTemplatesMethod() {
+        MethodBuilder.createPublicMethod("withTemplates")
+                .mod(ACC_STATIC)
+                .returning(ClassHelper.DYNAMIC_TYPE)
+                .param(newClass(MAP_TYPE), "templates")
+                .closureParam("closure")
+                .statement(ifS(notX(varX("templates")), returnS(callX(varX("closure"), "call"))))
+                .declareVariable("keys", callX(callX(varX("templates"), "keySet"), "asList"))
+                .declareVariable("recursion",
+                        // This is a dirty hack. Since I did not get the Variable Scope to be propagated into the closure
+                        // I create a closure using three parameters (templates, keys, closure), which are passed as parameters
+                        // and then we curry the closure using the actual values.
+                        createClosureExpression(
+                            params(
+                                    param(newClass(MAP_TYPE), "t"),
+                                    param(newClass(LIST_TYPE), "k"),
+                                    param(newClass(CLOSURE_TYPE), "c")
+                            ),
+                            block(
+                                    stmt(callThisX("println", varX("t"))),
+                                    stmt(
+                                            callX(
+                                                    annotatedClass,
+                                                    "withTemplates",
+                                                    args(
+                                                            callX(
+                                                                    varX("t"), "subMap",
+                                                                    callX(varX("k"), "tail")
+                                                            ),
+                                                            varX("c")
+                                                    )
+                                            )
+                                    )
+                            )
+                        )
+                )
+                .declareVariable("curried", callX(varX("recursion"), "curry", args("templates", "keys", "closure")))
+                .callMethod(callX(varX("keys"), "head"), "withTemplate",
+                        args(
+                                callX(varX("templates"), "get", callX(varX("keys"), "head")),
+                                varX("curried")
                         )
                 )
                 .addTo(annotatedClass);

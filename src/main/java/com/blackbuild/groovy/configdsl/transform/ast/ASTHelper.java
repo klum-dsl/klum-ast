@@ -1,10 +1,9 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.stmt.Statement;
 
 import java.util.Deque;
 import java.util.LinkedList;
@@ -52,5 +51,11 @@ public class ASTHelper {
 
     static boolean isAbstract(ClassNode classNode) {
         return (classNode.getModifiers() & Opcodes.ACC_ABSTRACT) != 0;
+    }
+
+    static ClosureExpression createClosureExpression(Parameter[] parameters, Statement code) {
+        ClosureExpression result = new ClosureExpression(parameters, code);
+        result.setVariableScope(new VariableScope());
+        return result;
     }
 }

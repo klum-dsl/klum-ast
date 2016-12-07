@@ -650,4 +650,64 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
+    def "locally applied templates using map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        def template = clazz.create {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        clazz.withTemplates((clazz): template) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
+    def "locally applied templates using empty map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        def template = clazz.create {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        clazz.withTemplates([:]) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == null
+    }
+
 }
