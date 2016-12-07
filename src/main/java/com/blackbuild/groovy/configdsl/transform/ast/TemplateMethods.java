@@ -1,17 +1,16 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.runtime.MethodClosure;
 import org.jetbrains.annotations.NotNull;
+import org.objectweb.asm.Opcodes;
 
+import java.util.Collections;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.createClosureExpression;
@@ -46,12 +45,14 @@ class TemplateMethods {
         copyFromTemplateMethod();
         copyFromMethod();
         withTemplateMethod();
+        withTemplateConvenienceMethod();
         withTemplatesMethod();
     }
 
     private void withTemplateMethod() {
         MethodBuilder.createPublicMethod("withTemplate")
                 .mod(ACC_STATIC)
+                .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(dslAncestor), "template")
                 .closureParam("closure")
                 .declareVariable("oldTemplate", getTemplateValueExpression())
@@ -59,11 +60,34 @@ class TemplateMethods {
                         new TryCatchStatement(
                                 block(
                                         stmt(setTemplateValueExpression(varX("template"))),
-                                        stmt(callX(varX("closure"), "call"))
+                                        returnS(callX(varX("closure"), "call"))
                                 ),
                                 stmt(setTemplateValueExpression(varX("oldTemplate")))
                         )
                 )
+                .addTo(annotatedClass);
+    }
+
+    private void withTemplateConvenienceMethod() {
+        MethodBuilder.createPublicMethod("withTemplate")
+                .mod(ACC_STATIC)
+                .returning(ClassHelper.DYNAMIC_TYPE)
+                .param(newClass(MAP_TYPE), "templateMap")
+                .closureParam("closure")
+                .declareVariable(
+                        "mapWithManualValidation",
+                        plusX(
+                                varX("templateMap"),
+                                new MapExpression(Collections.singletonList(new MapEntryExpression(constX("manualValidation"), constX(true))))
+                        )
+                )
+                .println(classX(templateClass))
+                .declareVariable("templateInstance", callX(
+                        templateClass, "create",
+                        keyField != null ? args(varX("mapWithManualValidation"), constX(null)) : args("mapWithManualValidation"))
+                )
+                .println(varX("templateInstance"))
+                .callMethod(classX(annotatedClass), "withTemplate", args("templateInstance", "closure"))
                 .addTo(annotatedClass);
     }
 
@@ -118,7 +142,7 @@ class TemplateMethods {
 
     private void createImplementationForAbstractClassIfNecessary() {
         if (ASTHelper.isAbstract(annotatedClass))
-            templateClass = createTemplateClass();
+            createTemplateClass();
         else
             templateClass = annotatedClass;
     }
@@ -201,18 +225,19 @@ class TemplateMethods {
                 .addTo(annotatedClass);
     }
 
-    private ClassNode createTemplateClass() {
+    private void createTemplateClass() {
 
-        InnerClassNode contextClass = new InnerClassNode(
+        templateClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$Template",
                 ACC_STATIC,
                 newClass(annotatedClass));
 
-        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(contextClass), null);
+        // TODO Remove once createTemplate is removed
+        templateClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(templateClass), null);
 
         if (keyField != null) {
-            contextClass.addConstructor(
+            templateClass.addConstructor(
                     0,
                     params(param(keyField.getType(), "key")),
                     DSLASTTransformation.NO_EXCEPTIONS,
@@ -222,16 +247,37 @@ class TemplateMethods {
             );
         }
 
+        MethodBuilder.createPublicMethod("create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .namedParams("values")
+                .optionalStringParam("name", keyField)
+                .delegatingClosureParam(annotatedClass)
+                .declareVariable("result", keyField != null ? ctorX(templateClass, args("name")) : ctorX(templateClass))
+                .callMethod("result", "apply", args("values", "closure"))
+                .doReturn("result")
+                .addTo(templateClass);
+
+        MethodBuilder.createPublicMethod("create")
+                .returning(newClass(annotatedClass))
+                .mod(Opcodes.ACC_STATIC)
+                .optionalStringParam("name", keyField)
+                .delegatingClosureParam(annotatedClass)
+                .doReturn(callX(templateClass, "create",
+                        keyField != null ?
+                                args(new MapExpression(), varX("name"), varX("closure"))
+                                : args(new MapExpression(), varX("closure"))
+                ))
+                .addTo(templateClass);
+
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null) {
             for (MethodNode abstractMethod : abstractMethods) {
-                implementAbstractMethod(contextClass, abstractMethod);
+                implementAbstractMethod(templateClass, abstractMethod);
             }
         }
 
-        annotatedClass.getModule().addClass(contextClass);
-
-        return contextClass;
+        annotatedClass.getModule().addClass(templateClass);
     }
 
     private void implementAbstractMethod(ClassNode target, MethodNode abstractMethod) {

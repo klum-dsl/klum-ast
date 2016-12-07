@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
-# Targetting 1.0
+# Targeting 1.0
 We are slowly approaching the 1.0 release, this means a lot of API clean up, which sadly means some incompatible changes. See
 the CHANGES.md and the Issues for more details.
 
@@ -21,13 +21,13 @@ the following features were dropped:
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
 - member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
   members value)
-
-# Upcoming breaking changes:
-
-- the implicit template feature will be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), it basically
-  uses global variables, which is of course bad design
-- The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
-  or using the new named templates (`Model.create(copyFrom: myTemplate) {..}`)
+- the implicit template feature is deprecated and will be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
+  it basically uses global variables, which is of course bad design
+  
+  The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
+  or using the new named parameters (`Model.create(copyFrom: myTemplate) {..}`)
+  
+  Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism])
 
 # ConfigDSL Transformation for Groovy
 Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
@@ -190,9 +190,9 @@ class ConfigWithKey {
 creates the following methods:
     
 ```groovy
-static Config create(Closure c)
+static Config create(Closure c = {})
 
-static ConfigWithKey create(String name, Closure c)
+static ConfigWithKey create(String name, Closure c = {})
 ```
 
 If create method does already exist, a method named `_create` is created instead.
@@ -203,6 +203,25 @@ Additionally, an `apply` method is created, which takes single closure and appli
 ```groovy
 def void apply(Closure c)
 ```
+
+Both `apply` and `create` also support named parameters, allowing to set values in a concise way. Every map element of
+the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
+
+
+```groovy
+Config.create {
+    name "Dieter"
+    age 15
+}
+```
+
+Could also be written as:
+```groovy
+Config.create(name: 'Dieter', age: 15)
+```
+
+Of course, named parameters and regular calls inside the closure can be combined ad lib.
+
 
 #### Convenience Factories
 
@@ -297,7 +316,7 @@ Config.create {
 
 #### Default Values
 
-Fields can also be annotated with `@Default` to designate a default value, which is returned in case the value is not
+Fields can be annotated with `@Default` to designate a default value, which is returned in case the value is not
 Groovy true. Default values can either be simple values delegating to a different property, or complex closures.
 
 ```groovy
@@ -571,20 +590,26 @@ assert c.bar.owner === c
 ```
 
 
-## Template objects
+## Template Mechanism
 
-*This feature will be changed in 0.18.0, the createTemplate method will be removed and replaced with an explicit
-template mechanism, see: https://github.com/blackbuild/config-dsl/issues/34*
+*The previous `createTemplate` method has been deprecated in favor of the new mechanism described below*
 
-The system includes a simple mechanism for configuring default values (as part of the object creation, not in the classes:
+The system includes a simple mechanism for configuring default values (as part of the instance creation), not in the classes:
 
-Each DSLObject class contains a special static `$TEMPLATE` field. The field can be initialized using the `createTemplate()`
- method which creates a new instance using a closure, similar to the `create()` (createTemplate() is always unkeyed), but
- instead of returning the new instance, it is assigned to the `$TEMPLATE` field.
+Templates are regular instances of DSL objects, which will usually be assigned to a local variable. Applying a template means
+ that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, shallow copies 
+ will be created. 
  
-Whenever a new instance is created using the `create()` methods, all non-null / non-empty fields in the template are 
-copied over from template. For Lists and Maps, shallow copies will be created. This happens only when using the `create()`
-method, it is NOT invoked using the constructor!
+ Ignorable fields of the template (key, owner, transient or marked as `@Ignore`) are never copied over. For keyed objects, it
+  is customary to give a value for the key of the template like '_' or 'TEMPLATE'. Note that it might be necessary to activate manual
+  validation for template objects to prevent the Key from being validated
+ 
+ Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
+ it is also applied when creating child class instances. Child template values can override parent templates. For examples
+ see the test cases in TemplateSpec.
+
+ 
+There currently four options to apply templates, all examples use the following class and template:
 
 ```groovy
 @DSL
@@ -592,25 +617,115 @@ class Config {
     String url
     List<String> roles
 }
+
+def template = Config.create {
+        url "http://x.y"
+        roles "developer", "guest"
+}
 ```
+ 
+### copyFrom
+
+Using `copyFrom`, one can explicitly apply a template to a single Object to be created:
+
+```groovy
+def c = Config.create {
+    copyFrom template
+    url "z"
+}
+
+// convenient using the named parameters syntax
+def c2 = Config.create(copyFrom: template) {
+    url "z"
+}
+```
+
+If using named parameters, the `copyFrom` entry should be the first!
+
+### withTemplate
+ 
+ Using the `withTemplate()` method, a template will be applied to all instances of that class that are a created inside 
+ the given closures (effectively creating a scoped template),
+ 
+ __A template are only applied inside the scope when using the `create()` method, it is NOT invoked when using the 
+ constructor directly!__ 
 
 Usage:
 ```groovy
-Config.createTemplate {
+def template = Config.create {
     url "http://x.y"
     roles "developer", "guest"
 }
 
-def c = Config.create {
-    roles "productowner"
+def c
+Config.withTemplate(template) {
+    c = Config.create {
+        roles "productowner"
+    }
 }
 
 assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
 ```
 
-Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
-it is also applied when creating child class instances. Child template values can override parent templates.
+### with anonymous template
+`withTemplate` can also be called using only named parameters, creating a temporary, anonymous template:
+
+```groovy
+Config.withTemplate(Config.create(url: "http://x.y")) {
+    c = Config.create {
+        roles "productowner"
+    }
+}
+```
+
+could be written as:
+
+```groovy
+Config.withTemplate(url: "http://x.y") {
+    c = Config.create {
+        roles "productowner"
+    }
+}
+```
+
+### withTemplates
+
+`withTemplates` is a convenient way of applying multiple templates at one. It takes a map mapping classes to instances.
+This method can be called on any DSL class. 
+Instead of writing something like this:
+
+```groovy
+Environment.withTemplate(defaultEnvironment) {
+    Server.withTemplate(defaultServer) {
+        Host.template(defaultHost) {
+            Config.create {
+                // ...                    
+            }
+        }
+    }
+}
+```
+
+One can also write:
+
+```groovy
+Config.withTemplates((Environment) : defaultEnvironment, (Server) : defaultServer, (Host) : defaultHost) {
+    Config.create {
+        // ...                    
+    }
+}
+```
+
+### templates for abstract classes
+
+For abstract classes, an inner Class name `Template` is created with the following properties:
+
+- all abstract methods are implemented empty
+- validation is turned of
+
+Anonymous templates automatically use the Template class.
+
 
 ### Order of precedence
 
@@ -771,60 +886,17 @@ decides whether the whole hierarchy is keyed or not.
 
 ### Alternatives syntax
 
-There is also a convenient syntax for declaring base classes directly, using the `alternatives` attribute of the 
+__The Alternatives syntax has currently been removed. It will be reimplemented later (post 1.0)__
+
+
+~~There is also a convenient syntax for declaring base classes directly, using the `alternatives` attribute of the 
 `Field` annotation. `alternatives` takes a list of classes for which shortcut methods will be created. See the 
-following example:
+following example:~~
  
- 
-```groovy
-@DSL
-class Config {
-    @Field(alternatives=[MavenProject, GradleProject]) // <-- Theses classes are provided as alternatives for
-                                                          //     the projects closure
-    Map<String, Project> projects
-}
 
-@DSL
-class Project {
-    @Key String name
-    String url
-}
-
-@DSL
-class MavenProject extends Project{
-    List<String> goals
-}
-
-@DSL
-class GradleProject extends Project{
-    List<String> Tasks
-}
-```
-
-And use the alternatives syntax in our dsl:
-
-```groovy
-def config = Config.create {
-
-    projects {
-        mavenProject("demo") {  // method name is the uncapitalized name of the class
-            url "abc"
-            goals "clean", "compile"
-        }
-        gradleProject("demo2") {
-            url "xyz"
-            tasks "build"
-        }
-        project("baseclass") {  // since Project is not abstract, it is automatically added to the list
-            url "nmp"
-        }
-    }
-}
-```
-
-*Future plans for this are to automatically strip the base class name from the method names (i.e. when all subclasses
+~~*Future plans for this are to automatically strip the base class name from the method names (i.e. when all subclasses
 end with the name of the parent class - as in the example above - the base class name could be removed,
-leading to `maven`, `gradle` and `project` as the allowed names.*
+leading to `maven`, `gradle` and `project` as the allowed names.*~~
 
 ## Validation
 
@@ -888,5 +960,3 @@ Future plans:
 
 - Map keys should not be restricted to Strings (esp. enums would be useful)
 - Eclipse dsld
-- strip common suffixes from alternative names (MavenProject, GradleProject -> maven, gradle)
-- allow custom names for alternatives

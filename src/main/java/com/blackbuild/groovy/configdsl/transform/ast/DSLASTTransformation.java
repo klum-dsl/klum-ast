@@ -29,6 +29,7 @@ import java.net.URL;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.isAbstract;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -147,7 +148,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 Validation.Option.class,
                 Validation.Option.IGNORE_UNMARKED);
         for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnored(fieldNode)) continue;
+            if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
 
             ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
             String message = null;
@@ -302,6 +303,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode == ownerField) return true;
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
+        if (fieldNode.getName().startsWith("$")) return true;
+        if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
+        return false;
+    }
+
+    boolean shouldFieldBeIgnoredForValidation(FieldNode fieldNode) {
+        if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         return false;
@@ -693,6 +701,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethods() {
+        if (isAbstract(annotatedClass)) return;
+
         MethodBuilder.createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)

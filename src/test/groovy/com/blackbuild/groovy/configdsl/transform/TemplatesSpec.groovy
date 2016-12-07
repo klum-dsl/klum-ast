@@ -692,12 +692,6 @@ class TemplatesSpec extends AbstractDSLSpec {
             }
         ''')
 
-        and:
-        def template = clazz.create {
-            name "Default"
-            value "DefaultValue"
-        }
-
         when:
         clazz.withTemplates([:]) {
             instance = clazz.create {
@@ -741,6 +735,116 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
     }
 
+    def "convenience template using named parameter"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        when:
+        clazz.withTemplate(name: "Default", value: "DefaultValue") {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
+    def "convenience template deactivates validation"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                @Validate String value
+            }
+        ''')
+
+        when:
+        clazz.withTemplate(name: "Default") {
+            instance = clazz.create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
+
+    def "use Template classes for Templates of abstract classes"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                abstract doIt()
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String value
+                
+                def doIt() {}
+            }
+        ''')
+        def template = getClass('pk.Foo$Template').create {
+            name "Default"
+        }
+
+        when:
+        getClass("pk.Foo").withTemplate(template) {
+            instance = getClass("pk.Bar").create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
+
+
+    def "convenience template uses template class for abstract classes"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        getClass("pk.Foo").withTemplate(name: "Default") {
+            instance = getClass("pk.Bar").create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
 
 
 }
