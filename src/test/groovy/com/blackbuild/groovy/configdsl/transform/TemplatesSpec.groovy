@@ -63,6 +63,22 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "orig"
     }
 
+    def "createTemplate is deprecated"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value = "hallo"
+            }
+        ''')
+
+        then:
+        clazz.getMethod("createTemplate", Closure).getAnnotation(Deprecated) != null
+    }
+
     def "create template method create template class field"() {
         given:
         createClass('''
@@ -82,8 +98,9 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        clazz.$TEMPLATE.name == "Welt"
-        clazz.$TEMPLATE.value == "Hallo"
+        clazz.$TEMPLATE instanceof ThreadLocal
+        clazz.$TEMPLATE.get().name == "Welt"
+        clazz.$TEMPLATE.get().value == "Hallo"
     }
 
     def "create method should apply template"() {
@@ -164,7 +181,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        !instance.names.is(clazz.$TEMPLATE.names)
+        !instance.names.is(clazz.$TEMPLATE.get().names)
     }
 
     def "BUG Redefining a template should completely drop the old template"() {
@@ -351,8 +368,8 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         expect:
-        getClass("pk.Parent").$TEMPLATE.class == getClass("pk.Parent")
-        getClass("pk.Child").$TEMPLATE.class == getClass("pk.Child")
+        getClass("pk.Parent").$TEMPLATE.get().class == getClass("pk.Parent")
+        getClass("pk.Child").$TEMPLATE.get().class == getClass("pk.Child")
 
         when:
         instance = create("pk.Child") {}
@@ -486,7 +503,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        create("pk.Child") {}.name == "default";
+        create("pk.Child") {}.name == "default"
 
         when:
         getClass("pk.Parent").createTemplate {
@@ -494,7 +511,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.name == "parent";
+        create("pk.Child") {}.name == "parent"
 
         when:
         getClass("pk.Child").createTemplate {
@@ -502,7 +519,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.name == "child";
+        create("pk.Child") {}.name == "child"
 
         and:
         create("pk.Child") { name "explicit" }.name == "explicit"
@@ -524,7 +541,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         expect:
-        create("pk.Child") {}.names == ["default"];
+        create("pk.Child") {}.names == ["default"]
 
         when:
         getClass("pk.Parent").createTemplate {
@@ -532,7 +549,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.names == ["default", "parent"];
+        create("pk.Child") {}.names == ["default", "parent"]
 
         when:
         getClass("pk.Child").createTemplate {
@@ -540,13 +557,13 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") {}.names == ["default", "parent", "child"];
+        create("pk.Child") {}.names == ["default", "parent", "child"]
 
         and:
-        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"];
+        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"]
     }
 
-    def "explicitly overrid parent templates collections"() {
+    def "explicitly override parent templates collections"() {
         given:
         createClass('''
             package pk
@@ -570,7 +587,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
-        create("pk.Child") { name "explicit"}.names == ["child", "explicit"];
+        create("pk.Child") { name "explicit"}.names == ["child", "explicit"]
     }
 
     def "BUG: apply overrides overridden values again"() {
@@ -602,4 +619,232 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "non-default"
 
     }
+
+    def "locally applied templates"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        def template = clazz.create {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        clazz.withTemplate(template) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
+    def "locally applied templates using map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        def template = clazz.create {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        clazz.withTemplates((clazz): template) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
+    def "locally applied templates using empty map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        when:
+        clazz.withTemplates([:]) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == null
+    }
+
+    def "parent child collections with map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                List<String> names = ["default"]
+            }
+
+            @DSL
+            class Child extends Parent {
+            }
+        ''')
+        when:
+        getClass("pk.Parent").withTemplates(tm('pk.Parent': [names: "parent"], 'pk.Child' : [names : ["child"]])) {
+            instance = create("pk.Child") { name "explicit" }
+        }
+
+        then:
+        instance.names == ["default", "child", "explicit"]
+    }
+
+    Map<Class, Object> tm(Map<String, Map<String, Object>> definition) {
+
+        return definition.collectEntries { className, template ->
+
+            [(getClass(className)) : getClass(className).create(template)]
+        }
+    }
+
+    def "convenience template using named parameter"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        when:
+        clazz.withTemplate(name: "Default", value: "DefaultValue") {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
+    def "convenience template deactivates validation"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                @Validate String value
+            }
+        ''')
+
+        when:
+        clazz.withTemplate(name: "Default") {
+            instance = clazz.create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
+
+    def "use Template classes for Templates of abstract classes"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                abstract doIt()
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String value
+                
+                def doIt() {}
+            }
+        ''')
+        def template = getClass('pk.Foo$Template').create {
+            name "Default"
+        }
+
+        when:
+        getClass("pk.Foo").withTemplate(template) {
+            instance = getClass("pk.Bar").create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
+
+
+    def "convenience template uses template class for abstract classes"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        when:
+        getClass("pk.Foo").withTemplate(name: "Default") {
+            instance = getClass("pk.Bar").create {
+                value "bla"
+            }
+        }
+
+        then:
+        instance.name == "Default"
+        instance.value == "bla"
+    }
+
+
 }

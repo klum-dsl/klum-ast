@@ -9,6 +9,7 @@ import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
@@ -119,6 +120,11 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder closureParam(String name) {
+        param(GeneralUtils.param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), name));
+        return this;
+    }
+
 
     public MethodBuilder classParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
@@ -163,15 +169,6 @@ public class MethodBuilder {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
         result.setMember("value", classX(target));
         return result;
-    }
-
-    public MethodBuilder statements(Statement... statements) {
-        if (body == null)
-            body = new BlockStatement(statements, new VariableScope());
-        else
-            for (Statement statement : statements)
-                body.addStatement(statement);
-        return this;
     }
 
     public MethodBuilder statement(Statement statement) {
@@ -235,6 +232,11 @@ public class MethodBuilder {
         return callThis("println", args);
     }
 
+    @Deprecated
+    public MethodBuilder println(String string) {
+        return callThis("println", constX(string));
+    }
+
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
     }
@@ -253,5 +255,12 @@ public class MethodBuilder {
 
     private MethodBuilder callValidationMethodOn(Expression targetX) {
         return statement(GeneralUtils.ifS(notX(propX(targetX,"$manualValidation")), GeneralUtils.callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
+    }
+
+    VariableScope getVariableScope() {
+        if (body == null)
+            body = new BlockStatement();
+
+        return body.getVariableScope();
     }
 }

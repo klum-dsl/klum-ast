@@ -1,3 +1,6 @@
+## 0.20
+- A new, explicit [Template Mechanism](https://github.com/blackbuild/config-dsl#Template-Mechanism) (see [#34](https://github.com/blackbuild/config-dsl/issues/34)) 
+
 ## 0.19
 - Implemented [Default values](https://github.com/blackbuild/config-dsl#Default-Values) (see [#29](https://github.com/blackbuild/config-dsl/issues/29))
 - Implemented better [Convenience Factories](https://github.com/blackbuild/config-dsl#Convenience-Factories), (see [#33](https://github.com/blackbuild/config-dsl/issues/33))

@@ -1,8 +1,9 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassNode;
+import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.stmt.Statement;
 
 import java.util.Deque;
 import java.util.LinkedList;
@@ -34,5 +35,27 @@ public class ASTHelper {
     public static AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
         List<AnnotationNode> annotation = field.getAnnotations(type);
         return annotation.isEmpty() ? null : annotation.get(0);
+    }
+
+    static boolean isListOrMap(ClassNode type) {
+        return isList(type) || isMap(type);
+    }
+
+    static boolean isList(ClassNode type) {
+        return type.equals(ClassHelper.LIST_TYPE) || type.implementsInterface(ClassHelper.LIST_TYPE);
+    }
+
+    static boolean isMap(ClassNode type) {
+        return type.equals(ClassHelper.MAP_TYPE) || type.implementsInterface(ClassHelper.MAP_TYPE);
+    }
+
+    static boolean isAbstract(ClassNode classNode) {
+        return (classNode.getModifiers() & Opcodes.ACC_ABSTRACT) != 0;
+    }
+
+    static ClosureExpression createClosureExpression(Parameter[] parameters, Statement code) {
+        ClosureExpression result = new ClosureExpression(parameters, code);
+        result.setVariableScope(new VariableScope());
+        return result;
     }
 }
