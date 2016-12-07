@@ -619,4 +619,35 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "non-default"
 
     }
+
+    def "locally applied templates"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        and:
+        def template = clazz.create {
+            name "Default"
+            value "DefaultValue"
+        }
+
+        when:
+        clazz.withTemplate(template) {
+            instance = clazz.create {
+                name "own"
+            }
+        }
+
+        then:
+        instance.name == "own"
+        instance.value == "DefaultValue"
+    }
+
 }

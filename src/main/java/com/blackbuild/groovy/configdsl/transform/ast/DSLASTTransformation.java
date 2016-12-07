@@ -61,7 +61,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
     static final String VALIDATE_METHOD = "validate";
     ClassNode annotatedClass;
     FieldNode keyField;
@@ -198,7 +197,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             if (annotation == null) continue;
 
-            if (isListOrMap(fieldNode.getType())) return;
+            if (ASTHelper.isListOrMap(fieldNode.getType())) return;
 
             if (annotation.getMember("members") != null) {
                 addCompileError(
@@ -214,7 +213,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             for (FieldNode field : level.getFields()) {
-                if (!isListOrMap(field.getType())) continue;
+                if (!ASTHelper.isListOrMap(field.getType())) continue;
 
                 String memberName = getElementNameForCollectionField(field);
 
@@ -234,122 +233,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createTemplateMethods() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
-
-        ClassNode templateClass;
-
-        if (isAbstract(annotatedClass))
-            templateClass = createTemplateClass();
-        else
-            templateClass = annotatedClass;
-
-        MethodBuilder.createPublicMethod("createTemplate")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(Opcodes.ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
-                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
-                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "apply", varX("closure"))
-                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", args("result"))
-                .doReturn("result")
-                .addTo(annotatedClass);
-
-        MethodBuilder.createPublicMethod("copyFromTemplate")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .doReturn(callThisX("copyFrom", args(callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get"))))
-                .addTo(annotatedClass);
-
-        MethodBuilder templateApply = MethodBuilder.createPublicMethod("copyFrom")
-                .returning(newClass(annotatedClass))
-                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
-                 // see DefaultValuesSpec."template for parent class affects child instances"()
-                .param(newClass(ASTHelper.getHighestAncestorDSLObject(annotatedClass)), "template");
-
-        ClassNode parentClass = annotatedClass.getSuperClass();
-
-        if (ASTHelper.isDSLObject(parentClass)) {
-            templateApply.statement(ifS(
-                            notX(isInstanceOfX(varX("template"), annotatedClass)),
-                            returnS(callSuperX("copyFrom", args(callX(propX(classX(parentClass), TEMPLATE_FIELD_NAME), "get"))))
-                    )
-            );
-
-            templateApply.statement(callSuperX("copyFrom", args("template")));
-        } else {
-            templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
-        }
-
-
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnored(fieldNode)) continue;
-
-            if (isListOrMap(fieldNode.getType()))
-                templateApply.statement(
-                        ifS(
-                                propX(varX("template"), fieldNode.getName()),
-                                assignS(propX(varX("this"), fieldNode.getName()), callX(propX(varX("template"), fieldNode.getName()), "clone"))
-                        )
-                );
-            else
-                templateApply.statement(
-                        ifS(
-                                propX(varX("template"), fieldNode.getName()),
-                                assignS(propX(varX("this"), fieldNode.getName()), propX(varX("template"), fieldNode.getName()))
-                        )
-                );
-        }
-
-        templateApply
-                .doReturn("this")
-                .addTo(annotatedClass);
+        new TemplateMethods(this).invoke();
     }
 
-    private ClassNode createTemplateClass() {
-
-        InnerClassNode contextClass = new InnerClassNode(
-                annotatedClass,
-                annotatedClass.getName() + "$Template",
-                ACC_STATIC,
-                newClass(annotatedClass));
-
-        contextClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(contextClass), null);
-
-        if (keyField != null) {
-            contextClass.addConstructor(
-                    0,
-                    params(param(keyField.getType(), "key")),
-                    NO_EXCEPTIONS,
-                    block(
-                            ctorSuperS(args(constX(null)))
-                    )
-            );
-        }
-
-        List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
-        if (abstractMethods != null) {
-            for (MethodNode abstractMethod : abstractMethods) {
-                implementAbstractMethod(contextClass, abstractMethod);
-            }
-        }
-
-        annotatedClass.getModule().addClass(contextClass);
-
-        return contextClass;
-    }
-
-    private void implementAbstractMethod(ClassNode target, MethodNode abstractMethod) {
-        target.addMethod(
-                abstractMethod.getName(),
-                abstractMethod.getModifiers() ^ ACC_ABSTRACT,
-                abstractMethod.getReturnType(),
-                cloneParams(abstractMethod.getParameters()),
-                abstractMethod.getExceptions(),
-                block()
-        );
-    }
 
     private void preventOwnerOverride() {
 
@@ -402,16 +288,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
-        } else if (isMap(fieldNode.getType()))
+        } else if (ASTHelper.isMap(fieldNode.getType()))
             createMapMethod(fieldNode);
-        else if (isList(fieldNode.getType()))
+        else if (ASTHelper.isList(fieldNode.getType()))
             createListMethod(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
     }
 
     @SuppressWarnings("RedundantIfStatement")
-    private boolean shouldFieldBeIgnored(FieldNode fieldNode) {
+    boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if (fieldNode == keyField) return true;
         if (fieldNode == ownerField) return true;
         if (getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
@@ -419,18 +305,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         return false;
-    }
-
-    private boolean isListOrMap(ClassNode type) {
-        return isList(type) || isMap(type);
-    }
-
-    private boolean isList(ClassNode type) {
-        return type.equals(ClassHelper.LIST_TYPE) || type.implementsInterface(ClassHelper.LIST_TYPE);
-    }
-
-    private boolean isMap(ClassNode type) {
-        return type.equals(ClassHelper.MAP_TYPE) || type.implementsInterface(ClassHelper.MAP_TYPE);
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
@@ -527,7 +401,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod("closure", "call")
                 .addTo(annotatedClass);
 
-        if (!isAbstract(elementType)) {
+        if (!ASTHelper.isAbstract(elementType)) {
             MethodBuilder.createPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
@@ -660,7 +534,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         String targetOwner = getOwnerFieldName(elementType);
 
-        if (!isAbstract(elementType)) {
+        if (!ASTHelper.isAbstract(elementType)) {
             MethodBuilder.createPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
@@ -733,7 +607,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode targetTypeKeyField = getKeyField(targetFieldType);
         String targetOwnerFieldName = getOwnerFieldName(targetFieldType);
 
-        if (!isAbstract(targetFieldType)) {
+        if (!ASTHelper.isAbstract(targetFieldType)) {
             MethodBuilder.createPublicMethod(methodName)
                     .returning(targetFieldType)
                     .namedParams("values")
@@ -793,11 +667,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isFinal(ClassNode classNode) {
         return (classNode.getModifiers() & ACC_FINAL) != 0;
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isAbstract(ClassNode classNode) {
-        return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
 
     private void createApplyMethods() {
@@ -1064,4 +933,5 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         // TODO Need to convert node into CST node?
         //sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, node, sourceUnit);
     }
+
 }
