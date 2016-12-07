@@ -2,6 +2,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import spock.lang.Issue
 
 class ConvenienceFactories extends AbstractDSLSpec {
 
@@ -227,11 +228,44 @@ class ConvenienceFactories extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet(configText)
+        instance = clazz.createFrom(configText)
 
         then:
         instance.class.name == "pk.Foo"
         instance.value == "bla"
+    }
+
+    @Issue("https://github.com/blackbuild/config-dsl/issues/45")
+    def "template should be applied for convenience factories"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        ''')
+
+        def configText = '''
+            import java.util.List
+
+            value "bla"
+        '''
+
+        and:
+        def template = clazz.create(name: 'Dieter')
+
+        when:
+        clazz.withTemplate(template) {
+            instance = clazz.createFrom(configText)
+        }
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.name == "Dieter"
     }
 
 }
