@@ -2,7 +2,11 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -15,55 +19,65 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
-/**
- * Created by snpaux on 07.12.2016.
- */
 class TemplateMethods {
     private static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
     private DSLASTTransformation transformation;
     private ClassNode annotatedClass;
     private FieldNode keyField;
     private ClassNode templateClass;
+    private ClassNode dslAncestor;
 
     public TemplateMethods(DSLASTTransformation transformation) {
         this.transformation = transformation;
+        annotatedClass = transformation.annotatedClass;
+        keyField = transformation.keyField;
+        dslAncestor = ASTHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 
     public void invoke() {
-        annotatedClass = transformation.annotatedClass;
-        keyField = transformation.keyField;
+        addTemplateFieldToAnnotatedClass();
+        createImplementationForAbstractClassIfNecessary();
+        createTemplateMethod();
+        copyFromTemplateMethod();
+        copyFromMethod();
+        withTemplateMethod();
+    }
 
+    private void withTemplateMethod() {
+        MethodBuilder.createPublicMethod("withTemplate")
+                .mod(ACC_STATIC)
+                .param(newClass(dslAncestor), "template")
+                .closureParam("closure")
+                .declareVariable("oldTemplate", getTemplateValueExpression())
+                .statement(
+                        new TryCatchStatement(
+                                block(
+                                        stmt(setTemplateValueExpression(varX("template"))),
+                                        stmt(callX(varX("closure"), "call"))
+                                ),
+                                stmt(setTemplateValueExpression(varX("oldTemplate")))
+                        )
+                )
+                .addTo(annotatedClass);
+    }
+
+    private void addTemplateFieldToAnnotatedClass() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
+    }
 
+    private void createImplementationForAbstractClassIfNecessary() {
         if (ASTHelper.isAbstract(annotatedClass))
             templateClass = createTemplateClass();
         else
             templateClass = annotatedClass;
+    }
 
-        MethodBuilder.createPublicMethod("createTemplate")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
-                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
-                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "apply", varX("closure"))
-                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "set", args("result"))
-                .doReturn("result")
-                .addTo(annotatedClass);
-
-        MethodBuilder.createPublicMethod("copyFromTemplate")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .doReturn(callThisX("copyFrom", args(callX(GeneralUtils.propX(GeneralUtils.classX(annotatedClass), TEMPLATE_FIELD_NAME), "get"))))
-                .addTo(annotatedClass);
-
+    private void copyFromMethod() {
         MethodBuilder templateApply = MethodBuilder.createPublicMethod("copyFrom")
                 .returning(newClass(annotatedClass))
                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                 // see DefaultValuesSpec."template for parent class affects child instances"()
-                .param(newClass(ASTHelper.getHighestAncestorDSLObject(annotatedClass)), "template");
+                .param(newClass(dslAncestor), "template");
 
         ClassNode parentClass = annotatedClass.getSuperClass();
 
@@ -78,7 +92,6 @@ class TemplateMethods {
         } else {
             templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
         }
-
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
@@ -101,6 +114,39 @@ class TemplateMethods {
 
         templateApply
                 .doReturn("this")
+                .addTo(annotatedClass);
+    }
+
+    private void copyFromTemplateMethod() {
+        MethodBuilder.createPublicMethod("copyFromTemplate")
+                .deprecated()
+                .returning(newClass(annotatedClass))
+                .doReturn(callThisX("copyFrom", args(getTemplateValueExpression())))
+                .addTo(annotatedClass);
+    }
+
+    @NotNull
+    private MethodCallExpression getTemplateValueExpression() {
+        return callX(GeneralUtils.propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get");
+    }
+
+    @NotNull
+    private MethodCallExpression setTemplateValueExpression(Expression value) {
+        return callX(GeneralUtils.propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "set", args(value));
+    }
+
+    private void createTemplateMethod() {
+        MethodBuilder.createPublicMethod("createTemplate")
+                .deprecated()
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
+                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
+                .callMethod("result", "copyFromTemplate")
+                .callMethod("result", "apply", varX("closure"))
+                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "set", args("result"))
+                .doReturn("result")
                 .addTo(annotatedClass);
     }
 
