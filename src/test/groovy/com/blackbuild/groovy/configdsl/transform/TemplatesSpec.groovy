@@ -79,7 +79,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         clazz.getMethod("createTemplate", Closure).getAnnotation(Deprecated) != null
     }
 
-    def "create template method create template class field"() {
+    def "createTemplate method creates template class field"() {
         given:
         createClass('''
             package pk
@@ -239,14 +239,22 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "default"
     }
 
-    def "abstract class creates a artifical implementation"() {
+    def "abstract class creates a artificial implementation"() {
         given:
         createClass('''
             package pk
 
             @DSL
             abstract class Parent {
-              def abstract String calcName()
+              String name  
+              abstract String calcName()
+            }
+            
+            @DSL
+            class Child extends Parent {
+                String calcName() {
+                  "$name-child"
+                }
             }
         ''')
 
@@ -254,14 +262,51 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        getClass("pk.Parent").createTemplate {
-        }
+        def template = clazz.makeTemplate(name: 'Dieter')
 
         then:
         notThrown(InstantiationException)
+        getClass('pk.Parent$Template').isInstance(template)
+        template.name == 'Dieter'
+
+        when:
+        clazz.withTemplate(template) {
+            instance = getClass('pk.Child').create()
+        }
+
+        then:
+        instance.name == 'Dieter'
+
+        when: 'Using copyFrom'
+        instance = getClass('pk.Child').create(copyFrom: template)
+
+        then:
+        instance.name == 'Dieter'
     }
 
-    def "abstract keyed class creates a artifical implementation"() {
+    def "abstract class abstract methods with primitive return types "() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Parent {
+              abstract int calcValue()
+            }
+        ''')
+
+        expect:
+        getClass('pk.Parent$Template') != null
+
+        when:
+        instance = getClass("pk.Parent").makeTemplate()
+
+        then:
+        notThrown(InstantiationException)
+        getClass('pk.Parent$Template').isInstance(instance)
+    }
+
+    def "abstract keyed class creates a artificial implementation"() {
         given:
         createClass('''
             package pk
@@ -276,8 +321,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        getClass("pk.Parent").createTemplate {
-        }
+        getClass("pk.Parent").makeTemplate()
 
         then:
         notThrown(InstantiationException)
@@ -328,14 +372,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        println "Creating template"
         getClass("pk.Child").createTemplate {
             name "default"
             value "defaultValue"
         }
 
         when:
-        println "Creating instance"
         instance = create("pk.Child") {}
 
         then:

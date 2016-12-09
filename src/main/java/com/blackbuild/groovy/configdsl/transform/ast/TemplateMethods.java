@@ -7,12 +7,10 @@ import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.createClosureExpression;
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.listExpression;
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -39,6 +37,7 @@ class TemplateMethods {
         addTemplateFieldToAnnotatedClass();
         createImplementationForAbstractClassIfNecessary();
         createTemplateMethod();
+        makeTemplateMethod();
         copyFromTemplateMethod();
         copyFromMethod();
         withTemplateMethod();
@@ -72,19 +71,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(MAP_TYPE), "templateMap")
                 .closureParam("closure")
-                .declareVariable(
-                        "mapWithManualValidation",
-                        plusX(
-                                varX("templateMap"),
-                                new MapExpression(Collections.singletonList(new MapEntryExpression(constX("manualValidation"), constX(true))))
-                        )
-                )
-                .println(classX(templateClass))
-                .declareVariable("templateInstance", callX(
-                        templateClass, "create",
-                        keyField != null ? args(varX("mapWithManualValidation"), constX(null)) : args("mapWithManualValidation"))
-                )
-                .println(varX("templateInstance"))
+                .declareVariable("templateInstance", callX(annotatedClass, "makeTemplate", args("templateMap")))
                 .callMethod(classX(annotatedClass), "withTemplate", args("templateInstance", "closure"))
                 .addTo(annotatedClass);
     }
@@ -175,22 +162,17 @@ class TemplateMethods {
 
         ClassNode parentClass = annotatedClass.getSuperClass();
 
-        if (ASTHelper.isDSLObject(parentClass)) {
-            templateApply.statement(ifS(
-                    notX(isInstanceOfX(varX("template"), annotatedClass)),
-                    returnS(callSuperX("copyFrom", args(callX(GeneralUtils.propX(classX(parentClass), TEMPLATE_FIELD_NAME), "get"))))
-                    )
-            );
-
+        if (isDSLObject(parentClass)) {
             templateApply.statement(callSuperX("copyFrom", args("template")));
-        } else {
-            templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
         }
+
+        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            if (ASTHelper.isListOrMap(fieldNode.getType()))
+            templateApply.println(constX(fieldNode.getName()));
+            if (isListOrMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
@@ -212,21 +194,28 @@ class TemplateMethods {
     }
 
     private void copyFromTemplateMethod() {
-        MethodBuilder.createPublicMethod("copyFromTemplate")
+        MethodBuilder copyFromTemplate = MethodBuilder.createPublicMethod("copyFromTemplate")
                 .deprecated()
-                .returning(newClass(annotatedClass))
+                .returning(newClass(annotatedClass));
+
+        ClassNode parentClass = annotatedClass.getSuperClass();
+
+        if (isDSLObject(parentClass)) {
+            copyFromTemplate.statement(callSuperX("copyFromTemplate"));
+        }
+        copyFromTemplate
                 .doReturn(callThisX("copyFrom", args(getTemplateValueExpression())))
                 .addTo(annotatedClass);
     }
 
     @NotNull
     private MethodCallExpression getTemplateValueExpression() {
-        return callX(GeneralUtils.propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get");
+        return callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get");
     }
 
     @NotNull
     private MethodCallExpression setTemplateValueExpression(Expression value) {
-        return callX(GeneralUtils.propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "set", args(value));
+        return callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "set", args(value));
     }
 
     private void createTemplateMethod() {
@@ -235,12 +224,31 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
-                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "apply", varX("closure"))
-                .callMethod(GeneralUtils.propX(varX("this"), TEMPLATE_FIELD_NAME), "set", args("result"))
+                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
+                .declareVariable("result", callX(annotatedClass, "makeTemplate", args("closure")))
+                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
                 .doReturn("result")
+                .addTo(annotatedClass);
+    }
+
+    private void makeTemplateMethod() {
+        MethodBuilder.createPublicMethod("makeTemplate")
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .namedParams("values")
+                .delegatingClosureParam(annotatedClass)
+                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
+                .callMethod("result", "copyFromTemplate") // to apply templates of super classes
+                .callMethod("result", "manualValidation", constX(true))
+                .callMethod("result", "apply", args("values", "closure"))
+                .doReturn("result")
+                .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod("makeTemplate")
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .doReturn(callX(annotatedClass, "makeTemplate", args(new MapExpression(), varX("closure"))))
                 .addTo(annotatedClass);
     }
 

@@ -21,7 +21,7 @@ the following features were dropped:
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
 - member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
   members value)
-- the implicit template feature is deprecated and will be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
+- the implicit template feature is deprecated and will eventuall be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
   it basically uses global variables, which is of course bad design
   
   The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
@@ -599,13 +599,26 @@ Templates are regular instances of DSL objects, which will usually be assigned t
  that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, shallow copies 
  will be created. 
  
- Ignorable fields of the template (key, owner, transient or marked as `@Ignore`) are never copied over. For keyed objects, it
-  is customary to give a value for the key of the template like '_' or 'TEMPLATE'. Note that it might be necessary to activate manual
-  validation for template objects to prevent the Key from being validated
+ Ignorable fields of the template (key, owner, transient or marked as `@Ignore`) are never copied over. To make creating
+ templates easier, the `makeTemplate` method is provided (actually, `createTemplate` would be more convenient, unfortunately 
+ it is already used by the deprecated global template mechanism), which has the following behaviour:
  
- Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
- it is also applied when creating child class instances. Child template values can override parent templates. For examples
- see the test cases in TemplateSpec.
+ - is always unkeyed (setting the key to null in case of a keyed class)
+ - validation is turned off (since null as key might lead to an invalid object)
+ - provides a non-abstract implementation for abstract classes, implementing all possible methods empty or returning null
+ 
+ ```groovy
+@DSL
+abstract class Parent {
+    abstract int calcValue()
+}
+
+def template = Parent.makeTemplate()
+```
+ 
+Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
+it is also applied when creating child class instances. Child template values can override parent templates. For examples
+see the test cases in TemplateSpec.
 
  
 There currently four options to apply templates, all examples use the following class and template:
@@ -618,12 +631,12 @@ class Config {
 }
 
 def template = Config.create {
-        url "http://x.y"
-        roles "developer", "guest"
+    url "http://x.y"
+    roles "developer", "guest"
 }
 ```
  
-### copyFrom
+### copyFrom())
 
 Using `copyFrom`, one can explicitly apply a template to a single Object to be created:
 
@@ -633,20 +646,20 @@ def c = Config.create {
     url "z"
 }
 
-// convenient using the named parameters syntax
+// more convenient using the named parameters syntax
 def c2 = Config.create(copyFrom: template) {
     url "z"
 }
 ```
 
-If using named parameters, the `copyFrom` entry should be the first!
+In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. 
 
-### withTemplate
+### withTemplate()
  
- Using the `withTemplate()` method, a template will be applied to all instances of that class that are a created inside 
- the given closures (effectively creating a scoped template),
+`withTemplate()` provides scope templates. It takes a template and a closure, and the template is automatically 
+applied to all instance creations within that closure.
  
- __A template are only applied inside the scope when using the `create()` method, it is NOT invoked when using the 
+ __A template is only applied inside the scope when using the `create()` method, it is NOT invoked when using the 
  constructor directly!__ 
 
 Usage:
@@ -656,18 +669,22 @@ def template = Config.create {
     roles "developer", "guest"
 }
 
-def c
+def c, d
 Config.withTemplate(template) {
     c = Config.create {
         roles "productowner"
+    }
+    d = Config.create {
+        roles "scrummaster"
     }
 }
 
 assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
+assert c.roles == [ "developer", "guest", "scrummaster" ]
 ```
 
-### with anonymous template
+### With anonymous template
 `withTemplate` can also be called using only named parameters, creating a temporary, anonymous template:
 
 ```groovy
@@ -688,7 +705,7 @@ Config.withTemplate(url: "http://x.y") {
 }
 ```
 
-### withTemplates
+### withTemplates()
 
 `withTemplates` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
 
