@@ -7,6 +7,7 @@ import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
@@ -21,7 +22,6 @@ import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Opcodes;
 
 import java.io.File;
 import java.lang.reflect.Method;

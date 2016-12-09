@@ -1,14 +1,11 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
-import org.codehaus.groovy.runtime.MethodClosure;
 import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.Opcodes;
 
 import java.util.Collections;
 import java.util.List;
@@ -18,8 +15,6 @@ import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 

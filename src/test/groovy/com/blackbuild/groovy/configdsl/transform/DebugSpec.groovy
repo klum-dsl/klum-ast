@@ -1,9 +1,4 @@
 package com.blackbuild.groovy.configdsl.transform
-
-import org.codehaus.groovy.control.CompilerConfiguration
-import org.codehaus.groovy.control.customizers.ImportCustomizer
-import spock.lang.Specification
-
 /**
  * No actual test, just a place to quickly debug Transformation.
  */

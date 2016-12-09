@@ -1,8 +1,4 @@
 package com.blackbuild.groovy.configdsl.transform
-
-import spock.lang.Specification
-
-
 /**
  * Small tests to test AbstractDSLSpec itself.
  */

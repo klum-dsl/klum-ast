@@ -31,7 +31,6 @@ jacoco {
 }
 
 dependencies {
-    compile "org.ow2.asm:asm:5.0.3"
     compile "org.codehaus.groovy:groovy-all:${groovyVersion}"
     compile "com.intellij:openapi:7.0.3"
     testCompile("org.spockframework:spock-core:${spockVersion}")

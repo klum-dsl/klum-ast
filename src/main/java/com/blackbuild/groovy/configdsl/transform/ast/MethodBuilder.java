@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovy.lang.DelegatesTo;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
@@ -10,7 +11,6 @@ import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
-import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
 import java.util.List;

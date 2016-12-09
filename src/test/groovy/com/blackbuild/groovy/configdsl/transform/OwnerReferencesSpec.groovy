@@ -4,8 +4,6 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore
 
-import java.lang.reflect.Method
-
 @SuppressWarnings("GroovyAssignabilityCheck")
 class OwnerReferencesSpec extends AbstractDSLSpec {
 

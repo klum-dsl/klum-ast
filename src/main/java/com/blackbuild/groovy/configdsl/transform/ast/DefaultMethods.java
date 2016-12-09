@@ -15,8 +15,8 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotat
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static java.lang.Character.toUpperCase;
 import static org.codehaus.groovy.ast.ClassHelper.make;
-import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
 
 /**

@@ -1,11 +1,10 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder
+import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
-import org.objectweb.asm.Opcodes
 import spock.lang.Specification
-
 
 class MethodBuilderSpec extends Specification {
 
@@ -18,6 +17,4 @@ class MethodBuilderSpec extends Specification {
         then:
         thrown(IllegalStateException)
     }
-
-
 }

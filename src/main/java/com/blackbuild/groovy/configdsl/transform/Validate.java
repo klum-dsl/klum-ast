@@ -1,7 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import groovy.lang.Closure;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
