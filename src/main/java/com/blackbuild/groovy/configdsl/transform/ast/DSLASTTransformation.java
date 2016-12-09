@@ -52,6 +52,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
+    static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     static final ClassNode KEY_ANNOTATION = make(Key.class);
     static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
@@ -64,6 +66,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     static final String VALIDATE_METHOD = "validate";
     ClassNode annotatedClass;
+    ClassNode dslParent;
     FieldNode keyField;
     FieldNode ownerField;
     AnnotationNode dslAnnotation;
@@ -76,6 +79,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         keyField = getKeyField(annotatedClass);
         ownerField = getOwnerField(annotatedClass);
         dslAnnotation = (AnnotationNode) nodes[0];
+
+        if (ASTHelper.isDSLObject(annotatedClass.getSuperClass()))
+            dslParent = annotatedClass.getSuperClass();
 
         if (keyField != null)
             createKeyConstructor();
@@ -112,7 +118,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         MethodBuilder methodBuilder = MethodBuilder.createPublicMethod(VALIDATE_METHOD);
 
-        if (ASTHelper.isDSLObject(annotatedClass.getSuperClass())) {
+        if (dslParent != null) {
             methodBuilder.statement(callSuperX(VALIDATE_METHOD));
         }
 
@@ -164,7 +170,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void assertMethodIsParameterless(MethodNode method) {
         if (method.getParameters().length > 0)
-            addCompileError("A validation method must be parameterless!", method);
+            addCompileError("Lifecycle methods must be parameterless!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {
@@ -296,7 +302,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(
-                        ASTHelper.isDSLObject(annotatedClass.getSuperClass()) ? ctorSuperS(args("key")) : ctorSuperS(),
+                        dslParent != null ? ctorSuperS(args("key")) : ctorSuperS(),
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
@@ -726,6 +732,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
+                .callThis("$postApply")
                 .doReturn("this")
                 .addTo(annotatedClass);
 
@@ -735,9 +742,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callThis("apply", args(new MapExpression(), varX("closure")))
                 .doReturn("this")
                 .addTo(annotatedClass);
+
+        createLifecycleMethod("$postApply", POSTAPPLY_ANNOTATION);
+    }
+
+    private void createLifecycleMethod(String name, ClassNode annotationType) {
+        MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod(name);
+
+        if (dslParent != null)
+            lifecycleMethod.statement(callSuperX(name));
+
+        for (MethodNode method : annotatedClass.getMethods()) {
+            AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
+            if (postApplyAnnotation == null) continue;
+
+            assertMethodIsParameterless(method);
+            lifecycleMethod.callThis(method.getName());
+        }
+        lifecycleMethod.addTo(annotatedClass);
     }
 
     private void createFactoryMethods() {
+        createLifecycleMethod("$postCreate", POSTCREATE_ANNOTATION);
+
         if (isAbstract(annotatedClass)) return;
 
         MethodBuilder.createPublicMethod("create")
@@ -748,10 +775,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod("result", "copyFromTemplate")
+                .callMethod("result", "$postCreate")
                 .callMethod("result", "apply", args("values", "closure"))
                 .callValidationOn("result")
                 .doReturn("result")
                 .addTo(annotatedClass);
+
 
         MethodBuilder.createPublicMethod("create")
                 .returning(newClass(annotatedClass))

@@ -197,9 +197,7 @@ class TemplateMethods {
                 .deprecated()
                 .returning(newClass(annotatedClass));
 
-        ClassNode parentClass = annotatedClass.getSuperClass();
-
-        if (isDSLObject(parentClass)) {
+        if (transformation.dslParent != null) {
             copyFromTemplate.statement(callSuperX("copyFromTemplate"));
         }
         copyFromTemplate

@@ -33,7 +33,7 @@ public class MethodBuilder {
     private List<ClassNode> exceptions = new ArrayList<ClassNode>();
     private List<Parameter> parameters = new ArrayList<Parameter>();
     private boolean deprecated;
-    private BlockStatement body;
+    private BlockStatement body = new BlockStatement();
 
     public MethodBuilder(String name) {
         this.name = name;
@@ -53,10 +53,6 @@ public class MethodBuilder {
 
     @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     public MethodNode addTo(ClassNode target) {
-        if (body == null) {
-            throw new IllegalStateException("Body must not be null");
-        }
-
         MethodNode method = target.addMethod(
                 name,
                 modifiers,
@@ -172,9 +168,6 @@ public class MethodBuilder {
     }
 
     public MethodBuilder statement(Statement statement) {
-        if (body == null)
-            body = new BlockStatement();
-
         body.addStatement(statement);
         return this;
     }
@@ -225,6 +218,10 @@ public class MethodBuilder {
 
     public MethodBuilder callThis(String methodName, Expression args) {
         return callMethod("this", methodName, args);
+    }
+
+    public MethodBuilder callThis(String methodName) {
+        return callMethod("this", methodName);
     }
 
     @Deprecated
