@@ -330,7 +330,6 @@ class Config {
 
 creates the following methods:
 
-
 ```groovy
 String getId() {
     id ?: getName()
