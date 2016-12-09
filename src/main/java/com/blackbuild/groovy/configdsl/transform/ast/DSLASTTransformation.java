@@ -100,6 +100,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
+        assertNoValidateMethodDeclared();
+
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
         annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
@@ -133,6 +135,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         methodBuilder
                 .statement(tryCatchStatement)
                 .addTo(annotatedClass);
+    }
+
+    private void assertNoValidateMethodDeclared() {
+        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
+        if (existingValidateMethod != null)
+            addCompileError("validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
     }
 
     private void validateCustomMethods(BlockStatement block) {

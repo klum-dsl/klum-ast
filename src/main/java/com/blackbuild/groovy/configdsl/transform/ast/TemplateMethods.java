@@ -171,7 +171,6 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            templateApply.println(constX(fieldNode.getName()));
             if (isListOrMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(

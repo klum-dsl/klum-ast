@@ -577,5 +577,19 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(IllegalStateException)
     }
 
+    def "validation method must not be defined"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                private def validate() {
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 
 }
