@@ -139,13 +139,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfUnannotatedDoValidateMethod();
 
         for (MethodNode method : annotatedClass.getMethods()) {
-            if (getAnnotation(method, VALIDATE_ANNOTATION) == null) continue;
+            AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
+            if (validateAnnotation == null) continue;
 
-            if (method.getParameters().length > 0)
-                addCompileError("A validation method must be parameterless!", method);
+            assertMethodIsParameterless(method);
+            assertAnnotationHasNoValueOrMessage(validateAnnotation);
 
             block.addStatement(stmt(callX(varX("this"), method.getName())));
         }
+    }
+
+    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
+        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
+            addCompileError("@Validate annotation on method must not have parameters!", annotation);
+    }
+
+    private void assertMethodIsParameterless(MethodNode method) {
+        if (method.getParameters().length > 0)
+            addCompileError("A validation method must be parameterless!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {

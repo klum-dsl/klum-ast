@@ -523,4 +523,19 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "validate annotation on methods must not have a value or message"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ it })
+                def doValidate() {
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }
