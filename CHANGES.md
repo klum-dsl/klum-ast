@@ -1,3 +1,8 @@
+## 0.95
+- `withTemplates` now supports Lists as argument
+- `withTemplates` supports anonymous templates (actually, it always did, now there is a testcase and documentation for that)
+- new `makeTemplate` method, which only creates template, without assigning it
+
 ## 0.20
 - A new, explicit [Template Mechanism](https://github.com/blackbuild/config-dsl#Template-Mechanism) (see [#34](https://github.com/blackbuild/config-dsl/issues/34)) 
 
@@ -12,7 +17,7 @@
 - Named parameters should be available for inner objects as well
 
 ## 0.18.0
-- Breaking changes:
+- __Breaking changes__:
   - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
 - new Features:
   - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
