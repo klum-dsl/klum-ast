@@ -691,8 +691,13 @@ Config.withTemplate(url: "http://x.y") {
 
 ### withTemplates
 
-`withTemplates` is a convenient way of applying multiple templates at one. It takes a map mapping classes to instances.
-This method can be called on any DSL class. 
+`withTemplates` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
+
+- a List of template objects, which are applied to their respective classes (templates for abstract classes are applied
+top the real class)
+- a Map of classes to template instances. Can be used to explicitly define which class is used
+- a Map of classes to a Map. Uses the convenience syntax to create anonymous templates on the fly
+
 Instead of writing something like this:
 
 ```groovy
@@ -710,12 +715,33 @@ Environment.withTemplate(defaultEnvironment) {
 One can also write:
 
 ```groovy
+Config.withTemplates([defaultEnvironment, defaultServer, defaultHost]) {
+    Config.create {
+        // ...                    
+    }
+}
+```
+
+or
+
+```groovy
 Config.withTemplates((Environment) : defaultEnvironment, (Server) : defaultServer, (Host) : defaultHost) {
     Config.create {
         // ...                    
     }
 }
 ```
+
+or, using anonymous templates:
+```groovy
+Config.withTemplates((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
+    Config.create {
+        // ...                    
+    }
+}
+```
+
+Note that Groovy requires the key object to be in parantheses if it is not a String.
 
 ### templates for abstract classes
 

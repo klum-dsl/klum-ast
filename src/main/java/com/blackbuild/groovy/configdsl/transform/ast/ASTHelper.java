@@ -3,8 +3,12 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.ListExpression;
+import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,9 +57,17 @@ public class ASTHelper {
         return (classNode.getModifiers() & Opcodes.ACC_ABSTRACT) != 0;
     }
 
-    static ClosureExpression createClosureExpression(Parameter[] parameters, Statement code) {
-        ClosureExpression result = new ClosureExpression(parameters, code);
+    static ClosureExpression createClosureExpression(Parameter[] parameters, Statement... code) {
+        ClosureExpression result = new ClosureExpression(parameters, new BlockStatement(code, new VariableScope()));
         result.setVariableScope(new VariableScope());
         return result;
+    }
+
+    static ClosureExpression createClosureExpression(Statement... code) {
+        return createClosureExpression(Parameter.EMPTY_ARRAY, code);
+    }
+
+    static ListExpression listExpression(Expression... expressions) {
+        return new ListExpression(Arrays.asList(expressions));
     }
 }

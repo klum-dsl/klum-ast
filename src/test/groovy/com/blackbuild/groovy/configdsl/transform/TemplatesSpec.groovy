@@ -704,6 +704,112 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == null
     }
 
+    def "locally applied templates with map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+            
+            @DSL
+            class Bar {
+                String token
+            }
+        ''')
+        def fooClass = getClass("pk.Foo")
+        def fooTemplate = fooClass.create(name: 'DefaultName')
+        def barClass = getClass("pk.Bar")
+        def barTemplate = barClass.create(token: 'DefaultToken')
+
+
+        def foo, bar
+        when:
+        clazz.withTemplates((fooClass) : fooTemplate, (barClass) : barTemplate) {
+            foo = fooClass.create {
+                value 'blub'
+            }
+
+            bar = barClass.create()
+        }
+
+        then:
+        foo.name == 'DefaultName'
+        bar.token == 'DefaultToken'
+    }
+
+    def "locally applied templates with list"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+            
+            @DSL
+            class Bar {
+                String token
+            }
+        ''')
+        def fooClass = getClass("pk.Foo")
+        def fooTemplate = fooClass.create(name: 'DefaultName')
+        def barClass = getClass("pk.Bar")
+        def barTemplate = barClass.create(token: 'DefaultToken')
+
+
+        def foo, bar
+        when:
+        clazz.withTemplates([fooTemplate, barTemplate]) {
+            foo = fooClass.create {
+                value 'blub'
+            }
+
+            bar = barClass.create()
+        }
+
+        then:
+        foo.name == 'DefaultName'
+        bar.token == 'DefaultToken'
+    }
+
+    def "locally applied templates with list containing abstract templates"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                String value
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String token
+            }
+        ''')
+        def fooClass = getClass('pk.Foo$Template')
+        def fooTemplate = fooClass.create(name: 'DefaultName')
+
+        def bar
+        when:
+        clazz.withTemplates([fooTemplate]) {
+            assert getClass('pk.Foo').$TEMPLATE.get() == fooTemplate
+            bar = getClass('pk.Bar').create {
+                token "b"
+            }
+        }
+
+        then:
+        bar.name == 'DefaultName'
+    }
+
     def "parent child collections with map"() {
         given:
         createClass('''
@@ -718,21 +824,16 @@ class TemplatesSpec extends AbstractDSLSpec {
             class Child extends Parent {
             }
         ''')
+        def parentClass = getClass("pk.Parent")
+        def childClass = getClass('pk.Child')
+
         when:
-        getClass("pk.Parent").withTemplates(tm('pk.Parent': [names: "parent"], 'pk.Child' : [names : ["child"]])) {
+        getClass("pk.Parent").withTemplates((parentClass) : parentClass.create(name: "parent"), (childClass): childClass.create(names: ["child"])) {
             instance = create("pk.Child") { name "explicit" }
         }
 
         then:
         instance.names == ["default", "child", "explicit"]
-    }
-
-    Map<Class, Object> tm(Map<String, Map<String, Object>> definition) {
-
-        return definition.collectEntries { className, template ->
-
-            [(getClass(className)) : getClass(className).create(template)]
-        }
     }
 
     def "convenience template using named parameter"() {
@@ -757,6 +858,41 @@ class TemplatesSpec extends AbstractDSLSpec {
         then:
         instance.name == "own"
         instance.value == "DefaultValue"
+    }
+
+    def "locally applied templates with convenience map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+            
+            @DSL
+            class Bar {
+                String token
+            }
+        ''')
+        def fooClass = getClass("pk.Foo")
+        def barClass = getClass("pk.Bar")
+
+
+        def foo, bar
+        when:
+        clazz.withTemplates((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
+            foo = fooClass.create {
+                value 'blub'
+            }
+
+            bar = barClass.create()
+        }
+
+        then:
+        foo.name == 'DefaultName'
+        bar.token == 'DefaultToken'
     }
 
     def "convenience template deactivates validation"() {
@@ -845,6 +981,4 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "Default"
         instance.value == "bla"
     }
-
-
 }

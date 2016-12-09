@@ -7,10 +7,12 @@ import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.createClosureExpression;
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.listExpression;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -41,7 +43,8 @@ class TemplateMethods {
         copyFromMethod();
         withTemplateMethod();
         withTemplateConvenienceMethod();
-        withTemplatesMethod();
+        withTemplatesMapMethod();
+        withTemplatesListMethod();
     }
 
     private void withTemplateMethod() {
@@ -86,7 +89,7 @@ class TemplateMethods {
                 .addTo(annotatedClass);
     }
 
-    private void withTemplatesMethod() {
+    private void withTemplatesMapMethod() {
         MethodBuilder.createPublicMethod("withTemplates")
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
@@ -130,6 +133,27 @@ class TemplateMethods {
                 )
                 .addTo(annotatedClass);
     }
+
+    private void withTemplatesListMethod() {
+        MethodBuilder.createPublicMethod("withTemplates")
+                .mod(ACC_STATIC)
+                .returning(ClassHelper.DYNAMIC_TYPE)
+                .param(newClass(LIST_TYPE), "templates")
+                .closureParam("closure")
+                .declareVariable("map",
+                        callX(varX("templates"), "collectEntries",
+                            createClosureExpression(
+                                    declS(varX("clazz"), callX(varX("it"), "getClass")),
+                                    declS(varX("className"), propX(varX("clazz"), "name")),
+                                    declS(varX("targetClass"), ternaryX(callX(varX("className"), "endsWith", constX("$Template")), propX(varX("clazz"), "superclass"), varX("clazz"))),
+                                    stmt(listExpression(varX("clazz"), varX("it")))
+                            )
+                        )
+                )
+                .callMethod(classX(annotatedClass), "withTemplates", args("map", "closure"))
+                .addTo(annotatedClass);
+    }
+
 
     private void addTemplateFieldToAnnotatedClass() {
         annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
