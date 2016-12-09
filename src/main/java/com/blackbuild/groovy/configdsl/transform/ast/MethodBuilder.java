@@ -216,7 +216,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder callMethod(Expression receiver, String methodName, Expression args) {
-        return statement(GeneralUtils.callX(receiver, methodName, args));
+        return statement(callX(receiver, methodName, args));
     }
 
     public MethodBuilder callMethod(String receiverName, String methodName, Expression args) {
@@ -246,7 +246,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder doReturn(Expression expression) {
-        return statement(GeneralUtils.returnS(expression));
+        return statement(returnS(expression));
     }
 
     public MethodBuilder callValidationOn(String target) {
@@ -254,7 +254,7 @@ public class MethodBuilder {
     }
 
     private MethodBuilder callValidationMethodOn(Expression targetX) {
-        return statement(GeneralUtils.ifS(notX(propX(targetX,"$manualValidation")), GeneralUtils.callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
+        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
     VariableScope getVariableScope() {

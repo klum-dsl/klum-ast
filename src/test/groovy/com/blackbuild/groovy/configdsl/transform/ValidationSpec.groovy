@@ -508,4 +508,19 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(IllegalStateException)
     }
 
+    def "validation methods must not have parameters"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                def doValidate(String test) {
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }

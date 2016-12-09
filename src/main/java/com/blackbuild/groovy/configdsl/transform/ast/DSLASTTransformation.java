@@ -136,9 +136,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateCustomMethods(BlockStatement block) {
-        if (!annotatedClass.hasMethod("doValidate", Parameter.EMPTY_ARRAY)) return;
+        warnIfUnannotatedDoValidateMethod();
 
-        block.addStatement(stmt(callX(varX("this"), "doValidate")));
+        for (MethodNode method : annotatedClass.getMethods()) {
+            if (getAnnotation(method, VALIDATE_ANNOTATION) == null) continue;
+
+            if (method.getParameters().length > 0)
+                addCompileError("A validation method must be parameterless!", method);
+
+            block.addStatement(stmt(callX(varX("this"), method.getName())));
+        }
+    }
+
+    private void warnIfUnannotatedDoValidateMethod() {
+        MethodNode doValidate = annotatedClass.getMethod("doValidate", Parameter.EMPTY_ARRAY);
+
+        if (doValidate == null) return;
+
+        if (getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
+
+        addCompileWarning("Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
+        doValidate.addAnnotation(new AnnotationNode(VALIDATE_ANNOTATION));
     }
 
     private void validateFields(BlockStatement block) {
@@ -941,7 +959,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     public void addCompileWarning(String msg, ASTNode node) {
         Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
-        sourceUnit.getErrorCollector().addWarning(WarningMessage.POSSIBLE_ERRORS, msg, token, sourceUnit);
+        sourceUnit.getErrorCollector().addWarning(WarningMessage.LIKELY_ERRORS, msg, token, sourceUnit);
     }
 
 }
