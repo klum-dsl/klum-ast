@@ -30,7 +30,7 @@ the following features were dropped:
   Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism])
 
 # ConfigDSL Transformation for Groovy
-Groovy AST Tranformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
+Groovy AST Transformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
 for this project:
 
 - be as terse as possible while still being readable and using almost no boilerplate code
