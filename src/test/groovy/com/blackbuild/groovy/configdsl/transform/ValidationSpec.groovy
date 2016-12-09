@@ -538,4 +538,44 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "mulitple validation methods"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                private def stringLength() {
+                    assert value1.length() < value2.length()
+                }
+
+                @Validate
+                private def contains() {
+                    assert value2.contains(value1)
+                }
+            }
+        ''')
+
+        when:
+        clazz.create {
+            value1 "ab"
+            value2 "bla"
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+
 }
