@@ -36,7 +36,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "create _apply method when apply exists"() {
+    def "PostApply methods are called"() {
         given:
         createInstance('''
             package pk
@@ -57,6 +57,75 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.isCalled == true
+    }
+
+    def "PostCreate methods are called"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                boolean isCalled
+                
+                @PostCreate
+                def postApply() {
+                    isCalled = true
+                }
+            }
+        ''')
+
+        then:
+        clazz.create {
+            assert isCalled
+        }
+    }
+
+    def "it is illegal to call a super method in lifecycle method"() {
+        when:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                def postApply() {
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postApply() {
+                    super.postApply()
+                }
+            }
+'''
+        then:
+        thrown MultipleCompilationErrorsException
+
+    }
+
+    def "it is allowed to call a different super method in lifecycle method"() {
+        when:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                def other() {
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postApply() {
+                    super.other()
+                }
+            }
+'''
+        then:
+        notThrown MultipleCompilationErrorsException
+
     }
 
 
