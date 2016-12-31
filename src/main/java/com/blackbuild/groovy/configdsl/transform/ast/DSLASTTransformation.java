@@ -14,11 +14,6 @@ import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
-import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
-import org.codehaus.groovy.control.messages.WarningMessage;
-import org.codehaus.groovy.syntax.SyntaxException;
-import org.codehaus.groovy.syntax.Token;
-import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
@@ -146,7 +141,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void assertNoValidateMethodDeclared() {
         MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
         if (existingValidateMethod != null)
-            addCompileError("validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
+            ASTHelper.addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
     }
 
     private void validateCustomMethods(BlockStatement block) {
@@ -165,12 +160,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
         if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError("@Validate annotation on method must not have parameters!", annotation);
+            ASTHelper.addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
     }
 
     private void assertMethodIsParameterless(MethodNode method) {
         if (method.getParameters().length > 0)
-            addCompileError("Lifecycle methods must be parameterless!", method);
+            ASTHelper.addCompileError(sourceUnit, "Lifecycle methods must be parameterless!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {
@@ -180,7 +175,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
 
-        addCompileWarning("Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
+        ASTHelper.addCompileWarning(sourceUnit, "Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
         doValidate.addAnnotation(new AnnotationNode(VALIDATE_ANNOTATION));
     }
 
@@ -244,8 +239,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             if (ASTHelper.isListOrMap(fieldNode.getType())) return;
 
             if (annotation.getMember("members") != null) {
-                addCompileError(
-                        String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
+                ASTHelper.addCompileError(
+                        sourceUnit, String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
                         annotation
                 );
             }
@@ -264,8 +259,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 FieldNode conflictingField = allDslCollectionFieldNodesOfHierarchy.get(memberName);
 
                 if (conflictingField != null) {
-                    addCompileError(
-                            String.format("Member name %s is used more than once: %s:%s and %s:%s", memberName, field.getOwner().getName(), field.getName(), conflictingField.getOwner().getName(), conflictingField.getName()),
+                    ASTHelper.addCompileError(
+                            sourceUnit, String.format("Member name %s is used more than once: %s:%s and %s:%s", memberName, field.getOwner().getName(), field.getName(), conflictingField.getOwner().getName(), conflictingField.getName()),
                             field
                     );
                     return;
@@ -359,13 +354,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        MethodBuilder.createPublicMethod(fieldNode.getName())
+        MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                 .param(fieldNode.getType(), "value")
                 .assignToProperty(fieldNode.getName(), varX("value"))
                 .addTo(annotatedClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            MethodBuilder.createPublicMethod(fieldNode.getName())
+            MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                     .callThis(fieldNode.getName(), constX(true))
                     .addTo(annotatedClass);
         }
@@ -408,17 +403,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
-        MethodBuilder.createPublicMethod(fieldNode.getName())
+        MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod(fieldNode.getName())
+        MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                 .param(fieldNode.getType(), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod(getElementNameForCollectionField(fieldNode))
+        MethodBuilder.createOptionalPublicMethod(getElementNameForCollectionField(fieldNode))
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
                 .addTo(annotatedClass);
@@ -442,7 +437,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode fieldKey = getKeyField(elementType);
         String targetOwner = getOwnerFieldName(elementType);
 
-        MethodBuilder.createPublicMethod(fieldNode.getName())
+        MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                 .closureParam("closure")
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
@@ -453,7 +448,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         if (!ASTHelper.isAbstract(elementType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
                     .optionalStringParam("key", fieldKey)
@@ -465,7 +460,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
@@ -479,7 +474,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
                     .classParam("typeToCreate", elementType)
@@ -492,7 +487,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
@@ -506,7 +501,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
         }
 
-        MethodBuilder.createPublicMethod(methodName)
+        MethodBuilder.createOptionalPublicMethod(methodName)
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "add", varX("value"))
                 .optionalAssignThisToPropertyS("value", targetOwner, targetOwner)
@@ -529,7 +524,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         GenericsType[] types = fieldNode.getType().getGenericsTypes();
 
         if (types == null)
-            addCompileError("Lists and Maps need to be assigned an explicit Generic Type", fieldNode);
+            ASTHelper.addCompileError(sourceUnit, "Lists and Maps need to be assigned an explicit Generic Type", fieldNode);
         return types;
     }
 
@@ -548,14 +543,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
         String methodName = fieldNode.getName();
 
-        MethodBuilder.createPublicMethod(methodName)
+        MethodBuilder.createOptionalPublicMethod(methodName)
                 .param(fieldNode.getType(), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(annotatedClass);
 
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
-        MethodBuilder.createPublicMethod(singleElementMethod)
+        MethodBuilder.createOptionalPublicMethod(singleElementMethod)
                 .param(keyType, "key")
                 .param(valueType, "value")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
@@ -564,14 +559,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
         if (getKeyField(elementType) == null) {
-            addCompileError(
-                    String.format("Value type of map %s (%s) has no key field", fieldNode.getName(), elementType.getName()),
+            ASTHelper.addCompileError(
+                    sourceUnit, String.format("Value type of map %s (%s) has no key field", fieldNode.getName(), elementType.getName()),
                     fieldNode
             );
             return;
         }
 
-        MethodBuilder.createPublicMethod(fieldNode.getName())
+        MethodBuilder.createOptionalPublicMethod(fieldNode.getName())
                 .closureParam("closure")
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
@@ -586,7 +581,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String targetOwner = getOwnerFieldName(elementType);
 
         if (!ASTHelper.isAbstract(elementType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
                     .param(keyType, "key")
@@ -599,7 +594,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
@@ -614,7 +609,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .namedParams("values")
                     .classParam("typeToCreate", elementType)
@@ -628,7 +623,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(elementType)
                     .classParam("typeToCreate", elementType)
                     .param(keyType, "key")
@@ -644,7 +639,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         //noinspection ConstantConditions
-        MethodBuilder.createPublicMethod(methodName)
+        MethodBuilder.createOptionalPublicMethod(methodName)
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
                 .optionalAssignThisToPropertyS("value", targetOwner, targetOwner)
@@ -659,7 +654,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String targetOwnerFieldName = getOwnerFieldName(targetFieldType);
 
         if (!ASTHelper.isAbstract(targetFieldType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(targetFieldType)
                     .namedParams("values")
                     .optionalStringParam("key", targetTypeKeyField)
@@ -672,7 +667,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
@@ -686,7 +681,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(targetFieldType)) {
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(targetFieldType)
                     .namedParams("values")
                     .classParam("typeToCreate", targetFieldType)
@@ -700,7 +695,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod(methodName)
+            MethodBuilder.createOptionalPublicMethod(methodName)
                     .returning(targetFieldType)
                     .classParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
@@ -898,8 +893,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (annotatedFields.isEmpty()) return null;
 
         if (annotatedFields.size() > 1) {
-            addCompileError(
-                    String.format(
+            ASTHelper.addCompileError(
+                    sourceUnit, String.format(
                             "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
                             getQualifiedName(annotatedFields.get(0)),
                             getQualifiedName(annotatedFields.get(1))),
@@ -911,8 +906,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode result = annotatedFields.get(0);
 
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
-            addCompileError(
-                    String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
+            ASTHelper.addCompileError(
+                    sourceUnit, String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
                     result
             );
             return null;
@@ -925,8 +920,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode firstKey = getKeyField(ancestor);
 
         if (firstKey == null) {
-            addCompileError(
-                    String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
+            ASTHelper.addCompileError(
+                    sourceUnit, String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
                     result
             );
             return null;
@@ -962,8 +957,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (annotatedFields.isEmpty()) return null;
 
         if (annotatedFields.size() > 1) {
-            addCompileError(
-                    String.format(
+            ASTHelper.addCompileError(
+                    sourceUnit, String.format(
                             "Found more than owner key fields, only one is allowed in hierarchy (%s, %s)",
                             getQualifiedName(annotatedFields.get(0)),
                             getQualifiedName(annotatedFields.get(1))),
@@ -978,11 +973,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private String getOwnerFieldName(ClassNode target) {
         FieldNode ownerFieldOfElement = getOwnerField(target);
         return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
-    }
-
-    private void addCompileError(String msg, ASTNode node) {
-        SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
-        sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
 
     @SuppressWarnings("unchecked")
@@ -1003,11 +993,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         } catch (Exception e) {
             return defaultValue;
         }
-    }
-
-    public void addCompileWarning(String msg, ASTNode node) {
-        Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
-        sourceUnit.getErrorCollector().addWarning(WarningMessage.LIKELY_ERRORS, msg, token, sourceUnit);
     }
 
 }

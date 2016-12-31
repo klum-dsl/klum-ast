@@ -34,6 +34,7 @@ public class MethodBuilder {
     private List<Parameter> parameters = new ArrayList<Parameter>();
     private boolean deprecated;
     private BlockStatement body = new BlockStatement();
+    private boolean optional;
 
     public MethodBuilder(String name) {
         this.name = name;
@@ -41,6 +42,10 @@ public class MethodBuilder {
 
     public static MethodBuilder createPublicMethod(String name) {
         return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC);
+    }
+
+    public static MethodBuilder createOptionalPublicMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC).optional();
     }
 
     public static MethodBuilder createProtectedMethod(String name) {
@@ -53,11 +58,22 @@ public class MethodBuilder {
 
     @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     public MethodNode addTo(ClassNode target) {
+
+        Parameter[] parameterArray = this.parameters.toArray(EMPTY_PARAMETERS);
+        MethodNode existing = target.getDeclaredMethod(name, parameterArray);
+
+        if (existing != null) {
+            if (optional)
+                return existing;
+            else
+                throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
+        }
+
         MethodNode method = target.addMethod(
                 name,
                 modifiers,
                 returnType,
-                parameters.toArray(EMPTY_PARAMETERS),
+                parameterArray,
                 exceptions.toArray(EMPTY_EXCEPTIONS),
                 body
         );
@@ -66,6 +82,11 @@ public class MethodBuilder {
             method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
 
         return method;
+    }
+
+    public MethodBuilder optional() {
+        this.optional = true;
+        return this;
     }
 
     public MethodBuilder returning(ClassNode returnType) {

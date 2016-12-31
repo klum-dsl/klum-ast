@@ -46,22 +46,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.isCalled == true
     }
 
-    def "if apply and _apply exits, do nothing"() {
-        when:
-        createInstance('''
-            package pk
-
-            @DSL
-            class Foo {
-                Foo apply(Closure c) { this }
-                Foo  _apply(Closure c) { this }
-            }
-        ''')
-
-        then:
-        noExceptionThrown()
-    }
-
     def "apply method allows named parameters"() {
         given:
         createClass('''
