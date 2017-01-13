@@ -972,4 +972,37 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         thrown(MultipleCompilationErrorsException)
     }
+
+    @Issue("35")
+    def "Models are serializable by default"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+        ''')
+
+        then:
+        clazz.interfaces.contains(Serializable)
+    }
+
+    @Issue("35")
+    def "if model is already serializable, do nothing"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo implements Serializable{
+                String name
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+        clazz.interfaces.contains(Serializable)
+    }
 }

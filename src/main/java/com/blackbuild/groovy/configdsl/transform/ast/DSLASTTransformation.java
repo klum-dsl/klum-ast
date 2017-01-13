@@ -19,6 +19,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
@@ -84,6 +85,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
+        makeClassSerializable();
         createApplyMethods();
         createTemplateMethods();
         createFactoryMethods();
@@ -94,6 +96,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (annotedClassIsTopOfDSLHierarchy())
             preventOwnerOverride();
+    }
+
+    private void makeClassSerializable() {
+        annotatedClass.addInterface(make(Serializable.class));
     }
 
     private void createDefaultMethods() {
