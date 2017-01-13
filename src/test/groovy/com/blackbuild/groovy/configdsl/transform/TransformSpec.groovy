@@ -23,29 +23,6 @@ class TransformSpec extends AbstractDSLSpec {
         clazz.metaClass.getMetaMethod("apply", Map, Closure) != null
     }
 
-    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
-    def "create _apply method when apply exists"() {
-        given:
-        createInstance('''
-            package pk
-
-            @DSL
-            class Foo {
-                boolean isCalled
-                Foo apply(Closure c) {
-                    isCalled = true
-                    _apply(c)
-                }
-            }
-        ''')
-
-        when:
-        instance.apply {}
-
-        then:
-        instance.isCalled == true
-    }
-
     def "apply method allows named parameters"() {
         given:
         createClass('''
@@ -156,32 +133,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == 'blub'
     }
 
-    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
-    def "factory methods with existing factories"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-
-                boolean called
-
-                def static create(Closure c) {
-                    def foo = _create(c)
-                    foo.called = true
-                    foo
-                }
-            }
-        ''')
-
-        when:
-        instance = clazz.create() {}
-
-        then:
-        instance.called
-    }
-
     def "factory methods with key"() {
         given:
         createClass('''
@@ -239,72 +190,6 @@ class TransformSpec extends AbstractDSLSpec {
         noExceptionThrown()
         instance.name == "Klaus"
         instance.value == 'blub'
-    }
-
-    @Ignore("see https://github.com/blackbuild/config-dsl/issues/38")
-    def "factory methods with key and existing factory"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                @Key String name
-                boolean called
-
-                def static create(String key, Closure c) {
-                    def foo = _create(key, c)
-                    foo.called = true
-                    foo
-                }
-            }
-        ''')
-
-        when:
-        instance = clazz.create("Klaus") {}
-
-        then:
-        instance.called
-    }
-
-    @Ignore("This test doesn't really test anything, check")
-    def "factory method and _create methods already exist"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                def static create(Closure c) {
-                    _create(c)
-                }
-                def static _create(Closure c) {
-                    new Foo()
-                }
-            }
-        ''')
-
-        then:
-        noExceptionThrown()
-
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                def static create(String key, Closure c) {
-                    _create(key, c)
-                }
-                def static _create(String key, Closure c) {
-                    new Foo(key)
-                }
-            }
-        ''')
-
-        then:
-        noExceptionThrown()
     }
 
     def "constructor is created for keyed object"() {
