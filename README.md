@@ -1,5 +1,8 @@
 [![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
 
+# ConfigDSL is now KlumDSL
+For now artifact coordinates and github url remain unchanged
+
 # Targeting 1.0
 We are slowly approaching the 1.0 release, this means a lot of API clean up, which sadly means some incompatible changes. See
 the CHANGES.md and the Issues for more details.
@@ -14,14 +17,14 @@ Config-DSL will also be renamed a get some additional companion tools. Whether t
 # Breaking changes since 0.17
 
 the following features were dropped:
-- pre using existing `create` and `apply` methods is no longer supported, this will be replace by a lifecycle mechanism 
-  before 1.0 release ([#38](https://github.com/blackbuild/config-dsl/issues/38))
+- pre using existing `create` and `apply` methods is no longer supported, this has been replaced by a lifecycle mechanism 
+  ([#38](https://github.com/blackbuild/config-dsl/issues/38))
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
 - member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
   members value)
-- the implicit template feature is deprecated and will eventuall be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
+- the implicit template feature is deprecated and will eventually be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
   it basically uses global variables, which is of course bad design
   
   The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
@@ -29,7 +32,7 @@ the following features were dropped:
   
   Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism])
 
-# ConfigDSL Transformation for Groovy
+# KlumDSL Transformation for Groovy
 Groovy AST Transformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
 for this project:
 
@@ -156,18 +159,22 @@ Are everything else, i.e. simple values as well as more complex not-DSL objects.
 
 ## Basic usage:
 
-ConfigDSL consists of four Annotations: `@DSL`, `@Field`, `@Key` and `@Owner`. 
+KlumDSL consists of a number of Annotations: 
 
-`DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
+`@DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
 
-`Key` annotates the optional key field of a dsl object (see below).
+`@Key` annotates the optional key field of a dsl object (see below).
 
-`Owner` annotates the optional owner field of a dsl object.
+`@Owner` annotates the optional owner field of a dsl object.
 
-`Field` is an optional field to further configure the handling of specific fields (esp. naming).
+`@Field` is an optional field to further configure the handling of specific fields (esp. naming).
+
+`@Validation` and `@Validate` provide automatic validation of model values.
+
+`@PostCreate` and `@PostApply` can be used to designate lifecycle methods.
 
 ### @DSL
-DSL is used to designate a DSL-Configuration object, which is enriched using the AST Transformation.
+DSL is used to designate a DSL/Model object, which is enriched using the AST Transformation.
 
 The DSL annotation leads to the creation of a couple of useful methods.
 
@@ -221,6 +228,12 @@ Config.create(name: 'Dieter', age: 15)
 ```
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
+
+#### Lifecycle Methods
+Lifecycle methods can are methods annotated with `@PostCreate` and `@PostApply`. These methods will be called automatically
+after the creation of the object (**after afhe templatee has been applied**) and after the call to the apply method, respectively.
+
+Lifecycle methods must not be `private`.
 
 
 #### Convenience Factories

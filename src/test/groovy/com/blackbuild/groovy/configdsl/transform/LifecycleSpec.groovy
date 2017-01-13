@@ -36,6 +36,40 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "Lifecycle methods must not be private"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                private void postCreate() {
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "Lifecycle must not be parameterless"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                void postCreate(String value) {
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
     def "PostApply methods are called"() {
         given:
         createInstance('''
@@ -80,4 +114,66 @@ class LifecycleSpec extends AbstractDSLSpec {
             assert isCalled
         }
     }
+
+    def "Parent and child lifecycle methods are called"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postApplyParent() {
+                    caller << "Foo"
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postApplyChild() {
+                    caller << "Bar"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.caller as Set == ["Foo", "Bar" ] as Set
+
+    }
+
+    def "child overrides parent lifecycle method"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postApply() {
+                    caller << "Foo"
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postApply() {
+                    caller << "Bar"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.caller == ["Bar" ]
+
+    }
+
+
 }

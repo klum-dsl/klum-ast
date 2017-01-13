@@ -166,7 +166,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void assertMethodIsParameterless(MethodNode method) {
         if (method.getParameters().length > 0)
-            ASTHelper.addCompileError(sourceUnit, "Lifecycle methods must be parameterless!", method);
+            ASTHelper.addCompileError(sourceUnit, "Lifecycle/Validate methods must be parameterless!", method);
+    }
+
+    private void assertMethodIsNotPrivate(MethodNode method) {
+        if (method.isPrivate())
+            ASTHelper.addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {
@@ -745,15 +750,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createLifecycleMethod(String name, ClassNode annotationType) {
         MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod(name);
 
-        if (dslParent != null)
-            lifecycleMethod.statement(callSuperX(name));
+//        if (dslParent != null)
+//            lifecycleMethod.statement(callSuperX(name));
 
-        for (MethodNode method : annotatedClass.getMethods()) {
+        for (MethodNode method : annotatedClass.getAllDeclaredMethods()) {
             AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
             if (postApplyAnnotation == null)
                 continue;
 
             assertMethodIsParameterless(method);
+            assertMethodIsNotPrivate(method);
             lifecycleMethod.callThis(method.getName());
         }
         lifecycleMethod.addTo(annotatedClass);

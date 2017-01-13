@@ -2,6 +2,7 @@
 - `withTemplates` now supports Lists as argument
 - `withTemplates` supports anonymous templates (actually, it always did, now there is a testcase and documentation for that)
 - new `makeTemplate` method, which only creates template, without assigning it
+- [Lifecycle methods](https://github.com/blackbuild/config-dsl#Lifecycle-Methods) can be created using the `@PostCreate` and `@PostApply` annotations (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
 
 ## 0.20
 - A new, explicit [Template Mechanism](https://github.com/blackbuild/config-dsl#Template-Mechanism) (see [#34](https://github.com/blackbuild/config-dsl/issues/34)) 
