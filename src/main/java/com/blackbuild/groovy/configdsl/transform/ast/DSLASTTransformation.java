@@ -754,20 +754,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 continue;
 
             assertMethodIsParameterless(method);
-            assertMethodDoesNotCallSuper(method);
             lifecycleMethod.callThis(method.getName());
         }
         lifecycleMethod.addTo(annotatedClass);
-    }
-
-    private void assertMethodDoesNotCallSuper(final MethodNode method) {
-        method.getCode().visit(new CodeVisitorSupport() {
-            @Override
-            public void visitMethodCallExpression(MethodCallExpression call) {
-                if (call.getReceiver().getText().equals("super") && call.getMethodAsString().equals(method.getName()))
-                    addCompileError(sourceUnit, "it is not allowed to explicitly call super methods in lifecycle methods, super methods are called automatically", call);
-            }
-        });
     }
 
     private void createFactoryMethods() {
