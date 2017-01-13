@@ -33,7 +33,8 @@ public class MethodBuilder {
     private List<ClassNode> exceptions = new ArrayList<ClassNode>();
     private List<Parameter> parameters = new ArrayList<Parameter>();
     private boolean deprecated;
-    private BlockStatement body;
+    private BlockStatement body = new BlockStatement();
+    private boolean optional;
 
     public MethodBuilder(String name) {
         this.name = name;
@@ -41,6 +42,10 @@ public class MethodBuilder {
 
     public static MethodBuilder createPublicMethod(String name) {
         return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC);
+    }
+
+    public static MethodBuilder createOptionalPublicMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC).optional();
     }
 
     public static MethodBuilder createProtectedMethod(String name) {
@@ -53,15 +58,22 @@ public class MethodBuilder {
 
     @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     public MethodNode addTo(ClassNode target) {
-        if (body == null) {
-            throw new IllegalStateException("Body must not be null");
+
+        Parameter[] parameterArray = this.parameters.toArray(EMPTY_PARAMETERS);
+        MethodNode existing = target.getDeclaredMethod(name, parameterArray);
+
+        if (existing != null) {
+            if (optional)
+                return existing;
+            else
+                throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
         }
 
         MethodNode method = target.addMethod(
                 name,
                 modifiers,
                 returnType,
-                parameters.toArray(EMPTY_PARAMETERS),
+                parameterArray,
                 exceptions.toArray(EMPTY_EXCEPTIONS),
                 body
         );
@@ -70,6 +82,11 @@ public class MethodBuilder {
             method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
 
         return method;
+    }
+
+    public MethodBuilder optional() {
+        this.optional = true;
+        return this;
     }
 
     public MethodBuilder returning(ClassNode returnType) {
@@ -172,9 +189,6 @@ public class MethodBuilder {
     }
 
     public MethodBuilder statement(Statement statement) {
-        if (body == null)
-            body = new BlockStatement();
-
         body.addStatement(statement);
         return this;
     }
@@ -216,7 +230,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder callMethod(Expression receiver, String methodName, Expression args) {
-        return statement(GeneralUtils.callX(receiver, methodName, args));
+        return statement(callX(receiver, methodName, args));
     }
 
     public MethodBuilder callMethod(String receiverName, String methodName, Expression args) {
@@ -225,6 +239,10 @@ public class MethodBuilder {
 
     public MethodBuilder callThis(String methodName, Expression args) {
         return callMethod("this", methodName, args);
+    }
+
+    public MethodBuilder callThis(String methodName) {
+        return callMethod("this", methodName);
     }
 
     @Deprecated
@@ -246,7 +264,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder doReturn(Expression expression) {
-        return statement(GeneralUtils.returnS(expression));
+        return statement(returnS(expression));
     }
 
     public MethodBuilder callValidationOn(String target) {
@@ -254,7 +272,7 @@ public class MethodBuilder {
     }
 
     private MethodBuilder callValidationMethodOn(Expression targetX) {
-        return statement(GeneralUtils.ifS(notX(propX(targetX,"$manualValidation")), GeneralUtils.callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
+        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
     VariableScope getVariableScope() {

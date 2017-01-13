@@ -7,6 +7,12 @@ import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
+import org.codehaus.groovy.control.messages.WarningMessage;
+import org.codehaus.groovy.syntax.SyntaxException;
+import org.codehaus.groovy.syntax.Token;
+import org.codehaus.groovy.syntax.Types;
 
 import java.util.Arrays;
 import java.util.Deque;
@@ -69,5 +75,15 @@ public class ASTHelper {
 
     static ListExpression listExpression(Expression... expressions) {
         return new ListExpression(Arrays.asList(expressions));
+    }
+
+    static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
+        SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
+        sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
+    }
+
+    public static void addCompileWarning(SourceUnit sourceUnit, String msg, ASTNode node) {
+        Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
+        sourceUnit.getErrorCollector().addWarning(WarningMessage.LIKELY_ERRORS, msg, token, sourceUnit);
     }
 }

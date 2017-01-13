@@ -171,7 +171,6 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            templateApply.println(constX(fieldNode.getName()));
             if (isListOrMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
@@ -198,9 +197,7 @@ class TemplateMethods {
                 .deprecated()
                 .returning(newClass(annotatedClass));
 
-        ClassNode parentClass = annotatedClass.getSuperClass();
-
-        if (isDSLObject(parentClass)) {
+        if (transformation.dslParent != null) {
             copyFromTemplate.statement(callSuperX("copyFromTemplate"));
         }
         copyFromTemplate
