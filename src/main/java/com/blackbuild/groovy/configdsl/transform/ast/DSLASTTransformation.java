@@ -24,7 +24,6 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.addCompileError;
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.isAbstract;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -755,9 +754,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createLifecycleMethod(String name, ClassNode annotationType) {
         MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod(name);
-
-//        if (dslParent != null)
-//            lifecycleMethod.statement(callSuperX(name));
 
         for (MethodNode method : annotatedClass.getAllDeclaredMethods()) {
             AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
