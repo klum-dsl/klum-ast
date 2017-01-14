@@ -21,6 +21,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
  * Helper class for default values.
  */
 public class DefaultMethods {
+    public static final String CLOSURE_VAR_NAME = "closure";
     private DSLASTTransformation transformation;
 
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
@@ -81,13 +82,13 @@ public class DefaultMethods {
 
         createPublicMethod(ownGetter)
                 .returning(fieldNode.getType())
-                .declareVariable("closure", code)
-                .assignS(propX(varX("closure"), "delegate"), varX("this"))
+                .declareVariable(CLOSURE_VAR_NAME, code)
+                .assignS(propX(varX(CLOSURE_VAR_NAME), "delegate"), varX("this"))
                 .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
+                        propX(varX(CLOSURE_VAR_NAME), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
-                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX("closure"), "call"))))
+                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX(CLOSURE_VAR_NAME), "call"))))
                 .addTo(transformation.annotatedClass);
     }
 
