@@ -5,10 +5,7 @@ import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.expr.ClassExpression;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ElvisOperatorExpression;
-import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.*;
 import org.jetbrains.annotations.Nullable;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
@@ -44,15 +41,38 @@ public class DefaultMethods {
     }
 
     private void createDefaultValueFor(FieldNode fieldNode, AnnotationNode defaultAnnotation) {
+        assertOnlyOneMemberOfAnnotationIsSet(defaultAnnotation);
 
-        String delegate = getMemberStringValue(defaultAnnotation, "value", "");
-        ClosureExpression code = getCodeClosureFor(fieldNode, defaultAnnotation);
-        assertOnlyDelegateOrCodeClosureIsSet(fieldNode, delegate, code);
+        String fieldMember = getMemberStringValue(defaultAnnotation, "value");
 
-        if (!delegate.isEmpty())
-            createDelegateMethod(fieldNode, delegate);
-        else
+        if (fieldMember == null)
+            fieldMember = getMemberStringValue(defaultAnnotation, "field");
+
+        if (fieldMember != null) {
+            createFieldMethod(fieldNode, fieldMember);
+            return;
+        }
+
+        ClosureExpression code = getCodeClosureFor(defaultAnnotation);
+        if (code != null) {
             createClosureMethod(fieldNode, code);
+            return;
+        }
+
+        String delegateMember = getMemberStringValue(defaultAnnotation, "delegate");
+        if (delegateMember != null) {
+            createDelegateMethod(fieldNode, delegateMember);
+        }
+    }
+
+    private void createDelegateMethod(FieldNode fieldNode, String delegate) {
+        String ownGetter = getGetterName(fieldNode.getName());
+        String delegateGetter = getGetterName(delegate);
+
+        createPublicMethod(ownGetter)
+                .returning(fieldNode.getType())
+                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fieldNode.getName()), true)))
+                .addTo(transformation.annotatedClass);
     }
 
     private void createClosureMethod(FieldNode fieldNode, ClosureExpression code) {
@@ -70,13 +90,13 @@ public class DefaultMethods {
                 .addTo(transformation.annotatedClass);
     }
 
-    private void createDelegateMethod(FieldNode fieldNode, String delegate) {
+    private void createFieldMethod(FieldNode fieldNode, String targetField) {
         String ownGetter = getGetterName(fieldNode.getName());
-        String delegateGetter = getGetterName(delegate);
+        String fieldGetter = getGetterName(targetField);
 
         createPublicMethod(ownGetter)
                 .returning(fieldNode.getType())
-                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), callThisX(delegateGetter)))
+                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), callThisX(fieldGetter)))
                 .addTo(transformation.annotatedClass);
     }
 
@@ -85,26 +105,26 @@ public class DefaultMethods {
     }
 
 
-    private void assertOnlyDelegateOrCodeClosureIsSet(FieldNode fieldNode, String delegate, ClosureExpression code) {
-        if (!delegate.isEmpty() && code != null)
-            transformation.addError("Only either a default property or a closure is allowed, not both!", fieldNode);
+    private void assertOnlyOneMemberOfAnnotationIsSet(AnnotationNode annotationNode) {
+        int numberOfMembers = annotationNode.getMembers().size();
+
+        if (numberOfMembers == 0)
+            transformation.addError("You must define either delegate, code or field for @Default annotations", annotationNode);
+
+        if (numberOfMembers > 1)
+            transformation.addError("Only one member for @Default annotation is allowed!", annotationNode);
     }
 
     @Nullable
-    private ClosureExpression getCodeClosureFor(FieldNode fieldNode, AnnotationNode defaultAnnotation) {
+    private ClosureExpression getCodeClosureFor(AnnotationNode defaultAnnotation) {
         Expression codeExpression = defaultAnnotation.getMember("code");
-        ClosureExpression code;
         if (codeExpression == null)
             return null;
-        if (codeExpression instanceof ClassExpression) {
-            code = null;
-        } else if (codeExpression instanceof ClosureExpression){
-            code = (ClosureExpression) codeExpression;
-        } else {
-            transformation.addError("Illegal value for code, only None.class or a closure is allowed.", fieldNode);
-            code = null;
-        }
-        return code;
+        if (codeExpression instanceof ClosureExpression)
+            return (ClosureExpression) codeExpression;
+
+        transformation.addError("Illegal value for code, only None.class or a closure is allowed.", defaultAnnotation);
+        return null;
     }
 
 
