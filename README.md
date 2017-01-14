@@ -331,7 +331,7 @@ Config.create {
 
 Fields can be annotated with `@Default` to designate a default value, which is returned in case the value is not
 Groovy true. `@Default` supports three different members (only one at a time), which result in different return values
-being returned.
+being returned. The default value is coerced to the correct result type.
 
 ##### Other fields (field)
 

@@ -12,6 +12,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotat
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static java.lang.Character.toUpperCase;
 import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
@@ -71,7 +72,7 @@ public class DefaultMethods {
 
         createPublicMethod(ownGetter)
                 .returning(fieldNode.getType())
-                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fieldNode.getName()), true)))
+                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fieldNode.getName()), true))))
                 .addTo(transformation.annotatedClass);
     }
 
@@ -86,7 +87,7 @@ public class DefaultMethods {
                         propX(varX("closure"), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
-                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX("closure"), "call")))
+                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX("closure"), "call"))))
                 .addTo(transformation.annotatedClass);
     }
 
@@ -96,7 +97,7 @@ public class DefaultMethods {
 
         createPublicMethod(ownGetter)
                 .returning(fieldNode.getType())
-                .statement(new ElvisOperatorExpression(varX(fieldNode.getName()), callThisX(fieldGetter)))
+                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callThisX(fieldGetter))))
                 .addTo(transformation.annotatedClass);
     }
 

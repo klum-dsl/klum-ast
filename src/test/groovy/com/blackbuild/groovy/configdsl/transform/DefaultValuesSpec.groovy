@@ -60,7 +60,6 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.another == "a"
     }
 
-
     def "closure default values"() {
         given:
         createClass '''
@@ -81,7 +80,6 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         instance.lower == "hans"
-
     }
 
     def "delegate default values"() {
@@ -192,6 +190,29 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         then:
         thrown(MultipleCompilationErrorsException)
     }
+
+
+    def "default values are coerced to target type"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @Default(field = 'another')
+                int value
+                String another
+            }
+'''
+        when:
+        instance = create("pk.Foo") {
+            another "10"
+        }
+
+        then:
+        instance.value == 10
+    }
+
 
 
 }
