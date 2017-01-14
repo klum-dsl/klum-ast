@@ -50,15 +50,15 @@ nexusStaging {
 
 modifyPom {
     project {
-        name 'Config DSL'
+        name 'KlumDSL'
         packaging 'jar'
-        description 'A transformation for creating convenient configuration DSLs.'
-        url 'https://github.com/pauxus/config-dsl'
+        description 'A transformation for creating convenient configuration model DSLs.'
+        url 'https://github.com/blackbuild/config-dsl'
 
         scm {
-            connection 'scm:svn:https://github.com/pauxus/config-dsl.git'
-            developerConnection 'scm:svn:https://github.com/pauxus/config-dsl.git'
-            url 'https://github.com/pauxus/config-dsl'
+            connection 'scm:svn:https://github.com/blackbuild/config-dsl.git'
+            developerConnection 'scm:svn:https://github.com/blackbuild/config-dsl.git'
+            url 'https://github.com/blackbuild/config-dsl'
         }
 
         licenses {
