@@ -1,7 +1,6 @@
-[![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
+[![Build Status](https://travis-ci.org/klum-dsl/klum-core.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-core)
 
-# ConfigDSL is now KlumDSL
-For now artifact coordinates and github url remain unchanged
+# ConfigDSL is now KlumDSL-AST
 
 # Targeting 1.0
 We are slowly approaching the 1.0 release, this means a lot of API clean up, which sadly means some incompatible changes. See
@@ -18,13 +17,13 @@ Config-DSL will also be renamed a get some additional companion tools. Whether t
 
 the following features were dropped:
 - pre using existing `create` and `apply` methods is no longer supported, this has been replaced by a lifecycle mechanism 
-  ([#38](https://github.com/blackbuild/config-dsl/issues/38))
+  ([#38](https://github.com/klum-dsl/klum-core/issues/38))
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)
 - member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
   members value)
-- the implicit template feature is deprecated and will eventually be dropped (see [#34](https://github.com/blackbuild/config-dsl/issues/34)), 
+- the implicit template feature is deprecated and will eventually be dropped (see [#34](https://github.com/klum-dsl/klum-core/issues/34)), 
   it basically uses global variables, which is of course bad design
   
   The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
@@ -32,7 +31,7 @@ the following features were dropped:
   
   Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism])
 
-# KlumDSL Transformation for Groovy
+# KlumDSL-AST Transformation for Groovy
 Groovy AST Transformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
 for this project:
 
@@ -287,7 +286,7 @@ Config.create {
 ```
  
 __Note__: Currently, `createFrom` does not support any polymorphic creation. This might be added later,
- see: ([#43](https://github.com/blackbuild/config-dsl/issues/43))
+ see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
 
 
 #### copyFrom() method
@@ -296,7 +295,7 @@ Each DSLObject gets a `copyFrom()` method with its own class as parameter. This 
 object over to this objects, excluding key and owner fields. For non collection fields, only a reference is copied,
 for Lists and Maps, shallow copies are created.
 
-Currently, it is in discussion whether this should be deep clone instead, see: ([#36](https://github.com/blackbuild/config-dsl/issues/36))
+Currently, it is in discussion whether this should be deep clone instead, see: ([#36](https://github.com/klum-dsl/klum-core/issues/36))
 
 #### equals() and toString() methods
 

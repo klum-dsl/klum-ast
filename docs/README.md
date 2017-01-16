@@ -1,7 +1,6 @@
-[![Build Status](https://travis-ci.org/blackbuild/config-dsl.svg?branch=master)](https://travis-ci.org/blackbuild/config-dsl)
+[![Build Status](https://travis-ci.org/c/klum-dsl.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-core)
 
-# ConfigDSL is now KlumDSL
-For now artifact coordinates and github url remain unchanged
+# ConfigDSL is now KlumDSL-AST
 
 # Targeting 1.0
 We are slowly approaching the 1.0 release, this means a lot of API clean up, which sadly means some incompatible changes. See
@@ -32,7 +31,7 @@ the following features were dropped:
   
   Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism])
 
-# KlumDSL Transformation for Groovy
+# KlumDSL-AST Transformation for Groovy
 Groovy AST Transformation to allow easy, convenient and typesafe dsl configuration objects. There are two main objectives
 for this project:
 

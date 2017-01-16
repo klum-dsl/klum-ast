@@ -53,12 +53,12 @@ modifyPom {
         name 'KlumDSL'
         packaging 'jar'
         description 'A transformation for creating convenient configuration model DSLs.'
-        url 'https://github.com/blackbuild/config-dsl'
+        url 'https://github.com/klum-dsl/klum-ast'
 
         scm {
-            connection 'scm:svn:https://github.com/blackbuild/config-dsl.git'
-            developerConnection 'scm:svn:https://github.com/blackbuild/config-dsl.git'
-            url 'https://github.com/blackbuild/config-dsl'
+            connection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
+            developerConnection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
+            url 'https://github.com/klum-dsl/klum-ast'
         }
 
         licenses {

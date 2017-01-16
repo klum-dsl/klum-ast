@@ -1,3 +1,6 @@
+## 0.96
+No code changes, renamed project coordinates and URLs to new name
+
 ## 0.95
 - `withTemplates` now supports Lists as argument
 - `withTemplates` supports anonymous templates (actually, it always did, now there is a testcase and documentation for that)
