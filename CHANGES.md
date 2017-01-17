@@ -5,16 +5,16 @@ No code changes, renamed project coordinates and URLs to new name
 - `withTemplates` now supports Lists as argument
 - `withTemplates` supports anonymous templates (actually, it always did, now there is a testcase and documentation for that)
 - new `makeTemplate` method, which only creates template, without assigning it
-- [Lifecycle methods](https://github.com/blackbuild/config-dsl#Lifecycle-Methods) can be created using the `@PostCreate` and `@PostApply` annotations (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
-- DSL classes are now `Serializable` (see [#35](https://github.com/blackbuild/config-dsl/issues/35)) 
-- `@Default` now also supports `delegate` members (see [#46](https://github.com/blackbuild/config-dsl/issues/46))
+- [Lifecycle methods](https://github.com/klum-dsl/klum-ast#Lifecycle-Methods) can be created using the `@PostCreate` and `@PostApply` annotations (see [#38](https://github.com/klum-dsl/klum-ast/issues/38))
+- DSL classes are now `Serializable` (see [#35](https://github.com/klum-dsl/klum-ast/issues/35)) 
+- `@Default` now also supports `delegate` members (see [#46](https://github.com/klum-dsl/klum-ast/issues/46))
 
 ## 0.20
-- A new, explicit [Template Mechanism](https://github.com/blackbuild/config-dsl#Template-Mechanism) (see [#34](https://github.com/blackbuild/config-dsl/issues/34)) 
+- A new, explicit [Template Mechanism](https://github.com/klum-dsl/klum-ast#Template-Mechanism) (see [#34](https://github.com/klum-dsl/klum-ast/issues/34)) 
 
 ## 0.19
-- Implemented [Default values](https://github.com/blackbuild/config-dsl#Default-Values) (see [#29](https://github.com/blackbuild/config-dsl/issues/29))
-- Implemented better [Convenience Factories](https://github.com/blackbuild/config-dsl#Convenience-Factories), (see [#33](https://github.com/blackbuild/config-dsl/issues/33))
+- Implemented [Default values](https://github.com/klum-dsl/klum-ast#Default-Values) (see [#29](https://github.com/klum-dsl/klum-ast/issues/29))
+- Implemented better [Convenience Factories](https://github.com/klum-dsl/klum-ast#Convenience-Factories), (see [#33](https://github.com/klum-dsl/klum-ast/issues/33))
 
 - __Deprecation__:
     - `createFromSnippet` has been renamed to simply `createFrom`, `createFromSnippet` will eventually be dropped.
@@ -24,10 +24,10 @@ No code changes, renamed project coordinates and URLs to new name
 
 ## 0.18.0
 - __Breaking changes__:
-  - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/blackbuild/config-dsl/issues/38))
+  - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/klum-dsl/klum-ast/issues/38))
 - new Features:
   - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
-- Closures for create method are now optional (This is especially useful in combination with named parameters) ([#20](https://github.com/blackbuild/config-dsl/issues/20))
+- Closures for create method are now optional (This is especially useful in combination with named parameters) ([#20](https://github.com/klum-dsl/klum-ast/issues/20))
 - Resolved a potential Stackoverflow in GDSL (which happened in a two step recursion, i.e. A contains B and B contains A)
 
 ## 0.17.0
@@ -42,10 +42,10 @@ No code changes, renamed project coordinates and URLs to new name
 - Convenience factory for URLs
 
 ## 0.16.0
-- New Feature: [Convenience Factories](https://github.com/blackbuild/config-dsl#Convenience-Factories)
+- New Feature: [Convenience Factories](https://github.com/klum-dsl/klum-ast#Convenience-Factories)
 
 ## 0.15.2
-- Fixed: validation of nested elements does not work ([#25](https://github.com/blackbuild/config-dsl/issues/25))
+- Fixed: validation of nested elements does not work ([#25](https://github.com/klum-dsl/klum-ast/issues/25))
 
 ## 0.15.1
 - Fixed: Validation changes broke template behaviour. Previously, each call of `createTemplate` created a 
@@ -53,14 +53,14 @@ No code changes, renamed project coordinates and URLs to new name
  template.
 
 ## 0.15.0
-- New Feature: Validation (https://github.com/blackbuild/config-dsl#validation)
+- New Feature: Validation (https://github.com/klum-dsl/klum-ast#validation)
 
 ## 0.14.13
-- Fixed Compilation fails on final fields ([#21](https://github.com/blackbuild/config-dsl/issues/21))
-- Fixed Helper Methods for $TEMPLATE fields are created ([#22](https://github.com/blackbuild/config-dsl/issues/22))
+- Fixed Compilation fails on final fields ([#21](https://github.com/klum-dsl/klum-ast/issues/21))
+- Fixed Helper Methods for $TEMPLATE fields are created ([#22](https://github.com/klum-dsl/klum-ast/issues/22))
 
 ## 0.14.12
-- allow fields to be marked as ignored using an annotation ([#18](https://github.com/blackbuild/config-dsl/issues/18))
+- allow fields to be marked as ignored using an annotation ([#18](https://github.com/klum-dsl/klum-ast/issues/18))
 
 ## 0.14.11
 - apply did override values with template values. Fixed
@@ -137,7 +137,7 @@ No functional changes, only gdsl improvements
 - Introduced template objects to configure default values.
 
 ## 0.10.0
-- reuse changes/improvements [#6](https://github.com/blackbuild/config-dsl/pull/6)
+- reuse changes/improvements [#6](https://github.com/klum-dsl/klum-ast/pull/6)
   - `reuse()` renamed to `_reuse()`, does NOT set owner field
   - new `_use()` method which *does* set the owner field
   - overwriting the owner field content leads to `IllegalStateException`
