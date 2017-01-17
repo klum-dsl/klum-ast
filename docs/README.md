@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/c/klum-dsl.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-core)
+[![Build Status](https://travis-ci.org/c/klum-dsl.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-ast)
 
 # ConfigDSL is now KlumDSL-AST
 
