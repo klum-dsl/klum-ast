@@ -1,3 +1,6 @@
+## 0.96.1
+- `createFromScript` was deprecated, without creating a matching `createFrom` method, corrected
+
 ## 0.96
 No code changes, renamed project coordinates and URLs to new name
 

@@ -240,7 +240,7 @@ Lifecycle methods must not be `private`.
 since 0.16, config-dsl supports convenience factory methods that allow reading a configuration directly from a file or
 String:
 
-`MyConfig.createFromScript(Class<Script>)` runs the given Script and returns the result. The script must return the
+`MyConfig.createFrom(Class<Script>)` runs the given Script and returns the result. The script must return the
 proper type, for example:
 
 ```groovy
@@ -250,12 +250,12 @@ MyConfig.create {
 ```
 
 `MyConfig.createFrom(text)` or `MyConfig.createFrom(key, text)` handles the given text as the content of the create 
-closure and is usually used with a File or an URL as argument.
+closure.  and is usually used with a File or an URL as argument.
 
 For example
 
 ```groovy
-def config = Config.createFrom(new File("bla.groovy"))
+def config = Config.createFrom(new File("bla.groovy").text)
 ```
 
 and the file bla.groovy
@@ -269,7 +269,7 @@ result in the following:
 assert config.value == "blub"
 ```
 
-In case of a keyed object, the key is derived from the filename (the first segment, in the example above, the key would 
+Instead of a text, also a File or a Url can be given and in case of a keyed object, the key is derived from the filename (the first segment, in the example above, the key would 
 be "bla"). By using a small dsld-snippet in your IDE, you even get complete code completion and syntax highlighting an 
 specialized config files.
 
