@@ -211,8 +211,8 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty, Object marker) {
-        if (marker != null)
+    public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty) {
+        if (targetProperty != null)
             return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
         return this;
     }

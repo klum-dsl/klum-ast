@@ -334,7 +334,67 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         bar.owner == instance
     }
 
-    def "bug: Reusing an object in a different structure throws ClassCatException"() {
+    def "owner is not overriden in Maps"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Key String name
+                @Owner Foo owner
+            }
+        ''')
+        def aBar = create("pk.Bar", "Klaus") {}
+        def otherFoo = create("pk.Foo") {
+            bar(aBar)
+        }
+
+        when:
+        instance.bars {
+            bar(aBar)
+        }
+
+        then:
+        instance.bars.Klaus.owner.is(otherFoo)
+    }
+
+    def "owner is not overriden in Lists"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                List<Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo owner
+            }
+        ''')
+        def aBar = create("pk.Bar") {}
+        def otherFoo = create("pk.Foo") {
+            bar(aBar)
+        }
+
+        when:
+        instance.bars {
+            bar(aBar)
+        }
+
+        then:
+        instance.bars[0].owner.is(otherFoo)
+    }
+
+
+    def "bug: Reusing an object in a different structure throws ClassCastException"() {
         given:
         createInstance('''
             package pk
