@@ -242,6 +242,10 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "Dieter"
     }
 
+    private List<Method> allMethodsNamed(String name) {
+        clazz.methods.findAll { it.name == name }
+    }
+
     def "@Ignore members are ignored"() {
         given:
         createInstance('''
@@ -576,6 +580,57 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/54')
+    def 'methods for deprecated fields are deprecated as well'() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                @Deprecated
+                String value
+                
+                @Deprecated
+                boolean bool
+                
+                @Deprecated Other singleOther
+                @Deprecated KeyedOther singleKeyedOther
+                
+                @Deprecated List<Other> others
+                
+                @Deprecated List<KeyedOther> keyedOthers
+                @Deprecated Map<String, KeyedOther> mappedKeyedOthers
+        
+                @Deprecated List<String> simpleValues
+                @Deprecated Map<String, String> simpleMappedValues
+            }
+            
+            @DSL
+            class Other {
+            }
+            
+            @DSL
+            class KeyedOther {
+                @Key String name
+            }
+        ''')
+
+        then:
+        allMethodsNamed("value").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("bool").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("singleOther").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("singleKeyedOther").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("others").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("other").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("keyedOthers").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("keyedOther").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("mappedKeyedOthers").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("mappedKeyedOther").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("simpleValues").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("simpleValue").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("simpleMappedValues").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("simpleMappedValue").every { it.getAnnotation(Deprecated) != null }
     }
 
     def "collections gets initial values"() {

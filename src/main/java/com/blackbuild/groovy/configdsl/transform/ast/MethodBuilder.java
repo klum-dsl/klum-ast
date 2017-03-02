@@ -281,4 +281,11 @@ public class MethodBuilder {
 
         return body.getVariableScope();
     }
+
+    public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
+        if (fieldNode.getAnnotations(DEPRECATED_NODE) != null) {
+            deprecated = true;
+        }
+        return this;
+    }
 }
