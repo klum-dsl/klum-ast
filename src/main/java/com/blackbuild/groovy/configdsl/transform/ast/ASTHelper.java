@@ -24,6 +24,7 @@ import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
 public class ASTHelper {
 
     public static ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
+    public static ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
 
     public static boolean isDSLObject(ClassNode classNode) {
         return getAnnotation(classNode, DSLASTTransformation.DSL_CONFIG_ANNOTATION) != null;

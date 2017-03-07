@@ -680,6 +680,7 @@ class TransformSpec extends AbstractDSLSpec {
                 Set<String> setValues
                 SortedSet<String> sortedSetValues
                 Map<String, String> fields
+                SortedMap<String, String> sortedFields
             }
         ''')
 
@@ -690,6 +691,10 @@ class TransformSpec extends AbstractDSLSpec {
         and:
         instance.fields instanceof Map
         instance.fields.isEmpty()
+
+        and:
+        instance.sortedFields instanceof SortedMap
+        instance.sortedFields.isEmpty()
 
         and:
         instance.setValues instanceof Set

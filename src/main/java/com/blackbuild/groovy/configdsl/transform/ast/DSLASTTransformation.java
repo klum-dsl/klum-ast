@@ -31,6 +31,7 @@ import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
@@ -555,7 +556,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapMethods(FieldNode fieldNode) {
-        initializeField(fieldNode, new MapExpression());
+        if (fieldNode.getType().equals(ASTHelper.SORTED_MAP_TYPE)) {
+            initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
+        } else {
+            initializeField(fieldNode, asExpression(fieldNode.getType(), new MapExpression()));
+        }
 
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
         ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
