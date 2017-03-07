@@ -33,6 +33,7 @@ import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
@@ -577,7 +578,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createOptionalPublicMethod(methodName)
                 .inheritDeprecationFrom(fieldNode)
-                .param(fieldNode.getType(), "values")
+                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(annotatedClass);
 

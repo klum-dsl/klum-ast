@@ -881,6 +881,36 @@ class TransformSpec extends AbstractDSLSpec {
         instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15", height: "14"]
     }
 
+    def "simple sorted map element"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                SortedMap<String, String> values
+            }
+        ''')
+
+        when:
+        instance.values name:"Dieter", time:"Klaus", "val bri":"bri"
+
+        then:
+        instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
+
+        when:
+        instance.values name:"Maier", age:"15"
+
+        then:
+        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
+
+        when:
+        instance.value("height", "14")
+
+        then:
+        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15", height: "14"]
+    }
+
     def "map of inner objects without keys throws exception"() {
         when:
         createInstance('''
