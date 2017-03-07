@@ -760,6 +760,42 @@ class TransformSpec extends AbstractDSLSpec {
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd", "asList"]
     }
 
+    def "simple sorted set element"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                SortedSet<String> values
+            }
+        ''')
+
+        when:"add using list add"
+        instance.values "Dieter", "Klaus"
+
+        then:
+        instance.values == ["Dieter", "Klaus"] as Set
+
+        when:"add using list add again"
+        instance.values "Heinz"
+
+        then:"second call should add to previous values"
+        instance.values == ["Dieter", "Heinz", "Klaus" ] as Set
+
+        when:"add using single method"
+        instance.value "singleadd"
+
+        then:
+        instance.values == ["Dieter", "Heinz", "Klaus", "singleadd"] as Set
+
+        when:
+        instance.values(["asList"])
+
+        then:
+        instance.values == ["asList", "Dieter", "Heinz", "Klaus", "singleadd"] as Set
+    }
+
     def "simple list element with different member name"() {
         given:
         createInstance('''

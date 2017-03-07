@@ -11,6 +11,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -429,7 +430,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createOptionalPublicMethod(fieldNode.getName())
                 .inheritDeprecationFrom(fieldNode)
-                .param(fieldNode.getType(), "values")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
