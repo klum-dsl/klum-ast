@@ -14,15 +14,17 @@ import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
 
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+
+import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
 
 /**
  * Created by stephan on 05.12.2016.
  */
 public class ASTHelper {
+
+    public static ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
+
     public static boolean isDSLObject(ClassNode classNode) {
         return getAnnotation(classNode, DSLASTTransformation.DSL_CONFIG_ANNOTATION) != null;
     }
@@ -47,12 +49,12 @@ public class ASTHelper {
         return annotation.isEmpty() ? null : annotation.get(0);
     }
 
-    static boolean isListOrMap(ClassNode type) {
-        return isList(type) || isMap(type);
+    static boolean isCollectionOrMap(ClassNode type) {
+        return isCollection(type) || isMap(type);
     }
 
-    static boolean isList(ClassNode type) {
-        return type.equals(ClassHelper.LIST_TYPE) || type.implementsInterface(ClassHelper.LIST_TYPE);
+    static boolean isCollection(ClassNode type) {
+        return type.equals(COLLECTION_TYPE) || type.implementsInterface(COLLECTION_TYPE);
     }
 
     static boolean isMap(ClassNode type) {

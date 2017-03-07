@@ -475,6 +475,42 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[3].name == "Felix"
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/58')
+    def "create set of inner objects"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                Set<Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                String name
+            }
+        ''')
+
+        when:
+        instance.bars {
+            bar { name "Dieter" }
+            bar { name "Klaus"}
+        }
+
+        then:
+        instance.bars*.name as Set == ["Dieter", "Klaus"] as Set
+
+        when: 'Allow named parameters'
+        instance.bars {
+            bar(name: "Kurt")
+            bar(name: "Felix")
+        }
+
+        then:
+        instance.bars*.name as Set == ["Dieter", "Klaus", "Kurt", "Felix"] as Set
+    }
+
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure should return the object"() {
         given:
@@ -641,17 +677,27 @@ class TransformSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 List<String> values
+                Set<String> setValues
+                SortedSet<String> sortedSetValues
                 Map<String, String> fields
             }
         ''')
 
         then:
-        instance.values != null
-        instance.values == []
+        instance.values instanceof List
+        instance.values.isEmpty()
 
         and:
-        instance.fields != null
-        instance.fields == [:]
+        instance.fields instanceof Map
+        instance.fields.isEmpty()
+
+        and:
+        instance.setValues instanceof Set
+        instance.setValues.isEmpty()
+
+        and:
+        instance.sortedSetValues instanceof SortedSet
+        instance.sortedSetValues.isEmpty()
     }
 
     def "existing initial values are not overridden"() {
