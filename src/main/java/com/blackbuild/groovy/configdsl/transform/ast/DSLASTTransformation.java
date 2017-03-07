@@ -11,6 +11,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -28,8 +29,11 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotat
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.isAbstract;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
+import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
@@ -248,7 +252,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             if (annotation == null) continue;
 
-            if (ASTHelper.isListOrMap(fieldNode.getType())) return;
+            if (ASTHelper.isCollectionOrMap(fieldNode.getType())) return;
 
             if (annotation.getMember("members") != null) {
                 ASTHelper.addCompileError(
@@ -264,7 +268,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             for (FieldNode field : level.getFields()) {
-                if (!ASTHelper.isListOrMap(field.getType())) continue;
+                if (!ASTHelper.isCollectionOrMap(field.getType())) continue;
 
                 String memberName = getElementNameForCollectionField(field);
 
@@ -340,9 +344,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleDSLObjectClosureMethod(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
         } else if (ASTHelper.isMap(fieldNode.getType()))
-            createMapMethod(fieldNode);
-        else if (ASTHelper.isList(fieldNode.getType()))
-            createListMethod(fieldNode);
+            createMapMethods(fieldNode);
+        else if (ASTHelper.isCollection(fieldNode.getType()))
+            createCollectionMethods(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
     }
@@ -401,15 +405,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return fieldAnnotation == null ? name : getMemberStringValue(fieldAnnotation, value, name);
     }
 
-    private void createListMethod(FieldNode fieldNode) {
-        initializeField(fieldNode, new ListExpression());
+    private void createCollectionMethods(FieldNode fieldNode) {
+        initializeField(fieldNode, asExpression(fieldNode.getType(), new ListExpression()));
 
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
         if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
-            createListOfDSLObjectMethods(fieldNode, elementType);
+            createCollectionOfDSLObjectMethods(fieldNode, elementType);
         else
-            createListOfSimpleElementsMethods(fieldNode, elementType);
+            createCollectionOfSimpleElementsMethods(fieldNode, elementType);
     }
 
     private void initializeField(FieldNode fieldNode, Expression init) {
@@ -417,7 +421,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             fieldNode.setInitialValueExpression(init);
     }
 
-    private void createListOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
+    private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
         createOptionalPublicMethod(fieldNode.getName())
                 .inheritDeprecationFrom(fieldNode)
@@ -427,7 +431,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createOptionalPublicMethod(fieldNode.getName())
                 .inheritDeprecationFrom(fieldNode)
-                .param(fieldNode.getType(), "values")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
@@ -450,7 +454,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         };
     }
 
-    private void createListOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
+    private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
         String methodName = getElementNameForCollectionField(fieldNode);
 
         FieldNode fieldKey = getKeyField(elementType);
@@ -553,8 +557,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return types;
     }
 
-    private void createMapMethod(FieldNode fieldNode) {
-        initializeField(fieldNode, new MapExpression());
+    private void createMapMethods(FieldNode fieldNode) {
+        if (fieldNode.getType().equals(ASTHelper.SORTED_MAP_TYPE)) {
+            initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
+        } else {
+            initializeField(fieldNode, asExpression(fieldNode.getType(), new MapExpression()));
+        }
 
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
         ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
@@ -570,7 +578,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createOptionalPublicMethod(methodName)
                 .inheritDeprecationFrom(fieldNode)
-                .param(fieldNode.getType(), "values")
+                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(annotatedClass);
 

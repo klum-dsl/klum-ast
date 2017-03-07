@@ -4,10 +4,8 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
@@ -171,7 +169,7 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            if (isListOrMap(fieldNode.getType()))
+            if (isCollectionOrMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),

@@ -475,6 +475,42 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[3].name == "Felix"
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/58')
+    def "create set of inner objects"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                Set<Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                String name
+            }
+        ''')
+
+        when:
+        instance.bars {
+            bar { name "Dieter" }
+            bar { name "Klaus"}
+        }
+
+        then:
+        instance.bars*.name as Set == ["Dieter", "Klaus"] as Set
+
+        when: 'Allow named parameters'
+        instance.bars {
+            bar(name: "Kurt")
+            bar(name: "Felix")
+        }
+
+        then:
+        instance.bars*.name as Set == ["Dieter", "Klaus", "Kurt", "Felix"] as Set
+    }
+
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure should return the object"() {
         given:
@@ -641,17 +677,32 @@ class TransformSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 List<String> values
+                Set<String> setValues
+                SortedSet<String> sortedSetValues
                 Map<String, String> fields
+                SortedMap<String, String> sortedFields
             }
         ''')
 
         then:
-        instance.values != null
-        instance.values == []
+        instance.values instanceof List
+        instance.values.isEmpty()
 
         and:
-        instance.fields != null
-        instance.fields == [:]
+        instance.fields instanceof Map
+        instance.fields.isEmpty()
+
+        and:
+        instance.sortedFields instanceof SortedMap
+        instance.sortedFields.isEmpty()
+
+        and:
+        instance.setValues instanceof Set
+        instance.setValues.isEmpty()
+
+        and:
+        instance.sortedSetValues instanceof SortedSet
+        instance.sortedSetValues.isEmpty()
     }
 
     def "existing initial values are not overridden"() {
@@ -707,6 +758,42 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd", "asList"]
+    }
+
+    def "simple sorted set element"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                SortedSet<String> values
+            }
+        ''')
+
+        when:"add using list add"
+        instance.values "Dieter", "Klaus"
+
+        then:
+        instance.values == ["Dieter", "Klaus"] as Set
+
+        when:"add using list add again"
+        instance.values "Heinz"
+
+        then:"second call should add to previous values"
+        instance.values == ["Dieter", "Heinz", "Klaus" ] as Set
+
+        when:"add using single method"
+        instance.value "singleadd"
+
+        then:
+        instance.values == ["Dieter", "Heinz", "Klaus", "singleadd"] as Set
+
+        when:
+        instance.values(["asList"])
+
+        then:
+        instance.values == ["asList", "Dieter", "Heinz", "Klaus", "singleadd"] as Set
     }
 
     def "simple list element with different member name"() {
@@ -772,6 +859,36 @@ class TransformSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 Map<String, String> values
+            }
+        ''')
+
+        when:
+        instance.values name:"Dieter", time:"Klaus", "val bri":"bri"
+
+        then:
+        instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
+
+        when:
+        instance.values name:"Maier", age:"15"
+
+        then:
+        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
+
+        when:
+        instance.value("height", "14")
+
+        then:
+        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15", height: "14"]
+    }
+
+    def "simple sorted map element"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                SortedMap<String, String> values
             }
         ''')
 
