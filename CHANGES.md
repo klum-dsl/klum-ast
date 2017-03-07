@@ -1,3 +1,11 @@
+## 0.97
+- methods derived from a deprecated field are now themselves deprecated. Note that this has only an impact
+  when using the compiled classes, the gdsl does currently not support creating deprecated methods 
+  (see [#54](https://github.com/klum-dsl/klum-ast/issues/54))
+- Allow more collection types instead of only `List` (i.e. `Set`, `SortedSet`, `Stack`, etc.). Custom collections
+  are allowed, provided they have a constructor taking an Iterable, a custom coercion method or initial values.
+- Allow SortedMap in place of Maps. Note that other Map implementations are currently NOT supported
+
 ## 0.96.1
 - `createFromScript` was deprecated, without creating a matching `createFrom` method, corrected
 
