@@ -29,5 +29,5 @@ public @interface Default {
 
     String delegate() default "";
 
-    class None {}
+    interface None {}
 }

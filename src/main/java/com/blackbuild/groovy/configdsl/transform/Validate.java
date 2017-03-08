@@ -17,7 +17,7 @@ public @interface Validate {
 
     String message() default "";
 
-    class GroovyTruth {}
+    interface GroovyTruth {}
 
-    class Ignore {}
+    interface Ignore {}
 }
