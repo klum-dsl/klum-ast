@@ -8,5 +8,6 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.CLASS)
 @Inherited
+@Documented
 public @interface PostCreate {
 }

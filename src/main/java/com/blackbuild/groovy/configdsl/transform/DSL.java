@@ -9,5 +9,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.CLASS)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass(classes={DSLASTTransformation.class})
+@Documented
 public @interface DSL {
 }

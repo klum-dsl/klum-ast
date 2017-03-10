@@ -1,24 +1,32 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * Designates a filed as the key of the containing class. This is mainly used, when an instance of the class is used
- * in a map.
- * The key field must be consistent in the complete hierarchy of DSL-Objects, meaning:
+ * Designates a field as the key of the containing class. The main usage of this is that this field is automatically used
+ * when an instance of the class is put into a map.
+ * <p>In a hierarchy of model objects, the ancestor model defines whether the hierarchy is keyed or not.</p>
  *
+ * <p>it is illegal</p>
  * <ul>
- *     <li>if the top-most dsl class has no key, all child classed must not have a key either</li>
- *     <li>if the top-most dsl class does have a key, all child class must either have the same or no key.</li>
+ *     <li>to put this annotation on a field of any other class than the ancestor of a hierarchy</li>
+ *     <li>to put this annotation on more than one field in a class.</li>
  * </ul>
  *
- * It is an error to let the key attribute point to a non existing field. Also, currently only fields
- * of type String are allowed.
+ * <p>Marking a field as key has the following consequences:</p>
+ *
+ * <ul>
+ *     <li>a constructor is created with a single argument of the type of the key field, the default constructor is
+ *     removed</li>
+ *     <li>the {@code create} method and all adder / setter methods creating an instance of this type take an additional
+ *     argument of the annotated type</li>
+ *     <li>for this field, no dsl setter methods are created</li>
+ * </ul>
+ *
+ * Currently only fields of type String are allowed to be keys.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)
+@Documented
 public @interface Key {
 }

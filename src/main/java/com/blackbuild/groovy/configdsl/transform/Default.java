@@ -10,7 +10,7 @@ import java.lang.annotation.*;
  * <ul>
  *  <li>{@code field}: return the value of the field with the given name</li>
  *  <li>{@code delegate}: return the value of an identically named field of the given delegate field</li>
- *  <li>{@code closure}: execute the closure (in the context of `this` and return the result</li>
+ *  <li>{@code closure}: execute the closure (in the context of {@code this}) and return the result</li>
  * </ul>
  */
 @Target(ElementType.FIELD)
@@ -25,20 +25,29 @@ public @interface Default {
     String value() default "";
 
     /**
-     * Delegates to the field with the given field.
+     * Delegates to the field with the given name, if the annotated field is empty.
      *
-     * {@code @Default(field = 'other') String aValue} leads to
-     * {@code aValue ?: other}
+     * <p>{@code @Default(field = 'other') String aValue}</p>
+     * <p>leads to</p>
+     * <p>{@code aValue ?: other}</p>
      */
     String field() default "";
 
     /**
-     * If set, delegates to the given closure.
+     * Delegates to the given closure, if the annotated field is empty.
+     *
+     * <p>{@code @Default(code = { name.toLowerCase() }) String aValue}</p>
+     * <p>leads to</p>
+     * <p>{@code aValue ?: name.toLowerCase()}</p>
      */
     Class code() default None.class;
 
     /**
-     * Delegate to a field with the same name on the targeted field.
+     * Delegate to a field with the same name on the targeted field, if the annotated field is empty
+     *
+     * <p>{@code @Default(delegate = 'other') String aValue}</p>
+     * <p>leads to</p>
+     * <p>{@code aValue ?: parent.aValue}</p>
      */
     String delegate() default "";
 

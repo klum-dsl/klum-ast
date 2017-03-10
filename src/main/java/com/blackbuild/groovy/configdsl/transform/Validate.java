@@ -1,9 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Activates validation for the given Field. The actual validation logic can be configured using a closure.
@@ -11,6 +8,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.CLASS)
+@Documented
 public @interface Validate {
 
     Class value() default GroovyTruth.class;

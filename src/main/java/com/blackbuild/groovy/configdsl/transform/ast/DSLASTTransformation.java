@@ -1012,7 +1012,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (annotatedFields.size() > 1) {
             ASTHelper.addCompileError(
                     sourceUnit, String.format(
-                            "Found more than owner key fields, only one is allowed in hierarchy (%s, %s)",
+                            "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
                             getQualifiedName(annotatedFields.get(0)),
                             getQualifiedName(annotatedFields.get(1))),
                     annotatedFields.get(0)
