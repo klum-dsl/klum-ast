@@ -23,6 +23,48 @@ import java.lang.annotation.*;
  *     <li>for this field, no dsl setter methods are created</li>
  * </ul>
  *
+ * <pre><code>
+ * given:
+ * &#064;DSL
+ * class Foo {
+ *   &#064;Key String name
+ * }
+ *
+ * when:
+ * instance = Foo.create("Dieter") {}
+ *
+ * then:
+ * instance.name == "Dieter"
+ * </code></pre>
+ *
+ * <h2>Example with map</h2>
+ * <pre><code>
+ *  given:
+ *  &#064;DSL
+ *  class Foo {
+ *    {@literal Map<String, Bar> bars}
+ *  }
+ *
+ *  &#064;DSL
+ *  class Bar {
+ *    &#064;Key String name
+ *    String url
+ *  }
+ *
+ *  when:
+ *  instance = Foo.create {
+ *    bars {
+ *      bar("Dieter") { url "1" }
+ *      bar("Klaus") { url "2" }
+ *    }
+ *  }
+ *
+ *  then:
+ *  instance.bars.Dieter.url == "1"
+ *  instance.bars.Klaus.url == "2"
+ *
+ * </code></pre>
+ *
  * Currently only fields of type String are allowed to be keys.
  */
 @Target(ElementType.FIELD)

@@ -124,7 +124,6 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         instance.element.name == "inner"
-
     }
 
     def "if delegate is null, delegate default returns null"() {

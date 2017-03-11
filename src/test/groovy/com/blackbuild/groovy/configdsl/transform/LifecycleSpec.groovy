@@ -171,7 +171,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.caller == ["Bar" ]
+        instance.caller == ["Bar"]
 
     }
 

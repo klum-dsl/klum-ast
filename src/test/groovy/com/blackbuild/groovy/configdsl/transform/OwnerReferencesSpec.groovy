@@ -364,7 +364,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bars.Klaus.owner.is(otherFoo)
     }
 
-    def "owner is not overriden in Lists"() {
+    def "owner is not overridden in Lists"() {
         given:
         createInstance('''
             package pk
