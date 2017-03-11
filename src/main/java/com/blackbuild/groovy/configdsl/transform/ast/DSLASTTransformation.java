@@ -54,7 +54,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    static final String POST_APPLY_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
     static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
+    static final String PPOSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     static final ClassNode KEY_ANNOTATION = make(Key.class);
     static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
@@ -162,7 +164,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
             if (validateAnnotation == null) continue;
 
-            assertMethodIsParameterless(method);
+            ASTHelper.assertMethodIsParameterless(method, sourceUnit);
             assertAnnotationHasNoValueOrMessage(validateAnnotation);
 
             block.addStatement(stmt(callX(varX("this"), method.getName())));
@@ -172,16 +174,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
         if (annotation.getMember("value") != null || annotation.getMember("message") != null)
             ASTHelper.addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
-    }
-
-    private void assertMethodIsParameterless(MethodNode method) {
-        if (method.getParameters().length > 0)
-            ASTHelper.addCompileError(sourceUnit, "Lifecycle/Validate methods must be parameterless!", method);
-    }
-
-    private void assertMethodIsNotPrivate(MethodNode method) {
-        if (method.isPrivate())
-            ASTHelper.addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {
@@ -772,7 +764,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
-                .callThis("$postApply")
+                .callThis(POST_APPLY_METHOD_NAME)
                 .doReturn("this")
                 .addTo(annotatedClass);
 
@@ -783,26 +775,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        createLifecycleMethod("$postApply", POSTAPPLY_ANNOTATION);
-    }
-
-    private void createLifecycleMethod(String name, ClassNode annotationType) {
-        MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod(name);
-
-        for (MethodNode method : annotatedClass.getAllDeclaredMethods()) {
-            AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
-            if (postApplyAnnotation == null)
-                continue;
-
-            assertMethodIsParameterless(method);
-            assertMethodIsNotPrivate(method);
-            lifecycleMethod.callThis(method.getName());
-        }
-        lifecycleMethod.addTo(annotatedClass);
+        new LifecycleMethodBuilder(annotatedClass, POSTAPPLY_ANNOTATION, sourceUnit).invoke();
     }
 
     private void createFactoryMethods() {
-        createLifecycleMethod("$postCreate", POSTCREATE_ANNOTATION);
+        new LifecycleMethodBuilder(annotatedClass, POSTCREATE_ANNOTATION, sourceUnit).invoke();
 
         if (isAbstract(annotatedClass)) return;
 
@@ -814,7 +791,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "$postCreate")
+                .callMethod("result", PPOSTCREATE_ANNOTATION_METHOD_NAME)
                 .callMethod("result", "apply", args("values", "closure"))
                 .callValidationOn("result")
                 .doReturn("result")

@@ -53,7 +53,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "Lifecycle must not be parameterless"() {
+    def "Lifecycle must be parameterless"() {
         when:
         createClass('''
             package pk
@@ -115,7 +115,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         }
     }
 
-    def "Parent and child lifecycle methods are called"() {
+    def "Parent's lifecycle methods are called before child's"() {
         given:
         createClass '''
             package pk
@@ -125,14 +125,14 @@ class LifecycleSpec extends AbstractDSLSpec {
                 List<String> caller
             
                 @PostCreate
-                def postApplyParent() {
+                def postCreateParent() {
                     caller << "Foo"
                 }
             }
             @DSL
             class Bar extends Foo {
                 @PostCreate
-                def postApplyChild() {
+                def postCreateChild() {
                     caller << "Bar"
                 }
             }
@@ -141,7 +141,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.caller as Set == ["Foo", "Bar" ] as Set
+        instance.caller == ["Foo", "Bar" ]
 
     }
 
@@ -155,14 +155,14 @@ class LifecycleSpec extends AbstractDSLSpec {
                 List<String> caller
             
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     caller << "Foo"
                 }
             }
             @DSL
             class Bar extends Foo {
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     caller << "Bar"
                 }
             }
