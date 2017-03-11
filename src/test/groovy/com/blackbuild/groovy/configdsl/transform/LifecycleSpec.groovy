@@ -175,5 +175,45 @@ class LifecycleSpec extends AbstractDSLSpec {
 
     }
 
+    def "Overridden lifecycle methods are called from their original place in the hierarchy"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postCreateParent() {
+                    caller << "FromParent"
+                }
+
+                @PostCreate
+                def otherParent() {
+                    caller << "otherParent"
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate @Override
+                def postCreateParent() {
+                    caller << "FromOverridden"
+                }
+
+                @PostCreate
+                def postCreateChild() {
+                    caller << "child"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.caller == ["FromOverridden", "otherParent", "child" ]
+
+    }
+
 
 }

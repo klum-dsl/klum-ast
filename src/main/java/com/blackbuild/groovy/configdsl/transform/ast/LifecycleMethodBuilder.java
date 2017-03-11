@@ -11,7 +11,7 @@ import java.util.Set;
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 
 /**
- * Created by stephan on 11.03.2017.
+ * Helper class to create lifecycle methods for a given annotation
  */
 class LifecycleMethodBuilder {
     private ClassNode annotationType;
