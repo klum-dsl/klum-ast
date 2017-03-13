@@ -159,6 +159,48 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.mapFoos["3"].called == 1
     }
 
+    def "PostApply methods are called on child objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                List<Foo> listFoos
+                Map<String, Foo> mapFoos
+            }
+            
+            @DSL
+            class Foo {
+                @Key String name
+
+                int called
+            
+                @PostApply
+                def markAsCalled() {
+                    called++
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo("1") {}
+            listFoos {
+                listFoo("2")
+            }
+            mapFoos {
+                mapFoo("3")
+            }
+        }
+
+        then:
+        instance.foo.called == 1
+        instance.listFoos.first().called == 1
+        instance.mapFoos["3"].called == 1
+    }
+
     def "PostCreate methods have access to any owner objects"() {
         given:
         createClass('''
