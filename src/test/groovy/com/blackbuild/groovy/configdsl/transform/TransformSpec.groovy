@@ -1,7 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.reflect.Method
@@ -1071,6 +1070,44 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         clazz.declaredMethods.find { Method method -> method.name == "toString"}
+    }
+
+    def "hashcode is 0 for non keyed objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String other
+            }
+        ''')
+
+        when:
+        instance = clazz.create(name: 'bla', other: 'blub')
+
+        then:
+        instance.hashCode() == 0
+    }
+
+    def "hashcode is only derived from key for keyed objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String other
+            }
+        ''')
+
+        when:
+        instance = clazz.create('bla', other: 'blub')
+
+        then:
+        instance.hashCode() == 'bla'.hashCode()
     }
 
     def "Bug: toString() with owner field throws StackOverflowError"() {
