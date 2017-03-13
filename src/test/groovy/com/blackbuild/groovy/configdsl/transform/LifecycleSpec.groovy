@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 class LifecycleSpec extends AbstractDSLSpec {
 
@@ -103,7 +104,7 @@ class LifecycleSpec extends AbstractDSLSpec {
                 boolean isCalled
                 
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     isCalled = true
                 }
             }
@@ -113,6 +114,126 @@ class LifecycleSpec extends AbstractDSLSpec {
         clazz.create {
             assert isCalled
         }
+    }
+
+    @Issue('64')
+    def "PostCreate methods are called on child objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                List<Foo> listFoos
+                Map<String, Foo> mapFoos
+            }
+            
+            @DSL
+            class Foo {
+                @Key String name
+
+                int called
+            
+                @PostCreate
+                def markAsCalled() {
+                    called++
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo("1") {}
+            listFoos {
+                listFoo("2")
+            }
+            mapFoos {
+                mapFoo("3")
+            }
+        }
+
+        then:
+        instance.foo.called == 1
+        instance.listFoos.first().called == 1
+        instance.mapFoos["3"].called == 1
+    }
+
+    def "PostApply methods are called on child objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                List<Foo> listFoos
+                Map<String, Foo> mapFoos
+            }
+            
+            @DSL
+            class Foo {
+                @Key String name
+
+                int called
+            
+                @PostApply
+                def markAsCalled() {
+                    called++
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo("1") {}
+            listFoos {
+                listFoo("2")
+            }
+            mapFoos {
+                mapFoo("3")
+            }
+        }
+
+        then:
+        instance.foo.called == 1
+        instance.listFoos.first().called == 1
+        instance.mapFoos["3"].called == 1
+    }
+
+    def "PostCreate methods have access to any owner objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                
+                String name
+            }
+            
+            @DSL
+            class Foo {
+                @Owner Container owner
+            
+                String childName
+
+                @PostCreate
+                def setDefaultValueOfChildName() {
+                    childName = "$owner.name::child"
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            name "parent"
+            foo {}
+        }
+
+        then:
+        instance.foo.childName == "parent::child"
     }
 
     def "Parent's lifecycle methods are called before child's"() {
