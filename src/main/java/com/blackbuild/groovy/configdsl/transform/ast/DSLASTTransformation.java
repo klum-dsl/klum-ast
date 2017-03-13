@@ -25,8 +25,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.isAbstract;
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
@@ -54,6 +53,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
     static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     static final ClassNode KEY_ANNOTATION = make(Key.class);
@@ -491,12 +491,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
-                    .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod("created", "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", targetOwner)
-                    .callMethod(fieldNode.getName(), "add", callX(varX("created"), "apply", varX("closure")))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
                     .addTo(annotatedClass);
         }
 
@@ -521,12 +516,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .classParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod("created", "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", targetOwner)
-                    .callMethod(fieldNode.getName(), "add", callX(varX("created"), "apply", varX("closure")))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKey, "closure")))
                     .addTo(annotatedClass);
         }
 
@@ -637,13 +627,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
-                    .declareVariable("created", callX(classX(elementType), "newInstance", args("key")))
-                    .callMethod("created", "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", targetOwner)
-                    .callMethod(fieldNode.getName(), "put", args(varX("key"), varX("created")))
-                    .callMethod("created", "apply", varX("closure"))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(keyType, "closure")))
                     .addTo(annotatedClass);
         }
 
@@ -669,13 +653,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .classParam("typeToCreate", elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", args("key")))
-                    .callMethod("created", "copyFromTemplate")
-                    .callMethod(fieldNode.getName(), "put", args(varX("key"), varX("created")))
-                    .optionalAssignThisToPropertyS("created", targetOwner)
-                    .callMethod("created", "apply", varX("closure"))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(keyType, "closure")))
                     .addTo(annotatedClass);
         }
 
@@ -717,7 +695,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
-                    .doReturn(callThisX(methodName, targetTypeKeyField != null ? args(new MapExpression(), varX("key"), varX("closure")) : args(new MapExpression(), varX("closure"))))
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(annotatedClass);
         }
 
@@ -745,7 +723,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .classParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
-                    .doReturn(callThisX(methodName, targetTypeKeyField != null ? args(new MapExpression(), varX("typeToCreate"), varX("key"), varX("closure")) : args(new MapExpression(), varX("typeToCreate"), varX("closure"))))
+                    .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(annotatedClass);
         }
     }
@@ -767,7 +745,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
-                .callThis("$postApply")
+                .callThis(POSTAPPLY_ANNOTATION_METHOD_NAME)
                 .doReturn("this")
                 .addTo(annotatedClass);
 
@@ -778,11 +756,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        createLifecycleMethod("$postApply", POSTAPPLY_ANNOTATION);
+        createLifecycleMethod(POSTAPPLY_ANNOTATION);
     }
 
-    private void createLifecycleMethod(String name, ClassNode annotationType) {
-        MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod(name);
+    private void createLifecycleMethod(ClassNode annotationType) {
+
+        MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod("$" + annotationType.getNameWithoutPackage());
 
         for (MethodNode method : annotatedClass.getAllDeclaredMethods()) {
             AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
@@ -797,7 +776,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFactoryMethods() {
-        createLifecycleMethod("$postCreate", POSTCREATE_ANNOTATION);
+        createLifecycleMethod(POSTCREATE_ANNOTATION);
 
         if (isAbstract(annotatedClass)) return;
 

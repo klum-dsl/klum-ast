@@ -1,6 +1,8 @@
 package com.blackbuild.groovy.configdsl.transform
 
+import groovy.transform.NotYetImplemented
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 class LifecycleSpec extends AbstractDSLSpec {
 
@@ -115,6 +117,8 @@ class LifecycleSpec extends AbstractDSLSpec {
         }
     }
 
+    @NotYetImplemented
+    @Issue('64')
     def "PostCreate methods are called on child objects"() {
         given:
         createClass('''
