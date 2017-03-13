@@ -103,7 +103,7 @@ class LifecycleSpec extends AbstractDSLSpec {
                 boolean isCalled
                 
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     isCalled = true
                 }
             }
@@ -113,6 +113,84 @@ class LifecycleSpec extends AbstractDSLSpec {
         clazz.create {
             assert isCalled
         }
+    }
+
+    def "PostCreate methods are called on child objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                List<Foo> listFoos
+                Map<String, Foo> mapFoos
+            }
+            
+            @DSL
+            class Foo {
+                @Key String name
+
+                boolean isCalled
+            
+                @PostCreate
+                def markAsCalled() {
+                    isCalled = true
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo("1") {}
+            listFoos {
+                listFoo("2")
+            }
+            mapFoos {
+                mapFoo("3")
+            }
+        }
+
+        then:
+        instance.foo.isCalled() == true
+        instance.listFoos.first().isCalled() == true
+        instance.mapFoos["3"].isCalled() == true
+
+    }
+
+    def "PostCreate methods have access to any owner objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                
+                String name
+            }
+            
+            @DSL
+            class Foo {
+                @Owner Container owner
+            
+                String childName
+
+                @PostCreate
+                def setDefaultValueOfChildName() {
+                    childName = "$owner.name::child"
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            name "parent"
+            foo {}
+        }
+
+        then:
+        instance.foo.childName == "parent::child"
     }
 
     def "Parent and child lifecycle methods are called"() {

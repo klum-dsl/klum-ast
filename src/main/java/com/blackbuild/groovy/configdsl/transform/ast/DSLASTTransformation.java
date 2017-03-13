@@ -55,6 +55,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
     static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
+    static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     static final ClassNode KEY_ANNOTATION = make(Key.class);
     static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
@@ -704,7 +705,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod("created", "copyFromTemplate")
                     .optionalAssignThisToPropertyS("created", targetOwnerFieldName)
-                    .assignToProperty(fieldNode.getName(), callX(varX("created"), "apply", args("values", "closure")))
+                    .assignToProperty(fieldNode.getName(), varX("created"))
+                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
@@ -714,12 +717,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
-                    .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
-                    .callMethod("created", "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName)
-                    .assignToProperty(fieldNode.getName(), callX(varX("created"), "apply", varX("closure")))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, targetTypeKeyField != null ? args(new MapExpression(), varX("key"), varX("closure")) : args(new MapExpression(), varX("closure"))))
                     .addTo(annotatedClass);
         }
 
@@ -734,7 +732,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod("created", "copyFromTemplate")
                     .optionalAssignThisToPropertyS("created", targetOwnerFieldName)
-                    .assignToProperty(fieldNode.getName(), callX(varX("created"), "apply", args("values", "closure")))
+                    .assignToProperty(fieldNode.getName(), varX("created"))
+                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(annotatedClass);
@@ -745,12 +745,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .classParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
-                    .callMethod("created", "copyFromTemplate")
-                    .optionalAssignThisToPropertyS("created", targetOwnerFieldName)
-                    .assignToProperty(fieldNode.getName(), callX(varX("created"), "apply", varX("closure")))
-                    .callValidationOn("created")
-                    .doReturn("created")
+                    .doReturn(callThisX(methodName, targetTypeKeyField != null ? args(new MapExpression(), varX("typeToCreate"), varX("key"), varX("closure")) : args(new MapExpression(), varX("typeToCreate"), varX("closure"))))
                     .addTo(annotatedClass);
         }
     }
@@ -814,7 +809,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod("result", "copyFromTemplate")
-                .callMethod("result", "$postCreate")
+                .callMethod("result", POSTCREATE_ANNOTATION_METHOD_NAME)
                 .callMethod("result", "apply", args("values", "closure"))
                 .callValidationOn("result")
                 .doReturn("result")
