@@ -1110,6 +1110,28 @@ class TransformSpec extends AbstractDSLSpec {
         instance.hashCode() == 'bla'.hashCode()
     }
 
+    def "hashcode is not overridden"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String other
+                
+                int hashCode() {
+                  return 5
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create(other: 'blub')
+
+        then:
+        instance.hashCode() == 5
+    }
+
     def "Bug: toString() with owner field throws StackOverflowError"() {
         given:
         createClass('''

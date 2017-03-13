@@ -319,17 +319,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
-            if (keyField != null) {
-                MethodBuilder.createPublicMethod("hashCode")
-                        .returning(ClassHelper.int_TYPE)
-                        .doReturn(callX(varX(keyField.getName()), "hashCode"))
-                        .addTo(annotatedClass);
-            } else {
-                MethodBuilder.createPublicMethod("hashCode")
-                        .returning(ClassHelper.int_TYPE)
-                        .doReturn(constX(0))
-                        .addTo(annotatedClass);
-            }
+            createHashCodeIfNotDefined();
             createEquals(annotatedClass, false, true, true, null, null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
@@ -337,6 +327,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 createToString(annotatedClass, false, false, null, null, false);
             else
                 createToString(annotatedClass, false, false, Collections.singletonList(ownerField.getName()), null, false);
+        }
+    }
+
+    private void createHashCodeIfNotDefined() {
+        if (hasDeclaredMethod(annotatedClass, "hashCode", 0))
+            return;
+
+        if (keyField != null) {
+            MethodBuilder.createPublicMethod("hashCode")
+                    .returning(ClassHelper.int_TYPE)
+                    .doReturn(callX(varX(keyField.getName()), "hashCode"))
+                    .addTo(annotatedClass);
+        } else {
+            MethodBuilder.createPublicMethod("hashCode")
+                    .returning(ClassHelper.int_TYPE)
+                    .doReturn(constX(0))
+                    .addTo(annotatedClass);
         }
     }
 
