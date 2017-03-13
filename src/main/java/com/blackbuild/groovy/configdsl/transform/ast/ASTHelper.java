@@ -2,9 +2,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.ListExpression;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.control.SourceUnit;
@@ -17,6 +15,8 @@ import org.codehaus.groovy.syntax.Types;
 import java.util.*;
 
 import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -78,6 +78,44 @@ public class ASTHelper {
 
     static ListExpression listExpression(Expression... expressions) {
         return new ListExpression(Arrays.asList(expressions));
+    }
+
+    static ArgumentListExpression argsWithOptionalKey(FieldNode keyField, String... otherArgs) {
+        if (keyField == null)
+            return args(otherArgs);
+
+        ArgumentListExpression result = new ArgumentListExpression(varX("key"));
+
+        for (String next : otherArgs)
+            result.addExpression(varX(next));
+
+        return result;
+    }
+
+    static ArgumentListExpression argsWithEmptyMapAndOptionalKey(AnnotatedNode keyField, String... otherArgs) {
+        ArgumentListExpression result = new ArgumentListExpression(new MapExpression());
+
+        if (keyField != null)
+            result.addExpression(varX("key"));
+
+        for (String next : otherArgs)
+            result.addExpression(varX(next));
+
+        return result;
+    }
+
+    static ArgumentListExpression argsWithEmptyMapClassAndOptionalKey(AnnotatedNode keyField, String... otherArgs) {
+        ArgumentListExpression result = new ArgumentListExpression(new MapExpression());
+
+        result.addExpression(varX("typeToCreate"));
+
+        if (keyField != null)
+            result.addExpression(varX("key"));
+
+        for (String next : otherArgs)
+            result.addExpression(varX(next));
+
+        return result;
     }
 
     static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
