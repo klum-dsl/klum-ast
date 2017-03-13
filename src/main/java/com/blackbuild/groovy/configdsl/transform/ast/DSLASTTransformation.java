@@ -31,11 +31,8 @@ import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
-import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createHashCode;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
 /**
@@ -312,7 +309,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
-            createHashCode(annotatedClass, false, false, true, null, null);
+            createHashCodeIfNotDefined();
             createEquals(annotatedClass, false, true, true, null, null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
@@ -320,6 +317,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 createToString(annotatedClass, false, false, null, null, false);
             else
                 createToString(annotatedClass, false, false, Collections.singletonList(ownerField.getName()), null, false);
+        }
+    }
+
+    private void createHashCodeIfNotDefined() {
+        if (hasDeclaredMethod(annotatedClass, "hashCode", 0))
+            return;
+
+        if (keyField != null) {
+            MethodBuilder.createPublicMethod("hashCode")
+                    .returning(ClassHelper.int_TYPE)
+                    .doReturn(callX(varX(keyField.getName()), "hashCode"))
+                    .addTo(annotatedClass);
+        } else {
+            MethodBuilder.createPublicMethod("hashCode")
+                    .returning(ClassHelper.int_TYPE)
+                    .doReturn(constX(0))
+                    .addTo(annotatedClass);
         }
     }
 
@@ -451,6 +465,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode fieldKey = getKeyField(elementType);
         String targetOwner = getOwnerFieldName(elementType);
 
+        warnIfSetWithoutKeyedElements(fieldNode, elementType, fieldKey);
+
         createOptionalPublicMethod(fieldNode.getName())
                 .inheritDeprecationFrom(fieldNode)
                 .closureParam("closure")
@@ -521,6 +537,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optionalAssignThisToPropertyS("value", targetOwner)
                 .addTo(annotatedClass);
 
+    }
+
+    private void warnIfSetWithoutKeyedElements(FieldNode fieldNode, ClassNode elementType, FieldNode fieldKey) {
+        if (fieldNode.getType().getNameWithoutPackage().equals("Set") && fieldKey == null) {
+            ASTHelper.addCompileWarning(sourceUnit,
+                    String.format(
+                            "WARNING: Field %s.%s is of type Set<%s>, but %s has no Key field. This might severely impact performance",
+                            annotatedClass.getName(), fieldNode.getName(), elementType.getNameWithoutPackage(), elementType.getName()), fieldNode);
+        }
     }
 
     private Expression optionalKeyArg(FieldNode fieldKey) {

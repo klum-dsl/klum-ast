@@ -1075,6 +1075,66 @@ class TransformSpec extends AbstractDSLSpec {
         clazz.declaredMethods.find { Method method -> method.name == "toString"}
     }
 
+    def "hashcode is 0 for non keyed objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String other
+            }
+        ''')
+
+        when:
+        instance = clazz.create(name: 'bla', other: 'blub')
+
+        then:
+        instance.hashCode() == 0
+    }
+
+    def "hashcode is only derived from key for keyed objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String other
+            }
+        ''')
+
+        when:
+        instance = clazz.create('bla', other: 'blub')
+
+        then:
+        instance.hashCode() == 'bla'.hashCode()
+    }
+
+    def "hashcode is not overridden"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String other
+                
+                int hashCode() {
+                  return 5
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create(other: 'blub')
+
+        then:
+        instance.hashCode() == 5
+    }
+
     def "Bug: toString() with owner field throws StackOverflowError"() {
         given:
         createClass('''

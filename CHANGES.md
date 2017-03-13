@@ -1,3 +1,8 @@
+## 0.98
+- Fix: PostCreate was not called on inner objects (see [#64](https://github.com/klum-dsl/klum-ast/issues/64))
+- reduced to barebone hashcodes for models (constant 0 for non-Keyed, hash of the keye for keyed)
+- lots of JavaDoc
+
 ## 0.97
 - methods derived from a deprecated field are now themselves deprecated. Note that this has only an impact
   when using the compiled classes, the gdsl does currently not support creating deprecated methods 
