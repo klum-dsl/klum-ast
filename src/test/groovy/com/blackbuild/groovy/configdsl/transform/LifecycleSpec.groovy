@@ -1,6 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform
 
-import groovy.transform.NotYetImplemented
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -117,7 +116,6 @@ class LifecycleSpec extends AbstractDSLSpec {
         }
     }
 
-    @NotYetImplemented
     @Issue('64')
     def "PostCreate methods are called on child objects"() {
         given:
@@ -135,11 +133,11 @@ class LifecycleSpec extends AbstractDSLSpec {
             class Foo {
                 @Key String name
 
-                boolean isCalled
+                int called
             
                 @PostCreate
                 def markAsCalled() {
-                    isCalled = true
+                    called++
                 }
             }
         ''')
@@ -156,10 +154,9 @@ class LifecycleSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.foo.isCalled() == true
-        instance.listFoos.first().isCalled() == true
-        instance.mapFoos["3"].isCalled() == true
-
+        instance.foo.called == 1
+        instance.listFoos.first().called == 1
+        instance.mapFoos["3"].called == 1
     }
 
     def "PostCreate methods have access to any owner objects"() {
