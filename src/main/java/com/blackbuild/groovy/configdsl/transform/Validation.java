@@ -22,7 +22,7 @@ import java.lang.annotation.*;
  *     <li>fields explicitly marked with {@link Ignore}</li>
  *     <li>fields explicitly marked with {@code @Validate(IGNORE)}</li>
  *     <li>{@code transient} fields</li>
- *     <li>fields whose name starts with '$' (as these fields are ignored by KlumAST alltogether)</li>
+ *     <li>fields whose name starts with '$' (as these fields are ignored by KlumAST altogether)</li>
  * </ul>
  * <p>Unmarked fields are validated agains Groovy Truth.</p>
  *
