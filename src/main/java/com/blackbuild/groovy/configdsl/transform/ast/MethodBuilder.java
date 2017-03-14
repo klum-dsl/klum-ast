@@ -25,6 +25,7 @@ public class MethodBuilder {
     private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
+    private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
     public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
 
     private int modifiers;
@@ -142,8 +143,13 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder delegationTargetClassParam(String name, ClassNode upperBound) {
+        Parameter param = GeneralUtils.param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
+        param.addAnnotation(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION));
+        return param(param);
+    }
 
-    public MethodBuilder classParam(String name, ClassNode upperBound) {
+    public MethodBuilder simpleClassParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
     }
 
@@ -182,9 +188,14 @@ public class MethodBuilder {
         return param(param);
     }
 
+    public MethodBuilder delegatingClosureParam() {
+        return delegatingClosureParam(null);
+    }
+
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
-        result.setMember("value", classX(target));
+        if (target != null)
+            result.setMember("value", classX(target));
         return result;
     }
 

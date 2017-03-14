@@ -1240,4 +1240,83 @@ class TransformSpec extends AbstractDSLSpec {
         noExceptionThrown()
         clazz.interfaces.contains(Serializable)
     }
+
+    def "DelegatesTo annotations for unkeyed inner models are created"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Inner inner
+                List<Inner> listInners
+            }
+
+            @DSL
+            class Inner {
+                String name
+            }
+        ''')
+
+        when:
+        def polymorphicMethod = clazz.getMethod(methodName, Class, Closure)
+        def polymorphicMethodWithNamedParams = clazz.getMethod(methodName, Map, Class, Closure)
+        def staticMethod = clazz.getMethod(methodName, Closure)
+        def staticMethodWithNamedParams = clazz.getMethod(methodName, Map, Closure)
+
+        then:
+        polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
+        polymorphicMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+
+        and:
+        polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
+        polymorphicMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+
+        and:
+        staticMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+        staticMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+
+        where:
+        methodName << ["inner", "listInner"]
+    }
+
+    def "DelegatesTo annotations for keyed inner models are created"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Inner inner
+                List<Inner> listInners
+                Map<String, Inner> mapInners
+            }
+
+            @DSL
+            class Inner {
+                @Key String name
+            }
+        ''')
+
+        when:
+        def polymorphicMethod = clazz.getMethod(methodName, Class, String, Closure)
+        def polymorphicMethodWithNamedParams = clazz.getMethod(methodName, Map, Class, String, Closure)
+        def staticMethod = clazz.getMethod(methodName, String, Closure)
+        def staticMethodWithNamedParams = clazz.getMethod(methodName, Map, String, Closure)
+
+        then:
+        polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
+        polymorphicMethod.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+
+        and:
+        polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
+        polymorphicMethodWithNamedParams.parameterAnnotations[3].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+
+        and:
+        staticMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+        staticMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+
+        where:
+        methodName << ["inner", "listInner", "mapInner"]
+    }
 }

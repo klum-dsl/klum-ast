@@ -457,18 +457,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    @NotNull
-    private Statement[] delegateToClosure() {
-        return new Statement[]{
-                assignS(propX(varX("closure"), "delegate"), varX("context")),
-                assignS(
-                        propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(CLOSURE_TYPE), "DELEGATE_FIRST")
-                ),
-                stmt(callX(varX("closure"), "call"))
-        };
-    }
-
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
         String methodName = getElementNameForCollectionField(fieldNode);
 
@@ -518,9 +506,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .inheritDeprecationFrom(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
-                    .classParam("typeToCreate", elementType)
+                    .delegationTargetClassParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementType)
+                    .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
                     .callMethod("created", "copyFromTemplate")
                     .optionalAssignThisToPropertyS("created", targetOwner)
@@ -533,9 +521,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createOptionalPublicMethod(methodName)
                     .inheritDeprecationFrom(fieldNode)
                     .returning(elementType)
-                    .classParam("typeToCreate", elementType)
+                    .delegationTargetClassParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementType)
+                    .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKey, "closure")))
                     .addTo(annotatedClass);
         }
@@ -666,9 +654,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .inheritDeprecationFrom(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
-                    .classParam("typeToCreate", elementType)
+                    .delegationTargetClassParam("typeToCreate", elementType)
                     .param(keyType, "key")
-                    .delegatingClosureParam(elementType)
+                    .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", args("key")))
                     .callMethod("created", "copyFromTemplate")
                     .optionalAssignThisToPropertyS("created", targetOwner)
@@ -681,9 +669,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createOptionalPublicMethod(methodName)
                     .inheritDeprecationFrom(fieldNode)
                     .returning(elementType)
-                    .classParam("typeToCreate", elementType)
+                    .delegationTargetClassParam("typeToCreate", elementType)
                     .param(keyType, "key")
-                    .delegatingClosureParam(elementType)
+                    .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(keyType, "closure")))
                     .addTo(annotatedClass);
         }
@@ -735,9 +723,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .inheritDeprecationFrom(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
-                    .classParam("typeToCreate", targetFieldType)
+                    .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
-                    .delegatingClosureParam(targetFieldType)
+                    .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod("created", "copyFromTemplate")
                     .optionalAssignThisToPropertyS("created", targetOwnerFieldName)
@@ -751,9 +739,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createOptionalPublicMethod(methodName)
                     .inheritDeprecationFrom(fieldNode)
                     .returning(targetFieldType)
-                    .classParam("typeToCreate", targetFieldType)
+                    .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
-                    .delegatingClosureParam(targetFieldType)
+                    .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(annotatedClass);
         }
@@ -843,7 +831,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
-                .classParam("configType", ClassHelper.SCRIPT_TYPE)
+                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
                 .doReturn(callX(annotatedClass, "createFrom", args("configType")))
                 .addTo(annotatedClass);
 
@@ -851,7 +839,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodBuilder.createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
-                .classParam("configType", ClassHelper.SCRIPT_TYPE)
+                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
                 .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
                 .addTo(annotatedClass);
 

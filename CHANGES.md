@@ -1,3 +1,6 @@
+## 0.97.3
+- Fix: DelegatesTo annotations for polymorphic setters where not correct (see [#67](https://github.com/klum-dsl/klum-ast/issues/67))
+
 ## 0.97.2
 - remove gdsl file from jar file for now. It's neither up to date, nor does it work with current IntelliJ IDEA versions
 
