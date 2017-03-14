@@ -283,7 +283,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
-        if (fieldNode.getAnnotations(DEPRECATED_NODE) != null) {
+        if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
             deprecated = true;
         }
         return this;

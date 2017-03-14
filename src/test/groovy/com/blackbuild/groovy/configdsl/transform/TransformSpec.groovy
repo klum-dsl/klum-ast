@@ -623,6 +623,8 @@ class TransformSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
+                String notDeprecated
+            
                 @Deprecated
                 String value
                 
@@ -666,6 +668,8 @@ class TransformSpec extends AbstractDSLSpec {
         allMethodsNamed("simpleValue").every { it.getAnnotation(Deprecated) != null }
         allMethodsNamed("simpleMappedValues").every { it.getAnnotation(Deprecated) != null }
         allMethodsNamed("simpleMappedValue").every { it.getAnnotation(Deprecated) != null }
+
+        allMethodsNamed("notDeprecated").every { it.getAnnotation(Deprecated) == null }
     }
 
     def "collections gets initial values"() {
