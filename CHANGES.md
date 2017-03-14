@@ -1,3 +1,6 @@
+## 0.97.2
+- remove gdsl file from jar file for now. It's neither up to date, nor does it work with current IntelliJ IDEA versions
+
 ## 0.97.1
 - Critical Bugfix: all methods were marked as deprecated
 - Fix: PostCreate was not called on inner objects (see [#64](https://github.com/klum-dsl/klum-ast/issues/64))

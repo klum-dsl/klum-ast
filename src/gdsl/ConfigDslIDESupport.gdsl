@@ -453,7 +453,7 @@ class ClassConfig {
 
     Set<FieldConfig> getAllDslCollectionFields(Set visited) {
         visited << this
-        def ownDSLCollectionFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.collectionOfDslObjects } as Set
+        def ownDSLCollectionFields = type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{ FieldConfig f -> f.collectionOfDslObjects } as Set
 
         List<FieldConfig> result = ownDSLCollectionFields.collect()
 
@@ -470,7 +470,7 @@ class ClassConfig {
     }
 
     Set<FieldConfig> getAllSingleDSLFields() {
-        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{FieldConfig f -> f.isDslObject && !f.isOwner } as Set
+        return type.fields.collect { PsiField field -> new FieldConfig(field)}.findAll{ FieldConfig f -> f.isDslObject && !f.isOwner } as Set
     }
 
     String getUncapitalizedName() {
