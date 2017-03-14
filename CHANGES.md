@@ -1,4 +1,5 @@
-## 0.98
+## 0.97.1
+- Critical Bugfix: all methods were marked as deprecated
 - Fix: PostCreate was not called on inner objects (see [#64](https://github.com/klum-dsl/klum-ast/issues/64))
 - reduced to barebone hashcodes for models (constant 0 for non-Keyed, hash of the keye for keyed)
 - lots of JavaDoc
