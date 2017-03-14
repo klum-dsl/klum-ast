@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -196,6 +197,7 @@ public class MethodBuilder {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
         if (target != null)
             result.setMember("value", classX(target));
+        result.setMember("strategy", constX(Closure.DELEGATE_FIRST));
         return result;
     }
 

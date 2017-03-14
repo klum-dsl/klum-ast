@@ -5,6 +5,8 @@ import spock.lang.Issue
 
 import java.lang.reflect.Method
 
+import static groovy.lang.Closure.*
+
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
 
@@ -1266,15 +1268,15 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+        polymorphicMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         and:
         polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+        polymorphicMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         and:
-        staticMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
-        staticMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+        staticMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        staticMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         where:
         methodName << ["inner", "listInner"]
@@ -1306,15 +1308,15 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethod.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+        polymorphicMethod.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         and:
         polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethodWithNamedParams.parameterAnnotations[3].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target}
+        polymorphicMethodWithNamedParams.parameterAnnotations[3].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         and:
-        staticMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
-        staticMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner"}
+        staticMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        staticMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
 
         where:
         methodName << ["inner", "listInner", "mapInner"]
