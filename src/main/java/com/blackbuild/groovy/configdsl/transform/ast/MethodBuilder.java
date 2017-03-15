@@ -197,6 +197,8 @@ public class MethodBuilder {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
         if (target != null)
             result.setMember("value", classX(target));
+        else
+            result.setMember("genericTypeIndex", constX(0));
         result.setMember("strategy", constX(Closure.DELEGATE_FIRST));
         return result;
     }

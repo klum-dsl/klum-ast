@@ -3,6 +3,7 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
+import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
 import static groovy.lang.Closure.*
@@ -1261,25 +1262,45 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def polymorphicMethod = clazz.getMethod(methodName, Class, Closure)
-        def polymorphicMethodWithNamedParams = clazz.getMethod(methodName, Map, Class, Closure)
-        def staticMethod = clazz.getMethod(methodName, Closure)
-        def staticMethodWithNamedParams = clazz.getMethod(methodName, Map, Closure)
+        def polymorphicMethodParams = clazz.getMethod(methodName, Class, Closure).parameterAnnotations
 
         then:
-        polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
+        delegatesToPointsToDelegateTarget(polymorphicMethodParams[1])
+
+        when:
+        def polymorphicMethodWithNamesParams = clazz.getMethod(methodName, Map, Class, Closure).parameterAnnotations
+
+        then:
+        hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
+        delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
-
-        and:
-        staticMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
-        staticMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        delegatesToPointsTo(clazz.getMethod(methodName, Closure).parameterAnnotations[0], "pk.Inner")
+        delegatesToPointsTo(clazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], "pk.Inner")
 
         where:
         methodName << ["inner", "listInner"]
+    }
+
+    void delegatesToPointsTo(Annotation[] annotations, String className) {
+        DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
+        assert annotation
+        assert annotation.strategy() == DELEGATE_FIRST
+        assert annotation.value().canonicalName == className
+        assert annotation.genericTypeIndex() == -1
+    }
+
+    void delegatesToPointsToDelegateTarget(Annotation[] annotations) {
+        DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
+        assert annotation
+        assert annotation.strategy() == DELEGATE_FIRST
+        assert annotation.value() == DelegatesTo.Target
+        assert annotation.genericTypeIndex() == 0
+    }
+
+    void hasDelegatesToTargetAnnotation(Annotation[] annotations) {
+        assert annotations.find { it.annotationType() == DelegatesTo.Target }
     }
 
     def "DelegatesTo annotations for keyed inner models are created"() {
@@ -1301,22 +1322,22 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def polymorphicMethod = clazz.getMethod(methodName, Class, String, Closure)
-        def polymorphicMethodWithNamedParams = clazz.getMethod(methodName, Map, Class, String, Closure)
-        def staticMethod = clazz.getMethod(methodName, String, Closure)
-        def staticMethodWithNamedParams = clazz.getMethod(methodName, Map, String, Closure)
+        def polymorphicMethodParams = clazz.getMethod(methodName, Class, String, Closure).parameterAnnotations
 
         then:
-        polymorphicMethod.parameterAnnotations[0].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethod.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
+        delegatesToPointsToDelegateTarget(polymorphicMethodParams[2])
+
+        when:
+        def polymorphicMethodWithNamesParams = clazz.getMethod(methodName, Map, Class, String, Closure).parameterAnnotations
+
+        then:
+        hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
+        delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        polymorphicMethodWithNamedParams.parameterAnnotations[1].find { it.annotationType() == DelegatesTo.Target }
-        polymorphicMethodWithNamedParams.parameterAnnotations[3].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value() == DelegatesTo.Target && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
-
-        and:
-        staticMethod.parameterAnnotations[1].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
-        staticMethodWithNamedParams.parameterAnnotations[2].find { it.annotationType() == DelegatesTo && ((DelegatesTo) it).value().canonicalName == "pk.Inner" && ((DelegatesTo) it).strategy() == DELEGATE_FIRST}
+        delegatesToPointsTo(clazz.getMethod(methodName, String, Closure).parameterAnnotations[1], "pk.Inner")
+        delegatesToPointsTo(clazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], "pk.Inner")
 
         where:
         methodName << ["inner", "listInner", "mapInner"]
