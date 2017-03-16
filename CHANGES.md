@@ -1,3 +1,7 @@
+## 1.0.0
+### RC1 
+- Javadocs
+
 ## 0.97.5
 - Fix: DelegatesTo annotations for polymorphic setters where not correct (see [#67](https://github.com/klum-dsl/klum-ast/issues/67))
 
