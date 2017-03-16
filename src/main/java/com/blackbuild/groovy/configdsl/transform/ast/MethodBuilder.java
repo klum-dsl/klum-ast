@@ -1,5 +1,6 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -25,6 +26,7 @@ public class MethodBuilder {
     private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
+    private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
     public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
 
     private int modifiers;
@@ -142,8 +144,13 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder delegationTargetClassParam(String name, ClassNode upperBound) {
+        Parameter param = GeneralUtils.param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
+        param.addAnnotation(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION));
+        return param(param);
+    }
 
-    public MethodBuilder classParam(String name, ClassNode upperBound) {
+    public MethodBuilder simpleClassParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
     }
 
@@ -182,9 +189,17 @@ public class MethodBuilder {
         return param(param);
     }
 
+    public MethodBuilder delegatingClosureParam() {
+        return delegatingClosureParam(null);
+    }
+
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
         AnnotationNode result = new AnnotationNode(DELEGATES_TO_ANNOTATION);
-        result.setMember("value", classX(target));
+        if (target != null)
+            result.setMember("value", classX(target));
+        else
+            result.setMember("genericTypeIndex", constX(0));
+        result.setMember("strategy", constX(Closure.DELEGATE_FIRST));
         return result;
     }
 
@@ -283,7 +298,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
-        if (fieldNode.getAnnotations(DEPRECATED_NODE) != null) {
+        if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
             deprecated = true;
         }
         return this;
