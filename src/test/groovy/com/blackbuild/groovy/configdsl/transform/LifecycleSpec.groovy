@@ -54,7 +54,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "Lifecycle must not be parameterless"() {
+    def "Lifecycle must be parameterless"() {
         when:
         createClass('''
             package pk
@@ -236,7 +236,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.foo.childName == "parent::child"
     }
 
-    def "Parent and child lifecycle methods are called"() {
+    def "Parent's lifecycle methods are called before child's"() {
         given:
         createClass '''
             package pk
@@ -246,14 +246,14 @@ class LifecycleSpec extends AbstractDSLSpec {
                 List<String> caller
             
                 @PostCreate
-                def postApplyParent() {
+                def postCreateParent() {
                     caller << "Foo"
                 }
             }
             @DSL
             class Bar extends Foo {
                 @PostCreate
-                def postApplyChild() {
+                def postCreateChild() {
                     caller << "Bar"
                 }
             }
@@ -262,7 +262,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.caller as Set == ["Foo", "Bar" ] as Set
+        instance.caller == ["Foo", "Bar" ]
 
     }
 
@@ -276,14 +276,14 @@ class LifecycleSpec extends AbstractDSLSpec {
                 List<String> caller
             
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     caller << "Foo"
                 }
             }
             @DSL
             class Bar extends Foo {
                 @PostCreate
-                def postApply() {
+                def postCreate() {
                     caller << "Bar"
                 }
             }
@@ -292,7 +292,47 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.caller == ["Bar" ]
+        instance.caller == ["Bar"]
+
+    }
+
+    def "Overridden lifecycle methods are called from their original place in the hierarchy"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postCreateParent() {
+                    caller << "FromParent"
+                }
+
+                @PostCreate
+                def otherParent() {
+                    caller << "otherParent"
+                }
+            }
+            @DSL
+            class Bar extends Foo {
+                @PostCreate @Override
+                def postCreateParent() {
+                    caller << "FromOverridden"
+                }
+
+                @PostCreate
+                def postCreateChild() {
+                    caller << "child"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.caller == ["FromOverridden", "otherParent", "child" ]
 
     }
 

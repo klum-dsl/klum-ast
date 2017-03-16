@@ -437,7 +437,6 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         inner.name == "Hans"
         inner.value == 16
-
     }
 
     def "create list of inner objects"() {
@@ -657,22 +656,26 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        allMethodsNamed("value").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("bool").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("singleOther").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("singleKeyedOther").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("others").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("other").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("keyedOthers").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("keyedOther").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("mappedKeyedOthers").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("mappedKeyedOther").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("simpleValues").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("simpleValue").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("simpleMappedValues").every { it.getAnnotation(Deprecated) != null }
-        allMethodsNamed("simpleMappedValue").every { it.getAnnotation(Deprecated) != null }
+        allMethodsNamed("value").every { isDeprecated(it) }
+        allMethodsNamed("bool").every { isDeprecated(it) }
+        allMethodsNamed("singleOther").every { isDeprecated(it) }
+        allMethodsNamed("singleKeyedOther").every { isDeprecated(it) }
+        allMethodsNamed("others").every { isDeprecated(it) }
+        allMethodsNamed("other").every { isDeprecated(it) }
+        allMethodsNamed("keyedOthers").every { isDeprecated(it) }
+        allMethodsNamed("keyedOther").every { isDeprecated(it) }
+        allMethodsNamed("mappedKeyedOthers").every { isDeprecated(it) }
+        allMethodsNamed("mappedKeyedOther").every { isDeprecated(it) }
+        allMethodsNamed("simpleValues").every { isDeprecated(it) }
+        allMethodsNamed("simpleValue").every { isDeprecated(it) }
+        allMethodsNamed("simpleMappedValues").every { isDeprecated(it) }
+        allMethodsNamed("simpleMappedValue").every { isDeprecated(it) }
 
-        allMethodsNamed("notDeprecated").every { it.getAnnotation(Deprecated) == null }
+        allMethodsNamed("notDeprecated").every { !isDeprecated(it) }
+    }
+
+    private boolean isDeprecated(Method method) {
+        method.getAnnotation(Deprecated) != null
     }
 
     def "collections gets initial values"() {

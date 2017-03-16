@@ -123,8 +123,18 @@ public class ASTHelper {
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
 
-    public static void addCompileWarning(SourceUnit sourceUnit, String msg, ASTNode node) {
+    static void addCompileWarning(SourceUnit sourceUnit, String msg, ASTNode node) {
         Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addWarning(WarningMessage.LIKELY_ERRORS, msg, token, sourceUnit);
+    }
+
+    static void assertMethodIsParameterless(MethodNode method, SourceUnit sourceUnit) {
+        if (method.getParameters().length > 0)
+            addCompileError(sourceUnit, "Lifecycle/Validate methods must be parameterless!", method);
+    }
+
+    static void assertMethodIsNotPrivate(MethodNode method, SourceUnit sourceUnit) {
+        if (method.isPrivate())
+            addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
     }
 }

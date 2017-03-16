@@ -160,7 +160,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
             if (validateAnnotation == null) continue;
 
-            assertMethodIsParameterless(method);
+            ASTHelper.assertMethodIsParameterless(method, sourceUnit);
             assertAnnotationHasNoValueOrMessage(validateAnnotation);
 
             block.addStatement(stmt(callX(varX("this"), method.getName())));
@@ -170,16 +170,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
         if (annotation.getMember("value") != null || annotation.getMember("message") != null)
             ASTHelper.addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
-    }
-
-    private void assertMethodIsParameterless(MethodNode method) {
-        if (method.getParameters().length > 0)
-            ASTHelper.addCompileError(sourceUnit, "Lifecycle/Validate methods must be parameterless!", method);
-    }
-
-    private void assertMethodIsNotPrivate(MethodNode method) {
-        if (method.isPrivate())
-            ASTHelper.addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
     }
 
     private void warnIfUnannotatedDoValidateMethod() {
@@ -775,27 +765,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        createLifecycleMethod(POSTAPPLY_ANNOTATION);
-    }
-
-    private void createLifecycleMethod(ClassNode annotationType) {
-
-        MethodBuilder lifecycleMethod = MethodBuilder.createProtectedMethod("$" + annotationType.getNameWithoutPackage());
-
-        for (MethodNode method : annotatedClass.getAllDeclaredMethods()) {
-            AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
-            if (postApplyAnnotation == null)
-                continue;
-
-            assertMethodIsParameterless(method);
-            assertMethodIsNotPrivate(method);
-            lifecycleMethod.callThis(method.getName());
-        }
-        lifecycleMethod.addTo(annotatedClass);
+        new LifecycleMethodBuilder(annotatedClass, POSTAPPLY_ANNOTATION, sourceUnit).invoke();
     }
 
     private void createFactoryMethods() {
-        createLifecycleMethod(POSTCREATE_ANNOTATION);
+        new LifecycleMethodBuilder(annotatedClass, POSTCREATE_ANNOTATION, sourceUnit).invoke();
 
         if (isAbstract(annotatedClass)) return;
 
@@ -1005,7 +979,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (annotatedFields.size() > 1) {
             ASTHelper.addCompileError(
                     sourceUnit, String.format(
-                            "Found more than owner key fields, only one is allowed in hierarchy (%s, %s)",
+                            "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
                             getQualifiedName(annotatedFields.get(0)),
                             getQualifiedName(annotatedFields.get(1))),
                     annotatedFields.get(0)

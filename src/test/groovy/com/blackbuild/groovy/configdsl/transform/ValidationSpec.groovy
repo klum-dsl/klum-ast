@@ -413,7 +413,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 @Validate
                 String validated
 
-                String notvalidated
+                String notValidated
             }
         ''')
 
@@ -538,7 +538,41 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "mulitple validation methods"() {
+    def "validation method"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                private def stringLength() {
+                    assert value1.length() < value2.length()
+                }
+            }
+        ''')
+
+        when:
+        clazz.create {
+            value1 "abc"
+            value2 "bl"
+        }
+
+        then:
+        thrown(IllegalStateException)
+
+        when:
+        clazz.create {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+    def "multiple validation methods"() {
         given:
         createClass('''
             @DSL
@@ -577,7 +611,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(IllegalStateException)
     }
 
-    def "validation method must not be defined"() {
+    def "validate method must not be defined"() {
         when:
         createClass('''
             @DSL
