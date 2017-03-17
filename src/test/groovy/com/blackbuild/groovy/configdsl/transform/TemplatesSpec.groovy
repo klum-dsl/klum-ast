@@ -1,5 +1,9 @@
 package com.blackbuild.groovy.configdsl.transform
 
+import spock.lang.Issue
+
+import java.lang.reflect.Method
+
 class TemplatesSpec extends AbstractDSLSpec {
 
     def "apply method using a preexisting object is created"() {
@@ -262,7 +266,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        def template = clazz.makeTemplate(name: 'Dieter')
+        def template = clazz.createAsTemplate(name: 'Dieter')
 
         then:
         notThrown(InstantiationException)
@@ -299,7 +303,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        instance = getClass("pk.Parent").makeTemplate()
+        instance = getClass("pk.Parent").createAsTemplate()
 
         then:
         notThrown(InstantiationException)
@@ -321,7 +325,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        getClass("pk.Parent").makeTemplate()
+        getClass("pk.Parent").createAsTemplate()
 
         then:
         notThrown(InstantiationException)
@@ -1022,5 +1026,28 @@ class TemplatesSpec extends AbstractDSLSpec {
         then:
         instance.name == "Default"
         instance.value == "bla"
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/61')
+    def "old 'makeTemplate' methods are deprecated"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @DSL
+            class Bar extends Foo {
+                String value
+            }
+        ''')
+
+        then:
+        def makeTemplatesMethods = allMethodsNamed('makeTemplate')
+        makeTemplatesMethods.size() == 4 // with / without Map * Closure with default value
+        makeTemplatesMethods.every { isDeprecated( it )}
     }
 }

@@ -18,6 +18,12 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
 class TemplateMethods {
     private static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
+    public static final String WITH_TEMPLATE = "withTemplate";
+    public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
+    public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
+    public static final String CREATE_TEMPLATE = "createTemplate";
+    public static final String MAKE_TEMPLATE = "makeTemplate";
+    public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
     private DSLASTTransformation transformation;
     private ClassNode annotatedClass;
     private FieldNode keyField;
@@ -35,7 +41,7 @@ class TemplateMethods {
         addTemplateFieldToAnnotatedClass();
         createImplementationForAbstractClassIfNecessary();
         createTemplateMethod();
-        makeTemplateMethod();
+        createAsTemplateMethods();
         copyFromTemplateMethod();
         copyFromMethod();
         withTemplateMethod();
@@ -45,7 +51,7 @@ class TemplateMethods {
     }
 
     private void withTemplateMethod() {
-        MethodBuilder.createPublicMethod("withTemplate")
+        MethodBuilder.createPublicMethod(WITH_TEMPLATE)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(dslAncestor), "template")
@@ -64,18 +70,18 @@ class TemplateMethods {
     }
 
     private void withTemplateConvenienceMethod() {
-        MethodBuilder.createPublicMethod("withTemplate")
+        MethodBuilder.createPublicMethod(WITH_TEMPLATE)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(MAP_TYPE), "templateMap")
                 .closureParam("closure")
-                .declareVariable("templateInstance", callX(annotatedClass, "makeTemplate", args("templateMap")))
-                .callMethod(classX(annotatedClass), "withTemplate", args("templateInstance", "closure"))
+                .declareVariable("templateInstance", callX(annotatedClass, CREATE_AS_TEMPLATE, args("templateMap")))
+                .callMethod(classX(annotatedClass), WITH_TEMPLATE, args("templateInstance", "closure"))
                 .addTo(annotatedClass);
     }
 
     private void withTemplatesMapMethod() {
-        MethodBuilder.createPublicMethod("withTemplates")
+        MethodBuilder.createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(MAP_TYPE), "templates")
@@ -96,7 +102,7 @@ class TemplateMethods {
                                     stmt(
                                             callX(
                                                     annotatedClass,
-                                                    "withTemplates",
+                                                    WITH_MULTIPLE_TEMPLATES,
                                                     args(
                                                             callX(
                                                                     varX("t"), "subMap",
@@ -110,7 +116,7 @@ class TemplateMethods {
                         )
                 )
                 .declareVariable("curried", callX(varX("recursion"), "curry", args("templates", "keys", "closure")))
-                .callMethod(callX(varX("keys"), "head"), "withTemplate",
+                .callMethod(callX(varX("keys"), "head"), WITH_TEMPLATE,
                         args(
                                 callX(varX("templates"), "get", callX(varX("keys"), "head")),
                                 varX("curried")
@@ -120,7 +126,7 @@ class TemplateMethods {
     }
 
     private void withTemplatesListMethod() {
-        MethodBuilder.createPublicMethod("withTemplates")
+        MethodBuilder.createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates")
@@ -135,7 +141,7 @@ class TemplateMethods {
                             )
                         )
                 )
-                .callMethod(classX(annotatedClass), "withTemplates", args("map", "closure"))
+                .callMethod(classX(annotatedClass), WITH_MULTIPLE_TEMPLATES, args("map", "closure"))
                 .addTo(annotatedClass);
     }
 
@@ -191,12 +197,12 @@ class TemplateMethods {
     }
 
     private void copyFromTemplateMethod() {
-        MethodBuilder copyFromTemplate = MethodBuilder.createPublicMethod("copyFromTemplate")
+        MethodBuilder copyFromTemplate = MethodBuilder.createPublicMethod(COPY_FROM_TEMPLATE)
                 .deprecated()
                 .returning(newClass(annotatedClass));
 
         if (transformation.dslParent != null) {
-            copyFromTemplate.statement(callSuperX("copyFromTemplate"));
+            copyFromTemplate.statement(callSuperX(COPY_FROM_TEMPLATE));
         }
         copyFromTemplate
                 .doReturn(callThisX("copyFrom", args(getTemplateValueExpression())))
@@ -214,36 +220,53 @@ class TemplateMethods {
     }
 
     private void createTemplateMethod() {
-        MethodBuilder.createPublicMethod("createTemplate")
+        MethodBuilder.createPublicMethod(CREATE_TEMPLATE)
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
-                .declareVariable("result", callX(annotatedClass, "makeTemplate", args("closure")))
+                .declareVariable("result", callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
                 .doReturn("result")
                 .addTo(annotatedClass);
     }
 
-    private void makeTemplateMethod() {
-        MethodBuilder.createPublicMethod("makeTemplate")
+    private void createAsTemplateMethods() {
+        MethodBuilder.createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", "copyFromTemplate") // to apply templates of super classes
+                .callMethod("result", COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod("result", "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod("makeTemplate")
+        MethodBuilder.createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .delegatingClosureParam(annotatedClass)
-                .doReturn(callX(annotatedClass, "makeTemplate", args(new MapExpression(), varX("closure"))))
+                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args(new MapExpression(), varX("closure"))))
+                .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod(MAKE_TEMPLATE)
+                .returning(newClass(annotatedClass))
+                .deprecated()
+                .mod(ACC_STATIC)
+                .namedParams("values")
+                .delegatingClosureParam(annotatedClass)
+                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("values", "closure")))
+                .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod(MAKE_TEMPLATE)
+                .returning(newClass(annotatedClass))
+                .deprecated()
+                .mod(ACC_STATIC)
+                .delegatingClosureParam(annotatedClass)
+                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .addTo(annotatedClass);
     }
 

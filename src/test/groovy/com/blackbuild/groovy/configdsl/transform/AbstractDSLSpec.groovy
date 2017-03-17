@@ -4,6 +4,8 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import spock.lang.Specification
 
+import java.lang.reflect.Method
+
 class AbstractDSLSpec extends Specification {
 
     protected ClassLoader oldLoader
@@ -58,4 +60,11 @@ class AbstractDSLSpec extends Specification {
     }
 
 
+    protected boolean isDeprecated(Method method) {
+        method.getAnnotation(Deprecated) != null
+    }
+
+    protected List<Method> allMethodsNamed(String name) {
+        clazz.methods.findAll { it.name == name }
+    }
 }

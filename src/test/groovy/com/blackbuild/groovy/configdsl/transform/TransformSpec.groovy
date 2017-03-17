@@ -244,10 +244,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "Dieter"
     }
 
-    private List<Method> allMethodsNamed(String name) {
-        clazz.methods.findAll { it.name == name }
-    }
-
     def "@Ignore members are ignored"() {
         given:
         createInstance('''
@@ -672,10 +668,6 @@ class TransformSpec extends AbstractDSLSpec {
         allMethodsNamed("simpleMappedValue").every { isDeprecated(it) }
 
         allMethodsNamed("notDeprecated").every { !isDeprecated(it) }
-    }
-
-    private boolean isDeprecated(Method method) {
-        method.getAnnotation(Deprecated) != null
     }
 
     def "collections gets initial values"() {

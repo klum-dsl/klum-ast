@@ -178,12 +178,12 @@ public class MethodBuilder {
 
     public MethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
         VariableScope scope = new VariableScope();
-        ClosureExpression closureExpression = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
-        closureExpression.setVariableScope(scope);
+        ClosureExpression emptyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
+        emptyClosure.setVariableScope(scope);
         Parameter param = GeneralUtils.param(
                 nonGeneric(ClassHelper.CLOSURE_TYPE),
                 "closure",
-                closureExpression
+                emptyClosure
         );
         param.addAnnotation(createDelegatesToAnnotation(delegationTarget));
         return param(param);
