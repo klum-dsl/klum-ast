@@ -2,6 +2,9 @@
 
 # Welcome to KlumAST
 
+[![klum logo](img/klumlogo.png)](https://github.com/klum-dsl/klum-ast)
+
+
 # Breaking changes since 0.17
 
 There are some breaking changes, please take a look at the [Wiki](https://github.com/klum-dsl/klum-ast/wiki/Migration)
