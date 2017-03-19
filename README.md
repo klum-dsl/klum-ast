@@ -1,6 +1,10 @@
 [![Build Status](https://travis-ci.org/klum-dsl/klum-ast.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-ast)
 
-# Welcome to KlumAST
+Welcome to KlumAST
+==================
+Turn your models into supermodels!
+
+
 
 [![klum logo](img/klumlogo.png)](https://github.com/klum-dsl/klum-ast)
 
@@ -10,7 +14,6 @@
 There are some breaking changes, please take a look at the [Wiki](https://github.com/klum-dsl/klum-ast/wiki/Migration)
 
 
-Turn your models into supermodels!
 
 # What is KlumAST?
 
