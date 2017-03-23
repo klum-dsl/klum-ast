@@ -2,6 +2,7 @@
 ### RC1 
 - Javadocs
 - renamed `makeTemplate` to `createAsTemplate` (see [#61](https://github.com/klum-dsl/klum-ast/issues/61))
+- include source code pointer to base field for setter methods (see [#69](https://github.com/klum-dsl/klum-ast/issues/69))
 
 ## 0.97.5
 - Fix: DelegatesTo annotations for polymorphic setters where not correct (see [#67](https://github.com/klum-dsl/klum-ast/issues/67))

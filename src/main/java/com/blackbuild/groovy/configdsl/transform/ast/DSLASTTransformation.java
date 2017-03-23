@@ -375,17 +375,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createOptionalPublicMethod(
-                fieldNode.getName())
-                .inheritDeprecationFrom(fieldNode)
+        createOptionalPublicMethod(fieldNode.getName())
+                .linkToField(fieldNode)
                 .param(fieldNode.getType(), "value")
                 .assignToProperty(fieldNode.getName(), varX("value"))
                 .addTo(annotatedClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            createOptionalPublicMethod(
-                    fieldNode.getName())
-                    .inheritDeprecationFrom(fieldNode)
+            createOptionalPublicMethod(fieldNode.getName())
+                    .linkToField(fieldNode)
                     .callThis(fieldNode.getName(), constX(true))
                     .addTo(annotatedClass);
         }
@@ -429,19 +427,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
 
         createOptionalPublicMethod(fieldNode.getName())
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
         createOptionalPublicMethod(fieldNode.getName())
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(annotatedClass);
 
         createOptionalPublicMethod(getElementNameForCollectionField(fieldNode))
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
                 .addTo(annotatedClass);
@@ -456,7 +454,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfSetWithoutKeyedElements(fieldNode, elementType, fieldKey);
 
         createOptionalPublicMethod(fieldNode.getName())
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .closureParam("closure")
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
@@ -468,7 +466,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!ASTHelper.isAbstract(elementType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
                     .optionalStringParam("key", fieldKey)
@@ -483,7 +481,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
@@ -493,7 +491,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!isFinal(elementType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
                     .delegationTargetClassParam("typeToCreate", elementType)
@@ -509,7 +507,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .delegationTargetClassParam("typeToCreate", elementType)
                     .optionalStringParam("key", fieldKey)
@@ -519,7 +517,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         createOptionalPublicMethod(methodName)
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "add", varX("value"))
                 .optionalAssignThisToPropertyS("value", targetOwner)
@@ -575,7 +573,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = fieldNode.getName();
 
         createOptionalPublicMethod(methodName)
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(annotatedClass);
@@ -583,7 +581,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
         createOptionalPublicMethod(singleElementMethod)
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(keyType, "key")
                 .param(valueType, "value")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
@@ -600,7 +598,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         createOptionalPublicMethod(fieldNode.getName())
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .closureParam("closure")
                 .assignS(propX(varX("closure"), "delegate"), varX("this"))
                 .assignS(
@@ -616,7 +614,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!ASTHelper.isAbstract(elementType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
                     .param(keyType, "key")
@@ -631,7 +629,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
@@ -641,7 +639,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!isFinal(elementType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
                     .delegationTargetClassParam("typeToCreate", elementType)
@@ -657,7 +655,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(annotatedClass);
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(elementType)
                     .delegationTargetClassParam("typeToCreate", elementType)
                     .param(keyType, "key")
@@ -668,7 +666,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         //noinspection ConstantConditions
         createOptionalPublicMethod(methodName)
-                .inheritDeprecationFrom(fieldNode)
+                .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
                 .optionalAssignThisToPropertyS("value", targetOwner)
@@ -684,7 +682,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!ASTHelper.isAbstract(targetFieldType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
                     .optionalStringParam("key", targetTypeKeyField)
@@ -700,7 +698,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
 
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
@@ -710,7 +708,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!isFinal(targetFieldType)) {
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
@@ -727,7 +725,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
 
             createOptionalPublicMethod(methodName)
-                    .inheritDeprecationFrom(fieldNode)
+                    .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)

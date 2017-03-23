@@ -37,6 +37,7 @@ public class MethodBuilder {
     private boolean deprecated;
     private BlockStatement body = new BlockStatement();
     private boolean optional;
+    private ASTNode sourceLinkTo;
 
     public MethodBuilder(String name) {
         this.name = name;
@@ -82,6 +83,9 @@ public class MethodBuilder {
 
         if (deprecated)
             method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
+
+        if (sourceLinkTo != null)
+            method.setSourcePosition(sourceLinkTo);
 
         return method;
     }
@@ -297,10 +301,22 @@ public class MethodBuilder {
         return body.getVariableScope();
     }
 
+    public MethodBuilder linkToField(FieldNode fieldNode) {
+        return inheritDeprecationFrom(fieldNode).sourceLinkTo(fieldNode);
+    }
+
     public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
         if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
             deprecated = true;
         }
         return this;
     }
+
+    public MethodBuilder sourceLinkTo(ASTNode sourceLinkTo) {
+        this.sourceLinkTo = sourceLinkTo;
+        return this;
+    }
+
+
+
 }

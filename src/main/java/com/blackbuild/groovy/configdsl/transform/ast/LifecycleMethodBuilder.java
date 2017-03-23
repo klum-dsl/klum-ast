@@ -23,7 +23,7 @@ class LifecycleMethodBuilder {
     LifecycleMethodBuilder(ClassNode annotatedClass, ClassNode annotationType, SourceUnit sourceUnit) {
         this.annotationType = annotationType;
         this.annotatedClass = annotatedClass;
-        this.sourceUnit = sourceUnit;
+        this.sourceUnit = annotatedClass.getModule().getContext();
     }
 
     void invoke() {
