@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -1360,4 +1361,134 @@ class TransformSpec extends AbstractDSLSpec {
         where:
         methodName << ["inner", "listInner", "mapInner"]
     }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/56')
+    def 'mutator methods are not created in the model anymore'() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                String notDeprecated
+            
+                String value
+                
+                boolean bool
+                
+                Other singleOther
+                KeyedOther singleKeyedOther
+                
+                List<Other> others
+                
+                List<KeyedOther> keyedOthers
+                Map<String, KeyedOther> mappedKeyedOthers
+        
+                List<String> simpleValues
+                Map<String, String> simpleMappedValues
+            }
+            
+            @DSL
+            class Other {
+            }
+            
+            @DSL
+            class KeyedOther {
+                @Key String name
+            }
+        ''')
+
+        then:
+        hasNoPublicMethodsNamed("apply")
+
+        hasNoPublicMethodsNamed("value")
+        hasNoPublicMethodsNamed("setValue")
+
+        hasNoPublicMethodsNamed("bool")
+        hasNoPublicMethodsNamed("setBool")
+
+        hasNoPublicMethodsNamed("singleOther")
+        hasNoPublicMethodsNamed("setSingleOther")
+
+        hasNoPublicMethodsNamed("singleKeyedOther")
+        hasNoPublicMethodsNamed("setSingleKeyedOther")
+
+        hasNoPublicMethodsNamed("others")
+        hasNoPublicMethodsNamed("setOthers")
+        hasNoPublicMethodsNamed("other")
+
+        hasNoPublicMethodsNamed("keyedOthers")
+        hasNoPublicMethodsNamed("setKeyedOthers")
+        hasNoPublicMethodsNamed("keyedOther")
+
+        hasNoPublicMethodsNamed("mappedKeyedOthers")
+        hasNoPublicMethodsNamed("setMappedKeyedOthers")
+        hasNoPublicMethodsNamed("mappedKeyedOther")
+
+        hasNoPublicMethodsNamed("simpleValues")
+        hasNoPublicMethodsNamed("setSimpleValues")
+        hasNoPublicMethodsNamed("simpleValue")
+
+        hasNoPublicMethodsNamed("simpleMappedValues")
+        hasNoPublicMethodsNamed("setSimpleMappedValues")
+        hasNoPublicMethodsNamed("simpleMappedValue")
+    }
+
+    def hasNoPublicMethodsNamed(String name) {
+        assert !allMethodsNamed(name).findAll { it.modifiers && Opcodes.ACC_PUBLIC }
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/56')
+    def 'created collections are read only'() {
+        given:
+        createInstance('''
+            @DSL
+            class Foo {
+                List<Other> others
+                List<KeyedOther> keyedOthers
+                Map<String, KeyedOther> mappedKeyedOthers
+                List<String> simpleValues
+                Map<String, String> simpleMappedValues
+            }
+            
+            @DSL
+            class Other {
+            }
+            
+            @DSL
+            class KeyedOther {
+                @Key String name
+            }
+        ''')
+
+        when:
+        instance.others.add(null)
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        instance.keyedOthers.add(null)
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        instance.simpleValues.add("bla")
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        instance.mappedKeyedOthers.put("bla", null)
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when:
+        instance.simpleMappedValues.put("bla", "blub")
+
+        then:
+        thrown(UnsupportedOperationException)
+
+    }
+
 }
