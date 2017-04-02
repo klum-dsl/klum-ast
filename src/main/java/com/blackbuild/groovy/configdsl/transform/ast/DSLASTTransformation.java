@@ -36,6 +36,7 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
@@ -95,7 +96,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     FieldNode ownerField;
     AnnotationNode dslAnnotation;
 
-    ClassNode rwClass;
+    InnerClassNode rwClass;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -113,6 +114,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createKeyConstructor();
 
         rwClass = createRWClass();
+        setPropertyAccessors();
+
+        delegateToOwner();
 
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
@@ -129,7 +133,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             preventOwnerOverride();
     }
 
-    private ClassNode createRWClass() {
+    private void setPropertyAccessors() {
+        for (FieldNode fieldNode : annotatedClass.getFields())
+            createPropertyAccesorsForSingleField(fieldNode);
+    }
+
+    private void createPropertyAccesorsForSingleField(FieldNode fieldNode) {
+        if (shouldFieldBeIgnored(fieldNode))
+            return;
+
+        if (isCollectionOrMap(fieldNode.getType())) {
+            MethodBuilder.createPublicMethod("get" + Verifier.capitalize(fieldNode.getName()))
+                    .returning(fieldNode.getType())
+                    .doReturn(callX(propX(varX("this"), fieldNode.getName()), "asImmutable"))
+                    .addTo(annotatedClass);
+        }
+    }
+
+    private InnerClassNode createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
 
         InnerClassNode contextClass = new InnerClassNode(
@@ -152,16 +173,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         annotatedClass.getModule().addClass(contextClass);
 
-        delegateToOwner(contextClass);
-
         return contextClass;
     }
 
-    private void delegateToOwner(InnerClassNode contextClass) {
+    private void delegateToOwner() {
         AnnotationNode delegateAnnotation = new AnnotationNode(ClassHelper.make(Delegate.class));
         delegateAnnotation.setMember("parameterAnnotations", constX(true));
         delegateAnnotation.setMember("methodAnnotations", constX(true));
-        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, contextClass.getField("_model")};
+        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, rwClass.getField("_model")};
 
         new DelegateASTTransformation().visit(astNodes, sourceUnit);
     }

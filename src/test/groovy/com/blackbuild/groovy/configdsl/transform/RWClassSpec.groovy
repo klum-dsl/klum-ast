@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import groovyjarjarasm.asm.Opcodes
+
 @SuppressWarnings("GroovyAssignabilityCheck")
 class RWClassSpec extends AbstractDSLSpec {
 
@@ -81,6 +83,7 @@ class RWClassSpec extends AbstractDSLSpec {
             @DSL
             class Model {
                 transient int count
+                String name = 'bla'
                 
                 void inc() {
                   count++
@@ -96,6 +99,28 @@ class RWClassSpec extends AbstractDSLSpec {
         then:
         noExceptionThrown()
         instance.count == 1
+        rw.name == 'bla'
+    }
+
+    def "RW class does have public setters for model, model does not"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Model {
+                String name
+            }
+        ''')
+        Class rwClass = getRWClass()
+
+        when:
+        def rwSetNameMethod = rwClass.getMethod("setName", String)
+        def modelSetNameMethod = clazz.getMethod("setName", String)
+
+        then:
+        rwSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
+        modelSetNameMethod.modifiers & (Opcodes.ACC_PROTECTED | Opcodes.ACC_SYNTHETIC )
     }
 
 
