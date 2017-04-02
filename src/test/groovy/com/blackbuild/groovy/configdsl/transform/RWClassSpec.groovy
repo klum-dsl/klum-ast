@@ -121,7 +121,7 @@ class RWClassSpec extends AbstractDSLSpec {
         rwSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
 
         when:
-        def modelSetNameMethod = clazz.getMethod("setName", String)
+        clazz.getMethod("setName", String)
 
         then:
         thrown(NoSuchMethodException)

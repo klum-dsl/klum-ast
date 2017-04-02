@@ -490,13 +490,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .param(fieldNode.getType(), "value")
                 .assignToProperty(fieldNode.getName(), varX("value"))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
             createOptionalPublicMethod(fieldNode.getName())
                     .linkToField(fieldNode)
                     .callThis(fieldNode.getName(), constX(true))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
     }
 
@@ -541,19 +541,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
         createOptionalPublicMethod(fieldNode.getName())
                 .linkToField(fieldNode)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
         createOptionalPublicMethod(getElementNameForCollectionField(fieldNode))
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
     }
 
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -573,7 +573,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
         if (!ASTHelper.isAbstract(elementType)) {
             createOptionalPublicMethod(methodName)
@@ -590,14 +590,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
 
         if (!isFinal(elementType)) {
@@ -616,7 +616,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
@@ -624,7 +624,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKey, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
 
         createOptionalPublicMethod(methodName)
@@ -632,7 +632,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "add", varX("value"))
                 .optionalAssignThisToPropertyS("value", targetOwner)
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
     }
 
@@ -681,7 +681,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
@@ -690,7 +690,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(keyType, "key")
                 .param(valueType, "value")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
     }
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
@@ -711,7 +711,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
-                .addTo(annotatedClass);
+                .addTo(rwClass);
 
 
         String methodName = getElementNameForCollectionField(fieldNode);
@@ -732,14 +732,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(keyType, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
 
         if (!isFinal(elementType)) {
@@ -758,7 +758,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
@@ -766,7 +766,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .param(keyType, "key")
                     .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(keyType, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
 
         //noinspection ConstantConditions
@@ -775,7 +775,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(elementType, "value")
                 .callMethod(fieldNode.getName(), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
                 .optionalAssignThisToPropertyS("value", targetOwner)
-                .addTo(annotatedClass);
+                .addTo(rwClass);
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
@@ -800,7 +800,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
 
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
@@ -808,7 +808,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
                     .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
 
         if (!isFinal(targetFieldType)) {
@@ -827,7 +827,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
 
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
@@ -836,7 +836,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam()
                     .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(targetTypeKeyField, "closure")))
-                    .addTo(annotatedClass);
+                    .addTo(rwClass);
         }
     }
 

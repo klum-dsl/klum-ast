@@ -1397,8 +1397,6 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        hasNoPublicMethodsNamed("apply")
-
         hasNoPublicMethodsNamed("value")
         hasNoPublicMethodsNamed("setValue")
 
