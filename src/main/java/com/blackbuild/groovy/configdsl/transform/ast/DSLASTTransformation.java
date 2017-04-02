@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
 import groovy.lang.Binding;
+import groovy.lang.Delegate;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
@@ -39,6 +40,7 @@ import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
+import org.codehaus.groovy.transform.DelegateASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 
@@ -93,6 +95,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     FieldNode ownerField;
     AnnotationNode dslAnnotation;
 
+    ClassNode rwClass;
+
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
         init(nodes, source);
@@ -107,6 +111,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (keyField != null)
             createKeyConstructor();
+
+        rwClass = createRWClass();
 
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
@@ -123,13 +129,62 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             preventOwnerOverride();
     }
 
+    private ClassNode createRWClass() {
+        ClassNode parentRW = getRwClassOfDslParent();
+
+        InnerClassNode contextClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$_RW",
+                ACC_STATIC,
+                parentRW);
+
+        contextClass.addField("_model", ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
+        contextClass.addConstructor(
+                0,
+                params(param(newClass(annotatedClass), "_model")),
+                NO_EXCEPTIONS,
+                block(
+                        assignS(
+                                propX(varX("this"), "_model"),
+                                varX("_model")
+                        )
+                )
+        );
+        annotatedClass.getModule().addClass(contextClass);
+
+        delegateToOwner(contextClass);
+
+        return contextClass;
+    }
+
+    private void delegateToOwner(InnerClassNode contextClass) {
+        AnnotationNode delegateAnnotation = new AnnotationNode(ClassHelper.make(Delegate.class));
+        delegateAnnotation.setMember("parameterAnnotations", constX(true));
+        delegateAnnotation.setMember("methodAnnotations", constX(true));
+        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, contextClass.getField("_model")};
+
+        new DelegateASTTransformation().visit(astNodes, sourceUnit);
+    }
+
+    private ClassNode getRwClassOfDslParent() {
+        ClassNode parentRW = ClassHelper.OBJECT_TYPE;
+        if (dslParent != null) {
+            for (Iterator<InnerClassNode> it = dslParent.getInnerClasses(); it.hasNext();) {
+                InnerClassNode innerClass = it.next();
+                if (innerClass.getName().endsWith("$_RW")) {
+                    parentRW = innerClass;
+                }
+            }
+        }
+        return parentRW;
+    }
+
     private void makeClassSerializable() {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
     private void createDefaultMethods() {
         new DefaultMethods(this).execute();
-
     }
 
     private void createValidateMethod() {
@@ -328,6 +383,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         assignS(propX(varX("this"), keyField.getName()), varX("key"))
                 )
         );
+        keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
     }
 
     private void createCanonicalMethods() {
