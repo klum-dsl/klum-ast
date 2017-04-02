@@ -142,12 +142,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (shouldFieldBeIgnored(fieldNode))
             return;
 
+        String capitalizedFieldName = Verifier.capitalize(fieldNode.getName());
+        String getterName = "get" + capitalizedFieldName;
+        String setterName = "set" + capitalizedFieldName;
+
         if (isCollectionOrMap(fieldNode.getType())) {
-            MethodBuilder.createPublicMethod("get" + Verifier.capitalize(fieldNode.getName()))
+            MethodBuilder.createPublicMethod(getterName)
                     .returning(fieldNode.getType())
                     .doReturn(callX(propX(varX("this"), fieldNode.getName()), "asImmutable"))
                     .addTo(annotatedClass);
         }
+
+        MethodBuilder.createProtectedMethod(setterName)
+                .mod(ACC_SYNTHETIC)
+                .returning(ClassHelper.VOID_TYPE)
+                .param(fieldNode.getType(), "value")
+                .statement(assignS(propX(varX("this"), fieldNode.getName()), varX("value")))
+                .addTo(annotatedClass);
+
+
     }
 
     private InnerClassNode createRWClass() {
@@ -379,7 +392,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void preventOwnerOverride() {
 
-        MethodBuilder.createPublicMethod(setterName(ownerField))
+        MethodBuilder.createPublicMethod("set" + Verifier.capitalize(ownerField.getName()))
                 .param(OBJECT_TYPE, "value")
                 .statement(
                         ifS(
@@ -634,12 +647,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private Expression optionalKeyArg(FieldNode fieldKey) {
         return fieldKey != null ? args("key") : NO_ARGUMENTS;
-    }
-
-    private String setterName(FieldNode node) {
-        char[] name = node.getName().toCharArray();
-        name[0] = Character.toUpperCase(name[0]);
-        return "set" + new String(name);
     }
 
     @SuppressWarnings("ConstantConditions")

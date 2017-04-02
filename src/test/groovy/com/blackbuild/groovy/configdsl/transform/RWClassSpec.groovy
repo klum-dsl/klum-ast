@@ -116,11 +116,35 @@ class RWClassSpec extends AbstractDSLSpec {
 
         when:
         def rwSetNameMethod = rwClass.getMethod("setName", String)
-        def modelSetNameMethod = clazz.getMethod("setName", String)
 
         then:
         rwSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
-        modelSetNameMethod.modifiers & (Opcodes.ACC_PROTECTED | Opcodes.ACC_SYNTHETIC )
+
+        when:
+        def modelSetNameMethod = clazz.getMethod("setName", String)
+
+        then:
+        thrown(NoSuchMethodException)
+    }
+
+    def "RW setter writes through to model"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Model {
+                String name
+            }
+        ''')
+        Class rwClass = getRWClass()
+        def rw = rwClass.newInstance(instance)
+
+        when:
+        rw.name = 'bla'
+
+        then:
+        instance.name == 'bla'
     }
 
 
