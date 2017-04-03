@@ -850,8 +850,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
                 .delegatingClosureParam(annotatedClass)
-                .applyNamedParams("values")
-                .assignS(propX(varX("closure"), "delegate"), ctorX(rwClass, varX("this")))
+                .declareVariable("rw", ctorX(rwClass, varX("this")))
+                .applyNamedParams("values", "rw")
+                .assignS(propX(varX("closure"), "delegate"), varX("rw"))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
@@ -934,7 +935,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
                     .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", args("result"))
+                    .callMethod("script", "setDelegate", args(ctorX(rwClass, varX("result"))))
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);
@@ -959,7 +960,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
                     .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", args("result"))
+                    .callMethod("script", "setDelegate", args(ctorX(rwClass, varX("result"))))
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);

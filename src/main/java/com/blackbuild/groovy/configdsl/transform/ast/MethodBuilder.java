@@ -142,13 +142,13 @@ public class MethodBuilder {
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), name);
     }
 
-    public MethodBuilder applyNamedParams(String name) {
-        VariableScope scope = new VariableScope();
+    public MethodBuilder applyNamedParams(String name, String targetName) {
+        VariableScope scope = new VariableScope(getVariableScope()); // TODO: Fix scope
         ClosureExpression applyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY,
                 block(scope,
                         new ExpressionStatement(
                                 new MethodCallExpression(
-                                        varX("this"),
+                                        varX(targetName),
                                         "invokeMethod",
                                         args(propX(varX("it"), "key"), propX(varX("it"), "value"))
                                 )
@@ -259,8 +259,8 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder declareVariable(String target, Expression init) {
-        return statement(GeneralUtils.declS(varX(target), init));
+    public MethodBuilder declareVariable(String varName, Expression init) {
+        return statement(GeneralUtils.declS(varX(varName), init));
     }
 
     public MethodBuilder callMethod(Expression receiver, String methodName) {
