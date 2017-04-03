@@ -147,5 +147,21 @@ class RWClassSpec extends AbstractDSLSpec {
         instance.name == 'bla'
     }
 
+    def "model.apply delegates to RW"() {
+        when:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Model {
+            }
+''')
+
+        then:
+        instance.apply {
+            assert getRWClass('pk.Model').isInstance(delegate)
+        }
+    }
+
 
 }

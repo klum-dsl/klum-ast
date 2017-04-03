@@ -851,7 +851,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .namedParams("values")
                 .delegatingClosureParam(annotatedClass)
                 .applyNamedParams("values")
-                .assignS(propX(varX("closure"), "delegate"), varX("this"))
+                .assignS(propX(varX("closure"), "delegate"), ctorX(rwClass, varX("this")))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
