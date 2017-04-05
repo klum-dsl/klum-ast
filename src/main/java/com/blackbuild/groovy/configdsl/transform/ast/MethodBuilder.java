@@ -246,9 +246,9 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty) {
+    public MethodBuilder optionalAssignModelToPropertyS(String target, String targetProperty) {
         if (targetProperty != null)
-            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
+            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("_model")));
         return this;
     }
 

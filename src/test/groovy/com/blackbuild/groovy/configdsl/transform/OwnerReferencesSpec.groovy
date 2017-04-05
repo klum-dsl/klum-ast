@@ -167,8 +167,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar") {}
 
         when:
-        instance.bars {
-            bar aBar
+        instance.apply {
+            bars {
+                bar aBar
+            }
         }
 
         then:

@@ -113,10 +113,8 @@ class DefaultValuesSpec extends AbstractDSLSpec {
             @DSL
             class Container {
                 String name
-            
                 Element element
             }
-
 
             @DSL
             class Element {
