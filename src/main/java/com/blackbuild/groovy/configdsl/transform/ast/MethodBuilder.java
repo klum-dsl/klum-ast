@@ -32,6 +32,7 @@ import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
+import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
@@ -143,23 +144,15 @@ public class MethodBuilder {
     }
 
     public MethodBuilder applyNamedParams(String name, String targetName) {
-        VariableScope scope = new VariableScope(getVariableScope()); // TODO: Fix scope
-        ClosureExpression applyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY,
-                block(scope,
-                        new ExpressionStatement(
-                                new MethodCallExpression(
-                                        varX(targetName),
-                                        "invokeMethod",
-                                        args(propX(varX("it"), "key"), propX(varX("it"), "value"))
-                                )
-                        )
-                )
-        );
-        applyClosure.setVariableScope(scope);
-
-        callMethod(name, "each",
-                args(
-                        applyClosure
+        statement(
+                new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(name), "entrySet"),
+                    new ExpressionStatement(
+                            new MethodCallExpression(
+                                    varX(targetName),
+                                    "invokeMethod",
+                                    args(propX(varX("it"), "key"), propX(varX("it"), "value"))
+                            )
+                    )
                 )
         );
 
