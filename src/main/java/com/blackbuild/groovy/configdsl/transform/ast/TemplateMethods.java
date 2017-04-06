@@ -52,10 +52,12 @@ class TemplateMethods {
     private FieldNode keyField;
     private ClassNode templateClass;
     private ClassNode dslAncestor;
+    private final InnerClassNode rwClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
         this.transformation = transformation;
         annotatedClass = transformation.annotatedClass;
+        rwClass = transformation.rwClass;
         keyField = transformation.keyField;
         dslAncestor = ASTHelper.getHighestAncestorDSLObject(annotatedClass);
     }
@@ -182,7 +184,6 @@ class TemplateMethods {
 
     private void copyFromMethod() {
         MethodBuilder templateApply = MethodBuilder.createPublicMethod("copyFrom")
-                .returning(newClass(annotatedClass))
                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                 // see DefaultValuesSpec."template for parent class affects child instances"()
                 .param(newClass(dslAncestor), "template");
@@ -193,7 +194,7 @@ class TemplateMethods {
             templateApply.statement(callSuperX("copyFrom", args("template")));
         }
 
-        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
+        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(constX(null))));
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
@@ -214,21 +215,15 @@ class TemplateMethods {
                 );
         }
 
-        templateApply
-                .doReturn("this")
-                .addTo(annotatedClass);
+        templateApply.addTo(rwClass);
     }
 
     private void copyFromTemplateMethod() {
-        MethodBuilder copyFromTemplate = MethodBuilder.createPublicMethod(COPY_FROM_TEMPLATE)
+        MethodBuilder
+                .createPublicMethod(COPY_FROM_TEMPLATE)
                 .deprecated()
-                .returning(newClass(annotatedClass));
-
-        if (transformation.dslParent != null) {
-            copyFromTemplate.statement(callSuperX(COPY_FROM_TEMPLATE));
-        }
-        copyFromTemplate
-                .doReturn(callThisX("copyFrom", args(getTemplateValueExpression())))
+                .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
+                .callThis("copyFrom", args(getTemplateValueExpression()))
                 .addTo(annotatedClass);
     }
 

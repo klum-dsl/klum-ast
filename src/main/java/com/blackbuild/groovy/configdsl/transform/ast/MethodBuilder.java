@@ -228,6 +228,12 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder statementIf(boolean condition, Statement statement) {
+        if (condition)
+            body.addStatement(statement);
+        return this;
+    }
+
     public MethodBuilder assignToProperty(String propertyName, Expression value) {
         String[] split = propertyName.split("\\.", 2);
         if (split.length == 1)
@@ -292,6 +298,10 @@ public class MethodBuilder {
 
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
+    }
+
+    public MethodBuilder statementIf(boolean condition, Expression expression) {
+        return statementIf(condition, stmt(expression));
     }
 
     public MethodBuilder doReturn(String varName) {

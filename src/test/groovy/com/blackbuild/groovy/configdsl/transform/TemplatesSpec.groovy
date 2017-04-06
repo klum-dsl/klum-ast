@@ -25,8 +25,6 @@ package com.blackbuild.groovy.configdsl.transform
 
 import spock.lang.Issue
 
-import java.lang.reflect.Method
-
 class TemplatesSpec extends AbstractDSLSpec {
 
     def "apply method using a preexisting object is created"() {
