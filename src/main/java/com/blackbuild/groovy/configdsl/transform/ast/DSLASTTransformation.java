@@ -113,7 +113,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (keyField != null)
             createKeyConstructor();
 
-        rwClass = createRWClass();
+        createRWClass();
         setPropertyAccessors();
 
         delegateToOwner();
@@ -167,16 +167,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    private InnerClassNode createRWClass() {
+    private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
 
-        InnerClassNode contextClass = new InnerClassNode(
+        rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$_RW",
                 ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE);
 
-        contextClass.addField("_model", ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
+        rwClass.addField("_model", ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
 
         BlockStatement constructorBody = new BlockStatement();
 
@@ -187,15 +187,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 assignS(propX(varX("this"), "_model"), varX("_model"))
         );
 
-        contextClass.addConstructor(
+        rwClass.addConstructor(
                 0,
                 params(param(newClass(annotatedClass), "_model")),
                 NO_EXCEPTIONS,
                 constructorBody
         );
-        annotatedClass.getModule().addClass(contextClass);
-
-        return contextClass;
+        annotatedClass.getModule().addClass(rwClass);
+        annotatedClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
     }
 
     private void delegateToOwner() {
@@ -595,7 +594,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementType)
                     .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -621,7 +620,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -740,7 +739,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .param(keyType, "key")
                     .delegatingClosureParam(elementType)
                     .declareVariable("created", callX(classX(elementType), "newInstance", args("key")))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -766,7 +765,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .param(keyType, "key")
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", args("key")))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -810,7 +809,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetFieldType)
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
                     .assignToProperty(fieldName, varX("created"))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -837,7 +836,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
-                    .callMethod("created", "copyFromTemplate")
+                    .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
                     .assignToProperty(fieldName, varX("created"))
                     .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -867,9 +866,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
                 .delegatingClosureParam(annotatedClass)
-                .declareVariable("rw", ctorX(rwClass, varX("this")))
-                .applyNamedParams("values", "rw")
-                .assignS(propX(varX("closure"), "delegate"), varX("rw"))
+                .applyNamedParams("values")
+                .assignS(propX(varX("closure"), "delegate"), varX("$rw"))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
@@ -901,7 +899,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optionalStringParam("name", keyField)
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
-                .callMethod("result", "copyFromTemplate")
+                .callMethod(propX(varX("result"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                 .callMethod("result", POSTCREATE_ANNOTATION_METHOD_NAME)
                 .callMethod("result", "apply", args("values", "closure"))
                 .callValidationOn("result")

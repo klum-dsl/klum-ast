@@ -143,12 +143,12 @@ public class MethodBuilder {
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), name);
     }
 
-    public MethodBuilder applyNamedParams(String name, String targetName) {
+    public MethodBuilder applyNamedParams(String parameterMapName) {
         statement(
-                new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(name), "entrySet"),
+                new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(parameterMapName), "entrySet"),
                     new ExpressionStatement(
                             new MethodCallExpression(
-                                    varX(targetName),
+                                    varX("$rw"),
                                     "invokeMethod",
                                     args(propX(varX("it"), "key"), propX(varX("it"), "value"))
                             )

@@ -34,6 +34,7 @@ import java.util.List;
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
@@ -220,11 +221,12 @@ class TemplateMethods {
 
     private void copyFromTemplateMethod() {
         MethodBuilder
-                .createPublicMethod(COPY_FROM_TEMPLATE)
+                .createProtectedMethod(COPY_FROM_TEMPLATE)
                 .deprecated()
+                .mod(ACC_SYNTHETIC)
                 .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
                 .callThis("copyFrom", args(getTemplateValueExpression()))
-                .addTo(annotatedClass);
+                .addTo(rwClass);
     }
 
     @NotNull
@@ -257,7 +259,7 @@ class TemplateMethods {
                 .namedParams("values")
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", COPY_FROM_TEMPLATE) // to apply templates of super classes
+                .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod("result", "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")

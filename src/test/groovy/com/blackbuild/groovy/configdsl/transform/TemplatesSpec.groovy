@@ -27,7 +27,7 @@ import spock.lang.Issue
 
 class TemplatesSpec extends AbstractDSLSpec {
 
-    def "apply method using a preexisting object is created"() {
+    def "copyFrom method is created"() {
         when:
         createClass('''
             package pk
@@ -39,7 +39,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
+        rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
 
         when:
         def template = clazz.create {
