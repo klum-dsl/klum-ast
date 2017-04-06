@@ -371,7 +371,9 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(IllegalStateException)
 
         when:
-        instance.validated "bla"
+        instance.apply {
+            validated "bla"
+        }
         instance.validate()
 
         then:
@@ -402,7 +404,9 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(IllegalStateException)
 
         when:
-        instance.validated "bla"
+        instance.apply {
+            validated "bla"
+        }
         instance.validate()
 
         then:

@@ -167,8 +167,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar") {}
 
         when:
-        instance.bars {
-            bar aBar
+        instance.apply {
+            bars {
+                bar aBar
+            }
         }
 
         then:
@@ -193,8 +195,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def aBar
-        instance.bars {
-            aBar = bar {}
+        instance.apply {
+            bars {
+                aBar = bar {}
+            }
         }
 
         def otherInstance = create("pk.Foo") {
@@ -265,8 +269,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar", "Klaus") {}
 
         when:
-        instance.bars {
-            bar(aBar)
+        instance.apply {
+            bars {
+                bar(aBar)
+            }
         }
 
         then:
@@ -379,8 +385,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         when:
-        instance.bars {
-            bar(aBar)
+        instance.apply {
+            bars {
+                bar(aBar)
+            }
         }
 
         then:
@@ -408,8 +416,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         when:
-        instance.bars {
-            bar(aBar)
+        instance.apply {
+            bars {
+                bar(aBar)
+            }
         }
 
         then:

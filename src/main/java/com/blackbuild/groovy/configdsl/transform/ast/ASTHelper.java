@@ -160,4 +160,11 @@ public class ASTHelper {
         if (method.isPrivate())
             addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
     }
+
+    static void replaceMethod(ClassNode target, MethodNode method) {
+        MethodNode oldMethod = target.getDeclaredMethod(method.getName(), method.getParameters());
+        if (oldMethod != null)
+            target.removeMethod(oldMethod);
+        target.addMethod(method);
+    }
 }

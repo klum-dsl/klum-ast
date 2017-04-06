@@ -25,15 +25,17 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
-import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
-import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
+import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
@@ -52,10 +54,12 @@ class TemplateMethods {
     private FieldNode keyField;
     private ClassNode templateClass;
     private ClassNode dslAncestor;
+    private final InnerClassNode rwClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
         this.transformation = transformation;
         annotatedClass = transformation.annotatedClass;
+        rwClass = transformation.rwClass;
         keyField = transformation.keyField;
         dslAncestor = ASTHelper.getHighestAncestorDSLObject(annotatedClass);
     }
@@ -182,7 +186,6 @@ class TemplateMethods {
 
     private void copyFromMethod() {
         MethodBuilder templateApply = MethodBuilder.createPublicMethod("copyFrom")
-                .returning(newClass(annotatedClass))
                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                 // see DefaultValuesSpec."template for parent class affects child instances"()
                 .param(newClass(dslAncestor), "template");
@@ -193,16 +196,30 @@ class TemplateMethods {
             templateApply.statement(callSuperX("copyFrom", args("template")));
         }
 
-        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(varX("this"))));
+        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(constX(null))));
 
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            if (isCollectionOrMap(fieldNode.getType()))
+            if (isCollection(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
-                                assignS(propX(varX("this"), fieldNode.getName()), callX(propX(varX("template"), fieldNode.getName()), "clone"))
+                                block(
+                                        // we need an empty collection, since template replaces the field
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName())))
+                                )
+                        )
+                );
+            else if (isMap(fieldNode.getType()))
+                templateApply.statement(
+                        ifS(
+                                propX(varX("template"), fieldNode.getName()),
+                                block(
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "putAll", propX(varX("template"), fieldNode.getName())))
+                                )
                         )
                 );
             else
@@ -214,22 +231,17 @@ class TemplateMethods {
                 );
         }
 
-        templateApply
-                .doReturn("this")
-                .addTo(annotatedClass);
+        templateApply.addTo(rwClass);
     }
 
     private void copyFromTemplateMethod() {
-        MethodBuilder copyFromTemplate = MethodBuilder.createPublicMethod(COPY_FROM_TEMPLATE)
+        MethodBuilder
+                .createProtectedMethod(COPY_FROM_TEMPLATE)
                 .deprecated()
-                .returning(newClass(annotatedClass));
-
-        if (transformation.dslParent != null) {
-            copyFromTemplate.statement(callSuperX(COPY_FROM_TEMPLATE));
-        }
-        copyFromTemplate
-                .doReturn(callThisX("copyFrom", args(getTemplateValueExpression())))
-                .addTo(annotatedClass);
+                .mod(ACC_SYNTHETIC)
+                .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
+                .callThis("copyFrom", args(getTemplateValueExpression()))
+                .addTo(rwClass);
     }
 
     @NotNull
@@ -247,7 +259,7 @@ class TemplateMethods {
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(rwClass)
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
                 .declareVariable("result", callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
@@ -260,10 +272,10 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(rwClass)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod("result", COPY_FROM_TEMPLATE) // to apply templates of super classes
-                .callMethod("result", "manualValidation", constX(true))
+                .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
+                .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
                 .addTo(annotatedClass);
@@ -314,6 +326,8 @@ class TemplateMethods {
                     )
             );
         }
+
+        templateClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
 
         MethodBuilder.createPublicMethod("create")
                 .returning(newClass(annotatedClass))

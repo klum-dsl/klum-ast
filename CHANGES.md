@@ -1,5 +1,12 @@
-## 1.0.0
-### RC1 
+## 0.98.0
+- Breaking changes:
+  - Models are now read only. This means all mutation methods are constrained to the content of the `apply()` / `create()`
+    closures. Unfortunately, there is no deprecation path for this change, which means that in order to use
+    this version, you might have to change code to fix compilation errors.
+    
+    see [Static Models](https://github.com/klum-dsl/klum-ast/wiki/Static-Models) and 
+    [#56](https://github.com/klum-dsl/klum-ast/issues/56) 
+
 - Javadocs
 - renamed `makeTemplate` to `createAsTemplate` (see [#61](https://github.com/klum-dsl/klum-ast/issues/61))
 - include source code pointer to base field for setter methods (see [#69](https://github.com/klum-dsl/klum-ast/issues/69))

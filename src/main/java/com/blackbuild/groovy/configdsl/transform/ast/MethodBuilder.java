@@ -32,6 +32,7 @@ import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
+import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
@@ -142,24 +143,16 @@ public class MethodBuilder {
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), name);
     }
 
-    public MethodBuilder applyNamedParams(String name) {
-        VariableScope scope = new VariableScope();
-        ClosureExpression applyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY,
-                block(scope,
-                        new ExpressionStatement(
-                                new MethodCallExpression(
-                                        varX("this"),
-                                        "invokeMethod",
-                                        args(propX(varX("it"), "key"), propX(varX("it"), "value"))
-                                )
-                        )
-                )
-        );
-        applyClosure.setVariableScope(scope);
-
-        callMethod(name, "each",
-                args(
-                        applyClosure
+    public MethodBuilder applyNamedParams(String parameterMapName) {
+        statement(
+                new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(parameterMapName), "entrySet"),
+                    new ExpressionStatement(
+                            new MethodCallExpression(
+                                    varX("$rw"),
+                                    "invokeMethod",
+                                    args(propX(varX("it"), "key"), propX(varX("it"), "value"))
+                            )
+                    )
                 )
         );
 
@@ -199,6 +192,10 @@ public class MethodBuilder {
         return param(new Parameter(type, name));
     }
 
+    public MethodBuilder param(ClassNode type, String name, Expression defaultValue) {
+        return param(new Parameter(type, name, defaultValue));
+    }
+
     public MethodBuilder arrayParam(ClassNode type, String name) {
         return param(new Parameter(type.makeArray(), name));
     }
@@ -235,6 +232,12 @@ public class MethodBuilder {
         return this;
     }
 
+    public MethodBuilder statementIf(boolean condition, Statement statement) {
+        if (condition)
+            body.addStatement(statement);
+        return this;
+    }
+
     public MethodBuilder assignToProperty(String propertyName, Expression value) {
         String[] split = propertyName.split("\\.", 2);
         if (split.length == 1)
@@ -253,14 +256,14 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder optionalAssignThisToPropertyS(String target, String targetProperty) {
+    public MethodBuilder optionalAssignModelToPropertyS(String target, String targetProperty) {
         if (targetProperty != null)
-            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("this")));
+            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("_model")));
         return this;
     }
 
-    public MethodBuilder declareVariable(String target, Expression init) {
-        return statement(GeneralUtils.declS(varX(target), init));
+    public MethodBuilder declareVariable(String varName, Expression init) {
+        return statement(GeneralUtils.declS(varX(varName), init));
     }
 
     public MethodBuilder callMethod(Expression receiver, String methodName) {
@@ -299,6 +302,10 @@ public class MethodBuilder {
 
     public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
+    }
+
+    public MethodBuilder statementIf(boolean condition, Expression expression) {
+        return statementIf(condition, stmt(expression));
     }
 
     public MethodBuilder doReturn(String varName) {

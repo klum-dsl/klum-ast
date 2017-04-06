@@ -35,6 +35,7 @@ class AbstractDSLSpec extends Specification {
     protected GroovyClassLoader loader
     protected def instance
     protected Class<?> clazz
+    protected Class<?> rwClazz
 
     def setup() {
         oldLoader = Thread.currentThread().contextClassLoader
@@ -64,6 +65,7 @@ class AbstractDSLSpec extends Specification {
 
     def createClass(String code) {
         clazz = loader.parseClass(code)
+        rwClazz = getRwClass()
     }
 
     def createSecondaryClass(String code) {
@@ -89,5 +91,13 @@ class AbstractDSLSpec extends Specification {
 
     protected List<Method> allMethodsNamed(String name) {
         clazz.methods.findAll { it.name == name }
+    }
+
+    Class getRwClass(String name) {
+        getClass(name + '$_RW')
+    }
+
+    Class getRwClass() {
+        getRwClass(clazz.name)
     }
 }
