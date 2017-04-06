@@ -174,19 +174,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass,
                 annotatedClass.getName() + "$_RW",
                 ACC_STATIC,
-                parentRW);
+                parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE);
 
         contextClass.addField("_model", ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
+
+        BlockStatement constructorBody = new BlockStatement();
+
+        if (parentRW != null)
+            constructorBody.addStatement(ctorSuperS(varX("_model")));
+
+        constructorBody.addStatement(
+                assignS(propX(varX("this"), "_model"), varX("_model"))
+        );
+
         contextClass.addConstructor(
                 0,
                 params(param(newClass(annotatedClass), "_model")),
                 NO_EXCEPTIONS,
-                block(
-                        assignS(
-                                propX(varX("this"), "_model"),
-                                varX("_model")
-                        )
-                )
+                constructorBody
         );
         annotatedClass.getModule().addClass(contextClass);
 
@@ -203,7 +208,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        ClassNode parentRW = ClassHelper.OBJECT_TYPE;
+        ClassNode parentRW = null;
         if (dslParent != null) {
             for (Iterator<InnerClassNode> it = dslParent.getInnerClasses(); it.hasNext();) {
                 InnerClassNode innerClass = it.next();

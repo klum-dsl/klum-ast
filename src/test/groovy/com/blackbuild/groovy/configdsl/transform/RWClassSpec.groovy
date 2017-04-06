@@ -28,14 +28,6 @@ import groovyjarjarasm.asm.Opcodes
 @SuppressWarnings("GroovyAssignabilityCheck")
 class RWClassSpec extends AbstractDSLSpec {
 
-    Class getRWClass(String name) {
-        getClass(name + '$_RW')
-    }
-
-    Class getRWClass() {
-        getRWClass(clazz.name)
-    }
-
     def "RW class is created"() {
         given:
         createClass('''
@@ -47,7 +39,7 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        getRWClass()
+        getRwClass()
 
         then:
         noExceptionThrown()
@@ -69,7 +61,7 @@ class RWClassSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        Class rwClass = getRWClass('pk.Child')
+        Class rwClass = getRwClass('pk.Child')
 
         then:
         rwClass.superclass.name == 'pk.Parent$_RW'
@@ -90,7 +82,7 @@ class RWClassSpec extends AbstractDSLSpec {
                 }
             }
         ''')
-        Class rwClass = getRWClass()
+        Class rwClass = getRwClass()
         def rw = rwClass.newInstance(instance)
 
         when:
@@ -112,7 +104,7 @@ class RWClassSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        Class rwClass = getRWClass()
+        Class rwClass = getRwClass()
 
         when:
         def rwSetNameMethod = rwClass.getMethod("setName", String)
@@ -137,7 +129,7 @@ class RWClassSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        Class rwClass = getRWClass()
+        Class rwClass = getRwClass()
         def rw = rwClass.newInstance(instance)
 
         when:
@@ -159,7 +151,7 @@ class RWClassSpec extends AbstractDSLSpec {
 
         then:
         instance.apply {
-            assert getRWClass('pk.Model').isInstance(delegate)
+            assert getRwClass('pk.Model').isInstance(delegate)
         }
     }
 
