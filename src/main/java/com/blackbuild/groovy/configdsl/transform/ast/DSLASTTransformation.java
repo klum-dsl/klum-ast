@@ -157,6 +157,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(fieldNode.getType())
                     .doReturn(propX(varX("this"), fieldNode.getName()))
                     .addTo(annotatedClass);
+
+            MethodBuilder.createPublicMethod(getterName)
+                    .returning(fieldNode.getType())
+                    .doReturn(propX(varX("_model"), fieldNode.getName() + "$rw"))
+                    .addTo(rwClass);
         }
 
         MethodBuilder.createProtectedMethod(setterName)

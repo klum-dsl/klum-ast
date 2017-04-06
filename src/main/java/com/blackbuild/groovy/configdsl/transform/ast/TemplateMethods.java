@@ -244,7 +244,7 @@ class TemplateMethods {
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(rwClass)
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
                 .declareVariable("result", callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
@@ -257,7 +257,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
-                .delegatingClosureParam(annotatedClass)
+                .delegatingClosureParam(rwClass)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod("result", "manualValidation", constX(true))
