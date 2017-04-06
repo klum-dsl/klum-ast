@@ -200,6 +200,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
+        annotatedClass.setNodeMetaData("rwclass", rwClass);
     }
 
     private void delegateToOwner() {
@@ -212,16 +213,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        ClassNode parentRW = null;
-        if (dslParent != null) {
-            for (Iterator<InnerClassNode> it = dslParent.getInnerClasses(); it.hasNext();) {
-                InnerClassNode innerClass = it.next();
-                if (innerClass.getName().endsWith("$_RW")) {
-                    parentRW = innerClass;
-                }
-            }
-        }
-        return parentRW;
+        return dslParent != null ? (ClassNode) dslParent.getNodeMetaData("rwclass") : null;
     }
 
     private void makeClassSerializable() {
@@ -606,7 +598,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -632,7 +624,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -751,7 +743,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -777,7 +769,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwner)
                     .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -821,7 +813,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
                     .assignToProperty(fieldName, varX("created"))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -848,7 +840,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
                     .assignToProperty(fieldName, varX("created"))
-                    .callMethod("created", POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callValidationOn("created")
                     .doReturn("created")
@@ -882,7 +874,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
-                .callThis(POSTAPPLY_ANNOTATION_METHOD_NAME)
+                .callMethod("$rw", POSTAPPLY_ANNOTATION_METHOD_NAME)
                 .doReturn("this")
                 .addTo(annotatedClass);
 
@@ -893,11 +885,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        new LifecycleMethodBuilder(annotatedClass, POSTAPPLY_ANNOTATION, sourceUnit).invoke();
+        new LifecycleMethodBuilder(rwClass, POSTAPPLY_ANNOTATION).invoke();
     }
 
     private void createFactoryMethods() {
-        new LifecycleMethodBuilder(annotatedClass, POSTCREATE_ANNOTATION, sourceUnit).invoke();
+        new LifecycleMethodBuilder(rwClass, POSTCREATE_ANNOTATION).invoke();
 
         if (isAbstract(annotatedClass)) return;
 
@@ -909,7 +901,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(annotatedClass)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod(propX(varX("result"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                .callMethod("result", POSTCREATE_ANNOTATION_METHOD_NAME)
+                .callMethod(propX(varX("result"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                 .callMethod("result", "apply", args("values", "closure"))
                 .callValidationOn("result")
                 .doReturn("result")

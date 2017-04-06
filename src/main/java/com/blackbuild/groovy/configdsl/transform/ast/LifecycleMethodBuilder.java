@@ -23,12 +23,13 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.MethodNode;
+import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.control.SourceUnit;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
@@ -37,27 +38,47 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
  * Helper class to create lifecycle methods for a given annotation
  */
 class LifecycleMethodBuilder {
+    private InnerClassNode rwClass;
     private ClassNode annotationType;
     private MethodBuilder lifecycleMethod;
     private Set<String> alreadyHandled = new HashSet<String>();
     private ClassNode annotatedClass;
     private SourceUnit sourceUnit;
 
-    LifecycleMethodBuilder(ClassNode annotatedClass, ClassNode annotationType, SourceUnit sourceUnit) {
+    LifecycleMethodBuilder(InnerClassNode rwClass, ClassNode annotationType) {
+        this.rwClass = rwClass;
         this.annotationType = annotationType;
-        this.annotatedClass = annotatedClass;
+        this.annotatedClass = rwClass.getOuterClass();
         this.sourceUnit = annotatedClass.getModule().getContext();
     }
 
     void invoke() {
-        lifecycleMethod = MethodBuilder.createPrivateMethod("$" + annotationType.getNameWithoutPackage());
+        moveMethodsFromModelToRWClass();
+        createLifecycleCallerMethod();
+    }
+
+    private void createLifecycleCallerMethod() {
+        lifecycleMethod = MethodBuilder
+                .createPrivateMethod("$" + annotationType.getNameWithoutPackage())
+                .mod(Opcodes.ACC_SYNTHETIC);
         for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             addLifecycleMethodsForClass(level);
         }
-        lifecycleMethod.addTo(annotatedClass);
+        lifecycleMethod.addTo(rwClass);
     }
 
     private void addLifecycleMethodsForClass(ClassNode level) {
+        InnerClassNode rwLevel = level.getNodeMetaData("rwclass");
+        List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(level);
+        // lifecycle methods form parent classes have already been removed, so
+        // we take the lifecycle methods from RW class as well
+        lifecycleMethods.addAll(getAllValidLifecycleMethods(rwLevel));
+        addCallToAllMethods(lifecycleMethods);
+    }
+
+    private List<MethodNode> getAllValidLifecycleMethods(ClassNode level) {
+        List<MethodNode> lifecycleMethods = new ArrayList<MethodNode>();
+
         for (MethodNode method : level.getMethods()) {
             AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
 
@@ -67,6 +88,22 @@ class LifecycleMethodBuilder {
             assertMethodIsParameterless(method, sourceUnit);
             assertMethodIsNotPrivate(method, sourceUnit);
 
+            lifecycleMethods.add(method);
+        }
+        return lifecycleMethods;
+    }
+
+    private void moveMethodsFromModelToRWClass() {
+        List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(annotatedClass);
+        for (MethodNode method : lifecycleMethods) {
+            annotatedClass.removeMethod(method);
+            // if method is public, it will already have been added by delegateTo, remove it again
+            replaceMethod(rwClass, method);
+        }
+    }
+
+    private void addCallToAllMethods(List<MethodNode> lifecycleMethods) {
+        for (MethodNode method : lifecycleMethods) {
             addCallTo(method.getName());
         }
     }

@@ -277,7 +277,7 @@ class LifecycleSpec extends AbstractDSLSpec {
             class Bar extends Foo {
                 @PostCreate
                 def postCreateChild() {
-                    this.@caller << "Bar"
+                    this.caller << "Bar"
                 }
             }
 '''
@@ -355,7 +355,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.apply { caller } == ["FromOverridden", "otherParent", "child" ]
+        instance.caller == ["FromOverridden", "otherParent", "child" ]
 
     }
 
