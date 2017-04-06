@@ -262,7 +262,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.value "Dieter"
+        instance.apply { value "Dieter" }
 
         then:
         instance.value == "Dieter"
@@ -405,21 +405,27 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def inner = instance.inner {
-            name "Dieter"
+        def innerInstance
+        instance.apply {
+            innerInstance = inner {
+                name "Dieter"
+            }
         }
 
         then:
+        innerInstance.class.name == 'pk.Bar'
         instance.inner.name == "Dieter"
 
         and: "object should be returned by closure"
-        inner != null
+        innerInstance != null
 
         when: 'Allow named parameters'
-        inner = instance.inner(name: 'Hans')
+        instance.apply {
+            innerInstance = inner(name: 'Hans')
+        }
 
         then:
-        inner.name == 'Hans'
+        innerInstance.name == 'Hans'
     }
 
     def "create inner object via key and closure"() {
@@ -440,8 +446,11 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def inner = instance.inner("Dieter") {
-            value 15
+        def innerInstance
+        instance.apply {
+            innerInstance = inner("Dieter") {
+                value 15
+            }
         }
 
         then:
@@ -449,14 +458,16 @@ class TransformSpec extends AbstractDSLSpec {
         instance.inner.value == 15
 
         and: "object should be returned by closure"
-        inner != null
+        innerInstance != null
 
         when: "Allow named arguments for simple objects"
-        inner = instance.inner("Hans", value: 16)
+        instance.apply {
+            innerInstance = inner("Hans", value: 16)
+        }
 
         then:
-        inner.name == "Hans"
-        inner.value == 16
+        innerInstance.name == "Hans"
+        innerInstance.value == 16
     }
 
     def "create list of inner objects"() {
@@ -476,9 +487,11 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.bars {
-            bar { name "Dieter" }
-            bar { name "Klaus"}
+        instance.apply {
+            bars {
+                bar { name "Dieter" }
+                bar { name "Klaus"}
+            }
         }
 
         then:
@@ -486,9 +499,11 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[1].name == "Klaus"
 
         when: 'Allow named parameters'
-        instance.bars {
-            bar(name: "Kurt")
-            bar(name: "Felix")
+        instance.apply {
+            bars {
+                bar(name: "Kurt")
+                bar(name: "Felix")
+            }
         }
 
         then:
@@ -514,18 +529,22 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.bars {
-            bar { name "Dieter" }
-            bar { name "Klaus"}
+        instance.apply {
+            bars {
+                bar { name "Dieter" }
+                bar { name "Klaus"}
+            }
         }
 
         then:
         instance.bars*.name as Set == ["Dieter", "Klaus"] as Set
 
         when: 'Allow named parameters'
-        instance.bars {
-            bar(name: "Kurt")
-            bar(name: "Felix")
+        instance.apply {
+            bars {
+                bar(name: "Kurt")
+                bar(name: "Felix")
+            }
         }
 
         then:
@@ -552,9 +571,11 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         def bar1
         def bar2
-        instance.bars {
-            bar1 = bar { name "Dieter" }
-            bar2 = bar { name "Klaus"}
+        instance.apply {
+            bars {
+                bar1 = bar { name "Dieter" }
+                bar2 = bar { name "Klaus"}
+            }
         }
 
         then:
@@ -580,9 +601,11 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.bars {
-            bar("Dieter") { url "1" }
-            bar("Klaus") { url "2" }
+        instance.apply {
+            bars {
+                bar("Dieter") { url "1" }
+                bar("Klaus") { url "2" }
+            }
         }
 
         then:
@@ -613,9 +636,11 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         def bar1
         def bar2
-        instance.bars {
-            bar1 = bar("Dieter") { url "1" }
-            bar2 = bar("Klaus") { url "2" }
+        instance.apply {
+            bars {
+                bar1 = bar("Dieter") { url "1" }
+                bar2 = bar("Klaus") { url "2" }
+            }
         }
 
         then:
@@ -761,25 +786,33 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:"add using list add"
-        instance.values "Dieter", "Klaus"
+        instance.apply {
+            values "Dieter", "Klaus"
+        }
 
         then:
         instance.values == ["Dieter", "Klaus"]
 
         when:"add using list add again"
-        instance.values "Heinz"
+        instance.apply {
+            values "Heinz"
+        }
 
         then:"second call should add to previous values"
         instance.values == ["Dieter", "Klaus", "Heinz"]
 
         when:"add using single method"
-        instance.value "singleadd"
+        instance.apply {
+            value "singleadd"
+        }
 
         then:
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd"]
 
         when:
-        instance.values(["asList"])
+        instance.apply {
+            values(["asList"])
+        }
 
         then:
         instance.values == ["Dieter", "Klaus", "Heinz", "singleadd", "asList"]
@@ -797,25 +830,33 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:"add using list add"
-        instance.values "Dieter", "Klaus"
+        instance.apply {
+            values "Dieter", "Klaus"
+        }
 
         then:
         instance.values == ["Dieter", "Klaus"] as Set
 
         when:"add using list add again"
-        instance.values "Heinz"
+        instance.apply {
+            values "Heinz"
+        }
 
         then:"second call should add to previous values"
         instance.values == ["Dieter", "Heinz", "Klaus" ] as Set
 
         when:"add using single method"
-        instance.value "singleadd"
+        instance.apply {
+            value "singleadd"
+        }
 
         then:
         instance.values == ["Dieter", "Heinz", "Klaus", "singleadd"] as Set
 
         when:
-        instance.values(["asList"])
+        instance.apply {
+            values(["asList"])
+        }
 
         then:
         instance.values == ["asList", "Dieter", "Heinz", "Klaus", "singleadd"] as Set
@@ -834,8 +875,10 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.values "Dieter", "Klaus"
-        instance.more "Heinz"
+        instance.apply {
+            values "Dieter", "Klaus"
+            more "Heinz"
+        }
 
         then:
         instance.values == ["Dieter", "Klaus", "Heinz"]
@@ -853,9 +896,11 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.something "Dieter", "Klaus" // list adder
-        instance.something "Heinz" // single added
-        instance.something(["Franz"]) // List adder
+        instance.apply {
+            something "Dieter", "Klaus" // list adder
+            something "Heinz" // single added
+            something(["Franz"]) // List adder
+        }
 
         then:
         instance.something == ["Dieter", "Klaus", "Heinz", "Franz"]
@@ -888,19 +933,25 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.values name:"Dieter", time:"Klaus", "val bri":"bri"
+        instance.apply {
+            values name:"Dieter", time:"Klaus", "val bri":"bri"
+        }
 
         then:
         instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
 
         when:
-        instance.values name:"Maier", age:"15"
+        instance.apply {
+            values name:"Maier", age:"15"
+        }
 
         then:
         instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
 
         when:
-        instance.value("height", "14")
+        instance.apply {
+            value("height", "14")
+        }
 
         then:
         instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15", height: "14"]
@@ -918,19 +969,25 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.values name:"Dieter", time:"Klaus", "val bri":"bri"
+        instance.apply {
+            values name:"Dieter", time:"Klaus", "val bri":"bri"
+        }
 
         then:
         instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
 
         when:
-        instance.values name:"Maier", age:"15"
+        instance.apply {
+            values name:"Maier", age:"15"
+        }
 
         then:
         instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
 
         when:
-        instance.value("height", "14")
+        instance.apply {
+            value("height", "14")
+        }
 
         then:
         instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15", height: "14"]
@@ -974,9 +1031,11 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.bars {
-            bar("Dieter") { url "1" }
-            bar("Klaus") { url "2" }
+        instance.apply {
+            bars {
+                bar("Dieter") { url "1" }
+                bar("Klaus") { url "2" }
+            }
         }
 
         then:
@@ -984,9 +1043,11 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars.Klaus.url == "2"
 
         when: "named parameters"
-        instance.bars {
-            bar("Kurt", url: "3")
-            bar("Felix", url: "4")
+        instance.apply {
+            bars {
+                bar("Kurt", url: "3")
+                bar("Felix", url: "4")
+            }
         }
 
         then:
@@ -1015,9 +1076,11 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         def bar1
         def bar2
-        instance.bars {
-            bar1 = bar("Dieter") { url "1" }
-            bar2 = bar("Klaus") { url "2" }
+        instance.apply {
+            bars {
+                bar1 = bar("Dieter") { url "1" }
+                bar2 = bar("Klaus") { url "2" }
+            }
         }
 
         then:
@@ -1045,8 +1108,10 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         when:
-        instance.bars {
-            bar(aBar)
+        instance.apply {
+            bars {
+                bar(aBar)
+            }
         }
 
         then:
@@ -1075,8 +1140,10 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         when:
-        instance.bars {
-            bar(aBar)
+        instance.apply {
+            bars {
+                bar(aBar)
+            }
         }
 
         then:
@@ -1173,11 +1240,11 @@ class TransformSpec extends AbstractDSLSpec {
                 @Owner Foo owner
             }
         ''')
-
-        when:
         instance = clazz.create {
             bar {}
         }
+
+        when:
         instance.toString()
 
         then:
@@ -1281,22 +1348,22 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def polymorphicMethodParams = clazz.getMethod(methodName, Class, Closure).parameterAnnotations
+        def polymorphicMethodParams = rwClazz.getMethod(methodName, Class, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
         delegatesToPointsToDelegateTarget(polymorphicMethodParams[1])
 
         when:
-        def polymorphicMethodWithNamesParams = clazz.getMethod(methodName, Map, Class, Closure).parameterAnnotations
+        def polymorphicMethodWithNamesParams = rwClazz.getMethod(methodName, Map, Class, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        delegatesToPointsTo(clazz.getMethod(methodName, Closure).parameterAnnotations[0], "pk.Inner")
-        delegatesToPointsTo(clazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], "pk.Inner")
 
         where:
         methodName << ["inner", "listInner"]
@@ -1341,22 +1408,22 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def polymorphicMethodParams = clazz.getMethod(methodName, Class, String, Closure).parameterAnnotations
+        def polymorphicMethodParams = rwClazz.getMethod(methodName, Class, String, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodParams[0])
         delegatesToPointsToDelegateTarget(polymorphicMethodParams[2])
 
         when:
-        def polymorphicMethodWithNamesParams = clazz.getMethod(methodName, Map, Class, String, Closure).parameterAnnotations
+        def polymorphicMethodWithNamesParams = rwClazz.getMethod(methodName, Map, Class, String, Closure).parameterAnnotations
 
         then:
         hasDelegatesToTargetAnnotation(polymorphicMethodWithNamesParams[1])
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        delegatesToPointsTo(clazz.getMethod(methodName, String, Closure).parameterAnnotations[1], "pk.Inner")
-        delegatesToPointsTo(clazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], "pk.Inner")
 
         where:
         methodName << ["inner", "listInner", "mapInner"]
@@ -1432,6 +1499,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def hasNoPublicMethodsNamed(String name) {
         assert !allMethodsNamed(name).findAll { it.modifiers && Opcodes.ACC_PUBLIC }
+        return true
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/56')
