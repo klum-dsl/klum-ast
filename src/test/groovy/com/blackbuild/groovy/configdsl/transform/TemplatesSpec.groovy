@@ -616,6 +616,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         then:
+        getClass("pk.Parent").$TEMPLATE.get().names == ["default", "parent"]
         create("pk.Child") {}.names == ["default", "parent"]
 
         when:

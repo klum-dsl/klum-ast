@@ -25,7 +25,10 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.jetbrains.annotations.NotNull;
 
@@ -202,14 +205,21 @@ class TemplateMethods {
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
-                                callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName()))
+                                block(
+                                        // we need
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName())))
+                                )
                         )
                 );
             else if (isMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
-                                callX(propX(varX("this"), fieldNode.getName()), "putAll", propX(varX("template"), fieldNode.getName()))
+                                block(
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "putAll", propX(varX("template"), fieldNode.getName())))
+                                )
                         )
                 );
             else
