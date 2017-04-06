@@ -206,7 +206,7 @@ class TemplateMethods {
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
                                 block(
-                                        // we need
+                                        // we need an empty collection, since template replaces the field
                                         stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
                                         stmt(callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName())))
                                 )
@@ -275,7 +275,7 @@ class TemplateMethods {
                 .delegatingClosureParam(rwClass)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
-                .callMethod("result", "manualValidation", constX(true))
+                .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
                 .addTo(annotatedClass);

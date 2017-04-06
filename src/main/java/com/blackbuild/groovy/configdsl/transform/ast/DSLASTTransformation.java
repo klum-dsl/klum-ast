@@ -237,11 +237,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
+        // TODO field should be added to rw as well
         annotatedClass.addField("$manualValidation", ACC_PRIVATE, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
         MethodBuilder.createPublicMethod("manualValidation")
-                .param(Boolean_TYPE, "validation")
-                .assignS(varX("$manualValidation"), varX("validation"))
-                .addTo(annotatedClass);
+                .param(Boolean_TYPE, "validation", constX(true))
+                .assignS(propX(varX("_model"),"$manualValidation"), varX("validation"))
+                .addTo(rwClass);
 
         MethodBuilder methodBuilder = MethodBuilder.createPublicMethod(VALIDATE_METHOD);
 

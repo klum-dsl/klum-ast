@@ -192,6 +192,10 @@ public class MethodBuilder {
         return param(new Parameter(type, name));
     }
 
+    public MethodBuilder param(ClassNode type, String name, Expression defaultValue) {
+        return param(new Parameter(type, name, defaultValue));
+    }
+
     public MethodBuilder arrayParam(ClassNode type, String name) {
         return param(new Parameter(type.makeArray(), name));
     }
