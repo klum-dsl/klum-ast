@@ -229,9 +229,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
-        // TODO field should be added to rw as well
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
+            // TODO field could be added to rw as well
             annotatedClass.addField("$manualValidation", ACC_PROTECTED | ACC_SYNTHETIC, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
             MethodBuilder.createPublicMethod("manualValidation")
                     .param(Boolean_TYPE, "validation", constX(true))
