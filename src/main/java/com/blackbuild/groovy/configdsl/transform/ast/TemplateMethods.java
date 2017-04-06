@@ -200,11 +200,18 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            if (isCollectionOrMap(fieldNode.getType()))
+            if (isCollection(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
-                                assignS(propX(varX("this"), fieldNode.getName()), callX(propX(varX("template"), fieldNode.getName()), "clone"))
+                                callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName()))
+                        )
+                );
+            else if (isMap(fieldNode.getType()))
+                templateApply.statement(
+                        ifS(
+                                propX(varX("template"), fieldNode.getName()),
+                                callX(propX(varX("this"), fieldNode.getName()), "putAll", propX(varX("template"), fieldNode.getName()))
                         )
                 );
             else
