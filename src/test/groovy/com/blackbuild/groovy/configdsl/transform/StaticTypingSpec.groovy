@@ -47,6 +47,46 @@ class StaticTypingSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "static type checking can be disabled per method"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                @groovy.transform.TypeChecked(groovy.transform.TypeCheckingMode.SKIP)
+                def shouldNotFail() {
+                    name.help()
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "static type checking can be disabled for the whole model"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            @groovy.transform.TypeChecked(groovy.transform.TypeCheckingMode.SKIP)
+            class Foo {
+                String name
+                
+                def shouldNotFail() {
+                    name.help()
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     def "def typed methods are allowed"() {
         when:
         createClass('''
