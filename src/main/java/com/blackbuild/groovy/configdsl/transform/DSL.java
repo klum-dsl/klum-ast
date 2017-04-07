@@ -31,8 +31,9 @@ import java.lang.annotation.*;
 
 /**
  DSL is used to designate a DSL/Model object, which is enriched using the AST transformation.
-
- The DSL annotation leads to the creation of a couple of useful methods.
+ The DSL annotation leads to the creation of a couple of useful DSL methods. Note that most of these methods
+ are not visible by default, as not to clutter the interface of the model. Instead they are created in a special
+ inner class that is only accessible with
 
  ## Factory and `apply` methods
 
@@ -57,6 +58,9 @@ import java.lang.annotation.*;
 
  static ConfigWithKey create(String name, Closure c = {})
  ```
+
+ __Note that the creation methods might be eventually moved to a separate factory class for a model.__
+
 
  Additionally, an `apply` method is created, which takes single closure and applies it to an existing object.
 
@@ -86,10 +90,12 @@ import java.lang.annotation.*;
 
  ## Lifecycle Methods
 
- Lifecycle methods can are methods annotated with `{@literal @PostCreate}` and `{@literal @PostApply}`. These methods will be called automatically
- after the creation of the object (**after afhe templatee has been applied**) and after the call to the apply method, respectively.
+ Lifecycle methods can are methods annotated with `{@literal @PostCreate}` and `{@literal @PostApply}`. These methods will be called
+ automatically after the creation of the object (**after the [[template|Templates]] - if set - has been applied**) and
+ after the call to the apply method, respectively.
 
- Lifecycle methods must not be `private`.
+ Lifecycle methods must not be `private` and will automatically be made protected, which means you can usually safely
+ use default groovy visibility (i.e. simply use `def myMethod()`).
 
  ## copyFrom() method
 
