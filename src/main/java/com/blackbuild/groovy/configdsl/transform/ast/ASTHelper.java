@@ -38,8 +38,7 @@ import org.codehaus.groovy.syntax.Types;
 import java.util.*;
 
 import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -167,4 +166,18 @@ public class ASTHelper {
             target.removeMethod(oldMethod);
         target.addMethod(method);
     }
+
+    static ClosureExpression toStronglyTypedClosure(ClosureExpression validationClosure, ClassNode fieldNodeType) {
+        String closureParameterName = validationClosure.isParameterSpecified() ? validationClosure.getParameters()[0].getName() : "it";
+        ClosureExpression typeValidationClosure = new ClosureExpression(params(param(fieldNodeType, closureParameterName)), validationClosure.getCode());
+        typeValidationClosure.setVariableScope(new VariableScope());
+        typeValidationClosure.copyNodeMetaData(validationClosure);
+        typeValidationClosure.setSourcePosition(validationClosure);
+        validationClosure = typeValidationClosure;
+
+        validationClosure.setVariableScope(new VariableScope());
+        validationClosure.visit(new StronglyTypingClosureParameterVisitor(closureParameterName, fieldNodeType));
+        return validationClosure;
+    }
+
 }

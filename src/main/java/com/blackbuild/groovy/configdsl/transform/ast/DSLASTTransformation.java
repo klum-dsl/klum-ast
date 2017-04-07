@@ -308,7 +308,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 "option",
                 Validation.Option.class,
                 Validation.Option.IGNORE_UNMARKED);
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
+        for (final FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
 
             ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
@@ -323,10 +323,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
                         continue;
                     else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
-                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
+                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
                     }
                 } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
+                    ClassNode fieldNodeType = fieldNode.getType();
+                    validationClosure = toStronglyTypedClosure(validationClosure, fieldNodeType);
+                    // replace closure with strongly typed one
+                    validateAnnotation.setMember("value", validationClosure);
                 }
             }
 
@@ -342,8 +346,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     @NotNull
     private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
-        ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
-        result.setVariableScope(scope.copy());
+        ClosureExpression result = new ClosureExpression(Parameter.EMPTY_ARRAY, returnS(varX("it")));
+        result.setVariableScope(new VariableScope());
         return result;
     }
 

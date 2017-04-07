@@ -279,7 +279,7 @@ class ValidationSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
-                @Validate({ it.length > 3 })
+                @Validate({ it.length() > 3 })
                 String validated
             }
         ''')
@@ -300,7 +300,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create { validated "valid"}
 
         then:
-        thrown(IllegalStateException)
+        notThrown(IllegalStateException)
     }
 
     def "validation with named Closure"() {
@@ -308,7 +308,7 @@ class ValidationSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
-                @Validate({ string -> string.length > 3 })
+                @Validate({ string -> string.length() > 3 })
                 String validated
             }
         ''')
@@ -329,7 +329,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create { validated "valid"}
 
         then:
-        thrown(IllegalStateException)
+        notThrown(IllegalStateException)
     }
 
     def "validation only allows GroovyTruth, Ignore or literal closure"() {

@@ -8,6 +8,8 @@
     [#56](https://github.com/klum-dsl/klum-ast/issues/56) 
 - Lifecycle methods are moved to the rw-class and made protected, which effectively makes them invisible when
   instantiating and using the model. This means more reduction of interface clutter.
+- Model classes are now made `TypeChecked` by default. This can be disabled for single methods or the whole
+  model using `@TypeChecked(TypeCheckingMode.SKIP)`.
 
 - Javadocs
 - renamed `makeTemplate` to `createAsTemplate` (see [#61](https://github.com/klum-dsl/klum-ast/issues/61))
