@@ -327,29 +327,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     }
                 } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
-                    if (!validationClosure.isParameterSpecified() || validationClosure.getParameters()[0].isDynamicTyped()) {
-                        ClosureExpression typeValidationClosure = new ClosureExpression(params(param(fieldNode.getType(), "it")), validationClosure.getCode());
-                        typeValidationClosure.setVariableScope(new VariableScope());
-                        typeValidationClosure.copyNodeMetaData(validationClosure);
-                        typeValidationClosure.setSourcePosition(validationClosure);
-                        validateAnnotation.setMember("value", typeValidationClosure);
-                        validationClosure = typeValidationClosure;
-                    }
+                    ClassNode fieldNodeType = fieldNode.getType();
+                    validationClosure = toStronglyTypedClosure(validationClosure, fieldNodeType);
+                    // replace closure with strongly typed one
+                    validateAnnotation.setMember("value", validationClosure);
                 }
             }
-
-            VariableScope vs = new VariableScope();
-            validationClosure.setVariableScope(vs);
-            validationClosure.visit(new CodeVisitorSupport() {
-
-                @Override
-                public void visitVariableExpression(VariableExpression expression) {
-                    if (!expression.getName().equals("it")) return;
-
-                    expression.setAccessedVariable(new VariableExpression("it", fieldNode.getType()));
-                }
-            });
-
 
             if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
                 block.addStatement(new AssertStatement(
@@ -364,6 +347,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     @NotNull
     private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
         ClosureExpression result = new ClosureExpression(Parameter.EMPTY_ARRAY, returnS(varX("it")));
+        result.setVariableScope(new VariableScope());
         return result;
     }
 
