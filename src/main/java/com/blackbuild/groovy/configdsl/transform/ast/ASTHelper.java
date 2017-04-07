@@ -180,4 +180,13 @@ public class ASTHelper {
         return validationClosure;
     }
 
+    static void moveMethodFromModelToRWClass(MethodNode method) {
+        ClassNode declaringClass = method.getDeclaringClass();
+        declaringClass.removeMethod(method);
+        InnerClassNode rwClass = declaringClass.getNodeMetaData("rwclass");
+        // if method is public, it will already have been added by delegateTo, remove it again
+        replaceMethod(rwClass, method);
+    }
+
+
 }

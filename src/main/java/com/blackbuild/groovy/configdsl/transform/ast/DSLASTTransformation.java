@@ -128,9 +128,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createCanonicalMethods();
         createValidateMethod();
         createDefaultMethods();
+        moveMutatorsToRWClass();
 
         if (annotedClassIsTopOfDSLHierarchy())
             preventOwnerOverride();
+    }
+
+    private void moveMutatorsToRWClass() {
+        new MutatorsHandler(annotatedClass).invoke();
     }
 
     private void setPropertyAccessors() {
