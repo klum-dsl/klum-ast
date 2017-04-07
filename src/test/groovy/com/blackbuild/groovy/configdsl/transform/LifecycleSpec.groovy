@@ -26,6 +26,8 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
+import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
+
 class LifecycleSpec extends AbstractDSLSpec {
 
     def "apply method must not be declared"() {
@@ -356,6 +358,45 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.caller == ["FromOverridden", "otherParent", "child" ]
+
+    }
+
+    def "lifecycle methods are moved to RW class and made protected"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                def postCreate() {
+                }
+                @PostApply
+                def postApply() {
+                }
+            }
+'''
+        when:
+        def postCreate = rwClazz.getDeclaredMethod("postCreate")
+        def postApply = rwClazz.getDeclaredMethod("postApply")
+
+        then:
+        noExceptionThrown()
+        postCreate.modifiers & ACC_PROTECTED
+        postApply.modifiers & ACC_PROTECTED
+
+        when:
+        clazz.getMethod("postCreate")
+
+        then:
+        thrown(NoSuchMethodException)
+
+        when:
+        clazz.getMethod("postApply")
+
+        then:
+        thrown(NoSuchMethodException)
+
 
     }
 

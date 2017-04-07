@@ -6,6 +6,8 @@
     
     see [Static Models](https://github.com/klum-dsl/klum-ast/wiki/Static-Models) and 
     [#56](https://github.com/klum-dsl/klum-ast/issues/56) 
+- Lifecycle methods are moved to the rw-class and made protected, which effectively makes them invisible when
+  instantiating and using the model. This means more reduction of interface clutter.
 
 - Javadocs
 - renamed `makeTemplate` to `createAsTemplate` (see [#61](https://github.com/klum-dsl/klum-ast/issues/61))

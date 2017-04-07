@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
+import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
+import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 
 /**
  * Helper class to create lifecycle methods for a given annotation
@@ -99,6 +101,8 @@ class LifecycleMethodBuilder {
             annotatedClass.removeMethod(method);
             // if method is public, it will already have been added by delegateTo, remove it again
             replaceMethod(rwClass, method);
+            int modifiers = method.getModifiers() & ~ACC_PUBLIC | ACC_PROTECTED;
+            method.setModifiers(modifiers);
         }
     }
 
