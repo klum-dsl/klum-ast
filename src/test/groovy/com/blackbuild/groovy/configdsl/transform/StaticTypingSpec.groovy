@@ -45,7 +45,6 @@ class StaticTypingSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
-
     }
 
     def "def typed methods are allowed"() {
@@ -65,6 +64,4 @@ class StaticTypingSpec extends AbstractDSLSpec {
         then:
         notThrown(MultipleCompilationErrorsException)
     }
-
-
 }
