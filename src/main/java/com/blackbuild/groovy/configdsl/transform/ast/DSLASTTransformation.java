@@ -308,7 +308,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 "option",
                 Validation.Option.class,
                 Validation.Option.IGNORE_UNMARKED);
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
+        for (final FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
 
             ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
@@ -323,12 +323,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
                         continue;
                     else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
-                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", fieldNode);
+                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
                     }
                 } else if (member instanceof ClosureExpression){
                     validationClosure = (ClosureExpression) member;
+                    if (!validationClosure.isParameterSpecified() || validationClosure.getParameters()[0].isDynamicTyped()) {
+                        ClosureExpression typeValidationClosure = new ClosureExpression(params(param(fieldNode.getType(), "it")), validationClosure.getCode());
+                        typeValidationClosure.setVariableScope(new VariableScope());
+                        typeValidationClosure.copyNodeMetaData(validationClosure);
+                        typeValidationClosure.setSourcePosition(validationClosure);
+                        validateAnnotation.setMember("value", typeValidationClosure);
+                        validationClosure = typeValidationClosure;
+                    }
                 }
             }
+
+            VariableScope vs = new VariableScope();
+            validationClosure.setVariableScope(vs);
+            validationClosure.visit(new CodeVisitorSupport() {
+
+                @Override
+                public void visitVariableExpression(VariableExpression expression) {
+                    if (!expression.getName().equals("it")) return;
+
+                    expression.setAccessedVariable(new VariableExpression("it", fieldNode.getType()));
+                }
+            });
+
 
             if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
                 block.addStatement(new AssertStatement(
@@ -342,8 +363,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     @NotNull
     private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
-        ClosureExpression result = new ClosureExpression(params(param(OBJECT_TYPE, "it")), returnS(varX("it")));
-        result.setVariableScope(scope.copy());
+        ClosureExpression result = new ClosureExpression(Parameter.EMPTY_ARRAY, returnS(varX("it")));
         return result;
     }
 
