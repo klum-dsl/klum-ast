@@ -140,7 +140,7 @@ public class ASTHelper {
         return result;
     }
 
-    static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
+    public static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }

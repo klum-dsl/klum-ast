@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
+
 @SuppressWarnings("GroovyAssignabilityCheck")
 class MutatorsSpec extends AbstractDSLSpec {
 
@@ -73,12 +75,30 @@ class MutatorsSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.create {
-            setNameCaseInsensitive("Bla")
+            nameCaseInsensitive = "Bla"
         }
 
         then:
         instance.name == 'bla'
     }
 
+    def "Non mutator methods cannot change state"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                def setNameCaseInsensitive(String name) {
+                    this.name = name.toLowerCase()
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
 
 }
