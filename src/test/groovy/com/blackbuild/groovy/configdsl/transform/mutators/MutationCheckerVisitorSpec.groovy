@@ -127,8 +127,8 @@ class MutationCheckerVisitorSpec extends Specification {
         when:
         doVisit()
 
-        then:
-        1 * errorCollector.addErrorAndContinue(_)
+        then: "two errors, since both fields yield an error"
+        2 * errorCollector.addErrorAndContinue(_)
     }
 
     def "multiassignment local and field is not allowed"() {
@@ -170,6 +170,26 @@ class MutationCheckerVisitorSpec extends Specification {
 
         then:
         0 * errorCollector.addErrorAndContinue(_)
+    }
+
+    def "invalid: chain assignments with fields"() {
+        given:
+        withClassCode '''
+            class Bla {
+              String name
+            
+              def doIt() {
+                def value = "b"
+                value = name = "blub"
+              }
+            }
+'''
+
+        when:
+        doVisit()
+
+        then:
+        1 * errorCollector.addErrorAndContinue(_)
     }
 
     def "qualified call in mutated method is no error"() {

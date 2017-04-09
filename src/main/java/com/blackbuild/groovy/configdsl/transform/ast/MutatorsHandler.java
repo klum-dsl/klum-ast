@@ -1,10 +1,12 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
+import com.blackbuild.groovy.configdsl.transform.ast.mutators.MutationCheckerVisitor;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,23 +21,30 @@ public class MutatorsHandler {
 
     public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     private final ClassNode annotatedClass;
+    private SourceUnit sourceUnit;
 
-    MutatorsHandler(ClassNode annotatedClass) {
+    MutatorsHandler(ClassNode annotatedClass, SourceUnit sourceUnit) {
         this.annotatedClass = annotatedClass;
+        this.sourceUnit = sourceUnit;
     }
 
     public void invoke() {
-        List<MethodNode> mutators = findAllMutatorMethods();
-        moveAllMethodsToRWClass(mutators);
+        checkForStateChangingNonMutatorMethods();
+        moveAllDelcaredMutatorMethodsToRWClass();
     }
 
-    private void moveAllMethodsToRWClass(List<MethodNode> mutators) {
-        for (MethodNode method : mutators) {
+    private void checkForStateChangingNonMutatorMethods() {
+        MutationCheckerVisitor visitor = new MutationCheckerVisitor(sourceUnit);
+        visitor.visitClass(annotatedClass);
+    }
+
+    private void moveAllDelcaredMutatorMethodsToRWClass() {
+        for (MethodNode method : findAllDeclaredMutatorMethods()) {
             moveMethodFromModelToRWClass(method);
         }
     }
 
-    private List<MethodNode> findAllMutatorMethods() {
+    private List<MethodNode> findAllDeclaredMutatorMethods() {
         List<MethodNode> mutators = new ArrayList<MethodNode>();
         for (MethodNode method : annotatedClass.getMethods()) {
             AnnotationNode targetAnnotation = getAnnotation(method, MUTATOR_ANNOTATION);

@@ -135,7 +135,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void moveMutatorsToRWClass() {
-        new MutatorsHandler(annotatedClass).invoke();
+        new MutatorsHandler(annotatedClass, sourceUnit).invoke();
     }
 
     private void setPropertyAccessors() {

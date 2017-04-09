@@ -1,6 +1,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -43,6 +44,8 @@ public class MutationCheckerVisitor extends ClassCodeVisitorSupport {
 
     @Override
     public void visitMethod(MethodNode node) {
+        if ((node.getModifiers() & Opcodes.ACC_SYNTHETIC) != 0)
+            return; // we do not check synthetic methods
         if (!node.getAnnotations(MUTATOR_ANNOTATION).isEmpty())
             return; // we do not check mutator methods
 
@@ -77,45 +80,52 @@ public class MutationCheckerVisitor extends ClassCodeVisitorSupport {
         if (!isMutatingBinaryOperation(expression.getOperation()))
             return;
 
-        List<String> leftMostTargets = getLeftMostTargetName(expression.getLeftExpression());
+        List<String> list = new ArrayList<String>();
+        addLeftMostTargetToList(expression.getLeftExpression(), list);
 
-        for (String target : leftMostTargets) {
+        if (expression.getRightExpression() instanceof BinaryExpression)
+            addLeftMostTargetToList(expression.getRightExpression(), list);
+
+        for (String target : list) {
             if (target.equals("this") || currentScope.isReferencedClassVariable(target))
-                addError("Assigning a value to a an element of a model is only allowed in Mutator methods: " + expression.getText(), expression);
+                addError("Assigning a value to a an element of a model is only allowed in Mutator methods: " + expression.getText()
+                        + ". Maybe you forgot to annotate " + currentMethod.toString() + " with @Mutator?", expression);
         }
     }
 
-    private List<String> getLeftMostTargetName(Expression expression) {
+    private void addLeftMostTargetToList(Expression expression, List<String> list) {
         if (expression instanceof VariableExpression)
-            return Collections.singletonList(((VariableExpression) expression).getName());
+            list.add(((VariableExpression) expression).getName());
 
-        if (expression instanceof MethodCallExpression)
-            return getLeftMostTargetName(((MethodCallExpression) expression).getObjectExpression());
+        else if (expression instanceof MethodCallExpression)
+            addLeftMostTargetToList(((MethodCallExpression) expression).getObjectExpression(), list);
 
-        if (expression instanceof PropertyExpression)
-            return getLeftMostTargetName(((PropertyExpression) expression).getObjectExpression());
+        else if (expression instanceof PropertyExpression)
+            addLeftMostTargetToList(((PropertyExpression) expression).getObjectExpression(), list);
 
-        if (expression instanceof BinaryExpression)
-            return getLeftMostTargetName(((BinaryExpression) expression).getLeftExpression());
+        else if (expression instanceof BinaryExpression)
+            addLeftMostTargetToList(((BinaryExpression) expression).getLeftExpression(), list);
 
-        if (expression instanceof CastExpression)
-            return getLeftMostTargetName(((CastExpression) expression).getExpression());
+        else if (expression instanceof CastExpression)
+            addLeftMostTargetToList(((CastExpression) expression).getExpression(), list);
 
-        if (expression instanceof TupleExpression) {
-            List<String> result = new ArrayList<String>();
-            for (Iterator<Expression> it = ((TupleExpression) expression).iterator(); it.hasNext(); ) {
-                result.addAll(getLeftMostTargetName(it.next()));
+        else if (expression instanceof TupleExpression) {
+            for (Expression value : (TupleExpression) expression) {
+                addLeftMostTargetToList(value, list);
             }
-            return result;
         }
-
-        addError("Unknown expression found as left side of BinaryExpression: " + expression.toString(), expression);
-        return Collections.emptyList();
+        else {
+            addError("Unknown expression found as left side of BinaryExpression: " + expression.toString(), expression);
+        }
     }
 
     private boolean isMutatingBinaryOperation(Token operation) {
-        if (operation.getText().endsWith("=")) return true;
-        if (operation.getText().equals("<<")) return true;
+        String operationText = operation.getText();
+
+        if (operationText.equals("==")) return false;
+        if (operationText.equals("!=")) return false;
+        if (operationText.endsWith("=")) return true;
+        if (operationText.equals("<<")) return true;
         return false;
     }
 
