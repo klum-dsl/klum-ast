@@ -30,6 +30,7 @@ import org.codehaus.groovy.control.CompilePhase
 import org.codehaus.groovy.control.ErrorCollector
 import org.codehaus.groovy.control.SourceUnit
 import spock.lang.Specification
+import spock.lang.Unroll
 
 
 /**
@@ -76,145 +77,6 @@ class MutationCheckerVisitorSpec extends Specification {
 
     }
 
-    def "qualified call in non mutated method is an error"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                this.name = "blub"
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        1 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "unqualified call in non mutated method is an error"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                name = "blub"
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        1 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "unqualified assignment to a local variable is allowed"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                def name
-                name = "blub"
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        0 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "multiassignment is also not allowed"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-              String value
-            
-              def doIt() {
-                (name, value) = ["blub", "bli"]
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then: "two errors, since both fields yield an error"
-        2 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "multiassignment local and field is not allowed"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                def value = "b"
-                (value, name) = ["blub", "bli"]
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        1 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "multiassignment to local fields is allowed"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                def value = "b"
-                def name
-                (value, name) = ["blub", "bli"]
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        0 * errorCollector.addErrorAndContinue(_)
-    }
-
-    def "invalid: chain assignments with fields"() {
-        given:
-        withClassCode '''
-            class Bla {
-              String name
-            
-              def doIt() {
-                def value = "b"
-                value = name = "blub"
-              }
-            }
-'''
-
-        when:
-        doVisit()
-
-        then:
-        1 * errorCollector.addErrorAndContinue(_)
-    }
-
     def "qualified call in mutated method is no error"() {
         given:
         withClassCode '''
@@ -234,5 +96,37 @@ class MutationCheckerVisitorSpec extends Specification {
         then:
         0 * errorCollector.addErrorAndContinue(_)
     }
+
+    @Unroll
+    def "#description"() {
+        given:
+        withClassCode """
+            class Bla {
+              ${fields.join('\n')}
+            
+              def doIt() {
+                ${local.join('\n')}
+                $statement
+              }
+            }
+"""
+
+        when:
+        doVisit()
+
+        then:
+        errors * errorCollector.addErrorAndContinue(_)
+
+        where:
+        fields              | local                     | statement                          || errors | description
+        ['String name']     | []                        | 'this.name = "blub"'               || 1      | 'qualified field access'
+        ['String name']     | []                        | 'name = "blub"'                    || 1      | 'unqualified field access'
+        ['String name']     | ['def name']              | 'name = "blub"'                    || 0      | 'local variable shades field'
+        ['String name']     | []                        | '(name, value) = ["blub", "bli"]'  || 2      | 'multi assignment'
+        ['String name']     | ['def name', 'def value'] | '(name, value) = ["blub", "bli"]'  || 0      | 'multi assignment on local variables'
+        ['String name']     | ['def value']             | 'value = name = "blub"'            || 1      | 'chain assignment'
+
+    }
+
 
 }
