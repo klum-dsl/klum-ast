@@ -174,7 +174,7 @@ class TemplateMethods {
 
 
     private void addTemplateFieldToAnnotatedClass() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_FINAL | ACC_PROTECTED, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
