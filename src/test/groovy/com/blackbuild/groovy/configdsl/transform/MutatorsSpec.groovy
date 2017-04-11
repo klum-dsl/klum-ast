@@ -101,4 +101,23 @@ class MutatorsSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "bug: def assignment is legal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                def localVarAssignmentIsLegal() {
+                    def value = "blub"
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
 }

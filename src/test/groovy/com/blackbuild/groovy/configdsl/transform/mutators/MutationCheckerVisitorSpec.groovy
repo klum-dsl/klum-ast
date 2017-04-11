@@ -122,6 +122,8 @@ class MutationCheckerVisitorSpec extends Specification {
         ['String name']     | []                        | 'this.name = "blub"'               || 1      | 'qualified field access'
         ['String name']     | []                        | 'name = "blub"'                    || 1      | 'unqualified field access'
         ['String name']     | ['def name']              | 'name = "blub"'                    || 0      | 'local variable shades field'
+        ['String name']     | []                        | 'def value = "blub"'               || 0      | 'direct local variable assignment'
+        ['String name']     | []                        | 'def name = "blub"'                || 0      | 'direct shading local variable assignment'
         ['String name']     | []                        | '(name, value) = ["blub", "bli"]'  || 2      | 'multi assignment'
         ['String name']     | ['def name', 'def value'] | '(name, value) = ["blub", "bli"]'  || 0      | 'multi assignment on local variables'
         ['String name']     | ['def value']             | 'value = name = "blub"'            || 1      | 'chain assignment'
