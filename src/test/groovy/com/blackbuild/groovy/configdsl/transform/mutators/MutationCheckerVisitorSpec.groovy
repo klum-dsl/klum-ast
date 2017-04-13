@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.mutators
 
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.MutationCheckerVisitor
+import com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerificationVisitor
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.control.CompilePhase
@@ -31,7 +31,6 @@ import org.codehaus.groovy.control.ErrorCollector
 import org.codehaus.groovy.control.SourceUnit
 import spock.lang.Specification
 import spock.lang.Unroll
-
 
 /**
  * Created by stephan on 07.04.2017.
@@ -43,12 +42,13 @@ class MutationCheckerVisitorSpec extends Specification {
     SourceUnit sourceUnit = Stub(SourceUnit) {
         getErrorCollector() >> errorCollector
     }
-    MutationCheckerVisitor visitor = new MutationCheckerVisitor(sourceUnit)
+    ModelVerificationVisitor visitor
 
     def withClassCode(String text) {
         def textWithImports = 'import com.blackbuild.groovy.configdsl.transform.*\n' + text
 
-        clazz = new AstBuilder().buildFromString(CompilePhase.CANONICALIZATION, textWithImports)[1] as ClassNode
+        clazz = new AstBuilder().buildFromString(CompilePhase.INSTRUCTION_SELECTION, textWithImports)[1] as ClassNode
+        visitor = new ModelVerificationVisitor(sourceUnit, clazz)
     }
 
     def doVisit() {
@@ -98,7 +98,7 @@ class MutationCheckerVisitorSpec extends Specification {
     }
 
     @Unroll
-    def "#description"() {
+    def "valid: #description"() {
         given:
         withClassCode """
             class Bla {
@@ -115,20 +115,48 @@ class MutationCheckerVisitorSpec extends Specification {
         doVisit()
 
         then:
-        errors * errorCollector.addErrorAndContinue(_)
+        0 * errorCollector.addErrorAndContinue(_)
 
         where:
-        fields              | local                     | statement                          || errors | description
-        ['String name']     | []                        | 'this.name = "blub"'               || 1      | 'qualified field access'
-        ['String name']     | []                        | 'name = "blub"'                    || 1      | 'unqualified field access'
-        ['String name']     | ['def name']              | 'name = "blub"'                    || 0      | 'local variable shades field'
-        ['String name']     | []                        | 'def value = "blub"'               || 0      | 'direct local variable assignment'
-        ['String name']     | []                        | 'def name = "blub"'                || 0      | 'direct shading local variable assignment'
-        ['String name']     | []                        | '(name, value) = ["blub", "bli"]'  || 2      | 'multi assignment'
-        ['String name']     | ['def name', 'def value'] | '(name, value) = ["blub", "bli"]'  || 0      | 'multi assignment on local variables'
-        ['String name']     | ['def value']             | 'value = name = "blub"'            || 1      | 'chain assignment'
+        fields              | local                     | statement                          || description
+        ['String name']     | ['def name']              | 'name = "blub"'                    || 'local variable shades field'
+        ['String name']     | []                        | 'def value = "blub"'               || 'direct local variable assignment'
+        ['String name']     | []                        | 'def name = "blub"'                || 'direct shading local variable assignment'
+        ['String name']     | ['def name', 'def value'] | '(name, value) = ["blub", "bli"]'  || 'multi assignment on local variables'
 
     }
+
+
+    @Unroll
+    def "invalid: #description"() {
+        given:
+        withClassCode """
+            class Bla {
+              ${fields.join('\n')}
+            
+              def doIt() {
+                ${local.join('\n')}
+                $statement
+              }
+            }
+"""
+
+        when:
+        doVisit()
+
+        then: "Found at least one illegal assignment"
+        (1.._) * errorCollector.addErrorAndContinue({ it.cause.message.startsWith 'Assigning a value' })
+
+        where:
+        fields              | local                     | statement                          || description
+        ['String name']     | []                        | 'this.name = "blub"'               || 'qualified field access'
+        ['String name']     | []                        | 'name = "blub"'                    || 'unqualified field access'
+        ['String name']     | []                        | '(name, value) = ["blub", "bli"]'  || 'multi assignment'
+        ['String name']     | ['def value']             | 'value = name = "blub"'            || 'chain assignment'
+
+    }
+
+
 
 
 }

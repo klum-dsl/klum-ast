@@ -90,6 +90,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     static final String VALIDATE_METHOD = "validate";
+    public static final String RW_CLASS_SUFFIX = "$_RW";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -182,7 +183,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         rwClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_RW",
+                annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE);
 

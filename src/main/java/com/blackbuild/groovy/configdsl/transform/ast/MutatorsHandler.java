@@ -24,7 +24,6 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.MutationCheckerVisitor;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -57,8 +56,8 @@ public class MutatorsHandler {
     }
 
     private void checkForStateChangingNonMutatorMethods() {
-        MutationCheckerVisitor visitor = new MutationCheckerVisitor(sourceUnit);
-        visitor.visitClass(annotatedClass);
+        //MutationCheckerVisitor visitor = new MutationCheckerVisitor(sourceUnit);
+        //visitor.visitClass(annotatedClass);
     }
 
     private void moveAllDelcaredMutatorMethodsToRWClass() {
