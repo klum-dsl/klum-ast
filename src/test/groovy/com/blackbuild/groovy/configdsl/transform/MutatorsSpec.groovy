@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import groovy.transform.NotYetImplemented
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -120,6 +121,114 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    def "Calling a mutator method from a non mutator methods is a compile error"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                @Mutator
+                def mutate() {
+                }
+                def nonmutate() {
+                  mutate()
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "Calling a non mutator method from a mutator methods is allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                @Mutator
+                def mutate() {
+                    nonmutate()
+                }
+                def nonmutate() {
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "Calling a protected non mutator method from a mutator methods is allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                @Mutator
+                def mutate() {
+                    nonmutate()
+                }
+                protected nonmutate() {
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @NotYetImplemented
+    def "Calling a protected non mutator method from a subclass mutator method"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                transient boolean called
+                
+                protected nonmutate() {
+                    called = true
+                }
+            }
+        ''')
+
+        createClass('''
+            package pk2
+
+            @DSL
+            class Bar extends pk.Foo {
+                String name
+                
+                @Mutator
+                def mutate() {
+                    nonmutate()
+                }
+            }
+        ''')
+
+        when:
+        def bar = create("pk2.Bar") {
+            mutate()
+        }
+
+       then:
+       bar.called == true
+    }
+
+    @spock.lang.Ignore
     def "for debug only"() {
         when:
         createClass('''

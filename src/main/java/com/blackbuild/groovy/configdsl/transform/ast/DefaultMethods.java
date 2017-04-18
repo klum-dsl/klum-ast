@@ -24,14 +24,16 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
+import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.replaceProperties;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static java.lang.Character.toUpperCase;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -57,15 +59,22 @@ public class DefaultMethods {
 
     public void execute() {
 
-        for (FieldNode fieldNode : transformation.annotatedClass.getFields()) {
-            AnnotationNode defaultAnnotation = getAnnotation(fieldNode, DEFAULT_ANNOTATION);
+        List<PropertyNode> newProperties = new ArrayList<PropertyNode>();
 
-            if (defaultAnnotation != null)
-                createDefaultValueFor(fieldNode, defaultAnnotation);
+        for (PropertyNode pNode : getInstanceProperties(transformation.annotatedClass)) {
+            AnnotationNode defaultAnnotation = getAnnotation(pNode.getField(), DEFAULT_ANNOTATION);
+
+            if (defaultAnnotation != null) {
+                createDefaultValueFor(pNode, defaultAnnotation);
+                newProperties.add(pNode);
+            }
         }
+
+        replaceProperties(transformation.annotatedClass, newProperties);
+
     }
 
-    private void createDefaultValueFor(FieldNode fieldNode, AnnotationNode defaultAnnotation) {
+    private void createDefaultValueFor(PropertyNode pNode, AnnotationNode defaultAnnotation) {
         assertOnlyOneMemberOfAnnotationIsSet(defaultAnnotation);
 
         String fieldMember = getMemberStringValue(defaultAnnotation, "value");
@@ -74,61 +83,55 @@ public class DefaultMethods {
             fieldMember = getMemberStringValue(defaultAnnotation, "field");
 
         if (fieldMember != null) {
-            createFieldMethod(fieldNode, fieldMember);
+            createFieldMethod(pNode, fieldMember);
             return;
         }
 
         ClosureExpression code = getCodeClosureFor(defaultAnnotation);
         if (code != null) {
-            createClosureMethod(fieldNode, code);
+            createClosureMethod(pNode, code);
             return;
         }
 
         String delegateMember = getMemberStringValue(defaultAnnotation, "delegate");
         if (delegateMember != null) {
-            createDelegateMethod(fieldNode, delegateMember);
+            createDelegateMethod(pNode, delegateMember);
+            return;
         }
     }
 
-    private void createDelegateMethod(FieldNode fieldNode, String delegate) {
-        String ownGetter = getGetterName(fieldNode.getName());
+    private void createDelegateMethod(PropertyNode pNode, String delegate) {
         String delegateGetter = getGetterName(delegate);
-
-        createPublicMethod(ownGetter)
-                .returning(fieldNode.getType())
-                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fieldNode.getName()), true))))
-                .addTo(transformation.annotatedClass);
+        pNode.setGetterBlock(stmt(
+                asExpression(pNode.getType(), new ElvisOperatorExpression(
+                        varX(pNode.getName()),
+                        new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(pNode.getName()), true))
+                )
+        ));
     }
 
-    private void createClosureMethod(FieldNode fieldNode, ClosureExpression code) {
-        String ownGetter = getGetterName(fieldNode.getName());
+    private void createClosureMethod(PropertyNode propertyNode, ClosureExpression code) {
+        String ownGetter = getGetterName(propertyNode.getName());
 
-        createPublicMethod(ownGetter)
-                .returning(fieldNode.getType())
-                .declareVariable(CLOSURE_VAR_NAME, code)
-                .assignS(propX(varX(CLOSURE_VAR_NAME), "delegate"), varX("this"))
-                .assignS(
+        propertyNode.setGetterBlock(block(
+                declS(varX(CLOSURE_VAR_NAME), code),
+                assignS(propX(varX(CLOSURE_VAR_NAME), "delegate"), varX("this")),
+                assignS(
                         propX(varX(CLOSURE_VAR_NAME), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                )
-                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callX(varX(CLOSURE_VAR_NAME), "call"))))
-                .addTo(transformation.annotatedClass);
+                ),
+                stmt(asExpression(propertyNode.getType(), new ElvisOperatorExpression(varX(propertyNode.getName()), callX(varX(CLOSURE_VAR_NAME), "call"))))
+        ));
     }
 
-    private void createFieldMethod(FieldNode fieldNode, String targetField) {
-        String ownGetter = getGetterName(fieldNode.getName());
+    private void createFieldMethod(PropertyNode propertyNode, String targetField) {
         String fieldGetter = getGetterName(targetField);
-
-        createPublicMethod(ownGetter)
-                .returning(fieldNode.getType())
-                .statement(asExpression(fieldNode.getType(), new ElvisOperatorExpression(varX(fieldNode.getName()), callThisX(fieldGetter))))
-                .addTo(transformation.annotatedClass);
+        propertyNode.setGetterBlock(stmt(asExpression(propertyNode.getType(), new ElvisOperatorExpression(varX(propertyNode.getName()), callThisX(fieldGetter)))));
     }
 
     private String getGetterName(String property) {
-        return "get" + toUpperCase(property.toCharArray()[0]) + property.substring(1);
+        return "get" + Verifier.capitalize(property);
     }
-
 
     private void assertOnlyOneMemberOfAnnotationIsSet(AnnotationNode annotationNode) {
         int numberOfMembers = annotationNode.getMembers().size();

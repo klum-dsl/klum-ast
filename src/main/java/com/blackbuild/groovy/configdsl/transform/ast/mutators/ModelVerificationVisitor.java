@@ -51,10 +51,23 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     public void visitBinaryExpression(BinaryExpression expression) {
         super.visitBinaryExpression(expression);
 
+        checkForIllegalAssignment(expression);
+    }
+
+    private void checkForIllegalAssignment(BinaryExpression expression) {
         if (typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX))
             return; // don't validate RW class methods
 
         MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
+
+        if (currentMethod == null)
+            return; // code not inside a method (validation closure?)
+
+        if (currentMethod.getNodeMetaData(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY) != null)
+            return;
+
+        if ("<init>".equals(currentMethod.getName()))
+            return;
 
         if (!currentMethod.isPublic())
             return; // check only public methods for now
@@ -68,7 +81,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (ofType(expression.getOperation().getType(), ASSIGNMENT_OPERATOR)) {
             for (VariableExpression target : getLeftMostTargets(expression.getLeftExpression())) {
                 if (target.isThisExpression() || target.getAccessedVariable() instanceof FieldNode)
-                    addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", expression.getText(), currentMethod.toString()), expression);
+                    addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", expression.getText(), currentMethod.getText()), expression);
             }
         }
     }

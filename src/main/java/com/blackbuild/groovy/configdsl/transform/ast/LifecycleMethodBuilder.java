@@ -70,7 +70,7 @@ class LifecycleMethodBuilder {
     }
 
     private void addLifecycleMethodsForClass(ClassNode level) {
-        InnerClassNode rwLevel = level.getNodeMetaData("rwclass");
+        InnerClassNode rwLevel = level.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
         List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(level);
         // lifecycle methods form parent classes have already been removed, so
         // we take the lifecycle methods from RW class as well

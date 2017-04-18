@@ -24,17 +24,23 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.moveMethodFromModelToRWClass;
+import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
+import static groovyjarjarasm.asm.Opcodes.ACC_NATIVE;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
 
 /**
  * Helper class to move mutators to RW class.
@@ -43,24 +49,20 @@ public class MutatorsHandler {
 
     public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     private final ClassNode annotatedClass;
-    private SourceUnit sourceUnit;
+    private final InnerClassNode rwClass;
 
-    MutatorsHandler(ClassNode annotatedClass, SourceUnit sourceUnit) {
+    MutatorsHandler(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
-        this.sourceUnit = sourceUnit;
+        this.rwClass = annotatedClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
     }
 
     public void invoke() {
-        checkForStateChangingNonMutatorMethods();
-        moveAllDelcaredMutatorMethodsToRWClass();
+        moveAllDeclaredMutatorMethodsToRWClass();
+        //createSyntheticDelegatorsForAllProtectedMethodsOfModel();
     }
 
-    private void checkForStateChangingNonMutatorMethods() {
-        //MutationCheckerVisitor visitor = new MutationCheckerVisitor(sourceUnit);
-        //visitor.visitClass(annotatedClass);
-    }
 
-    private void moveAllDelcaredMutatorMethodsToRWClass() {
+    private void moveAllDeclaredMutatorMethodsToRWClass() {
         for (MethodNode method : findAllDeclaredMutatorMethods()) {
             moveMethodFromModelToRWClass(method);
         }
