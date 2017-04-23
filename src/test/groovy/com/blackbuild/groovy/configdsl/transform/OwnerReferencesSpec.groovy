@@ -340,7 +340,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
     def "owner will not be overridden"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -353,17 +353,28 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Foo owner
             }
         ''')
-        def bar = create("pk.Bar") {}
-        bar.owner = instance
+
+        def aBar = create("pk.Bar") {}
 
         when:
-        bar.owner = clazz.create {}
+        instance = clazz.create {
+            bar(aBar)
+        }
 
         then:
-        bar.owner == instance
+        aBar.owner.is(instance)
+
+
+        when:
+        def anotherInstance = clazz.create {
+            bar(aBar)
+        }
+
+        then: "bar.owner is not replaced"
+        aBar.owner.is(instance)
     }
 
-    def "owner is not overriden in Maps"() {
+    def "owner is not overridden in Maps"() {
         given:
         createInstance('''
             package pk

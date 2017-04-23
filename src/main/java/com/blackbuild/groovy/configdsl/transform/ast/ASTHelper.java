@@ -140,7 +140,7 @@ public class ASTHelper {
         return result;
     }
 
-    static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
+    public static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
@@ -180,4 +180,31 @@ public class ASTHelper {
         return validationClosure;
     }
 
+    static void moveMethodFromModelToRWClass(MethodNode method) {
+        ClassNode declaringClass = method.getDeclaringClass();
+        declaringClass.removeMethod(method);
+        InnerClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        // if method is public, it will already have been added by delegateTo, remove it again
+        replaceMethod(rwClass, method);
+    }
+
+
+    static void addProperty(ClassNode cNode, PropertyNode pNode) {
+        final FieldNode fn = pNode.getField();
+        cNode.getFields().remove(fn);
+        PropertyNode addedNode = cNode.addProperty(pNode.getName(), pNode.getModifiers() | Opcodes.ACC_FINAL, pNode.getType(),
+                pNode.getInitialExpression(), pNode.getGetterBlock(), pNode.getSetterBlock());
+        // addProperty actually creates a new FieldNode, which we do not want (does not contain annotations)
+        addedNode.setField(fn);
+        final FieldNode newfn = cNode.getField(fn.getName());
+        cNode.getFields().remove(newfn);
+        cNode.addField(fn);
+    }
+
+    static void replaceProperties(ClassNode annotatedClass, List<PropertyNode> newNodes) {
+        for (PropertyNode pNode : newNodes) {
+            annotatedClass.getProperties().remove(pNode);
+            addProperty(annotatedClass, pNode);
+        }
+    }
 }

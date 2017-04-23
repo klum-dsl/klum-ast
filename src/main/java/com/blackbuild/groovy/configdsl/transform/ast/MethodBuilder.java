@@ -36,9 +36,12 @@ import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.classgen.Verifier;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -62,6 +65,7 @@ public class MethodBuilder {
     private BlockStatement body = new BlockStatement();
     private boolean optional;
     private ASTNode sourceLinkTo;
+    private Map<Object, Object> metadata = new HashMap<Object, Object>();
 
     public MethodBuilder(String name) {
         this.name = name;
@@ -110,6 +114,11 @@ public class MethodBuilder {
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
+
+        for (Map.Entry<Object, Object> entry : metadata.entrySet()) {
+            method.putNodeMetaData(entry.getKey(), entry.getValue());
+        }
+
 
         return method;
     }
@@ -200,6 +209,24 @@ public class MethodBuilder {
         return param(new Parameter(type.makeArray(), name));
     }
 
+    public MethodBuilder cloneParamsFrom(MethodNode methods) {
+        Parameter[] sourceParams = GeneralUtils.cloneParams(methods.getParameters());
+        for (Parameter parameter : sourceParams) {
+            param(parameter);
+        }
+        return this;
+    }
+
+    public MethodBuilder withMetadata(Object key, Object value) {
+        metadata.put(key, value);
+        return this;
+    }
+
+    public MethodBuilder withoutMutatorCheck() {
+        metadata.put(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY, Boolean.TRUE);
+        return this;
+    }
+
     public MethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
         VariableScope scope = new VariableScope();
         ClosureExpression emptyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
@@ -258,7 +285,7 @@ public class MethodBuilder {
 
     public MethodBuilder optionalAssignModelToPropertyS(String target, String targetProperty) {
         if (targetProperty != null)
-            return callMethod(varX(target), "setProperty", args(constX(targetProperty), varX("_model")));
+            return callMethod(varX(target), "$set" + Verifier.capitalize(targetProperty), varX("_model"));
         return this;
     }
 

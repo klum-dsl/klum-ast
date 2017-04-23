@@ -56,19 +56,19 @@ class TransformSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                String value
+                String field
                 int another
             }
         ''')
 
         when:
         instance = clazz.create() {}
-        instance.apply(value: 'bla') {
+        instance.apply(field: 'bla') {
             another 12
         }
 
         then:
-        instance.value == 'bla'
+        instance.field == 'bla'
         instance.another == 12
     }
 

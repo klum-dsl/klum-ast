@@ -40,6 +40,8 @@ dependencies {
     compile "org.codehaus.groovy:groovy-all:${groovyVersion}"
     compile "com.intellij:openapi:7.0.3"
     testCompile("org.spockframework:spock-core:${spockVersion}")
+    testRuntime "cglib:cglib-nodep:3.1"          // allows mocking of classes (in addition to interfaces)
+    testRuntime "org.objenesis:objenesis:2.1"    // allows mocking of classes without default constructor (together with CGLIB)
 }
 
 task wrapper(type: Wrapper) {

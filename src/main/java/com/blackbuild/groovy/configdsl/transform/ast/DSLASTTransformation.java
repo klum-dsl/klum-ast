@@ -35,6 +35,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
@@ -90,6 +91,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     static final String VALIDATE_METHOD = "validate";
+    public static final String RW_CLASS_SUFFIX = "$_RW";
+    public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
+    public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -114,9 +118,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createKeyConstructor();
 
         createRWClass();
+
         setPropertyAccessors();
 
-        delegateToOwner();
+        delegateFromRwToModel();
 
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
@@ -128,48 +133,79 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createCanonicalMethods();
         createValidateMethod();
         createDefaultMethods();
+        moveMutatorsToRWClass();
 
-        if (annotedClassIsTopOfDSLHierarchy())
+        if (annotatedClassHoldsOwner())
             preventOwnerOverride();
     }
 
-    private void setPropertyAccessors() {
-        for (FieldNode fieldNode : annotatedClass.getFields())
-            createPropertyAccesorsForSingleField(fieldNode);
+    private void moveMutatorsToRWClass() {
+        new MutatorsHandler(annotatedClass).invoke();
     }
 
-    private void createPropertyAccesorsForSingleField(FieldNode fieldNode) {
-        if (shouldFieldBeIgnored(fieldNode))
-            return;
-
-        String capitalizedFieldName = Verifier.capitalize(fieldNode.getName());
-        String getterName = "get" + capitalizedFieldName;
-        String setterName = "set" + capitalizedFieldName;
-
-        if (isCollectionOrMap(fieldNode.getType())) {
-            MethodBuilder.createPublicMethod(getterName)
-                    .returning(fieldNode.getType())
-                    .doReturn(callX(propX(varX("this"), fieldNode.getName()), "asImmutable"))
-                    .addTo(annotatedClass);
-
-            MethodBuilder.createProtectedMethod(getterName + "$rw")
-                    .mod(ACC_SYNTHETIC)
-                    .returning(fieldNode.getType())
-                    .doReturn(propX(varX("this"), fieldNode.getName()))
-                    .addTo(annotatedClass);
-
-            MethodBuilder.createPublicMethod(getterName)
-                    .returning(fieldNode.getType())
-                    .doReturn(propX(varX("_model"), fieldNode.getName() + "$rw"))
-                    .addTo(rwClass);
+    private void setPropertyAccessors() {
+        List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
+        for (PropertyNode pNode : GeneralUtils.getInstanceProperties(annotatedClass)) {
+            adjustPropertyAccessorsForSingleField(pNode, newNodes);
         }
 
-        MethodBuilder.createProtectedMethod(setterName)
+        if (annotatedClassHoldsOwner()) {
+            PropertyNode ownerProperty = annotatedClass.getProperty(ownerField.getName());
+            ownerProperty.setSetterBlock(null);
+            newNodes.add(ownerProperty);
+        }
+
+        replaceProperties(annotatedClass, newNodes);
+
+    }
+
+
+    private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
+        if (shouldFieldBeIgnored(pNode.getField()))
+            return;
+
+        String capitalizedFieldName = Verifier.capitalize(pNode.getName());
+        String getterName = "get" + capitalizedFieldName;
+        String setterName = "set" + capitalizedFieldName;
+        String rwGetterName;
+        String rwSetterName = setterName + "$rw";
+
+        if (isCollectionOrMap(pNode.getType())) {
+            rwGetterName = getterName + "$rw";
+
+            pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
+
+            MethodBuilder.createProtectedMethod(rwGetterName)
+                    .mod(ACC_SYNTHETIC)
+                    .returning(pNode.getType())
+                    .doReturn(attrX(varX("this"), constX(pNode.getName())))
+                    .addTo(annotatedClass);
+
+        } else {
+            rwGetterName = "get" + capitalizedFieldName;
+            pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
+        }
+
+        MethodBuilder.createPublicMethod(getterName)
+                .returning(pNode.getType())
+                .doReturn(callX(varX("_model"), rwGetterName))
+                .addTo(rwClass);
+
+        MethodBuilder.createProtectedMethod(rwSetterName)
                 .mod(ACC_SYNTHETIC)
                 .returning(ClassHelper.VOID_TYPE)
-                .param(fieldNode.getType(), "value")
-                .statement(assignS(propX(varX("this"), fieldNode.getName()), varX("value")))
+                .param(pNode.getType(), "value")
+                .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
                 .addTo(annotatedClass);
+
+        MethodBuilder.createPublicMethod(setterName)
+                .returning(ClassHelper.VOID_TYPE)
+                .param(pNode.getType(), "value")
+                .statement(callX(varX("_model"), rwSetterName, args("value")))
+                .addTo(rwClass);
+
+        pNode.setSetterBlock(null);
+        newNodes.add(pNode);
     }
 
     private void createRWClass() {
@@ -177,7 +213,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         rwClass = new InnerClassNode(
                 annotatedClass,
-                annotatedClass.getName() + "$_RW",
+                annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE);
 
@@ -200,10 +236,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
-        annotatedClass.setNodeMetaData("rwclass", rwClass);
+        annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
     }
 
-    private void delegateToOwner() {
+    private void delegateFromRwToModel() {
         AnnotationNode delegateAnnotation = new AnnotationNode(ClassHelper.make(Delegate.class));
         delegateAnnotation.setMember("parameterAnnotations", constX(true));
         delegateAnnotation.setMember("methodAnnotations", constX(true));
@@ -213,7 +249,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        return dslParent != null ? (ClassNode) dslParent.getNodeMetaData("rwclass") : null;
+        return dslParent != null ? (ClassNode) dslParent.getNodeMetaData(RWCLASS_METADATA_KEY) : null;
     }
 
     private void makeClassSerializable() {
@@ -351,7 +387,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
-    private boolean annotedClassIsTopOfDSLHierarchy() {
+    private boolean annotatedClassHoldsOwner() {
         return ownerField != null && annotatedClass.getDeclaredField(ownerField.getName()) != null;
     }
 
@@ -404,15 +440,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
 
     private void preventOwnerOverride() {
-
-        MethodBuilder.createPublicMethod("set" + Verifier.capitalize(ownerField.getName()))
+        // public since we owner and owned can be in different packages
+        MethodBuilder.createPublicMethod("$set" + Verifier.capitalize(ownerField.getName()))
                 .param(OBJECT_TYPE, "value")
+                .mod(ACC_SYNTHETIC | ACC_FINAL)
                 .statement(
                         ifS(
                                 andX(
                                         isInstanceOfX(varX("value"), ownerField.getType()),
-                                        notX(propX(varX("this"), ownerField.getName()))),
-                                assignX(propX(varX("this"), ownerField.getName()), varX("value"))
+                                        // access the field directly to prevent StackOverflow
+                                        notX(attrX(varX("this"), constX(ownerField.getName())))),
+                                assignX(attrX(varX("this"), constX(ownerField.getName())), varX("value"))
                         )
                 )
                 .addTo(annotatedClass);

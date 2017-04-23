@@ -43,6 +43,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         expect:
+        def clazz = getClass("pk.Bar")
         create("pk.Bar") {}.class.name == "pk.Bar"
 
         when:
@@ -574,6 +575,11 @@ class InheritanceSpec extends AbstractDSLSpec {
             package pk
 
             @DSL
+            class Container {
+                Foo inner
+            }
+
+            @DSL
             class Foo {
                 @Owner Object container
             }
@@ -585,7 +591,9 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        create("pk.Bar") {}.container = null
+        create("pk.Container") {
+            inner {}
+        }
 
         then:
         notThrown(StackOverflowError)
@@ -606,8 +614,8 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def left = getClass("pk.Bar").newInstance(name: "a")
-        def right = getClass("pk.Bar").newInstance(name: "b")
+        def left = getClass("pk.Bar").create(name: "a")
+        def right = getClass("pk.Bar").create(name: "b")
 
         then:
         !left.equals(right)

@@ -70,7 +70,7 @@ class LifecycleMethodBuilder {
     }
 
     private void addLifecycleMethodsForClass(ClassNode level) {
-        InnerClassNode rwLevel = level.getNodeMetaData("rwclass");
+        InnerClassNode rwLevel = level.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
         List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(level);
         // lifecycle methods form parent classes have already been removed, so
         // we take the lifecycle methods from RW class as well
@@ -82,9 +82,9 @@ class LifecycleMethodBuilder {
         List<MethodNode> lifecycleMethods = new ArrayList<MethodNode>();
 
         for (MethodNode method : level.getMethods()) {
-            AnnotationNode postApplyAnnotation = getAnnotation(method, annotationType);
+            AnnotationNode targetAnnotation = getAnnotation(method, annotationType);
 
-            if (postApplyAnnotation == null)
+            if (targetAnnotation == null)
                 continue;
 
             assertMethodIsParameterless(method, sourceUnit);
@@ -98,9 +98,7 @@ class LifecycleMethodBuilder {
     private void moveMethodsFromModelToRWClass() {
         List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(annotatedClass);
         for (MethodNode method : lifecycleMethods) {
-            annotatedClass.removeMethod(method);
-            // if method is public, it will already have been added by delegateTo, remove it again
-            replaceMethod(rwClass, method);
+            moveMethodFromModelToRWClass(method);
             int modifiers = method.getModifiers() & ~ACC_PUBLIC | ACC_PROTECTED;
             method.setModifiers(modifiers);
         }
