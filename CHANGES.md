@@ -6,6 +6,9 @@
     
     see [Static Models](https://github.com/klum-dsl/klum-ast/wiki/Static-Models) and 
     [#56](https://github.com/klum-dsl/klum-ast/issues/56) 
+  - Additional methods that change state must/should now be marked with @Mutator, which effectively moves them 
+    to the RW class. This is currently partially validated. An example usage for this are pseudo setters (i.e. 
+    methods named as setters, but relying on other methods)
 - Lifecycle methods are moved to the rw-class and made protected, which effectively makes them invisible when
   instantiating and using the model. This means more reduction of interface clutter.
 - Model classes are now made `TypeChecked` by default. This can be disabled for single methods or the whole

@@ -205,6 +205,7 @@ class MutatorsSpec extends AbstractDSLSpec {
             }
         ''')
 
+        // two separate calls mean there is no access to Foo's metadata from Bar
         createClass('''
             package pk2
 
