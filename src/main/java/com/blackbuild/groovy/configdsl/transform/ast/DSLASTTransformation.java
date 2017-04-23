@@ -94,6 +94,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
+    public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -976,7 +977,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
+                .statement(ifS(
+                        notX(callX(classX(DELEGATING_SCRIPT), "isAssignableFrom", args("configType"))),
+                        returnS(callX(callX(varX("configType"), "newInstance"), "run"))
+                ))
+                .doReturn(callX(annotatedClass, "createFrom", callX(varX("configType"), "newInstance")))
                 .addTo(annotatedClass);
 
         if (keyField != null) {
@@ -993,7 +998,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
                     .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", args(ctorX(rwClass, varX("result"))))
+                    .callMethod("script", "setDelegate", propX(varX("result"), "$rw"))
+                    .callMethod("script", "run")
+                    .doReturn("result")
+                    .addTo(annotatedClass);
+
+            MethodBuilder.createPublicMethod("createFrom") // Delegating Script
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .param(DELEGATING_SCRIPT, "script")
+                    .declareVariable("simpleName", callX(propX(varX("configType"), "class"), "simpleName"))
+                    .declareVariable("result", callX(annotatedClass, "create", args("simpleName")))
+                    .callMethod("script", "setDelegate", propX(varX("result"), "$rw"))
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);
@@ -1018,7 +1034,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("loader", "binding", "config")))
                     .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", args(ctorX(rwClass, varX("result"))))
+                    .callMethod("script", "setDelegate", propX(varX("result"), "$rw"))
+                    .callMethod("script", "run")
+                    .doReturn("result")
+                    .addTo(annotatedClass);
+
+            MethodBuilder.createPublicMethod("createFrom") // Delegating Script
+                    .returning(newClass(annotatedClass))
+                    .mod(Opcodes.ACC_STATIC)
+                    .param(newClass(DELEGATING_SCRIPT), "script")
+                    .declareVariable("result", callX(annotatedClass, "create"))
+                    .callMethod("script", "setDelegate", propX(varX("result"), "$rw"))
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);
