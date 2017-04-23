@@ -27,7 +27,7 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
 
-class ConvenienceFactories extends AbstractDSLSpec {
+class ConvenienceFactoriesSpec extends AbstractDSLSpec {
 
     @Rule TemporaryFolder temp = new TemporaryFolder()
 
@@ -52,6 +52,31 @@ class ConvenienceFactories extends AbstractDSLSpec {
 
         when:
         instance = clazz.createFromScript(scriptClass)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
+    def "convenience factory from delegating script class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+            }
+        ''')
+
+
+        def scriptClass = createSecondaryClass('''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            value "bla"
+        ''')
+
+        when:
+        instance = clazz.createFrom(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
