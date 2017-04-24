@@ -27,10 +27,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.control.SourceUnit;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
@@ -79,6 +76,9 @@ class LifecycleMethodBuilder {
     }
 
     private List<MethodNode> getAllValidLifecycleMethods(ClassNode level) {
+        if (level == null)
+            return Collections.emptyList();
+
         List<MethodNode> lifecycleMethods = new ArrayList<MethodNode>();
 
         for (MethodNode method : level.getMethods()) {
