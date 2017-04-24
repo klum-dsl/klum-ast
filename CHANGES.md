@@ -1,3 +1,8 @@
+## 0.98.1
+- Fix accidential setting of properties to final
+- additional convenience factory for delegating scripts
+
+
 ## 0.98.0
 - Breaking changes:
   - Models are now read only. This means all mutation methods are constrained to the content of the `apply()` / `create()`
