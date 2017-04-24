@@ -192,7 +192,7 @@ public class ASTHelper {
     static void addProperty(ClassNode cNode, PropertyNode pNode) {
         final FieldNode fn = pNode.getField();
         cNode.getFields().remove(fn);
-        PropertyNode addedNode = cNode.addProperty(pNode.getName(), pNode.getModifiers() | Opcodes.ACC_FINAL, pNode.getType(),
+        PropertyNode addedNode = cNode.addProperty(pNode.getName(), pNode.getModifiers(), pNode.getType(),
                 pNode.getInitialExpression(), pNode.getGetterBlock(), pNode.getSetterBlock());
         // addProperty actually creates a new FieldNode, which we do not want (does not contain annotations)
         addedNode.setField(fn);
