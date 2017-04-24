@@ -152,6 +152,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (annotatedClassHoldsOwner()) {
             PropertyNode ownerProperty = annotatedClass.getProperty(ownerField.getName());
             ownerProperty.setSetterBlock(null);
+            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerField.getName()))));
+
             newNodes.add(ownerProperty);
         }
 

@@ -28,6 +28,7 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.control.messages.WarningMessage;
@@ -37,6 +38,7 @@ import org.codehaus.groovy.syntax.Types;
 
 import java.util.*;
 
+import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
@@ -85,7 +87,7 @@ public class ASTHelper {
     }
 
     static boolean isAbstract(ClassNode classNode) {
-        return (classNode.getModifiers() & Opcodes.ACC_ABSTRACT) != 0;
+        return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
     }
 
     static ClosureExpression createClosureExpression(Parameter[] parameters, Statement... code) {
@@ -189,22 +191,77 @@ public class ASTHelper {
     }
 
 
-    static void addProperty(ClassNode cNode, PropertyNode pNode) {
+    static void addPropertyAsFieldWithAccessors(ClassNode cNode, PropertyNode pNode) {
         final FieldNode fn = pNode.getField();
         cNode.getFields().remove(fn);
-        PropertyNode addedNode = cNode.addProperty(pNode.getName(), pNode.getModifiers(), pNode.getType(),
-                pNode.getInitialExpression(), pNode.getGetterBlock(), pNode.getSetterBlock());
-        // addProperty actually creates a new FieldNode, which we do not want (does not contain annotations)
-        addedNode.setField(fn);
-        final FieldNode newfn = cNode.getField(fn.getName());
-        cNode.getFields().remove(newfn);
         cNode.addField(fn);
+
+        Statement getterBlock = pNode.getGetterBlock();
+        Statement setterBlock = pNode.getSetterBlock();
+
+        int modifiers = pNode.getModifiers();
+        String capitalizedName = Verifier.capitalize(pNode.getName());
+
+        if (getterBlock != null) {
+            MethodNode getter =
+                    new MethodNode("get" + capitalizedName, modifiers, pNode.getType(), Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, getterBlock);
+            getter.setSynthetic(true);
+            addPropertyMethod(cNode, getter);
+
+            if (ClassHelper.boolean_TYPE == pNode.getType() || ClassHelper.Boolean_TYPE == pNode.getType()) {
+                String secondGetterName = "is" + capitalizedName;
+                MethodNode secondGetter =
+                        new MethodNode(secondGetterName, modifiers, pNode.getType(), Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, getterBlock);
+                secondGetter.setSynthetic(true);
+                addPropertyMethod(cNode, secondGetter);
+            }
+        }
+        if (setterBlock != null) {
+            Parameter[] setterParameterTypes = {new Parameter(pNode.getType(), "value")};
+            MethodNode setter =
+                    new MethodNode("set" + capitalizedName, modifiers, ClassHelper.VOID_TYPE, setterParameterTypes, ClassNode.EMPTY_ARRAY, setterBlock);
+            setter.setSynthetic(true);
+            addPropertyMethod(cNode, setter);
+        }
     }
+
+    // from Verifier
+    static void addPropertyMethod(ClassNode classNode, MethodNode method) {
+        classNode.addMethod(method);
+        // GROOVY-4415 / GROOVY-4645: check that there's no abstract method which corresponds to this one
+        List<MethodNode> abstractMethods = classNode.getAbstractMethods();
+        if (abstractMethods==null) return;
+        String methodName = method.getName();
+        Parameter[] parameters = method.getParameters();
+        ClassNode methodReturnType = method.getReturnType();
+        for (MethodNode node : abstractMethods) {
+            if (!node.getDeclaringClass().equals(classNode)) continue;
+            if (node.getName().equals(methodName)
+                    && node.getParameters().length==parameters.length) {
+                if (parameters.length==1) {
+                    // setter
+                    ClassNode abstractMethodParameterType = node.getParameters()[0].getType();
+                    ClassNode methodParameterType = parameters[0].getType();
+                    if (!methodParameterType.isDerivedFrom(abstractMethodParameterType) && !methodParameterType.implementsInterface(abstractMethodParameterType)) {
+                        continue;
+                    }
+                }
+                ClassNode nodeReturnType = node.getReturnType();
+                if (!methodReturnType.isDerivedFrom(nodeReturnType) && !methodReturnType.implementsInterface(nodeReturnType)) {
+                    continue;
+                }
+                // matching method, remove abstract status and use the same body
+                node.setModifiers(node.getModifiers() ^ ACC_ABSTRACT);
+                node.setCode(method.getCode());
+            }
+        }
+    }
+
 
     static void replaceProperties(ClassNode annotatedClass, List<PropertyNode> newNodes) {
         for (PropertyNode pNode : newNodes) {
             annotatedClass.getProperties().remove(pNode);
-            addProperty(annotatedClass, pNode);
+            addPropertyAsFieldWithAccessors(annotatedClass, pNode);
         }
     }
 }
