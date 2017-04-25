@@ -28,10 +28,12 @@ import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
+import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +44,10 @@ import static org.codehaus.groovy.syntax.Types.*;
  * Created by stephan on 12.04.2017.
  */
 public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
+
     public ModelVerificationVisitor(SourceUnit unit, ClassNode node) {
         super(unit, node);
+        extension.addHandler(new MutationDetectingTypeCheckingExtension(this));
     }
 
 
@@ -119,4 +123,42 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         return list;
     }
 
+    @Override // enhance visibility, since we need to use this method from Extension
+    public List<MethodNode> findMethod(ClassNode receiver, String name, ClassNode... args) {
+        return super.findMethod(receiver, name, args);
+    }
+
+    @Override
+    protected void typeCheckAssignment(BinaryExpression assignmentExpression, Expression leftExpression, ClassNode leftExpressionType, Expression rightExpression, ClassNode inferredRightExpressionType) {
+
+        if (isInMutatorMethod()) {
+            if (leftExpression instanceof PropertyExpression) {
+                PropertyExpression leftPropertyExpression = (PropertyExpression) leftExpression;
+                if (!"this".equals(leftPropertyExpression.getObjectExpression().getText())) {
+                    ClassNode targetType = getType(leftPropertyExpression.getObjectExpression());
+                    if (isDslType(targetType)) {
+                        leftPropertyExpression.setObjectExpression(new AttributeExpression(leftPropertyExpression.getObjectExpression(), new ConstantExpression("$rw")));
+                        leftPropertyExpression.removeNodeMetaData(StaticTypesMarker.READONLY_PROPERTY);
+                        visitBinaryExpression(assignmentExpression);
+                        return;
+                    }
+                }
+            }
+        }
+        super.typeCheckAssignment(assignmentExpression, leftExpression, leftExpressionType, rightExpression, inferredRightExpressionType);
+    }
+
+    protected boolean isInMutatorMethod() {
+        MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
+        if (currentMethod == null)
+            return false;
+        return currentMethod.getAnnotations(MutatorsHandler.MUTATOR_ANNOTATION).size()
+                    + currentMethod.getAnnotations(DSLASTTransformation.POSTAPPLY_ANNOTATION).size()
+                    + currentMethod.getAnnotations(DSLASTTransformation.POSTCREATE_ANNOTATION).size()
+                    > 0;
+    }
+
+    private boolean isDslType(ClassNode leftExpressionType) {
+        return !leftExpressionType.getAnnotations(DSLASTTransformation.DSL_CONFIG_ANNOTATION).isEmpty();
+    }
 }

@@ -287,7 +287,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.apply { caller == ["Foo", "Bar" ] }
+        instance.apply { caller == ["Foo", "Bar"] }
 
     }
 
@@ -357,7 +357,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        instance.caller == ["FromOverridden", "otherParent", "child" ]
+        instance.caller == ["FromOverridden", "otherParent", "child"]
 
     }
 
@@ -400,5 +400,65 @@ class LifecycleSpec extends AbstractDSLSpec {
 
     }
 
+    def "PostApply methods can call mutator methods of child"() {
+        given:
+        createClass('''
+            package pk
 
+            @DSL
+            class Container {
+                Foo foo
+
+                @PostApply
+                def markAsCalled() {
+                    foo?.name "bla"
+                }
+            }
+            
+            @DSL
+            class Foo {
+                String name
+            
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo()
+        }
+
+        then:
+        instance.foo.name == "bla"
+    }
+
+    def "PostApply methods can set fields of child"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+
+                @PostApply
+                def markAsCalled() {
+                    foo?.name = "bla"
+                }
+            }
+            
+            @DSL
+            class Foo {
+                String name
+            
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foo()
+        }
+
+        then:
+        instance.foo.name == "bla"
+    }
 }

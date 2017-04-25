@@ -23,17 +23,49 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
+import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
+import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
-import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
+
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by stephan on 12.04.2017.
  */
 public class MutationDetectingTypeCheckingExtension extends AbstractTypeCheckingExtension {
 
-    public MutationDetectingTypeCheckingExtension(StaticTypeCheckingVisitor typeCheckingVisitor) {
+    private Deque<MethodNode> methodNodes = new LinkedList<MethodNode>();
+    private ModelVerificationVisitor verificationVisitor;
+
+    public MutationDetectingTypeCheckingExtension(ModelVerificationVisitor typeCheckingVisitor) {
         super(typeCheckingVisitor);
+        verificationVisitor = typeCheckingVisitor;
     }
 
+    @Override
+    public List<MethodNode> handleMissingMethod(ClassNode receiver, String name, ArgumentListExpression argumentList, ClassNode[] argumentTypes, MethodCall call) {
+
+        if (!verificationVisitor.isInMutatorMethod())
+            return Collections.emptyList();
+
+        InnerClassNode rwClass = receiver.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+
+        List<MethodNode> rwMethods = verificationVisitor.findMethod(rwClass, name, argumentTypes);
+
+        if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
+            MethodCallExpression methodCall = (MethodCallExpression) call;
+            Expression objectExpression = methodCall.getObjectExpression();
+            methodCall.setObjectExpression(new PropertyExpression(objectExpression, "$rw"));
+        }
+
+        return rwMethods;
+    }
 
 }

@@ -70,26 +70,26 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
-    static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
-    static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
-    static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
-    static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
-    static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
-    static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
-    static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
-    static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
-    static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
-    static final ClassNode KEY_ANNOTATION = make(Key.class);
-    static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
+    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
+    public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
+    public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
+    public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
+    public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    public static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
+    public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
+    public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
+    public static final ClassNode KEY_ANNOTATION = make(Key.class);
+    public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
+    public static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
-    static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
-    static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
+    public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
+    public static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
+    public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
 
-    static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
-    static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    static final String VALIDATE_METHOD = "validate";
+    public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
+    public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
+    public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
