@@ -137,7 +137,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
                 if (!"this".equals(leftPropertyExpression.getObjectExpression().getText())) {
                     ClassNode targetType = getType(leftPropertyExpression.getObjectExpression());
                     if (isDslType(targetType)) {
-                        leftPropertyExpression.setObjectExpression(new AttributeExpression(leftPropertyExpression.getObjectExpression(), new ConstantExpression("$rw")));
+                        leftPropertyExpression.setObjectExpression(new AttributeExpression(leftPropertyExpression.getObjectExpression(), new ConstantExpression("$rw"), true));
                         leftPropertyExpression.removeNodeMetaData(StaticTypesMarker.READONLY_PROPERTY);
                         visitBinaryExpression(assignmentExpression);
                         return;

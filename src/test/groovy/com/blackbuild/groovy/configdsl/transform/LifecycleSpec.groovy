@@ -460,5 +460,12 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.foo.name == "bla"
+
+        when:
+        instance = clazz.create {
+        }
+
+        then:
+        notThrown(NullPointerException)
     }
 }

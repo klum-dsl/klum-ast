@@ -62,7 +62,7 @@ public class MutationDetectingTypeCheckingExtension extends AbstractTypeChecking
         if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
             MethodCallExpression methodCall = (MethodCallExpression) call;
             Expression objectExpression = methodCall.getObjectExpression();
-            methodCall.setObjectExpression(new PropertyExpression(objectExpression, "$rw"));
+            methodCall.setObjectExpression(new PropertyExpression(objectExpression, new ConstantExpression("$rw"), true));
         }
 
         return rwMethods;
