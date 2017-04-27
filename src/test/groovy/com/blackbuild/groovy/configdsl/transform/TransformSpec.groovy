@@ -1362,8 +1362,8 @@ class TransformSpec extends AbstractDSLSpec {
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], "pk.Inner")
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner._RW')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner._RW')
 
         where:
         methodName << ["inner", "listInner"]
@@ -1422,8 +1422,8 @@ class TransformSpec extends AbstractDSLSpec {
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], "pk.Inner")
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], "pk.Inner")
+        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner._RW')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner._RW')
 
         where:
         methodName << ["inner", "listInner", "mapInner"]
