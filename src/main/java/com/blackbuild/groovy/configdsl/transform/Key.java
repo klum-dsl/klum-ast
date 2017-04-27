@@ -28,29 +28,27 @@ import java.lang.annotation.*;
 /**
  * Designates a field as the key of the containing class. The main usage of this is that this field is automatically used
  * when an instance of the class is put into a map.
- * <p>In a hierarchy of model objects, the ancestor model defines whether the hierarchy is keyed or not.</p>
  *
- * <p>it is illegal</p>
- * <ul>
- *     <li>to put this annotation on a field of any other class than the ancestor of a hierarchy</li>
- *     <li>to put this annotation on more than one field in a class.</li>
- * </ul>
+ * In a hierarchy of model objects, the ancestor model defines whether the hierarchy is keyed or not.
  *
- * <p>Marking a field as key has the following consequences:</p>
+ * it is illegal
  *
- * <ul>
- *     <li>a constructor is created with a single argument of the type of the key field, the default constructor is
- *     removed</li>
- *     <li>the {@code create} method and all adder / setter methods creating an instance of this type take an additional
- *     argument of the annotated type</li>
- *     <li>for this field, no dsl setter methods are created</li>
- * </ul>
+ * * to put this annotation on a field of any other class than the ancestor of a hierarchy
+ * * to put this annotation on more than one field in a class.
  *
- * <pre><code>
+ * Marking a field as key has the following consequences:
+ *
+ * * a constructor is created with a single argument of the type of the key field, the default constructor is
+ *     removed
+ * * the {@code create} method and all adder / setter methods creating an instance of this type take an additional
+ *     argument of the annotated type
+ * * for this field, no dsl setter methods are created
+ *
+ * ```groovy
  * given:
- * &#064;DSL
+ * {@literal @DSL}
  * class Foo {
- *   &#064;Key String name
+ *   {@literal @Key} String name
  * }
  *
  * when:
@@ -58,19 +56,20 @@ import java.lang.annotation.*;
  *
  * then:
  * instance.name == "Dieter"
- * </code></pre>
+ * ```
  *
- * <h2>Example with map</h2>
- * <pre><code>
+ * Example with map
+ * ----------------
+ * ```groovy
  *  given:
- *  &#064;DSL
+ * {@literal @DSL}
  *  class Foo {
  *    {@literal Map<String, Bar> bars}
  *  }
  *
- *  &#064;DSL
+ * {@literal @DSL}
  *  class Bar {
- *    &#064;Key String name
+ *    {@literal @Key} String name
  *    String url
  *  }
  *
@@ -86,7 +85,7 @@ import java.lang.annotation.*;
  *  instance.bars.Dieter.url == "1"
  *  instance.bars.Klaus.url == "2"
  *
- * </code></pre>
+ * ```
  *
  * Currently only fields of type String are allowed to be keys.
  */
