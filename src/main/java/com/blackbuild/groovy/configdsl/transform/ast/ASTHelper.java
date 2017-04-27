@@ -186,8 +186,20 @@ public class ASTHelper {
         ClassNode declaringClass = method.getDeclaringClass();
         declaringClass.removeMethod(method);
         InnerClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
-        // if method is public, it will already have been added by delegateTo, remove it again
+        // if method is public, it will already have been added by delegateTo, replace it again
         replaceMethod(rwClass, method);
+    }
+
+    static ClassNode getRwClassOf(ClassNode classNode) {
+        ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+
+        if (result == null) {
+            // parent has not yet been compiled. We create an unresolved parent class
+            result = ClassHelper.makeWithoutCaching(classNode.getName() + "$_RW");
+            classNode.getCompileUnit().addClassNodeToCompile(result, classNode.getModule().getContext());
+        }
+
+        return result;
     }
 
 

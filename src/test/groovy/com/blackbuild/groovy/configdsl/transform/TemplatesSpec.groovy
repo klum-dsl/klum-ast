@@ -236,6 +236,42 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.names == ["c", "d"]
     }
 
+    def "BUG applying a template with a List leads to UnsupportedOperationException"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                @Key String key
+                List<String> names
+            }
+            @DSL
+            class Child extends Parent {
+                String value = "default"
+            }
+            @DSL
+            class GrandChild extends Child {
+                String value2
+            }
+        ''')
+        def childClass = getClass("pk.Child")
+        def grandChildClass = getClass("pk.GrandChild")
+
+        and:
+        clazz.createTemplate {
+            name "bli"
+        }
+        childClass.createTemplate {}
+
+        when:
+        instance = grandChildClass.create("Bla") {}
+
+        then:
+        notThrown(UnsupportedOperationException)
+        "bli" in instance.names
+    }
+
     def "template for parent class affects child instances"() {
         given:
         createClass('''

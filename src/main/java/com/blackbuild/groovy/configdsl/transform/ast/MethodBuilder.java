@@ -149,7 +149,9 @@ public class MethodBuilder {
     }
 
     public MethodBuilder namedParams(String name) {
-        return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)), name);
+        GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
+        wildcard.setWildcard(true);
+        return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name);
     }
 
     public MethodBuilder applyNamedParams(String parameterMapName) {

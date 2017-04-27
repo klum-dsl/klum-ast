@@ -251,7 +251,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        return dslParent != null ? (ClassNode) dslParent.getNodeMetaData(RWCLASS_METADATA_KEY) : null;
+        if (dslParent == null)
+            return null;
+
+        return ASTHelper.getRwClassOf(dslParent);
     }
 
     private void makeClassSerializable() {
