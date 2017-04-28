@@ -56,4 +56,38 @@ class Authorization {
         then:
         noExceptionThrown()
     }
+
+    def "Can be debugged2"() {
+        when:
+        createClass('''
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements;
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}
+        ''')
+
+        then:
+        noExceptionThrown()
+    }
 }
