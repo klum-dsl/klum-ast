@@ -35,6 +35,7 @@ import org.codehaus.groovy.control.messages.WarningMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
+import org.codehaus.groovy.transform.AbstractASTTransformation;
 
 import java.util.*;
 
@@ -47,6 +48,10 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
  */
 public class ASTHelper {
 
+    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
+    private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
+    private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
+    private static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
     public static ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
     public static ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
 
@@ -144,6 +149,12 @@ public class ASTHelper {
 
     public static void addCompileError(SourceUnit sourceUnit, String msg, ASTNode node) {
         SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
+        sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
+    }
+
+    public static void addCompileError(String msg, FieldNode node) {
+        SyntaxException se = new SyntaxException(msg, node.getLineNumber(), node.getColumnNumber());
+        SourceUnit sourceUnit = node.getOwner().getModule().getContext();
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
 
@@ -275,5 +286,174 @@ public class ASTHelper {
             annotatedClass.getProperties().remove(pNode);
             addPropertyAsFieldWithAccessors(annotatedClass, pNode);
         }
+    }
+
+    static List<ClassNode> findAllKnownSubclassesOf(ClassNode type) {
+        List<ClassNode> result = new ArrayList<ClassNode>();
+
+        for (ClassNode classInCU : (List<ClassNode>) type.getCompileUnit().getClasses())
+            if (classInCU.isDerivedFrom(type))
+                result.add(classInCU);
+        return result;
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    static GenericsType[] getGenericsTypes(FieldNode fieldNode) {
+        GenericsType[] types = fieldNode.getType().getGenericsTypes();
+
+        if (types == null)
+            ASTHelper.addCompileError(fieldNode.getOwner().getModule().getContext(), "Lists and Maps need to be assigned an explicit Generic Type", fieldNode);
+        return types;
+    }
+
+    static ClassNode getElementType(FieldNode fieldNode) {
+        if (isMap(fieldNode.getType()))
+            return getGenericsTypes(fieldNode)[1].getType();
+        else if (isCollection(fieldNode.getType()))
+            return getGenericsTypes(fieldNode)[0].getType();
+        else return null;
+    }
+
+    static String getElementNameForCollectionField(FieldNode fieldNode) {
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSLASTTransformation.DSL_FIELD_ANNOTATION);
+
+        String result = getNullSafeMemberStringValue(fieldAnnotation, "members", null);
+
+        if (result != null && result.length() > 0) return result;
+
+        String collectionMethodName = fieldNode.getName();
+
+        if (collectionMethodName.endsWith("s"))
+            return collectionMethodName.substring(0, collectionMethodName.length() - 1);
+
+        return collectionMethodName;
+    }
+
+    private static String getNullSafeMemberStringValue(AnnotationNode fieldAnnotation, String value, String name) {
+        return fieldAnnotation == null ? name : AbstractASTTransformation.getMemberStringValue(fieldAnnotation, value, name);
+    }
+
+    static String getQualifiedName(FieldNode node) {
+        return node.getOwner().getName() + "." + node.getName();
+    }
+
+    static FieldNode getKeyField(ClassNode target) {
+        FieldNode result = target.getNodeMetaData(KEY_FIELD_METADATA_KEY);
+
+        if (result == NO_SUCH_FIELD)
+            return null;
+
+        if (result != null)
+            return result;
+
+        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.KEY_ANNOTATION);
+
+        if (annotatedFields.isEmpty()) {
+            target.setNodeMetaData(KEY_FIELD_METADATA_KEY, NO_SUCH_FIELD);
+            return null;
+        }
+
+        if (annotatedFields.size() > 1) {
+            ASTHelper.addCompileError(
+                    String.format(
+                            "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
+                    annotatedFields.get(0)
+            );
+            return null;
+        }
+
+        result = annotatedFields.get(0);
+
+        if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
+            ASTHelper.addCompileError(
+                    String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
+                    result
+            );
+            return null;
+        }
+
+        ClassNode ancestor = ASTHelper.getHighestAncestorDSLObject(target);
+
+        if (target.equals(ancestor)) {
+            target.setNodeMetaData(KEY_FIELD_METADATA_KEY, result);
+            return result;
+        }
+
+        FieldNode firstKey = getKeyField(ancestor);
+
+        if (firstKey == null) {
+            ASTHelper.addCompileError(
+                    String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
+                    result
+            );
+            return null;
+        }
+
+        target.setNodeMetaData(KEY_FIELD_METADATA_KEY, result);
+        return result;
+    }
+
+    static ClassNode getKeyType(ClassNode target) {
+        FieldNode key = getKeyField(target);
+        return key != null ? key.getType() : null;
+    }
+
+    static List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
+        List<FieldNode> result = new ArrayList<FieldNode>();
+
+        for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(target)) {
+            result.addAll(getAnnotatedFieldOfClass(level, annotation));
+        }
+
+        return result;
+    }
+
+    private static List<FieldNode> getAnnotatedFieldOfClass(ClassNode target, ClassNode annotation) {
+        List<FieldNode> result = new ArrayList<FieldNode>();
+
+        for (FieldNode fieldNode : target.getFields())
+            if (!fieldNode.getAnnotations(annotation).isEmpty())
+                result.add(fieldNode);
+
+        return result;
+    }
+
+    static FieldNode getOwnerField(ClassNode target) {
+        FieldNode result = target.getNodeMetaData(OWNER_FIELD_METADATA_KEY);
+
+        if (result == NO_SUCH_FIELD)
+            return null;
+
+        if (result != null)
+            return result;
+
+        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.OWNER_ANNOTATION);
+
+        if (annotatedFields.isEmpty()) {
+            target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, NO_SUCH_FIELD);
+            return null;
+        }
+
+        if (annotatedFields.size() > 1) {
+            ASTHelper.addCompileError(
+                    String.format(
+                            "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
+                    annotatedFields.get(0)
+            );
+            return null;
+        }
+
+        result = annotatedFields.get(0);
+        target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, result);
+        return result;
+    }
+
+    static String getOwnerFieldName(ClassNode target) {
+        FieldNode ownerFieldOfElement = getOwnerField(target);
+        return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
     }
 }

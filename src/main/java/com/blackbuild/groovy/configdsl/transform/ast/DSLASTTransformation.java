@@ -70,7 +70,6 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
-    public static final ClassNode[] NO_EXCEPTIONS = new ClassNode[0];
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
@@ -92,6 +91,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
+    public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     ClassNode annotatedClass;
@@ -556,25 +556,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    private String getElementNameForCollectionField(FieldNode fieldNode) {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        String result = getNullSafeMemberStringValue(fieldAnnotation, "members", null);
-
-        if (result != null && result.length() > 0) return result;
-
-        String collectionMethodName = fieldNode.getName();
-
-        if (collectionMethodName.endsWith("s"))
-            return collectionMethodName.substring(0, collectionMethodName.length() - 1);
-
-        return collectionMethodName;
-    }
-
-    private String getNullSafeMemberStringValue(AnnotationNode fieldAnnotation, String value, String name) {
-        return fieldAnnotation == null ? name : getMemberStringValue(fieldAnnotation, value, name);
-    }
-
     private void createCollectionMethods(FieldNode fieldNode) {
         initializeField(fieldNode, asExpression(fieldNode.getType(), new ListExpression()));
 
@@ -625,16 +606,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
         String fieldRWName = fieldName + "$rw";
 
-        createOptionalPublicMethod(fieldName)
-                .linkToField(fieldNode)
-                .closureParam("closure")
-                .assignS(propX(varX("closure"), "delegate"), varX("this"))
-                .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                )
-                .callMethod("closure", "call")
-                .addTo(rwClass);
+        createAlternativesClassFor(fieldNode);
 
         if (!ASTHelper.isAbstract(elementType)) {
             createOptionalPublicMethod(methodName)
@@ -710,15 +682,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return fieldKey != null ? args("key") : NO_ARGUMENTS;
     }
 
-    @SuppressWarnings("ConstantConditions")
-    private GenericsType[] getGenericsTypes(FieldNode fieldNode) {
-        GenericsType[] types = fieldNode.getType().getGenericsTypes();
-
-        if (types == null)
-            ASTHelper.addCompileError(sourceUnit, "Lists and Maps need to be assigned an explicit Generic Type", fieldNode);
-        return types;
-    }
-
     private void createMapMethods(FieldNode fieldNode) {
         if (fieldNode.getType().equals(ASTHelper.SORTED_MAP_TYPE)) {
             initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
@@ -763,17 +726,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        createOptionalPublicMethod(fieldNode.getName())
-                .linkToField(fieldNode)
-                .closureParam("closure")
-                .assignS(propX(varX("closure"), "delegate"), varX("this"))
-                .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
-                )
-                .callMethod("closure", "call")
-                .addTo(rwClass);
-
+        createAlternativesClassFor(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
         String targetOwner = getOwnerFieldName(elementType);
@@ -842,6 +795,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod(propX(varX("_model"), fieldRWName), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
                 .optionalAssignModelToPropertyS("value", targetOwner)
                 .addTo(rwClass);
+
+
+    }
+
+    private void createAlternativesClassFor(FieldNode fieldNode) {
+        new AlternativesClassBuilder(fieldNode).invoke();
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
@@ -1097,99 +1056,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(make(URL.class), "src")
                 .doReturn(callX(annotatedClass, "createFrom", args("src")))
                 .addTo(annotatedClass);
-    }
-
-    private String getQualifiedName(FieldNode node) {
-        return node.getOwner().getName() + "." + node.getName();
-    }
-
-    private FieldNode getKeyField(ClassNode target) {
-
-        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, KEY_ANNOTATION);
-
-        if (annotatedFields.isEmpty()) return null;
-
-        if (annotatedFields.size() > 1) {
-            ASTHelper.addCompileError(
-                    sourceUnit, String.format(
-                            "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
-                            getQualifiedName(annotatedFields.get(0)),
-                            getQualifiedName(annotatedFields.get(1))),
-                    annotatedFields.get(0)
-            );
-            return null;
-        }
-
-        FieldNode result = annotatedFields.get(0);
-
-        if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
-            ASTHelper.addCompileError(
-                    sourceUnit, String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
-                    result
-            );
-            return null;
-        }
-
-        ClassNode ancestor = ASTHelper.getHighestAncestorDSLObject(target);
-
-        if (target.equals(ancestor)) return result;
-
-        FieldNode firstKey = getKeyField(ancestor);
-
-        if (firstKey == null) {
-            ASTHelper.addCompileError(
-                    sourceUnit, String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
-                    result
-            );
-            return null;
-        }
-
-        return result;
-    }
-
-    private List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
-
-        for (ClassNode level : ASTHelper.getHierarchyOfDSLObjectAncestors(target)) {
-            result.addAll(getAnnotatedFieldOfClass(level, annotation));
-        }
-
-        return result;
-    }
-
-    private List<FieldNode> getAnnotatedFieldOfClass(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
-
-        for (FieldNode fieldNode : target.getFields())
-            if (!fieldNode.getAnnotations(annotation).isEmpty())
-                result.add(fieldNode);
-
-        return result;
-    }
-
-    private FieldNode getOwnerField(ClassNode target) {
-
-        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, OWNER_ANNOTATION);
-
-        if (annotatedFields.isEmpty()) return null;
-
-        if (annotatedFields.size() > 1) {
-            ASTHelper.addCompileError(
-                    sourceUnit, String.format(
-                            "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
-                            getQualifiedName(annotatedFields.get(0)),
-                            getQualifiedName(annotatedFields.get(1))),
-                    annotatedFields.get(0)
-            );
-            return null;
-        }
-
-        return annotatedFields.get(0);
-    }
-
-    private String getOwnerFieldName(ClassNode target) {
-        FieldNode ownerFieldOfElement = getOwnerField(target);
-        return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
     }
 
     @SuppressWarnings("unchecked")

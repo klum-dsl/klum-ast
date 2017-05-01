@@ -320,7 +320,7 @@ class TemplateMethods {
             templateClass.addConstructor(
                     0,
                     params(param(keyField.getType(), "key")),
-                    DSLASTTransformation.NO_EXCEPTIONS,
+                    NO_EXCEPTIONS,
                     block(
                             ctorSuperS(args(constX(null)))
                     )
