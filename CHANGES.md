@@ -1,3 +1,6 @@
+## 0.99
+- Alternatives are back
+
 ## 0.98.1
 - Fix accidential setting of properties to final
 - additional convenience factory for delegating scripts
