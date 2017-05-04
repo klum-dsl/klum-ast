@@ -177,13 +177,60 @@ abstract class Element {
     @Key String name
 }
 
-@DSL(shortName = "sub")
+@DSL(shortName = "subby")
 class SubElement extends Element {
 
     String role
 }
 
 @DSL(shortName = "child")
+class ChildElement extends Element {
+
+    String game
+}''')
+
+        when:
+        instance = clazz.create {
+            name "test"
+
+            elements {
+                subby("blub")
+                child("bli")
+            }
+        }
+
+        then:
+        instance.elements.size() == 2
+        instance.elements.blub.class.simpleName == "SubElement"
+        instance.elements.bli.class.simpleName == "ChildElement"
+    }
+
+    def "common suffixes can be stripped from child alternatives"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL(stripSuffix = "Element")
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
 class ChildElement extends Element {
 
     String game

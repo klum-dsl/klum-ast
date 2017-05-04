@@ -32,6 +32,9 @@ import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.jetbrains.annotations.Nullable;
 
 import java.beans.Introspector;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
@@ -131,7 +134,25 @@ class AlternativesClassBuilder {
         if (shortName != null)
             return shortName;
 
-        return Introspector.decapitalize(subclass.getNameWithoutPackage());
+        String stringSuffix = findStripSuffixForHierarchy(subclass);
+        String subclassName = subclass.getNameWithoutPackage();
+
+        if (stringSuffix != null && subclassName.endsWith(stringSuffix))
+            subclassName = subclassName.substring(0, subclassName.length() - stringSuffix.length());
+
+        return Introspector.decapitalize(subclassName);
+    }
+
+    private String findStripSuffixForHierarchy(ClassNode subclass) {
+        Deque<ClassNode> superSchemaClasses = getHierarchyOfDSLObjectAncestors(subclass.getSuperClass());
+
+        String stringSuffix = null;
+        for (Iterator<ClassNode> it = superSchemaClasses.descendingIterator(); it.hasNext() && stringSuffix == null; ) {
+            ClassNode ancestor = it.next();
+            AnnotationNode ancestorAnnotation = ancestor.getAnnotations(DSL_CONFIG_ANNOTATION).get(0);
+            stringSuffix = getMemberStringValue(ancestorAnnotation, "stripSuffix");
+        }
+        return stringSuffix;
     }
 
     private void createInnerClass() {

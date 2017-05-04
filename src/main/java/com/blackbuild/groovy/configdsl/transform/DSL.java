@@ -427,4 +427,9 @@ public @interface DSL {
      * the class, with the first character converted to lowercase.
      */
     String shortName() default "";
+
+    /**
+     * When present, the given suffix is stripped from child class names to determine the short name.
+     */
+    String stripSuffix() default "";
 }
