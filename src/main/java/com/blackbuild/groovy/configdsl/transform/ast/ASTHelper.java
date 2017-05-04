@@ -158,6 +158,12 @@ public class ASTHelper {
         sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
     }
 
+    public static void addCompileError(String msg, FieldNode node, ASTNode sourcePosition) {
+        SyntaxException se = new SyntaxException(msg, sourcePosition.getLineNumber(), sourcePosition.getColumnNumber());
+        SourceUnit sourceUnit = node.getOwner().getModule().getContext();
+        sourceUnit.getErrorCollector().addFatalError(new SyntaxErrorMessage(se, sourceUnit));
+    }
+
     static void addCompileWarning(SourceUnit sourceUnit, String msg, ASTNode node) {
         Token token = new Token(Types.UNKNOWN, node.getText(), node.getLineNumber(), node.getColumnNumber());
         sourceUnit.getErrorCollector().addWarning(WarningMessage.LIKELY_ERRORS, msg, token, sourceUnit);

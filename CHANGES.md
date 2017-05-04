@@ -1,8 +1,9 @@
 ## 0.99
-- Alternatives are back
+- Alternatives are back. There are three ways to customize the name of alternatives, see 
+  [Alternatives Syntax](https://github.com/klum-dsl/klum-ast/wiki/Alternatives-Syntax) for details.
 
 ## 0.98.1
-- Fix accidential setting of properties to final
+- Fix accidental setting of properties to final
 - additional convenience factory for delegating scripts
 
 

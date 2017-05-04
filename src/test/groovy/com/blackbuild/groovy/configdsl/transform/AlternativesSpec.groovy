@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
+
 class AlternativesSpec extends AbstractDSLSpec {
 
     def setup() {
@@ -250,6 +252,87 @@ class ChildElement extends Element {
         instance.elements.size() == 2
         instance.elements.blub.class.simpleName == "SubElement"
         instance.elements.bli.class.simpleName == "ChildElement"
+    }
+
+    def "alternative names can also be configured for a given field"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+    String name
+    @Field(alternatives = {[subby: SubElement, childy: ChildElement ]})
+    Map<String, Element> elements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}''')
+
+        when:
+        instance = clazz.create {
+            name "test"
+
+            elements {
+                subby("blub")
+                childy("bli")
+            }
+        }
+
+        then:
+        instance.elements.size() == 2
+        instance.elements.blub.class.simpleName == "SubElement"
+        instance.elements.bli.class.simpleName == "ChildElement"
+    }
+    def "illegal alternatives"() {
+        when:
+        createClass("""
+package pk
+@DSL
+class Config {
+    String name
+    @Field(alternatives = $value)
+    Map<String, Element> elements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+""")
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        where:
+        value               || scenario
+        'String'            || 'no closure'
+        '{ it -> true}'     || 'closure has parameters'
+        '{[b: "b"]}'        || 'value is no Class'
+        '{[("b"): "b"]}'    || 'key is no literal string'
+        '{[b: String]}'     || 'value is no subclass of type'
     }
 
     def "no alternative methods are created for abstract classes"() {

@@ -23,27 +23,24 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.VariableExpression;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
-import org.codehaus.groovy.transform.AbstractASTTransformation;
-import org.jetbrains.annotations.Nullable;
+import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.ExpressionStatement;
+import org.codehaus.groovy.ast.stmt.Statement;
 
 import java.beans.Introspector;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
@@ -58,6 +55,7 @@ class AlternativesClassBuilder {
     private final ClassNode elementType;
     private final ClassNode rwClass;
     private final String memberName;
+    private final Map<ClassNode, String> alternatives;
 
     public AlternativesClassBuilder(FieldNode fieldNode) {
         this.fieldNode = fieldNode;
@@ -66,7 +64,90 @@ class AlternativesClassBuilder {
         elementType = getElementType(fieldNode);
         keyType = getKeyType(elementType);
         memberName = getElementNameForCollectionField(fieldNode);
+        alternatives = readAlternativesAnnotation();
     }
+
+    private Map<ClassNode, String> readAlternativesAnnotation() {
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        if (fieldAnnotation == null)
+            return Collections.emptyMap();
+
+        ClosureExpression alternativesClosure = getAlternativesClosureFor(fieldAnnotation);
+
+        if (alternativesClosure == null)
+            return Collections.emptyMap();
+
+        assertClosureHasNoParameters(alternativesClosure);
+        MapExpression map = getLiteralMapExpressionFromClosure(alternativesClosure);
+
+        if (map == null) {
+            addCompileError("Illegal value for 'alternative', must contain a closure with a literal map definition.", fieldNode, fieldAnnotation);
+            return Collections.emptyMap();
+        }
+
+        Map<ClassNode, String> result = new HashMap<ClassNode, String>();
+
+        for (MapEntryExpression entry : map.getMapEntryExpressions()) {
+            String methodName = getKeyString(entry);
+            ClassNode classNode = getClassNodeValue(entry);
+            if (classNode == null) continue;
+
+            if (!classNode.isDerivedFrom(elementType))
+                addCompileError(String.format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
+
+            if (result.containsKey(classNode))
+                addCompileError("Values for 'alternatives' must be unique.", fieldNode, entry);
+
+            result.put(classNode, methodName);
+        }
+
+        return result;
+    }
+
+    private String getKeyString(MapEntryExpression entryExpression) {
+        Expression result = entryExpression.getKeyExpression();
+        if (result instanceof ConstantExpression && result.getType().equals(STRING_TYPE))
+            return result.getText();
+
+        addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
+        return null;
+    }
+
+    private ClassNode getClassNodeValue(MapEntryExpression entryExpression) {
+        Expression result = entryExpression.getValueExpression();
+        if (result instanceof ClassExpression)
+            return result.getType();
+
+        addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
+        return null;
+    }
+
+    private MapExpression getLiteralMapExpressionFromClosure(ClosureExpression closure) {
+        BlockStatement code = (BlockStatement) closure.getCode();
+        if (code.getStatements().size() != 1) return null;
+        Statement statement = code.getStatements().get(0);
+        if (!(statement instanceof ExpressionStatement)) return null;
+        Expression expression = ((ExpressionStatement) statement).getExpression();
+        if (!(expression instanceof MapExpression)) return null;
+        return (MapExpression) expression;
+    }
+
+    private void assertClosureHasNoParameters(ClosureExpression alternativesClosure) {
+        if (alternativesClosure.getParameters().length != 0)
+            addCompileError( "no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
+    }
+
+    private ClosureExpression getAlternativesClosureFor(AnnotationNode fieldAnnotation) {
+        Expression codeExpression = fieldAnnotation.getMember("alternatives");
+        if (codeExpression == null)
+            return null;
+        if (codeExpression instanceof ClosureExpression)
+            return (ClosureExpression) codeExpression;
+
+        addCompileError("Illegal value for 'alternatives', must contain a closure.", fieldNode, fieldAnnotation);
+        return null;
+    }
+
 
     public void invoke() {
         createInnerClass();
@@ -127,9 +208,13 @@ class AlternativesClassBuilder {
     }
 
     private String getShortNameFor(ClassNode subclass) {
-        AnnotationNode annotationNode = subclass.getAnnotations(DSL_CONFIG_ANNOTATION).get(0);
+        String shortName = alternatives.get(subclass);
 
-        String shortName = getMemberStringValue(annotationNode, "shortName");
+        if (shortName != null)
+            return shortName;
+
+        AnnotationNode annotationNode = getAnnotation(subclass, DSL_CONFIG_ANNOTATION);
+        shortName = getMemberStringValue(annotationNode, "shortName");
 
         if (shortName != null)
             return shortName;
