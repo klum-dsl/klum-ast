@@ -422,4 +422,9 @@ import java.lang.annotation.*;
 @GroovyASTTransformationClass(classes={DSLASTTransformation.class, ModelVerifierTransformation.class})
 @Documented
 public @interface DSL {
+    /**
+     * The short name of the class to be used in collections. If not set, defaults to the name of
+     * the class, with the first character converted to lowercase.
+     */
+    String shortName() default "";
 }

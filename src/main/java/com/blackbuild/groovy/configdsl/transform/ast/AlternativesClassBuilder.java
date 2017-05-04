@@ -24,22 +24,25 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.VariableExpression;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.transform.AbstractASTTransformation;
+import org.jetbrains.annotations.Nullable;
 
 import java.beans.Introspector;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
 /**
  * Created by steph on 29.04.2017.
@@ -92,7 +95,7 @@ class AlternativesClassBuilder {
         if ((subclass.getModifiers() & ACC_ABSTRACT) != 0)
             return;
 
-        String methodName = Introspector.decapitalize(subclass.getNameWithoutPackage());
+        String methodName = getShortNameFor(subclass);
 
         createPublicMethod(methodName)
                 .linkToField(fieldNode)
@@ -118,6 +121,17 @@ class AlternativesClassBuilder {
                                 : args(classX(subclass), varX("closure"))
                 ))
                 .addTo(collectionFactory);
+    }
+
+    private String getShortNameFor(ClassNode subclass) {
+        AnnotationNode annotationNode = subclass.getAnnotations(DSL_CONFIG_ANNOTATION).get(0);
+
+        String shortName = getMemberStringValue(annotationNode, "shortName");
+
+        if (shortName != null)
+            return shortName;
+
+        return Introspector.decapitalize(subclass.getNameWithoutPackage());
     }
 
     private void createInnerClass() {

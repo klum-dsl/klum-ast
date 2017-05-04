@@ -26,6 +26,11 @@ package com.blackbuild.groovy.configdsl.transform
 class AlternativesSpec extends AbstractDSLSpec {
 
     def setup() {
+    }
+
+
+    def "Alternatives class is created"() {
+        given:
         createClass('''
 package pk
 @DSL
@@ -54,10 +59,8 @@ class ChildElement extends Element {
 
     String game
 }''')
-    }
 
 
-    def "Alternatives class is created"() {
         when:
         getClass('pk.Config$_elements')
 
@@ -68,7 +71,38 @@ class ChildElement extends Element {
     }
 
     def "elements delegates to collectionFactory"() {
-        expect:
+        when:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}''')
+
+
+        then:
         clazz.create {
             name "test"
 
@@ -78,6 +112,36 @@ class ChildElement extends Element {
         }
     }
     def "alternative methods are working"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}''')
+
         when:
         instance = clazz.create {
             name "test"
@@ -90,10 +154,90 @@ class ChildElement extends Element {
 
         then:
         instance.elements.size() == 2
+        instance.elements.blub.class.simpleName == "SubElement"
+        instance.elements.bli.class.simpleName == "ChildElement"
+    }
+
+    def "alternative methods can get custom names"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL(shortName = "sub")
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL(shortName = "child")
+class ChildElement extends Element {
+
+    String game
+}''')
+
+        when:
+        instance = clazz.create {
+            name "test"
+
+            elements {
+                sub("blub")
+                child("bli")
+            }
+        }
+
+        then:
+        instance.elements.size() == 2
+        instance.elements.blub.class.simpleName == "SubElement"
+        instance.elements.bli.class.simpleName == "ChildElement"
     }
 
     def "no alternative methods are created for abstract classes"() {
-        expect:
+        when:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}''')
+
+
+        then:
         !getClass('pk.Config$_elements').getMethods().find { it.name == "element"}
     }
 
