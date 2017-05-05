@@ -22,72 +22,27 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
+
+import spock.lang.Specification
+
+
 /**
- * No actual test, just a place to quickly debug Transformation.
+ * Created by snpaux on 28.04.2017.
  */
-class DebugSpec extends AbstractDSLSpec {
+class DebugWithMultipleFilesSpec extends AbstractFolderBasedDSLSpec {
 
-    def "Can be debugged"() {
+    def "load files for alternatives"() {
+        given:
+        loadFrom("alternatives")
+
         when:
-        createClass('''
-@DSL
-class Config {
-
-    String name
-
-    @Field String value
-    int age
-}
-
-@DSL
-class Environment {
-
-    String name
-    String url
-    Authorization authorization
-}
-@DSL
-class Authorization {
-
-    String roles
-}
-        ''')
+        loader.loadClass("Config")
 
         then:
         noExceptionThrown()
+
+
+
     }
 
-    def "Can be debugged2"() {
-        when:
-        createClass('''
-@DSL
-class Config {
-
-    String name
-
-    Map<String, Element> elements;
-}
-
-@DSL
-abstract class Element {
-
-    @Key String name
-}
-
-@DSL
-class SubElement extends Element {
-
-    String role
-}
-
-@DSL
-class ChildElement extends Element {
-
-    String game
-}
-        ''')
-
-        then:
-        noExceptionThrown()
-    }
 }

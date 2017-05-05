@@ -22,72 +22,17 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
-/**
- * No actual test, just a place to quickly debug Transformation.
- */
-class DebugSpec extends AbstractDSLSpec {
 
-    def "Can be debugged"() {
-        when:
-        createClass('''
-@DSL
-class Config {
 
-    String name
+class AbstractFolderBasedDSLSpec extends AbstractDSLSpec {
 
-    @Field String value
-    int age
-}
 
-@DSL
-class Environment {
-
-    String name
-    String url
-    Authorization authorization
-}
-@DSL
-class Authorization {
-
-    String roles
-}
-        ''')
-
-        then:
-        noExceptionThrown()
+    def loadFrom(String... folder) {
+        File root = new File("src/test/folders")
+        folder.each {
+            loader.addURL(new File(root, it).toURI().toURL())
+        }
     }
 
-    def "Can be debugged2"() {
-        when:
-        createClass('''
-@DSL
-class Config {
 
-    String name
-
-    Map<String, Element> elements;
-}
-
-@DSL
-abstract class Element {
-
-    @Key String name
-}
-
-@DSL
-class SubElement extends Element {
-
-    String role
-}
-
-@DSL
-class ChildElement extends Element {
-
-    String game
-}
-        ''')
-
-        then:
-        noExceptionThrown()
-    }
 }

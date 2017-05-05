@@ -52,4 +52,16 @@ public @interface Field {
      * does not end with an 's', the field name is used as is.
      */
     String members() default "";
+
+    /**
+     * Maps names to classes. If used, this value must be a closure which contains only a map with
+     * literal String to Class mappings, i.e. `@DSL(alternatives = {child: ChildElement, sub: SubElement})`.
+     */
+    Class alternatives() default None.class;
+
+    /**
+     * @deprecated Do not use, this is only to provide a default value for the {@link #alternatives()} field.
+     */
+    @Deprecated
+    interface None {}
 }
