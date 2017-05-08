@@ -158,7 +158,7 @@ class AlternativesClassBuilder {
     private void createClosureForOuterClass() {
         createOptionalPublicMethod(fieldNode.getName())
                 .linkToField(fieldNode)
-                .closureParam("closure")
+                .delegatingClosureParam(collectionFactory)
                 .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
