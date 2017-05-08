@@ -181,12 +181,14 @@ class AlternativesClassBuilder {
 
         String methodName = getShortNameFor(subclass);
 
+        ClassNode subRwClass = getRwClassOf(subclass);
+
         createPublicMethod(methodName)
                 .linkToField(fieldNode)
                 .returning(elementType)
                 .namedParams("values")
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subclass)
+                .delegatingClosureParam(subRwClass)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(varX("values"), classX(subclass), varX("key"), varX("closure"))
@@ -198,7 +200,7 @@ class AlternativesClassBuilder {
                 .linkToField(fieldNode)
                 .returning(elementType)
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subclass)
+                .delegatingClosureParam(subRwClass)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(classX(subclass), varX("key"), varX("closure"))

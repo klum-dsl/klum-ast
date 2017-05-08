@@ -31,11 +31,12 @@ import java.lang.reflect.Method
 
 class AbstractDSLSpec extends Specification {
 
-    protected ClassLoader oldLoader
-    protected GroovyClassLoader loader
-    protected def instance
-    protected Class<?> clazz
-    protected Class<?> rwClazz
+    ClassLoader oldLoader
+    GroovyClassLoader loader
+    def instance
+    Class<?> clazz
+    Class<?> rwClazz
+    CompilerConfiguration compilerConfiguration
 
     def setup() {
         oldLoader = Thread.currentThread().contextClassLoader
@@ -44,9 +45,9 @@ class AbstractDSLSpec extends Specification {
                 "com.blackbuild.groovy.configdsl.transform"
         )
 
-        CompilerConfiguration config = new CompilerConfiguration()
-        config.addCompilationCustomizers(importCustomizer)
-        loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), config)
+        compilerConfiguration = new CompilerConfiguration()
+        compilerConfiguration.addCompilationCustomizers(importCustomizer)
+        loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
     }
 

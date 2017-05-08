@@ -25,6 +25,12 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
+import java.lang.annotation.Annotation
+
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
+
 class AlternativesSpec extends AbstractDSLSpec {
 
     def setup() {
@@ -370,5 +376,46 @@ class ChildElement extends Element {
         then:
         !getClass('pk.Config$_elements').getMethods().find { it.name == "element"}
     }
+
+    def "DelegatesTo annotations for collection factory methods are created"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+}
+
+@DSL
+class ChildElement extends Element {
+
+    String game
+}''')
+
+        def factory = getClass('pk.Config$_elements')
+
+        when:
+        Annotation[] elementAnnotations = factory.getMethod("subElement", String, Closure).parameterAnnotations[1]
+
+        then:
+        delegatesToPointsTo(elementAnnotations, 'pk.SubElement._RW')
+    }
+
+
 
 }

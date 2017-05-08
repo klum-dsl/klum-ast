@@ -30,6 +30,9 @@ import spock.lang.Issue
 import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
 import static groovy.lang.Closure.*
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -1367,26 +1370,6 @@ class TransformSpec extends AbstractDSLSpec {
 
         where:
         methodName << ["inner", "listInner"]
-    }
-
-    void delegatesToPointsTo(Annotation[] annotations, String className) {
-        DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
-        assert annotation
-        assert annotation.strategy() == DELEGATE_FIRST
-        assert annotation.value().canonicalName == className
-        assert annotation.genericTypeIndex() == -1
-    }
-
-    void delegatesToPointsToDelegateTarget(Annotation[] annotations) {
-        DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
-        assert annotation
-        assert annotation.strategy() == DELEGATE_FIRST
-        assert annotation.value() == DelegatesTo.Target
-        assert annotation.genericTypeIndex() == 0
-    }
-
-    void hasDelegatesToTargetAnnotation(Annotation[] annotations) {
-        assert annotations.find { it.annotationType() == DelegatesTo.Target }
     }
 
     def "DelegatesTo annotations for keyed inner models are created"() {
