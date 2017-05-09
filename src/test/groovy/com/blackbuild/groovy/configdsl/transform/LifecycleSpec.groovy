@@ -468,4 +468,45 @@ class LifecycleSpec extends AbstractDSLSpec {
         then:
         notThrown(NullPointerException)
     }
+
+    def "PostApply methods can set fields of child collections"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                List<Foo> foos
+
+                @PostApply
+                def markAsCalled() {
+                    foos.each { it.name = "bla" }
+                }
+            }
+            
+            @DSL
+            class Foo {
+                String name
+            
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            foos {
+                foo()
+                foo()
+            }
+        }
+
+        then:
+        instance.foos.every { it.name == "bla" }
+
+        when:
+        instance = clazz.create {
+        }
+
+        then:
+        notThrown(NullPointerException)
+    }
 }
