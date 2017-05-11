@@ -1,3 +1,6 @@
+## 0.99.1
+- RW-classes must be Serializable as well (see [#85](https://github.com/klum-dsl/klum-ast/issues/85))
+
 ## 0.99
 - Alternatives are back. There are three ways to customize the name of alternatives, see 
   [Alternatives Syntax](https://github.com/klum-dsl/klum-ast/wiki/Alternatives-Syntax) for details.
