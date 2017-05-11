@@ -1313,7 +1313,23 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.interfaces.contains(Serializable)
+        Serializable.isAssignableFrom(clazz)
+    }
+
+    @Issue("35")
+    def "RW classes are serializable as well"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+        ''')
+
+        then:
+        Serializable.isAssignableFrom(rwClazz)
     }
 
     @Issue("35")
@@ -1330,7 +1346,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
-        clazz.interfaces.contains(Serializable)
+        Serializable.isAssignableFrom(clazz)
     }
 
     def "DelegatesTo annotations for unkeyed inner models are created"() {
