@@ -1108,4 +1108,35 @@ class TemplatesSpec extends AbstractDSLSpec {
         makeTemplatesMethods.size() == 4 // with / without Map * Closure with default value
         makeTemplatesMethods.every { isDeprecated( it )}
     }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/85')
+    def "Apply and collection Factories should not have a default value for closures"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                List<Inner> inners
+            }
+            @DSL
+            class Inner {
+                String name
+            }
+        ''')
+
+        when:
+        clazz.getDeclaredMethod("apply")
+
+        then:
+        thrown(NoSuchMethodException)
+
+        when:
+        rwClazz.getDeclaredMethod("inners")
+
+        then:
+        thrown(NoSuchMethodException)
+    }
+
 }

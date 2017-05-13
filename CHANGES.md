@@ -1,3 +1,6 @@
+## 0.99.2
+- apply and collectionFactory creation should not have default values for closure (see [#82](https://github.com/klum-dsl/klum-ast/issues/82))
+
 ## 0.99.1
 - RW-classes must be Serializable as well (see [#85](https://github.com/klum-dsl/klum-ast/issues/85))
 

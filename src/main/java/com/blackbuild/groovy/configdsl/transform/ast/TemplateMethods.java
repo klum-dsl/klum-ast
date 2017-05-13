@@ -259,7 +259,7 @@ class TemplateMethods {
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
                 .declareVariable("result", callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
@@ -272,7 +272,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
@@ -283,7 +283,7 @@ class TemplateMethods {
         MethodBuilder.createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args(new MapExpression(), varX("closure"))))
                 .addTo(annotatedClass);
 
@@ -292,7 +292,7 @@ class TemplateMethods {
                 .deprecated()
                 .mod(ACC_STATIC)
                 .namedParams("values")
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("values", "closure")))
                 .addTo(annotatedClass);
 
@@ -300,7 +300,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .deprecated()
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
                 .addTo(annotatedClass);
     }
@@ -334,7 +334,7 @@ class TemplateMethods {
                 .mod(Opcodes.ACC_STATIC)
                 .namedParams("values")
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args("name")) : ctorX(templateClass))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
@@ -344,7 +344,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(templateClass, "create",
                         keyField != null ?
                                 args(new MapExpression(), varX("name"), varX("closure"))

@@ -229,10 +229,15 @@ public class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
+    enum ClosureDefaultValue { NONE, EMPTY_CLOSURE }
+
+    public MethodBuilder delegatingClosureParam(ClassNode delegationTarget, ClosureDefaultValue defaultValue) {
         VariableScope scope = new VariableScope();
-        ClosureExpression emptyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
-        emptyClosure.setVariableScope(scope);
+        ClosureExpression emptyClosure = null;
+        if (defaultValue == ClosureDefaultValue.EMPTY_CLOSURE) {
+            emptyClosure = new ClosureExpression(Parameter.EMPTY_ARRAY, new BlockStatement(new ArrayList<Statement>(), scope));
+            emptyClosure.setVariableScope(scope);
+        }
         Parameter param = GeneralUtils.param(
                 nonGeneric(ClassHelper.CLOSURE_TYPE),
                 "closure",
@@ -243,7 +248,7 @@ public class MethodBuilder {
     }
 
     public MethodBuilder delegatingClosureParam() {
-        return delegatingClosureParam(null);
+        return delegatingClosureParam(null, ClosureDefaultValue.EMPTY_CLOSURE);
     }
 
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
