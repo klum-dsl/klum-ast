@@ -26,13 +26,12 @@ package com.blackbuild.groovy.configdsl.transform;
 import java.lang.annotation.*;
 
 /**
- * Designates a field to be completely ignored by KlumAST. Any field marked with this annotation will not have
- * any created setter / adder methods. It will also not be part of any validation.
- * @deprecated Usually, the semantics of this annotation can be better formulated with {@link ReadOnly}.
+ * Designates a field as read only. Read only fields do not get any DSL methods or public setters in the RW class
+ * making them not directly changeable from a configuration. The can, however be changed from inside {@link Mutator}
+ * or lifecycle methods.
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)
 @Documented
-@Deprecated
-public @interface Ignore {
+public @interface ReadOnly {
 }

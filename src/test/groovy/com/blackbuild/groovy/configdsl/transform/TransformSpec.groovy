@@ -27,13 +27,10 @@ import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
-import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
-import static groovy.lang.Closure.*
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.*
+import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
@@ -312,10 +309,42 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.value "value"
+        instance.apply { value "value" }
 
         then:
         thrown MissingMethodException
+    }
+
+    @Issue('80')
+    def "no adders are created for ReadOnly fields"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @ReadOnly String value
+                
+                @Mutator void setAsLowerCase(String rawName) {
+                    value = rawName.toLowerCase()   
+                }
+            }
+        ''')
+
+        when:
+        rwClazz.getDeclaredMethod("value", String)
+
+        then:
+        thrown NoSuchMethodException
+
+        expect: "Setters are protected"
+        rwClazz.getDeclaredMethod("setValue", String).getModifiers() & ACC_PROTECTED
+
+        when:
+        instance = clazz.create {
+            setAsLowerCase("HALLO")
+        }
+
+        then:
+        instance.value == 'hallo'
     }
 
     @Issue('#22')

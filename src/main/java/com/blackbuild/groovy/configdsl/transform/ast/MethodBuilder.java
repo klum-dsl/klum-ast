@@ -71,6 +71,10 @@ public class MethodBuilder {
         this.name = name;
     }
 
+    public static MethodBuilder createMethod(String name) {
+        return new MethodBuilder(name);
+    }
+
     public static MethodBuilder createPublicMethod(String name) {
         return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC);
     }

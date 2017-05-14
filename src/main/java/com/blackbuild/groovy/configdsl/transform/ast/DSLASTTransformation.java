@@ -34,7 +34,6 @@ import groovy.util.DelegatingScript;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
@@ -52,7 +51,7 @@ import java.net.URL;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -94,6 +93,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
+    public static final ClassNode READONLY_ANNOTATION = make(ReadOnly.class);
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -145,7 +145,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void setPropertyAccessors() {
         List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
-        for (PropertyNode pNode : GeneralUtils.getInstanceProperties(annotatedClass)) {
+        for (PropertyNode pNode : getInstanceProperties(annotatedClass)) {
             adjustPropertyAccessorsForSingleField(pNode, newNodes);
         }
 
@@ -177,30 +177,30 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
 
-            MethodBuilder.createProtectedMethod(rwGetterName)
+            createProtectedMethod(rwGetterName)
                     .mod(ACC_SYNTHETIC)
                     .returning(pNode.getType())
                     .doReturn(attrX(varX("this"), constX(pNode.getName())))
                     .addTo(annotatedClass);
-
         } else {
             rwGetterName = "get" + capitalizedFieldName;
             pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
         }
 
-        MethodBuilder.createPublicMethod(getterName)
+        createPublicMethod(getterName)
                 .returning(pNode.getType())
                 .doReturn(callX(varX("_model"), rwGetterName))
                 .addTo(rwClass);
 
-        MethodBuilder.createProtectedMethod(rwSetterName)
+        createProtectedMethod(rwSetterName)
                 .mod(ACC_SYNTHETIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(pNode.getType(), "value")
                 .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod(setterName)
+        createMethod(setterName)
+                .mod(isReadOnly(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(pNode.getType(), "value")
                 .statement(callX(varX("_model"), rwSetterName, args("value")))
@@ -276,13 +276,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             // add manual validation only to root of hierarchy
             // TODO field could be added to rw as well
             annotatedClass.addField("$manualValidation", ACC_PROTECTED | ACC_SYNTHETIC, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
-            MethodBuilder.createPublicMethod("manualValidation")
+            createPublicMethod("manualValidation")
                     .param(Boolean_TYPE, "validation", constX(true))
                     .assignS(propX(varX("_model"), "$manualValidation"), varX("validation"))
                     .addTo(rwClass);
         }
 
-        MethodBuilder methodBuilder = MethodBuilder.createPublicMethod(VALIDATE_METHOD);
+        MethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
 
         if (dslParent != null) {
             methodBuilder.statement(callSuperX(VALIDATE_METHOD));
@@ -448,7 +448,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void preventOwnerOverride() {
         // public since we owner and owned can be in different packages
-        MethodBuilder.createPublicMethod("$set" + Verifier.capitalize(ownerField.getName()))
+        createPublicMethod("$set" + Verifier.capitalize(ownerField.getName()))
                 .param(OBJECT_TYPE, "value")
                 .mod(ACC_SYNTHETIC | ACC_FINAL)
                 .statement(
@@ -494,12 +494,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
 
         if (keyField != null) {
-            MethodBuilder.createPublicMethod("hashCode")
+            createPublicMethod("hashCode")
                     .returning(ClassHelper.int_TYPE)
                     .doReturn(callX(varX(keyField.getName()), "hashCode"))
                     .addTo(annotatedClass);
         } else {
-            MethodBuilder.createPublicMethod("hashCode")
+            createPublicMethod("hashCode")
                     .returning(ClassHelper.int_TYPE)
                     .doReturn(constX(0))
                     .addTo(annotatedClass);
@@ -513,6 +513,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
+        if (isReadOnly(fieldNode)) return;
 
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
@@ -523,6 +524,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createCollectionMethods(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
+    }
+
+    private boolean isReadOnly(FieldNode fieldNode) {
+        return !fieldNode.getAnnotations(READONLY_ANNOTATION).isEmpty();
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -876,7 +881,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        MethodBuilder.createPublicMethod("apply")
+        createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
                 .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
@@ -891,7 +896,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("this")
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod("apply")
+        createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.NONE)
                 .callThis("apply", args(new MapExpression(), varX("closure")))
@@ -906,7 +911,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (isAbstract(annotatedClass)) return;
 
-        MethodBuilder.createPublicMethod("create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
@@ -921,7 +926,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
 
-        MethodBuilder.createPublicMethod("create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .optionalStringParam("name", keyField)
@@ -934,7 +939,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
 
-        MethodBuilder.createPublicMethod("createFromScript")
+        createPublicMethod("createFromScript")
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
@@ -943,7 +948,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
 
-        MethodBuilder.createPublicMethod("createFrom")
+        createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
@@ -955,7 +960,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         if (keyField != null) {
-            MethodBuilder.createPublicMethod("createFrom")
+            createPublicMethod("createFrom")
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
                     .stringParam("name")
@@ -973,7 +978,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("result")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod("createFrom") // Delegating Script
+            createPublicMethod("createFrom") // Delegating Script
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC | ACC_SYNTHETIC)
                     .param(DELEGATING_SCRIPT, "script")
@@ -984,7 +989,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("result")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod("createFromSnippet")
+            createPublicMethod("createFromSnippet")
                     .deprecated()
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
@@ -993,7 +998,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn(callX(annotatedClass, "createFrom", args("name", "text")))
                     .addTo(annotatedClass);
         } else {
-            MethodBuilder.createPublicMethod("createFrom")
+            createPublicMethod("createFrom")
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
                     .stringParam("text")
@@ -1009,7 +1014,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("result")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod("createFrom") // Delegating Script
+            createPublicMethod("createFrom") // Delegating Script
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
                     .param(newClass(DELEGATING_SCRIPT), "script")
@@ -1019,7 +1024,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("result")
                     .addTo(annotatedClass);
 
-            MethodBuilder.createPublicMethod("createFromSnippet")
+            createPublicMethod("createFromSnippet")
                     .deprecated()
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
@@ -1028,14 +1033,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(annotatedClass);
         }
 
-        MethodBuilder.createPublicMethod("createFrom")
+        createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .param(make(File.class), "src")
                 .doReturn(callX(annotatedClass, "createFromSnippet", args(callX(callX(varX("src"), "toURI"), "toURL"))))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod("createFromSnippet")
+        createPublicMethod("createFromSnippet")
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
@@ -1043,7 +1048,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn(callX(annotatedClass, "createFrom", args("src")))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod("createFrom")
+        createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .param(make(URL.class), "src")
@@ -1051,7 +1056,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
                 .addTo(annotatedClass);
 
-        MethodBuilder.createPublicMethod("createFromSnippet")
+        createPublicMethod("createFromSnippet")
                 .deprecated()
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
