@@ -56,12 +56,6 @@ nexusStaging {
     packageGroup = "com.blackbuild"
 }
 
-//if (JavaVersion.current().isJava8Compatible()) {
-//    javadoc {
-//        options.addStringOption('Xdoclint:none', '-quiet')
-//    }
-//}
-
 modifyPom {
     project {
         name 'KlumDSL'
