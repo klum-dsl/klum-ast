@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -34,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -61,7 +62,7 @@ class TemplateMethods {
         annotatedClass = transformation.annotatedClass;
         rwClass = transformation.rwClass;
         keyField = transformation.keyField;
-        dslAncestor = ASTHelper.getHighestAncestorDSLObject(annotatedClass);
+        dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 
     public void invoke() {
@@ -119,7 +120,7 @@ class TemplateMethods {
                         // This is a dirty hack. Since I did not get the Variable Scope to be propagated into the closure
                         // I create a closure using three parameters (templates, keys, closure), which are passed as parameters
                         // and then we curry the closure using the actual values.
-                        createClosureExpression(
+                        CommonAstHelper.createClosureExpression(
                             params(
                                     param(newClass(MAP_TYPE), "t"),
                                     param(newClass(LIST_TYPE), "k"),
@@ -160,11 +161,11 @@ class TemplateMethods {
                 .closureParam("closure")
                 .declareVariable("map",
                         callX(varX("templates"), "collectEntries",
-                            createClosureExpression(
+                            CommonAstHelper.createClosureExpression(
                                     declS(varX("clazz"), callX(varX("it"), "getClass")),
                                     declS(varX("className"), propX(varX("clazz"), "name")),
                                     declS(varX("targetClass"), ternaryX(callX(varX("className"), "endsWith", constX("$Template")), propX(varX("clazz"), "superclass"), varX("clazz"))),
-                                    stmt(listExpression(varX("clazz"), varX("it")))
+                                    stmt(CommonAstHelper.listExpression(varX("clazz"), varX("it")))
                             )
                         )
                 )
@@ -178,7 +179,7 @@ class TemplateMethods {
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
-        if (ASTHelper.isAbstract(annotatedClass))
+        if (CommonAstHelper.isAbstract(annotatedClass))
             createTemplateClass();
         else
             templateClass = annotatedClass;
@@ -201,7 +202,7 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            if (isCollection(fieldNode.getType()))
+            if (CommonAstHelper.isCollection(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
@@ -212,7 +213,7 @@ class TemplateMethods {
                                 )
                         )
                 );
-            else if (isMap(fieldNode.getType()))
+            else if (CommonAstHelper.isMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
                                 propX(varX("template"), fieldNode.getName()),
@@ -320,7 +321,7 @@ class TemplateMethods {
             templateClass.addConstructor(
                     0,
                     params(param(keyField.getType(), "key")),
-                    NO_EXCEPTIONS,
+                    CommonAstHelper.NO_EXCEPTIONS,
                     block(
                             ctorSuperS(args(constX(null)))
                     )
