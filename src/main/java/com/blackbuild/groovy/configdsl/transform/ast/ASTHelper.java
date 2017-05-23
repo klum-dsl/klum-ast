@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -52,6 +51,7 @@ public class ASTHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
     private static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
+
     public static ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
     public static ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
 
