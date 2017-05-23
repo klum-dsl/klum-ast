@@ -40,7 +40,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 class LifecycleMethodBuilder {
     private InnerClassNode rwClass;
     private ClassNode annotationType;
-    private MethodBuilder lifecycleMethod;
+    private DslMethodBuilder lifecycleMethod;
     private Set<String> alreadyHandled = new HashSet<String>();
     private ClassNode annotatedClass;
     private SourceUnit sourceUnit;
@@ -58,7 +58,7 @@ class LifecycleMethodBuilder {
     }
 
     private void createLifecycleCallerMethod() {
-        lifecycleMethod = MethodBuilder
+        lifecycleMethod = DslMethodBuilder
                 .createPrivateMethod("$" + annotationType.getNameWithoutPackage())
                 .mod(Opcodes.ACC_SYNTHETIC);
         for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {

@@ -39,6 +39,8 @@ public class DslAstHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
 
+    private DslAstHelper() {}
+
     public static boolean isDSLObject(ClassNode classNode) {
         return CommonAstHelper.getAnnotation(classNode, DSLASTTransformation.DSL_CONFIG_ANNOTATION) != null;
     }

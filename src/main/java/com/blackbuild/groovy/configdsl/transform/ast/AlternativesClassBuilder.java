@@ -35,8 +35,8 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
@@ -162,7 +162,7 @@ class AlternativesClassBuilder {
     private void createClosureForOuterClass() {
         createOptionalPublicMethod(fieldNode.getName())
                 .linkToField(fieldNode)
-                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
                 .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -192,7 +192,7 @@ class AlternativesClassBuilder {
                 .returning(elementType)
                 .namedParams("values")
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(varX("values"), classX(subclass), varX("key"), varX("closure"))
@@ -204,7 +204,7 @@ class AlternativesClassBuilder {
                 .linkToField(fieldNode)
                 .returning(elementType)
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(classX(subclass), varX("key"), varX("closure"))
