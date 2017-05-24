@@ -30,7 +30,7 @@ import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static java.lang.Character.toUpperCase;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;

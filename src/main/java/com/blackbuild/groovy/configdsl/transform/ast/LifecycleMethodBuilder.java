@@ -23,13 +23,14 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 
@@ -39,7 +40,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 class LifecycleMethodBuilder {
     private InnerClassNode rwClass;
     private ClassNode annotationType;
-    private MethodBuilder lifecycleMethod;
+    private DslMethodBuilder lifecycleMethod;
     private Set<String> alreadyHandled = new HashSet<String>();
     private ClassNode annotatedClass;
     private SourceUnit sourceUnit;
@@ -57,7 +58,7 @@ class LifecycleMethodBuilder {
     }
 
     private void createLifecycleCallerMethod() {
-        lifecycleMethod = MethodBuilder
+        lifecycleMethod = DslMethodBuilder
                 .createPrivateMethod("$" + annotationType.getNameWithoutPackage())
                 .mod(Opcodes.ACC_SYNTHETIC);
         for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
@@ -82,13 +83,13 @@ class LifecycleMethodBuilder {
         List<MethodNode> lifecycleMethods = new ArrayList<MethodNode>();
 
         for (MethodNode method : level.getMethods()) {
-            AnnotationNode targetAnnotation = getAnnotation(method, annotationType);
+            AnnotationNode targetAnnotation = CommonAstHelper.getAnnotation(method, annotationType);
 
             if (targetAnnotation == null)
                 continue;
 
-            assertMethodIsParameterless(method, sourceUnit);
-            assertMethodIsNotPrivate(method, sourceUnit);
+            CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
+            CommonAstHelper.assertMethodIsNotPrivate(method, sourceUnit);
 
             lifecycleMethods.add(method);
         }

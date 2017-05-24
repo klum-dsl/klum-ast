@@ -25,21 +25,12 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
-import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.getAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.moveMethodFromModelToRWClass;
-import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
-import static groovyjarjarasm.asm.Opcodes.ACC_NATIVE;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.moveMethodFromModelToRWClass;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
 
 /**

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -32,10 +33,10 @@ import org.codehaus.groovy.ast.stmt.Statement;
 import java.beans.Introspector;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.ASTHelper.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
@@ -64,14 +65,14 @@ class AlternativesClassBuilder {
         this.fieldNode = fieldNode;
         this.annotatedClass = fieldNode.getOwner();
         rwClass = getRwClassOf(annotatedClass);
-        elementType = getElementType(fieldNode);
+        elementType = CommonAstHelper.getElementType(fieldNode);
         keyType = getKeyType(elementType);
         memberName = getElementNameForCollectionField(fieldNode);
         alternatives = readAlternativesAnnotation();
     }
 
     private Map<ClassNode, String> readAlternativesAnnotation() {
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+        AnnotationNode fieldAnnotation = CommonAstHelper.getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
         if (fieldAnnotation == null)
             return Collections.emptyMap();
 
@@ -84,7 +85,7 @@ class AlternativesClassBuilder {
         MapExpression map = getLiteralMapExpressionFromClosure(alternativesClosure);
 
         if (map == null) {
-            addCompileError("Illegal value for 'alternative', must contain a closure with a literal map definition.", fieldNode, fieldAnnotation);
+            CommonAstHelper.addCompileError("Illegal value for 'alternative', must contain a closure with a literal map definition.", fieldNode, fieldAnnotation);
             return Collections.emptyMap();
         }
 
@@ -96,10 +97,10 @@ class AlternativesClassBuilder {
             if (classNode == null) continue;
 
             if (!classNode.isDerivedFrom(elementType))
-                addCompileError(String.format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
+                CommonAstHelper.addCompileError(String.format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
 
             if (result.containsKey(classNode))
-                addCompileError("Values for 'alternatives' must be unique.", fieldNode, entry);
+                CommonAstHelper.addCompileError("Values for 'alternatives' must be unique.", fieldNode, entry);
 
             result.put(classNode, methodName);
         }
@@ -112,7 +113,7 @@ class AlternativesClassBuilder {
         if (result instanceof ConstantExpression && result.getType().equals(STRING_TYPE))
             return result.getText();
 
-        addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
+        CommonAstHelper.addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
         return null;
     }
 
@@ -121,7 +122,7 @@ class AlternativesClassBuilder {
         if (result instanceof ClassExpression)
             return result.getType();
 
-        addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
+        CommonAstHelper.addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
         return null;
     }
 
@@ -137,7 +138,7 @@ class AlternativesClassBuilder {
 
     private void assertClosureHasNoParameters(ClosureExpression alternativesClosure) {
         if (alternativesClosure.getParameters().length != 0)
-            addCompileError( "no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
+            CommonAstHelper.addCompileError( "no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
     }
 
     private ClosureExpression getAlternativesClosureFor(AnnotationNode fieldAnnotation) {
@@ -147,7 +148,7 @@ class AlternativesClassBuilder {
         if (codeExpression instanceof ClosureExpression)
             return (ClosureExpression) codeExpression;
 
-        addCompileError("Illegal value for 'alternatives', must contain a closure.", fieldNode, fieldAnnotation);
+        CommonAstHelper.addCompileError("Illegal value for 'alternatives', must contain a closure.", fieldNode, fieldAnnotation);
         return null;
     }
 
@@ -161,7 +162,7 @@ class AlternativesClassBuilder {
     private void createClosureForOuterClass() {
         createOptionalPublicMethod(fieldNode.getName())
                 .linkToField(fieldNode)
-                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
                 .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -172,7 +173,7 @@ class AlternativesClassBuilder {
     }
 
     private void createNamedAlternativeMethodsForSubclasses() {
-        List<ClassNode> subclasses = findAllKnownSubclassesOf(elementType);
+        List<ClassNode> subclasses = CommonAstHelper.findAllKnownSubclassesOf(elementType);
         for (ClassNode subclass : subclasses) {
             createNamedAlternativeMethodsForSingleSubclass(subclass);
         }
@@ -191,7 +192,7 @@ class AlternativesClassBuilder {
                 .returning(elementType)
                 .namedParams("values")
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(varX("values"), classX(subclass), varX("key"), varX("closure"))
@@ -203,7 +204,7 @@ class AlternativesClassBuilder {
                 .linkToField(fieldNode)
                 .returning(elementType)
                 .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(classX(subclass), varX("key"), varX("closure"))
@@ -218,7 +219,7 @@ class AlternativesClassBuilder {
         if (shortName != null)
             return shortName;
 
-        AnnotationNode annotationNode = getAnnotation(subclass, DSL_CONFIG_ANNOTATION);
+        AnnotationNode annotationNode = CommonAstHelper.getAnnotation(subclass, DSL_CONFIG_ANNOTATION);
         shortName = getMemberStringValue(annotationNode, "shortName");
 
         if (shortName != null)
@@ -250,7 +251,7 @@ class AlternativesClassBuilder {
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
         collectionFactory.addConstructor(ACC_PUBLIC | ACC_SYNTHETIC,
                 params(param(rwClass, "rw")),
-                NO_EXCEPTIONS,
+                CommonAstHelper.NO_EXCEPTIONS,
                 block(
                         assignS(propX(varX("this"), "rw"), varX("rw"))
                 )
