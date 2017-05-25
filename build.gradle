@@ -42,7 +42,7 @@ dependencies {
     testCompile("org.spockframework:spock-core:${spockVersion}")
     testRuntime "cglib:cglib-nodep:3.1"          // allows mocking of classes (in addition to interfaces)
     testRuntime "org.objenesis:objenesis:2.1"    // allows mocking of classes without default constructor (together with CGLIB)
-    compile "com.blackbuild.klum.common:klum-common:0.1.0"
+    compile "com.blackbuild.klum.common:klum-common:0.1.1"
 }
 
 task wrapper(type: Wrapper) {

@@ -53,11 +53,12 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.*;
+import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static org.codehaus.groovy.ast.ClassHelper.*;
-import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
@@ -565,7 +566,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
-        initializeField(fieldNode, asExpression(fieldNode.getType(), new ListExpression()));
+        initializeCollectionOrMap(fieldNode);
 
         ClassNode elementType = CommonAstHelper.getGenericsTypes(fieldNode)[0].getType();
 
@@ -573,11 +574,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createCollectionOfDSLObjectMethods(fieldNode, elementType);
         else
             createCollectionOfSimpleElementsMethods(fieldNode, elementType);
-    }
-
-    private void initializeField(FieldNode fieldNode, Expression init) {
-        if (!fieldNode.hasInitialExpression())
-            fieldNode.setInitialValueExpression(init);
     }
 
     private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -691,11 +687,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapMethods(FieldNode fieldNode) {
-        if (fieldNode.getType().equals(CommonAstHelper.SORTED_MAP_TYPE)) {
-            initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
-        } else {
-            initializeField(fieldNode, asExpression(fieldNode.getType(), new MapExpression()));
-        }
+        initializeCollectionOrMap(fieldNode);
 
         ClassNode keyType = CommonAstHelper.getGenericsTypes(fieldNode)[0].getType();
         ClassNode valueType = CommonAstHelper.getGenericsTypes(fieldNode)[1].getType();
