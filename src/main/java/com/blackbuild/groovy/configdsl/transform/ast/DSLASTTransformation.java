@@ -249,6 +249,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         AnnotationNode delegateAnnotation = new AnnotationNode(ClassHelper.make(Delegate.class));
         delegateAnnotation.setMember("parameterAnnotations", constX(true));
         delegateAnnotation.setMember("methodAnnotations", constX(true));
+        delegateAnnotation.setMember("excludes", constX("methodMissing"));
         ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, rwClass.getField("_model")};
 
         new DelegateASTTransformation().visit(astNodes, sourceUnit);
