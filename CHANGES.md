@@ -1,3 +1,7 @@
+## 0.99.3
+- RW classes can be coerced back to model (see [#89](https://github.com/klum-dsl/klum-ast/issues/89))
+- small bugfix with methodMissing corner cases
+
 ## 0.99.2
 - apply and collectionFactory creation should not have default values for closure (see [#82](https://github.com/klum-dsl/klum-ast/issues/82))
 - create new ReadOnly annotation, which replaces the deprecated `Ignore` annotation (see [#80](https://github.com/klum-dsl/klum-ast/issues/80))
