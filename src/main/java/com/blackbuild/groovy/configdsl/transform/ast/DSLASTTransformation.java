@@ -57,8 +57,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrM
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
@@ -243,6 +242,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
         annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
+
+        createCoercionMethod();
+    }
+
+    private void createCoercionMethod() {
+        createPublicMethod("asType")
+                .returning(OBJECT_TYPE)
+                .param(makeClassSafe(Class.class), "type")
+                .statement(
+                        ifS(
+                                eqX(varX("type"), classX(annotatedClass)),
+                                returnS(varX("_model"))
+                        )
+                )
+                .addTo(rwClass);
     }
 
     private void delegateFromRwToModel() {
