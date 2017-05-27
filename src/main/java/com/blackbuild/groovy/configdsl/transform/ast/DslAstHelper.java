@@ -31,6 +31,10 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
+import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
+import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
+
 /**
  * Created by stephan on 05.12.2016.
  */
@@ -99,7 +103,7 @@ public class DslAstHelper {
     static FieldNode getKeyField(ClassNode target) {
         FieldNode result = target.getNodeMetaData(KEY_FIELD_METADATA_KEY);
 
-        if (result == CommonAstHelper.NO_SUCH_FIELD)
+        if (result == NO_SUCH_FIELD)
             return null;
 
         if (result != null)
@@ -108,16 +112,16 @@ public class DslAstHelper {
         List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.KEY_ANNOTATION);
 
         if (annotatedFields.isEmpty()) {
-            target.setNodeMetaData(KEY_FIELD_METADATA_KEY, CommonAstHelper.NO_SUCH_FIELD);
+            target.setNodeMetaData(KEY_FIELD_METADATA_KEY, NO_SUCH_FIELD);
             return null;
         }
 
         if (annotatedFields.size() > 1) {
-            CommonAstHelper.addCompileError(
+            addCompileError(
                     String.format(
                             "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
-                            CommonAstHelper.getQualifiedName(annotatedFields.get(0)),
-                            CommonAstHelper.getQualifiedName(annotatedFields.get(1))),
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
                     annotatedFields.get(0)
             );
             return null;
@@ -126,7 +130,7 @@ public class DslAstHelper {
         result = annotatedFields.get(0);
 
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
-            CommonAstHelper.addCompileError(
+            addCompileError(
                     String.format("Key field '%s' must be of type String, but is '%s' instead", result.getName(), result.getType().getName()),
                     result
             );
@@ -143,7 +147,7 @@ public class DslAstHelper {
         FieldNode firstKey = getKeyField(ancestor);
 
         if (firstKey == null) {
-            CommonAstHelper.addCompileError(
+            addCompileError(
                     String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
                     result
             );
@@ -182,7 +186,7 @@ public class DslAstHelper {
     static FieldNode getOwnerField(ClassNode target) {
         FieldNode result = target.getNodeMetaData(OWNER_FIELD_METADATA_KEY);
 
-        if (result == CommonAstHelper.NO_SUCH_FIELD)
+        if (result == NO_SUCH_FIELD)
             return null;
 
         if (result != null)
@@ -191,16 +195,16 @@ public class DslAstHelper {
         List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.OWNER_ANNOTATION);
 
         if (annotatedFields.isEmpty()) {
-            target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, CommonAstHelper.NO_SUCH_FIELD);
+            target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, NO_SUCH_FIELD);
             return null;
         }
 
         if (annotatedFields.size() > 1) {
-            CommonAstHelper.addCompileError(
+            addCompileError(
                     String.format(
                             "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
-                            CommonAstHelper.getQualifiedName(annotatedFields.get(0)),
-                            CommonAstHelper.getQualifiedName(annotatedFields.get(1))),
+                            getQualifiedName(annotatedFields.get(0)),
+                            getQualifiedName(annotatedFields.get(1))),
                     annotatedFields.get(0)
             );
             return null;
