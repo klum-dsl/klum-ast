@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import groovyjarjarasm.asm.Opcodes
+import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class RWClassSpec extends AbstractDSLSpec {
@@ -176,5 +177,22 @@ class RWClassSpec extends AbstractDSLSpec {
         }
     }
 
+    @Issue("89")
+    def "RW instance can be coerced to model"() {
+        given:
+        createInstance('''
+            package pk
 
+            @DSL
+            class Model {
+            }
+''')
+        def rw = instance.$rw
+
+        when:
+        def coerced = rw.asType(clazz)
+
+        then:
+        coerced == instance
+    }
 }
