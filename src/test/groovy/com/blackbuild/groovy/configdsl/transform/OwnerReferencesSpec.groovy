@@ -47,7 +47,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        getClass("pk.Bar").metaClass.getMetaMethod("owner", clazz) == null
+        rwClazz.metaClass.getMetaMethod("owner", clazz) == null
     }
 
     def "error: two different owners in hierarchy"() {
@@ -68,26 +68,6 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL(owner="owner2")
             class ChildBar extends Bar {
                 @Owner Foo owner2
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
-    }
-
-    def "error: owner points to non existing field"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                Bar bar
-            }
-
-            @DSL(owner="own")
-            class Bar {
-                @Owner Foo owner
             }
         ''')
 
@@ -147,6 +127,31 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         instance.bar.owner.is(instance)
+    }
+
+    def 'owner is accessible via get$owner()'() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo owner
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bar {}
+        }
+
+        then:
+        instance.bar.$owner.is(instance)
     }
 
     def "using of existing objects in list closure sets owner"() {

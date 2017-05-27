@@ -27,6 +27,7 @@ import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.expr.Expression;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuilder> {
@@ -69,5 +70,10 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
+    public DslMethodBuilder optionallySetOwnerOnS(String target, boolean targetHasOwner) {
+        if (!targetHasOwner)
+            return this;
+        return callMethod(varX(target), "set$owner", varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS));
+    }
 
 }

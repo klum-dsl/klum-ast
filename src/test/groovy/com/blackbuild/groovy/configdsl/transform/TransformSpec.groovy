@@ -237,6 +237,25 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Klaus"
     }
 
+    def 'Key is reachable with get$Key()'() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+            }
+        ''')
+
+        when:
+        instance = clazz.newInstance("Klaus")
+
+        then:
+        noExceptionThrown()
+        instance.$key == "Klaus"
+    }
+
     def "key field must be of type String"() {
         when:
         createClass('''

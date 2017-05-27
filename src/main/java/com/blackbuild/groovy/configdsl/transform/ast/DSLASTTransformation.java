@@ -95,6 +95,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final ClassNode READONLY_ANNOTATION = make(ReadOnly.class);
+    public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "_model";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -112,11 +113,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ownerField = getOwnerField(annotatedClass);
         dslAnnotation = (AnnotationNode) nodes[0];
 
-        if (DslAstHelper.isDSLObject(annotatedClass.getSuperClass()))
+        if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
 
         if (keyField != null)
             createKeyConstructor();
+
+        addDirectGettersForOwnerAndKeyFields();
 
         createRWClass();
 
@@ -138,6 +141,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (annotatedClassHoldsOwner())
             preventOwnerOverride();
+    }
+
+    private void addDirectGettersForOwnerAndKeyFields() {
+        createDirectGetterFor(keyField, "get$key");
+        createDirectGetterFor(ownerField, "get$owner");
+    }
+
+    private void createDirectGetterFor(FieldNode targetField, String getterName) {
+        if (targetField == null)
+            return;
+        if (annotatedClass != targetField.getOwner())
+            return;
+        createPublicMethod(getterName)
+                .mod(ACC_FINAL)
+                .returning(targetField.getType())
+                .doReturn(targetField.getName())
+                .addTo(annotatedClass);
     }
 
     private void moveMutatorsToRWClass() {
@@ -190,7 +210,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createPublicMethod(getterName)
                 .returning(pNode.getType())
-                .doReturn(callX(varX("_model"), rwGetterName))
+                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
                 .addTo(rwClass);
 
         createProtectedMethod(rwSetterName)
@@ -204,7 +224,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(isReadOnly(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(pNode.getType(), "value")
-                .statement(callX(varX("_model"), rwSetterName, args("value")))
+                .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
                 .addTo(rwClass);
 
         pNode.setSetterBlock(null);
@@ -222,20 +242,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new ClassNode[] { make(Serializable.class)},
                 new MixinNode[0]);
 
-        rwClass.addField("_model", ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
+        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
 
         BlockStatement constructorBody = new BlockStatement();
 
         if (parentRW != null)
-            constructorBody.addStatement(ctorSuperS(varX("_model")));
+            constructorBody.addStatement(ctorSuperS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS)));
 
         constructorBody.addStatement(
-                assignS(propX(varX("this"), "_model"), varX("_model"))
+                assignS(propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS))
         );
 
         rwClass.addConstructor(
                 0,
-                params(param(newClass(annotatedClass), "_model")),
+                params(param(newClass(annotatedClass), NAME_OF_MODEL_FIELD_IN_RW_CLASS)),
                 CommonAstHelper.NO_EXCEPTIONS,
                 constructorBody
         );
@@ -253,7 +273,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .statement(
                         ifS(
                                 eqX(varX("type"), classX(annotatedClass)),
-                                returnS(varX("_model"))
+                                returnS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS))
                         )
                 )
                 .addTo(rwClass);
@@ -264,7 +284,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         delegateAnnotation.setMember("parameterAnnotations", constX(true));
         delegateAnnotation.setMember("methodAnnotations", constX(true));
         delegateAnnotation.setMember("excludes", constX("methodMissing"));
-        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, rwClass.getField("_model")};
+        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, rwClass.getField(NAME_OF_MODEL_FIELD_IN_RW_CLASS)};
 
         new DelegateASTTransformation().visit(astNodes, sourceUnit);
     }
@@ -295,7 +315,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             annotatedClass.addField("$manualValidation", ACC_PROTECTED | ACC_SYNTHETIC, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
             createPublicMethod("manualValidation")
                     .param(Boolean_TYPE, "validation", constX(true))
-                    .assignS(propX(varX("_model"), "$manualValidation"), varX("validation"))
+                    .assignS(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), "$manualValidation"), varX("validation"))
                     .addTo(rwClass);
         }
 
@@ -412,7 +432,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private boolean annotatedClassHoldsOwner() {
-        return ownerField != null && annotatedClass.getDeclaredField(ownerField.getName()) != null;
+        return ownerField != null && ownerField.getOwner() == annotatedClass;
     }
 
     private void validateFieldAnnotations() {
@@ -465,7 +485,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void preventOwnerOverride() {
         // public since we owner and owned can be in different packages
-        createPublicMethod("$set" + Verifier.capitalize(ownerField.getName()))
+        createPublicMethod("set$owner")
                 .param(OBJECT_TYPE, "value")
                 .mod(ACC_SYNTHETIC | ACC_FINAL)
                 .statement(
@@ -618,8 +638,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
 
         FieldNode fieldKey = getKeyField(elementType);
-        String targetOwner = getOwnerFieldName(elementType);
 
+        boolean targetHasOwnerField = getOwnerFieldName(elementType) != null;
         warnIfSetWithoutKeyedElements(fieldNode, elementType, fieldKey);
 
         String fieldName = fieldNode.getName();
@@ -636,8 +656,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwner)
-                    .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
@@ -662,8 +682,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwner)
-                    .callMethod(propX(varX("_model"), fieldRWName), "add", varX("created"))
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
@@ -682,8 +702,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createOptionalPublicMethod(methodName)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
-                .callMethod(propX(varX("_model"), fieldRWName), "add", varX("value"))
-                .optionalAssignModelToPropertyS("value", targetOwner)
+                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("value"))
+                .optionallySetOwnerOnS("value", targetHasOwnerField)
                 .addTo(rwClass);
 
     }
@@ -744,7 +764,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createAlternativesClassFor(fieldNode);
 
         String methodName = getElementNameForCollectionField(fieldNode);
-        String targetOwner = getOwnerFieldName(elementType);
+        boolean targetHasOwnerField = getOwnerFieldName(elementType) != null;
 
         String fieldName = fieldNode.getName();
         String fieldRWName = fieldName + "$rw";
@@ -760,8 +780,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(elementType), "newInstance", args("key")))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwner)
-                    .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(varX("key"), varX("created")))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
@@ -786,8 +806,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", args("key")))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwner)
-                    .callMethod(propX(varX("_model"), fieldRWName), "put", args(varX("key"), varX("created")))
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(varX("key"), varX("created")))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callValidationOn("created")
@@ -807,8 +827,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createOptionalPublicMethod(methodName)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
-                .callMethod(propX(varX("_model"), fieldRWName), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
-                .optionalAssignModelToPropertyS("value", targetOwner)
+                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
+                .optionallySetOwnerOnS("value", targetHasOwnerField)
                 .addTo(rwClass);
 
 
@@ -823,7 +843,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode targetFieldType = fieldNode.getType();
         FieldNode targetTypeKeyField = getKeyField(targetFieldType);
-        String targetOwnerFieldName = getOwnerFieldName(targetFieldType);
+        boolean targetHasOwnerField = getOwnerFieldName(targetFieldType) != null;
         ClassNode targetRwType = DslAstHelper.getRwClassOf(targetFieldType);
 
         String fieldName = fieldNode.getName();
@@ -837,7 +857,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam(targetRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
                     .assignToProperty(fieldName, varX("created"))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
@@ -864,7 +884,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam()
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod(propX(varX("created"), "$rw"), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionalAssignModelToPropertyS("created", targetOwnerFieldName)
+                    .optionallySetOwnerOnS("created", targetHasOwnerField)
                     .assignToProperty(fieldName, varX("created"))
                     .callMethod(propX(varX("created"), "$rw"), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
