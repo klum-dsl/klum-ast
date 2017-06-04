@@ -1,4 +1,4 @@
-## 0.99.3
+## 1.0
 - RW classes can be coerced back to model (see [#89](https://github.com/klum-dsl/klum-ast/issues/89))
 - Key and Owner can be accessed via standard methods (see [#55](https://github.com/klum-dsl/klum-ast/issues/55))
 - small bugfix with methodMissing corner cases
