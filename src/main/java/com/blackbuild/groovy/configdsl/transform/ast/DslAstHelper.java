@@ -72,7 +72,10 @@ public class DslAstHelper {
         CommonAstHelper.replaceMethod(rwClass, method);
     }
 
-    static ClassNode getRwClassOf(ClassNode classNode) {
+    public static ClassNode getRwClassOf(ClassNode classNode) {
+        if (!isDSLObject(classNode))
+            return null;
+
         ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
 
         if (result == null) {
@@ -82,6 +85,21 @@ public class DslAstHelper {
         }
 
         return result;
+    }
+
+    public static ClassNode getModelClassFor(ClassNode classNode) {
+        if (!classNode.getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX))
+            return null;
+
+        ClassNode outerClass = classNode.getOuterClass();
+
+        if (outerClass == null)
+            return null;
+
+        if (getRwClassOf(outerClass) == classNode)
+            return outerClass;
+
+        return null;
     }
 
 

@@ -23,10 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
@@ -35,6 +33,9 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
 
 /**
  * Created by stephan on 12.04.2017.
@@ -55,17 +56,29 @@ public class MutationDetectingTypeCheckingExtension extends AbstractTypeChecking
         if (!verificationVisitor.isInMutatorMethod())
             return Collections.emptyList();
 
-        InnerClassNode rwClass = receiver.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        ClassNode rwClass = DslAstHelper.getRwClassOf(receiver);
+        if (rwClass != null)
+            return delegateCallsToProperty(name, argumentTypes, call, rwClass, NAME_OF_RW_FIELD_IN_MODEL_CLASS);
 
+        ClassNode modelClassOfReceiver = DslAstHelper.getModelClassFor(receiver);
+        if (modelClassOfReceiver != null)
+            return delegateCallsToProperty(name, argumentTypes, call, modelClassOfReceiver, NAME_OF_MODEL_FIELD_IN_RW_CLASS);
+
+        return Collections.emptyList();
+    }
+
+    private List<MethodNode> delegateCallsToProperty(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode rwClass, String property) {
         List<MethodNode> rwMethods = verificationVisitor.findMethod(rwClass, name, argumentTypes);
 
         if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
-            MethodCallExpression methodCall = (MethodCallExpression) call;
-            Expression objectExpression = methodCall.getObjectExpression();
-            methodCall.setObjectExpression(new PropertyExpression(objectExpression, new ConstantExpression("$rw"), true));
+            redirectMethodCallToProperty((MethodCallExpression) call, property);
         }
-
         return rwMethods;
+    }
+
+    private void redirectMethodCallToProperty(MethodCallExpression call, String propertyName) {
+        Expression objectExpression = call.getObjectExpression();
+        call.setObjectExpression(new PropertyExpression(objectExpression, new ConstantExpression(propertyName), true));
     }
 
 }

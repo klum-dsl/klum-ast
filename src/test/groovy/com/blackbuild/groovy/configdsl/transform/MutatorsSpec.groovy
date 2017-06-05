@@ -172,8 +172,6 @@ class MutatorsSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                String name
-                
                 @Mutator
                 def mutate() {
                     nonmutate()
