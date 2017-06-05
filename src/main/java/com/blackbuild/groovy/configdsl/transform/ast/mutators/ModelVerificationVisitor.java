@@ -28,7 +28,6 @@ import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.control.SourceUnit;
@@ -54,7 +53,6 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     @Override
     public void visitBinaryExpression(BinaryExpression expression) {
         super.visitBinaryExpression(expression);
-
         checkForIllegalAssignment(expression);
     }
 
@@ -158,7 +156,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
                     > 0;
     }
 
-    private boolean isDslType(ClassNode leftExpressionType) {
-        return !leftExpressionType.getAnnotations(DSLASTTransformation.DSL_CONFIG_ANNOTATION).isEmpty();
+    private boolean isDslType(ClassNode classNode) {
+        return !classNode.getAnnotations(DSLASTTransformation.DSL_CONFIG_ANNOTATION).isEmpty();
     }
 }

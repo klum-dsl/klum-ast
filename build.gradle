@@ -9,7 +9,7 @@ buildscript {
     dependencies {
         classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
         classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
-        classpath 'net.researchgate:gradle-release:2.5.0'
+        classpath 'net.researchgate:gradle-release:2.6.0'
         classpath 'ch.raffael.pegdown-doclet:pegdown-doclet:1.3'
         classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.13.1"
     }
@@ -42,7 +42,7 @@ dependencies {
     testCompile("org.spockframework:spock-core:${spockVersion}")
     testRuntime "cglib:cglib-nodep:3.1"          // allows mocking of classes (in addition to interfaces)
     testRuntime "org.objenesis:objenesis:2.1"    // allows mocking of classes without default constructor (together with CGLIB)
-    compile "com.blackbuild.klum.common:klum-common:0.1.2"
+    compile "com.blackbuild.klum.common:klum-common:0.2.0"
 }
 
 task wrapper(type: Wrapper) {

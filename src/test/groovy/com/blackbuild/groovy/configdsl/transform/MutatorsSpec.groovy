@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import groovy.transform.NotYetImplemented
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -172,8 +171,6 @@ class MutatorsSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                String name
-                
                 @Mutator
                 def mutate() {
                     nonmutate()
@@ -187,7 +184,6 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    @NotYetImplemented
     def "Calling a protected non mutator method from a subclass mutator method"() {
         given:
         createClass('''

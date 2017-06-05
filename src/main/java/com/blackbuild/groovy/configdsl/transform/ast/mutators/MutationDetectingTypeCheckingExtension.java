@@ -23,10 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
@@ -35,6 +33,8 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
 
 /**
  * Created by stephan on 12.04.2017.
@@ -52,20 +52,36 @@ public class MutationDetectingTypeCheckingExtension extends AbstractTypeChecking
     @Override
     public List<MethodNode> handleMissingMethod(ClassNode receiver, String name, ArgumentListExpression argumentList, ClassNode[] argumentTypes, MethodCall call) {
 
+        List<MethodNode> result = handleCallToMutatorMethodOfDifferentModel(receiver, name, argumentTypes, call);
+
+        if (!result.isEmpty())
+            return result;
+
+        return Collections.emptyList();
+    }
+
+    private List<MethodNode> handleCallToMutatorMethodOfDifferentModel(ClassNode receiver, String name, ClassNode[] argumentTypes, MethodCall call) {
         if (!verificationVisitor.isInMutatorMethod())
             return Collections.emptyList();
 
-        InnerClassNode rwClass = receiver.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        ClassNode rwClass = DslAstHelper.getRwClassOf(receiver);
+        if (rwClass != null)
+            return delegateCallToRwClass(name, argumentTypes, call, rwClass);
+        return Collections.emptyList();
+    }
 
+    private List<MethodNode> delegateCallToRwClass(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode rwClass) {
         List<MethodNode> rwMethods = verificationVisitor.findMethod(rwClass, name, argumentTypes);
 
         if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
-            MethodCallExpression methodCall = (MethodCallExpression) call;
-            Expression objectExpression = methodCall.getObjectExpression();
-            methodCall.setObjectExpression(new PropertyExpression(objectExpression, new ConstantExpression("$rw"), true));
+            redirectMethodCallToProperty((MethodCallExpression) call, NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         }
-
         return rwMethods;
+    }
+
+    private void redirectMethodCallToProperty(MethodCallExpression call, String propertyName) {
+        Expression objectExpression = call.getObjectExpression();
+        call.setObjectExpression(new PropertyExpression(objectExpression, new ConstantExpression(propertyName), true));
     }
 
 }
