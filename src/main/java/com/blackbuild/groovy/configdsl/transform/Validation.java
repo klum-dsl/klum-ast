@@ -42,7 +42,6 @@ import java.lang.annotation.*;
  * By setting the option to {@link Option#VALIDATE_UNMARKED}, this behaviour is inverted. In that case,
  * all fields are validated except for the following:</p>
  * <ul>
- *     <li>fields explicitly marked with {@link Ignore}</li>
  *     <li>fields explicitly marked with {@code @Validate(IGNORE)}</li>
  *     <li>{@code transient} fields</li>
  *     <li>fields whose name starts with '$' (as these fields are ignored by KlumAST altogether)</li>
@@ -66,7 +65,7 @@ public @interface Validation {
     /**
      * Configures which fields are validated. When set to default {@link Option#IGNORE_UNMARKED}, only fields
      * explitcly marked with {@link Validate} are validated, when set to {@link Option#VALIDATE_UNMARKED}, all fields
-     * not explicitly ignored (by {@link Ignore} or {@code Validate(IGNORE)} are validated.
+     * not explicitly ignored (by {@code Validate(IGNORE)} are validated.
      */
     Option option() default Option.IGNORE_UNMARKED;
 

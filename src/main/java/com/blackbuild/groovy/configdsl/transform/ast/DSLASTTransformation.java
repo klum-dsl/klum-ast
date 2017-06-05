@@ -78,7 +78,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    public static final ClassNode IGNORE_ANNOTATION = make(Ignore.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
@@ -542,7 +541,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if (fieldNode == keyField) return true;
         if (fieldNode == ownerField) return true;
-        if (CommonAstHelper.getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
@@ -550,7 +548,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     boolean shouldFieldBeIgnoredForValidation(FieldNode fieldNode) {
-        if (CommonAstHelper.getAnnotation(fieldNode, IGNORE_ANNOTATION) != null) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         return false;

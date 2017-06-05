@@ -287,23 +287,6 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == "Dieter"
     }
 
-    def "@Ignore members are ignored"() {
-        given:
-        createInstance('''
-            @DSL
-            class Foo {
-                @Ignore
-                String value
-            }
-        ''')
-
-        when:
-        instance.value "Dieter"
-
-        then:
-        thrown MissingMethodException
-    }
-
     @Issue('#21')
     def "final fields are ignored"() {
         when:
