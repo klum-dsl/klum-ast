@@ -53,7 +53,6 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     @Override
     public void visitBinaryExpression(BinaryExpression expression) {
         super.visitBinaryExpression(expression);
-
         checkForIllegalAssignment(expression);
     }
 

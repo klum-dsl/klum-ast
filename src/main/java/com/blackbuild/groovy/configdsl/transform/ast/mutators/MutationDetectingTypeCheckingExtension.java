@@ -34,7 +34,6 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
 
 /**
@@ -53,25 +52,29 @@ public class MutationDetectingTypeCheckingExtension extends AbstractTypeChecking
     @Override
     public List<MethodNode> handleMissingMethod(ClassNode receiver, String name, ArgumentListExpression argumentList, ClassNode[] argumentTypes, MethodCall call) {
 
+        List<MethodNode> result = handleCallToMutatorMethodOfDifferentModel(receiver, name, argumentTypes, call);
+
+        if (!result.isEmpty())
+            return result;
+
+        return Collections.emptyList();
+    }
+
+    private List<MethodNode> handleCallToMutatorMethodOfDifferentModel(ClassNode receiver, String name, ClassNode[] argumentTypes, MethodCall call) {
         if (!verificationVisitor.isInMutatorMethod())
             return Collections.emptyList();
 
         ClassNode rwClass = DslAstHelper.getRwClassOf(receiver);
         if (rwClass != null)
-            return delegateCallsToProperty(name, argumentTypes, call, rwClass, NAME_OF_RW_FIELD_IN_MODEL_CLASS);
-
-        ClassNode modelClassOfReceiver = DslAstHelper.getModelClassFor(receiver);
-        if (modelClassOfReceiver != null)
-            return delegateCallsToProperty(name, argumentTypes, call, modelClassOfReceiver, NAME_OF_MODEL_FIELD_IN_RW_CLASS);
-
+            return delegateCallToRwClass(name, argumentTypes, call, rwClass);
         return Collections.emptyList();
     }
 
-    private List<MethodNode> delegateCallsToProperty(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode rwClass, String property) {
+    private List<MethodNode> delegateCallToRwClass(String name, ClassNode[] argumentTypes, MethodCall call, ClassNode rwClass) {
         List<MethodNode> rwMethods = verificationVisitor.findMethod(rwClass, name, argumentTypes);
 
         if (!rwMethods.isEmpty() && (call instanceof MethodCallExpression)) {
-            redirectMethodCallToProperty((MethodCallExpression) call, property);
+            redirectMethodCallToProperty((MethodCallExpression) call, NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         }
         return rwMethods;
     }

@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Binding;
-import groovy.lang.Delegate;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
@@ -41,7 +40,6 @@ import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
-import org.codehaus.groovy.transform.DelegateASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 
@@ -95,7 +93,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final ClassNode READONLY_ANNOTATION = make(ReadOnly.class);
-    public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "_model";
+    public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -125,8 +123,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createRWClass();
 
         setPropertyAccessors();
-
-        delegateFromRwToModel();
 
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
@@ -180,9 +176,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         CommonAstHelper.replaceProperties(annotatedClass, newNodes);
-
     }
-
 
     private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
         if (shouldFieldBeIgnored(pNode.getField()))
@@ -238,28 +232,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
-                ACC_STATIC,
+                0,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 new MixinNode[0]);
 
-        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE, newClass(annotatedClass), null);
+        // Need to explicitly add this field for non static inner classes (Groovy Bug?)
+        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
-        BlockStatement constructorBody = new BlockStatement();
-
-        if (parentRW != null)
-            constructorBody.addStatement(ctorSuperS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS)));
-
-        constructorBody.addStatement(
-                assignS(propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS))
-        );
-
-        rwClass.addConstructor(
-                0,
-                params(param(newClass(annotatedClass), NAME_OF_MODEL_FIELD_IN_RW_CLASS)),
-                CommonAstHelper.NO_EXCEPTIONS,
-                constructorBody
-        );
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
         annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
@@ -278,16 +258,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         )
                 )
                 .addTo(rwClass);
-    }
-
-    private void delegateFromRwToModel() {
-        AnnotationNode delegateAnnotation = new AnnotationNode(ClassHelper.make(Delegate.class));
-        delegateAnnotation.setMember("parameterAnnotations", constX(true));
-        delegateAnnotation.setMember("methodAnnotations", constX(true));
-        delegateAnnotation.setMember("excludes", constX("methodMissing"));
-        ASTNode[] astNodes = new ASTNode[] { delegateAnnotation, rwClass.getField(NAME_OF_MODEL_FIELD_IN_RW_CLASS)};
-
-        new DelegateASTTransformation().visit(astNodes, sourceUnit);
     }
 
     private ClassNode getRwClassOfDslParent() {
