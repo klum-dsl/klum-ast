@@ -937,16 +937,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ))
                 .addTo(annotatedClass);
 
-
-        createPublicMethod("createFromScript")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                .doReturn(callX(annotatedClass, "createFrom", args("configType")))
-                .addTo(annotatedClass);
-
-
         createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
@@ -987,15 +977,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);
-
-            createPublicMethod("createFromSnippet")
-                    .deprecated()
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("name")
-                    .stringParam("text")
-                    .doReturn(callX(annotatedClass, "createFrom", args("name", "text")))
-                    .addTo(annotatedClass);
         } else {
             createPublicMethod("createFrom")
                     .returning(newClass(annotatedClass))
@@ -1022,29 +1003,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("script", "run")
                     .doReturn("result")
                     .addTo(annotatedClass);
-
-            createPublicMethod("createFromSnippet")
-                    .deprecated()
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("text")
-                    .doReturn(callX(annotatedClass, "createFrom", args("text")))
-                    .addTo(annotatedClass);
         }
 
         createPublicMethod("createFrom")
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .param(make(File.class), "src")
-                .doReturn(callX(annotatedClass, "createFromSnippet", args(callX(callX(varX("src"), "toURI"), "toURL"))))
-                .addTo(annotatedClass);
-
-        createPublicMethod("createFromSnippet")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .param(make(File.class), "src")
-                .doReturn(callX(annotatedClass, "createFrom", args("src")))
+                .doReturn(callX(annotatedClass, "createFrom", args(callX(callX(varX("src"), "toURI"), "toURL"))))
                 .addTo(annotatedClass);
 
         createPublicMethod("createFrom")
@@ -1052,15 +1017,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(ACC_STATIC)
                 .param(make(URL.class), "src")
                 .declareVariable("text", propX(varX("src"), "text"))
-                .doReturn(callX(annotatedClass, "createFromSnippet", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
-                .addTo(annotatedClass);
-
-        createPublicMethod("createFromSnippet")
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .param(make(URL.class), "src")
-                .doReturn(callX(annotatedClass, "createFrom", args("src")))
+                .doReturn(callX(annotatedClass, "createFrom", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
                 .addTo(annotatedClass);
     }
 

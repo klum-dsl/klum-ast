@@ -35,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -68,7 +68,6 @@ class TemplateMethods {
     public void invoke() {
         addTemplateFieldToAnnotatedClass();
         createImplementationForAbstractClassIfNecessary();
-        createTemplateMethod();
         createAsTemplateMethods();
         copyFromTemplateMethod();
         copyFromMethod();
@@ -238,7 +237,6 @@ class TemplateMethods {
     private void copyFromTemplateMethod() {
         DslMethodBuilder
                 .createProtectedMethod(COPY_FROM_TEMPLATE)
-                .deprecated()
                 .mod(ACC_SYNTHETIC)
                 .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
                 .callThis("copyFrom", args(getTemplateValueExpression()))
@@ -253,19 +251,6 @@ class TemplateMethods {
     @NotNull
     private MethodCallExpression setTemplateValueExpression(Expression value) {
         return callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "set", args(value));
-    }
-
-    private void createTemplateMethod() {
-        DslMethodBuilder.createPublicMethod(CREATE_TEMPLATE)
-                .deprecated()
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "remove")
-                .declareVariable("result", callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
-                .callMethod(propX(varX("this"), TEMPLATE_FIELD_NAME), "set", varX("result"))
-                .doReturn("result")
-                .addTo(annotatedClass);
     }
 
     private void createAsTemplateMethods() {
@@ -287,23 +272,6 @@ class TemplateMethods {
                 .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args(new MapExpression(), varX("closure"))))
                 .addTo(annotatedClass);
-
-        DslMethodBuilder.createPublicMethod(MAKE_TEMPLATE)
-                .returning(newClass(annotatedClass))
-                .deprecated()
-                .mod(ACC_STATIC)
-                .namedParams("values")
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("values", "closure")))
-                .addTo(annotatedClass);
-
-        DslMethodBuilder.createPublicMethod(MAKE_TEMPLATE)
-                .returning(newClass(annotatedClass))
-                .deprecated()
-                .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args("closure")))
-                .addTo(annotatedClass);
     }
 
     private void createTemplateClass() {
@@ -315,7 +283,7 @@ class TemplateMethods {
                 newClass(annotatedClass));
 
         // TODO Remove once createTemplate is removed
-        templateClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(templateClass), null);
+        // templateClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC, newClass(templateClass), null);
 
         if (keyField != null) {
             templateClass.addConstructor(
