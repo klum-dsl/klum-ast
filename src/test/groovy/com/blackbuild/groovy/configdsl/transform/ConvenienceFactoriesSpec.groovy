@@ -51,7 +51,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createFromScript(scriptClass)
+        instance = clazz.createFrom(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -99,32 +99,14 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet(configText)
+        instance = clazz.createFrom(configText)
 
         then:
         instance.class.name == "pk.Foo"
         instance.value == "bla"
     }
 
-    def "createFromSnippet is deprecated"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String value
-            }
-        ''')
-
-        when:
-        def method = clazz.getDeclaredMethod("createFromSnippet", String)
-
-        then:
-        method.getAnnotation(Deprecated) != null
-    }
-
-    def "convenience factory with static methods"() {
+    def "convenience factory with template"() {
         given:
         createClass('''
             package pk
@@ -142,17 +124,15 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         def configText = '''
-            pk.Bar.createTemplate {
-                bValue "default"
-            }
             value "bla"
 
-            bar {}
-
+            pk.Bar.withTemplate(bValue: 'default') {
+                bar {}
+            }
         '''
 
         when:
-        instance = clazz.createFromSnippet(configText)
+        instance = clazz.createFrom(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -177,7 +157,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet("blub", configText)
+        instance = clazz.createFrom("blub", configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -201,7 +181,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet(src)
+        instance = clazz.createFrom(src)
 
         then:
         instance.class.name == "pk.Foo"
@@ -225,7 +205,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet(src)
+        instance = clazz.createFrom(src)
 
         then:
         instance.class.name == "pk.Foo"
@@ -250,7 +230,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFromSnippet(src.toURI().toURL())
+        instance = clazz.createFrom(src.toURI().toURL())
 
         then:
         instance.class.name == "pk.Foo"

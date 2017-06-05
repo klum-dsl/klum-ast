@@ -424,7 +424,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createTemplate {
+        instance = clazz.createAsTemplate {
             nonValidated "bla"
         }
 

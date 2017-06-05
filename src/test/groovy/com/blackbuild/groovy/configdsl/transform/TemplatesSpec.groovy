@@ -27,6 +27,8 @@ import spock.lang.Issue
 
 class TemplatesSpec extends AbstractDSLSpec {
 
+    def template
+
     def "copyFrom method is created"() {
         when:
         createClass('''
@@ -42,7 +44,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
 
         when:
-        def template = clazz.create {
+        template = clazz.create {
             name "Welt"
         }
 
@@ -88,7 +90,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "orig"
     }
 
-    def "createTemplate is deprecated"() {
+    def "a thread local template class field is created"() {
         when:
         createClass('''
             package pk
@@ -99,33 +101,32 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String value = "hallo"
             }
         ''')
-
-        then:
-        clazz.getMethod("createTemplate", Closure).getAnnotation(Deprecated) != null
-    }
-
-    def "createTemplate method creates template class field"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                String value = "hallo"
-            }
-        ''')
-
-        when:
-        clazz.createTemplate {
-            name "Welt"
-            value "Hallo"
-        }
 
         then:
         clazz.$TEMPLATE instanceof ThreadLocal
-        clazz.$TEMPLATE.get().name == "Welt"
-        clazz.$TEMPLATE.get().value == "Hallo"
+    }
+
+    def "withTemplate method sets template field"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value = "hallo"
+            }
+        ''')
+
+        then:
+        clazz.$TEMPLATE.get() == null
+
+        !clazz.withTemplate(name: 'Welt', value: 'Hallo') { // The '!' is to ignore the result of withTemplate, which is null in this case
+            assert clazz.$TEMPLATE.get().name == "Welt"
+            assert clazz.$TEMPLATE.get().value == "Hallo"
+        }
+
+        clazz.$TEMPLATE.get() == null
     }
 
     def "create method should apply template"() {
@@ -141,14 +142,16 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        clazz.createTemplate {
+        template = clazz.createAsTemplate {
             name "Default"
             value "DefaultValue"
         }
 
         when:
-        instance = clazz.create {
-            name "own"
+        clazz.withTemplate(template) {
+            instance = clazz.create {
+                name "own"
+            }
         }
 
         then:
@@ -170,14 +173,16 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        clazz.createTemplate {
+        template = clazz.createAsTemplate {
             value "DefaultValue"
             value2 "DefaultValue2"
         }
 
         when:
-        instance = clazz.create("Hallo") {
-            value "own"
+        clazz.withTemplate(template) {
+            instance = clazz.create("Hallo") {
+                value "own"
+            }
         }
 
         then:
@@ -198,42 +203,17 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        clazz.createTemplate {
+        template = clazz.createAsTemplate {
             names "a", "b"
         }
 
         when:
-        instance = clazz.create {}
-
-        then:
-        !instance.names.is(clazz.$TEMPLATE.get().names)
-    }
-
-    def "BUG Redefining a template should completely drop the old template"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                List<String> names
-            }
-        ''')
-
-        and:
-        clazz.createTemplate {
-            names "a", "b"
+        clazz.withTemplate(template) {
+            instance = clazz.create {}
         }
 
-        clazz.createTemplate {
-            names "c", "d"
-        }
-
-        when:
-        instance = clazz.create {}
-
         then:
-        instance.names == ["c", "d"]
+        !instance.names.is(template.names)
     }
 
     def "BUG applying a template with a List leads to UnsupportedOperationException"() {
@@ -259,13 +239,18 @@ class TemplatesSpec extends AbstractDSLSpec {
         def grandChildClass = getClass("pk.GrandChild")
 
         and:
-        clazz.createTemplate {
+        def childTemplate
+        template = clazz.createAsTemplate {
             name "bli"
         }
-        childClass.createTemplate {}
+        clazz.withTemplate(template) {
+            childTemplate = childClass.createAsTemplate {}
+        }
 
         when:
-        instance = grandChildClass.create("Bla") {}
+        clazz.withTemplate(childTemplate) {
+            instance = grandChildClass.create("Bla") {}
+        }
 
         then:
         notThrown(UnsupportedOperationException)
@@ -289,12 +274,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             name "default"
         }
 
         when:
-        instance = create("pk.Child") {}
+        getClass("pk.Parent").withTemplate(template) {
+            instance = create("pk.Child") {}
+        }
 
         then:
         instance.name == "default"
@@ -405,12 +392,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Child").createTemplate {
+        template = getClass("pk.Child").createAsTemplate {
             name "default"
         }
 
         when:
-        instance = create("pk.Child") {}
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {}
+        }
 
         then:
         instance.name == "default"
@@ -433,13 +422,15 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Child").createTemplate {
+        template = getClass("pk.Child").createAsTemplate {
             name "default"
             value "defaultValue"
         }
 
         when:
-        instance = create("pk.Child") {}
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {}
+        }
 
         then:
         instance.name == "default"
@@ -463,19 +454,19 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
-        getClass("pk.Child").createTemplate {
+        def childTemplate = getClass("pk.Child").createAsTemplate {
             name "child"
         }
 
-        expect:
-        getClass("pk.Parent").$TEMPLATE.get().class == getClass("pk.Parent")
-        getClass("pk.Child").$TEMPLATE.get().class == getClass("pk.Child")
-
         when:
-        instance = create("pk.Child") {}
+        getClass("pk.Parent").withTemplate(template) {
+            getClass("pk.Child").withTemplate(childTemplate) {
+                instance = create("pk.Child") {}
+            }
+        }
 
         then:
         instance.name == "child"
@@ -503,13 +494,15 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Child").createTemplate {
+        template = getClass("pk.Child").createAsTemplate {
             name "child"
         }
 
         when:
-        instance = clazz.create {
-            child {}
+        getClass("pk.Child").withTemplate(template) {
+            instance = clazz.create {
+                child {}
+            }
         }
 
         then:
@@ -538,13 +531,15 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
 
         when:
-        instance = clazz.create {
-            child {}
+        getClass("pk.Parent").withTemplate(template) {
+            instance = clazz.create {
+                child {}
+            }
         }
 
         then:
@@ -575,14 +570,16 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        getClass("pk.Child").createTemplate {
+        template = getClass("pk.Child").createAsTemplate {
             name "child"
         }
 
         when:
-        instance = clazz.create {
-            children {
-                child {}
+        getClass("pk.Child").withTemplate(template) {
+            instance = clazz.create {
+                children {
+                    child {}
+                }
             }
         }
 
@@ -609,23 +606,34 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.name == "default"
 
         when:
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
-
-        then:
-        create("pk.Child") {}.name == "parent"
-
-        when:
-        getClass("pk.Child").createTemplate {
-            name "child"
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {}
         }
 
         then:
-        create("pk.Child") {}.name == "child"
+        instance.name == "parent"
 
-        and:
-        create("pk.Child") { name "explicit" }.name == "explicit"
+        when:
+        template = getClass("pk.Child").createAsTemplate {
+            name "child"
+        }
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {}
+        }
+
+        then:
+        instance.name == "child"
+
+        when:
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {name "explicit"}
+        }
+
+        then:
+        instance.name == "explicit"
     }
 
     def "templates add to parent templates collections"() {
@@ -647,24 +655,42 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.names == ["default"]
 
         when:
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             names "parent"
         }
 
         then:
-        getClass("pk.Parent").$TEMPLATE.get().names == ["default", "parent"]
-        create("pk.Child") {}.names == ["default", "parent"]
+        template.names == ["default", "parent"]
 
         when:
-        getClass("pk.Child").createTemplate {
-            names "child"
+        getClass("pk.Child").withTemplate(template) {
+            instance = create("pk.Child") {}
         }
 
         then:
-        create("pk.Child") {}.names == ["default", "parent", "child"]
+        instance.names == ["default", "parent"]
 
-        and:
-        create("pk.Child") { name "explicit"}.names == ["default", "parent", "child", "explicit"]
+        when:
+        def childTemplate
+        getClass("pk.Parent").withTemplate(template) {
+            childTemplate = getClass("pk.Child").createAsTemplate {
+                names "child"
+            }
+        }
+        getClass("pk.Child").withTemplate(childTemplate) {
+            instance = create("pk.Child") {}
+        }
+
+        then:
+        instance.names == ["default", "parent", "child"]
+
+        when:
+        getClass("pk.Child").withTemplate(childTemplate) {
+            instance = create("pk.Child") { name "explicit" }
+        }
+
+        then:
+        instance.names == ["default", "parent", "child", "explicit"]
     }
 
     def "explicitly override parent templates collections"() {
@@ -681,17 +707,23 @@ class TemplatesSpec extends AbstractDSLSpec {
             class Child extends Parent {
             }
         ''')
-        getClass("pk.Parent").createTemplate {
+        template = getClass("pk.Parent").createAsTemplate {
             names "parent"
         }
 
         when:
-        getClass("pk.Child").createTemplate {
-            names = ["child"]
+        def childTemplate
+        getClass("pk.Parent").withTemplate(template) {
+            childTemplate = getClass("pk.Child").createAsTemplate {
+                names = ["child"]
+            }
+        }
+        getClass("pk.Child").withTemplate(childTemplate) {
+            instance = create("pk.Child") { name "explicit"}
         }
 
         then:
-        create("pk.Child") { name "explicit"}.names == ["child", "explicit"]
+        instance.names == ["child", "explicit"]
     }
 
     def "BUG: apply overrides overridden values again"() {
@@ -704,13 +736,15 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
-        clazz.createTemplate {
+        template = clazz.createAsTemplate {
             value "default"
         }
 
         when:
-        instance = create("pk.Foo") {
-            value "non-default"
+        clazz.withTemplate(template) {
+            instance = create("pk.Foo") {
+                value "non-default"
+            }
         }
 
         then:
@@ -1084,29 +1118,6 @@ class TemplatesSpec extends AbstractDSLSpec {
         then:
         instance.name == "Default"
         instance.value == "bla"
-    }
-
-    @Issue('https://github.com/klum-dsl/klum-ast/issues/61')
-    def "old 'makeTemplate' methods are deprecated"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            abstract class Foo {
-                String name
-            }
-            
-            @DSL
-            class Bar extends Foo {
-                String value
-            }
-        ''')
-
-        then:
-        def makeTemplatesMethods = allMethodsNamed('makeTemplate')
-        makeTemplatesMethods.size() == 4 // with / without Map * Closure with default value
-        makeTemplatesMethods.every { isDeprecated( it )}
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/85')
