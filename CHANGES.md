@@ -1,3 +1,6 @@
+## 1.1.1
+- access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))
+
 ## 1.1
 - Changed supported groovy version to 2.4
 - removed deprecated methods (`createTemplate` and `createFrom*`)

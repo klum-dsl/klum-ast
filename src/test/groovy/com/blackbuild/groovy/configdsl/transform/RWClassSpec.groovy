@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import groovyjarjarasm.asm.Opcodes
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -194,5 +195,47 @@ class RWClassSpec extends AbstractDSLSpec {
 
         then:
         coerced == instance
+    }
+
+    @Issue("99")
+    def "config closures for inner objects have access to their owner field with static type checking enabled"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Container {
+                Foo foo
+                
+                String name
+            }
+            
+            @DSL
+            class Foo {
+                @Owner Container container
+                String childName
+            }
+        ''')
+
+        when:
+        def script = createSecondaryClass '''
+        @groovy.transform.TypeChecked
+        class Configuration extends Script {
+      
+            def run() {
+                pk.Container.create {
+                    name "parent"
+                    foo {
+                        childName "$container.name::child"                    
+                    }
+                }
+            }
+        }  
+'''
+        instance = clazz.createFrom(script)
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        instance.foo.childName == "parent::child"
     }
 }

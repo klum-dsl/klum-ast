@@ -167,11 +167,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (annotatedClassHoldsOwner()) {
-            PropertyNode ownerProperty = annotatedClass.getProperty(ownerField.getName());
+            String ownerFieldName = ownerField.getName();
+            PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
             ownerProperty.setSetterBlock(null);
-            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerField.getName()))));
+            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
 
             newNodes.add(ownerProperty);
+
+            String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
+            createPublicMethod(ownerGetter)
+                    .returning(ownerField.getType())
+                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
+                    .addTo(rwClass);
+        }
+
+        if (keyField != null) {
+            String keyGetter = "get" + Verifier.capitalize(keyField.getName());
+            createPublicMethod(keyGetter)
+                    .returning(keyField.getType())
+                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
+                    .addTo(rwClass);
         }
 
         CommonAstHelper.replaceProperties(annotatedClass, newNodes);
