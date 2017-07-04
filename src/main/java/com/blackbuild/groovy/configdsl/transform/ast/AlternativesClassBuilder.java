@@ -25,16 +25,16 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.BlockStatement;
-import org.codehaus.groovy.ast.stmt.ExpressionStatement;
-import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MapEntryExpression;
+import org.codehaus.groovy.ast.expr.MapExpression;
 
 import java.beans.Introspector;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -44,7 +44,6 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
@@ -82,7 +81,7 @@ class AlternativesClassBuilder {
             return Collections.emptyMap();
 
         assertClosureHasNoParameters(alternativesClosure);
-        MapExpression map = getLiteralMapExpressionFromClosure(alternativesClosure);
+        MapExpression map = CommonAstHelper.getLiteralMapExpressionFromClosure(alternativesClosure);
 
         if (map == null) {
             CommonAstHelper.addCompileError("Illegal value for 'alternative', must contain a closure with a literal map definition.", fieldNode, fieldAnnotation);
@@ -92,9 +91,8 @@ class AlternativesClassBuilder {
         Map<ClassNode, String> result = new HashMap<ClassNode, String>();
 
         for (MapEntryExpression entry : map.getMapEntryExpressions()) {
-            String methodName = getKeyString(entry);
-            ClassNode classNode = getClassNodeValue(entry);
-            if (classNode == null) continue;
+            String methodName = CommonAstHelper.getKeyStringFromLiteralMapEntry(entry, fieldNode);
+            ClassNode classNode = CommonAstHelper.getClassNodeValueFromLiteralMapEntry(entry, fieldNode);
 
             if (!classNode.isDerivedFrom(elementType))
                 CommonAstHelper.addCompileError(String.format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
@@ -106,34 +104,6 @@ class AlternativesClassBuilder {
         }
 
         return result;
-    }
-
-    private String getKeyString(MapEntryExpression entryExpression) {
-        Expression result = entryExpression.getKeyExpression();
-        if (result instanceof ConstantExpression && result.getType().equals(STRING_TYPE))
-            return result.getText();
-
-        CommonAstHelper.addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
-        return null;
-    }
-
-    private ClassNode getClassNodeValue(MapEntryExpression entryExpression) {
-        Expression result = entryExpression.getValueExpression();
-        if (result instanceof ClassExpression)
-            return result.getType();
-
-        CommonAstHelper.addCompileError("Map for 'alternatives' must only contain literal String to literal Class mappings.", fieldNode, entryExpression);
-        return null;
-    }
-
-    private MapExpression getLiteralMapExpressionFromClosure(ClosureExpression closure) {
-        BlockStatement code = (BlockStatement) closure.getCode();
-        if (code.getStatements().size() != 1) return null;
-        Statement statement = code.getStatements().get(0);
-        if (!(statement instanceof ExpressionStatement)) return null;
-        Expression expression = ((ExpressionStatement) statement).getExpression();
-        if (!(expression instanceof MapExpression)) return null;
-        return (MapExpression) expression;
     }
 
     private void assertClosureHasNoParameters(ClosureExpression alternativesClosure) {
