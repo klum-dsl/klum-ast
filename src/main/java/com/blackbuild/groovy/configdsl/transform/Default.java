@@ -37,19 +37,19 @@ import java.lang.annotation.*;
  *  <li>{@code closure}: execute the closure (in the context of {@code this}) and return the result</li>
  * </ul>
  *
- * <pre><code>
+ * ```groovy
  * given:
- * &#064;DSL
+ * .@DSL
  * class Container {
  *   String name
  *   Element element
  * }
  *
- * &#064;DSL
+ * .@DSL
  * class Element {
- *   &#064;Owner Container owner
+ *   .@Owner Container owner
  *
- *   &#064;Default(delegate = 'owner')
+ *   .@Default(delegate = 'owner')
  *   String name
  * }
  *
@@ -72,7 +72,7 @@ import java.lang.annotation.*;
  *
  * then:
  * instance.element.name == "inner"
- * </code></pre>
+ * ```
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)

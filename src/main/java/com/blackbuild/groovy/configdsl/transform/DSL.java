@@ -42,11 +42,11 @@ import java.lang.annotation.*;
  object, using a String and a closure parameter.
 
  ```groovy
- {@literal @DSL}
+ .@DSL
  class Config {
  }
 
- {@literal @DSL}
+ .@DSL
  class ConfigWithKey {
  {@literal @Key }String name
  }
@@ -75,8 +75,8 @@ import java.lang.annotation.*;
 
  ```groovy
  Config.create {
- name "Dieter"
- age 15
+   name "Dieter"
+   age 15
  }
  ```
 
@@ -123,7 +123,7 @@ import java.lang.annotation.*;
  For each simple value field create an accessor named like the field, containing the field type as parameter
 
  ```groovy
- {@literal @DSL}
+ .@DSL
  class Config {
    String name
  }
@@ -152,7 +152,7 @@ import java.lang.annotation.*;
  -   an adder method named like the element name of the collection an containing a the element type
 
  ```groovy
- {@literal @DSL}
+ .@DSL
  class Config {
    List<String> roles
    Map<String, Integer> levels
@@ -187,20 +187,20 @@ import java.lang.annotation.*;
  String parameter. Also, a regular setter method is created for reusing an existing object.
 
  ```groovy
- {@literal @DSL}
+ .@DSL
  class Config {
    UnKeyed unkeyed
    Keyed keyed
  }
 
- {@literal @DSL}
+ .@DSL
  class UnKeyed {
    String name
  }
 
- {@literal @DSL}
+ .@DSL
  class Keyed {
- {@literal @Key }String name
+ .@Key String name
  String value
  }
  ```
@@ -209,9 +209,9 @@ import java.lang.annotation.*;
 
  ```groovy
  def unkeyed(UnKeyed reuse) // reuse an exiting object
- Unkeyed unkeyed({@literal @DelegatesTo}(Unkeyed) Closure closure)
+ Unkeyed unkeyed(.@DelegatesTo(Unkeyed) Closure closure)
  def keyed(UnKeyed reuse) // reuse an exiting object
- Keyed keyed(String key, {@literal @DelegatesTo}(Unkeyed) Closure closure)
+ Keyed keyed(String key, .@DelegatesTo(Unkeyed) Closure closure)
  ```
 
  Usage:
@@ -261,22 +261,22 @@ import java.lang.annotation.*;
  As with simple objects, the inner closures return the existing object for reuse
 
  ```groovy
- {@literal @DSL}
+ .@DSL
  class Config {
    List<UnKeyed> elements
    List<Keyed> keyedElements
    Map<String, Keyed> mapElements
  }
 
- {@literal @DSL}
+ .@DSL
  class UnKeyed {
    String name
  }
 
- {@literal @DSL}
+ .@DSL
  class Keyed {
-   {@literal @Owner} owner
-   {@literal @Key} String name
+   .@Owner owner
+   .@Key String name
    String value
  }
 
@@ -351,7 +351,7 @@ import java.lang.annotation.*;
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
  non-Keyed model objects might result in a severe degradation of performance of that Set.
 
- # The {@literal @Key} annotation
+ # The .@Key annotation
 
  The key annotation is used to designate a special key field, making the annotated class a keyed class. This has the
  following consequences:
@@ -361,9 +361,9 @@ import java.lang.annotation.*;
  - factory and apply methods get an additional key parameter
  - only keyed classes are allowed as values in a Map
 
- # The {@literal @Owner} annotation
+ # The .@Owner annotation
 
- DSL-Objects can have an optional owner field, decorated with the `{@literal @Owner}` annotation.
+ DSL-Objects can have an optional owner field, decorated with the `.@Owner` annotation.
 
  When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
  the owner-field is automatically set to the outer instance.
@@ -376,14 +376,14 @@ import java.lang.annotation.*;
  object that an object is assigned to, is the actual owner.
 
  ```groovy
- {@literal @DSL}
+ .@DSL
    class Foo {
    Bar bar
  }
 
- {@literal @DSL}
+ .@DSL
  class Bar {
-   {@literal @Owner} Foo owner
+   .@Owner Foo owner
  }
 
  def c = Config.create {
