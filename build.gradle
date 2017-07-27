@@ -32,6 +32,7 @@ apply plugin: 'nebula.source-jar'
 apply plugin: 'nebula.contacts'
 apply plugin: 'ch.raffael.markdown-doclet'
 apply plugin: 'com.jfrog.bintray'
+apply plugin: "org.sonarqube"
 
 description 'A transformation for creating convenient configuration model DSLs.'
 
@@ -93,44 +94,20 @@ contacts {
     }
 }
 
-/*
-modifyPom {
-    project {
-        name 'KlumDSL'
-        packaging 'jar'
-        description 'A transformation for creating convenient configuration model DSLs.'
-        url 'https://github.com/klum-dsl/klum-ast'
-
-        scm {
-            connection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
-            developerConnection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
-            url 'https://github.com/klum-dsl/klum-ast'
-        }
-
-        licenses {
-            license {
-                name 'The MIT License (MIT)'
-                url 'http://opensource.org/licenses/MIT'
-            }
-        }
-
-        developers {
-            developer {
-                id 'pauxus'
-                name 'Stephan Pauxberger'
-                email 'stephan@blackbuild.com'
+publishing {
+    publications {
+        nebula(MavenPublication) {
+            pom.withXml {
+                def p = asNode()
+                p.dependencies.dependency.find { it.artifactId.text() == "groovy-all" }.appendNode('optional', true)
+                p.dependencies.dependency.find { it.artifactId.text() == "openapi" }.appendNode('optional', true)
+                p.name.first().setValue('KlumAST')
+                p.appendNode('licenses').appendNode('license').
+                        appendNode('name', 'The MIT License (MIT)').parent().
+                        appendNode('url', 'http://opensource.org/licenses/MIT')
             }
         }
     }
 }
-*/
 
-//afterEvaluate {
-//    // modify dependecies for generated pom
-//    project.poms*.whenConfigured { pom ->
-//        pom.dependencies.find { it.artifactId == "groovy-all" }.optional = true
-//        pom.dependencies.find { it.artifactId == "openapi" }.optional = true
-//    }
-//}
-
-tasks.release.dependsOn tasks.publish
+// tasks.release.dependsOn tasks.publish
