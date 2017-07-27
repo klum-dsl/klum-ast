@@ -7,9 +7,11 @@ buildscript {
         }
     }
     dependencies {
-        classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.9.0"
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
-        classpath 'net.researchgate:gradle-release:2.6.0'
+        classpath 'com.netflix.nebula:gradle-contacts-plugin:3.0.1'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.0'
+        classpath 'com.netflix.nebula:nebula-release-plugin:6.0.0'
+        classpath 'com.netflix.nebula:gradle-info-plugin:3.+'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'ch.raffael.markdown-doclet:markdown-doclet:1.4'
         classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
@@ -19,13 +21,20 @@ buildscript {
 ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 
 apply plugin: 'groovy'
+apply plugin: 'java-library'
 apply plugin: 'jacoco'
-apply plugin: 'com.bmuschko.nexus'
-apply plugin: 'io.codearte.nexus-staging'
-apply plugin: 'net.researchgate.release'
+apply plugin: 'nebula.maven-publish'
+apply plugin: 'nebula.release'
 apply plugin: 'license'
-apply plugin: "org.sonarqube"
+apply plugin: 'nebula.info'
+apply plugin: 'nebula.javadoc-jar'
+apply plugin: 'nebula.source-jar'
+apply plugin: 'nebula.contacts'
 apply plugin: 'ch.raffael.markdown-doclet'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: "org.sonarqube"
+
+description 'A transformation for creating convenient configuration model DSLs.'
 
 sourceCompatibility = JavaVersion.VERSION_1_6
 targetCompatibility = JavaVersion.VERSION_1_6
@@ -34,13 +43,40 @@ repositories {
     mavenCentral()
 }
 
+bintray {
+    user = findProperty('bintrayUser')
+    key = findProperty('bintrayApiKey')
+
+    publications = ['nebula']
+    dryRun = false
+    publish = true
+    pkg {
+        repo = 'klum-dsl'
+        userOrg = 'klum-dsl'
+        name = project.name
+        desc = project.description
+        websiteUrl = 'https://github.com/klum-dsl/klum-ast'
+        issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
+        vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
+        licenses = ['MIT']
+        labels = ['groovy', 'ast']
+        publicDownloadNumbers = true
+        attributes = [:]
+        version {
+            name = project.version
+            vcsTag = project.version
+            attributes = [:]
+        }
+    }
+}
+
 jacoco {
     toolVersion = "0.7.8"
 }
 
 dependencies {
-    compile "org.codehaus.groovy:groovy-all:${groovyVersion}"
-    compile "com.intellij:openapi:7.0.3"
+    compileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    compileOnly "com.intellij:openapi:7.0.3"
     testCompile("org.spockframework:spock-core:${spockVersion}")
     testRuntime "cglib:cglib-nodep:3.1"          // allows mocking of classes (in addition to interfaces)
     testRuntime "org.objenesis:objenesis:2.1"    // allows mocking of classes without default constructor (together with CGLIB)
@@ -51,50 +87,27 @@ task wrapper(type: Wrapper) {
     gradleVersion = '3.3'
 }
 
-release {
-    tagTemplate = 'v${version}'
+contacts {
+    'stephan@blackbuild.com' {
+        moniker 'Stephan Pauxberger'
+        github 'pauxus'
+    }
 }
 
-nexusStaging {
-    packageGroup = "com.blackbuild"
-}
-
-modifyPom {
-    project {
-        name 'KlumDSL'
-        packaging 'jar'
-        description 'A transformation for creating convenient configuration model DSLs.'
-        url 'https://github.com/klum-dsl/klum-ast'
-
-        scm {
-            connection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
-            developerConnection 'scm:svn:https://github.com/klum-dsl/klum-ast.git'
-            url 'https://github.com/klum-dsl/klum-ast'
-        }
-
-        licenses {
-            license {
-                name 'The MIT License (MIT)'
-                url 'http://opensource.org/licenses/MIT'
-            }
-        }
-
-        developers {
-            developer {
-                id 'pauxus'
-                name 'Stephan Pauxberger'
-                email 'stephan@blackbuild.com'
+publishing {
+    publications {
+        nebula(MavenPublication) {
+            pom.withXml {
+                def p = asNode()
+                p.dependencies.dependency.find { it.artifactId.text() == "groovy-all" }.appendNode('optional', true)
+                p.dependencies.dependency.find { it.artifactId.text() == "openapi" }.appendNode('optional', true)
+                p.name.first().setValue('KlumAST')
+                p.appendNode('licenses').appendNode('license').
+                        appendNode('name', 'The MIT License (MIT)').parent().
+                        appendNode('url', 'http://opensource.org/licenses/MIT')
             }
         }
     }
 }
 
-afterEvaluate {
-    // modify dependecies for generated pom
-    project.poms*.whenConfigured { pom ->
-        pom.dependencies.find { it.artifactId == "groovy-all" }.optional = true
-        pom.dependencies.find { it.artifactId == "openapi" }.optional = true
-    }
-}
-
-afterReleaseBuild.dependsOn uploadArchives
+// tasks.release.dependsOn tasks.publish
