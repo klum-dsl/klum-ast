@@ -21,11 +21,11 @@ buildscript {
 ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
 
 apply plugin: 'groovy'
+apply plugin: 'java-library'
 apply plugin: 'jacoco'
 apply plugin: 'nebula.maven-publish'
 apply plugin: 'nebula.release'
 apply plugin: 'license'
-apply plugin: "org.sonarqube"
 apply plugin: 'nebula.info'
 apply plugin: 'nebula.javadoc-jar'
 apply plugin: 'nebula.source-jar'
@@ -43,8 +43,8 @@ repositories {
 }
 
 bintray {
-    user = bintrayUser
-    key = bintrayApiKey
+    user = findProperty('bintrayUser')
+    key = findProperty('bintrayApiKey')
 
     publications = ['nebula']
     dryRun = false
