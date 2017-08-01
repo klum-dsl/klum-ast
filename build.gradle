@@ -71,7 +71,7 @@ bintray {
                 passphrase = findProperty("signing.password")
             }
             mavenCentralSync {
-                sync = !version.toString().contains(".dev+")
+                sync = false // !version.toString().contains(".dev+")
                 user = findProperty("nexusUsername")
                 password = findProperty("nexusPassword")
             }
