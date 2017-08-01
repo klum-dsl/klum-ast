@@ -119,4 +119,5 @@ publishing {
     }
 }
 
-// tasks.release.dependsOn tasks.publish
+tasks.release.dependsOn tasks.build
+tasks.postRelease.dependsOn tasks.publish
