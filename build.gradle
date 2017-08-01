@@ -66,6 +66,15 @@ bintray {
             name = project.version
             vcsTag = project.version
             attributes = [:]
+            gpg {
+                sign = true
+                passphrase = findProperty("signing.password")
+            }
+            mavenCentralSync {
+                sync = !version.toString().contains(".dev+")
+                user = findProperty("nexusUsername")
+                password = findProperty("nexusPassword")
+            }
         }
     }
 }
