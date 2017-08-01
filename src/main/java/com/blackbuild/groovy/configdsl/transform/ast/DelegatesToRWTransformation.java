@@ -1,0 +1,74 @@
+package com.blackbuild.groovy.configdsl.transform.ast;
+
+import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
+import groovy.lang.Closure;
+import groovy.lang.DelegatesTo;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.ClassExpression;
+import org.codehaus.groovy.control.CompilePhase;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.transform.AbstractASTTransformation;
+import org.codehaus.groovy.transform.GroovyASTTransformation;
+
+import java.util.List;
+
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+
+@GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
+public class DelegatesToRWTransformation extends AbstractASTTransformation {
+
+    private final static ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
+    private final static ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
+    private ClassNode model;
+
+    @Override
+    public void visit(ASTNode[] nodes, SourceUnit source) {
+        init(nodes, source);
+
+        model = (ClassNode) nodes[1];
+
+        Visitor visitor = new Visitor();
+        visitor.visitClass(model);
+        visitor.visitClass(getRwClassOf(model));
+    }
+
+    private class Visitor extends ClassCodeVisitorSupport {
+
+        @Override
+        protected SourceUnit getSourceUnit() {
+            return sourceUnit;
+        }
+
+        @Override
+        public void visitAnnotations(AnnotatedNode node) {
+            super.visitAnnotations(node);
+
+            List<AnnotationNode> annotations = node.getAnnotations(DELEGATES_TO_RW_TYPE);
+            if (annotations.isEmpty()) return;
+
+            ClassExpression targetValue = (ClassExpression) annotations.get(0).getMember("value");
+
+            ClassNode target = targetValue != null ? targetValue.getType() : model;
+
+            if (!isDSLObject(target)) {
+                addError(target + " is no DSL object.", targetValue);
+                return;
+            }
+
+            AnnotationNode delegatesTo = createDelegatesToAnnotation(target);
+
+            node.addAnnotation(delegatesTo);
+
+        }
+
+        private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
+            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
+            delegatesTo.addMember("value", new ClassExpression(getRwClassOf(target)));
+            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_FIRST));
+            return delegatesTo;
+        }
+    }
+
+}

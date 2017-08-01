@@ -27,6 +27,8 @@ import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+
 @SuppressWarnings("GroovyAssignabilityCheck")
 class RWClassSpec extends AbstractDSLSpec {
 
@@ -238,4 +240,68 @@ class RWClassSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
         instance.foo.childName == "parent::child"
     }
+
+    def "script allow delegation to RW class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                def configure(@DelegatesToRW Closure body) {
+                    apply(body)
+                }
+            }
+        ''')
+
+        when:
+        def method = clazz.getMethod("configure", Closure)
+
+        then:
+        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Foo._RW')
+
+    }
+
+    def "script allow delegation different RW class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            
+                @Mutator
+                def aBar(@DelegatesToRW(Bar) Closure body) {
+                    bar(body)
+                }
+            }
+
+            @DSL
+            class Bar {
+            }
+        ''')
+
+        when:
+        def method = rwClazz.getMethod("aBar", Closure)
+
+        then:
+        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Bar._RW')
+    }
+
+    def "delegatesToRW argument must be a model"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                def bar(@DelegatesToRW(String) Closure body) {}
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }
