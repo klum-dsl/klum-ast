@@ -8,8 +8,8 @@ buildscript {
     }
     dependencies {
         classpath 'com.netflix.nebula:gradle-contacts-plugin:3.0.1'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.0'
-        classpath 'com.netflix.nebula:nebula-release-plugin:6.0.0'
+        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
+        classpath 'com.netflix.nebula:nebula-release-plugin:6.0.2'
         classpath 'com.netflix.nebula:gradle-info-plugin:3.+'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'ch.raffael.markdown-doclet:markdown-doclet:1.4'
@@ -35,9 +35,10 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: "org.sonarqube"
 
 description 'A transformation for creating convenient configuration model DSLs.'
+group 'com.blackbuild.klum.ast'
 
-sourceCompatibility = JavaVersion.VERSION_1_6
-targetCompatibility = JavaVersion.VERSION_1_6
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
 
 repositories {
     mavenCentral()
@@ -84,16 +85,12 @@ jacoco {
 }
 
 dependencies {
-    compileOnly "org.codehaus.groovy:groovy-all:${groovyVersion}"
+    compileOnly "org.codehaus.groovy:groovy-all:2.4.12"
     compileOnly "com.intellij:openapi:7.0.3"
-    testCompile("org.spockframework:spock-core:${spockVersion}")
-    testRuntime "cglib:cglib-nodep:3.1"          // allows mocking of classes (in addition to interfaces)
-    testRuntime "org.objenesis:objenesis:2.1"    // allows mocking of classes without default constructor (together with CGLIB)
+    testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
+    testRuntime "net.bytebuddy:byte-buddy:1.7.5"
+    testRuntime "org.objenesis:objenesis:2.6"
     compile "com.blackbuild.klum.common:klum-common:0.3.0"
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
 }
 
 contacts {
