@@ -101,9 +101,10 @@ githubPages {
     pages {
         from 'wiki'
         filesMatching('*.md') {
-            filter(ReplaceTokens, tokens: [version: version])
+            filter(ReplaceTokens, tokens: [version: version.toString()])
         }
-        from('CHANGES.md') {
+        from('.') {
+            include("CHANGES.md")
             rename('CHANGES.md', "Changelog.md")
         }
     }

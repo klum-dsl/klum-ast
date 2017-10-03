@@ -14,7 +14,7 @@ Use the following snippet to include KlumAST in your project:
     <dependency>
         <groupId>com.blackbuild.klum.ast</groupId>
         <artifactId>klum-ast</artifactId>
-        <version>${version}</version>
+        <version>@version@</version>
     </dependency>
     ...
 </dependencies>
@@ -29,7 +29,7 @@ For Gradle, setup is similar:
 
 ```groovy
 dependencies {
-    compileOnly 'com.blackbuild.klum.ast:klum-ast:${version}'
+    compileOnly 'com.blackbuild.klum.ast:klum-ast:@version@'
     compileOnly 'org.codehaus.groovy:groovy-all:2.4.12'
 }
 ```
