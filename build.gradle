@@ -1,3 +1,5 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 buildscript {
     repositories {
         mavenCentral()
@@ -44,6 +46,15 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    compileOnly "org.codehaus.groovy:groovy-all:2.4.12"
+    compileOnly "com.intellij:openapi:7.0.3"
+    testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
+    testRuntime "net.bytebuddy:byte-buddy:1.7.5"
+    testRuntime "org.objenesis:objenesis:2.6"
+    compile "com.blackbuild.klum.common:klum-common:0.3.0"
+}
+
 bintray {
     user = findProperty('bintrayUser')
     key = findProperty('bintrayApiKey')
@@ -80,17 +91,26 @@ bintray {
     }
 }
 
-jacoco {
-    toolVersion = "0.7.8"
+apply plugin: 'org.ajoberstar.github-pages'
+
+githubPages {
+    commitMessage = "updated wiki for $version"
+    repoUri = "git@github.com:klum-dsl/klum-ast.wiki.git"
+    targetBranch = 'master'
+    workingPath = "$buildDir/wiki"
+    pages {
+        from 'wiki'
+        filesMatching('*.md') {
+            filter(ReplaceTokens, tokens: [version: version])
+        }
+        from('CHANGES.md') {
+            rename('CHANGES.md', "Changelog.md")
+        }
+    }
 }
 
-dependencies {
-    compileOnly "org.codehaus.groovy:groovy-all:2.4.12"
-    compileOnly "com.intellij:openapi:7.0.3"
-    testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
-    testRuntime "net.bytebuddy:byte-buddy:1.7.5"
-    testRuntime "org.objenesis:objenesis:2.6"
-    compile "com.blackbuild.klum.common:klum-common:0.3.0"
+jacoco {
+    toolVersion = "0.7.8"
 }
 
 contacts {
