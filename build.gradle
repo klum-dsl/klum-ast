@@ -138,4 +138,4 @@ publishing {
 }
 
 tasks.release.dependsOn tasks.build
-tasks.postRelease.dependsOn tasks.publish
+tasks.postRelease.dependsOn tasks.publish, tasks.publishGhPages
