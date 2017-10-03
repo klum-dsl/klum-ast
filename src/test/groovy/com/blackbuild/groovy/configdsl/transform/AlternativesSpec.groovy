@@ -24,12 +24,11 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 import java.lang.annotation.Annotation
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
 
 class AlternativesSpec extends AbstractDSLSpec {
 
@@ -119,6 +118,65 @@ class ChildElement extends Element {
             }
         }
     }
+
+    @Issue("77")
+    def "collection factory allows implicit templates"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+    @Key String name
+    String value
+}
+''')
+        when:
+        instance = clazz.create {
+            elements(value: 'fromTemplate') {
+                element("first")
+            }
+        }
+
+        then:
+        instance.elements.first.value == 'fromTemplate'
+    }
+
+    @Issue("77")
+    def "collection factory allows explicit templates"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+    @Key String name
+    String value
+}
+''')
+        def template = getClass("pk.Element").create(value: "fromTemplate")
+
+        when:
+        instance = clazz.create {
+            elements(template) {
+                element("first")
+            }
+        }
+
+        then:
+        instance.elements.first.value == 'fromTemplate'
+    }
+
     def "alternative methods are working"() {
         given:
         createClass('''

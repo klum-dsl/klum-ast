@@ -46,6 +46,8 @@ repositories {
     mavenCentral()
 }
 
+configurations.testCompileOnly.extendsFrom configurations.compileOnly
+
 dependencies {
     compileOnly "org.codehaus.groovy:groovy-all:2.4.12"
     compileOnly "com.intellij:openapi:7.0.3"
