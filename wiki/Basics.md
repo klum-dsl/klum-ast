@@ -307,7 +307,7 @@ def createAnObject(String name, String value) {
 }
 
 Config.create {
-    elements {
+    elements { // optional, but provides grouping and additional convenience features
         element {
             name "an element"
         }
