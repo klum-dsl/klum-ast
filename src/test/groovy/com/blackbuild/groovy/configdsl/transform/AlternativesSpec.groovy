@@ -127,11 +127,10 @@ package pk
 @DSL
 class Config {
     Map<String, Element> elements
-    List<Element> moreElements
 }
 
 @DSL
-abstract class Element {
+class Element {
     @Key String name
     String value
 }
@@ -139,7 +138,11 @@ abstract class Element {
         when:
         instance = clazz.create {
             elements(value: 'fromTemplate') {
-                element("first")
+                println resolveStrategy
+                delegate.class.methods.each {
+                    println it
+                }
+                delegate.element("first")
             }
         }
 
@@ -155,16 +158,15 @@ package pk
 @DSL
 class Config {
     Map<String, Element> elements
-    List<Element> moreElements
 }
 
 @DSL
-abstract class Element {
+class Element {
     @Key String name
     String value
 }
 ''')
-        def template = getClass("pk.Element").create(value: "fromTemplate")
+        def template = getClass("pk.Element").createAsTemplate(value: "fromTemplate")
 
         when:
         instance = clazz.create {
@@ -397,42 +399,6 @@ class SubElement extends Element {
         '{[b: "b"]}'        || 'value is no Class'
         '{[("b"): "b"]}'    || 'key is no literal string'
         '{[b: String]}'     || 'value is no subclass of type'
-    }
-
-    def "no alternative methods are created for abstract classes"() {
-        when:
-        createClass('''
-package pk
-@DSL
-class Config {
-
-    String name
-
-    Map<String, Element> elements
-    List<Element> moreElements
-}
-
-@DSL
-abstract class Element {
-
-    @Key String name
-}
-
-@DSL
-class SubElement extends Element {
-
-    String role
-}
-
-@DSL
-class ChildElement extends Element {
-
-    String game
-}''')
-
-
-        then:
-        !getClass('pk.Config$_elements').getMethods().find { it.name == "element"}
     }
 
     def "DelegatesTo annotations for collection factory methods are created"() {

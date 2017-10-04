@@ -35,6 +35,7 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.*;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -51,6 +52,7 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.*;
+import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
@@ -137,6 +139,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (annotatedClassHoldsOwner())
             preventOwnerOverride();
+
+        new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
     }
 
     private void addDirectGettersForOwnerAndKeyFields() {
@@ -628,15 +632,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
         String fieldRWName = fieldName + "$rw";
 
-        createAlternativesClassFor(fieldNode);
-
         if (!CommonAstHelper.isAbstract(elementType)) {
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
                     .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
@@ -646,12 +648,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
+
             createOptionalPublicMethod(methodName)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
                     .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
                     .addTo(rwClass);
         }
 
@@ -689,6 +692,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optionallySetOwnerOnS("value", targetHasOwnerField)
                 .addTo(rwClass);
 
+        createAlternativesClassFor(fieldNode);
     }
 
     private void warnIfSetWithoutKeyedElements(FieldNode fieldNode, ClassNode elementType, FieldNode fieldKey) {
@@ -744,8 +748,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        createAlternativesClassFor(fieldNode);
-
         String methodName = getElementNameForCollectionField(fieldNode);
         boolean targetHasOwnerField = getOwnerFieldName(elementType) != null;
 
@@ -775,7 +777,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .param(keyType, "key")
                     .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapAndOptionalKey(keyType, "closure")))
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(keyType, "closure")))
                     .addTo(rwClass);
         }
 
@@ -814,7 +816,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optionallySetOwnerOnS("value", targetHasOwnerField)
                 .addTo(rwClass);
 
-
+        createAlternativesClassFor(fieldNode);
     }
 
     private void createAlternativesClassFor(FieldNode fieldNode) {
@@ -853,7 +855,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
+                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(rwClass);
         }
 

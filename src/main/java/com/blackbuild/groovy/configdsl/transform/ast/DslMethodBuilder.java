@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.Expression;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
@@ -74,6 +75,13 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         if (!targetHasOwner)
             return this;
         return callMethod(varX(target), "set$owner", varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS));
+    }
+
+    public DslMethodBuilder params(Parameter... params) {
+        for (Parameter param : params) {
+            param(param);
+        }
+        return this;
     }
 
 }
