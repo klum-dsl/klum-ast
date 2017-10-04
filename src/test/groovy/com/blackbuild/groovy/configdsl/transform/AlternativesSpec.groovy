@@ -24,12 +24,11 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 import java.lang.annotation.Annotation
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
 
 class AlternativesSpec extends AbstractDSLSpec {
 
@@ -119,6 +118,67 @@ class ChildElement extends Element {
             }
         }
     }
+
+    @Issue("77")
+    def "collection factory allows implicit templates"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+    Map<String, Element> elements
+}
+
+@DSL
+class Element {
+    @Key String name
+    String value
+}
+''')
+        when:
+        instance = clazz.create {
+            elements(value: 'fromTemplate') {
+                println resolveStrategy
+                delegate.class.methods.each {
+                    println it
+                }
+                delegate.element("first")
+            }
+        }
+
+        then:
+        instance.elements.first.value == 'fromTemplate'
+    }
+
+    @Issue("77")
+    def "collection factory allows explicit templates"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+    Map<String, Element> elements
+}
+
+@DSL
+class Element {
+    @Key String name
+    String value
+}
+''')
+        def template = getClass("pk.Element").createAsTemplate(value: "fromTemplate")
+
+        when:
+        instance = clazz.create {
+            elements(template) {
+                element("first")
+            }
+        }
+
+        then:
+        instance.elements.first.value == 'fromTemplate'
+    }
+
     def "alternative methods are working"() {
         given:
         createClass('''
@@ -339,42 +399,6 @@ class SubElement extends Element {
         '{[b: "b"]}'        || 'value is no Class'
         '{[("b"): "b"]}'    || 'key is no literal string'
         '{[b: String]}'     || 'value is no subclass of type'
-    }
-
-    def "no alternative methods are created for abstract classes"() {
-        when:
-        createClass('''
-package pk
-@DSL
-class Config {
-
-    String name
-
-    Map<String, Element> elements
-    List<Element> moreElements
-}
-
-@DSL
-abstract class Element {
-
-    @Key String name
-}
-
-@DSL
-class SubElement extends Element {
-
-    String role
-}
-
-@DSL
-class ChildElement extends Element {
-
-    String game
-}''')
-
-
-        then:
-        !getClass('pk.Config$_elements').getMethods().find { it.name == "element"}
     }
 
     def "DelegatesTo annotations for collection factory methods are created"() {

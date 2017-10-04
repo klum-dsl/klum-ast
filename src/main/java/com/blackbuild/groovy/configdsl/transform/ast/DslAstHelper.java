@@ -31,9 +31,10 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
-import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -237,4 +238,12 @@ public class DslAstHelper {
         FieldNode ownerFieldOfElement = getOwnerField(target);
         return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
     }
+
+    static MethodNode createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
+        return createOptionalPublicMethod(targetMethod.getName())
+                .params(cloneParams(targetMethod.getParameters()))
+        .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))
+        .addTo(receiver);
+    }
+
 }

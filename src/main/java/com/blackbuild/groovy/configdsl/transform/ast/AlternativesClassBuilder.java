@@ -43,8 +43,10 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
 /**
@@ -127,10 +129,18 @@ class AlternativesClassBuilder {
         createInnerClass();
         createClosureForOuterClass();
         createNamedAlternativeMethodsForSubclasses();
+        delegateDefaultCreationMethodsToOuterInstance();
+    }
+
+    private void delegateDefaultCreationMethodsToOuterInstance() {
+        for (MethodNode methodNode : rwClass.getMethods(memberName)) {
+            createDelegateMethod(methodNode, collectionFactory, "rw");
+        }
     }
 
     private void createClosureForOuterClass() {
-        createOptionalPublicMethod(fieldNode.getName())
+        String factoryMethod = fieldNode.getName();
+        createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
                 .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
@@ -139,6 +149,32 @@ class AlternativesClassBuilder {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
                 )
                 .callMethod("closure", "call")
+                .addTo(rwClass);
+
+        createOptionalPublicMethod(factoryMethod)
+                .linkToField(fieldNode)
+                .param(newClass(MAP_TYPE), "templateMap")
+                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .statement(
+                        callX(
+                                elementType,
+                                TemplateMethods.WITH_TEMPLATE,
+                                args(varX("templateMap"), closureX(stmt(callThisX(factoryMethod, varX("closure")))))
+                        )
+                )
+                .addTo(rwClass);
+
+        createOptionalPublicMethod(factoryMethod)
+                .linkToField(fieldNode)
+                .param(elementType, "template")
+                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .statement(
+                        callX(
+                                elementType,
+                                TemplateMethods.WITH_TEMPLATE,
+                                args(varX("template"), closureX(stmt(callThisX(factoryMethod, varX("closure")))))
+                        )
+                )
                 .addTo(rwClass);
     }
 

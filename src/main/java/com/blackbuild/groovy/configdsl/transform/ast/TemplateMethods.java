@@ -100,7 +100,7 @@ class TemplateMethods {
         DslMethodBuilder.createPublicMethod(WITH_TEMPLATE)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(MAP_TYPE), "templateMap")
+                .namedParams("templateMap")
                 .closureParam("closure")
                 .declareVariable("templateInstance", callX(annotatedClass, CREATE_AS_TEMPLATE, args("templateMap")))
                 .callMethod(classX(annotatedClass), WITH_TEMPLATE, args("templateInstance", "closure"))
@@ -119,7 +119,7 @@ class TemplateMethods {
                         // This is a dirty hack. Since I did not get the Variable Scope to be propagated into the closure
                         // I create a closure using three parameters (templates, keys, closure), which are passed as parameters
                         // and then we curry the closure using the actual values.
-                        CommonAstHelper.createClosureExpression(
+                        closureX(
                             params(
                                     param(newClass(MAP_TYPE), "t"),
                                     param(newClass(LIST_TYPE), "k"),
@@ -160,12 +160,12 @@ class TemplateMethods {
                 .closureParam("closure")
                 .declareVariable("map",
                         callX(varX("templates"), "collectEntries",
-                            CommonAstHelper.createClosureExpression(
+                            closureX(block(
                                     declS(varX("clazz"), callX(varX("it"), "getClass")),
                                     declS(varX("className"), propX(varX("clazz"), "name")),
                                     declS(varX("targetClass"), ternaryX(callX(varX("className"), "endsWith", constX("$Template")), propX(varX("clazz"), "superclass"), varX("clazz"))),
                                     stmt(CommonAstHelper.listExpression(varX("clazz"), varX("it")))
-                            )
+                            ))
                         )
                 )
                 .callMethod(classX(annotatedClass), WITH_MULTIPLE_TEMPLATES, args("map", "closure"))

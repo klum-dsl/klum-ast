@@ -1,5 +1,6 @@
 ## 1.2.0 (unreleased)
 - Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))
+- Collection factories can now include templates (see [#77](https://github.com/klum-dsl/klum-ast/issues/77))
 
 ## 1.1.1
 - access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))

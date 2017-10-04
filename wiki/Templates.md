@@ -111,6 +111,40 @@ Config.withTemplate(url: "http://x.y") {
 }
 ```
 
+# withTemplate for collection factories
+
+When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
+specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
+that are create inside this collection factory:
+
+```groovy
+Config.create {
+    servers(isCluster: true) { // factory with template
+        server("x") {}
+        server("y") {}
+    }
+}
+```
+
+Since the collection factory can be called multiple times, this allows a very concise syntax:
+
+```groovy
+Config.create {
+    servers(isCluster: true) { // template is only valid in this block
+        server("x") {}
+        server("y") {}
+    }
+    servers(isCluster: false) { // use different template
+        server("a") {}
+        server("b") {}
+    }
+    servers(myServerTemplate) { // use yet another template
+        server("i") {}
+        server("j") {}
+    }
+}
+```
+
 # withTemplates()
 
 `withTemplates` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
