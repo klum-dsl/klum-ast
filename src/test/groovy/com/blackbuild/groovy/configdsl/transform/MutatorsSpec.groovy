@@ -102,6 +102,25 @@ class MutatorsSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "setting a static field is allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                static String global
+                
+                def setNameCaseInsensitive(String value) {
+                    global = value
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     def "setting a field via setter is illegal"() {
         when:
         createClass('''

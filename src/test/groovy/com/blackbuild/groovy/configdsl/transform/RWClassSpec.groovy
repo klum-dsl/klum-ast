@@ -33,7 +33,7 @@ import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPo
 class RWClassSpec extends AbstractDSLSpec {
 
     def "RW class is created"() {
-        given:
+        when:
         createClass('''
             package pk
 
@@ -42,11 +42,9 @@ class RWClassSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:
-        getRwClass()
-
         then:
         noExceptionThrown()
+        rwClazz != null
     }
 
     def "RW class inherits parent RW class"() {
@@ -99,7 +97,7 @@ class RWClassSpec extends AbstractDSLSpec {
 
             @DSL
             class Model {
-                transient int count
+                @Transient int count
                 String name = 'bla'
                 
                 void inc() {
@@ -107,8 +105,7 @@ class RWClassSpec extends AbstractDSLSpec {
                 }
             }
         ''')
-        Class rwClass = getRwClass()
-        def rw = rwClass.newInstance(instance)
+        def rw = instance.$rw
 
         when:
         rw.inc()
@@ -129,10 +126,9 @@ class RWClassSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        Class rwClass = getRwClass()
 
         when:
-        def rwSetNameMethod = rwClass.getMethod("setName", String)
+        def rwSetNameMethod = rwClazz.getMethod("setName", String)
 
         then:
         rwSetNameMethod.modifiers & Opcodes.ACC_PUBLIC
@@ -154,8 +150,7 @@ class RWClassSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        Class rwClass = getRwClass()
-        def rw = rwClass.newInstance(instance)
+        def rw = instance.$rw
 
         when:
         rw.name = 'bla'

@@ -26,9 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
@@ -36,6 +34,7 @@ import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.TRANSIENT_ANNOTATION;
 import static org.codehaus.groovy.syntax.Types.*;
 
 /**
@@ -66,7 +65,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (inRwClass())
             return;
 
-        assertTargetIsNoField(inner);
+        assertTargetIsNoModelField(inner);
     }
 
     @Override
@@ -100,7 +99,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
             return;
 
         if (ofType(expression.getOperation().getType(), ASSIGNMENT_OPERATOR)) {
-            assertTargetIsNoField(expression.getLeftExpression());
+            assertTargetIsNoModelField(expression.getLeftExpression());
         }
     }
 
@@ -108,21 +107,37 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         return typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX);
     }
 
-    void assertTargetIsNoField(Expression target) {
+    private void assertTargetIsNoModelField(Expression target) {
         if (target instanceof VariableExpression) {
             VariableExpression variableExpression = (VariableExpression) target;
-            if (variableExpression.isThisExpression() || variableExpression.getAccessedVariable() instanceof FieldNode)
-                addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", target.getText(), typeCheckingContext.getEnclosingMethod().getText()), target);
+            assertVariableIsNoModelField(variableExpression.getAccessedVariable(), variableExpression);
         }
-        else if (target instanceof PropertyExpression)
-            assertTargetIsNoField(((PropertyExpression) target).getObjectExpression());
-        else if (target instanceof BinaryExpression && ((BinaryExpression) target).getOperation().getType() == LEFT_SQUARE_BRACKET)
-            assertTargetIsNoField(((BinaryExpression) target).getLeftExpression());
-        else if (target instanceof TupleExpression) {
+        else if (target instanceof PropertyExpression) {
+            PropertyExpression propertyExpression = (PropertyExpression) target;
+            if (propertyExpression.getObjectExpression().getText().equals("this")) {
+                FieldNode targetedField = typeCheckingContext.getEnclosingClassNode().getField(propertyExpression.getPropertyAsString());
+                assertVariableIsNoModelField(targetedField, propertyExpression);
+            } else {
+                assertTargetIsNoModelField(propertyExpression.getObjectExpression());
+            }
+        } else if (target instanceof BinaryExpression && ((BinaryExpression) target).getOperation().getType() == LEFT_SQUARE_BRACKET) {
+            assertTargetIsNoModelField(((BinaryExpression) target).getLeftExpression());
+        } else if (target instanceof TupleExpression) {
             for (Expression value : (TupleExpression) target) {
-                assertTargetIsNoField(value);
+                assertTargetIsNoModelField(value);
             }
         }
+    }
+
+    private void assertVariableIsNoModelField(Variable variable, ASTNode expression) {
+        if (!(variable instanceof FieldNode))
+            return;
+        FieldNode fieldNode = (FieldNode) variable;
+        if (fieldNode.isStatic())
+            return;
+        if (!fieldNode.getAnnotations(TRANSIENT_ANNOTATION).isEmpty())
+            return;
+        addError(String.format("Assigning a value to a field of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", variable.getName(), typeCheckingContext.getEnclosingMethod().getText()), expression);
     }
 
     @Override // enhance visibility, since we need to use this method from Extension
@@ -148,7 +163,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         super.typeCheckAssignment(assignmentExpression, leftExpression, leftExpressionType, rightExpression, inferredRightExpressionType);
     }
 
-    protected boolean isInMutatorMethod() {
+    boolean isInMutatorMethod() {
         MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
         if (currentMethod == null)
             return false;
