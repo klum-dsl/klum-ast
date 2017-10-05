@@ -80,4 +80,36 @@ class TransientSpec extends AbstractDSLSpec {
 
     }
 
+    def "transient fields have no impact on equals and hashcode"() {
+        given:
+        createClass '''
+            package pk
+            
+            @DSL
+            class Foo {
+                @Transient String trans
+                
+                String name
+            }'''
+
+        when:
+        def left = clazz.create {
+            name = "Bla"
+        }
+        def right = clazz.create {
+            name = "Bla"
+        }
+
+        then:
+        left == right
+        left.hashCode() == right.hashCode()
+
+        when:
+        left.trans = "Blub"
+
+        then:
+        left == right
+        left.hashCode() == right.hashCode()
+    }
+
 }

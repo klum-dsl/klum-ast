@@ -120,12 +120,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (keyField != null)
             createKeyConstructor();
 
+        createRWClass();
         addDirectGettersForOwnerAndKeyFields();
 
-        createRWClass();
-
         setPropertyAccessors();
-
+        createCanonicalMethods();
         validateFieldAnnotations();
         assertMembersNamesAreUnique();
         makeClassSerializable();
@@ -133,7 +132,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createTemplateMethods();
         createFactoryMethods();
         createFieldMethods();
-        createCanonicalMethods();
         createValidateMethod();
         createDefaultMethods();
         moveMutatorsToRWClass();
@@ -506,7 +504,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();
-            createEquals(annotatedClass, false, true, true, null, null);
+            createEquals(annotatedClass, false, dslParent != null, true, getAllTransientFields(), null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
             if (ownerField == null)
@@ -514,6 +512,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             else
                 createToString(annotatedClass, false, false, Collections.singletonList(ownerField.getName()), null, false);
         }
+    }
+
+    private List<String> getAllTransientFields() {
+        List<String> result = new ArrayList<>();
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            if (fieldNode.getName().startsWith("$") || !fieldNode.getAnnotations(TRANSIENT_ANNOTATION).isEmpty())
+                result.add(fieldNode.getName());
+        }
+        return result;
     }
 
     private void createHashCodeIfNotDefined() {
