@@ -49,6 +49,31 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         extension.addHandler(new MutationDetectingTypeCheckingExtension(this));
     }
 
+    @Override
+    public void visitPostfixExpression(PostfixExpression expression) {
+        super.visitPostfixExpression(expression);
+        Expression inner = expression.getExpression();
+        visitPrefixOrPostfixExpression(expression, inner);
+    }
+
+    @Override
+    public void visitPrefixExpression(PrefixExpression expression) {
+        super.visitPrefixExpression(expression);
+        Expression inner = expression.getExpression();
+        visitPrefixOrPostfixExpression(expression, inner);
+    }
+
+    private void visitPrefixOrPostfixExpression(Expression origin, Expression inner) {
+        if (inRwClass())
+            return;
+
+        for (VariableExpression target : getLeftMostTargets(inner)) {
+            if (target.isThisExpression() || target.getAccessedVariable() instanceof FieldNode)
+                addError(String.format(
+                        "Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?",
+                        origin.getText(), typeCheckingContext.getEnclosingMethod().getText()), origin);
+        }
+    }
 
     @Override
     public void visitBinaryExpression(BinaryExpression expression) {
@@ -57,7 +82,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     private void checkForIllegalAssignment(BinaryExpression expression) {
-        if (typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX))
+        if (inRwClass())
             return; // don't validate RW class methods
 
         MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
@@ -86,6 +111,10 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
                     addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", expression.getText(), currentMethod.getText()), expression);
             }
         }
+    }
+
+    private boolean inRwClass() {
+        return typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX);
     }
 
     private List<VariableExpression> getLeftMostTargets(Expression expression) {

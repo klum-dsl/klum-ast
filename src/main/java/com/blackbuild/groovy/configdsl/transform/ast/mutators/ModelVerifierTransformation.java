@@ -31,7 +31,7 @@ import org.codehaus.groovy.transform.StaticTypesTransformation;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
 
 /**
- * Special version of StaticTypesTransformation. The main only is that this class
+ * Special version of StaticTypesTransformation. The only difference is that this class
  * uses an enhanced subclass of the Visitor.
  */
 @GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
