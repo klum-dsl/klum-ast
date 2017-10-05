@@ -504,13 +504,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();
-            createEquals(annotatedClass, false, dslParent != null, true, getAllTransientFields(), null);
+            createEquals(annotatedClass, true, dslParent != null, true, getAllTransientFields(), null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
             if (ownerField == null)
-                createToString(annotatedClass, false, false, null, null, false);
+                createToString(annotatedClass, false, true, null, null, false);
             else
-                createToString(annotatedClass, false, false, Collections.singletonList(ownerField.getName()), null, false);
+                createToString(annotatedClass, false, true, Collections.singletonList(ownerField.getName()), null, false);
         }
     }
 

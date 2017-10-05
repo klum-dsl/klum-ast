@@ -1259,6 +1259,55 @@ class TransformSpec extends AbstractDSLSpec {
         instance.hashCode() == 5
     }
 
+    def "equals works correctly"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        def left = clazz.create(name: "a")
+        def right = clazz.create(name: "a")
+        def other = clazz.create(name: "b")
+
+        then:
+        left == right
+        left != other
+    }
+
+    def "equals with inner objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                List<Bar> bars
+            }
+            
+            @DSL
+            class Bar {
+                String value
+            }
+        ''')
+
+        when:
+        def left = clazz.create(name: "a") { bar(value: 'a')}
+        def right = clazz.create(name: "a") { bar(value: 'a')}
+        def other = clazz.create(name: "a") { bar(value: 'b')}
+
+        then:
+        left == right
+        left != other
+    }
+
+
     def "Bug: toString() with owner field throws StackOverflowError"() {
         given:
         createClass('''
