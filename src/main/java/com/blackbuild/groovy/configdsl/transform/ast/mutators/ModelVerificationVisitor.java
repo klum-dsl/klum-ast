@@ -34,7 +34,6 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.codehaus.groovy.syntax.Types.*;
@@ -53,26 +52,21 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     public void visitPostfixExpression(PostfixExpression expression) {
         super.visitPostfixExpression(expression);
         Expression inner = expression.getExpression();
-        visitPrefixOrPostfixExpression(expression, inner);
+        visitPrefixOrPostfixExpression(inner);
     }
 
     @Override
     public void visitPrefixExpression(PrefixExpression expression) {
         super.visitPrefixExpression(expression);
         Expression inner = expression.getExpression();
-        visitPrefixOrPostfixExpression(expression, inner);
+        visitPrefixOrPostfixExpression(inner);
     }
 
-    private void visitPrefixOrPostfixExpression(Expression origin, Expression inner) {
+    private void visitPrefixOrPostfixExpression(Expression inner) {
         if (inRwClass())
             return;
 
-        for (VariableExpression target : getLeftMostTargets(inner)) {
-            if (target.isThisExpression() || target.getAccessedVariable() instanceof FieldNode)
-                addError(String.format(
-                        "Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?",
-                        origin.getText(), typeCheckingContext.getEnclosingMethod().getText()), origin);
-        }
+        assertTargetIsNoField(inner);
     }
 
     @Override
@@ -106,10 +100,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
             return;
 
         if (ofType(expression.getOperation().getType(), ASSIGNMENT_OPERATOR)) {
-            for (VariableExpression target : getLeftMostTargets(expression.getLeftExpression())) {
-                if (target.isThisExpression() || target.getAccessedVariable() instanceof FieldNode)
-                    addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", expression.getText(), currentMethod.getText()), expression);
-            }
+            assertTargetIsNoField(expression.getLeftExpression());
         }
     }
 
@@ -117,37 +108,21 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         return typeCheckingContext.getEnclosingClassNode().getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX);
     }
 
-    private List<VariableExpression> getLeftMostTargets(Expression expression) {
-        return addLeftMostTargetToList(expression, new ArrayList<VariableExpression>());
-    }
-
-    private List<VariableExpression> addLeftMostTargetToList(Expression target, List<VariableExpression> list) {
-        if (target instanceof VariableExpression)
-            list.add(((VariableExpression) target));
-
-        else if (target instanceof MethodCallExpression)
-            addLeftMostTargetToList(((MethodCallExpression) target).getObjectExpression(), list);
-
+    void assertTargetIsNoField(Expression target) {
+        if (target instanceof VariableExpression) {
+            VariableExpression variableExpression = (VariableExpression) target;
+            if (variableExpression.isThisExpression() || variableExpression.getAccessedVariable() instanceof FieldNode)
+                addError(String.format("Assigning a value to a an element of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", target.getText(), typeCheckingContext.getEnclosingMethod().getText()), target);
+        }
         else if (target instanceof PropertyExpression)
-            addLeftMostTargetToList(((PropertyExpression) target).getObjectExpression(), list);
-
+            assertTargetIsNoField(((PropertyExpression) target).getObjectExpression());
         else if (target instanceof BinaryExpression && ((BinaryExpression) target).getOperation().getType() == LEFT_SQUARE_BRACKET)
-            addLeftMostTargetToList(((BinaryExpression) target).getLeftExpression(), list);
-
-        else if (target instanceof CastExpression)
-            addLeftMostTargetToList(((CastExpression) target).getExpression(), list);
-
+            assertTargetIsNoField(((BinaryExpression) target).getLeftExpression());
         else if (target instanceof TupleExpression) {
             for (Expression value : (TupleExpression) target) {
-                addLeftMostTargetToList(value, list);
+                assertTargetIsNoField(value);
             }
         }
-        else {
-            // Ignore ?
-            //addError("Unknown expression found as left side of BinaryExpression: " + target.toString(), target);
-        }
-
-        return list;
     }
 
     @Override // enhance visibility, since we need to use this method from Extension
@@ -158,17 +133,15 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     @Override
     protected void typeCheckAssignment(BinaryExpression assignmentExpression, Expression leftExpression, ClassNode leftExpressionType, Expression rightExpression, ClassNode inferredRightExpressionType) {
 
-        if (isInMutatorMethod()) {
-            if (leftExpression instanceof PropertyExpression) {
-                PropertyExpression leftPropertyExpression = (PropertyExpression) leftExpression;
-                if (!"this".equals(leftPropertyExpression.getObjectExpression().getText())) {
-                    ClassNode targetType = getType(leftPropertyExpression.getObjectExpression());
-                    if (isDslType(targetType)) {
-                        leftPropertyExpression.setObjectExpression(new AttributeExpression(leftPropertyExpression.getObjectExpression(), new ConstantExpression("$rw"), true));
-                        leftPropertyExpression.removeNodeMetaData(StaticTypesMarker.READONLY_PROPERTY);
-                        visitBinaryExpression(assignmentExpression);
-                        return;
-                    }
+        if (isInMutatorMethod() && leftExpression instanceof PropertyExpression) {
+            PropertyExpression leftPropertyExpression = (PropertyExpression) leftExpression;
+            if (!"this".equals(leftPropertyExpression.getObjectExpression().getText())) {
+                ClassNode targetType = getType(leftPropertyExpression.getObjectExpression());
+                if (isDslType(targetType)) {
+                    leftPropertyExpression.setObjectExpression(new AttributeExpression(leftPropertyExpression.getObjectExpression(), new ConstantExpression("$rw"), true));
+                    leftPropertyExpression.removeNodeMetaData(StaticTypesMarker.READONLY_PROPERTY);
+                    visitBinaryExpression(assignmentExpression);
+                    return;
                 }
             }
         }
