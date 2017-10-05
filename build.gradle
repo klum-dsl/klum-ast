@@ -43,10 +43,7 @@ sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
 repositories {
-    mavenCentral()
-    maven {
-        url "https://dl.bintray.com/klum-dsl/klum-dsl" // temp until klum-common is in jcenter
-    }
+    jcenter()
 }
 
 configurations.testCompileOnly.extendsFrom configurations.compileOnly
