@@ -75,6 +75,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    public static final ClassNode TRANSIENT_ANNOTATION = make(Transient.class);
     public static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
@@ -563,6 +564,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
+        if (!fieldNode.getAnnotations(TRANSIENT_ANNOTATION).isEmpty()) return true;
         return false;
     }
 

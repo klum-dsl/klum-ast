@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class MutatorsSpec extends AbstractDSLSpec {
@@ -82,7 +83,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         instance.name == 'bla'
     }
 
-    def "Non mutator methods cannot change state"() {
+    def "setting a field is illegal"() {
         when:
         createClass('''
             package pk
@@ -99,6 +100,139 @@ class MutatorsSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    def "setting a static field is allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                static String global
+                
+                def setNameCaseInsensitive(String value) {
+                    global = value
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "setting a field via setter is illegal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                def setNameCaseInsensitive(String name) {
+                    setName(name.toLowerCase())
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "pre/postfix increment/decrement on fields is illegal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                int count
+                
+                def increase() {
+                    count++
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "unary prefixes are allowed"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                int count
+                
+                def increase() {
+                    def x = -count
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    def "+= is illegal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                int count
+                
+                def increase(int value) {
+                    count += value
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "setting a field with unqualified access is illegal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                def setNameCaseInsensitive(String value) {
+                    name = value.toLowerCase()
+                }
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "setting a variable with the same name as a field legal"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                
+                def setNameCaseInsensitive(String value) {
+                    def name = value.toLowerCase()
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
     }
 
     def "bug: def assignment is legal"() {
@@ -225,7 +359,7 @@ class MutatorsSpec extends AbstractDSLSpec {
        bar.called == true
     }
 
-    @spock.lang.Ignore
+    @Ignore
     def "for debug only"() {
         when:
         createClass('''

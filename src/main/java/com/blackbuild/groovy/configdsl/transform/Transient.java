@@ -21,24 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.groovy.configdsl.transform;
 
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.control.CompilePhase;
-import org.codehaus.groovy.control.SourceUnit;
-import org.codehaus.groovy.transform.GroovyASTTransformation;
-import org.codehaus.groovy.transform.StaticTypesTransformation;
-import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
+import java.lang.annotation.*;
 
 /**
- * Special version of StaticTypesTransformation. The only difference is that this class
- * uses an enhanced subclass of the Visitor.
+ * Designates a field as transient. Transient fields are not formally part of the model, but can be used to
+ * store additional, changeable state directly inside the model. Transient fields can be accessed directly,
+ * without using `apply` or a mutator method. The are ignored for the purpose of hashCode or equals.
+ *
+ * As opposed to the `transient` keyword of Java / Groovy, `@Transient` fields **will** be part of serialization
+ * by default.
  */
-@GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
-public class ModelVerifierTransformation extends StaticTypesTransformation {
-
-    @Override
-    protected StaticTypeCheckingVisitor newVisitor(SourceUnit unit, ClassNode node) {
-        return new ModelVerificationVisitor(unit, node);
-    }
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.CLASS)
+@Documented
+public @interface Transient {
 }

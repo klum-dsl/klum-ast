@@ -66,7 +66,7 @@ class AbstractDSLSpec extends Specification {
 
     def createClass(String code) {
         clazz = loader.parseClass(code)
-        rwClazz = getRwClass()
+        rwClazz = getRwClass(clazz.name)
     }
 
     def createSecondaryClass(String code) {
@@ -96,9 +96,5 @@ class AbstractDSLSpec extends Specification {
 
     Class getRwClass(String name) {
         getClass(name + '$_RW')
-    }
-
-    Class getRwClass() {
-        getRwClass(clazz.name)
     }
 }
