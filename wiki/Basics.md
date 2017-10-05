@@ -6,6 +6,9 @@ KlumAST consists of a number of Annotations:
 - `@Field` is an optional field to further configure the handling of specific fields (esp. naming).
 - `@Validation` and `@Validate` provide automatic validation of model values.
 - `@PostCreate` and `@PostApply` can be used to designate lifecycle methods.
+- `@Transient` to mark a field as not part of the model. Transient fields can be changed outside
+  of a mutator and are ignored for equality.
+- `@ReadOnly` fields don't get dsl methods, setters are hidden.
 
 # @DSL
 DSL is used to designate a DSL/Model object, which is enriched using the AST transformation.
@@ -419,3 +422,13 @@ def c = Config.create {
 assert c.bar.owner === c
 ```
 
+# @ReadOnly and @Transient
+Fields marked with `@ReadOnly` don't get dsl methods or public setters in the
+RW class. This essentially means that they cannot be changed directly by a user of
+the DSL. They can only be changed via custom mutator methods
+or other setters.
+
+`@Transient` fields are similar in that they don't get dsl methods either. However, in contrast
+to all other fields, the retain a public setter in the model, taking them effectively
+out of the [[Static Models]] concept. They can be used to add transient data that is not
+part of the model itself. Transient fields are ignored when checking for equality.

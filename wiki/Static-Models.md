@@ -22,4 +22,9 @@ Since 0.98 and continuing to 1.0, KlumAST aspires to create SDMs by using the fo
   Segregation Principle)
 - Other methods changing the state of the model (for instance, pseudo setters) must be marked using the 
   `@Mutator` annotation. These will be moved to the RW class as well.
-  
+
+
+# Transient fields
+
+Fields marked with `@Transient` allow to add transient data to a model. This data
+can be changed at will and will not participate in checks for equality.
