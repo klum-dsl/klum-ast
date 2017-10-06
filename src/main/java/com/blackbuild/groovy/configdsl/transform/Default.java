@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.transform.Undefined;
+
 import java.lang.annotation.*;
 
 /**
@@ -101,7 +103,7 @@ public @interface Default {
      * <p>leads to</p>
      * <p>{@code aValue ?: name.toLowerCase()}</p>
      */
-    Class code() default None.class;
+    Class code() default Undefined.class;
 
     /**
      * Delegate to a field with the same name on the targeted field, if the annotated field is empty
@@ -111,10 +113,4 @@ public @interface Default {
      * <p>{@code aValue ?: parent.aValue}</p>
      */
     String delegate() default "";
-
-    /**
-     * @deprecated Do not use, this is only to provide a default value for the {@link #code()} field.
-     */
-    @Deprecated
-    interface None {}
 }

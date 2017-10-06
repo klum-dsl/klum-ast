@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.transform.Undefined;
+
 import java.lang.annotation.*;
 
 /**
@@ -57,11 +59,5 @@ public @interface Field {
      * Maps names to classes. If used, this value must be a closure which contains only a map with
      * literal String to Class mappings, i.e. `@DSL(alternatives = {child: ChildElement, sub: SubElement})`.
      */
-    Class alternatives() default None.class;
-
-    /**
-     * @deprecated Do not use, this is only to provide a default value for the {@link #alternatives()} field.
-     */
-    @Deprecated
-    interface None {}
+    Class alternatives() default Undefined.class;
 }
