@@ -101,7 +101,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     FieldNode keyField;
     FieldNode ownerField;
     AnnotationNode dslAnnotation;
-
     InnerClassNode rwClass;
 
     @Override
@@ -144,8 +143,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void determineFieldTypes() {
-        for (FieldNode fieldNode : annotatedClass.getFields())
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
             storeFieldType(fieldNode);
+            warnIfInvalid(fieldNode);
+        }
+    }
+
+    private void warnIfInvalid(FieldNode fieldNode) {
+        if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) != 0)
+            addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
     private void addDirectGettersForOwnerAndKeyFields() {
