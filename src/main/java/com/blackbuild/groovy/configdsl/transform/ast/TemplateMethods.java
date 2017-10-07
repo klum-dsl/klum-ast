@@ -36,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -78,7 +79,7 @@ class TemplateMethods {
     }
 
     private void withTemplateMethod() {
-        DslMethodBuilder.createPublicMethod(WITH_TEMPLATE)
+        createPublicMethod(WITH_TEMPLATE)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(dslAncestor), "template")
@@ -97,7 +98,7 @@ class TemplateMethods {
     }
 
     private void withTemplateConvenienceMethod() {
-        DslMethodBuilder.createPublicMethod(WITH_TEMPLATE)
+        createPublicMethod(WITH_TEMPLATE)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .namedParams("templateMap")
@@ -108,7 +109,7 @@ class TemplateMethods {
     }
 
     private void withTemplatesMapMethod() {
-        DslMethodBuilder.createPublicMethod(WITH_MULTIPLE_TEMPLATES)
+        createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(MAP_TYPE), "templates")
@@ -153,7 +154,7 @@ class TemplateMethods {
     }
 
     private void withTemplatesListMethod() {
-        DslMethodBuilder.createPublicMethod(WITH_MULTIPLE_TEMPLATES)
+        createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates")
@@ -174,7 +175,7 @@ class TemplateMethods {
 
 
     private void addTemplateFieldToAnnotatedClass() {
-        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_FINAL | ACC_PROTECTED, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
+        annotatedClass.addField(TEMPLATE_FIELD_NAME, ACC_STATIC | ACC_FINAL | ACC_PROTECTED | ACC_SYNTHETIC, makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)), ctorX(make(ThreadLocal.class)));
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
@@ -185,7 +186,7 @@ class TemplateMethods {
     }
 
     private void copyFromMethod() {
-        DslMethodBuilder templateApply = DslMethodBuilder.createPublicMethod("copyFrom")
+        DslMethodBuilder templateApply = createPublicMethod("copyFrom")
                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                 // see DefaultValuesSpec."template for parent class affects child instances"()
                 .param(newClass(dslAncestor), "template");
@@ -254,7 +255,7 @@ class TemplateMethods {
     }
 
     private void createAsTemplateMethods() {
-        DslMethodBuilder.createPublicMethod(CREATE_AS_TEMPLATE)
+        createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
@@ -266,7 +267,7 @@ class TemplateMethods {
                 .doReturn("result")
                 .addTo(annotatedClass);
 
-        DslMethodBuilder.createPublicMethod(CREATE_AS_TEMPLATE)
+        createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
@@ -298,7 +299,7 @@ class TemplateMethods {
 
         templateClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
 
-        DslMethodBuilder.createPublicMethod("create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .namedParams("values")
@@ -309,7 +310,7 @@ class TemplateMethods {
                 .doReturn("result")
                 .addTo(templateClass);
 
-        DslMethodBuilder.createPublicMethod("create")
+        createPublicMethod("create")
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)

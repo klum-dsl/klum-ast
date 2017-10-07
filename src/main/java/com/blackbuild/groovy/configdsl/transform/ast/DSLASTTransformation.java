@@ -175,30 +175,36 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             adjustPropertyAccessorsForSingleField(pNode, newNodes);
         }
 
-        if (annotatedClassHoldsOwner()) {
-            String ownerFieldName = ownerField.getName();
-            PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
-            ownerProperty.setSetterBlock(null);
-            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
+        if (annotatedClassHoldsOwner())
+            newNodes.add(setAccessorsForOwnerField());
 
-            newNodes.add(ownerProperty);
+        if (keyField != null)
+            setAccessorsForKeyField();
 
-            String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
-            createPublicMethod(ownerGetter)
-                    .returning(ownerField.getType())
-                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
-                    .addTo(rwClass);
-        }
+        replaceProperties(annotatedClass, newNodes);
+    }
 
-        if (keyField != null) {
-            String keyGetter = "get" + Verifier.capitalize(keyField.getName());
-            createPublicMethod(keyGetter)
-                    .returning(keyField.getType())
-                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
-                    .addTo(rwClass);
-        }
+    private void setAccessorsForKeyField() {
+        String keyGetter = "get" + Verifier.capitalize(keyField.getName());
+        createPublicMethod(keyGetter)
+                .returning(keyField.getType())
+                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
+                .addTo(rwClass);
+    }
 
-        CommonAstHelper.replaceProperties(annotatedClass, newNodes);
+    private PropertyNode setAccessorsForOwnerField() {
+        String ownerFieldName = ownerField.getName();
+        PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
+        ownerProperty.setSetterBlock(null);
+        ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
+
+        String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
+        createPublicMethod(ownerGetter)
+                .returning(ownerField.getType())
+                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
+                .addTo(rwClass);
+
+        return ownerProperty;
     }
 
     private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
@@ -575,6 +581,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     @SuppressWarnings("RedundantIfStatement")
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
+        if ((fieldNode.getModifiers() & ACC_SYNTHETIC) != 0) return true;
         if (isKeyField(fieldNode)) return true;
         if (isOwnerField(fieldNode)) return true;
         if (fieldNode.isFinal()) return true;
