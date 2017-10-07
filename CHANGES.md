@@ -1,7 +1,8 @@
 ## 1.2.0 (unreleased)
 - Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))
 - Collection factories can now include templates (see [#77](https://github.com/klum-dsl/klum-ast/issues/77))
-- Included `@Transient` annotation to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
+- Replaced the `@ReadOnly` annotation with a value of `@Field` (see [#108](https://github.com/klum-dsl/klum-ast/issues/108))
+- Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
 
 ## 1.1.1
 - access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))

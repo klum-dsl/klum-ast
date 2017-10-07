@@ -26,5 +26,5 @@ Since 0.98 and continuing to 1.0, KlumAST aspires to create SDMs by using the fo
 
 # Transient fields
 
-Fields marked with `@Transient` allow to add transient data to a model. This data
+Fields marked with `@Field(FieldType.TRANSIENT)` allow to add transient data to a model. This data
 can be changed at will and will not participate in checks for equality.
