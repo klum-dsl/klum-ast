@@ -23,15 +23,23 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.*;
+import com.blackbuild.groovy.configdsl.transform.ast.deprecations.FieldTypeDeprecationTransformation;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Designates a field as read only. Read only fields do not get any DSL methods or public setters in the RW class
  * making them not directly changeable from a configuration. The can, however be changed from inside {@link Mutator}
  * or lifecycle methods.
+ * @deprecated Use `Field(FieldType.READ_ONLY)` instead.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.CLASS)
-@Documented
+@Retention(RetentionPolicy.SOURCE)
+@GroovyASTTransformationClass(classes = FieldTypeDeprecationTransformation.class)
+@Deprecated
 public @interface ReadOnly {
 }

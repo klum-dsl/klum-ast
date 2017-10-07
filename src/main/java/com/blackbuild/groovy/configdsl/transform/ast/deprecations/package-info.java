@@ -21,28 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
-
-import com.blackbuild.groovy.configdsl.transform.ast.deprecations.FieldTypeDeprecationTransformation;
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
-
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
 /**
- * Designates a field as transient. Transient fields are not formally part of the model, but can be used to
- * store additional, changeable state directly inside the model. Transient fields can be accessed directly,
- * without using `apply` or a mutator method. The are ignored for the purpose of hashCode or equals.
- *
- * As opposed to the `transient` keyword of Java / Groovy, `@Transient` fields **will** be part of serialization
- * by default.
- * @deprecated Use `Field(FieldType.TRANSIENT)` instead.
+ * This package contains handlers for deprecations. It handles conversions of deprecated annotations
+ * to the new form.
  */
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.SOURCE)
-@GroovyASTTransformationClass(classes = FieldTypeDeprecationTransformation.class)
-@Deprecated
-public @interface Transient {
-}
+package com.blackbuild.groovy.configdsl.transform.ast.deprecations;

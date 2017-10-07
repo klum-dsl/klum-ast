@@ -52,8 +52,7 @@ import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.*;
-import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
-import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -94,9 +93,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
-    public static final ClassNode READONLY_ANNOTATION = make(ReadOnly.class);
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
+    public static final String FIELD_TYPE_METADATA = FieldType.class.getName();
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -120,6 +119,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (keyField != null)
             createKeyConstructor();
 
+        determineFieldTypes();
+
         createRWClass();
         addDirectGettersForOwnerAndKeyFields();
 
@@ -131,7 +132,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createApplyMethods();
         createTemplateMethods();
         createFactoryMethods();
-        createFieldMethods();
+        createFieldDSLMethods();
         createValidateMethod();
         createDefaultMethods();
         moveMutatorsToRWClass();
@@ -140,6 +141,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             preventOwnerOverride();
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+    private void determineFieldTypes() {
+        for (FieldNode fieldNode : annotatedClass.getFields())
+            storeFieldType(fieldNode);
     }
 
     private void addDirectGettersForOwnerAndKeyFields() {
@@ -425,8 +431,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void validateFieldAnnotations() {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnored(fieldNode)) continue;
-
             AnnotationNode annotation = CommonAstHelper.getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
             if (annotation == null) continue;
@@ -540,12 +544,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    private void createFieldMethods() {
+    private void createFieldDSLMethods() {
         for (FieldNode fieldNode : annotatedClass.getFields())
-            createMethodsForSingleField(fieldNode);
+            createDSLMethodsForSingleField(fieldNode);
     }
 
-    private void createMethodsForSingleField(FieldNode fieldNode) {
+    private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
         if (isReadOnly(fieldNode)) return;
 
@@ -560,19 +564,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
+    private void storeFieldType(FieldNode fieldNode) {
+        FieldType type = CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
+        fieldNode.putNodeMetaData(FIELD_TYPE_METADATA, type);
+    }
+
     private boolean isReadOnly(FieldNode fieldNode) {
-        return !fieldNode.getAnnotations(READONLY_ANNOTATION).isEmpty();
+        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.READONLY;
     }
 
     @SuppressWarnings("RedundantIfStatement")
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
-        if (fieldNode == keyField) return true;
-        if (fieldNode == ownerField) return true;
+        if (isKeyField(fieldNode)) return true;
+        if (isOwnerField(fieldNode)) return true;
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         if (!fieldNode.getAnnotations(TRANSIENT_ANNOTATION).isEmpty()) return true;
         return false;
+    }
+
+    private boolean isOwnerField(FieldNode fieldNode) {
+        return fieldNode == ownerField;
+    }
+
+    private boolean isKeyField(FieldNode fieldNode) {
+        return fieldNode == keyField;
     }
 
     boolean shouldFieldBeIgnoredForValidation(FieldNode fieldNode) {

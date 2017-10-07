@@ -48,6 +48,8 @@ import java.lang.annotation.*;
 @Documented
 public @interface Field {
 
+    FieldType value() default FieldType.DEFAULT;
+
     /**
      * Name of the inner methods for collections. If empty (default), use field name stripped of a trailing 's'
      * (i.e. if the field is called environments, the elements are called environment by default. If the field name
