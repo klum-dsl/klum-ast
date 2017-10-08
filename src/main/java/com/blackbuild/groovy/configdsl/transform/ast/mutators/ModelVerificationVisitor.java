@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
 import groovyjarjarasm.asm.Opcodes;
@@ -34,7 +35,7 @@ import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.TRANSIENT_ANNOTATION;
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FIELD_TYPE_METADATA;
 import static org.codehaus.groovy.syntax.Types.*;
 
 /**
@@ -135,7 +136,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         FieldNode fieldNode = (FieldNode) variable;
         if (fieldNode.isStatic())
             return;
-        if (!fieldNode.getAnnotations(TRANSIENT_ANNOTATION).isEmpty())
+        if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.TRANSIENT)
             return;
         addError(String.format("Assigning a value to a field of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", variable.getName(), typeCheckingContext.getEnclosingMethod().getText()), expression);
     }

@@ -97,7 +97,7 @@ class RWClassSpec extends AbstractDSLSpec {
 
             @DSL
             class Model {
-                @Transient int count
+                @Field(FieldType.TRANSIENT) int count
                 String name = 'bla'
                 
                 void inc() {

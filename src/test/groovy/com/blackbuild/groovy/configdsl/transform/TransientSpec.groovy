@@ -35,7 +35,7 @@ class TransientSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                @Transient
+                @Field(FieldType.TRANSIENT)
                 String metadata
             }
         ''')
@@ -53,7 +53,7 @@ class TransientSpec extends AbstractDSLSpec {
 
             @DSL
             class Foo {
-                @Transient
+                @Field(FieldType.TRANSIENT)
                 boolean read
                 
                 void count() {
@@ -64,14 +64,14 @@ class TransientSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "Accessor methods are not generated for @Transient fields"() {
+    def "Accessor methods are not generated for @Field(FieldType.TRANSIENT) fields"() {
         when:
         createClass '''
             package pk
 
             @DSL
             class Foo {
-                @Transient
+                @Field(FieldType.TRANSIENT)
                 boolean read
             }'''
 
@@ -87,7 +87,7 @@ class TransientSpec extends AbstractDSLSpec {
             
             @DSL
             class Foo {
-                @Transient String trans
+                @Field(FieldType.TRANSIENT) String trans
                 
                 String name
             }'''
