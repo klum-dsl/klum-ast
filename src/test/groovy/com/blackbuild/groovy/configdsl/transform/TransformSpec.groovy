@@ -318,12 +318,12 @@ class TransformSpec extends AbstractDSLSpec {
     }
 
     @Issue('80')
-    def "no adders are created for ReadOnly fields"() {
-        given:
+    def "adders for PROTECTED fields are protected"() {
+        when:
         createClass('''
             @DSL
             class Foo {
-                @ReadOnly String value
+                @Field(FieldType.PROTECTED) String value
                 
                 @Mutator void setAsLowerCase(String rawName) {
                     value = rawName.toLowerCase()   
@@ -331,13 +331,8 @@ class TransformSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:
-        rwClazz.getDeclaredMethod("value", String)
-
         then:
-        thrown NoSuchMethodException
-
-        expect: "Setters are protected"
+        rwClazz.getDeclaredMethod("value", String).getModifiers() & ACC_PROTECTED
         rwClazz.getDeclaredMethod("setValue", String).getModifiers() & ACC_PROTECTED
 
         when:

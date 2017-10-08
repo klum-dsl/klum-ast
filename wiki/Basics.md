@@ -423,11 +423,10 @@ assert c.bar.owner === c
 The `@Field` annotation has a value of type `FieldType` where special handling of the field
 can be configured. Currently, there a two values:
 
-## READONLY
-Fields marked as `READONLY` don't get dsl methods or public setters in the
-RW class. This essentially means that they cannot be changed directly by a user of
-the DSL. They can only be changed via custom mutator methods
-or other setters.
+## INTERNAL
+Fields marked as `INTERNAL` are not externally writable, all dsl methods as well as the dsl methods
+are created as protected. This essentially means that they cannot be changed directly by a user of
+the DSL. They can only be changed via custom mutator (or lifecycle) methods or other setters.
 
 ## TRANSIENT
 

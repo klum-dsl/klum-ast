@@ -69,7 +69,7 @@ public class FieldTypeDeprecationTransformation extends AbstractASTTransformatio
         if (annotation.getClassNode().equals(TRANSIENT_ANNOTATION)) {
             fieldType = FieldType.TRANSIENT;
         } else if (annotation.getClassNode().equals(READONLY_ANNOTATION)) {
-            fieldType = FieldType.READONLY;
+            fieldType = FieldType.PROTECTED;
         }
 
         if (fieldType == null)

@@ -34,11 +34,11 @@ public enum FieldType {
     DEFAULT,
 
     /**
-     * Designates the field as read only. Read only fields do not get any DSL methods or public setters in the RW class
-     * making them not directly changeable from a configuration. The can, however be changed from inside {@link Mutator}
+     * Designates the field as protected. Setters and dsl methods for internal fields are created protected, making them
+     * not directly changeable from a configuration. They can only be changed from inside {@link Mutator}
      * or lifecycle methods.
      */
-    READONLY,
+    PROTECTED,
 
     /**
      * Designates a field as transient. Transient fields are not formally part of the model, but can be used to

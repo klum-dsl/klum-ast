@@ -251,7 +251,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
 
         createMethod(setterName)
-                .mod(isReadOnly(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
+                .mod(isProtected(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(pNode.getType(), "value")
                 .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
@@ -563,7 +563,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
-        if (isReadOnly(fieldNode)) return;
 
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
@@ -581,8 +580,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         fieldNode.putNodeMetaData(FIELD_TYPE_METADATA, type);
     }
 
-    private boolean isReadOnly(FieldNode fieldNode) {
-        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.READONLY;
+    private boolean isProtected(FieldNode fieldNode) {
+        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.PROTECTED;
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -612,16 +611,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        createOptionalPublicMethod(fieldNode.getName())
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        String fieldName = fieldNode.getName();
+
+        createMethod(fieldName)
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(fieldNode.getType(), "value")
-                .assignToProperty(fieldNode.getName(), varX("value"))
+                .assignToProperty(fieldName, varX("value"))
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            createOptionalPublicMethod(fieldNode.getName())
+            createMethod(fieldName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
-                    .callThis(fieldNode.getName(), constX(true))
+                    .callThis(fieldName, constX(true))
                     .addTo(rwClass);
         }
     }
@@ -638,20 +644,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        createOptionalPublicMethod(fieldNode.getName())
+        createMethod(fieldNode.getName())
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .arrayParam(elementType, "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(rwClass);
 
-        createOptionalPublicMethod(fieldNode.getName())
+        createMethod(fieldNode.getName())
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(rwClass);
 
-        createOptionalPublicMethod(getElementNameForCollectionField(fieldNode))
+        createMethod(getElementNameForCollectionField(fieldNode))
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
@@ -671,8 +684,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
         String fieldRWName = fieldName + "$rw";
 
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         if (!CommonAstHelper.isAbstract(elementType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
@@ -688,7 +704,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(rwClass);
 
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
@@ -698,7 +716,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
@@ -714,7 +734,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .delegationTargetClassParam("typeToCreate", elementType)
@@ -724,7 +746,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createOptionalPublicMethod(methodName)
+        createMethod(methodName)
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("value"))
@@ -762,7 +786,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
         String methodName = fieldNode.getName();
 
-        createOptionalPublicMethod(methodName)
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+
+        createMethod(methodName)
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
@@ -770,7 +798,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
-        createOptionalPublicMethod(singleElementMethod)
+        createMethod(singleElementMethod)
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(keyType, "key")
                 .param(valueType, "value")
@@ -794,9 +824,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldRWName = fieldName + "$rw";
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(elementType);
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (!CommonAstHelper.isAbstract(elementType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
@@ -811,7 +844,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .param(keyType, "key")
@@ -821,7 +856,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(elementType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .namedParams("values")
@@ -837,7 +874,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .delegationTargetClassParam("typeToCreate", elementType)
@@ -848,7 +887,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         //noinspection ConstantConditions
-        createOptionalPublicMethod(methodName)
+        createMethod(methodName)
+                .optional()
+                .mod(visibility)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(propX(varX("value"), getKeyField(elementType).getName()), varX("value")))
@@ -872,8 +913,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         String fieldName = fieldNode.getName();
 
+        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+
         if (!CommonAstHelper.isAbstract(targetFieldType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
@@ -889,7 +934,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(rwClass);
 
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
@@ -899,7 +946,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(targetFieldType)) {
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
@@ -916,7 +965,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn("created")
                     .addTo(rwClass);
 
-            createOptionalPublicMethod(methodName)
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
