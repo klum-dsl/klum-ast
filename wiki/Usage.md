@@ -29,10 +29,13 @@ For Gradle, setup is similar:
 
 ```groovy
 dependencies {
-    compileOnly 'com.blackbuild.klum.ast:klum-ast:@version@'
+    compile 'com.blackbuild.klum.ast:klum-ast:@version@'
     compileOnly 'org.codehaus.groovy:groovy-all:2.4.12'
 }
 ```
+
+__Attention:__  as of 1.2.0, advanced features of KlumAST need the library to
+be present on the classpath during runtime
 
 # Project setup
 
@@ -62,6 +65,10 @@ The schema usually consists of one or more script files containing either a `Mod
  
 The model is than packed into a jar file (for convenience a shadowed jar containing the schema as well), which can 
  be used as the single dependency for all consumers.
+
+If the model has single entry points, i.e. instances of classes that are only present once in the
+model (which is usually the case), the model can make use of the new `createFromClasspath` feature, see
+[[Convenience Factories#classpath]] for details.
  
 ### Consumer
 

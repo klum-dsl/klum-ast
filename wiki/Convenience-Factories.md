@@ -75,3 +75,52 @@ Config.create {
 __Note__: Currently, `createFrom` does not support any polymorphic creation. This might be added later,
  see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
 
+# Classpath
+
+In addition, 1.2.0 introduces a new experimental feature for instantiating a a model automatically by placing
+a property file in your model library. In order for this to work, the model needs one or more single
+entry points, i.e. instances that are usually present only once (like the all encompassing Config object).
+
+By placing a marker into the classpath, this class can automatically be instantiated without the consumer needing
+to know the name of the configuration class. This takes the dependency from the code into the jar-orchestration /
+the buildscript.
+
+Given the following classes:
+
+`Model.groovy`:
+```groovy
+package pk
+@DSL class Model {
+    // ... definitions, inner elements etc.
+}
+
+```
+
+`Configuration.groovy`:
+```groovy
+package impl
+Model.create {
+  // regular dsl code
+}
+```
+
+By including a separate properties file in the jar of [[Usage#model]], this model
+can automatically be instantiated. The file must be named `/META-INF/klum-model/<schema-classname>.properties`
+and contain a single property: `model-class`, which contains the full classname of the Entry-Point script (which
+can bea regular as well as a DelegatingScript):
+
+`/META-INF/klum-model/pk.Model.properties`
+```properties
+model-class: impl.Configuration
+```
+
+This allows the code consuming the model to simply obtain it via:
+
+```groovy
+def model = Model.createFromClasspath()
+```
+
+Using this technique, the same consumer can work with different models (most of the time: different packages),
+without any need to change or somehow inject the name of the Model class.
+
+In fact, this might actually become the preferred method of consuming a model.
