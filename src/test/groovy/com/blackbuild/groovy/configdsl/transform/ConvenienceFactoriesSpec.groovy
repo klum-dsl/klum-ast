@@ -296,4 +296,64 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.name == "Dieter"
     }
 
+    def "read model from classpath"() {
+        given:
+        def classPathRoot = temp.newFolder()
+        def properties = new File(classPathRoot, "META-INF/klum-model/pk.Config.properties")
+        properties.parentFile.mkdirs()
+        createClass'''
+            package pk
+
+            @DSL
+            class Config {
+                String name
+                String value
+            }'''
+        createSecondaryClass'''
+            package impl
+            pk.Config.create {
+                name "hallo"
+                value "welt"
+            }''', "Configuration.groovy"
+        properties.text = "model-class: impl.Configuration"
+        loader.addURL(classPathRoot.toURI().toURL())
+
+        when:
+        instance = clazz.createFromClasspath()
+
+        then:
+        instance.name == "hallo"
+        instance.value == "welt"
+    }
+
+    def "read model from classpath with delegating script"() {
+        given:
+        def classPathRoot = temp.newFolder()
+        def properties = new File(classPathRoot, "META-INF/klum-model/pk.Config.properties")
+        properties.parentFile.mkdirs()
+        createClass'''
+            package pk
+
+            @DSL
+            class Config {
+                String name
+                String value
+            }'''
+        createSecondaryClass'''
+            package impl
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            name "hallo"
+            value "welt"
+            ''', "Configuration.groovy"
+        properties.text = "model-class: impl.Configuration"
+        loader.addURL(classPathRoot.toURI().toURL())
+
+        when:
+        instance = clazz.createFromClasspath()
+
+        then:
+        instance.name == "hallo"
+        instance.value == "welt"
+    }
+
 }

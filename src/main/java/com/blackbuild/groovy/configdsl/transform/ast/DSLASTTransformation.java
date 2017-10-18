@@ -23,7 +23,16 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.*;
+import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.Field;
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.groovy.configdsl.transform.Key;
+import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
+import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.groovy.configdsl.transform.Validation;
+import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
@@ -31,9 +40,31 @@ import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
-import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
-import org.codehaus.groovy.ast.stmt.*;
+import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.GenericsType;
+import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.MixinNode;
+import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.PropertyNode;
+import org.codehaus.groovy.ast.VariableScope;
+import org.codehaus.groovy.ast.expr.BooleanExpression;
+import org.codehaus.groovy.ast.expr.ClassExpression;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.stmt.AssertStatement;
+import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.CatchStatement;
+import org.codehaus.groovy.ast.stmt.EmptyStatement;
+import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.classgen.Verifier;
@@ -48,15 +79,60 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.*;
-import static com.blackbuild.klum.common.CommonAstHelper.*;
-import static org.codehaus.groovy.ast.ClassHelper.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerField;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldName;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.ClosureDefaultValue;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
+import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
+import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
+import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
+import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.andX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.assignX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
@@ -79,6 +155,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
+    public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
+
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
@@ -1121,6 +1199,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(make(URL.class), "src")
                 .declareVariable("text", propX(varX("src"), "text"))
                 .doReturn(callX(annotatedClass, "createFrom", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
+                .addTo(annotatedClass);
+
+        createPublicMethod("createFromClasspath")
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
                 .addTo(annotatedClass);
     }
 
