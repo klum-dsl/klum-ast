@@ -4,6 +4,11 @@
 - Replaced the `@ReadOnly` annotation with a `@Field(FieldType.PROTECTED)` (see [#108](https://github.com/klum-dsl/klum-ast/issues/108))
 - Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
 - PROTECTED (former ReadOnly) fields now DO create adder methods, although protected (see [#78](https://github.com/klum-dsl/klum-ast/issues/78))
+- __(Potentially) breaking changes:__
+    - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
+    - this means that either klum-ast or future klum-util package needs to be present in the classpath during
+      runtime
+
 
 ## 1.1.1
 - access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))

@@ -10,9 +10,9 @@ Turn your models into supermodels!
 
 # Breaking changes
 
-Beginning from 0.98 models are now (almost) read only. Take a look at 
-[Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) in the wiki for necessary
-steps to migrate.
+New features being introduced in 1.2.0 will need KlumAST (or KlumUtil) to
+be present on the classpath during runtime. The details are not yet finalized, take
+care when adopting a 1.2.0 release candidate.
 
 
 # What is KlumAST?
