@@ -139,5 +139,10 @@ publishing {
     }
 }
 
+releaseCheck.doLast {
+    if (!gradle.includedBuilds.isEmpty())
+        throw new GradleException("Releasing is not allowed with incremental builds. Please release $gradle.includedBuilds separatly")
+}
+
 tasks.release.dependsOn tasks.build
 tasks.postRelease.dependsOn tasks.publish, tasks.publishGhPages
