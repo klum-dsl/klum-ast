@@ -106,6 +106,88 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    @Issue("114")
+    def "convenience factory from String with validation"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Validate
+                String value
+            }
+        ''')
+
+        def configText = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFrom(configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
+    @Issue("114")
+    def "convenience factory must call validation at end"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Validate
+                String value
+            }
+        ''')
+
+        def configText = '''
+        '''
+
+        when:
+        instance = clazz.createFrom(configText)
+
+        then:
+        thrown IllegalStateException
+    }
+
+    @Issue("114")
+    def "post create must be called for convenience factory class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+                
+                @PostCreate
+                void postCreate() {
+                    assert value == null
+                }
+                
+                @PostApply
+                void postApply() {
+                    assert value != null
+                }
+            }
+        ''')
+
+        def configText = '''
+            value "bla"
+        '''
+
+        when:
+        instance = clazz.createFrom(configText)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+    }
+
     def "convenience factory with template"() {
         given:
         createClass('''
