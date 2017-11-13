@@ -25,7 +25,12 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.GenericsType;
+import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapExpression;
@@ -37,9 +42,37 @@ import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
-import static groovyjarjarasm.asm.Opcodes.*;
-import static org.codehaus.groovy.ast.ClassHelper.*;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
+import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
+import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
+import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
+import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ternaryX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
@@ -116,38 +149,23 @@ class TemplateMethods {
                 .closureParam("closure")
                 .statement(ifS(notX(varX("templates")), returnS(callX(varX("closure"), "call"))))
                 .declareVariable("keys", callX(callX(varX("templates"), "keySet"), "asList"))
-                .declareVariable("recursion",
-                        // This is a dirty hack. Since I did not get the Variable Scope to be propagated into the closure
-                        // I create a closure using three parameters (templates, keys, closure), which are passed as parameters
-                        // and then we curry the closure using the actual values.
-                        closureX(
-                            params(
-                                    param(newClass(MAP_TYPE), "t"),
-                                    param(newClass(LIST_TYPE), "k"),
-                                    param(newClass(CLOSURE_TYPE), "c")
-                            ),
-                            block(
-                                    stmt(
-                                            callX(
-                                                    annotatedClass,
-                                                    WITH_MULTIPLE_TEMPLATES,
-                                                    args(
-                                                            callX(
-                                                                    varX("t"), "subMap",
-                                                                    callX(varX("k"), "tail")
-                                                            ),
-                                                            varX("c")
-                                                    )
-                                            )
-                                    )
-                            )
-                        )
-                )
-                .declareVariable("curried", callX(varX("recursion"), "curry", args("templates", "keys", "closure")))
+                .declareVariable("nextKey", callX(varX("keys"), "first"))
                 .callMethod(callX(varX("keys"), "head"), WITH_TEMPLATE,
                         args(
-                                callX(varX("templates"), "get", callX(varX("keys"), "head")),
-                                varX("curried")
+                                callX(varX("templates"), "get", varX("nextKey")),
+                                closureX(block(stmt(
+                                        callX(
+                                                annotatedClass,
+                                                WITH_MULTIPLE_TEMPLATES,
+                                                args(
+                                                        callX(
+                                                                varX("templates"), "subMap",
+                                                                callX(varX("keys"), "tail")
+                                                        ),
+                                                        varX("closure")
+                                                )
+                                        )
+                                )))
                         )
                 )
                 .addTo(annotatedClass);
