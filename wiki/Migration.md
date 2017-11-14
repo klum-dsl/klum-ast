@@ -1,3 +1,62 @@
+# Breaking changes in 1.2
+
+## compileOnly vs. runtime scope
+Some features now rely on a classes being present in during runtime (up to 1.1, Klum-AST
+was strictly compile time). I expect to move more features into runtime helpers to reduce
+complexity of the code.
+
+So you might want to check the scope of your dependency to klum-ast and change it from
+`provided` to (default) `runtime` for Maven, and from `compileOnly` / `implementationOnly` to `compile` / `api`
+for Gradle.
+
+## DelegateOnly Strategy for closures
+
+Closures are all `DelegateOnly` instead of the previous `DelegateFirst`. This means that you cannot access
+methods of an outer object directly (which would not be very intuitive). If you need this functionality,
+you need to access the outer object directly, using the `owner` property of `Closure`, an `@Owner` field
+of the outer instance or a local variable pointing to the targeted instance.
+
+Instead of:
+
+```groovy
+Foo.create {
+    bar {
+        methodInFoo()
+    }
+}
+```
+
+Write instead:
+
+```groovy
+Foo.create {
+    bar {
+        owner.methodInFoo() // owner is property of Closure
+    }
+}
+```
+
+Note that naming an `@Owner` field actually `owner` leads to the field being overshadowed
+by the owner field of the closure. While this is usually not a problem, it might cause failures
+when used inside a Collection-Factory:
+
+```groovy
+@DSL
+Class Bar {
+  @Owner
+  Foo owner
+}
+
+Foo.create {
+    bars {
+        bar {
+            // owner points to the owner of the closure, i.e. the collection factory, so this will fail:
+            owner.doSomething()
+        }
+    }
+}
+```
+
 # Breaking changes since 0.98
 
 - Models are now read-only. That means changes to fields can only be done:

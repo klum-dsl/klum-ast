@@ -409,15 +409,31 @@ class Foo {
 
 @DSL
 class Bar {
-    @Owner Foo owner
+    @Owner Foo outer
 }
 
 def c = Config.create {
     bar {}
 }
 
-assert c.bar.owner === c
+assert c.bar.outer === c
 ```
+
+Note that the owner field is set before the actual configuration closure is executed, so it can be used to access the outer instance:
+
+```groovy
+Foo.create {
+    fillDataFromDatabase() // Copy some data from somewhere else
+    bar {
+        if (outer.elements.size() > 10) // outer is Owner field in Bar
+            type = SPARE
+        // ...
+    }
+}
+```
+
+__Because `owner` is a property of `Closure`, it is not advisable to name the Owner field (or any other field) actually `owner`,
+because it would be overshadowed in configuration closures.__
 
 # Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field

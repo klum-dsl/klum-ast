@@ -26,7 +26,12 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
-import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -89,7 +94,7 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
         private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
             AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
             delegatesTo.addMember("value", new ClassExpression(getRwClassOf(target)));
-            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_FIRST));
+            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
             return delegatesTo;
         }
     }

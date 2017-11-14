@@ -126,10 +126,13 @@ class DocDemoSpec extends AbstractDSLSpec {
 
         when:
         def github = "http://github.com"
+
+        def GradleProject = getClass("GradleProject")
+        def MavenProject = getClass("MavenProject")
         clazz.create {
 
             projects {
-                project(getClass("MavenProject"), "demo") {
+                project(MavenProject, "demo") {
                     url "$github/x/y"
 
                     goals "clean", "compile"
@@ -138,7 +141,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
                     cliOptions "-X -pl :abc".split(" ")
                 }
-                project(getClass("GradleProject"), "demo2") {
+                project(GradleProject, "demo2") {
                     url "$github/a/b"
 
                     tasks "build"

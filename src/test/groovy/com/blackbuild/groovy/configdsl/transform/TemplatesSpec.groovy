@@ -27,8 +27,6 @@ import spock.lang.Issue
 
 class TemplatesSpec extends AbstractDSLSpec {
 
-    def template
-
     def "copyFrom method is created"() {
         when:
         createClass('''
@@ -44,7 +42,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
 
         when:
-        template = clazz.create {
+        def template = clazz.create {
             name "Welt"
         }
 
@@ -142,7 +140,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = clazz.createAsTemplate {
+        def template = clazz.createAsTemplate {
             name "Default"
             value "DefaultValue"
         }
@@ -173,7 +171,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = clazz.createAsTemplate {
+        def template = clazz.createAsTemplate {
             value "DefaultValue"
             value2 "DefaultValue2"
         }
@@ -203,7 +201,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = clazz.createAsTemplate {
+        def template = clazz.createAsTemplate {
             names "a", "b"
         }
 
@@ -240,7 +238,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         and:
         def childTemplate
-        template = clazz.createAsTemplate {
+        def template = clazz.createAsTemplate {
             name "bli"
         }
         clazz.withTemplate(template) {
@@ -274,7 +272,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             name "default"
         }
 
@@ -392,7 +390,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").createAsTemplate {
             name "default"
         }
 
@@ -422,7 +420,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").createAsTemplate {
             name "default"
             value "defaultValue"
         }
@@ -454,7 +452,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
         def childTemplate = getClass("pk.Child").createAsTemplate {
@@ -494,7 +492,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").createAsTemplate {
             name "child"
         }
 
@@ -531,7 +529,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
 
@@ -570,7 +568,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").createAsTemplate {
             name "child"
         }
 
@@ -606,7 +604,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.name == "default"
 
         when:
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             name "parent"
         }
         getClass("pk.Child").withTemplate(template) {
@@ -617,10 +615,10 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "parent"
 
         when:
-        template = getClass("pk.Child").createAsTemplate {
+        def otherTemplate = getClass("pk.Child").createAsTemplate {
             name "child"
         }
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").withTemplate(otherTemplate) {
             instance = create("pk.Child") {}
         }
 
@@ -628,7 +626,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "child"
 
         when:
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").withTemplate(otherTemplate) {
             instance = create("pk.Child") {name "explicit"}
         }
 
@@ -655,7 +653,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.names == ["default"]
 
         when:
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             names "parent"
         }
 
@@ -707,7 +705,7 @@ class TemplatesSpec extends AbstractDSLSpec {
             class Child extends Parent {
             }
         ''')
-        template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").createAsTemplate {
             names "parent"
         }
 
@@ -736,7 +734,7 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
-        template = clazz.createAsTemplate {
+        def template = clazz.createAsTemplate {
             value "default"
         }
 

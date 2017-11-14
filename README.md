@@ -14,6 +14,11 @@ New features being introduced in 1.2.0 will need KlumAST (or KlumUtil) to
 be present on the classpath during runtime. The details are not yet finalized, take
 care when adopting a 1.2.0 release candidate.
 
+Closure are now all `DELEGATE_ONLY`, this means methods of an outer object can not be
+directly accessed. This is cleaner and somewhat closer to the behaviour of
+xml or other structured languages. Accessing out methods should be a corner case.
+Take a look at [[Migration]] if you encounter errors.
+
 
 # What is KlumAST?
 

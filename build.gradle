@@ -54,7 +54,7 @@ dependencies {
     testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
     testRuntime "net.bytebuddy:byte-buddy:1.7.5"
     testRuntime "org.objenesis:objenesis:2.6"
-    compile "com.blackbuild.klum.common:klum-common:0.5.0"
+    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.1"
 }
 
 bintray {

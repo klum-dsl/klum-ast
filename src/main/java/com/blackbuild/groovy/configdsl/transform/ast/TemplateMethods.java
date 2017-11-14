@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -57,7 +58,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
@@ -355,7 +355,7 @@ class TemplateMethods {
                 abstractMethod.getName(),
                 abstractMethod.getModifiers() ^ ACC_ABSTRACT,
                 abstractMethod.getReturnType(),
-                cloneParams(abstractMethod.getParameters()),
+                cloneParamsWithDefaultValues(abstractMethod.getParameters()),
                 abstractMethod.getExceptions(),
                 block()
         );

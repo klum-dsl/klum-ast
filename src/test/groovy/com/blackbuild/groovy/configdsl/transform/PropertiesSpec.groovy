@@ -23,14 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import groovyjarjarasm.asm.Opcodes
-import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Issue
-
-import java.lang.annotation.Annotation
-import java.lang.reflect.Method
-
-import static groovy.lang.Closure.DELEGATE_FIRST
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
 

@@ -540,6 +540,51 @@ class TransformSpec extends AbstractDSLSpec {
         instance.bars[3].name == "Felix"
     }
 
+    @Issue('#72')
+    def "Outer closures are hidden"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                String outerName
+                List<Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                String name
+            }
+        ''')
+
+        when:
+        instance.apply {
+            bars {
+                bar {
+                    outerName "outer"
+                    name "Dieter"
+                }
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+
+        when:
+        instance.apply {
+            bars {
+                outerName "outer"
+                bar {
+                    name "Dieter"
+                }
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+    }
+
     @Issue('https://github.com/klum-dsl/klum-ast/issues/58')
     def "create set of inner objects"() {
         given:
@@ -1315,7 +1360,7 @@ class TransformSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
         instance = clazz.create {

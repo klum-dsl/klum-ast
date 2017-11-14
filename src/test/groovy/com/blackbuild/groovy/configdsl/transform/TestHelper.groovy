@@ -25,14 +25,14 @@ package com.blackbuild.groovy.configdsl.transform
 
 import java.lang.annotation.Annotation
 
-import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
 
 class TestHelper {
 
     static void delegatesToPointsTo(Annotation[] annotations, String className) {
         DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
         assert annotation
-        assert annotation.strategy() == DELEGATE_FIRST
+        assert annotation.strategy() == DELEGATE_ONLY
         assert annotation.value().canonicalName == className
         assert annotation.genericTypeIndex() == -1
     }
@@ -40,7 +40,7 @@ class TestHelper {
     static void delegatesToPointsToDelegateTarget(Annotation[] annotations) {
         DelegatesTo annotation = annotations.find { it.annotationType() == DelegatesTo }
         assert annotation
-        assert annotation.strategy() == DELEGATE_FIRST
+        assert annotation.strategy() == DELEGATE_ONLY
         assert annotation.value() == DelegatesTo.Target
         assert annotation.genericTypeIndex() == 0
     }

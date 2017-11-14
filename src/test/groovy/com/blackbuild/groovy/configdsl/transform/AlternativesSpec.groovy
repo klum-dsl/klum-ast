@@ -138,10 +138,6 @@ class Element {
         when:
         instance = clazz.create {
             elements(value: 'fromTemplate') {
-                println resolveStrategy
-                delegate.class.methods.each {
-                    println it
-                }
                 delegate.element("first")
             }
         }

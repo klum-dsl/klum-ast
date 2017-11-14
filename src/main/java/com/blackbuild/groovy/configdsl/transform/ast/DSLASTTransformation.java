@@ -197,6 +197,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         determineFieldTypes();
 
+        warnIfAFieldIsNamedOwner();
+
         createRWClass();
         addDirectGettersForOwnerAndKeyFields();
 
@@ -217,6 +219,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             preventOwnerOverride();
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+    private void warnIfAFieldIsNamedOwner() {
+        FieldNode ownerNamedField = annotatedClass.getDeclaredField("owner");
+
+        if (ownerNamedField != null)
+            addCompileWarning(sourceUnit, "Fields should not be named 'owner' to prevent naming clash with Closure.owner!", ownerNamedField);
     }
 
     private void determineFieldTypes() {
@@ -1069,7 +1078,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .assignS(propX(varX("closure"), "delegate"), varX(NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_FIRST")
+                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
                 .callMethod("closure", "call")
                 .callMethod(NAME_OF_RW_FIELD_IN_MODEL_CLASS, POSTAPPLY_ANNOTATION_METHOD_NAME)

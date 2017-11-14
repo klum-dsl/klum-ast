@@ -240,13 +240,13 @@ class LifecycleSpec extends AbstractDSLSpec {
             
             @DSL
             class Foo {
-                @Owner Container owner
+                @Owner Container container
             
                 String childName
 
                 @PostCreate
                 def setDefaultValueOfChildName() {
-                    childName = "$owner.name::child"
+                    childName = "$container.name::child"
                 }
             }
         ''')

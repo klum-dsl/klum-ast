@@ -182,10 +182,11 @@ class InheritanceSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = create("pk.Owner") {
-            foo(getClass("pk.Bar")) {
+            foo(Bar) {
                 name = "klaus"
                 value = "dieter"
             }
@@ -198,7 +199,7 @@ class InheritanceSpec extends AbstractDSLSpec {
 
         when: 'Named parameters'
         instance = create("pk.Owner") {
-            foo(getClass("pk.Bar"), name: "klaus", value: "dieter")
+            foo(Bar, name: "klaus", value: "dieter")
         }
 
         then:
@@ -249,12 +250,13 @@ class InheritanceSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Bar")) {
+                foo(Bar) {
                     name = "klaus"
                     value = "dieter"
                 }
@@ -275,7 +277,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Bar"), name: "klaus", value: "dieter")
+                foo(Bar, name: "klaus", value: "dieter")
                 foo(name: "heinz")
             }
         }
@@ -375,12 +377,13 @@ class InheritanceSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Bar"), "klaus") {
+                foo(Bar, "klaus") {
                     value = "dieter"
                 }
                 foo("heinz") {
@@ -399,7 +402,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Bar"), "klaus", value: "dieter")
+                foo(Bar, "klaus", value: "dieter")
                 foo("heinz")
             }
         }
@@ -433,12 +436,13 @@ class InheritanceSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Bar"), "klaus") {
+                foo(Bar, "klaus") {
                     value = "dieter"
                 }
                 foo("heinz") {
@@ -470,12 +474,13 @@ class InheritanceSpec extends AbstractDSLSpec {
                 @Key String name
             }
         ''')
+        def Foo = getClass("pk.Foo")
 
         when:
         instance = create("pk.Owner") {
 
             foos {
-                foo(getClass("pk.Foo"), "Klaus") {}
+                foo(Foo, "Klaus") {}
             }
         }
 

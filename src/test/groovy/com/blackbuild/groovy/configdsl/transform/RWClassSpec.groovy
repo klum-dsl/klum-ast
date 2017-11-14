@@ -168,10 +168,11 @@ class RWClassSpec extends AbstractDSLSpec {
             class Model {
             }
 ''')
+        def Model$RW = getRwClass('pk.Model')
 
         then:
         instance.apply {
-            assert getRwClass('pk.Model').isInstance(delegate)
+            assert Model$RW.isInstance(delegate)
         }
     }
 

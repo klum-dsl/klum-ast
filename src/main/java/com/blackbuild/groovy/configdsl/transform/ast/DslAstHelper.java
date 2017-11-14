@@ -24,7 +24,13 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Parameter;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -32,9 +38,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
+import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
+import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -231,6 +238,7 @@ public class DslAstHelper {
 
         result = annotatedFields.get(0);
         target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, result);
+
         return result;
     }
 
@@ -241,9 +249,20 @@ public class DslAstHelper {
 
     static MethodNode createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
         return createOptionalPublicMethod(targetMethod.getName())
-                .params(cloneParams(targetMethod.getParameters()))
+                .params(cloneParamsWithDefaultValues(targetMethod.getParameters()))
         .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))
         .addTo(receiver);
     }
+
+    static Parameter[] cloneParamsWithDefaultValues(Parameter[] source) {
+        Parameter[] result = new Parameter[source.length];
+        for (int i = 0; i < source.length; i++) {
+            Parameter srcParam = source[i];
+            Parameter dstParam = new Parameter(srcParam.getOriginType(), srcParam.getName(), srcParam.getInitialExpression());
+            result[i] = dstParam;
+        }
+        return result;
+    }
+
 
 }

@@ -62,12 +62,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
 
-            @DSL(owner="owner2")
+            @DSL
             class ChildBar extends Bar {
-                @Owner Foo owner2
+                @Owner Foo foo2
             }
         ''')
 
@@ -108,9 +108,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = clazz.create {
@@ -118,15 +119,15 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.owner.is(instance)
+        instance.bar.foo.is(instance)
 
         when:
         instance = clazz.create {
-            bar(getClass("pk.Bar")) {}
+            bar(Bar) {}
         }
 
         then:
-        instance.bar.owner.is(instance)
+        instance.bar.foo.is(instance)
     }
 
     def 'owner is accessible via get$owner()'() {
@@ -141,7 +142,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
 
@@ -166,7 +167,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
         def aBar = create("pk.Bar") {}
@@ -179,7 +180,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars[0].owner.is(instance)
+        instance.bars[0].foo.is(instance)
     }
 
     def "reusing of objects in list closure does not set owner"() {
@@ -194,7 +195,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
 
@@ -213,7 +214,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then: "bar's owner should still be the first object"
-        otherInstance.bars[0].owner.is(instance)
+        otherInstance.bars[0].foo.is(instance)
     }
 
     def "reusing of existing objects in map closure does not set owner"() {
@@ -229,7 +230,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Bar {
                 @Key String name
-                @Owner Object owner
+                @Owner Object outer
             }
 
             @DSL
@@ -251,7 +252,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        aBar.owner.is(instance)
+        aBar.outer.is(instance)
     }
 
 
@@ -268,7 +269,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Bar {
                 @Key String name
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
         def aBar = create("pk.Bar", "Klaus") {}
@@ -281,7 +282,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars.Klaus.owner.is(instance)
+        instance.bars.Klaus.foo.is(instance)
     }
 
     def "owner reference for dsl object list"() {
@@ -296,21 +297,22 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = clazz.create {
             bars {
                 bar {}
-                bar(getClass("pk.Bar")) {}
+                bar(Bar) {}
             }
         }
 
         then:
-        instance.bars[0].owner.is(instance)
-        instance.bars[1].owner.is(instance)
+        instance.bars[0].foo.is(instance)
+        instance.bars[1].foo.is(instance)
     }
 
     def "owner reference for dsl object map"() {
@@ -325,22 +327,23 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
                 @Key String name
             }
         ''')
+        def Bar = getClass("pk.Bar")
 
         when:
         instance = clazz.create {
             bars {
                 bar("Klaus") {}
-                bar(getClass("pk.Bar"), "Dieter") {}
+                bar(Bar, "Dieter") {}
             }
         }
 
         then:
-        instance.bars.Klaus.owner.is(instance)
-        instance.bars.Dieter.owner.is(instance)
+        instance.bars.Klaus.foo.is(instance)
+        instance.bars.Dieter.foo.is(instance)
     }
 
     def "owner will not be overridden"() {
@@ -355,7 +358,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
 
@@ -367,7 +370,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        aBar.owner.is(instance)
+        aBar.foo.is(instance)
 
 
         when:
@@ -376,7 +379,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then: "bar.owner is not replaced"
-        aBar.owner.is(instance)
+        aBar.foo.is(instance)
     }
 
     def "owner is not overridden in Maps"() {
@@ -392,7 +395,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Bar {
                 @Key String name
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
         def aBar = create("pk.Bar", "Klaus") {}
@@ -408,7 +411,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars.Klaus.owner.is(otherFoo)
+        instance.bars.Klaus.foo.is(otherFoo)
     }
 
     def "owner is not overridden in Lists"() {
@@ -423,7 +426,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
         def aBar = create("pk.Bar") {}
@@ -439,7 +442,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars[0].owner.is(otherFoo)
+        instance.bars[0].foo.is(otherFoo)
     }
 
 
@@ -460,7 +463,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Bar {
-                @Owner Foo owner
+                @Owner Foo foo
             }
         ''')
 
@@ -479,7 +482,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         notThrown(GroovyCastException)
-        secondFoo.bars[0].owner == aFoo
+        secondFoo.bars[0].foo == aFoo
     }
 
     def "owner must be set before calling the closure"() {
