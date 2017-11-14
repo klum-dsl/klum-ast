@@ -73,7 +73,7 @@ model (which is usually the case), the model can make use of the new `createFrom
 ### Consumer
 
 The consuming projects (Docalot, Jenkins Pipeline, etc.) in itself have a dependency on the model jar. The can instantiate
-the main model by using `<MainSchemaClass>.createFrom(<ConfigurationModelClass>)`
+the main model by using `<MainSchemaClass>.createFromClasspath()` or `<MainSchemaClass>.createFrom(<ConfigurationModelClass>)`.
 
 ## Schema - Consumer
 
