@@ -13,3 +13,5 @@
 /*.iml
 /.idea
 /out
+/*/build/
+/*/out/
