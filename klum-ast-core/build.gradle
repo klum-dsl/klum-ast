@@ -1,0 +1,5 @@
+description 'Core classes of Klum-AST. Contains only build time features.'
+
+dependencies {
+    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.1"
+}
