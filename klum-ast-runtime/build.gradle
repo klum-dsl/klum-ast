@@ -1,0 +1,5 @@
+description 'Factories and helpers for advanced features. These need to be present during runtime.'
+
+dependencies {
+    compileOnly project(':klum-ast-core')
+}

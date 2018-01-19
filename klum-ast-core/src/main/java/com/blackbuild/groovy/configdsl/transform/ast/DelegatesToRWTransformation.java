@@ -24,9 +24,9 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
+import com.blackbuild.groovy.configdsl.transform.ast.modules.KlumAstTransformation;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
-import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
@@ -35,7 +35,6 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
-import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.List;
@@ -45,21 +44,16 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLOb
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
 @GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
-public class DelegatesToRWTransformation extends AbstractASTTransformation {
+public class DelegatesToRWTransformation extends KlumAstTransformation {
 
     private final static ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
     private final static ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
-    private ClassNode model;
 
     @Override
-    public void visit(ASTNode[] nodes, SourceUnit source) {
-        init(nodes, source);
-
-        model = (ClassNode) nodes[1];
-
+    protected void doVisit() {
         Visitor visitor = new Visitor();
-        visitor.visitClass(model);
-        visitor.visitClass(getRwClassOf(model));
+        visitor.visitClass(annotatedClass);
+        visitor.visitClass(getRwClassOf(annotatedClass));
     }
 
     private class Visitor extends ClassCodeVisitorSupport {
@@ -78,7 +72,7 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
             ClassExpression targetValue = (ClassExpression) annotations.get(0).getMember("value");
 
-            ClassNode target = targetValue != null ? targetValue.getType() : model;
+            ClassNode target = targetValue != null ? targetValue.getType() : annotatedClass;
 
             if (!isDSLObject(target)) {
                 addError(target + " is no DSL object.", targetValue);

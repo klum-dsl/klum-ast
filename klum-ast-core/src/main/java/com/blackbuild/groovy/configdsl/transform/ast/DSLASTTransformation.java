@@ -32,7 +32,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
-import com.blackbuild.klum.ast.util.FactoryHelper;
+import com.blackbuild.groovy.configdsl.transform.ast.modules.KlumAstTransformation;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
@@ -40,7 +40,6 @@ import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
-import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -70,8 +69,6 @@ import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
-import org.codehaus.groovy.control.SourceUnit;
-import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
 
@@ -143,7 +140,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  */
 @SuppressWarnings("WeakerAccess")
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
-public class DSLASTTransformation extends AbstractASTTransformation {
+public class DSLASTTransformation extends KlumAstTransformation {
 
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
@@ -155,7 +152,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
+    // public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class); // TODO uncomment again
 
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
@@ -173,21 +170,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String FIELD_TYPE_METADATA = FieldType.class.getName();
-    ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
     FieldNode ownerField;
-    AnnotationNode dslAnnotation;
     InnerClassNode rwClass;
 
     @Override
-    public void visit(ASTNode[] nodes, SourceUnit source) {
-        init(nodes, source);
-
-        annotatedClass = (ClassNode) nodes[1];
+    protected void doVisit() {
         keyField = getKeyField(annotatedClass);
         ownerField = getOwnerField(annotatedClass);
-        dslAnnotation = (AnnotationNode) nodes[0];
 
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
@@ -1222,11 +1213,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn(callX(annotatedClass, "createFrom", keyField != null ? args(propX(varX("src"), "path"), varX("text")) : args("text")))
                 .addTo(annotatedClass);
 
-        createPublicMethod("createFromClasspath")
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
-                .addTo(annotatedClass);
+        // TODO: uncomment, don't commit
+//        createPublicMethod("createFromClasspath")
+//                .returning(newClass(annotatedClass))
+//                .mod(ACC_STATIC)
+//                .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
+//                .addTo(annotatedClass);
     }
 
     @SuppressWarnings("unchecked")

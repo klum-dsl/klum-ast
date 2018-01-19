@@ -381,7 +381,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
     def "read model from classpath"() {
         given:
         def classPathRoot = temp.newFolder()
-        def properties = new File(classPathRoot, "META-INF/klum-model/pk.Config.properties")
+        def properties = new File(classPathRoot, "META-INF/klum-annotatedClass/pk.Config.properties")
         properties.parentFile.mkdirs()
         createClass'''
             package pk
@@ -397,7 +397,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
                 name "hallo"
                 value "welt"
             }''', "Configuration.groovy"
-        properties.text = "model-class: impl.Configuration"
+        properties.text = "annotatedClass-class: impl.Configuration"
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
@@ -411,7 +411,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
     def "read model from classpath with delegating script"() {
         given:
         def classPathRoot = temp.newFolder()
-        def properties = new File(classPathRoot, "META-INF/klum-model/pk.Config.properties")
+        def properties = new File(classPathRoot, "META-INF/klum-annotatedClass/pk.Config.properties")
         properties.parentFile.mkdirs()
         createClass'''
             package pk
@@ -427,7 +427,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
             name "hallo"
             value "welt"
             ''', "Configuration.groovy"
-        properties.text = "model-class: impl.Configuration"
+        properties.text = "annotatedClass-class: impl.Configuration"
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:

@@ -13,7 +13,7 @@
       methods of an outer object directly (which would not be very intuitive). If you need this functionality,
       you need to access the outer object directly, using the `owner` property of `Closure` or an `@Owner` field
       of the outer instance. See [[Migration]] for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
-
+- Split into separate modules. klum-ast-core will contain the compile time only elements
 
 ## 1.1.1
 - access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))
