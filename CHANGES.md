@@ -5,6 +5,9 @@
 - Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
 - PROTECTED (former ReadOnly) fields now DO create adder methods, although protected (see [#78](https://github.com/klum-dsl/klum-ast/issues/78))
 - Issue a warning if a field is named `owner`
+- interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
+  types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete
+  which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during

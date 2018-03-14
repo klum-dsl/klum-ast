@@ -41,6 +41,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.cre
 import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
+import static com.blackbuild.klum.common.CommonAstHelper.isAbstract;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 
 /**
@@ -264,5 +265,7 @@ public class DslAstHelper {
         return result;
     }
 
-
+    static boolean isInstantiable(ClassNode classNode) {
+        return !classNode.isInterface() && !isAbstract(classNode);
+    }
 }

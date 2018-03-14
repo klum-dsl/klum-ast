@@ -197,7 +197,7 @@ class TemplateMethods {
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
-        if (CommonAstHelper.isAbstract(annotatedClass))
+        if (!DslAstHelper.isInstantiable(annotatedClass))
             createTemplateClass();
         else
             templateClass = annotatedClass;

@@ -1676,4 +1676,43 @@ class TransformSpec extends AbstractDSLSpec {
 
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/121')
+    def 'interfaces can be annotated'() {
+        when:
+        createNonDslClass('''
+            @DSL interface Foo {
+                String getValue()
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/121')
+    def 'DSL methods for DSL-interface fields are generated'() {
+        when:
+        createClass('''
+            @DSL class Outer {
+                Foo foo
+            }
+
+            @DSL class FooImpl implements Foo {
+                String value
+                String name
+            }
+
+            @DSL interface Foo {
+                String getValue()
+                String getName()
+            }
+        ''')
+
+        then:
+        rwClazz.metaClass.getMetaMethod("foo", Class, Closure) != null
+
+        and: "interface fields must get a Class argument"
+        rwClazz.metaClass.getMetaMethod("foo", Closure) == null
+    }
+
 }

@@ -185,6 +185,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         init(nodes, source);
 
         annotatedClass = (ClassNode) nodes[1];
+
+        if (annotatedClass.isInterface())
+            return;
+
         keyField = getKeyField(annotatedClass);
         ownerField = getOwnerField(annotatedClass);
         dslAnnotation = (AnnotationNode) nodes[0];
@@ -771,7 +775,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldRWName = fieldName + "$rw";
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
-        if (!CommonAstHelper.isAbstract(elementType)) {
+        if (!!DslAstHelper.isInstantiable(elementType)) {
             createMethod(methodName)
                     .optional()
                     .mod(visibility)
@@ -912,7 +916,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode elementRwType = DslAstHelper.getRwClassOf(elementType);
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (!CommonAstHelper.isAbstract(elementType)) {
+        if (!!DslAstHelper.isInstantiable(elementType)) {
             createMethod(methodName)
                     .optional()
                     .mod(visibility)
@@ -1001,7 +1005,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (!CommonAstHelper.isAbstract(targetFieldType)) {
+        if (DslAstHelper.isInstantiable(targetFieldType)) {
             createMethod(methodName)
                     .optional()
                     .mod(visibility)
@@ -1098,7 +1102,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createFactoryMethods() {
         new LifecycleMethodBuilder(rwClass, POSTCREATE_ANNOTATION).invoke();
 
-        if (CommonAstHelper.isAbstract(annotatedClass)) return;
+        if (!DslAstHelper.isInstantiable(annotatedClass)) return;
 
         createPublicMethod("create")
                 .returning(newClass(annotatedClass))

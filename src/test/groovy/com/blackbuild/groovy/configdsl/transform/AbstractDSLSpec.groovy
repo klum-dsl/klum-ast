@@ -69,6 +69,10 @@ class AbstractDSLSpec extends Specification {
         rwClazz = getRwClass(clazz.name)
     }
 
+    def createNonDslClass(String code) {
+        clazz = loader.parseClass(code)
+    }
+
     def createSecondaryClass(String code) {
         return loader.parseClass(code)
     }
@@ -85,7 +89,7 @@ class AbstractDSLSpec extends Specification {
         getClass(classname).create(key, closure)
     }
 
-    def Class<?> getClass(String classname) {
+    Class<?> getClass(String classname) {
         loader.loadClass(classname)
     }
 

@@ -28,11 +28,18 @@ import com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 
 /**
- DSL is used to designate a DSL/Model object, which is enriched using the AST transformation.
+ DSL is used to designate a DSL/Model object, which is enriched using the AST transformation. Since 1.2.0, the annotation
+ can also be placed on interfaces, however, interfaces are not transformed at all, fields with an DSL interface type
+ are still handled correctly).
  The DSL annotation leads to the creation of a couple of useful DSL methods. Note that most of these methods
  are not visible by default, as not to clutter the interface of the model. Instead they are created in a special
  inner class that is only accessible with

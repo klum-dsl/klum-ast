@@ -450,3 +450,31 @@ the DSL. They can only be changed via custom mutator (or lifecycle) methods or o
 to all other fields, the retain a public setter in the model, taking them effectively
 out of the [[Static Models]] concept. They can be used to add transient data that is not
 part of the model itself. Transient fields are ignored when checking for equality.
+
+# DSL Interfaces
+As of version 1.2.0, interfaces can me marked with `@DSL` as well. No transformation will
+be done for these interfaces, however a field with an annotated interface type will get its
+dsl methods generated:
+
+```groovy
+@DSL class Outer {
+    Foo foo
+}
+
+@DSL class FooImpl implements Foo {
+    String value
+}
+
+@DSL interface Foo {
+    String getValue()
+}
+
+Outer.create {
+    foo(FooImpl) {
+        value "name"
+    }
+}
+```
+
+Note that the usage of non-DSL classes implementing DSL interfaces might lead to runtime errors when instantiating a model.
+
