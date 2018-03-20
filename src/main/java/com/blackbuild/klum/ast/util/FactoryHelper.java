@@ -42,7 +42,10 @@ public class FactoryHelper {
     }
 
     public static <T extends GroovyObject> T createFromClasspath(Class<T> type) {
-        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        return createFromClasspath(type, Thread.currentThread().getContextClassLoader());
+    }
+
+    public static <T extends GroovyObject> T createFromClasspath(Class<T> type, ClassLoader loader) {
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
 
         try (InputStream stream = loader.getResourceAsStream(path)) {
@@ -56,6 +59,8 @@ public class FactoryHelper {
             throw new IllegalStateException("Error while reading marker properties.", e);
         }
     }
+
+
 
     @SuppressWarnings("unchecked")
     private static <T extends GroovyObject> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
