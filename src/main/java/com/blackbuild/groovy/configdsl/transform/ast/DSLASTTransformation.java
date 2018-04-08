@@ -95,7 +95,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.Clo
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
@@ -827,7 +826,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
 
@@ -858,7 +856,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
             createMethod(methodName)
@@ -986,7 +983,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("created")), varX("created")))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
             createMethod(methodName)
@@ -1016,7 +1012,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("created", "apply", args("values", "closure"))
                     .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("created")), varX("created")))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
             createMethod(methodName)
@@ -1077,7 +1072,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callMethod("this", setterName, args("created"))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
 
@@ -1108,7 +1102,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callMethod("this", setterName, args("created"))
-                    .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
 
