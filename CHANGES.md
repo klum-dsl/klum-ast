@@ -8,6 +8,7 @@
 - interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
   types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete
   which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
+- New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during
