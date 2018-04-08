@@ -25,13 +25,22 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.Expression;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuilder> {
+
+    public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
+    public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
 
     private DslMethodBuilder(String name) {
         super(name);
@@ -82,6 +91,10 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
             param(param);
         }
         return this;
+    }
+
+    public DslMethodBuilder optionalClassLoaderParam() {
+        return param(CLASSLOADER_TYPE, "loader", callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"));
     }
 
 }

@@ -54,6 +54,15 @@ result in the following:
 assert config.value == "blub"
 ```
 
+`createFrom()` can also take an optional classloader as last parameter:
+
+```groovy
+Config.createFrom(content, Config.class.classLoader)
+```
+
+If no classloader is given, the current context classloader is used.
+
+
 # File or URL
 
 Instead of a text, also a File or a Url can be given and in case of a keyed object, the key is derived from the filename 
@@ -74,6 +83,8 @@ Config.create {
  
 __Note__: Currently, `createFrom` does not support any polymorphic creation. This might be added later,
  see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
+
+As with `copyFrom(text)`, `copyFrom(File|Url)` supports an additional classloader parameter as well.
 
 # Classpath
 

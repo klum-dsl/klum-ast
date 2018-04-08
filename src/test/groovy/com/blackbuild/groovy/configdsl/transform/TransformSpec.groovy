@@ -1715,4 +1715,24 @@ class TransformSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("foo", Closure) == null
     }
 
+    def 'classloader is injectable for copyFrom'() {
+        given:
+        def loader = GroovySpy(GroovyClassLoader)
+
+        createClass '''
+            @DSL class Dummy {
+                String name
+            }
+
+        '''
+        def script = '''getClass().classLoader.getResourceAsStream("mock")'''
+
+        when:
+        clazz.createFrom(script, loader)
+
+        then: 'method is called from within script'
+        1 * loader.getResource("mock")
+    }
+
+
 }
