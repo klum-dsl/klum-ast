@@ -51,6 +51,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElem
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getHierarchyOfDSLObjectAncestors;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyType;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -215,6 +216,9 @@ class AlternativesClassBuilder {
 
     private void createNamedAlternativeMethodsForSingleSubclass(ClassNode subclass) {
         if ((subclass.getModifiers() & ACC_ABSTRACT) != 0)
+            return;
+
+        if (!isDSLObject(subclass))
             return;
 
         String methodName = getShortNameFor(subclass);

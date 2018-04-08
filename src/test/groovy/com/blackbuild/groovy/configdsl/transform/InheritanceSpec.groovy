@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
+
+import org.codehaus.groovy.GroovyBugError
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
 class InheritanceSpec extends AbstractDSLSpec {
@@ -646,6 +648,29 @@ class InheritanceSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    def "NPE when non DSL subclass of DSL class is found"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                List<Inner> inners
+            }
+
+            @DSL
+            class Inner {
+                String name
+            }
+            
+            class SubInner extends Inner {}
+        ''')
+
+        then:
+        notThrown(GroovyBugError)
+
     }
 
 }
