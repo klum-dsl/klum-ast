@@ -49,4 +49,11 @@ public enum FieldType {
      * by default.
      */
     TRANSIENT,
+
+    /**
+     * Designates that no accessor methods should be created at all, i.e. the regular setters are still part of the
+     * RW model and can only be access from inside a mutator. Not that the automatic initialization of empty collections /
+     * maps is not active for these fields as well, so you need to make sure the field is initialized.
+     */
+    IGNORED
 }

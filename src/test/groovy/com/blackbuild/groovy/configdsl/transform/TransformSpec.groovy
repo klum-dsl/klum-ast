@@ -1723,7 +1723,6 @@ class TransformSpec extends AbstractDSLSpec {
             @DSL class Dummy {
                 String name
             }
-
         '''
         def script = '''getClass().classLoader.getResourceAsStream("mock")'''
 
@@ -1732,6 +1731,73 @@ class TransformSpec extends AbstractDSLSpec {
 
         then: 'method is called from within script'
         1 * loader.getResource("mock")
+    }
+
+
+    def "no methods are generated for ignored fields, but setters are part of rw class"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(FieldType.IGNORED)
+                Map<Class<? extends Hint>, ? extends Hint> hints
+            }
+            
+            @DSL class Hint {}
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        clazz.metaClass.getMetaMethod("hints", Closure) == null
+        clazz.metaClass.getMetaMethod("hint", Closure) == null
+
+        and:
+        rwClazz.metaClass.getMetaMethod("hints", Closure) == null
+        rwClazz.metaClass.getMetaMethod("hint", Closure) == null
+
+        and:
+        clazz.metaClass.getMetaMethod("setHints", Map) == null
+        rwClazz.metaClass.getMetaMethod("setHints", Map) != null
+    }
+
+    def "Use case for IGNORED field"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                @Field(FieldType.IGNORED)
+                Map<Class<? extends Hint>, ? extends Hint> hints = [:]
+                
+                void hint(Hint hint) {
+                    hints.put(hint.class, hint)
+                }
+                
+                def <T extends Hint> T getHint(Class<T> type) {
+                    return hints[type] as T
+                }
+            }
+            
+            @DSL abstract class Hint {}
+            
+            @DSL class AHint extends Hint {
+                String value
+            }
+            @DSL class BHint extends Hint {
+                String otherValue
+            }
+        '''
+
+        when:
+        def a = getClass("AHint").create(value: "blub")
+        def b = getClass("BHint").create(otherValue: "bli")
+        instance = clazz.create {
+            hint(a)
+            hint(b)
+        }
+
+        then:
+        instance.hints.size() == 2
+        instance.getHint(getClass("AHint")).value == "blub"
+        instance.getHint(getClass("BHint")).otherValue == "bli"
+
     }
 
 

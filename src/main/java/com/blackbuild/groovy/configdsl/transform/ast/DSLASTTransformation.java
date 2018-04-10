@@ -654,6 +654,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
+        if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.IGNORED) return;
 
         if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
             createSingleDSLObjectClosureMethod(fieldNode);
