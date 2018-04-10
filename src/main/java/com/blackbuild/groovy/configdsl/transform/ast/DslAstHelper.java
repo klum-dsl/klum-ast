@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -31,6 +32,9 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Deque;
@@ -40,6 +44,7 @@ import java.util.List;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
+import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
 import static com.blackbuild.klum.common.CommonAstHelper.isAbstract;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
@@ -267,5 +272,27 @@ public class DslAstHelper {
 
     static boolean isInstantiable(ClassNode classNode) {
         return !classNode.isInterface() && !isAbstract(classNode);
+    }
+
+    @Nullable
+    static ClosureExpression getCodeClosureFor(AnnotatedNode target, AnnotationNode annotation, String member) {
+        Expression codeExpression = annotation.getMember(member);
+        if (codeExpression == null)
+            return null;
+        if (codeExpression instanceof ClosureExpression)
+            return (ClosureExpression) codeExpression;
+
+        addCompileError("Illegal value for code, only a closure is allowed.", target, annotation);
+        return null;
+    }
+
+    @Nullable
+    static ClosureExpression getCodeClosureFor(AnnotatedNode target, ClassNode annotationType, String member) {
+        AnnotationNode annotation = getAnnotation(target, annotationType);
+
+        if (annotation == null)
+            return null;
+
+        return getCodeClosureFor(target, annotation, member);
     }
 }

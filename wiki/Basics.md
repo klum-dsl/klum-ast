@@ -268,7 +268,7 @@ is completed.
 
 Collections of DSL-Objects are created using a nested closure. The name of the (optional) outer closure is the field name, the
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
-keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).
+keyed members to a list and to a map is identical.
 
 __Since 0.98, these methods are only usable inside of an `apply` or `create` block.__
 
@@ -349,6 +349,50 @@ Config.create {
     mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
 }
 ```
+
+#### Automatic Key determination for DSL-Map entries
+In case of a keyed Map-Element, the key is automatically used as key for the map entry.
+This can be overriden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
+
+```groovy
+@DSL class Foo {
+    @Field(keyMapping = { it.secondary })
+    Map<String, Bar> bars
+    @Field(keyMapping = { it.secondary })
+    Map<String, TwoBar> twobars
+}
+
+@DSL class Bar {
+    String secondary
+}
+
+@DSL class TwoBar {
+    @Key String key
+    String secondary
+}
+
+def instance = Foo.create {
+    bar {
+        secondary "blub"
+    }
+    bar {
+        secondary "bli"
+    }
+    twobar("boink") {
+        secondary "blub"
+    }
+    twobar("bunk") {
+        secondary "bli"
+    }
+}
+
+instance.bars.blub
+instance.bars.bli
+
+instance.twobars.blub.key == "boink"
+instance.twobars.bli.key == "bunk"
+```
+
 
 #### Polymorphic collection members
 

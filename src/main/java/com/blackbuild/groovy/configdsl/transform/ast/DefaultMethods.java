@@ -32,11 +32,9 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.ElvisOperatorExpression;
-import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.classgen.Verifier;
-import org.jetbrains.annotations.Nullable;
 
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -98,7 +96,7 @@ public class DefaultMethods {
             return createFieldMethod(fNode, fieldMember);
         }
 
-        ClosureExpression code = getCodeClosureFor(defaultAnnotation);
+        ClosureExpression code = DslAstHelper.getCodeClosureFor(fNode, defaultAnnotation, "code");
         if (code != null) {
             return createClosureMethod(fNode, code);
         }
@@ -150,18 +148,6 @@ public class DefaultMethods {
 
         if (numberOfMembers > 1)
             transformation.addError("Only one member for @Default annotation is allowed!", annotationNode);
-    }
-
-    @Nullable
-    private ClosureExpression getCodeClosureFor(AnnotationNode defaultAnnotation) {
-        Expression codeExpression = defaultAnnotation.getMember("code");
-        if (codeExpression == null)
-            return null;
-        if (codeExpression instanceof ClosureExpression)
-            return (ClosureExpression) codeExpression;
-
-        transformation.addError("Illegal value for code, only None.class or a closure is allowed.", defaultAnnotation);
-        return null;
     }
 
 

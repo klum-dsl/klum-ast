@@ -1733,7 +1733,7 @@ class TransformSpec extends AbstractDSLSpec {
         1 * loader.getResource("mock")
     }
 
-
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
     def "no methods are generated for ignored fields, but setters are part of rw class"() {
         when:
         createClass '''
@@ -1759,6 +1759,7 @@ class TransformSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("setHints", Map) != null
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
     def "Use case for IGNORED field"() {
         given:
         createClass '''
@@ -1800,5 +1801,106 @@ class TransformSpec extends AbstractDSLSpec {
 
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/127')
+    def "custom key mappings"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.secondary })
+                Map<String, Bar> bars
+                @Field(keyMapping = { it.secondary })
+                Map<String, TwoBar> twobars
+            }
+            
+            @DSL class Bar {
+                String secondary
+            }
+            @DSL class TwoBar {
+                @Key String key
+                String secondary
+            }
+        '''
+
+        when:
+        instance = clazz.create {
+            bar {
+                secondary "blub"
+            }
+            bar {
+                secondary "bli"
+            }
+            twobar("boink") {
+                secondary "blub"
+            }
+            twobar("bunk") {
+                secondary "bli"
+            }
+        }
+
+        then:
+        instance.bars.size() == 2
+        instance.bars.blub
+        instance.bars.bli
+
+        and:
+        instance.twobars.blub.key == "boink"
+        instance.twobars.bli.key == "bunk"
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/127')
+    def "custom key mappings are validated"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.tertiary })
+                Map<String, Bar> bars
+            }
+            
+            @DSL class Bar {
+                String secondary
+            }
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/127')
+    def "Use case: Allow custom key mappings for DSL maps"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.class })
+                Map<Class<? extends Hint>, ? extends Hint> hints = [:]
+                
+                def <T extends Hint> T getHint(Class<T> type) {
+                    return hints[type] as T
+                }
+            }
+            
+            @DSL abstract class Hint {}
+            
+            @DSL class AHint extends Hint {
+                String value
+            }
+            @DSL class BHint extends Hint {
+                String otherValue
+            }
+        '''
+
+        when:
+        def a = getClass("AHint").create(value: "blub")
+        def b = getClass("BHint").create(otherValue: "bli")
+        instance = clazz.create {
+            hint(a)
+            hint(b)
+        }
+
+        then:
+        instance.hints.size() == 2
+        instance.getHint(getClass("AHint")).value == "blub"
+        instance.getHint(getClass("BHint")).otherValue == "bli"
+    }
 
 }

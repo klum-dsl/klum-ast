@@ -25,7 +25,11 @@ package com.blackbuild.groovy.configdsl.transform;
 
 import groovy.transform.Undefined;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * Controls specific behaviour for certain fields. Currently, this annotation only makes sense for
@@ -62,4 +66,9 @@ public @interface Field {
      * literal String to Class mappings, i.e. `@DSL(alternatives = {child: ChildElement, sub: SubElement})`.
      */
     Class alternatives() default Undefined.class;
+
+    /**
+     * Determines how the Map key is derived from the Value.
+     */
+    Class keyMapping() default Undefined.class;
 }
