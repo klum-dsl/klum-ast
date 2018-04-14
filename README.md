@@ -28,9 +28,10 @@ There are two main objectives for this project:
 
 - be as terse as possible while still being readable and using almost no boilerplate code
 
-- Offer as much IDE-based assistance as possible. 
-    - In IDEA this works by including a custom gdsl file (mostly working)
-    - In Eclipse, inclusion of a custom dsld file is planned
+- Offer as much IDE-based assistance as possible.
+  Since KlumAST uses AST transformations, this works out of the
+  box for all major IDEs (as long as the model classes are separated from
+  the actual configuration)
 
 ## Example
 
