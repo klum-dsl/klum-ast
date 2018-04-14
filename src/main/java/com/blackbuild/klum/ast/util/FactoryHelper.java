@@ -70,7 +70,7 @@ public class FactoryHelper {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
         } catch (Exception e) {
-            throw new IllegalStateException("Could not read model from " + configModelClassName);
+            throw new IllegalStateException("Could not read model from " + configModelClassName, e);
         }
     }
 
