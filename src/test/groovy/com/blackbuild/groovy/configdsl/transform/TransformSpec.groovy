@@ -1903,4 +1903,25 @@ class TransformSpec extends AbstractDSLSpec {
         instance.getHint(getClass("BHint")).otherValue == "bli"
     }
 
+    def "Annotated setters create dsl methods"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                Date date
+                
+                @Field
+                void setDate(long value) {
+                    this.date = new Date(value)
+                }
+            }
+            '''
+        when:
+        instance = clazz.create {
+            date 0L
+        }
+
+        then:
+        instance.date != null
+    }
+
 }
