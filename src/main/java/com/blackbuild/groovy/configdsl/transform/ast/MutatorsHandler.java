@@ -24,14 +24,15 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Mutator;
-import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.InnerClassNode;
+import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.moveMethodFromModelToRWClass;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
 
 /**
  * Helper class to move mutators to RW class.
@@ -62,15 +63,16 @@ public class MutatorsHandler {
     private List<MethodNode> findAllDeclaredMutatorMethods() {
         List<MethodNode> mutators = new ArrayList<MethodNode>();
         for (MethodNode method : annotatedClass.getMethods()) {
-            AnnotationNode targetAnnotation = getAnnotation(method, MUTATOR_ANNOTATION);
 
-            if (targetAnnotation != null)
+
+            if (DslAstHelper.hasAnnotation(method, MUTATOR_ANNOTATION)
+                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.DSL_FIELD_ANNOTATION))
                 mutators.add(method);
         }
         return mutators;
     }
 
-//    static class ReplaceDirectAccessWithSettersVisitor extends CodeVisitorSupport {
+    //    static class ReplaceDirectAccessWithSettersVisitor extends CodeVisitorSupport {
 //
 //        private MethodNode method;
 //

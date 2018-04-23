@@ -47,7 +47,7 @@ import java.lang.annotation.Target;
  * <p>{@code @Field(member = 'library') Set<String> libraries}</p>
  * <p><b>Note that the member names must be unique across all collections of a DSL hierarchy.</b></p>
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Field {
