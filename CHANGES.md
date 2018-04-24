@@ -11,6 +11,7 @@
   which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
 - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
 - For dsl map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127))
+- Setter-like methods (with exactly one parameter) can be declared as virtual fields using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during
