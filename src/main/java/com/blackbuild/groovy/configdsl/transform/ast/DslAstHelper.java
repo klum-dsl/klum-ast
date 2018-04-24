@@ -295,4 +295,18 @@ public class DslAstHelper {
 
         return getCodeClosureFor(target, annotation, member);
     }
+
+    static boolean hasAnnotation(AnnotatedNode node, ClassNode annotation) {
+        return !node.getAnnotations(annotation).isEmpty();
+    }
+
+    static int findFirstUpperCaseCharacter(String methodName) {
+        int index = 0;
+        while (index < methodName.length()) {
+            if (Character.isUpperCase(methodName.charAt(index)))
+                return index;
+            index++;
+        }
+        return -1;
+    }
 }

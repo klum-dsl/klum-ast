@@ -1903,4 +1903,94 @@ class TransformSpec extends AbstractDSLSpec {
         instance.getHint(getClass("BHint")).otherValue == "bli"
     }
 
+    def "Annotated setters create dsl methods"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                Date date
+                
+                @Field
+                void setDate(long value) {
+                    this.date = new Date(value)
+                }
+            }
+            '''
+        when:
+        instance = clazz.create {
+            date 0L
+        }
+
+        then:
+        instance.date != null
+    }
+
+    def "Annotated setters work for dsl types"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void setBar(Bar bar) {
+                    this.name = bar.name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        instance = clazz.create {
+            bar {
+                name "Hans"
+            }
+        }
+
+        then:
+        instance.name == "Hans"
+    }
+
+    def "Annotated non setter methods work for dsl types"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void addBar(Bar bar) {
+                    this.name = bar.name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        instance = clazz.create {
+            bar {
+                name "Hans"
+            }
+        }
+
+        then:
+        instance.name == "Hans"
+    }
+
+    def "it is illegal to annotate nonSetter like methods with @Field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Date date
+                
+                @Field
+                void setDate(long value, value) {
+                }
+            }
+            '''
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }

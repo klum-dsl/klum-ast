@@ -240,12 +240,6 @@ Config.create {
 }
 ```
 
-This approach was the default one in earlier versions of the library and is still the nicest looking, 
-but since the switch to read only models, code completion in the IDE does not work anymore. The code, however still works,
-but is not longer valid for static type checking.
-
-This problem could be solved by providing an small dsld / gdsl script or a custom IDE plugin.
-
 ##### Reuse syntax
 
 By using an actual `create` call on the target type, the target object is first created and than applied to field-method:
@@ -263,6 +257,40 @@ reference of the inner object is set __before__ the configuration closure is cal
 access the owner field or methods which use it. With the second approach, the owner is set __after__ the create closure
 is completed.
 
+### Virtual Fields
+
+In addition to fields, setter like methods (i.e. methods with a single parameter) can also be annotated with `@Field`,
+making them 'virtual fields'. For virtual fields, the same dsl methods are generated as for actual fields. The name
+is derived from the method name, skipping the part of the name up to the first capital letter
+(i.e. setValue -> value, addName -> name).
+
+The annotated method is automatically converted into a Mutator method.
+
+```groovy
+@DSL class Foo {
+    String value
+
+    @Field
+    void addBar(Bar bar) {
+        this.value = bar.name
+    }
+}
+
+@DSL class Bar {
+    String name
+}
+
+def foo = Foo.create {
+    bar {
+        name "Hans"
+    }
+}
+
+assert foo.value == "Hans"
+```
+
+Note that, as in the above example, this behaviour, while working with non dsl arguments as well, makes the most sense
+for actual DSL arguments.
 
 ### Collections of DSL Objects
 
