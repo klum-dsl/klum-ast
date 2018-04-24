@@ -173,6 +173,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
+    public static final String SETTER_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".settername";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
@@ -675,6 +676,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode parameterType = methodNode.getParameters()[0].getType();
         FieldNode virtualField = new FieldNode(fieldName, ACC_PUBLIC, parameterType, annotatedClass, null);
         virtualField.setSourcePosition(methodNode);
+        virtualField.setNodeMetaData(SETTER_NAME_METADATA_KEY, methodName);
 
         if (isDSLObject(parameterType))
             createSingleDSLObjectClosureMethod(virtualField);
@@ -735,13 +737,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         String fieldName = fieldNode.getName();
+        String setterName = fieldNode.getNodeMetaData(SETTER_NAME_METADATA_KEY);
+        if (setterName == null)
+            setterName = "set" + Verifier.capitalize(fieldName);
 
         createMethod(fieldName)
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(fieldNode.getType(), "value")
-                .assignToProperty(fieldName, varX("value"))
+                .callMethod("this", setterName, args("value"))
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
@@ -1044,19 +1049,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
-        String methodName = fieldNode.getName();
+        String fieldName = fieldNode.getName();
+        String setterName = fieldNode.getNodeMetaData(SETTER_NAME_METADATA_KEY);
+        if (setterName == null)
+            setterName = "set" + Verifier.capitalize(fieldName);
 
         ClassNode targetFieldType = fieldNode.getType();
         FieldNode targetTypeKeyField = getKeyField(targetFieldType);
         boolean targetHasOwnerField = getOwnerFieldName(targetFieldType) != null;
         ClassNode targetRwType = DslAstHelper.getRwClassOf(targetFieldType);
 
-        String fieldName = fieldNode.getName();
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (DslAstHelper.isInstantiable(targetFieldType)) {
-            createMethod(methodName)
+            createMethod(fieldName)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1069,24 +1076,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .assignToProperty(fieldName, varX("created"))
+                    .callMethod("this", setterName, args("created"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
 
-            createMethod(methodName)
+            createMethod(fieldName)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam(targetRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
+                    .doReturn(callThisX(fieldName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(rwClass);
         }
 
         if (!isFinal(targetFieldType)) {
-            createMethod(methodName)
+            createMethod(fieldName)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1100,12 +1107,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .assignToProperty(fieldName, varX("created"))
+                    .callMethod("this", setterName, args("created"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
 
-            createMethod(methodName)
+            createMethod(fieldName)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1113,7 +1120,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
                     .delegatingClosureParam()
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(targetTypeKeyField, "closure")))
+                    .doReturn(callThisX(fieldName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(rwClass);
         }
     }

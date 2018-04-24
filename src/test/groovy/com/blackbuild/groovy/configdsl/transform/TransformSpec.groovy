@@ -1933,9 +1933,33 @@ class TransformSpec extends AbstractDSLSpec {
                 @Field
                 void setBar(Bar bar) {
                     this.name = bar.name
-                    println "here"
-                    println bar
-                    println name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        instance = clazz.create {
+            bar {
+                name "Hans"
+            }
+        }
+
+        then:
+        instance.name == "Hans"
+    }
+
+    def "Annotated non setter methods work for dsl types"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void addBar(Bar bar) {
+                    this.name = bar.name
                 }
             }
             
