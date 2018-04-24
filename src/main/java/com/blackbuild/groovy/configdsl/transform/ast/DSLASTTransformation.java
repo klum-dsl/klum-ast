@@ -95,6 +95,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.Clo
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
@@ -653,13 +654,39 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createFieldDSLMethods() {
         for (FieldNode fieldNode : annotatedClass.getFields())
             createDSLMethodsForSingleField(fieldNode);
+        for (MethodNode methodNode : annotatedClass.getMethods()) {
+            if (methodNode.getAnnotations(DSL_FIELD_ANNOTATION).isEmpty())
+                continue;
+
+            createDSLMethodsForVirtualFields(methodNode);
+        }
+    }
+
+    private void createDSLMethodsForVirtualFields(MethodNode methodNode) {
+        if (methodNode.getParameters().length != 1)
+            addCompileError("Methods annotated with @Field need to have exactly one argument.", methodNode);
+
+        String methodName = methodNode.getName();
+
+        int index = DslAstHelper.findFirstUpperCaseCharacter(methodName);
+
+        String fieldName = index == -1 ? methodName : Character.toLowerCase(methodName.charAt(index)) + methodName.substring(index + 1);
+
+        ClassNode parameterType = methodNode.getParameters()[0].getType();
+        FieldNode virtualField = new FieldNode(fieldName, ACC_PUBLIC, parameterType, annotatedClass, null);
+        virtualField.setSourcePosition(methodNode);
+
+        if (isDSLObject(parameterType))
+            createSingleDSLObjectClosureMethod(virtualField);
+
+        createSingleFieldSetterMethod(virtualField);
     }
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
         if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.IGNORED) return;
 
-        if (hasAnnotation(fieldNode.getType(), DSL_CONFIG_ANNOTATION)) {
+        if (isDSLObject(fieldNode.getType())) {
             createSingleDSLObjectClosureMethod(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
         } else if (CommonAstHelper.isMap(fieldNode.getType()))
@@ -1040,9 +1067,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .assignToProperty(fieldName, varX("created"))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
+                    .assignToProperty(fieldName, varX("created"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);
@@ -1071,9 +1098,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .assignToProperty(fieldName, varX("created"))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod(varX("created"), "apply", args("values", "closure"))
+                    .assignToProperty(fieldName, varX("created"))
                     .callValidationOn("created")
                     .doReturn("created")
                     .addTo(rwClass);

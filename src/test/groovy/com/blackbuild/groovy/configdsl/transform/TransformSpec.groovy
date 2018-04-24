@@ -1924,4 +1924,49 @@ class TransformSpec extends AbstractDSLSpec {
         instance.date != null
     }
 
+    def "Annotated setters work for dsl types"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void setBar(Bar bar) {
+                    this.name = bar.name
+                    println "here"
+                    println bar
+                    println name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        instance = clazz.create {
+            bar {
+                name "Hans"
+            }
+        }
+
+        then:
+        instance.name == "Hans"
+    }
+
+    def "it is illegal to annotate nonSetter like methods with @Field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Date date
+                
+                @Field
+                void setDate(long value, value) {
+                }
+            }
+            '''
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
 }
