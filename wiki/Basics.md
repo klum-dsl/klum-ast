@@ -240,6 +240,12 @@ Config.create {
 }
 ```
 
+This approach was the default one in earlier versions of the library and is still the nicest looking,
+but since the switch to read only models, code completion in the IDE does not work anymore. The code, however still works,
+but is not longer valid for static type checking.
+
+This problem could be solved by providing an small dsld / gdsl script or a custom IDE plugin.
+
 ##### Reuse syntax
 
 By using an actual `create` call on the target type, the target object is first created and than applied to field-method:
