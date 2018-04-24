@@ -11,7 +11,7 @@
   which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
 - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
 - For dsl map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127))
-- Setter-like methods (with exactly one parameter) can be declared as virtual fields using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
+- Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during
@@ -19,7 +19,7 @@
     - Closures are all `DelegateOnly` instead of the previous `DelegateFirst`. This means that you cannot access
       methods of an outer object directly (which would not be very intuitive). If you need this functionality,
       you need to access the outer object directly, using the `owner` property of `Closure` or an `@Owner` field
-      of the outer instance. See [[Migration]] for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
+      of the outer instance. See [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
 
 
 ## 1.1.1
