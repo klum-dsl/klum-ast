@@ -36,16 +36,21 @@ import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.classgen.Verifier;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
@@ -70,6 +75,8 @@ public class DefaultMethods {
         for (FieldNode fNode : transformation.annotatedClass.getFields()) {
             AnnotationNode defaultAnnotation = getAnnotation(fNode, DEFAULT_ANNOTATION);
 
+            createUndefaultedGetter(fNode);
+
             if (defaultAnnotation != null) {
                 Statement getterCode = createDefaultValueFor(fNode, defaultAnnotation);
                 MethodNode getter = transformation.annotatedClass.getGetterMethod("get" + Verifier.capitalize(fNode.getName()));
@@ -82,6 +89,19 @@ public class DefaultMethods {
                 }
             }
         }
+    }
+
+    private void createUndefaultedGetter(FieldNode fNode) {
+        if ((fNode.getModifiers() & ACC_SYNTHETIC) != 0)
+            return;
+
+        createProtectedMethod("get$" + fNode.getName())
+                .optional()
+                .mod(ACC_SYNTHETIC)
+                .returning(fNode.getType())
+                .sourceLinkTo(fNode)
+                .statement(returnS(attrX(varX("this"), constX(fNode.getName()))))
+                .addTo(transformation.annotatedClass);
     }
 
     private Statement createDefaultValueFor(FieldNode fNode, AnnotationNode defaultAnnotation) {

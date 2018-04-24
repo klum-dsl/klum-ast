@@ -58,6 +58,30 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "b"
     }
 
+    def "undefaulted getter is created"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+            
+                @Default(field = 'another')
+                String value
+                String another
+            }
+'''
+        when:
+        instance = create("pk.Foo") {
+            another "a"
+        }
+
+        then:
+        instance.value == "a"
+        instance.$value == null
+
+    }
+
     def "default value cascade"() {
         given:
         createClass '''
@@ -233,6 +257,31 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == 10
     }
 
+    def "copyFrom should ignore default values"() {
+        given:
+        createClass '''
+            package pk
 
+            @DSL
+            class Foo {
+                @Default(field = 'another')
+                String value
+                String another
+            }
+        '''
 
+        when:
+        def template = clazz.create {
+            another "template"
+        }
+
+        def foo = clazz.create {
+            copyFrom template
+            another = "model"
+        }
+
+        then:
+        foo.another == "model"
+        foo.value == "model"
+    }
 }
