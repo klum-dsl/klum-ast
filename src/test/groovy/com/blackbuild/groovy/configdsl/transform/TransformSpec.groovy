@@ -1190,6 +1190,62 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.bars[0].url == "welt"
+    }
+
+    def "reusing adders return the added object"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+                List<Bar> listBars
+                List<KeyBar> listKeyBars
+                Map<String, KeyBar> mapKeyBars
+                List<Object> objects
+                Map<String, Object> mapObjects
+            }
+
+            @DSL class Bar {}
+            
+            @DSL class KeyBar {
+                @Key String id
+            }
+        ''')
+        def aBar = create("pk.Bar")
+        def keyBar = create("pk.KeyBar", "id")
+        def basicObject = new Object()
+
+        when:
+        def added = []
+        def addObjects = []
+
+        clazz.create {
+            added << bar(aBar)
+            listBars {
+                added << listBar(aBar)
+            }
+            added << listBar(aBar)
+            listKeyBars {
+                added << listKeyBar(keyBar)
+            }
+            added << listKeyBar(keyBar)
+            mapKeyBars {
+                added << mapKeyBar(keyBar)
+            }
+            added << mapKeyBar(keyBar)
+            addObjects << object(basicObject)
+            addObjects << mapObject("bl", basicObject)
+        }
+
+        then:
+        added.size() == 7
+        added.every { it.is(aBar) || it.is(keyBar) }
+
+        and:
+        addObjects.size() == 2
+        addObjects.every { it.is(basicObject) }
 
     }
 

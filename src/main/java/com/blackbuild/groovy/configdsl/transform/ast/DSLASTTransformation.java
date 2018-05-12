@@ -743,10 +743,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createMethod(fieldName)
                 .optional()
+                .returning(fieldNode.getType())
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(fieldNode.getType(), "value")
                 .callMethod("this", setterName, args("value"))
+                .doReturn("value")
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
@@ -792,9 +794,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createMethod(getElementNameForCollectionField(fieldNode))
                 .optional()
                 .mod(visibility)
+                .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
+                .doReturn("value")
                 .addTo(rwClass);
     }
 
@@ -876,10 +880,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createMethod(methodName)
                 .optional()
                 .mod(visibility)
+                .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("value"))
                 .optionallySetOwnerOnS("value", targetHasOwnerField)
+                .doReturn("value")
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -928,10 +934,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createMethod(singleElementMethod)
                 .optional()
                 .mod(visibility)
+                .returning(valueType)
                 .linkToField(fieldNode)
                 .param(keyType, "key")
                 .param(valueType, "value")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
+                .doReturn("value")
                 .addTo(rwClass);
     }
 
@@ -1035,10 +1043,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createMethod(methodName)
                 .optional()
                 .mod(visibility)
+                .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
                 .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("value")), varX("value")))
                 .optionallySetOwnerOnS("value", targetHasOwnerField)
+                .doReturn("value")
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
