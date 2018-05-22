@@ -291,6 +291,38 @@ class LifecycleSpec extends AbstractDSLSpec {
 
     }
 
+    @Issue("138")
+    def "Parent's lifecycle methods are called before child's even when Child is compiled first"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postCreateChild() {
+                    this.caller << "Bar"
+                }
+            }
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postCreateParent() {
+                    caller << "Foo"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.apply { caller == ["Foo", "Bar"] }
+
+    }
+
     def "child overrides parent lifecycle method"() {
         given:
         createClass '''
@@ -310,6 +342,38 @@ class LifecycleSpec extends AbstractDSLSpec {
                 @PostCreate
                 def postCreate() {
                     caller << "Bar"
+                }
+            }
+'''
+        when:
+        instance = create("pk.Bar") {}
+
+        then:
+        instance.apply { caller == ["Bar"] }
+
+    }
+
+    @Issue("138")
+    def "child overrides parent lifecycle method with reverse compilation order"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Bar extends Foo {
+                @PostCreate
+                def postCreate() {
+                    caller << "Bar"
+                }
+            }
+
+            @DSL
+            class Foo {
+                List<String> caller
+            
+                @PostCreate
+                def postCreate() {
+                    caller << "Foo"
                 }
             }
 '''

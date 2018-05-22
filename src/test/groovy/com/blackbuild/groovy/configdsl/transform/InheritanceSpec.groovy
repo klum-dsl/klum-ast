@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.GroovyBugError
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 class InheritanceSpec extends AbstractDSLSpec {
 
@@ -672,5 +673,24 @@ class InheritanceSpec extends AbstractDSLSpec {
         notThrown(GroovyBugError)
 
     }
+
+    @Issue("138")
+    def "BUG: Two separate children, both defined before parent leads to error"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child1 extends Parent {}
+            @DSL
+            class Child2 extends Parent {}
+            @DSL
+            class Parent  {}
+        ''')
+
+        then:
+        noExceptionThrown()
+    }
+
 
 }

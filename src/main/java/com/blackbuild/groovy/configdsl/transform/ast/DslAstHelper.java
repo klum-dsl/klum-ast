@@ -29,7 +29,6 @@ import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -84,7 +83,7 @@ public class DslAstHelper {
     static void moveMethodFromModelToRWClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
         declaringClass.removeMethod(method);
-        InnerClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
         // if method is public, it will already have been added by delegateTo, replace it again
         CommonAstHelper.replaceMethod(rwClass, method);
     }
@@ -99,6 +98,7 @@ public class DslAstHelper {
             // parent has not yet been compiled. We create an unresolved parent class
             result = ClassHelper.makeWithoutCaching(classNode.getName() + "$_RW");
             classNode.getCompileUnit().addClassNodeToCompile(result, classNode.getModule().getContext());
+            classNode.redirect().setNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY, result);
         }
 
         return result;

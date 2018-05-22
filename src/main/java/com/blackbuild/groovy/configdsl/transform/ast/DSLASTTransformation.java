@@ -380,7 +380,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
-        annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
+
+        ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
+        if (parentProxy == null)
+            annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
+        else
+            parentProxy.setRedirect(rwClass);
 
         createCoercionMethod();
     }

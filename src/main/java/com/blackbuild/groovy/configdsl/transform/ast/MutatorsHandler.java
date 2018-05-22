@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Mutator;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ public class MutatorsHandler {
 
     public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     private final ClassNode annotatedClass;
-    private final InnerClassNode rwClass;
+    private final ClassNode rwClass;
 
     MutatorsHandler(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
