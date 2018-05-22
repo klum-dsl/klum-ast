@@ -45,8 +45,11 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.cre
 import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
 import static com.blackbuild.klum.common.CommonAstHelper.isAbstract;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
+import static com.blackbuild.klum.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 
 /**
@@ -309,5 +312,13 @@ public class DslAstHelper {
             index++;
         }
         return -1;
+    }
+
+    static boolean isDslMap(FieldNode fieldNode) {
+        return isMap(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[1].getType());
+    }
+
+    static boolean isDslCollection(FieldNode fieldNode) {
+        return isCollection(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[0].getType());
     }
 }
