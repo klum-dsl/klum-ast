@@ -569,7 +569,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new ForStatement(
                         param(DYNAMIC_TYPE, "next"),
                         varX(fieldNode.getName()),
-                        ifS(varX("next"), callX(varX("next"), "validate"))
+                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
                 )
         );
     }
@@ -579,13 +579,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new ForStatement(
                         param(DYNAMIC_TYPE, "next"),
                         callX(varX(fieldNode.getName()), "values"),
-                        ifS(varX("next"), callX(varX("next"), "validate"))
+                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
                 )
         );
     }
 
     private void validateSingleInnerField(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(ifS(varX(fieldNode), callX(varX(fieldNode.getName()), "validate")));
+        block.addStatement(ifS(varX(fieldNode), callX(varX(fieldNode.getName()), VALIDATE_METHOD)));
     }
 
     @NotNull

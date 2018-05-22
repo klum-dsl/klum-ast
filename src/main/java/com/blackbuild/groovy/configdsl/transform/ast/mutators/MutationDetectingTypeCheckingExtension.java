@@ -26,12 +26,15 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCall;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
 
 import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
@@ -41,7 +44,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
  */
 public class MutationDetectingTypeCheckingExtension extends AbstractTypeCheckingExtension {
 
-    private Deque<MethodNode> methodNodes = new LinkedList<MethodNode>();
     private ModelVerificationVisitor verificationVisitor;
 
     public MutationDetectingTypeCheckingExtension(ModelVerificationVisitor typeCheckingVisitor) {

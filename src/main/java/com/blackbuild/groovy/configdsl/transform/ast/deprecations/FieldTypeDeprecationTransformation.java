@@ -44,12 +44,13 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 /**
  * Converter Transformation for Field Types. Converts {@link ReadOnly} into {@link FieldType#PROTECTED}. Will
  * be remove in a later version.
+ *
+ * @deprecated don't use, remove later
  */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 @Deprecated
 public class FieldTypeDeprecationTransformation extends AbstractASTTransformation {
 
-    private static final ClassNode READONLY_ANNOTATION = make(ReadOnly.class);
     private static final ClassNode FIELD_ANNOTATION = make(Field.class);
 
     FieldNode annotatedField;
