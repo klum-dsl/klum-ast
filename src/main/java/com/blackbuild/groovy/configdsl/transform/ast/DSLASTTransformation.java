@@ -92,6 +92,8 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyF
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldName;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslCollection;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.ClosureDefaultValue;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
@@ -100,7 +102,6 @@ import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
-import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
@@ -415,7 +416,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createValidateMethod() {
         assertNoValidateMethodDeclared();
 
-        Validation.Mode mode = getEnumMemberValue(CommonAstHelper.getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
+        Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
@@ -464,7 +465,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfUnannotatedDoValidateMethod();
 
         for (MethodNode method : annotatedClass.getMethods()) {
-            AnnotationNode validateAnnotation = CommonAstHelper.getAnnotation(method, VALIDATE_ANNOTATION);
+            AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
             if (validateAnnotation == null) continue;
 
             CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
@@ -484,7 +485,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (doValidate == null) return;
 
-        if (CommonAstHelper.getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
+        if (getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
 
         CommonAstHelper.addCompileWarning(sourceUnit, "Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
         doValidate.addAnnotation(new AnnotationNode(VALIDATE_ANNOTATION));
@@ -492,51 +493,70 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void validateFields(BlockStatement block) {
         Validation.Option mode = getEnumMemberValue(
-                CommonAstHelper.getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
+                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
                 "option",
                 Validation.Option.class,
                 Validation.Option.IGNORE_UNMARKED);
         for (final FieldNode fieldNode : annotatedClass.getFields()) {
             if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
 
-            ClosureExpression validationClosure = createGroovyTruthClosureExpression(block.getVariableScope());
-            String message = null;
+            AnnotationNode validateAnnotation = getOrCreateValidateAnnotation(mode, fieldNode);
 
-            AnnotationNode validateAnnotation = CommonAstHelper.getAnnotation(fieldNode, VALIDATE_ANNOTATION);
-            if (validateAnnotation != null) {
-                message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
-                Expression member = validateAnnotation.getMember("value");
-                if (member instanceof ClassExpression) {
-                    ClassNode memberType = member.getType();
-                    if (memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                        continue;
-                    else if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class))) {
-                        addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
-                    }
-                } else if (member instanceof ClosureExpression) {
-                    validationClosure = (ClosureExpression) member;
-                    ClassNode fieldNodeType = fieldNode.getType();
-                    validationClosure = CommonAstHelper.toStronglyTypedClosure(validationClosure, fieldNodeType);
-                    // replace closure with strongly typed one
-                    validateAnnotation.setMember("value", validationClosure);
-                }
-            }
+            if (validateAnnotation != null)
+                validateField(block, fieldNode, validateAnnotation);
 
-            if (validateAnnotation != null || mode == Validation.Option.VALIDATE_UNMARKED) {
-                block.addStatement(new AssertStatement(
-                        new BooleanExpression(
-                                callX(validationClosure, "call", args(varX(fieldNode.getName())))
-                        ), message == null ? ConstantExpression.NULL : new ConstantExpression(message)
-                ));
-            }
-
-            if (!isOwnerField(fieldNode) && isDSLObject(fieldNode.getType()))
-                validateSingleInnerField(block, fieldNode);
-            else if (isMap(fieldNode.getType()) && isDSLObject(getElementType(fieldNode)))
-                validateInnerMap(block, fieldNode);
-            else if (isCollection(fieldNode.getType()) && isDSLObject(getElementType(fieldNode)))
-                validateInnerCollection(block, fieldNode);
+            validateInnerDslObjects(block, fieldNode);
         }
+    }
+
+    private void validateField(BlockStatement block, FieldNode fieldNode, AnnotationNode validateAnnotation) {
+        String message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
+        Expression member = validateAnnotation.getMember("value");
+
+        if (member == null)
+            addAssert(block, varX(fieldNode.getName()), message);
+        else if (member instanceof ClassExpression) {
+            ClassNode memberType = member.getType();
+            if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
+                addAssert(block, varX(fieldNode.getName()), message);
+            else if (!memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
+        } else if (member instanceof ClosureExpression) {
+            ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) member, fieldNode.getType());
+            // replace closure with strongly typed one
+            validateAnnotation.setMember("value", validationClosure);
+            addAssert(block, callX(validationClosure, "call", args(varX(fieldNode.getName()))), message);
+        }
+    }
+
+    private void validateInnerDslObjects(BlockStatement block, FieldNode fieldNode) {
+        if (isOwnerField(fieldNode)) return;
+
+        if (isDSLObject(fieldNode.getType()))
+            validateSingleInnerField(block, fieldNode);
+        else if (isDslMap(fieldNode))
+            validateInnerMap(block, fieldNode);
+        else if (isDslCollection(fieldNode))
+            validateInnerCollection(block, fieldNode);
+    }
+
+    private AnnotationNode getOrCreateValidateAnnotation(Validation.Option mode, FieldNode fieldNode) {
+        AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
+
+        if (validateAnnotation == null && mode == Validation.Option.VALIDATE_UNMARKED) {
+            validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
+            fieldNode.addAnnotation(validateAnnotation);
+        }
+        return validateAnnotation;
+    }
+
+    private void addAssert(BlockStatement block, Expression check, String message) {
+        block.addStatement(assertStmt(check, message));
+    }
+
+    private AssertStatement assertStmt(Expression check, String message) {
+        if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);
+        else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
     }
 
     private void validateInnerCollection(BlockStatement block, FieldNode fieldNode) {
@@ -576,7 +596,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void validateFieldAnnotations() {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
-            AnnotationNode annotation = CommonAstHelper.getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+            AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
             if (annotation == null) continue;
 
