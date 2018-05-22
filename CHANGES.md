@@ -21,6 +21,7 @@
       methods of an outer object directly (which would not be very intuitive). If you need this functionality,
       you need to access the outer object directly, using the `owner` property of `Closure` or an `@Owner` field
       of the outer instance. See [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
+    - Inner objects are now validated as part of the validation of outer objects (see [#120](https://github.com/klum-dsl/klum-ast/issues/120))
 
 
 ## 1.1.1

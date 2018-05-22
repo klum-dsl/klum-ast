@@ -670,7 +670,7 @@ class ValidationSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when: 'Validation criteria is met after inner object is created'
+        when:
         clazz.create {
             inner()
             afterInnerObject()
@@ -705,43 +705,4 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Validation of outer object fails'
         thrown(IllegalStateException)
     }
-
-    @Issue("125")
-    def "validation of inner objects is deferred until validation of outer object"() {
-        given:
-        createClass('''
-            @DSL
-            class Outer {
-                String name
-                Inner inner
-            }
-            
-            @DSL class Inner {
-                @Owner Outer outer
-                @Validate def outerNameMustBeSet() {
-                    assert outer.name
-                } 
-            }
-        ''')
-
-        when: 'Validation criteria is met after inner object is created'
-        clazz.create {
-            inner()
-            name "Kurt"
-        }
-
-        then:
-        notThrown(IllegalStateException)
-
-        when: 'Validation criteria is never met'
-        clazz.create {
-            inner()
-        }
-
-        then: 'Validation of outer object fails'
-        thrown(IllegalStateException)
-
-    }
-
-
 }

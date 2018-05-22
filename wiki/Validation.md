@@ -32,23 +32,42 @@ class Figure {
   
  The annotation can also contain an additional `message` value further describing the constraint, this is included in
  the error message.
- 
-# `doValidate()`
-If present, a parameter less `doValue()` method is called during validation to allow performing multi value validation:
-
-```groovy
-@DSL
-class Person {
- String name
- int age
- List<String> beers
- 
- private doValidate() {
-    if (age < 18 && beers)
-      throw new IllegalStateException("Minors are not allowed to drink beer")
- }
-}
-```
 
 Any exception or `AssertionError` thrown during validation is wrapped in an `IllegalArgumentException`. This allows
  the convenient use of Groovy's Power Assertion.
+
+# Validation of inner objects
+Since inner objects are not created via a `create` call, their validation is not immediately called. Rather, inner objects are
+validated as part of their owner validation.
+
+This means that inner objects can make use of the complete model tree (provided they have an owner field.
+
+```groovy
+@DSL
+class Component {
+    @Owner project
+    Map<String, Stage> stages
+    List<Helper> helpers
+
+    Map<String, Stage> getAllStages() {
+        owner.stages + stages
+    }
+}
+
+@DSL class Stage {
+    @Key String name
+}
+
+@DSL Helper {
+    @Owner Component component
+    Pattern validForStages
+
+    @Validate
+    void patternMustMatchAtLeastOneStage {
+        assert component.allStages.keySet().any { it ==~ validForStages }
+    }
+}
+```
+
+Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
+
