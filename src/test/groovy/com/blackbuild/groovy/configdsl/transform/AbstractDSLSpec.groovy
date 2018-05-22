@@ -81,11 +81,11 @@ class AbstractDSLSpec extends Specification {
         return loader.parseClass(code, filename)
     }
 
-    def create(String classname, Closure closure) {
+    def create(String classname, Closure closure = {}) {
         getClass(classname).create(closure)
     }
 
-    def create(String classname, String key, Closure closure) {
+    def create(String classname, String key, Closure closure = {}) {
         getClass(classname).create(key, closure)
     }
 

@@ -17,7 +17,7 @@ care when adopting a 1.2.0 release candidate.
 Closure are now all `DELEGATE_ONLY`, this means methods of an outer object can not be
 directly accessed. This is cleaner and somewhat closer to the behaviour of
 xml or other structured languages. Accessing out methods should be a corner case.
-Take a look at [[Migration]] if you encounter errors.
+Take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) if you encounter errors.
 
 
 # What is KlumAST?
