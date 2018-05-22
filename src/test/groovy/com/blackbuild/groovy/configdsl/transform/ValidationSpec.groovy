@@ -652,6 +652,61 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("125")
+    def "validation of inner objects is not done during their creation"() {
+        given:
+        createClass('''
+            @DSL
+            class Outer {
+                boolean afterInnerObject
+                Inner inner
+            }
+            
+            @DSL class Inner {
+                @Owner Outer outer
+                @Validate def outerNameMustBeSet() {
+                    assert outer.afterInnerObject
+                } 
+            }
+        ''')
+
+        when: 'Validation criteria is met after inner object is created'
+        clazz.create {
+            inner()
+            afterInnerObject()
+        }
+
+        then:
+        notThrown(IllegalStateException)
+    }
+
+    @Issue("125")
+    def "validation of inner objects is done eventually"() {
+        given:
+        createClass('''
+            @DSL
+            class Outer {
+                Inner inner
+            }
+            
+            @DSL class Inner {
+                @Owner Outer outer
+                @Validate def fail() {
+                    assert false
+                } 
+            }
+        ''')
+
+        when:
+        clazz.create {
+            inner()
+        }
+
+        then: 'Validation of outer object fails'
+        thrown(IllegalStateException)
+    }
+
+    @Issue("125")
     def "validation of inner objects is deferred until validation of outer object"() {
         given:
         createClass('''

@@ -49,12 +49,18 @@ repositories {
 configurations.testCompileOnly.extendsFrom configurations.compileOnly
 
 dependencies {
-    compileOnly "org.codehaus.groovy:groovy-all:2.4.12"
+    compileOnly "org.codehaus.groovy:groovy-all"
     compileOnly "com.intellij:openapi:7.0.3"
     testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
     testRuntime "net.bytebuddy:byte-buddy:1.7.5"
     testRuntime "org.objenesis:objenesis:2.6"
     compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.1"
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "org.codehaus.groovy:groovy-all:2.4.13"
+    }
 }
 
 bintray {
