@@ -32,10 +32,6 @@ import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPo
 
 class AlternativesSpec extends AbstractDSLSpec {
 
-    def setup() {
-    }
-
-
     def "Alternatives class is created"() {
         given:
         createClass('''
@@ -436,6 +432,43 @@ class ChildElement extends Element {
         delegatesToPointsTo(elementAnnotations, 'pk.SubElement._RW')
     }
 
+    def "common suffixes can be stripped from grand child alternatives as well"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
 
+    String name
+    List<Element> elements
+}
+
+@DSL(stripSuffix = "Element")
+abstract class Element {
+}
+
+@DSL
+class SubElement extends Element {
+}
+
+@DSL
+class SubSubElement extends Element {
+}''')
+
+        when:
+        instance = clazz.create {
+            name "test"
+
+            elements {
+                sub()
+                subSub()
+            }
+        }
+
+        then:
+        instance.elements.size() == 2
+        instance.elements[0].class.simpleName == "SubElement"
+        instance.elements[1].class.simpleName == "SubSubElement"
+    }
 
 }
