@@ -1,7 +1,5 @@
 package com.blackbuild.groovy.configdsl.transform
 
-import com.intellij.psi.*
-
 contributor(ctype:hasAnnotation("com.blackbuild.groovy.configdsl.transform.DSL")) {
 
     ClassConfig clazz = new ClassConfig(psiClass)

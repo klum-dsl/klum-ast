@@ -46,11 +46,37 @@ repositories {
     jcenter()
 }
 
-configurations.testCompileOnly.extendsFrom configurations.compileOnly
+
+sourceSets {
+    main {
+        resources {
+            srcDir("src/gdsl")
+        }
+    }
+}
+
+configurations {
+    gdsl
+    compileOnly.extendsFrom gdsl
+    testCompileOnly.extendsFrom compileOnly
+}
+
+license {
+    mapping("gdsl", "JAVADOC_STYLE")
+}
 
 dependencies {
     compileOnly "org.codehaus.groovy:groovy-all"
-    compileOnly "com.intellij:openapi:7.0.3"
+    //compileOnly "com.intellij:openapi:7.0.3"
+
+    gdsl 'com.github.adedayo.intellij.sdk:groovy-psi:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:openapi:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:java-psi-api:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:util:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:core-api:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:java-psi-impl:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
+
     testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
     testRuntime "net.bytebuddy:byte-buddy:1.7.5"
     testRuntime "org.objenesis:objenesis:2.6"
@@ -135,7 +161,6 @@ publishing {
             pom.withXml {
                 def p = asNode()
                 p.dependencies.dependency.find { it.artifactId.text() == "groovy-all" }.appendNode('optional', true)
-                p.dependencies.dependency.find { it.artifactId.text() == "openapi" }.appendNode('optional', true)
                 p.name.first().setValue('KlumAST')
                 p.appendNode('licenses').appendNode('license').
                         appendNode('name', 'The MIT License (MIT)').parent().
