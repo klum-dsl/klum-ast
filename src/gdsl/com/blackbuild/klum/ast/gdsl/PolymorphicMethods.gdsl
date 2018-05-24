@@ -53,6 +53,8 @@ contributor(ctx) {
     if (!classArgument) return
 
     PsiType type = getActualClassValueOf(classArgument)
+    if (!type) return
+
     PsiClass rwClass = findClass(type.resolve().qualName + '._RW')
 
     if (rwClass)
@@ -62,7 +64,7 @@ contributor(ctx) {
 private PsiType getActualClassValueOf(GrReferenceExpression classArgument) {
     // This is rather complicated, but seems to be the only way
     PsiImmediateClassType argumentType = classArgument.type as PsiImmediateClassType
-    return argumentType.resolveGenerics().substitutor.substitutionMap.values().first()
+    return (argumentType.resolveGenerics().substitutor.substitutionMap.values() ?: null)?.first()
 }
 
 private GrReferenceExpression findFirstClassArgumentOf(GrMethodCallExpression method) {
