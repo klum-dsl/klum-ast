@@ -151,7 +151,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance = clazz.createFrom(configText)
 
         then:
-        thrown IllegalStateException
+        thrown AssertionError
     }
 
     @Issue("114")

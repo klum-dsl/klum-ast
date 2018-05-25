@@ -20,21 +20,53 @@ The `@Validate` annotation controls validation of a single field. If the annotat
  * `Validate.GroovyTruth` (default), to validate this field against Groovy Truth
  * `Validate.Ignore` excludes this field from validation, this can be necessary when the validation option is set
   to `VALIDATE_UNMARKED`
- * A closure that takes a single argument, the value of the field. The result of this closure is evaluated according
- to Groovy Truth
+ * A closure that takes a single argument, the value of the field. This closure must either be a single expression that
+   is evaluated agains Groovy Truth or else an `assert` statement itself.
+
 ```groovy
 @DSL
 class Figure {
  @Validate({ it > 2})
  int edges
+
+ @Validate({ assert defining <= edges })
+ int defining
 }
 ```
-  
+
  The annotation can also contain an additional `message` value further describing the constraint, this is included in
  the error message.
 
-Any exception or `AssertionError` thrown during validation is wrapped in an `IllegalArgumentException`. This allows
- the convenient use of Groovy's Power Assertion.
+ For validation closures, it is advisable to use the message feature of the `assert` keyword instead:
+
+```groovy
+@DSL
+class Figure {
+ @Validate({ assert it > 2 : "need more than 2 edges, but got only $it"})
+ int edges
+}
+```
+
+For validation closures, take care to account for `null` values, for example by using the groovy
+safe operator or short circuit operators:
+
+```groovy
+@DSL
+class MyModel {
+
+ @Validate({ it?.job == "manager"})
+ Person administrator
+
+ @Validate({ it && it.age < 65 })
+ Person person
+
+ @Validate({ !it || it.age < 65 })
+ Person optionalPerson
+}
+```
+
+If validation fails, an `AssertionError` is thrown, any other encountered exception during validation is also wrapped in an
+`AssertionError`. Unfortunately, Groovy's Power Assertion are currently not used in the output.
 
 # Validation of inner objects
 Since inner objects are not created via a `create` call, their validation is not immediately called. Rather, inner objects are

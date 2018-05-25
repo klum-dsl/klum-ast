@@ -13,6 +13,7 @@
 - For dsl map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127))
 - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
+- Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during
@@ -22,6 +23,7 @@
       you need to access the outer object directly, using the `owner` property of `Closure` or an `@Owner` field
       of the outer instance. See [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
     - Inner objects are now validated as part of the validation of outer objects (see [#120](https://github.com/klum-dsl/klum-ast/issues/120))
+    - Failed validations now throw an AssertionError instead of a an IllegalStateException
 
 
 ## 1.1.1

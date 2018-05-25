@@ -28,6 +28,8 @@ import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
 
+    AssertionError error
+
     def "validation with Groovy Truth"() {
         given:
         createClass('''
@@ -42,7 +44,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
     }
 
     @Issue("25")
@@ -71,7 +73,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when: 'inner instance does not validate'
         clazz.create {
@@ -80,7 +82,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -91,7 +93,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     @Issue("25")
@@ -120,7 +122,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -131,7 +133,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -144,7 +146,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     @Issue("25")
@@ -175,7 +177,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -186,7 +188,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -199,10 +201,8 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
-
-
 
     def "validation with default message"() {
         given:
@@ -218,8 +218,8 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        def e = thrown(IllegalStateException)
-        e.message.startsWith("'name' must be set!")
+        error = thrown(AssertionError)
+        error.message.startsWith("'name' must be set.")
     }
 
     def "validation with message"() {
@@ -236,8 +236,8 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        def e = thrown(IllegalStateException)
-        e.message.startsWith("We need a name")
+        error = thrown(AssertionError)
+        error.message.startsWith("We need a name.")
     }
 
     def "validation with explicit Groovy Truth"() {
@@ -254,7 +254,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
     }
 
     def "validation with Ignore"() {
@@ -271,7 +271,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validation with Closure"() {
@@ -279,7 +279,7 @@ class ValidationSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
-                @Validate({ it.length() > 3 })
+                @Validate({ it?.length() > 3 })
                 String validated
             }
         ''')
@@ -288,19 +288,70 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(IllegalStateException)
+        def e = thrown(AssertionError)
+        e.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
+
 
         when:
         clazz.create { validated "bla"}
 
         then:
-        thrown(IllegalStateException)
+        error = thrown(AssertionError)
+        error.message == "Field 'validated' ('bla') is invalid. Expression: (it?.length() > 3)"
 
         when:
         clazz.create { validated "valid"}
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
+    }
+
+    def "validation with Closure and explicit assert"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ assert it?.length() > 3 })
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        error = thrown(AssertionError)
+        error.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
+
+        when:
+        clazz.create { validated "bla"}
+
+        then:
+        thrown(AssertionError)
+
+        when:
+        clazz.create { validated "valid"}
+
+        then:
+        notThrown(AssertionError)
+    }
+
+    def "validation with Closure and message"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(value = { it?.length() > 3 }, message = "It shall not be!")
+                String validated
+            }
+        ''')
+
+        when:
+        clazz.create {}
+
+        then:
+        error = thrown(AssertionError)
+        error.message.startsWith "It shall not be!"
     }
 
     def "validation with named Closure"() {
@@ -317,19 +368,19 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.create {}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create { validated "bla"}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create { validated "valid"}
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validation only allows GroovyTruth, Ignore or literal closure"() {
@@ -362,13 +413,13 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
 
         when:
         instance.validate()
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         instance.apply {
@@ -377,7 +428,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance.validate()
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "defer validation via annotation"() {
@@ -395,13 +446,13 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
 
         when:
         instance.validate()
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         instance.apply {
@@ -410,7 +461,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance.validate()
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validation is not performed on templates"() {
@@ -429,7 +480,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "non annotated fields are not validated"() {
@@ -450,7 +501,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "Option.VALIDATE_UNMARKED validates all unmarked fields"() {
@@ -467,7 +518,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.create {}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         instance = clazz.create {
@@ -475,7 +526,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validation is inherited"() {
@@ -499,7 +550,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
     }
 
     def "explicit validation method"() {
@@ -523,7 +574,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -532,7 +583,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validation methods must not have parameters"() {
@@ -587,7 +638,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -596,7 +647,43 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
+    }
+
+    def "exceptions in validation method are wrapped in AssertionErrors"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                private def stringLength() {
+                    if (value1.length() > value2.length())
+                        throw new IllegalStateException("value1 is too big")
+                }
+            }
+        ''')
+
+        when:
+        clazz.create {
+            value1 "abc"
+            value2 "bl"
+        }
+
+        then:
+        error = thrown(AssertionError)
+        error.message.contains "value1 is too big"
+
+        when:
+        clazz.create {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(AssertionError)
     }
 
     def "multiple validation methods"() {
@@ -626,7 +713,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalStateException)
+        thrown(AssertionError)
 
         when:
         clazz.create {
@@ -635,7 +722,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     def "validate method must not be defined"() {
@@ -677,7 +764,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(IllegalStateException)
+        notThrown(AssertionError)
     }
 
     @Issue("125")
@@ -703,6 +790,6 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then: 'Validation of outer object fails'
-        thrown(IllegalStateException)
+        thrown(AssertionError)
     }
 }

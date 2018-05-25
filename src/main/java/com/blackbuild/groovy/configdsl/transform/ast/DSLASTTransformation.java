@@ -57,13 +57,16 @@ import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.GStringExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.CatchStatement;
 import org.codehaus.groovy.ast.stmt.EmptyStatement;
+import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.ForStatement;
+import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
@@ -72,6 +75,7 @@ import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.jetbrains.annotations.NotNull;
@@ -81,6 +85,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -129,6 +134,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
@@ -170,7 +176,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    public static final ClassNode VALIDATION_EXCEPTION_TYPE = make(IllegalStateException.class);
     public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
 
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
@@ -186,6 +191,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String FIELD_TYPE_METADATA = FieldType.class.getName();
     public static final String CREATE_FROM = "createFrom";
+    public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -445,13 +451,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
         tryCatchStatement.addCatch(new CatchStatement(
-                param(ASSERTION_ERROR_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
-                )
-        );
-        tryCatchStatement.addCatch(new CatchStatement(
                 param(EXCEPTION_TYPE, "e"),
-                new ThrowStatement(ctorX(VALIDATION_EXCEPTION_TYPE, args(propX(varX("e"), "message"), varX("e"))))
+                new ThrowStatement(ctorX(ASSERTION_ERROR_TYPE, args("e")))
                 )
         );
 
@@ -519,19 +520,64 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         Expression member = validateAnnotation.getMember("value");
 
         if (member == null)
-            addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set!");
+            addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
         else if (member instanceof ClassExpression) {
             ClassNode memberType = member.getType();
             if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
-                addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set!");
+                addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
             else if (!memberType.equals(ClassHelper.make(Validate.Ignore.class)))
                 addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
         } else if (member instanceof ClosureExpression) {
             ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) member, fieldNode.getType());
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-            addAssert(block, callX(validationClosure, "call", args(varX(fieldNode.getName()))), message);
+            block.addStatement(convertToAssertStatement(fieldNode.getName(), validationClosure, message));
         }
+    }
+
+    Statement convertToAssertStatement(String fieldName, ClosureExpression closure, String message) {
+        BlockStatement block = (BlockStatement) closure.getCode();
+
+        if (block.getStatements().size() != 1)
+            addError("Only a single statement is allowed for validations, consider using a @Validate method instead", block);
+
+        Parameter closureParameter = closure.getParameters()[0];
+
+        Statement codeStatement = block.getStatements().get(0);
+
+        AssertStatement assertStatement;
+
+        if (codeStatement instanceof AssertStatement) {
+            assertStatement = (AssertStatement) codeStatement;
+        } else if (codeStatement instanceof ExpressionStatement) {
+            Expression check = ((ExpressionStatement) codeStatement).getExpression();
+            assertStatement = assertStmt(new BooleanExpression(check), message);
+        } else {
+            addError("Content of validation closure must either be an assert statement or an expression", codeStatement);
+            return null;
+        }
+
+        String closureParameterName = closureParameter.getName();
+        if (assertStatement.getMessageExpression() == ConstantExpression.NULL) {
+            assertStatement.setMessageExpression(
+                    new GStringExpression(
+                            "Field '" + fieldName + "' ($" + closureParameterName + ") is invalid",
+                            Arrays.asList(constX("Field '" + fieldName + "' ("), constX(") is invalid")),
+                            Collections.<Expression>singletonList(
+                                    callX(
+                                        INVOKER_HELPER_CLASS,
+                                        "format",
+                                        args(varX(closureParameterName), ConstantExpression.PRIM_TRUE)
+                                    )
+                            )
+                    )
+            );
+        }
+
+        return block(
+                declS(varX(closureParameterName, closureParameter.getType()), varX(fieldName)),
+                assertStatement
+        );
     }
 
     private void validateInnerDslObjects(BlockStatement block, FieldNode fieldNode) {
