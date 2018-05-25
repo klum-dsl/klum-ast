@@ -56,6 +56,7 @@ class AbstractFileBasedDSLSpec extends Specification {
 
         compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
+        compilerConfiguration.targetDirectory = tmp.newFolder()
         compileUnit = new CompilationUnit(compilerConfiguration)
     }
 
