@@ -515,15 +515,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void validateField(BlockStatement block, FieldNode fieldNode, AnnotationNode validateAnnotation) {
-        String message = getMemberStringValue(validateAnnotation, "message", "'" + fieldNode.getName() + "' must be set!");
+        String message = getMemberStringValue(validateAnnotation, "message");
         Expression member = validateAnnotation.getMember("value");
 
         if (member == null)
-            addAssert(block, varX(fieldNode.getName()), message);
+            addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set!");
         else if (member instanceof ClassExpression) {
             ClassNode memberType = member.getType();
             if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
-                addAssert(block, varX(fieldNode.getName()), message);
+                addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set!");
             else if (!memberType.equals(ClassHelper.make(Validate.Ignore.class)))
                 addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
         } else if (member instanceof ClosureExpression) {
