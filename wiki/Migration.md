@@ -57,6 +57,11 @@ Foo.create {
 }
 ```
 
+Calling the owner field (or any other field) actually `owner` leads to a compiler warning (which might
+eventually be replace with a compiler error). Consider using a more domain specific field name like
+`graph` or `parent` is advisable.
+
+
 # Breaking changes since 0.98
 
 - Models are now read-only. That means changes to fields can only be done:
