@@ -83,6 +83,38 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    def "convenience factory from delegating script class calls post-apply method"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+                boolean paCalled
+                
+                @PostApply
+                void postApply() {
+                    paCalled = true
+                }
+            }
+        ''')
+
+
+        def scriptClass = createSecondaryClass('''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            value "bla"
+        ''')
+
+        when:
+        instance = clazz.createFrom(scriptClass)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.paCalled
+    }
+
     def "convenience factory from delegating script class for keyed class"() {
         given:
         createClass('''
@@ -108,6 +140,40 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.class.name == "pk.Foo"
         instance.value == "bla"
         instance.name == 'BuBu'
+    }
+
+    def "convenience factory from delegating script class for keyed class calls postapply"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+
+                boolean paCalled
+                
+                @PostApply
+                void postApply() {
+                    paCalled = true
+                }
+            }
+        ''')
+
+        def scriptClass = createSecondaryClass('''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            value "bla"
+        ''', 'BuBu.groovy')
+
+        when:
+        instance = clazz.createFrom(scriptClass)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.name == 'BuBu'
+        instance.paCalled
     }
 
     def "convenience factory from String"() {
@@ -284,7 +350,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
-        File src = temp.newFile("blub.config")
+        File src = new File(temp.newFolder("bla", "bli"), "blub.config")
         src.text = '''
             value "bla"
         '''
@@ -308,7 +374,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
-        File src = temp.newFile("blub.config")
+        File src = new File(temp.newFolder("bla", "bli"), "blub.config")
         src.text = '''
             value "bla"
         '''

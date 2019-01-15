@@ -1318,20 +1318,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .stringParam("name")
                     .stringParam("text")
                     .optionalClassLoaderParam()
-                    .declareVariable("simpleName", callX(callX(callX(callX(varX("name"), "tokenize", args(constX("."))), "first"), "tokenize", args(constX("/"))), "last"))
-                    .declareVariable("result", ctorX(annotatedClass, args("simpleName")))
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
                     .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
                     .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
-                    .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callValidationOn("result")
-                    .doReturn("result")
+                    .declareVariable("script", callX(varX("shell"), "parse", args("text", "name")))
+                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
                     .addTo(annotatedClass);
 
             createPublicMethod(CREATE_FROM) // Delegating Script
@@ -1344,6 +1337,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                     .callMethod("script", "run")
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
                     .callValidationOn("result")
                     .doReturn("result")
                     .addTo(annotatedClass);
@@ -1353,19 +1347,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .mod(ACC_STATIC)
                     .stringParam("text")
                     .optionalClassLoaderParam()
-                    .declareVariable("result", ctorX(annotatedClass))
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
                     .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
                     .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
                     .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
                     .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
                     .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callValidationOn("result")
-                    .doReturn("result")
+                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
                     .addTo(annotatedClass);
 
             createPublicMethod(CREATE_FROM) // Delegating Script
@@ -1377,6 +1365,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                     .callMethod("script", "run")
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
                     .callValidationOn("result")
                     .doReturn("result")
                     .addTo(annotatedClass);
