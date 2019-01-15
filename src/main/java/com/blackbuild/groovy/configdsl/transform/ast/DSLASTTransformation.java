@@ -34,6 +34,7 @@ import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
+import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
 import groovy.lang.Binding;
 import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyShell;
@@ -99,7 +100,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwne
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslCollection;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.ClosureDefaultValue;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
@@ -948,7 +948,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
                     .addTo(rwClass);
         }
@@ -1093,7 +1093,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(elementType)
                     .namedParams("values")
                     .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField)))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
@@ -1108,7 +1108,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .returning(elementType)
                     .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam(elementRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(elementKeyField, "closure")))
                     .addTo(rwClass);
         }
@@ -1184,7 +1184,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(targetFieldType)
                     .namedParams("values")
                     .optionalStringParam("key", targetTypeKeyField)
-                    .delegatingClosureParam(targetRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetTypeKeyField)))
                     .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .optionallySetOwnerOnS("created", targetHasOwnerField)
@@ -1200,7 +1200,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .optionalStringParam("key", targetTypeKeyField)
-                    .delegatingClosureParam(targetRwType, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .doReturn(callThisX(fieldName, argsWithEmptyMapAndOptionalKey(targetTypeKeyField, "closure")))
                     .addTo(rwClass);
         }
@@ -1246,7 +1246,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
                 .applyNamedParams("values")
                 .assignS(propX(varX("closure"), "delegate"), varX(NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                 .assignS(
@@ -1260,7 +1260,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createPublicMethod("apply")
                 .returning(newClass(annotatedClass))
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.NONE)
                 .callThis("apply", args(new MapExpression(), varX("closure")))
                 .doReturn("this")
                 .addTo(annotatedClass);
@@ -1278,7 +1278,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(ACC_STATIC)
                 .namedParams("values")
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
                 .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
                 .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                 .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
@@ -1292,7 +1292,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, "create",
                         keyField != null ?
                         args(new MapExpression(), varX("name"), varX("closure"))
