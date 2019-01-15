@@ -83,6 +83,33 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    def "convenience factory from delegating script class for keyed class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                String value
+            }
+        ''')
+
+
+        def scriptClass = createSecondaryClass('''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            value "bla"
+        ''', 'BuBu.groovy')
+
+        when:
+        instance = clazz.createFrom(scriptClass)
+
+        then:
+        instance.class.name == "pk.Foo"
+        instance.value == "bla"
+        instance.name == 'BuBu'
+    }
+
     def "convenience factory from String"() {
         given:
         createClass('''

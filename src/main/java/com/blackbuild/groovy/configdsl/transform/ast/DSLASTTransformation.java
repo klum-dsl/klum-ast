@@ -1338,7 +1338,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC | ACC_SYNTHETIC)
                     .param(DELEGATING_SCRIPT, "script")
-                    .declareVariable("simpleName", callX(propX(varX("configType"), "class"), "simpleName"))
+                    .declareVariable("simpleName", callX(callX(varX("script"), "getClass"), "getSimpleName"))
                     .declareVariable("result", ctorX(annotatedClass, args("simpleName")))
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
