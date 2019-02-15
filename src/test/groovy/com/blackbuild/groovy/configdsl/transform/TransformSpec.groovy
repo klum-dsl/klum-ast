@@ -2041,12 +2041,48 @@ class TransformSpec extends AbstractDSLSpec {
                 Date date
                 
                 @Field
-                void setDate(long value, value) {
+                void setDate(long value) {
                 }
             }
             '''
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    def "allow converter methods for simple fields"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Closure closure
+                
+                @Mutator
+                void closure(String literal) {
+                    closure { literal }
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("closure", Closure)
+        rwClazz.getMethod("closure", String)
+    }
+
+    def "allow converter methods for map fields"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Map<String, Closure> closures
+                
+                @Mutator
+                void closure(String key, String literal) {
+                    closure(key) { literal }
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("closure", String, Closure)
+        rwClazz.getMethod("closure", String, String)
     }
 
 }
