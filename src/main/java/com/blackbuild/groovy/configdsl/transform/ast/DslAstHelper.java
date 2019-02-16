@@ -33,9 +33,11 @@ import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.ListExpression;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
@@ -299,6 +301,35 @@ public class DslAstHelper {
 
         return getCodeClosureFor(target, annotation, member);
     }
+
+    static List<ClosureExpression> getClosureMemberList(AnnotationNode anno, String name) {
+        if (anno == null)
+            return Collections.emptyList();
+
+        List<ClosureExpression> list;
+        Expression expr = anno.getMember(name);
+
+        if (expr == null)
+            return Collections.emptyList();
+
+        if (expr instanceof ClosureExpression)
+            return Collections.singletonList((ClosureExpression) expr);
+
+        if (expr instanceof ListExpression) {
+            list = new ArrayList<>();
+            ListExpression listExpression = (ListExpression) expr;
+            for (Expression itemExpr : listExpression.getExpressions())
+                if (itemExpr instanceof ClosureExpression)
+                    list.add((ClosureExpression) itemExpr);
+                else
+                    addCompileError("Only closure are allowed for " + name, itemExpr);
+            return list;
+        }
+
+        addCompileError("Unknown value", expr);
+        return Collections.emptyList();
+    }
+
 
     static boolean hasAnnotation(AnnotatedNode node, ClassNode annotation) {
         return !node.getAnnotations(annotation).isEmpty();

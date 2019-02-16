@@ -2067,6 +2067,29 @@ class TransformSpec extends AbstractDSLSpec {
         rwClazz.getMethod("closure", String)
     }
 
+    @Issue("148")
+    def "generated converter for simple field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(converters = [{long value -> new Date(value)}])
+                Date date
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("date", Date)
+        rwClazz.getMethod("date", long)
+
+        when:
+        instance = clazz.create {
+            date 123L
+        }
+
+        then:
+        instance.date.time == 123L
+    }
+
     def "allow converter methods for map fields"() {
         when:
         createClass '''
@@ -2084,5 +2107,29 @@ class TransformSpec extends AbstractDSLSpec {
         rwClazz.getMethod("closure", String, Closure)
         rwClazz.getMethod("closure", String, String)
     }
+
+    @Issue("148")
+    def "generated converter for list fields"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(converters = [{long value -> new Date(value)}])
+                List<Date> date
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("date", Date)
+        rwClazz.getMethod("date", long)
+
+        when:
+        instance = clazz.create {
+            date 123L
+        }
+
+        then:
+        instance.date.first().time == 123L
+    }
+
 
 }

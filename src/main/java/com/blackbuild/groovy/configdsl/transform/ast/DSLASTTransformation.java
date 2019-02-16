@@ -92,6 +92,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
@@ -867,6 +868,42 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callThis(fieldName, constX(true))
                     .addTo(rwClass);
         }
+
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), fieldName);
+    }
+
+    private void createConverterMethods(AnnotationNode fieldAnnotation, String methodName) {
+        if (fieldAnnotation == null)
+            return;
+
+        for (ClosureExpression converter : getClosureMemberList(fieldAnnotation, "converters"))
+            createSingleConverterMethod(methodName, converter);
+    }
+
+    private void createSingleConverterMethod(String methodName, ClosureExpression converter) {
+        if (!converter.isParameterSpecified() || converter.getParameters().length != 1) {
+            addCompileError("Must explicitly define one explicit parameter for converter", converter);
+            return;
+        }
+
+        Parameter parameter = converter.getParameters()[0];
+
+        ClassNode parameterType = parameter.getType();
+
+        if (parameterType == null) {
+            addCompileError("Parameter must be have an explicit type for the parameter for a converter", parameter);
+            return;
+        }
+
+        createPublicMethod(methodName)
+                .optional()
+                .param(parameterType, "$value")
+                .callMethod(
+                        "this",
+                        methodName,
+                        args(callX(converter, "call", args("$value")))
+                )
+                .addTo(rwClass);
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
@@ -899,7 +936,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
                 .addTo(rwClass);
 
-        createMethod(getElementNameForCollectionField(fieldNode))
+        String elementName = getElementNameForCollectionField(fieldNode);
+        createMethod(elementName)
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
@@ -908,6 +946,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
                 .doReturn("value")
                 .addTo(rwClass);
+
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), elementName);
     }
 
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {

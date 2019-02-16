@@ -71,4 +71,6 @@ public @interface Field {
      * Determines how the Map key is derived from the Value.
      */
     Class keyMapping() default Undefined.class;
+
+    Class[] converters() default {};
 }
