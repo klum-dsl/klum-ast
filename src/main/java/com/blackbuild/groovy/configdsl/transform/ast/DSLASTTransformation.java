@@ -869,41 +869,58 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), fieldName);
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), fieldName, false);
     }
 
-    private void createConverterMethods(AnnotationNode fieldAnnotation, String methodName) {
+    private void createConverterMethods(AnnotationNode fieldAnnotation, String methodName, boolean withKey) {
         if (fieldAnnotation == null)
             return;
 
         for (ClosureExpression converter : getClosureMemberList(fieldAnnotation, "converters"))
-            createSingleConverterMethod(methodName, converter);
+            createSingleConverterMethod(methodName, converter, withKey);
     }
 
-    private void createSingleConverterMethod(String methodName, ClosureExpression converter) {
-        if (!converter.isParameterSpecified() || converter.getParameters().length != 1) {
-            addCompileError("Must explicitly define one explicit parameter for converter", converter);
+    private void createSingleConverterMethod(String methodName, ClosureExpression converter, boolean withKey) {
+        if (!converter.isParameterSpecified()) {
+            addCompileError("Must explicitly define explicit parameters for converter", converter);
             return;
         }
 
-        Parameter parameter = converter.getParameters()[0];
+        List<Parameter> parameters = new ArrayList<>(converter.getParameters().length + 1);
+        String[] callParameterNames = new String[converter.getParameters().length];
 
-        ClassNode parameterType = parameter.getType();
+        if (withKey)
+            parameters.add(param(STRING_TYPE, "$key"));
 
-        if (parameterType == null) {
-            addCompileError("Parameter must be have an explicit type for the parameter for a converter", parameter);
-            return;
+        int index = 0;
+        for (Parameter parameter : converter.getParameters()) {
+            if (parameter.getType() == null) {
+                addCompileError("All parameters must have an explicit type for the parameter for a converter", parameter);
+                return;
+            }
+            String parameterName = "$" + parameter.getName();
+            parameters.add(param(parameter.getType(), parameterName));
+            callParameterNames[index++] = parameterName;
         }
 
-        createPublicMethod(methodName)
+        DslMethodBuilder method = createPublicMethod(methodName)
                 .optional()
-                .param(parameterType, "$value")
-                .callMethod(
-                        "this",
-                        methodName,
-                        args(callX(converter, "call", args("$value")))
-                )
-                .addTo(rwClass);
+                .params(parameters.toArray(new Parameter[0]));
+
+        if (withKey)
+            method.callMethod(
+                    "this",
+                    methodName,
+                    args(varX("$key"), callX(converter, "call", args(callParameterNames)))
+            );
+        else
+            method.callMethod(
+                    "this",
+                    methodName,
+                    args(callX(converter, "call", args(callParameterNames)))
+            );
+
+        method.addTo(rwClass);
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
@@ -947,7 +964,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("value")
                 .addTo(rwClass);
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), elementName);
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), elementName, false);
     }
 
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -1035,6 +1052,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
+
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), methodName, false);
     }
 
     private void warnIfSetWithoutKeyedElements(FieldNode fieldNode, ClassNode elementType, FieldNode fieldKey) {
@@ -1087,6 +1106,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
                 .doReturn("value")
                 .addTo(rwClass);
+
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), singleElementMethod, true);
     }
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
@@ -1196,6 +1217,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
+        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), methodName, false);
     }
 
     private void createAlternativesClassFor(FieldNode fieldNode) {
