@@ -869,20 +869,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), fieldName, false);
+        createConverterMethods(fieldNode, fieldName, false);
     }
 
-    private void createConverterMethods(AnnotationNode fieldAnnotation, String methodName, boolean withKey) {
+    private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
         if (fieldAnnotation == null)
             return;
 
         for (ClosureExpression converter : getClosureMemberList(fieldAnnotation, "converters"))
-            createSingleConverterMethod(methodName, converter, withKey);
+            createSingleConverterMethod(fieldNode, methodName, converter, withKey);
     }
 
-    private void createSingleConverterMethod(String methodName, ClosureExpression converter, boolean withKey) {
+    private void createSingleConverterMethod(FieldNode field, String methodName, ClosureExpression converter, boolean withKey) {
         if (!converter.isParameterSpecified()) {
-            addCompileError("Must explicitly define explicit parameters for converter", converter);
+            addCompileError("Must explicitly define explicit parameters for converter", field, converter);
             return;
         }
 
@@ -895,7 +896,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int index = 0;
         for (Parameter parameter : converter.getParameters()) {
             if (parameter.getType() == null) {
-                addCompileError("All parameters must have an explicit type for the parameter for a converter", parameter);
+                addCompileError("All parameters must have an explicit type for the parameter for a converter", field, parameter);
                 return;
             }
             String parameterName = "$" + parameter.getName();
@@ -905,7 +906,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         DslMethodBuilder method = createPublicMethod(methodName)
                 .optional()
-                .params(parameters.toArray(new Parameter[0]));
+                .params(parameters.toArray(new Parameter[0]))
+                .sourceLinkTo(converter);
 
         if (withKey)
             method.callMethod(
@@ -964,7 +966,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("value")
                 .addTo(rwClass);
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), elementName, false);
+        createConverterMethods(fieldNode, elementName, false);
     }
 
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
@@ -1053,7 +1055,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createAlternativesClassFor(fieldNode);
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), methodName, false);
+        createConverterMethods(fieldNode, methodName, false);
     }
 
     private void warnIfSetWithoutKeyedElements(FieldNode fieldNode, ClassNode elementType, FieldNode fieldKey) {
@@ -1107,7 +1109,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn("value")
                 .addTo(rwClass);
 
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), singleElementMethod, true);
+        createConverterMethods(fieldNode, singleElementMethod, true);
     }
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
@@ -1217,7 +1219,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
-        createConverterMethods(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), methodName, false);
+        createConverterMethods(fieldNode, methodName, false);
     }
 
     private void createAlternativesClassFor(FieldNode fieldNode) {
