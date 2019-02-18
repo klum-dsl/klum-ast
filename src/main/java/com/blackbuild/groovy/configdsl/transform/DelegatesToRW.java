@@ -1,7 +1,7 @@
 /**
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Stephan Pauxberger
+ * Copyright (c) 2015-2019 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,11 @@ package com.blackbuild.groovy.configdsl.transform;
 
 import groovy.transform.Undefined;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
  * This annotation can be used to mark a closure method to be delegating to an RW class. This works

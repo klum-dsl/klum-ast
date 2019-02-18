@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Stephan Pauxberger
+ * Copyright (c) 2015-2019 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import groovy.transform.TypeChecked
-import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
 
 @SuppressWarnings("GroovyAssignabilityCheck")

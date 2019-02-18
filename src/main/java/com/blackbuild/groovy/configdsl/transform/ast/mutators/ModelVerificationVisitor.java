@@ -1,7 +1,7 @@
 /**
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Stephan Pauxberger
+ * Copyright (c) 2015-2019 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,20 @@ import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Variable;
+import org.codehaus.groovy.ast.expr.AttributeExpression;
+import org.codehaus.groovy.ast.expr.BinaryExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.PostfixExpression;
+import org.codehaus.groovy.ast.expr.PrefixExpression;
+import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.expr.TupleExpression;
+import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
@@ -36,7 +48,9 @@ import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FIELD_TYPE_METADATA;
-import static org.codehaus.groovy.syntax.Types.*;
+import static org.codehaus.groovy.syntax.Types.ASSIGNMENT_OPERATOR;
+import static org.codehaus.groovy.syntax.Types.LEFT_SQUARE_BRACKET;
+import static org.codehaus.groovy.syntax.Types.ofType;
 
 /**
  * Created by stephan on 12.04.2017.
