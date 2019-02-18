@@ -108,6 +108,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
@@ -906,6 +907,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         DslMethodBuilder method = createPublicMethod(methodName)
                 .optional()
+                .returning(getElementType(field))
                 .params(parameters.toArray(new Parameter[0]))
                 .sourceLinkTo(converter);
 

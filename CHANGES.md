@@ -16,7 +16,7 @@
 - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
 - Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
-  if Jackson is found on the classpath during compilation. This will eventually moved
+  if Jackson is found on the classpath during compilation. This will eventually be moved
   into a separate module (klum-ast-jackson and later klum-ast-json)
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
