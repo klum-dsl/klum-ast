@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-
+import groovy.time.TimeCategory
 import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -49,12 +49,16 @@ class ConverterSpec extends AbstractDSLSpec {
     }
 
     def "generated converter for simple field"() {
+        given:
+        Date dateFromInstance
+
         when:
         createClass '''
             @DSL class Foo {
                 @Field(converters = [
                     {long value -> new Date(value)},
-                    {int day, int month, int year -> new Date(year, month, day)}
+                    {int day, int month, int year -> new Date(year, month, day)},
+                    {new Date()},
                 ])
                 Date date
             }
@@ -64,6 +68,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("date", Date)
         rwClazz.getMethod("date", long)
         rwClazz.getMethod("date", int, int, int)
+        rwClazz.getMethod("date")
 
         when:
         instance = clazz.create {
@@ -73,18 +78,26 @@ class ConverterSpec extends AbstractDSLSpec {
         then:
         instance.date.time == 123L
 
-        when:
+        when: "method with multiple parameters"
         instance = clazz.create {
-            date 25,5,2018
+            date 25, 5, 2018
         }
 
         and:
-        Date date = instance.date
+        dateFromInstance = instance.date
 
         then:
-        date.date == 25
-        date.month == 5
-        date.year == 2018
+        dateFromInstance.date == 25
+        dateFromInstance.month == 5
+        dateFromInstance.year == 2018
+
+        when: "empty method"
+        instance = clazz.create {
+            date()
+        }
+
+        then:
+        TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
     def "generated converter for dsl field"() {

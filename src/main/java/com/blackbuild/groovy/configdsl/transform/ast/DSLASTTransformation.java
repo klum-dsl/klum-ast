@@ -883,11 +883,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createSingleConverterMethod(FieldNode field, String methodName, ClosureExpression converter, boolean withKey) {
-        if (!converter.isParameterSpecified()) {
-            addCompileError("Must explicitly define explicit parameters for converter", field, converter);
-            return;
-        }
-
         List<Parameter> parameters = new ArrayList<>(converter.getParameters().length + 1);
         String[] callParameterNames = new String[converter.getParameters().length];
 

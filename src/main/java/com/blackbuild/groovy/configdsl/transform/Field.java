@@ -72,5 +72,33 @@ public @interface Field {
      */
     Class keyMapping() default Undefined.class;
 
+    /**
+     * Create converter methods for this field. Converter methods have the same name as regular setter / adders, but
+     * different parameters. A converter is a closure with zero or more explicit parameters that is called to create the
+     * target type (or the element type for collections / maps). Note that for maps of simple types, a key parameter
+     * is added to the adder as well.
+     *
+     * Example:
+     *
+     * ```groovy
+     * .@DSL class Foo {
+     *   .@Field(converters = [
+     *     {long value -> new Date(value)},
+     *     {int date, int month, int year -> new Date(year, month, date)}
+     *   ])
+     *   Date birthday
+     * }
+     * ```
+     *
+     * Creates additional methods:
+     *
+     * ```groovy
+     * Date birthday(long value)
+     * Date birthday(int date, int month, year)
+     * ```
+     *
+     * The closures must return an instance of the field (or element) type.
+     *
+     */
     Class[] converters() default {};
 }
