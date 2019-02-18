@@ -47,3 +47,34 @@ Date payDay(int $date, int $month, $year) {
 
 The closures must return an instance of the field (or element) type.
 
+# Factory Method converters
+
+For DSL elements / fields, converter methods can also be created in the class itself.
+
+A converter method is a static (factory) method, returning an instance of the DSL class
+(or a subclass). Setters / adders are automatically created for all
+converter methods of the target type:
+
+```groovy
+@DSL class Foo {
+    Bar bar
+}
+
+@DSL class Bar {
+    Date birthday
+    
+    @Converter
+    static Bar fromLong(long value) {
+        return create(birthday: new Date(value))
+    }
+}
+```
+
+results in the additional method being created in `Foo`:
+
+```groovy
+Bar bar(long value) {
+    bar(Bar.create(birthday: new Date(value)))
+}
+```
+

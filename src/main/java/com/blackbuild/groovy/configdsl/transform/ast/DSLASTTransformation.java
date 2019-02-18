@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
@@ -132,6 +133,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
@@ -166,6 +168,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
+    public static final ClassNode CONVERTER_ANNOTATION = make(Converter.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
@@ -230,6 +233,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         setPropertyAccessors();
         createCanonicalMethods();
         validateFieldAnnotations();
+        validateConverterAnnotations();
         assertMembersNamesAreUnique();
         makeClassSerializable();
         createApplyMethods();
@@ -664,6 +668,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
+    private void validateConverterAnnotations() {
+        for (MethodNode methodNode : annotatedClass.getMethods()) {
+            AnnotationNode annotation = getAnnotation(methodNode, CONVERTER_ANNOTATION);
+            if (annotation == null) continue;
+
+            if (!methodNode.isStatic())
+                addCompileError(sourceUnit, "@Converter is only valid for static methods returning the annotated type", annotation);
+
+            if (!methodNode.getReturnType().isDerivedFrom(annotatedClass))
+                addCompileError(sourceUnit, "Return type of a @Converter methods must be annotated type or a subclass thereof", annotation);
+        }
+    }
+
     private void assertMembersNamesAreUnique() {
         Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<String, FieldNode>();
 
@@ -874,12 +891,35 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
+        if (isDSLObject(getElementType(fieldNode)))
+            for (MethodNode method : getElementType(fieldNode).getMethods())
+                createConverterFactoryCall(fieldNode, method, methodName);
+
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
         if (fieldAnnotation == null)
             return;
 
         for (ClosureExpression converter : getClosureMemberList(fieldAnnotation, "converters"))
             createSingleConverterMethod(fieldNode, methodName, converter, withKey);
+    }
+
+    private void createConverterFactoryCall(FieldNode field, MethodNode converterMethod, String methodName) {
+        if (!DslAstHelper.hasAnnotation(converterMethod, CONVERTER_ANNOTATION))
+            return;
+
+        Parameter[] parameters = converterMethod.getParameters();
+        ClassNode elementType = getElementType(field);
+        createPublicMethod(methodName)
+                .optional()
+                .returning(converterMethod.getReturnType())
+                .params(cloneParams(parameters))
+                .sourceLinkTo(converterMethod)
+                .callMethod(
+                    "this",
+                    methodName,
+                    args(callX(elementType, converterMethod.getName(), args(cloneParams(parameters))))
+                )
+                .addTo(rwClass);
     }
 
     private void createSingleConverterMethod(FieldNode field, String methodName, ClosureExpression converter, boolean withKey) {

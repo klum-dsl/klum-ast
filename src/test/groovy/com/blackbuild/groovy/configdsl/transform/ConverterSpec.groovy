@@ -188,4 +188,38 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
+
+    def "converter factory for dsl field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                Date birthday
+                
+                @Converter
+                static Bar fromLong(long value) {
+                    return create(birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", long)
+
+        when:
+        instance = clazz.create {
+            bar 123L
+        }
+
+        then:
+        instance.bar.birthday.time == 123L
+    }
+
+
+
+
 }
