@@ -2041,8 +2041,7 @@ class TransformSpec extends AbstractDSLSpec {
                 Date date
                 
                 @Field
-                void setDate(long value, value) {
-                }
+                void setDate(long value, value) {}
             }
             '''
         then:

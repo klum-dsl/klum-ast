@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
+import org.intellij.lang.annotations.Language
 import spock.lang.Specification
 
 import java.lang.reflect.Method
@@ -55,7 +56,7 @@ class AbstractDSLSpec extends Specification {
         Thread.currentThread().contextClassLoader = oldLoader
     }
 
-    def createInstance(String code) {
+    def createInstance(@Language("groovy") String code) {
         createClass(code)
         instance = clazz.newInstance()
     }
@@ -64,20 +65,20 @@ class AbstractDSLSpec extends Specification {
         return getClass(className).newInstance()
     }
 
-    def createClass(String code) {
+    def createClass(@Language("groovy") String code) {
         clazz = loader.parseClass(code)
         rwClazz = getRwClass(clazz.name)
     }
 
-    def createNonDslClass(String code) {
+    def createNonDslClass(@Language("groovy") String code) {
         clazz = loader.parseClass(code)
     }
 
-    def createSecondaryClass(String code) {
+    def createSecondaryClass(@Language("groovy") String code) {
         return loader.parseClass(code)
     }
 
-    def createSecondaryClass(String code, String filename) {
+    def createSecondaryClass(@Language("groovy") String code, String filename) {
         return loader.parseClass(code, filename)
     }
 

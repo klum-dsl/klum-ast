@@ -78,10 +78,11 @@ dependencies {
     gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
 
     testCompile("org.spockframework:spock-core:1.1-groovy-2.4")
+    testCompile "org.jetbrains:annotations:16.0.2"
     testRuntime "net.bytebuddy:byte-buddy:1.7.5"
     testRuntime "org.objenesis:objenesis:2.6"
     testCompile 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
-    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.1"
+    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.2"
 }
 
 configurations.all {
