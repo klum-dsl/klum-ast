@@ -9,32 +9,26 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.netflix.nebula:gradle-contacts-plugin:3.0.1'
-        classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
-        classpath 'com.netflix.nebula:nebula-release-plugin:6.0.2'
-        classpath 'com.netflix.nebula:gradle-info-plugin:3.+'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'ch.raffael.markdown-doclet:markdown-doclet:1.4'
-        classpath "gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0"
-        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.5"
     }
 }
 
-ext.isReleaseVersion = !version.endsWith("-SNAPSHOT")
+plugins {
+    id 'groovy'
+    id 'java-library'
+    id 'jacoco'
+    id 'nebula.maven-publish' version '8.1.0'
+    id 'nebula.javadoc-jar' version '8.1.0'
+    id 'nebula.source-jar' version '8.1.0'
+    id 'nebula.release' version '9.2.0'
+    id 'nebula.contacts' version '5.0.0'
+    id 'nebula.info' version '5.0.0'
+    id "com.jfrog.bintray" version "1.8.4"
+    id "com.github.hierynomus.license" version "0.15.0"
+    id 'org.ajoberstar.git-publish' version '2.0.0'
+}
 
-apply plugin: 'groovy'
-apply plugin: 'java-library'
-apply plugin: 'jacoco'
-apply plugin: 'nebula.maven-publish'
-apply plugin: 'nebula.release'
-apply plugin: 'license'
-apply plugin: 'nebula.info'
-apply plugin: 'nebula.javadoc-jar'
-apply plugin: 'nebula.source-jar'
-apply plugin: 'nebula.contacts'
 apply plugin: 'ch.raffael.markdown-doclet'
-apply plugin: 'com.jfrog.bintray'
-apply plugin: "org.sonarqube"
 
 description 'A transformation for creating convenient configuration model DSLs.'
 group 'com.blackbuild.klum.ast'
@@ -127,14 +121,11 @@ bintray {
     }
 }
 
-apply plugin: 'org.ajoberstar.github-pages'
+gitPublish {
+    repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
+    branch = 'master'
 
-githubPages {
-    commitMessage = "updated wiki for $version"
-    repoUri = "git@github.com:klum-dsl/klum-ast.wiki.git"
-    targetBranch = 'master'
-    workingPath = "$buildDir/wiki"
-    pages {
+    contents {
         from 'wiki'
         filesMatching('*.md') {
             filter(ReplaceTokens, tokens: [version: version.toString()])
@@ -144,6 +135,8 @@ githubPages {
             rename('CHANGES.md', "Changelog.md")
         }
     }
+
+    commitMessage = "updated wiki for $version"
 }
 
 jacoco {
@@ -178,4 +171,4 @@ releaseCheck.doLast {
 }
 
 tasks.release.dependsOn tasks.build
-tasks.postRelease.dependsOn tasks.publish, tasks.publishGhPages
+tasks.postRelease.dependsOn tasks.publish, tasks.gitPublishPush
