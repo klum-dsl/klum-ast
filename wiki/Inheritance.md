@@ -54,5 +54,5 @@ Config.create {
 }
 ```
 
-Note that it is illegal to let a keyed class inherit from a not keyed class. The topmost dsl class in the hierarchy
-decides whether the whole hierarchy is keyed or not. 
+Note that it is illegal to let a keyed class inherit from a not keyed non abstract class. The topmost non abstract dsl class in the hierarchy
+decides whether the hierarchy is keyed or not. 
