@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -146,25 +147,25 @@ public class DslAstHelper {
         if (result != null)
             return result;
 
-        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.KEY_ANNOTATION);
+        List<FieldNode> hierarchyKeyFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.KEY_ANNOTATION);
 
-        if (annotatedFields.isEmpty()) {
+        if (hierarchyKeyFields.isEmpty()) {
             target.setNodeMetaData(KEY_FIELD_METADATA_KEY, NO_SUCH_FIELD);
             return null;
         }
 
-        if (annotatedFields.size() > 1) {
+        if (hierarchyKeyFields.size() > 1) {
             addCompileError(
                     String.format(
                             "Found more than one key fields, only one is allowed in hierarchy (%s, %s)",
-                            getQualifiedName(annotatedFields.get(0)),
-                            getQualifiedName(annotatedFields.get(1))),
-                    annotatedFields.get(0)
+                            getQualifiedName(hierarchyKeyFields.get(0)),
+                            getQualifiedName(hierarchyKeyFields.get(1))),
+                    hierarchyKeyFields.get(0)
             );
             return null;
         }
 
-        result = annotatedFields.get(0);
+        result = hierarchyKeyFields.get(0);
 
         if (!result.getType().equals(ClassHelper.STRING_TYPE)) {
             addCompileError(
@@ -174,21 +175,23 @@ public class DslAstHelper {
             return null;
         }
 
-        ClassNode ancestor = DslAstHelper.getHighestAncestorDSLObject(target);
+        Deque<ClassNode> hierarchy = DslAstHelper.getHierarchyOfDSLObjectAncestors(target);
 
-        if (target.equals(ancestor)) {
-            target.setNodeMetaData(KEY_FIELD_METADATA_KEY, result);
-            return result;
-        }
+        ClassNode ancestorOwner = result.getOwner();
 
-        FieldNode firstKey = getKeyField(ancestor);
+        // search for first
+        for (ClassNode ancestor : hierarchy) {
+            if (ancestor.equals(ancestorOwner)) {
+                break;
+            }
 
-        if (firstKey == null) {
-            addCompileError(
-                    String.format("Inconsistent hierarchy: Toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), target.getName(), result.getName()),
-                    result
-            );
-            return null;
+            if ((ancestor.getModifiers() & Opcodes.ACC_ABSTRACT) == 0) {
+                addCompileError(
+                        String.format("Inconsistent hierarchy: Non abstract toplevel class %s has no key, but child class %s defines '%s'.", ancestor.getName(), ancestorOwner.getName(), result.getName()),
+                        result
+                );
+                return null;
+            }
         }
 
         target.setNodeMetaData(KEY_FIELD_METADATA_KEY, result);

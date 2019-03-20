@@ -144,6 +144,53 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("130")
+    def "legal: abstract parent class defines no key, but child defines key"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSL
+            class Bar extends Foo {
+                @Key String value
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("130")
+    def "error: abstract non-abstract abstract hierarchy"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                String parentValue
+            }
+
+            @DSL
+            class Bar extends Foo {
+            }
+            @DSL
+            abstract class Boo extends Bar {
+                @Key String value
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
     def "error: parent class defines key, child defines different key"() {
         when:
         createClass('''
