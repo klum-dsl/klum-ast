@@ -11,6 +11,7 @@
 - interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
   types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete
   which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
+- Allow non-keyed abstract ancestors for key hierarchies. (see [#143](https://github.com/klum-dsl/klum-ast/issues/143))
 - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
 - For dsl map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127))
 - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
