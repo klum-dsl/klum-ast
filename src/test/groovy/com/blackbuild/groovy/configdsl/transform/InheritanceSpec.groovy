@@ -164,6 +164,44 @@ class InheritanceSpec extends AbstractDSLSpec {
 
         then:
         notThrown(MultipleCompilationErrorsException)
+
+        when:
+        instance = getClass("pk.Bar").create("bla") {
+            name "Kurt"
+        }
+
+        then:
+        noExceptionThrown()
+    }
+
+    @Issue("130")
+    def "abstract non-keyed superclass can access key of subclass"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                abstract String getId()
+
+                String getUniqueId() {
+                    return "$id-abc"
+                }             
+            }
+
+            @DSL
+            class Bar extends Foo {
+                @Key String id
+            }
+        ''')
+
+        when:
+        instance = getClass("pk.Bar").create("bla")
+
+        then:
+        instance.uniqueId == "bla-abc"
+
+
     }
 
     @Issue("130")
