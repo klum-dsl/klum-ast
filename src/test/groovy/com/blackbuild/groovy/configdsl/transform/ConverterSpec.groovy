@@ -219,6 +219,37 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
+    def "converter classes"() {
+        when:
+        createClass '''
+            @DSL(converters = [BarUtil]) class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                Date birthday
+            }
+
+            class BarUtil {
+                static Bar fromLong(long value) {
+                    return new Bar(birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", long)
+
+        when:
+        instance = clazz.create {
+            bar 123L
+        }
+
+        then:
+        instance.bar.birthday.time == 123L
+    }
+
 
 
 

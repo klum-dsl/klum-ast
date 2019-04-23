@@ -893,24 +893,42 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
-        if (isDSLObject(getElementType(fieldNode)))
-            for (MethodNode method : getElementType(fieldNode).getMethods())
-                createConverterFactoryCall(fieldNode, method, methodName);
+        ClassNode elementType = getElementType(fieldNode);
 
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-        if (fieldAnnotation == null)
-            return;
+        if (isDSLObject(elementType))
+            createExplicitDslObjectConverterMethods(elementType, methodName);
 
-        for (ClosureExpression converter : getClosureMemberList(fieldAnnotation, "converters"))
-            createSingleConverterMethod(fieldNode, methodName, converter, withKey);
+        for (ClosureExpression converterExpression : getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"))
+            createSingleConverterMethod(elementType, methodName, converterExpression, withKey);
+
+        for (ClassNode converterClass : getClassList(dslAnnotation, "converters"))
+            createConverterMethodsFromUtilityClass(elementType, methodName, converterClass);
     }
 
-    private void createConverterFactoryCall(FieldNode field, MethodNode converterMethod, String methodName) {
-        if (!DslAstHelper.hasAnnotation(converterMethod, CONVERTER_ANNOTATION))
-            return;
+    private void createConverterMethodsFromUtilityClass(ClassNode elementType, String methodName, ClassNode converterClass) {
+        for (MethodNode converterMethod : findAllFactoryMethodsFor(elementType, converterClass))
+            createConverterFactoryCall(methodName, converterMethod);
+    }
 
+    private List<MethodNode> findAllFactoryMethodsFor(ClassNode elementType, ClassNode converterClass) {
+        List<MethodNode> result = new ArrayList<>();
+
+        for (MethodNode method : converterClass.getMethods()) {
+            if (method.isStatic() && method.getReturnType().isDerivedFrom(elementType))
+                result.add(method);
+        }
+
+        return result;
+    }
+
+    private void createExplicitDslObjectConverterMethods(ClassNode elementType, String methodName) {
+        for (MethodNode method : elementType.getMethods())
+            if (DslAstHelper.hasAnnotation(method, CONVERTER_ANNOTATION))
+                createConverterFactoryCall(methodName, method);
+    }
+
+    private void createConverterFactoryCall(String methodName, MethodNode converterMethod) {
         Parameter[] parameters = converterMethod.getParameters();
-        ClassNode elementType = getElementType(field);
         createPublicMethod(methodName)
                 .optional()
                 .returning(converterMethod.getReturnType())
@@ -919,12 +937,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callMethod(
                     "this",
                     methodName,
-                    args(callX(elementType, converterMethod.getName(), args(cloneParams(parameters))))
+                    args(callX(converterMethod.getDeclaringClass(), converterMethod.getName(), args(cloneParams(parameters))))
                 )
                 .addTo(rwClass);
     }
 
-    private void createSingleConverterMethod(FieldNode field, String methodName, ClosureExpression converter, boolean withKey) {
+    private void createSingleConverterMethod(ClassNode elementType, String methodName, ClosureExpression converter, boolean withKey) {
         List<Parameter> parameters = new ArrayList<>(converter.getParameters().length + 1);
         String[] callParameterNames = new String[converter.getParameters().length];
 
@@ -934,7 +952,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int index = 0;
         for (Parameter parameter : converter.getParameters()) {
             if (parameter.getType() == null) {
-                addCompileError("All parameters must have an explicit type for the parameter for a converter", field, parameter);
+                addCompileError("All parameters must have an explicit type for the parameter for a converter", elementType, parameter);
                 return;
             }
             String parameterName = "$" + parameter.getName();
@@ -944,7 +962,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         DslMethodBuilder method = createPublicMethod(methodName)
                 .optional()
-                .returning(getElementType(field))
+                .returning(elementType)
                 .params(parameters.toArray(new Parameter[0]))
                 .sourceLinkTo(converter);
 

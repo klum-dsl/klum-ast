@@ -446,4 +446,11 @@ public @interface DSL {
      * When present, the given suffix is stripped from child class names to determine the short name.
      */
     String stripSuffix() default "";
+
+    /**
+     * Converter classes to be used for creating converter methods for this class. Every static method in the
+     * target class will be converted into a specific method using the method's parameters.
+     *
+     */
+    Class[] converters() default {};
 }
