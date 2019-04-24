@@ -123,6 +123,9 @@ class BarUtil {
 }
 ```
 
+As with converter methods, if the field in question is a Map of simple elements,
+a key field is prepended to the parameters list.
+
 ## Customization
 
 The `@Converters` annotation contains a couple of customization options useful

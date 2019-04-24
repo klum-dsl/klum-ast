@@ -280,7 +280,6 @@ class ConverterSpec extends AbstractDSLSpec {
     def "convention named factories are automatically included"() {
         when:
         createClass '''
-            @Converters(includeConstructors = true)
             @DSL class Foo {
                 Bar bar
             }
@@ -301,7 +300,6 @@ class ConverterSpec extends AbstractDSLSpec {
     def "Custom named factories are automatically included if annotated with Converter"() {
         when:
         createClass '''
-            @Converters(includeConstructors = true)
             @DSL class Foo {
                 Bar bar
             }
@@ -317,6 +315,25 @@ class ConverterSpec extends AbstractDSLSpec {
         then:
         rwClazz.getMethod("bar", getClass("Bar"))
         rwClazz.getMethod("bar", String)
+    }
+
+    def "Converter parameters are prepended with key parameter for simple type maps"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Map<String, Bar> bars
+            }
+            
+            class Bar {
+                static Bar of(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", String, getClass("Bar"))
+        rwClazz.getMethod("bar", String, String)
     }
 
 

@@ -31,7 +31,9 @@ import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -113,7 +115,7 @@ class ConverterBuilder {
 
     void execute() {
         for (ClosureExpression converterExpression : getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"))
-            createSingleConverterMethod(converterExpression, withKey);
+            createSingleConverterMethod(converterExpression);
 
         if (convertersAnnotation != null)
             for (ClassNode converterClass : transformation.getClassList(convertersAnnotation, "value"))
@@ -189,74 +191,65 @@ class ConverterBuilder {
         return isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
     }
 
-    private void createConverterFactoryCall(MethodNode converterMethod) {
-        Parameter[] parameters = converterMethod.getParameters();
+    private void createConverterMethod(Parameter[] sourceParameters, Expression delegationExpression) {
+        List<Parameter> parameters = cloneAndPrependParameters(sourceParameters);
+        ArgumentListExpression arguments = withKey ? args(varX("$key"), delegationExpression) : args(delegationExpression);
+
         createPublicMethod(methodName)
                 .optional()
-                .returning(converterMethod.getReturnType())
-                .params(cloneParams(parameters))
-                .sourceLinkTo(converterMethod)
+                .returning(elementType)
+                .params(parameters)
+                .sourceLinkTo(delegationExpression)
                 .callMethod(
-                        "this",
-                        methodName,
-                        args(callX(converterMethod.getDeclaringClass(), converterMethod.getName(), args(cloneParams(parameters))))
-                )
-                .addTo(rwClass);
+                    "this",
+                    methodName,
+                    arguments
+                ).addTo(rwClass);
+    }
+
+    private void createConverterFactoryCall(MethodNode converterMethod) {
+        createConverterMethod(
+                converterMethod.getParameters(),
+                callX(converterMethod.getDeclaringClass(), converterMethod.getName(), args(cloneParams(converterMethod.getParameters())))
+        );
     }
 
     private void createConverterConstructorCall(ConstructorNode constructor) {
-        Parameter[] parameters = constructor.getParameters();
-        createPublicMethod(methodName)
-                .optional()
-                .returning(constructor.getDeclaringClass())
-                .params(cloneParams(parameters))
-                .sourceLinkTo(constructor)
-                .callMethod(
-                        "this",
-                        methodName,
-                        args(ctorX(constructor.getDeclaringClass(), args(cloneParams(parameters))))
-                )
-                .addTo(rwClass);
+        createConverterMethod(
+                constructor.getParameters(),
+                ctorX(constructor.getDeclaringClass(), args(cloneParams(constructor.getParameters())))
+        );
     }
 
-    private void createSingleConverterMethod(ClosureExpression converter, boolean withKey) {
-        List<Parameter> parameters = new ArrayList<>(converter.getParameters().length + 1);
-        String[] callParameterNames = new String[converter.getParameters().length];
+    private void createSingleConverterMethod(ClosureExpression converter) {
+        Parameter[] parameters = rescopeParameters(converter.getParameters());
+        createConverterMethod(
+                parameters,
+                callX(converter, "call", args(parameters))
+        );
+    }
+
+    private List<Parameter> cloneAndPrependParameters(Parameter[] source) {
+        List<Parameter> parameters = new ArrayList<>(source.length + 1);
 
         if (withKey)
             parameters.add(param(STRING_TYPE, "$key"));
 
-        int index = 0;
-        for (Parameter parameter : converter.getParameters()) {
-            if (parameter.getType() == null) {
-                addCompileError("All parameters must have an explicit type for the parameter for a converter", elementType, parameter);
-                return;
-            }
-            String parameterName = "$" + parameter.getName();
-            parameters.add(param(parameter.getType(), parameterName));
-            callParameterNames[index++] = parameterName;
-        }
+        for (Parameter parameter : source)
+            parameters.add(param(parameter.getOriginType(), parameter.getName()));
 
-        DslMethodBuilder method = createPublicMethod(methodName)
-                .optional()
-                .returning(elementType)
-                .params(parameters.toArray(new Parameter[0]))
-                .sourceLinkTo(converter);
-
-        if (withKey)
-            method.callMethod(
-                    "this",
-                    methodName,
-                    args(varX("$key"), callX(converter, "call", args(callParameterNames)))
-            );
-        else
-            method.callMethod(
-                    "this",
-                    methodName,
-                    args(callX(converter, "call", args(callParameterNames)))
-            );
-
-        method.addTo(rwClass);
+        return parameters;
     }
 
+    private Parameter[] rescopeParameters(Parameter[] source) {
+        Parameter[] result = new Parameter[source.length];
+        for (int i = 0; i < source.length; i++) {
+            Parameter srcParam = source[i];
+            if (srcParam.getType() == null)
+                addCompileError("All parameters must have an explicit type for the parameter for a converter", elementType, srcParam);
+            Parameter dstParam = new Parameter(srcParam.getOriginType(), "_" + srcParam.getName());
+            result[i] = dstParam;
+        }
+        return result;
+    }
 }
