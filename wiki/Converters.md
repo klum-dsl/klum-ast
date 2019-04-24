@@ -53,10 +53,14 @@ For DSL elements / fields, converter methods can also be created in the class it
 
 A converter method is a static (factory) method, returning an instance of the DSL class
 (or a subclass). Setters / adders are automatically created for all
-converter methods of the target type:
+factory method of the target type.
+
+A factory method is either a method named `from*`, `of*`, `parse*` or (for non DSL methods) `create*` or explicitly 
+annotated with `@Converter`.
 
 ```groovy
-@DSL class Foo {
+import java.text.SimpleDateFormat
+import java.time.Instant@DSL class Foo {
     Bar bar
 }
 
@@ -64,17 +68,67 @@ converter methods of the target type:
     Date birthday
     
     @Converter
+    static Bar readFromString(String string) {
+        return create(birthday: SimpleDateFormat.dateInstance.parse(string))
+    }
+
     static Bar fromLong(long value) {
         return create(birthday: new Date(value))
     }
 }
 ```
 
-results in the additional method being created in `Foo`:
+results in the additional methods being created in `Foo`:
 
 ```groovy
 Bar bar(long value) {
     bar(Bar.create(birthday: new Date(value)))
 }
+Bar bar(String value) {
+    bar(birthday: SimpleDateFormat.dateInstance.parse(string))
+}
 ```
 
+Note that having more than one factory with the same parameters might
+lead to unexpected results.
+
+# Factory classes
+
+Additional factory classes can be declared using the `@Constructors` annotation, either for a complete
+dsl class or for a single field. 
+
+By default, all valid factory methods (i.e. public static methods returning the expected type or
+a subclass with the default prefixes or annotated with `@Converter`) are used as base for a converter. 
+
+```groovy
+import java.text.SimpleDateFormat
+
+@DSL(converters = [BarUtil]) class Foo {
+    Bar bar
+}
+
+class Bar {
+    Date birthday
+}
+
+class BarUtil {
+    static Bar fromLong(long value) {
+        return new Bar(birthday: new Date(value))
+    }
+    
+    @Converter
+    static Bar readFromString(String string) {
+        return create(birthday: SimpleDateFormat.dateInstance.parse(string))
+    }
+}
+```
+
+As with converter methods, if the field in question is a Map of simple elements,
+a key field is prepended to the parameters list.
+
+## Customization
+
+The `@Converters` annotation contains a couple of customization options useful
+for classes of third-party libraries. Using `includeMethods`, `excludeMethods` and `excludeDefaultMethods`
+the selection of valid factories can be customized, using `includeConstructors` all constructors of the
+target class are made into converter methods as well.

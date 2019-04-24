@@ -971,7 +971,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         instance.apply {
-            something "Dieter", "Klaus" // list adder
+            something "Dieter", "Klaus" // vararg adder
             something "Heinz" // single added
             something(["Franz"]) // List adder
         }

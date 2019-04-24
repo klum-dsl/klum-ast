@@ -81,8 +81,6 @@ class TemplateMethods {
     public static final String WITH_TEMPLATE = "withTemplate";
     public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
     public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
-    public static final String CREATE_TEMPLATE = "createTemplate";
-    public static final String MAKE_TEMPLATE = "makeTemplate";
     public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
     private DSLASTTransformation transformation;
     private ClassNode annotatedClass;

@@ -30,6 +30,8 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.Expression;
 
+import java.util.List;
+
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
@@ -87,6 +89,13 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
     }
 
     public DslMethodBuilder params(Parameter... params) {
+        for (Parameter param : params) {
+            param(param);
+        }
+        return this;
+    }
+
+    public DslMethodBuilder params(List<Parameter>params) {
         for (Parameter param : params) {
             param(param);
         }

@@ -199,7 +199,6 @@ class ConverterSpec extends AbstractDSLSpec {
             @DSL class Bar {
                 Date birthday
                 
-                @Converter
                 static Bar fromLong(long value) {
                     return create(birthday: new Date(value))
                 }
@@ -218,6 +217,125 @@ class ConverterSpec extends AbstractDSLSpec {
         then:
         instance.bar.birthday.time == 123L
     }
+
+    def "converter classes in Converters annotation"() {
+        when:
+        createClass '''
+            @Converters(BarUtil)
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                Date birthday
+            }
+
+            class BarUtil {
+                static Bar fromLong(long value) {
+                    return new Bar(birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", long)
+
+        when:
+        instance = clazz.create {
+            bar 123L
+        }
+
+        then:
+        instance.bar.birthday.time == 123L
+    }
+
+    def "Implicit converters"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                URI bar
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", URI)
+        rwClazz.getMethod("bar", String)
+    }
+
+    def "Constructor converters"() {
+        when:
+        createClass '''
+            @Converters(includeConstructors = true)
+            @DSL class Foo {
+                URI bar
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", URI)
+        rwClazz.getMethod("bar", String, String, String, String)
+    }
+
+    def "convention named factories are automatically included"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                @Converter 
+                static Bar fromString(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String)
+    }
+
+    def "Custom named factories are automatically included if annotated with Converter"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                @Converter 
+                static Bar juhu(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String)
+    }
+
+    def "Converter parameters are prepended with key parameter for simple type maps"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Map<String, Bar> bars
+            }
+            
+            class Bar {
+                static Bar of(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", String, getClass("Bar"))
+        rwClazz.getMethod("bar", String, String)
+    }
+
 
 
 
