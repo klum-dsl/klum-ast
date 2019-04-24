@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -61,6 +62,7 @@ public class DslAstHelper {
 
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
+    private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
 
     private DslAstHelper() {}
 
@@ -122,20 +124,29 @@ public class DslAstHelper {
         return null;
     }
 
+    static <T> T storeAndReturn(ASTNode node, Object key, T value) {
+        node.setNodeMetaData(key, value);
+        return value;
+    }
+
 
     static String getElementNameForCollectionField(FieldNode fieldNode) {
+        String result = fieldNode.getNodeMetaData(ELEMENT_NAME_METADATA_KEY);
+        if (result != null)
+            return result;
+
         AnnotationNode fieldAnnotation = CommonAstHelper.getAnnotation(fieldNode, DSLASTTransformation.DSL_FIELD_ANNOTATION);
+        result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", null);
 
-        String result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", null);
+        if (result != null && result.length() > 0)
+            return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
 
-        if (result != null && result.length() > 0) return result;
+        result = fieldNode.getName();
 
-        String collectionMethodName = fieldNode.getName();
+        if (result.endsWith("s"))
+            result = result.substring(0, result.length() - 1);
 
-        if (collectionMethodName.endsWith("s"))
-            return collectionMethodName.substring(0, collectionMethodName.length() - 1);
-
-        return collectionMethodName;
+        return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
     }
 
     static FieldNode getKeyField(ClassNode target) {
@@ -194,8 +205,7 @@ public class DslAstHelper {
             }
         }
 
-        target.setNodeMetaData(KEY_FIELD_METADATA_KEY, result);
-        return result;
+        return storeAndReturn(target, KEY_FIELD_METADATA_KEY, result);
     }
 
     static ClassNode getKeyType(ClassNode target) {

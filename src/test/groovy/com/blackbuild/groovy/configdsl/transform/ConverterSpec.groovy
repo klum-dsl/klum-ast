@@ -199,7 +199,6 @@ class ConverterSpec extends AbstractDSLSpec {
             @DSL class Bar {
                 Date birthday
                 
-                @Converter
                 static Bar fromLong(long value) {
                     return create(birthday: new Date(value))
                 }
