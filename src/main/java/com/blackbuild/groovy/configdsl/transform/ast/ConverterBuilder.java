@@ -23,7 +23,11 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.Converter;
+import com.blackbuild.groovy.configdsl.transform.Converters;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
@@ -31,27 +35,39 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberList;
 
 /**
  * Created by steph on 29.04.2017.
  */
 class ConverterBuilder {
+
+    private static final List<String> DEFAULT_PREFIXES = Arrays.asList("from", "of", "create");
+    private static final List<String> DSL_METHODS = Arrays.asList(DSLASTTransformation.CREATE_FROM, DSLASTTransformation.CREATE_METHOD_NAME, TemplateMethods.CREATE_AS_TEMPLATE);
+
+    static final ClassNode CONVERTERS_ANNOTATION = make(Converters.class);
+    static final ClassNode CONVERTER_ANNOTATION = make(Converter.class);
+
     private final ClassNode annotatedClass;
     private final String methodName;
     private final boolean withKey;
@@ -60,9 +76,9 @@ class ConverterBuilder {
     private final ClassNode rwClass;
     private ClassNode elementType;
 
-    private static final List<String> DEFAULT_PREFIXES = Arrays.asList("from", "of", "create");
-    private static final List<String> DSL_METHODS = Arrays.asList(DSLASTTransformation.CREATE_FROM, DSLASTTransformation.CREATE_METHOD_NAME, TemplateMethods.CREATE_AS_TEMPLATE);
-
+    private List<String> includes;
+    private List<String> excludes;
+    private AnnotationNode convertersAnnotation;
 
     ConverterBuilder(DSLASTTransformation transformation, FieldNode fieldNode, String methodName, boolean withKey) {
         this.transformation = transformation;
@@ -72,16 +88,54 @@ class ConverterBuilder {
         this.withKey = withKey;
         rwClass = getRwClassOf(annotatedClass);
         elementType = getElementType(fieldNode);
+
+        convertersAnnotation = getAnnotation(fieldNode, CONVERTERS_ANNOTATION);
+        if (convertersAnnotation == null)
+            convertersAnnotation = getAnnotation(annotatedClass, CONVERTERS_ANNOTATION);
+
+        fillIncludesAndExcludes();
+    }
+
+    private void fillIncludesAndExcludes() {
+        if (convertersAnnotation == null) {
+            includes = DEFAULT_PREFIXES;
+            excludes = Collections.emptyList();
+            return;
+        }
+
+        includes = getMemberList(convertersAnnotation, "includeMethods");
+
+        if (transformation.memberHasValue(convertersAnnotation, "excludeDefaultPrefixes", true))
+            includes.addAll(DEFAULT_PREFIXES);
+
+        excludes = getMemberList(convertersAnnotation, "excludeMethods");
     }
 
     void execute() {
         for (ClosureExpression converterExpression : getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"))
             createSingleConverterMethod(converterExpression, withKey);
 
+        if (convertersAnnotation != null)
+            for (ClassNode converterClass : transformation.getClassList(convertersAnnotation, "value"))
+                createConverterMethodsFromFactoryMethods(converterClass);
+
         for (ClassNode converterClass : transformation.getClassList(transformation.dslAnnotation, "converters"))
             createConverterMethodsFromFactoryMethods(converterClass);
 
         createConverterMethodsFromOwnFactoryMethods();
+        createConstructorConverters();
+    }
+
+    private void createConstructorConverters() {
+        if (isDSLObject(elementType))
+            return;
+        if (convertersAnnotation == null)
+            return;
+        if (!transformation.memberHasValue(convertersAnnotation, "includeConstructors", true))
+            return;
+
+        for (ConstructorNode constructor : elementType.getDeclaredConstructors())
+            createConverterConstructorCall(constructor);
     }
 
     private void createConverterMethodsFromOwnFactoryMethods() {
@@ -96,16 +150,22 @@ class ConverterBuilder {
     private List<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
         List<MethodNode> result = new ArrayList<>();
 
-        for (MethodNode method : converterClass.getMethods())
-            if (method.isStatic() &&
-                    method.isPublic() &&
-                    isValidName(method.getName()) &&
-                    !isKlumMethod(method) &&
+        for (MethodNode method : converterClass.getMethods()) {
+            if (method.isStatic() && method.isPublic() &&
+                    (isConverterMethod(method) ||
+                        isValidName(method.getName()) &&
+                        !isKlumMethod(method)
+                    ) &&
                     method.getReturnType().isDerivedFrom(elementType)
             )
                 result.add(method);
+        }
 
         return result;
+    }
+
+    private boolean isConverterMethod(MethodNode method) {
+        return hasAnnotation(method.getDeclaringClass(), CONVERTER_ANNOTATION) || hasAnnotation(method, CONVERTER_ANNOTATION);
     }
 
     private boolean isValidName(String name) {
@@ -113,11 +173,16 @@ class ConverterBuilder {
     }
 
     private boolean isNameExcluded(String name) {
+        for (String prefix : excludes)
+            if (name.startsWith(prefix))
+                return true;
         return false;
     }
 
     private boolean isNameIncluded(String name) {
-        for (String prefix : DEFAULT_PREFIXES)
+        if (includes.isEmpty())
+            return true;
+        for (String prefix : includes)
             if (name.startsWith(prefix))
                 return true;
         return false;
@@ -138,6 +203,21 @@ class ConverterBuilder {
                         "this",
                         methodName,
                         args(callX(converterMethod.getDeclaringClass(), converterMethod.getName(), args(cloneParams(parameters))))
+                )
+                .addTo(rwClass);
+    }
+
+    private void createConverterConstructorCall(ConstructorNode constructor) {
+        Parameter[] parameters = constructor.getParameters();
+        createPublicMethod(methodName)
+                .optional()
+                .returning(constructor.getDeclaringClass())
+                .params(cloneParams(parameters))
+                .sourceLinkTo(constructor)
+                .callMethod(
+                        "this",
+                        methodName,
+                        args(ctorX(constructor.getDeclaringClass(), args(cloneParams(parameters))))
                 )
                 .addTo(rwClass);
     }
