@@ -62,7 +62,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberL
  */
 class ConverterBuilder {
 
-    private static final List<String> DEFAULT_PREFIXES = Arrays.asList("from", "of", "create");
+    private static final List<String> DEFAULT_PREFIXES = Arrays.asList("from", "of", "create", "parse");
     private static final List<String> DSL_METHODS = Arrays.asList(DSLASTTransformation.CREATE_FROM, DSLASTTransformation.CREATE_METHOD_NAME, TemplateMethods.CREATE_AS_TEMPLATE);
 
     static final ClassNode CONVERTERS_ANNOTATION = make(Converters.class);
@@ -118,9 +118,6 @@ class ConverterBuilder {
         if (convertersAnnotation != null)
             for (ClassNode converterClass : transformation.getClassList(convertersAnnotation, "value"))
                 createConverterMethodsFromFactoryMethods(converterClass);
-
-        for (ClassNode converterClass : transformation.getClassList(transformation.dslAnnotation, "converters"))
-            createConverterMethodsFromFactoryMethods(converterClass);
 
         createConverterMethodsFromOwnFactoryMethods();
         createConstructorConverters();
