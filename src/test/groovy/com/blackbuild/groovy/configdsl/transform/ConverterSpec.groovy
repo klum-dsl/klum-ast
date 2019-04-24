@@ -281,6 +281,76 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
+    def "Implicit converters"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                URI bar
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", URI)
+        rwClazz.getMethod("bar", String)
+    }
+
+    def "Constructor converters"() {
+        when:
+        createClass '''
+            @Converters(includeConstructors = true)
+            @DSL class Foo {
+                URI bar
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", URI)
+        rwClazz.getMethod("bar", String, String, String, String)
+    }
+
+    def "convention named factories are automatically included"() {
+        when:
+        createClass '''
+            @Converters(includeConstructors = true)
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                @Converter 
+                static Bar fromString(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String)
+    }
+
+    def "Custom named factories are automatically included if annotated with Converter"() {
+        when:
+        createClass '''
+            @Converters(includeConstructors = true)
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            class Bar {
+                @Converter 
+                static Bar juhu(String value) {
+                    return new Bar()
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String)
+    }
+
+
 
 
 
