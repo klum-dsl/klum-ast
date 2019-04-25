@@ -68,7 +68,8 @@ public @interface Field {
     Class alternatives() default Undefined.class;
 
     /**
-     * Determines how the Map key is derived from the Value.
+     * Closure that is used to derive the key from the value. This is only valid for Map types. The closure
+     * gets a single parameter of the value type and must return a value of the key type.
      */
     Class keyMapping() default Undefined.class;
 

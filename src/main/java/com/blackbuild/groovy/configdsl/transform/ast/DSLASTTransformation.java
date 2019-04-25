@@ -1046,7 +1046,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
 
-        if (keyMappingClosure == null)
+        if (keyMappingClosure == null) {
             createMethod(methodName)
                 .optional()
                 .mod(visibility)
@@ -1054,7 +1054,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(rwClass);
-        else
+        } else {
             createMethod(methodName)
                     .optional()
                     .mod(visibility)
@@ -1066,6 +1066,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             stmt(callThisX(singleElementMethod, varX("element")))
                     ))
                     .addTo(rwClass);
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .arrayParam(valueType, "values")
+                    .statement(new ForStatement(
+                            param(valueType, "element"),
+                            varX("values"),
+                            stmt(callThisX(singleElementMethod, varX("element")))
+                    ))
+                    .addTo(rwClass);
+        }
 
         Expression readKeyExpression;
         Parameter[] parameters;

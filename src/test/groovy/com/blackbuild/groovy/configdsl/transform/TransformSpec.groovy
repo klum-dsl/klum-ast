@@ -1990,7 +1990,7 @@ class TransformSpec extends AbstractDSLSpec {
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
-    def "Collection adder for keyMapping field accepts Collection, not Map"() {
+    def "Collection adder for keyMapping field accepts Collection or vararg, not Map"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -2002,6 +2002,18 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         rwClassHasNoMethod("values", Map)
         rwClassHasMethod("values", Collection)
+        rwClassHasMethod("values", String[])
+
+        when:
+        instance = clazz.create {
+            value "single"
+            values "var1", "var2"
+            values(["coll1", "coll2"])
+        }
+
+        then:
+        instance.values.size() == 5
+        instance.values == [SINGLE: "single", VAR1: "var1", VAR2: "var2", COLL1: "coll1", COLL2: "coll2"]
     }
 
     def "Annotated setters create dsl methods"() {
