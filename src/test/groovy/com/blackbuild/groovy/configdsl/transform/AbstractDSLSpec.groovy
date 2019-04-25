@@ -23,13 +23,16 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.groovy.configdsl.transform.helper.HelperCategories
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.intellij.lang.annotations.Language
 import spock.lang.Specification
+import spock.util.mop.Use
 
 import java.lang.reflect.Method
 
+@Use(HelperCategories)
 class AbstractDSLSpec extends Specification {
 
     ClassLoader oldLoader
@@ -95,11 +98,11 @@ class AbstractDSLSpec extends Specification {
     }
 
 
-    protected boolean isDeprecated(Method method) {
+    boolean isDeprecated(Method method) {
         method.getAnnotation(Deprecated) != null
     }
 
-    protected List<Method> allMethodsNamed(String name) {
+    List<Method> allMethodsNamed(String name) {
         clazz.methods.findAll { it.name == name }
     }
 

@@ -1963,15 +1963,17 @@ class TransformSpec extends AbstractDSLSpec {
 
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
-    @PendingFeature(exceptions = MultipleCompilationErrorsException)
     def "custom key mappings for simple fields"() {
-        given:
+        when:
         createClass '''
             @DSL class Foo {
                 @Field(keyMapping = { it.toUpperCase() })
                 Map<String, String> values
             }
         '''
+
+        then:
+        rwClazz.hasMethod("value", String)
 
         when:
         instance = clazz.create {
@@ -1982,10 +1984,26 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars.size() == 3
-        instance.bars.BEER == "beer"
-        instance.bars.BLUB == "BLUB"
-        instance.bars.SMALL == "small"
+        instance.values.size() == 3
+        instance.values.BEER == "beer"
+        instance.values.BLUB == "BLUB"
+        instance.values.SMALL == "small"
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    @PendingFeature(exceptions = MultipleCompilationErrorsException)
+    def "Collection adder for keyMapping field accepts Collection, not Map"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.toUpperCase() })
+                Map<String, String> values
+            }
+        '''
+
+        then:
+        rwClazz.hasNoMethod("values", Map)
+        rwClazz.hasMethod("values", Collection)
     }
 
     def "Annotated setters create dsl methods"() {

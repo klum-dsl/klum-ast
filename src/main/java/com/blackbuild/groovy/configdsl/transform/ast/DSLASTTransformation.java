@@ -1039,29 +1039,37 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = fieldNode.getName();
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
 
-
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        // ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
+        ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
 
         createMethod(methodName)
-                .optional()
-                .mod(visibility)
-                .linkToField(fieldNode)
-                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-                .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
-                .addTo(rwClass);
+            .optional()
+            .mod(visibility)
+            .linkToField(fieldNode)
+            .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
+            .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
+            .addTo(rwClass);
+
+        Expression readKeyExpression;
+        Parameter[] parameters;
+
+        if (keyMappingClosure == null) {
+            readKeyExpression = varX("key");
+            parameters = params(param(keyType, "key"), param(valueType, "value"));
+        } else {
+            readKeyExpression = callX(keyMappingClosure, "call", args("value"));
+            parameters = params(param(valueType, "value"));
+        }
 
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
-
         createMethod(singleElementMethod)
                 .optional()
                 .mod(visibility)
                 .returning(valueType)
                 .linkToField(fieldNode)
-                .param(keyType, "key")
-                .param(valueType, "value")
-                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
+                .params(parameters)
+                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args(readKeyExpression, varX("value")))
                 .doReturn("value")
                 .addTo(rwClass);
 
