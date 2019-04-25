@@ -23,16 +23,13 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.groovy.configdsl.transform.helper.HelperCategories
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.intellij.lang.annotations.Language
 import spock.lang.Specification
-import spock.util.mop.Use
 
 import java.lang.reflect.Method
 
-@Use(HelperCategories)
 class AbstractDSLSpec extends Specification {
 
     ClassLoader oldLoader
@@ -108,5 +105,22 @@ class AbstractDSLSpec extends Specification {
 
     Class getRwClass(String name) {
         getClass(name + '$_RW')
+    }
+
+    void rwClassHasMethod(String methodName, Class... parameterTypes) {
+        hasMethod(rwClazz, methodName, parameterTypes)
+    }
+
+    void rwClassHasNoMethod(String methodName, Class... parameterTypes) {
+        hasNoMethod(rwClazz, methodName, parameterTypes)
+    }
+
+    void hasNoMethod(Class type, String methodName, Class... parameterTypes) {
+        assert type.metaClass.getMetaMethod(methodName, parameterTypes) == null
+    }
+
+
+    void hasMethod(Class type, String methodName, Class... parameterTypes) {
+        assert type.metaClass.getMetaMethod(methodName, parameterTypes) != null
     }
 }

@@ -103,6 +103,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMa
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
@@ -1037,19 +1038,34 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode valueType) {
         String methodName = fieldNode.getName();
+        String singleElementMethod = getElementNameForCollectionField(fieldNode);
+
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
 
-        createMethod(methodName)
-            .optional()
-            .mod(visibility)
-            .linkToField(fieldNode)
-            .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-            .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
-            .addTo(rwClass);
+        if (keyMappingClosure == null)
+            createMethod(methodName)
+                .optional()
+                .mod(visibility)
+                .linkToField(fieldNode)
+                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
+                .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
+                .addTo(rwClass);
+        else
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
+                    .statement(new ForStatement(
+                            param(valueType, "element"),
+                            varX("values"),
+                            stmt(callThisX(singleElementMethod, varX("element")))
+                    ))
+                    .addTo(rwClass);
 
         Expression readKeyExpression;
         Parameter[] parameters;
@@ -1062,7 +1078,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             parameters = params(param(valueType, "value"));
         }
 
-        String singleElementMethod = getElementNameForCollectionField(fieldNode);
         createMethod(singleElementMethod)
                 .optional()
                 .mod(visibility)

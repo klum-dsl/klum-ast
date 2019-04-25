@@ -27,7 +27,6 @@ package com.blackbuild.groovy.configdsl.transform
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
-import spock.lang.PendingFeature
 
 import java.lang.reflect.Method
 
@@ -1973,7 +1972,7 @@ class TransformSpec extends AbstractDSLSpec {
         '''
 
         then:
-        rwClazz.hasMethod("value", String)
+        rwClassHasMethod("value", String)
 
         when:
         instance = clazz.create {
@@ -1991,7 +1990,6 @@ class TransformSpec extends AbstractDSLSpec {
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
-    @PendingFeature(exceptions = MultipleCompilationErrorsException)
     def "Collection adder for keyMapping field accepts Collection, not Map"() {
         when:
         createClass '''
@@ -2002,8 +2000,8 @@ class TransformSpec extends AbstractDSLSpec {
         '''
 
         then:
-        rwClazz.hasNoMethod("values", Map)
-        rwClazz.hasMethod("values", Collection)
+        rwClassHasNoMethod("values", Map)
+        rwClassHasMethod("values", Collection)
     }
 
     def "Annotated setters create dsl methods"() {
