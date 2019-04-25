@@ -25,7 +25,7 @@ plugins {
     id 'nebula.info' version '5.0.0'
     id "com.jfrog.bintray" version "1.8.4"
     id "com.github.hierynomus.license" version "0.15.0"
-    id 'org.ajoberstar.git-publish' version '2.0.0'
+    id 'org.ajoberstar.git-publish' version '2.1.1'
 }
 
 apply plugin: 'ch.raffael.markdown-doclet'
@@ -136,6 +136,8 @@ gitPublish {
         }
     }
 
+    repoDir = file("$buildDir/gitPublish")
+    
     commitMessage = "updated wiki for $version"
 }
 
