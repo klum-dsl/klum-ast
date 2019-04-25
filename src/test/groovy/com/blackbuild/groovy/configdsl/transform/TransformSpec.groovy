@@ -23,9 +23,11 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 import java.lang.reflect.Method
 
@@ -1928,7 +1930,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass '''
             @DSL class Foo {
                 @Field(keyMapping = { it.class })
-                Map<Class<? extends Hint>, ? extends Hint> hints = [:]
+                Map<Class<? extends Hint>, ? extends Hint> hints
                 
                 def <T extends Hint> T getHint(Class<T> type) {
                     return hints[type] as T
@@ -1957,6 +1959,33 @@ class TransformSpec extends AbstractDSLSpec {
         instance.hints.size() == 2
         instance.getHint(getClass("AHint")).value == "blub"
         instance.getHint(getClass("BHint")).otherValue == "bli"
+    }
+
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    @PendingFeature(exceptions = MultipleCompilationErrorsException)
+    def "custom key mappings for simple fields"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.toUpperCase() })
+                Map<String, String> values
+            }
+        '''
+
+        when:
+        instance = clazz.create {
+            value "Beer"
+            value "BLUB"
+            value "beer"
+            value "small"
+        }
+
+        then:
+        instance.bars.size() == 3
+        instance.bars.BEER == "beer"
+        instance.bars.BLUB == "BLUB"
+        instance.bars.SMALL == "small"
     }
 
     def "Annotated setters create dsl methods"() {
