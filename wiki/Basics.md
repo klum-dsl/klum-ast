@@ -157,6 +157,32 @@ Config.create {
 
 If the collection has no initial value, it is automatically initialized.
 
+### keyMapping for simple maps
+
+Instead of directly providing the key in the adder call, it can also be derived
+from the value itself. This is done by using the `keyMapping` attribute of the `@Field` annotation.
+
+This attribute accepts a closure that gets a single parameter of the value type and must return a value
+of the key type.
+
+If a keyMapping is set for a simple type, adder methods only have a value parameter (instead of key and value),
+the map adder is replaces with a collection adder.
+
+```groovy
+@DSL class Foo {
+
+    @Field(keyMapping = { it.toLowerCase() })
+    Map<String, String> values
+}
+
+Foo.create {
+    value "bla"
+    value "BLUB"
+    values "bla", "blub"
+    values(["bli", "blu"])
+} 
+```
+
 ### Setters and closures for DSL-Object Fields
     
 for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
@@ -388,7 +414,7 @@ Config.create {
 
 #### Automatic Key determination for DSL-Map entries
 In case of a keyed Map-Element, the key is automatically used as key for the map entry.
-This can be overriden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
+This can be overridden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
 
 ```groovy
 @DSL class Foo {

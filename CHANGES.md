@@ -13,7 +13,7 @@
   which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
 - Allow non-keyed abstract ancestors for key hierarchies. (see [#143](https://github.com/klum-dsl/klum-ast/issues/143))
 - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
-- For dsl map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127))
+- For map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127) and [#128](https://github.com/klum-dsl/klum-ast/issues/128))
 - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
 - Using [converters](https://github.com/klum-dsl/klum-ast/wiki/Converters), additional setters / adders with different parameter sets can be generated (see [#148](https://github.com/klum-dsl/klum-ast/issues/148), [#152](https://github.com/klum-dsl/klum-ast/issues/152) and [#154](https://github.com/klum-dsl/klum-ast/issues/154))

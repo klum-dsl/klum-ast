@@ -103,10 +103,12 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMa
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
@@ -130,7 +132,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
@@ -158,7 +159,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  *
  * @author Stephan Pauxberger
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"})
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
@@ -1027,70 +1028,99 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMapMethods(FieldNode fieldNode) {
         initializeCollectionOrMap(fieldNode);
 
-        ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
-        ClassNode valueType = getGenericsTypes(fieldNode)[1].getType();
+        ClassNode valueType = getElementType(fieldNode);
 
-        if (hasAnnotation(valueType, DSL_CONFIG_ANNOTATION))
-            createMapOfDSLObjectMethods(fieldNode, keyType, valueType);
+        if (isDSLObject(valueType))
+            createMapOfDSLObjectMethods(fieldNode, valueType);
         else
-            createMapOfSimpleElementsMethods(fieldNode, keyType, valueType);
+            createMapOfSimpleElementsMethods(fieldNode, valueType);
     }
 
-    private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode keyType, ClassNode valueType) {
+    private void createMapOfSimpleElementsMethods(FieldNode fieldNode, ClassNode valueType) {
         String methodName = fieldNode.getName();
+        String singleElementMethod = getElementNameForCollectionField(fieldNode);
+
+        ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        createMethod(methodName)
+        ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
+
+        if (keyMappingClosure == null) {
+            createMethod(methodName)
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                 .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
                 .addTo(rwClass);
+        } else {
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
+                    .statement(new ForStatement(
+                            param(valueType, "element"),
+                            varX("values"),
+                            stmt(callThisX(singleElementMethod, varX("element")))
+                    ))
+                    .addTo(rwClass);
+            createMethod(methodName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .arrayParam(valueType, "values")
+                    .statement(new ForStatement(
+                            param(valueType, "element"),
+                            varX("values"),
+                            stmt(callThisX(singleElementMethod, varX("element")))
+                    ))
+                    .addTo(rwClass);
+        }
 
-        String singleElementMethod = getElementNameForCollectionField(fieldNode);
+        Expression readKeyExpression;
+        Parameter[] parameters;
+
+        if (keyMappingClosure == null) {
+            readKeyExpression = varX("key");
+            parameters = params(param(keyType, "key"), param(valueType, "value"));
+        } else {
+            readKeyExpression = callX(keyMappingClosure, "call", args("value"));
+            parameters = params(param(valueType, "value"));
+        }
 
         createMethod(singleElementMethod)
                 .optional()
                 .mod(visibility)
                 .returning(valueType)
                 .linkToField(fieldNode)
-                .param(keyType, "key")
-                .param(valueType, "value")
-                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args("key", "value"))
+                .params(parameters)
+                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args(readKeyExpression, varX("value")))
                 .doReturn("value")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);
     }
 
-    private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode keyType, ClassNode elementType) {
-        ClosureExpression keyMappingClosure = null;
-        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-
-        if (fieldAnnotation != null) {
-            keyMappingClosure = getCodeClosureFor(fieldNode, fieldAnnotation, "keyMapping");
-            if (keyMappingClosure != null) {
-                keyMappingClosure = toStronglyTypedClosure(keyMappingClosure, elementType);
-                // replace closure with strongly typed one
-                fieldAnnotation.setMember("keyMapping", keyMappingClosure);
-            }
-        }
-
+    private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
         FieldNode elementKeyField = getKeyField(elementType);
 
-        if (keyMappingClosure == null) {
-            if (elementKeyField != null) {
-                keyMappingClosure = closureX(params(param(elementType, "it")), block(returnS(propX(varX("it"), elementKeyField.getName()))));
-            } else {
-                addCompileError(
-                        String.format("Value type of map %s (%s) has no key field and no keyMapping", fieldNode.getName(), elementType.getName()),
-                        fieldNode
-                );
-                return;
-            }
+        ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, elementType);
+
+        if (keyMappingClosure == null && elementKeyField == null) {
+            addCompileError(
+                    String.format("Value type of map %s (%s) has no key field and no keyMapping", fieldNode.getName(), elementType.getName()),
+                    fieldNode
+            );
+            return;
         }
+
+        String elementToAddVarName = "elementToAdd";
+
+        Expression readKeyExpression = keyMappingClosure != null
+                ? callX(keyMappingClosure, "call", args(elementToAddVarName))
+                : propX(varX(elementToAddVarName), elementKeyField.getName());
 
         String methodName = getElementNameForCollectionField(fieldNode);
         boolean targetHasOwnerField = getOwnerFieldName(elementType) != null;
@@ -1110,13 +1140,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .optionalStringParam("key", elementKeyField)
                     .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("created", "apply", args("values", "closure"))
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("created")), varX("created")))
-                    .doReturn("created")
+                    .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField)))
+                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                    .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
+                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(elementToAddVarName, "apply", args("values", "closure"))
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                    .doReturn(elementToAddVarName)
                     .addTo(rwClass);
             createMethod(methodName)
                     .optional()
@@ -1139,13 +1169,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegationTargetClassParam("typeToCreate", elementType)
                     .optionalStringParam("key", elementKeyField)
                     .delegatingClosureParam()
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("created", "apply", args("values", "closure"))
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("created")), varX("created")))
-                    .doReturn("created")
+                    .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField)))
+                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                    .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
+                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(elementToAddVarName, "apply", args("values", "closure"))
+                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                    .doReturn(elementToAddVarName)
                     .addTo(rwClass);
             createMethod(methodName)
                     .optional()
@@ -1159,20 +1189,34 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        //noinspection ConstantConditions
         createMethod(methodName)
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
-                .param(elementType, "value")
-                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(callX(keyMappingClosure, "call", args("value")), varX("value")))
-                .optionallySetOwnerOnS("value", targetHasOwnerField)
-                .doReturn("value")
+                .param(elementType, elementToAddVarName)
+                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
+                .doReturn(elementToAddVarName)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
         createConverterMethods(fieldNode, methodName, false);
+    }
+
+    private ClosureExpression getTypedKeyMappingClosure(FieldNode fieldNode, ClassNode elementType) {
+        AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
+
+        if (fieldAnnotation == null)
+            return null;
+
+        ClosureExpression keyMappingClosure = getCodeClosureFor(fieldNode, fieldAnnotation, "keyMapping");
+        if (keyMappingClosure != null) {
+            keyMappingClosure = toStronglyTypedClosure(keyMappingClosure, elementType);
+            // replace closure with strongly typed one
+            fieldAnnotation.setMember("keyMapping", keyMappingClosure);
+        }
+        return keyMappingClosure;
     }
 
     private void createAlternativesClassFor(FieldNode fieldNode) {

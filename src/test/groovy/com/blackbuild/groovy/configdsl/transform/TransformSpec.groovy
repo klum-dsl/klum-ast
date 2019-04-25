@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
@@ -1928,7 +1929,7 @@ class TransformSpec extends AbstractDSLSpec {
         createClass '''
             @DSL class Foo {
                 @Field(keyMapping = { it.class })
-                Map<Class<? extends Hint>, ? extends Hint> hints = [:]
+                Map<Class<? extends Hint>, ? extends Hint> hints
                 
                 def <T extends Hint> T getHint(Class<T> type) {
                     return hints[type] as T
@@ -1957,6 +1958,62 @@ class TransformSpec extends AbstractDSLSpec {
         instance.hints.size() == 2
         instance.getHint(getClass("AHint")).value == "blub"
         instance.getHint(getClass("BHint")).otherValue == "bli"
+    }
+
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    def "custom key mappings for simple fields"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.toUpperCase() })
+                Map<String, String> values
+            }
+        '''
+
+        then:
+        rwClassHasMethod("value", String)
+
+        when:
+        instance = clazz.create {
+            value "Beer"
+            value "BLUB"
+            value "beer"
+            value "small"
+        }
+
+        then:
+        instance.values.size() == 3
+        instance.values.BEER == "beer"
+        instance.values.BLUB == "BLUB"
+        instance.values.SMALL == "small"
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    def "Collection adder for keyMapping field accepts Collection or vararg, not Map"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(keyMapping = { it.toUpperCase() })
+                Map<String, String> values
+            }
+        '''
+
+        then:
+        rwClassHasNoMethod("values", Map)
+        rwClassHasMethod("values", Collection)
+        rwClassHasMethod("values", String[])
+
+        when:
+        instance = clazz.create {
+            value "single"
+            values "var1", "var2"
+            values(["coll1", "coll2"])
+        }
+
+        then:
+        instance.values.size() == 5
+        instance.values == [SINGLE: "single", VAR1: "var1", VAR2: "var2", COLL1: "coll1", COLL2: "coll2"]
     }
 
     def "Annotated setters create dsl methods"() {

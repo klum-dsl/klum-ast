@@ -95,15 +95,32 @@ class AbstractDSLSpec extends Specification {
     }
 
 
-    protected boolean isDeprecated(Method method) {
+    boolean isDeprecated(Method method) {
         method.getAnnotation(Deprecated) != null
     }
 
-    protected List<Method> allMethodsNamed(String name) {
+    List<Method> allMethodsNamed(String name) {
         clazz.methods.findAll { it.name == name }
     }
 
     Class getRwClass(String name) {
         getClass(name + '$_RW')
+    }
+
+    void rwClassHasMethod(String methodName, Class... parameterTypes) {
+        hasMethod(rwClazz, methodName, parameterTypes)
+    }
+
+    void rwClassHasNoMethod(String methodName, Class... parameterTypes) {
+        hasNoMethod(rwClazz, methodName, parameterTypes)
+    }
+
+    void hasNoMethod(Class type, String methodName, Class... parameterTypes) {
+        assert type.metaClass.getMetaMethod(methodName, parameterTypes) == null
+    }
+
+
+    void hasMethod(Class type, String methodName, Class... parameterTypes) {
+        assert type.metaClass.getMetaMethod(methodName, parameterTypes) != null
     }
 }
