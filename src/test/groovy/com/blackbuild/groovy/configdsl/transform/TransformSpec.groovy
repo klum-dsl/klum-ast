@@ -1858,6 +1858,68 @@ class TransformSpec extends AbstractDSLSpec {
 
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/172')
+    def "LINK fields only get reuse setters"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(FieldType.LINK)
+                Bar singleBar
+
+                @Field(FieldType.LINK)
+                List<Bar> bars
+                
+                @Field(FieldType.LINK)
+                Map<String, KeyBar> keyBars
+            }
+            
+            @DSL class Bar {}
+            
+            @DSL class KeyBar {
+                @Key String key
+            }
+        '''
+
+        then:
+        rwClassHasNoMethod("singleBar", Map, Closure)
+        rwClassHasNoMethod("singleBar", Closure)
+        rwClassHasNoMethod("singleBar", Map)
+        rwClassHasNoMethod("singleBar")
+
+        and:
+        rwClassHasMethod("singleBar", getClass("Bar"))
+
+        then:
+        rwClassHasNoMethod("bar", Map, Closure)
+        rwClassHasNoMethod("bar", Closure)
+        rwClassHasNoMethod("bar", Map)
+        rwClassHasNoMethod("bar")
+
+        and:
+        rwClassHasNoMethod("bar", Map, Class, Closure)
+        rwClassHasNoMethod("bar", Class, Closure)
+        rwClassHasNoMethod("bar", Map, Class)
+        rwClassHasNoMethod("bar", Class)
+
+        and:
+        rwClassHasMethod("bar", getClass("Bar"))
+
+        then:
+        rwClassHasNoMethod("keyBar", Map, String, Closure)
+        rwClassHasNoMethod("keyBar", String, Closure)
+        rwClassHasNoMethod("keyBar", Map, String)
+        rwClassHasNoMethod("keyBar", String)
+
+        and:
+        rwClassHasNoMethod("keyBar", Map, Class, String, Closure)
+        rwClassHasNoMethod("keyBar", Class, String, Closure)
+        rwClassHasNoMethod("keyBar", Map, Class, String)
+        rwClassHasNoMethod("keyBar", Class, String)
+
+        and:
+        rwClassHasMethod("keyBar", getClass("KeyBar"))
+    }
+
     @Issue('https://github.com/klum-dsl/klum-ast/issues/127')
     def "custom key mappings"() {
         given:

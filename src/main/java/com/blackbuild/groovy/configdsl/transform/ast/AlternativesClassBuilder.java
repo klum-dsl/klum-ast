@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -157,8 +158,13 @@ class AlternativesClassBuilder {
     public void invoke() {
         createInnerClass();
         createClosureForOuterClass();
-        createNamedAlternativeMethodsForSubclasses();
+        if (fieldNodeIsNoLink())
+            createNamedAlternativeMethodsForSubclasses();
         delegateDefaultCreationMethodsToOuterInstance();
+    }
+
+    private boolean fieldNodeIsNoLink() {
+        return fieldNode.getNodeMetaData(DSLASTTransformation.FIELD_TYPE_METADATA) != FieldType.LINK;
     }
 
     private void delegateDefaultCreationMethodsToOuterInstance() {

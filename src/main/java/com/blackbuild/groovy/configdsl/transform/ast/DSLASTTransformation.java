@@ -742,7 +742,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private List<String> getAllTransientFields() {
         List<String> result = new ArrayList<>();
         for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (fieldNode.getName().startsWith("$") || fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.TRANSIENT)
+            if (fieldNode.getName().startsWith("$") || getFieldType(fieldNode) == FieldType.TRANSIENT)
                 result.add(fieldNode.getName());
         }
         return result;
@@ -792,17 +792,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         virtualField.setNodeMetaData(SETTER_NAME_METADATA_KEY, methodName);
 
         if (isDSLObject(parameterType))
-            createSingleDSLObjectClosureMethod(virtualField);
+            createSingleDSLObjectFieldCreationMethods(virtualField);
 
         createSingleFieldSetterMethod(virtualField);
     }
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
-        if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.IGNORED) return;
+        if (getFieldType(fieldNode) == FieldType.IGNORED) return;
 
         if (isDSLObject(fieldNode.getType())) {
-            createSingleDSLObjectClosureMethod(fieldNode);
+            if (getFieldType(fieldNode) != FieldType.LINK)
+                createSingleDSLObjectFieldCreationMethods(fieldNode);
             createSingleFieldSetterMethod(fieldNode);
         } else if (isMap(fieldNode.getType()))
             createMapMethods(fieldNode);
@@ -812,13 +813,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
+    private FieldType getFieldType(FieldNode fieldNode) {
+        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA);
+    }
+
     private void storeFieldType(FieldNode fieldNode) {
         FieldType type = CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
         fieldNode.putNodeMetaData(FIELD_TYPE_METADATA, type);
     }
 
     private boolean isProtected(FieldNode fieldNode) {
-        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.PROTECTED;
+        return getFieldType(fieldNode) == FieldType.PROTECTED;
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -829,7 +834,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
-        if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.TRANSIENT) return true;
+        if (getFieldType(fieldNode) == FieldType.TRANSIENT) return true;
         return false;
     }
 
@@ -938,63 +943,66 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldRWName = fieldName + "$rw";
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
-        if (DslAstHelper.isInstantiable(elementType)) {
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .namedParams("values")
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("created", "apply", args("values", "closure"))
-                    .doReturn("created")
-                    .addTo(rwClass);
 
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
-                    .addTo(rwClass);
-        }
+        if (getFieldType(fieldNode) != FieldType.LINK) {
+            if (DslAstHelper.isInstantiable(elementType)) {
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .namedParams("values")
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
+                        .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey)))
+                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                        .optionallySetOwnerOnS("created", targetHasOwnerField)
+                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
+                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod("created", "apply", args("values", "closure"))
+                        .doReturn("created")
+                        .addTo(rwClass);
 
-        if (!isFinal(elementType)) {
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .namedParams("values")
-                    .delegationTargetClassParam("typeToCreate", elementType)
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam()
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS("created", targetHasOwnerField)
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("created", "apply", args("values", "closure"))
-                    .doReturn("created")
-                    .addTo(rwClass);
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .delegationTargetClassParam("typeToCreate", elementType)
-                    .optionalStringParam("key", fieldKey)
-                    .delegatingClosureParam()
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(fieldKey, "closure")))
-                    .addTo(rwClass);
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
+                        .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKey, "closure")))
+                        .addTo(rwClass);
+            }
+
+            if (!isFinal(elementType)) {
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .namedParams("values")
+                        .delegationTargetClassParam("typeToCreate", elementType)
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam()
+                        .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey)))
+                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                        .optionallySetOwnerOnS("created", targetHasOwnerField)
+                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
+                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod("created", "apply", args("values", "closure"))
+                        .doReturn("created")
+                        .addTo(rwClass);
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .delegationTargetClassParam("typeToCreate", elementType)
+                        .optionalStringParam("key", fieldKey)
+                        .delegatingClosureParam()
+                        .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(fieldKey, "closure")))
+                        .addTo(rwClass);
+            }
         }
 
         createMethod(methodName)
@@ -1132,62 +1140,65 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode elementRwType = DslAstHelper.getRwClassOf(elementType);
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (DslAstHelper.isInstantiable(elementType)) {
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .namedParams("values")
-                    .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField)))
-                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
-                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
-                    .doReturn(elementToAddVarName)
-                    .addTo(rwClass);
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(elementKeyField, "closure")))
-                    .addTo(rwClass);
-        }
+        if (getFieldType(fieldNode) != FieldType.LINK) {
 
-        if (!isFinal(elementType)) {
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .namedParams("values")
-                    .delegationTargetClassParam("typeToCreate", elementType)
-                    .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam()
-                    .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField)))
-                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
-                    .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                    .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
-                    .doReturn(elementToAddVarName)
-                    .addTo(rwClass);
-            createMethod(methodName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(elementType)
-                    .delegationTargetClassParam("typeToCreate", elementType)
-                    .optionalStringParam("key", elementKeyField)
-                    .delegatingClosureParam()
-                    .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(elementKeyField, "closure")))
-                    .addTo(rwClass);
+            if (DslAstHelper.isInstantiable(elementType)) {
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .namedParams("values")
+                        .optionalStringParam("key", elementKeyField)
+                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
+                        .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField)))
+                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                        .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
+                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
+                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                        .doReturn(elementToAddVarName)
+                        .addTo(rwClass);
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .optionalStringParam("key", elementKeyField)
+                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
+                        .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(elementKeyField, "closure")))
+                        .addTo(rwClass);
+            }
+
+            if (!isFinal(elementType)) {
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .namedParams("values")
+                        .delegationTargetClassParam("typeToCreate", elementType)
+                        .optionalStringParam("key", elementKeyField)
+                        .delegatingClosureParam()
+                        .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField)))
+                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                        .optionallySetOwnerOnS(elementToAddVarName, targetHasOwnerField)
+                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
+                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                        .doReturn(elementToAddVarName)
+                        .addTo(rwClass);
+                createMethod(methodName)
+                        .optional()
+                        .mod(visibility)
+                        .linkToField(fieldNode)
+                        .returning(elementType)
+                        .delegationTargetClassParam("typeToCreate", elementType)
+                        .optionalStringParam("key", elementKeyField)
+                        .delegatingClosureParam()
+                        .doReturn(callThisX(methodName, CommonAstHelper.argsWithEmptyMapClassAndOptionalKey(elementKeyField, "closure")))
+                        .addTo(rwClass);
+            }
         }
 
         createMethod(methodName)
@@ -1224,7 +1235,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new AlternativesClassBuilder(fieldNode).invoke();
     }
 
-    private void createSingleDSLObjectClosureMethod(FieldNode fieldNode) {
+    private void createSingleDSLObjectFieldCreationMethods(FieldNode fieldNode) {
         String fieldName = fieldNode.getName();
         String setterName = fieldNode.getNodeMetaData(SETTER_NAME_METADATA_KEY);
         if (setterName == null)

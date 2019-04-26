@@ -7,6 +7,7 @@
 - Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
 - PROTECTED (former ReadOnly) fields now DO create adder methods, although protected (see [#78](https://github.com/klum-dsl/klum-ast/issues/78))
 - IGNORED fields don't get DSL methods, but their setters are still only in the RW Model (see [#126](https://github.com/klum-dsl/klum-ast/issues/126))
+- LINK fields only get reuse DSL methods, but no creation methods. (see [#172](https://github.com/klum-dsl/klum-ast/issues/172))
 - Issue a warning if a field is named `owner`
 - interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
   types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete

@@ -107,20 +107,24 @@ class AbstractDSLSpec extends Specification {
         getClass(name + '$_RW')
     }
 
-    void rwClassHasMethod(String methodName, Class... parameterTypes) {
+    boolean rwClassHasMethod(String methodName, Class... parameterTypes) {
         hasMethod(rwClazz, methodName, parameterTypes)
     }
 
-    void rwClassHasNoMethod(String methodName, Class... parameterTypes) {
+    boolean rwClassHasNoMethod(String methodName, Class... parameterTypes) {
         hasNoMethod(rwClazz, methodName, parameterTypes)
     }
 
-    void hasNoMethod(Class type, String methodName, Class... parameterTypes) {
-        assert type.metaClass.getMetaMethod(methodName, parameterTypes) == null
+    boolean hasNoMethod(Class type, String methodName, Class... parameterTypes) {
+        return !hasMethod(type, methodName, parameterTypes)
     }
 
-
-    void hasMethod(Class type, String methodName, Class... parameterTypes) {
-        assert type.metaClass.getMetaMethod(methodName, parameterTypes) != null
+    boolean hasMethod(Class type, String methodName, Class... parameterTypes) {
+        try {
+            type.getMethod(methodName, parameterTypes)
+            return true
+        } catch (NoSuchMethodException ignore) {
+            return false
+        }
     }
 }

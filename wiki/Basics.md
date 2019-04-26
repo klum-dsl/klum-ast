@@ -561,6 +561,10 @@ part of the model itself. Transient fields are ignored when checking for equalit
 RW class. As with PROTECTED this means that these fields can effectively only be set
 from inside lifecycle or mutator methods.
 
+## LINK
+`LINK` fields only get the reuse methods, but no methods that actually create a new object
+on the fly.
+
 # DSL Interfaces
 As of version 1.2.0, interfaces can me marked with `@DSL` as well. No transformation will
 be done for these interfaces, however a field with an annotated interface type will get its

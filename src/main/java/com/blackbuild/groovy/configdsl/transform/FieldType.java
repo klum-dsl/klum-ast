@@ -55,5 +55,14 @@ public enum FieldType {
      * RW model and can only be access from inside a mutator. Not that the automatic initialization of empty collections /
      * maps is not active for these fields as well, so you need to make sure the field is initialized.
      */
-    IGNORED
+    IGNORED,
+
+    /**
+     * Designates this field as a link to an existing object. Link field are only valid for DSL fields or collections
+     * and only create dsl methods for existing objects (i.e. using a instance as parameter), but no methods to
+     * create new instances (Map and/or Closure parameters).
+     */
+    LINK
+
+
 }
