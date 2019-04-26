@@ -36,7 +36,6 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -49,6 +48,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.cre
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
+import static java.util.Arrays.asList;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
@@ -64,8 +64,13 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberL
  */
 class ConverterBuilder {
 
-    private static final List<String> DEFAULT_PREFIXES = Arrays.asList("from", "of", "create", "parse");
-    private static final List<String> DSL_METHODS = Arrays.asList(DSLASTTransformation.CREATE_FROM, DSLASTTransformation.CREATE_METHOD_NAME, TemplateMethods.CREATE_AS_TEMPLATE);
+    private static final List<String> DEFAULT_PREFIXES = asList("from", "of", "create", "parse");
+    private static final List<String> DSL_METHODS = asList(
+            DSLASTTransformation.CREATE_FROM,
+            DSLASTTransformation.CREATE_METHOD_NAME,
+            DSLASTTransformation.CREATE_FROM_CLASSPATH,
+            TemplateMethods.CREATE_AS_TEMPLATE
+    );
 
     static final ClassNode CONVERTERS_ANNOTATION = make(Converters.class);
     static final ClassNode CONVERTER_ANNOTATION = make(Converter.class);

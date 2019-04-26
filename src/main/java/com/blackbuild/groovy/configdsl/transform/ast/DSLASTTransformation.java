@@ -194,6 +194,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
+    public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -1449,7 +1450,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .doReturn(callX(annotatedClass, CREATE_FROM, keyField != null ? args(propX(varX("src"), "path"), varX("text"), varX("loader")) : args("text", "loader")))
                 .addTo(annotatedClass);
 
-        createPublicMethod("createFromClasspath")
+        createPublicMethod(CREATE_FROM_CLASSPATH)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
