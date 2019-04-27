@@ -125,8 +125,11 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
     public void copyAnnotationsFromMembersToParam(AnnotationNode source, AnnotatedNode target) {
         for (Expression annotationMember : source.getMembers().values()) {
-            if (annotationMember instanceof AnnotationConstantExpression)
-                target.addAnnotation((AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue());
+            if (annotationMember instanceof AnnotationConstantExpression) {
+                AnnotationNode annotationNode = (AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue();
+                if (annotationNode.isTargetAllowed(AnnotationNode.PARAMETER_TARGET))
+                    target.addAnnotation(annotationNode);
+            }
         }
     }
 
