@@ -217,13 +217,13 @@ public class DslAstHelper {
         List<FieldNode> result = new ArrayList<FieldNode>();
 
         for (ClassNode level : DslAstHelper.getHierarchyOfDSLObjectAncestors(target)) {
-            result.addAll(getAnnotatedFieldOfClass(level, annotation));
+            result.addAll(getAnnotatedFieldsOfClass(level, annotation));
         }
 
         return result;
     }
 
-    private static List<FieldNode> getAnnotatedFieldOfClass(ClassNode target, ClassNode annotation) {
+    private static List<FieldNode> getAnnotatedFieldsOfClass(ClassNode target, ClassNode annotation) {
         List<FieldNode> result = new ArrayList<FieldNode>();
 
         for (FieldNode fieldNode : target.getFields())

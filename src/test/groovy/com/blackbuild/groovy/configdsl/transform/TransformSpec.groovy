@@ -23,7 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FromString
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
@@ -1447,21 +1448,6 @@ class TransformSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "error: alternatives field of Field annotation is only allowed on collections"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                @Field(alternatives = [Foo]) String name
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
-    }
-
     def "error: members field of Field annotation is only allowed on collections"() {
         when:
         createClass('''
@@ -2160,11 +2146,51 @@ class TransformSpec extends AbstractDSLSpec {
                 Date date
                 
                 @Field
-                void setDate(long value, value) {}
+                void setDate(long value, long anotherValue) {}
             }
             '''
         then:
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    def "allow to inject DelegatesTo on parameter"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                @Field(delegatesTo = @DelegatesTo(Map))
+                Closure<String> converter
+            }
+            '''
+
+        when:
+        def annotations = rwClazz.getMethod("converter", Closure).getParameterAnnotations()[0]
+        DelegatesTo delegatesTo = annotations.find { it instanceof DelegatesTo }
+
+        then:
+        delegatesTo != null
+        delegatesTo.value() == Map
+    }
+
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/128')
+    def "allow to inject ClosureParams on parameter"() {
+        given:
+        createClass '''
+            import groovy.transform.stc.ClosureParams
+            import groovy.transform.stc.FromString
+            @DSL class Foo {
+                @Field(closureParams = @ClosureParams(value=FromString, options="Map<String,Object>"))
+                Closure<String> converter
+            }
+            '''
+
+        when:
+        def annotations = rwClazz.getMethod("converter", Closure).getParameterAnnotations()[0]
+        ClosureParams closureParams = annotations.find { it instanceof ClosureParams }
+
+        then:
+        closureParams != null
+        closureParams.value() == FromString
+        closureParams.options() as List == ["Map<String,Object>"]
+    }
 }

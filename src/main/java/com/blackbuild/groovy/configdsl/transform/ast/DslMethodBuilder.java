@@ -25,13 +25,19 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
@@ -100,6 +106,35 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
             param(param);
         }
         return this;
+    }
+
+    public DslMethodBuilder decoratedParam(FieldNode field, ClassNode type, String name) {
+        List<AnnotationNode> annotations = field.getAnnotations(DSL_FIELD_ANNOTATION);
+
+        if (annotations.isEmpty())
+            return param(type, name);
+
+        AnnotationNode annotation = annotations.get(0);
+        Parameter param = GeneralUtils.param(type, name);
+
+        copyAnnotationMember(annotation, "delegatesTo", param);
+        copyAnnotationMember(annotation, "closureParams", param);
+
+        return param(param);
+    }
+
+    public void copyAnnotationMember(AnnotationNode source, String member, AnnotatedNode target) {
+        AnnotationNode annotationToCopy = getAnnotationMember(source, member);
+
+        if (annotationToCopy != null)
+            target.addAnnotation(annotationToCopy);
+    }
+
+    public AnnotationNode getAnnotationMember(AnnotationNode annotation, String memberName) {
+        AnnotationConstantExpression member = (AnnotationConstantExpression) annotation.getMember(memberName);
+        if (member == null)
+            return null;
+        return (AnnotationNode) member.getValue();
     }
 
     public DslMethodBuilder optionalClassLoaderParam() {
