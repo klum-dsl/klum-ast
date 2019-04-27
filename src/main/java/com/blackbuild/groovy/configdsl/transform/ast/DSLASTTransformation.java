@@ -788,7 +788,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode parameterType = methodNode.getParameters()[0].getType();
         FieldNode virtualField = new FieldNode(fieldName, ACC_PUBLIC, parameterType, annotatedClass, null);
-        virtualField.addAnnotations(methodNode.getAnnotations(DSL_FIELD_ANNOTATION));
+        virtualField.addAnnotations(methodNode.getAnnotations());
         virtualField.setSourcePosition(methodNode);
         virtualField.setNodeMetaData(SETTER_NAME_METADATA_KEY, methodName);
 

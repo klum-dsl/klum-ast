@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -37,8 +38,8 @@ import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
@@ -49,6 +50,7 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
     public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
     public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
+    public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
 
     private DslMethodBuilder(String name) {
         super(name);
@@ -109,22 +111,20 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
     }
 
     public DslMethodBuilder decoratedParam(FieldNode field, ClassNode type, String name) {
-        List<AnnotationNode> annotations = field.getAnnotations(DSL_FIELD_ANNOTATION);
 
-        if (annotations.isEmpty())
-            return param(type, name);
-
-        AnnotationNode annotation = annotations.get(0);
         Parameter param = GeneralUtils.param(type, name);
 
-        copyAnnotationMember(annotation, "delegatesTo", param);
-        copyAnnotationMember(annotation, "closureParams", param);
+        List<AnnotationNode> annotations = field.getAnnotations();
+
+        for (AnnotationNode annotation : annotations)
+            if (hasAnnotation(annotation.getClassNode(), PARAMETER_ANNOTATION_TYPE))
+                copyAnnotationFromValueMemberToParam(annotation, param);
 
         return param(param);
     }
 
-    public void copyAnnotationMember(AnnotationNode source, String member, AnnotatedNode target) {
-        AnnotationNode annotationToCopy = getAnnotationMember(source, member);
+    public void copyAnnotationFromValueMemberToParam(AnnotationNode source, AnnotatedNode target) {
+        AnnotationNode annotationToCopy = getAnnotationMember(source, "value");
 
         if (annotationToCopy != null)
             target.addAnnotation(annotationToCopy);
