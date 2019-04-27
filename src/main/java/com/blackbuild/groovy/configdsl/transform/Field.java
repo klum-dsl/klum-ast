@@ -23,10 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import groovy.lang.DelegatesTo;
 import groovy.transform.Undefined;
-import groovy.transform.stc.ClosureParams;
-import groovy.transform.stc.SimpleType;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -114,17 +111,4 @@ public @interface Field {
      *
      */
     Class[] converters() default {};
-
-    /**
-     * Allows a DelegatesTo annotation to be place on the element parameter for adder methods (in case of
-     * collection or map only on the single adder methods).
-     */
-    DelegatesTo delegatesTo() default @DelegatesTo();
-
-    /**
-     * Places the given ClosureParams annotation on the element parameter for adder methods (in case of
-     * collection or map only on the single adder methods). This only makes sense for Closure or collection
-     * of closure fields.
-     */
-    ClosureParams closureParams() default @ClosureParams(SimpleType.class);
 }

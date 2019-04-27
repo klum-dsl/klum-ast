@@ -118,23 +118,16 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
         for (AnnotationNode annotation : annotations)
             if (hasAnnotation(annotation.getClassNode(), PARAMETER_ANNOTATION_TYPE))
-                copyAnnotationFromValueMemberToParam(annotation, param);
+                copyAnnotationsFromMembersToParam(annotation, param);
 
         return param(param);
     }
 
-    public void copyAnnotationFromValueMemberToParam(AnnotationNode source, AnnotatedNode target) {
-        AnnotationNode annotationToCopy = getAnnotationMember(source, "value");
-
-        if (annotationToCopy != null)
-            target.addAnnotation(annotationToCopy);
-    }
-
-    public AnnotationNode getAnnotationMember(AnnotationNode annotation, String memberName) {
-        AnnotationConstantExpression member = (AnnotationConstantExpression) annotation.getMember(memberName);
-        if (member == null)
-            return null;
-        return (AnnotationNode) member.getValue();
+    public void copyAnnotationsFromMembersToParam(AnnotationNode source, AnnotatedNode target) {
+        for (Expression annotationMember : source.getMembers().values()) {
+            if (annotationMember instanceof AnnotationConstantExpression)
+                target.addAnnotation((AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue());
+        }
     }
 
     public DslMethodBuilder optionalClassLoaderParam() {

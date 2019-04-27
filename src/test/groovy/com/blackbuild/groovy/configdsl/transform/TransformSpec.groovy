@@ -2158,7 +2158,7 @@ class TransformSpec extends AbstractDSLSpec {
         given:
         createClass '''
             @DSL class Foo {
-                @ParameterAnnotation.DelegatesTo(@DelegatesTo(Map))
+                @ParameterAnnotation.ClosureHint(delegate = @DelegatesTo(Map))
                 Closure<String> converter
             }
             '''
@@ -2179,7 +2179,7 @@ class TransformSpec extends AbstractDSLSpec {
             import groovy.transform.stc.ClosureParams
             import groovy.transform.stc.FromString
             @DSL class Foo {
-                @ParameterAnnotation.ClosureParams(@ClosureParams(value=FromString, options="Map<String,Object>"))
+                @ParameterAnnotation.ClosureHint(params = @ClosureParams(value=FromString, options="Map<String,Object>"))
                 Closure<String> converter
             }
             '''
