@@ -21,6 +21,7 @@
 - Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
   if Jackson is found on the classpath during compilation. This will eventually be moved
   into a separate module (klum-ast-jackson and later klum-ast-json)
+- Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
