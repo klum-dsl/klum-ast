@@ -882,7 +882,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
-        new ConverterBuilder(this, fieldNode, methodName, withKey).execute();
+        if (getFieldType(fieldNode) != FieldType.LINK)
+            new ConverterBuilder(this, fieldNode, methodName, withKey).execute();
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
