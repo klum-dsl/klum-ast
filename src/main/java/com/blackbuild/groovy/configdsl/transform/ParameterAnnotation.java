@@ -33,16 +33,56 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation. Any annotation marked with this annotation will have its value annotation copied over to DSL
- * parameters of classes
+ * Mark an annotation as provider for parameter annotations to be copied to the adder/setter methods. The target
+ * annotation must be settable on methods and/or fields.
+ *
+ * If the target annotation is placed on a (virtual) field, all annotation members of that annotation
+ * with target type {@link ElementType#PARAMETER} will be placed on the value parameter of the generated DSL methods.
+ *
+ * ```groovy
+ * .@interface MyAnnotation {
+ *     MyParamAnnotation value()
+ * }
+ * .@DSL class Foo {
+ *
+ *   .@MyAnnotation(@MyParamAnnotation("text"))
+ *   String field
+ *
+ * }
+ * ```
+ *
+ * Will have the setter method generated as follows:
+ *
+ * ```groovy
+ * String field(@MyParamAnnotation("text") String value)
+ * ```
+ *
+ * Note that any default values of target annotation will currently *not* be copied over.
+ *
+ * Since this is especially useful for Closure fields and the `@DelegatesTo`/`@ClosureParams` annotations,
+ * for this case the annotation {@link ParameterAnnotation.ClosureHint} is provided containing members for both annotations.
+ *
  */
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ParameterAnnotation {
 
     /**
-     * Allows a DelegatesTo annotation to be place on the element parameter for adder methods (in case of
-     * collection or map only on the single adder methods).
+     * Allows a {@link DelegatesTo} and or {@link ClosureParams} annotation to be placed on the element parameter
+     * for adder methods (in case of collection or map only on the single adder methods).
+     *
+     * ```groovy
+     * .@DSL class Foo {
+     *
+     *   .@ParameterAnnotation.ClosureHint(delegatesTo=@DelegatesTo(Foo))
+     *   String field
+     * }
+     * ```
+     * Will have the setter method generated as follows:
+     *
+     * ```groovy
+     * String field(@DelegatesTo(Foo) String value)
+     * ```
      */
     @ParameterAnnotation
     @Target({ElementType.FIELD, ElementType.METHOD})
