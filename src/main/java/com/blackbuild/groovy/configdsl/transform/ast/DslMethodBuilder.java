@@ -23,16 +23,23 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
@@ -43,6 +50,7 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
     public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
     public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
+    public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
 
     private DslMethodBuilder(String name) {
         super(name);
@@ -100,6 +108,29 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
             param(param);
         }
         return this;
+    }
+
+    public DslMethodBuilder decoratedParam(FieldNode field, ClassNode type, String name) {
+
+        Parameter param = GeneralUtils.param(type, name);
+
+        List<AnnotationNode> annotations = field.getAnnotations();
+
+        for (AnnotationNode annotation : annotations)
+            if (hasAnnotation(annotation.getClassNode(), PARAMETER_ANNOTATION_TYPE))
+                copyAnnotationsFromMembersToParam(annotation, param);
+
+        return param(param);
+    }
+
+    public void copyAnnotationsFromMembersToParam(AnnotationNode source, AnnotatedNode target) {
+        for (Expression annotationMember : source.getMembers().values()) {
+            if (annotationMember instanceof AnnotationConstantExpression) {
+                AnnotationNode annotationNode = (AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue();
+                if (annotationNode.isTargetAllowed(AnnotationNode.PARAMETER_TARGET))
+                    target.addAnnotation(annotationNode);
+            }
+        }
     }
 
     public DslMethodBuilder optionalClassLoaderParam() {

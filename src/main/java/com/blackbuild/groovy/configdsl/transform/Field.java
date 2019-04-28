@@ -100,6 +100,15 @@ public @interface Field {
      *
      * The closures must return an instance of the field (or element) type.
      *
+     * Example:
+     *
+     * ```groovy
+     * .@DSL class Foo {
+     *   .@Field(annotations = [])
+     *   Date birthday
+     * }
+     * ```
+     *
      */
     Class[] converters() default {};
 }
