@@ -178,6 +178,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
+    public static final ClassNode MAP_ENTRY_TYPE = make(Map.Entry.class);
 
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -909,12 +910,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
+        String elementName = getElementNameForCollectionField(fieldNode);
         createMethod(fieldNode.getName())
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .arrayParam(elementType, "values")
-                .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
+                .forS(
+                    param(elementType, "$value"),
+                    "values",
+                    stmt(callThisX(elementName, varX("$value")))
+                )
                 .addTo(rwClass);
 
         createMethod(fieldNode.getName())
@@ -922,10 +928,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
-                .statement(callX(propX(varX("this"), fieldNode.getName()), "addAll", varX("values")))
+                .forS(
+                    param(elementType, "$value"),
+                    "values",
+                    stmt(callThisX(elementName, varX("$value")))
+                )
                 .addTo(rwClass);
 
-        String elementName = getElementNameForCollectionField(fieldNode);
         createMethod(elementName)
                 .optional()
                 .mod(visibility)
@@ -1070,7 +1079,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-                .callMethod(propX(varX("this"), fieldNode.getName()), "putAll", varX("values"))
+                .forS(
+                    param(makeClassSafeWithGenerics(MAP_ENTRY_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "entry"),
+                    "values",
+                    stmt(callThisX(singleElementMethod, args(
+                            propX(varX("entry"), "key"),
+                            propX(varX("entry"), "value")))
+                    )
+                )
                 .addTo(rwClass);
         } else {
             createMethod(methodName)
@@ -1078,22 +1094,22 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
-                    .statement(new ForStatement(
-                            param(valueType, "element"),
-                            varX("values"),
-                            stmt(callThisX(singleElementMethod, varX("element")))
-                    ))
+                    .forS(
+                        param(valueType, "element"),
+                        "values",
+                        stmt(callThisX(singleElementMethod, varX("element")))
+                    )
                     .addTo(rwClass);
             createMethod(methodName)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .arrayParam(valueType, "values")
-                    .statement(new ForStatement(
+                    .forS(
                             param(valueType, "element"),
-                            varX("values"),
+                            "values",
                             stmt(callThisX(singleElementMethod, varX("element")))
-                    ))
+                    )
                     .addTo(rwClass);
         }
 

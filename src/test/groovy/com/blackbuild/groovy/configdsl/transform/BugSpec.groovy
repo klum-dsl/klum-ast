@@ -44,5 +44,72 @@ class ImagePushSpecification {
 
     }
 
+    def 'closure coercion must be correctly done for List adders'() {
+        given:
+        createClass '''
+        @DSL class ValueProvider {
+
+            String name
+            List<DescriptionProvider> descriptionProviders
+            
+            List<CharSequence> getDescriptions() {
+                descriptionProviders.collect {
+                    it.getDescription()
+                }
+            }
+        }
+
+        interface DescriptionProvider {
+            CharSequence getDescription()
+        }
+        '''
+
+        when:
+        def DescriptionProvider = getClass("DescriptionProvider")
+        instance = clazz.create {
+            name "Klaus"
+            descriptionProviders([{ "$name" }, {"2$name"}])
+        }
+
+        then:
+        noExceptionThrown()
+
+        expect:
+        instance.getDescriptions() == ["Klaus", "2Klaus"]
+    }
+
+    def 'closure coercion must be correctly done for map adders'() {
+        given:
+        createClass '''
+        @DSL class ValueProvider {
+
+            String name
+            Map<String, DescriptionProvider> descriptionProviders
+            
+            List<CharSequence> getDescriptions() {
+                descriptionProviders.collect {
+                    it.value.getDescription()
+                }
+            }
+        }
+
+        interface DescriptionProvider {
+            CharSequence getDescription()
+        }
+        '''
+
+        when:
+        instance = clazz.create {
+            name "Klaus"
+            descriptionProviders(a: { "$name" }, b: {"2$name"})
+        }
+
+        then:
+        noExceptionThrown()
+
+        expect:
+        instance.getDescriptions() == ["Klaus", "2Klaus"]
+    }
+
 
 }

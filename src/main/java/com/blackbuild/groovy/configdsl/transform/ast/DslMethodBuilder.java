@@ -34,6 +34,8 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.stmt.ForStatement;
+import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.List;
@@ -41,6 +43,7 @@ import java.util.List;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.SET_OWNERS_METHOD;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
@@ -77,6 +80,13 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return new DslMethodBuilder(name).mod(Opcodes.ACC_PRIVATE);
     }
 
+    public DslMethodBuilder forS(Parameter variable, Expression collection, Statement... code) {
+        return statement(new ForStatement(variable, collection, block(code)));
+    }
+
+    public DslMethodBuilder forS(Parameter variable, String collection, Statement... code) {
+        return forS(variable, varX(collection), code);
+    }
 
     public DslMethodBuilder withoutMutatorCheck() {
         metadata.put(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY, Boolean.TRUE);
