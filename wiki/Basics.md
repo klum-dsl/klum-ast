@@ -67,7 +67,7 @@ There are also a couple of [[Convenience Factories]] to load a model into client
 ## Lifecycle Methods
 
 Lifecycle methods can are methods annotated with `@PostCreate` and `@PostApply`. These methods will be called automatically
-after the creation of the object (**after the template has been applied**) and after the call to the apply method, respectively.
+after the creation of the object (**after the template has been applied and the owner objects are set**) and after the call to the apply method, respectively.
 
 Lifecycle methods must not be `private`. They will be automatically be made protected and moved to rw instance. 
 
@@ -335,7 +335,7 @@ keyed members to a list and to a map is identical.
 __Since 0.98, these methods are only usable inside of an `apply` or `create` block.__
 
 The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
-In that case, **the owner field of the added object is only set, when it does not yet have an owner**.
+In that case, **owner fields of the added object are only set, when they have not yet been set**.
  
 This syntax is especially useful for delegating the creation of objects into a separate method.
 
@@ -495,17 +495,14 @@ following consequences:
 
 # The @Owner annotation
 
-DSL-Objects can have an optional owner field, decorated with the `@Owner` annotation.
+DSL-Objects can have an owners field, decorated with the `@Owner` annotation.
 
-When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
-the owner-field is automatically set to the outer instance.
+When the inner object is added to another dsl-object, either directly or into a collection,
+all of its owner fields are automatically set to the outer object if they follow two conditions (decided for each field individually):
 
-This has two dangers:
+- The field is unset, i.e. has the value null
+- The field can legally hold the owner object
 
-- no validity checks are performed during transformation time, instead the type of the owner is verified during 
-  runtime. If the type does not match, it is silently ignored.
-- If an object that already has an existing owner is reused, the owner is not overridden, but silently ignored. I.e. the first
-  object that an object is assigned to, is the actual owner.
 
 ```groovy
 @DSL
@@ -543,7 +540,7 @@ because it would be overshadowed in configuration closures.__
 
 # Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field
-can be configured. Currently, there a two values:
+can be configured. It currently supports the following values:
 
 ## PROTECTED
 Fields marked as `PROTECTED` are not externally writable, all dsl methods as well as the dsl methods

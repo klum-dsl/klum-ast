@@ -30,16 +30,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a field as owner field. The owner is automatically set when an instance of the
+ * Designates a field as owner field. Owner fields is automatically set when an instance of the
  * containing class is first added to another DSL-Object, either as value of a field or as member of a collection.
- * <pre><code>
+ * ```groovy
  * given:
- * &#064;DSL
+ * .@DSL
  * class Foo {
  *   Bar bar
  * }
  *
- * &#064;DSL
+ * .@DSL
  * class Bar {
  *   &#064;Owner Foo owner
  * }
@@ -51,20 +51,18 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.bar.owner.is(instance)
- * </code></pre>
- * <p>There are two caveats</p>
- * <ul>
- *     <li>no validity checks are performed during transformation time, leading to runtime ClassCastExceptions
- *     if the owner type is incorrect. This allows for the fact that one type of model might be part of different
- *     owners.</li>
- *     <li>If an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
- *     I.e. the first object that an object is assigned to, is the actual owner.</li>
- * </ul>
- * <p><b>Currently, only one owner field is allowed in a model hierarchy.</b></p>
- * <p><b>The setting of the owner is determined statically during transformation, i.e. if the owner class (Container) has
- * a field of type {@code Parent} and the owner field is defined in the class {@code Child}, the owner field of a Child instance
- * will never be set when added to a Container instance</b></p>
+ * ```
  *
+ * A dsl hierarchy can have any number of `Owner` fields. When the object is added to another object,
+ * any owner field of that object that:
+ *
+ * - is not set
+ * - has a type that the container object is derived from (i.e. the object is a legal value for that field)
+ *
+ * will be set to the owner value.
+ *
+ * This means that if an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
+ * I.e. the first object that an object is assigned to, is the actual owner.*
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.CLASS)

@@ -18,6 +18,7 @@
 - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
 - All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
 - Using [converters](https://github.com/klum-dsl/klum-ast/wiki/Converters), additional setters / adders with different parameter sets can be generated (see [#148](https://github.com/klum-dsl/klum-ast/issues/148), [#152](https://github.com/klum-dsl/klum-ast/issues/152) and [#154](https://github.com/klum-dsl/klum-ast/issues/154))
+- allow any number of owner fields across the hierarchy (see [#171](https://github.com/klum-dsl/klum-ast/issues/171))
 - Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
   if Jackson is found on the classpath during compilation. This will eventually be moved
   into a separate module (klum-ast-jackson and later klum-ast-json)

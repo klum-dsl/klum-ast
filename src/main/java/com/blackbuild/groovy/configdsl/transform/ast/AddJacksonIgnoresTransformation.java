@@ -67,12 +67,7 @@ public class AddJacksonIgnoresTransformation extends AbstractASTTransformation {
         List<String> fieldsToIgnore = new ArrayList<>();
 
         fieldsToIgnore.add("$key");
-        fieldsToIgnore.add("$owner");
-
-        String ownerFieldName = DslAstHelper.getOwnerFieldName(annotatedClass);
-        if (ownerFieldName != null) {
-            fieldsToIgnore.add(ownerFieldName);
-        }
+        fieldsToIgnore.addAll(DslAstHelper.getOwnerFieldNames(annotatedClass));
 
         addIgnoreAnnotation(fieldsToIgnore);
     }
