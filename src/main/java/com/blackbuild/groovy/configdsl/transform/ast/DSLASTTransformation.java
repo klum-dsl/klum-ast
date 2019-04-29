@@ -699,7 +699,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         BlockStatement methodBody = new BlockStatement();
 
         if (dslParent != null)
-            methodBody.addStatement(stmt(callSuperX(SET_OWNERS_METHOD)));
+            methodBody.addStatement(stmt(callSuperX(SET_OWNERS_METHOD, varX("value"))));
 
         for (FieldNode ownerField : ownerFields) {
             methodBody.addStatement(
@@ -874,6 +874,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .decoratedParam(fieldNode, fieldNode.getType(), "value")
                 .callMethod("this", setterName, args("value"))
+                .setOwnersIf("value", isDSLObject(fieldNode.getType()))
                 .doReturn("value")
                 .addTo(rwClass);
 

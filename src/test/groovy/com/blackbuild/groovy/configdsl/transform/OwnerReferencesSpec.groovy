@@ -51,7 +51,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("owner", clazz) == null
     }
 
-    def "error: two different owners in hierarchy"() {
+    def "two different owners in hierarchy are allowed"() {
         when:
         createClass('''
             package pk
@@ -73,7 +73,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        thrown(MultipleCompilationErrorsException)
+        notThrown(MultipleCompilationErrorsException)
     }
 
     @Ignore("Currently, we allow non dsl-owners (for example Object)")
@@ -131,7 +131,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bar.foo.is(instance)
     }
 
-    def 'owner is accessible via get$owner()'() {
+    def "reuse single dsl object sets owner reference if not set"() {
         given:
         createClass('''
             package pk
@@ -148,15 +148,29 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
+        def reuse = create("pk.Bar")
+
+        then:
+        reuse.foo == null
+
+        when:
         instance = clazz.create {
-            bar {}
+            bar reuse
         }
 
         then:
-        instance.bar.$owner.is(instance)
+        reuse.foo.is(instance)
+
+        when:
+        def another = clazz.create {
+            bar reuse
+        }
+
+        then: "still"
+        reuse.foo.is(instance)
     }
 
-    def "using of existing objects in list closure sets owner"() {
+    def "using existing objects in list closure sets owner"() {
         given:
         createInstance('''
             package pk
@@ -554,26 +568,73 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Moo moo
             }
         ''')
-        def Bar = getClass("pk.Bar")
 
         when:
-        def bar
+        def barInstance
         instance = clazz.create {
-            bar = bar {}
+            barInstance = bar {}
         }
 
         then:
-        bar.foo.is(instance)
-        bar.moo == null
+        barInstance.foo.is(instance)
+        barInstance.moo == null
 
         when:
         def instance2 = create("pk.Moo") {
-            linkedBar bar
+            linkedBar barInstance
         }
 
         then:
-        bar.foo.is(instance)
-        bar.moo.is(instance2)
+        barInstance.foo.is(instance)
+        barInstance.moo.is(instance2)
     }
+
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/171")
+    def "Owners of parent class are set"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            }
+
+            @DSL
+            class Moo {
+                Bar linkedBar
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo foo
+            }
+
+            @DSL
+            class SubBar extends Bar {
+                @Owner Moo moo
+            }
+        ''')
+
+        when:
+        def barInstance = create("pk.SubBar")
+        instance = clazz.create {
+            bar barInstance
+        }
+
+        then:
+        barInstance.foo.is(instance)
+        barInstance.moo == null
+
+        when:
+        def instance2 = create("pk.Moo") {
+            linkedBar barInstance
+        }
+
+        then:
+        barInstance.foo.is(instance)
+        barInstance.moo.is(instance2)
+    }
+
 
 }
