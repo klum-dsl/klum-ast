@@ -53,7 +53,6 @@ class JsonExportSpec extends AbstractDSLSpec {
         then:
         JsonIgnoreProperties annotation = getClass("pk.Bar").getAnnotation(JsonIgnoreProperties.class)
         annotation.value().contains("foo")
-        annotation.value().contains('$owner')
     }
 
     def "simple serialization"() {

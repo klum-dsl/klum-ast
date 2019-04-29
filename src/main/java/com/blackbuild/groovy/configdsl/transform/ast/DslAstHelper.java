@@ -233,42 +233,28 @@ public class DslAstHelper {
         return result;
     }
 
-    static FieldNode getOwnerField(ClassNode target) {
-        FieldNode result = target.getNodeMetaData(OWNER_FIELD_METADATA_KEY);
-
-        if (result == NO_SUCH_FIELD)
-            return null;
+    static List<FieldNode> getOwnerField(ClassNode target) {
+        List<FieldNode> result = target.getNodeMetaData(OWNER_FIELD_METADATA_KEY);
 
         if (result != null)
             return result;
 
-        List<FieldNode> annotatedFields = getAnnotatedFieldsOfHierarchy(target, DSLASTTransformation.OWNER_ANNOTATION);
+        result = getAnnotatedFieldsOfClass(target, DSLASTTransformation.OWNER_ANNOTATION);
 
-        if (annotatedFields.isEmpty()) {
-            target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, NO_SUCH_FIELD);
-            return null;
-        }
-
-        if (annotatedFields.size() > 1) {
-            addCompileError(
-                    String.format(
-                            "Found more than one owner fields, only one is allowed in hierarchy (%s, %s)",
-                            getQualifiedName(annotatedFields.get(0)),
-                            getQualifiedName(annotatedFields.get(1))),
-                    annotatedFields.get(0)
-            );
-            return null;
-        }
-
-        result = annotatedFields.get(0);
         target.setNodeMetaData(OWNER_FIELD_METADATA_KEY, result);
 
         return result;
     }
 
-    static String getOwnerFieldName(ClassNode target) {
-        FieldNode ownerFieldOfElement = getOwnerField(target);
-        return ownerFieldOfElement != null ? ownerFieldOfElement.getName() : null;
+    static List<String> getOwnerFieldNames(ClassNode target) {
+        List<FieldNode> ownerFieldsOfElement = getOwnerField(target);
+        ArrayList<String> result = new ArrayList<>(ownerFieldsOfElement.size());
+
+        for (FieldNode fieldNode : ownerFieldsOfElement) {
+            result.add(fieldNode.getName());
+        }
+
+        return result;
     }
 
     static MethodNode createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {

@@ -90,10 +90,8 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
-    public DslMethodBuilder optionallySetOwnerOnS(String target, boolean targetHasOwner) {
-        if (!targetHasOwner)
-            return this;
-        return callMethod(varX(target), "set$owner", varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS));
+    public DslMethodBuilder setOwners(String target) {
+        return callMethod(varX(target), DSLASTTransformation.SET_OWNERS_METHOD, varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS));
     }
 
     public DslMethodBuilder params(Parameter... params) {

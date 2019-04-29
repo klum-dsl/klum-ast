@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore
+import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class OwnerReferencesSpec extends AbstractDSLSpec {
@@ -530,4 +531,49 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         then:
         noExceptionThrown()
     }
+
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/171")
+    def "Allow multiple owners"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            }
+
+            @DSL
+            class Moo {
+                Bar linkedBar
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo foo
+                @Owner Moo moo
+            }
+        ''')
+        def Bar = getClass("pk.Bar")
+
+        when:
+        def bar
+        instance = clazz.create {
+            bar = bar {}
+        }
+
+        then:
+        bar.foo.is(instance)
+        bar.moo == null
+
+        when:
+        def instance2 = create("pk.Moo") {
+            linkedBar bar
+        }
+
+        then:
+        bar.foo.is(instance)
+        bar.moo.is(instance2)
+    }
+
 }
