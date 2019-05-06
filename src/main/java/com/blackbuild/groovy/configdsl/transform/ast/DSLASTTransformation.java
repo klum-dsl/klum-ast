@@ -53,6 +53,7 @@ import org.codehaus.groovy.ast.MixinNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.PropertyNode;
 import org.codehaus.groovy.ast.VariableScope;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -137,6 +138,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.getAllMethods;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
@@ -148,6 +150,10 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.addMethodGenerics;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.createGenericsSpec;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.extractSuperClassGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
@@ -174,7 +180,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
-
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
@@ -228,7 +233,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
-        addDirectGettersForOwnerAndKeyFields();
+        addDirectGettersForKeyField();
 
         setPropertyAccessors();
         createCanonicalMethods();
@@ -245,7 +250,90 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createSetOwnersMethod();
 
+        delegateRwToModel();
+
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+
+    private final static List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
+            Arrays.asList("canEqual", "methodMissing", "propertyMissing");
+
+    private void delegateRwToModel() {
+        for (MethodNode method : annotatedClass.getMethods()) {
+            if (method.isStatic()) continue;
+            if ((method.getModifiers() & ACC_SYNTHETIC) != 0) continue;
+            if (method.getName().contains("$")) continue;
+            if (IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName())) continue;
+            if (method.isPrivate()) continue;
+
+            delegateMethodToRw(method);
+        }
+    }
+
+    private void delegateMethodToRw(MethodNode candidate) {
+        Map<String,ClassNode> genericsSpec = createGenericsSpec(rwClass);
+        genericsSpec = addMethodGenerics(candidate, genericsSpec);
+        extractSuperClassGenerics(annotatedClass, candidate.getDeclaringClass(), genericsSpec);
+
+        // ignore methods already in owner
+        for (MethodNode mn : getAllMethods(rwClass)) {
+            if (mn.getTypeDescriptor().equals(candidate.getTypeDescriptor())) {
+                return;
+            }
+        }
+
+        final ArgumentListExpression args = new ArgumentListExpression();
+        final Parameter[] params = candidate.getParameters();
+        final Parameter[] newParams = new Parameter[params.length];
+
+        List<String> currentMethodGenPlaceholders = genericPlaceholderNames(candidate);
+        for (int i = 0; i < newParams.length; i++) {
+            ClassNode newParamType = correctToGenericsSpecRecurse(genericsSpec, params[i].getType(), currentMethodGenPlaceholders);
+            Parameter newParam = new Parameter(newParamType, getParamName(params, i, NAME_OF_MODEL_FIELD_IN_RW_CLASS));
+            newParam.setInitialExpression(params[i].getInitialExpression());
+
+            newParams[i] = newParam;
+        }
+
+        MethodNode newMethod = createMethod(candidate.getName())
+                .optional()
+                .mod(candidate.getModifiers() & (~ACC_ABSTRACT) & (~ACC_NATIVE))
+                .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
+                .params(newParams)
+                .callMethod(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
+                        candidate.getName(),
+                        args(newParams))
+                .addTo(rwClass);
+
+        newMethod.setGenericsTypes(candidate.getGenericsTypes());
+    }
+
+    private List<String> genericPlaceholderNames(MethodNode candidate) {
+        GenericsType[] candidateGenericsTypes = candidate.getGenericsTypes();
+        List<String> names = new ArrayList<String>();
+        if (candidateGenericsTypes != null) {
+            for (GenericsType gt : candidateGenericsTypes) {
+                names.add(gt.getName());
+            }
+        }
+        return names;
+    }
+
+    private String getParamName(Parameter[] params, int i, String fieldName) {
+        String name = params[i].getName();
+        while(name.equals(fieldName) || clashesWithOtherParams(name, params, i)) {
+            name = "_" + name;
+        }
+        return name;
+    }
+
+    private boolean clashesWithOtherParams(String name, Parameter[] params, int i) {
+        for (int j = 0; j < params.length; j++) {
+            if (i == j) continue;
+            if (params[j].getName().equals(name)) return true;
+        }
+        return false;
     }
 
     private void warnIfAFieldIsNamedOwner() {
@@ -267,19 +355,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
-    private void addDirectGettersForOwnerAndKeyFields() {
-        createDirectGetterFor(keyField, "get$key");
-    }
-
-    private void createDirectGetterFor(FieldNode targetField, String getterName) {
-        if (targetField == null)
+    private void addDirectGettersForKeyField() {
+        if (keyField == null)
             return;
-        if (annotatedClass != targetField.getOwner())
+        if (annotatedClass != keyField.getOwner())
             return;
-        createPublicMethod(getterName)
+        createPublicMethod("get$key")
                 .mod(ACC_FINAL)
-                .returning(targetField.getType())
-                .doReturn(targetField.getName())
+                .returning(keyField.getType())
+                .doReturn(keyField.getName())
                 .addTo(annotatedClass);
     }
 
@@ -355,6 +439,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
         }
 
+        // TODO what about protected methods?
         createPublicMethod(getterName)
                 .returning(pNode.getType())
                 .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
@@ -384,13 +469,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
-                0,
+                ACC_PROTECTED | ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
-                new MixinNode[0]);
+                MixinNode.EMPTY_ARRAY);
 
         // Need to explicitly add this field for non static inner classes (Groovy Bug?)
-        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+        FieldNode modelFieldInRwClass = rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+
+
+        BlockStatement block = new BlockStatement();
+        if (parentRW != null)
+            block.addStatement(ctorSuperS(varX("model")));
+        block.addStatement(assignS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX("model")));
+
+        rwClass.addConstructor(
+                ACC_PROTECTED,
+                params(param(newClass(annotatedClass), "model")),
+                ClassNode.EMPTY_ARRAY,
+                block
+        );
 
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));

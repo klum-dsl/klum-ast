@@ -26,12 +26,15 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.intellij.lang.annotations.Language
+import org.junit.Rule
+import org.junit.rules.TestName
 import spock.lang.Specification
 
 import java.lang.reflect.Method
 
 class AbstractDSLSpec extends Specification {
 
+    @Rule TestName testName = new TestName()
     ClassLoader oldLoader
     GroovyClassLoader loader
     def instance
@@ -50,6 +53,14 @@ class AbstractDSLSpec extends Specification {
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
+        def outputDirectory = new File("build/test-classes/${getClass().simpleName}/$safeFilename")
+        outputDirectory.deleteDir()
+        outputDirectory.mkdirs()
+        compilerConfiguration.targetDirectory = outputDirectory
+    }
+
+    def getSafeFilename() {
+        testName.methodName.replaceAll("\\W+", "_")
     }
 
     def cleanup() {

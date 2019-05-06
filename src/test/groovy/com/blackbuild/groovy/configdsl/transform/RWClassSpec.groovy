@@ -69,6 +69,66 @@ class RWClassSpec extends AbstractDSLSpec {
         rwClass.superclass.name == 'pk.Parent$_RW'
     }
 
+    def "RW class inherits parent RW class in different package"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+            }
+        ''')
+
+        createSecondaryClass('''            
+            package pk2
+            @DSL
+            class Child extends pk.Parent {
+            }
+''')
+
+        when:
+        Class rwClass = getRwClass('pk2.Child')
+
+        then:
+        rwClass.superclass.name == 'pk.Parent$_RW'
+
+        when:
+        getClass("pk2.Child").create()
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "RW class inherits parent RW class in compilation runs"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+            }
+        ''')
+
+        createSecondaryClass('''            
+            package pk
+            @DSL
+            class Child extends Parent {
+            }
+''')
+
+        when:
+        Class rwClass = getRwClass('pk.Child')
+
+        then:
+        rwClass.superclass.name == 'pk.Parent$_RW'
+
+        when:
+        getClass("pk.Child").create()
+
+        then:
+        noExceptionThrown()
+    }
+
     def "BUG: RW class should inherit parent RW class regardless of order"() {
         given:
         createClass('''
@@ -88,6 +148,12 @@ class RWClassSpec extends AbstractDSLSpec {
 
         then:
         rwClass.superclass.name == 'pk.Parent$_RW'
+
+        when:
+        getClass('pk.Child').create()
+
+        then:
+        noExceptionThrown()
     }
 
     def "RW class delegates to model"() {

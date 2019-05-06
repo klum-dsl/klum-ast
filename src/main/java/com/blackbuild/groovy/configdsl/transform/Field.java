@@ -48,7 +48,7 @@ import java.lang.annotation.Target;
  * <p><b>Note that the member names must be unique across all collections of a DSL hierarchy.</b></p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Field {
 

@@ -426,7 +426,7 @@ import java.lang.annotation.Target;
 
  */
 @Target(ElementType.TYPE)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass(classes={
         DSLASTTransformation.class,

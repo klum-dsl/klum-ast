@@ -1804,12 +1804,14 @@ class TransformSpec extends AbstractDSLSpec {
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
     def "Use case for IGNORED field"() {
+        // Note that the usecase itself is no longer valid, since we have custom keymappings
         given:
         createClass '''
             @DSL class Foo {
                 @Field(FieldType.IGNORED)
                 Map<Class<? extends Hint>, ? extends Hint> hints = [:]
                 
+                @Mutator
                 void hint(Hint hint) {
                     hints.put(hint.class, hint)
                 }
