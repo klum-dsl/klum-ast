@@ -85,6 +85,11 @@ configurations.all {
     }
 }
 
+test {
+    inputs.dir file("src/test/scenarios")
+    outputs.dir file("$buildDir/test-classes")
+}
+
 bintray {
     user = findProperty('bintrayUser')
     key = findProperty('bintrayApiKey')
@@ -169,7 +174,7 @@ publishing {
 
 releaseCheck.doLast {
     if (!gradle.includedBuilds.isEmpty())
-        throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separatly")
+        throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
 }
 
 tasks.release.dependsOn tasks.build

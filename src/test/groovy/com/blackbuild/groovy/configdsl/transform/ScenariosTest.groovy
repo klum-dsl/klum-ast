@@ -25,13 +25,16 @@ package com.blackbuild.groovy.configdsl.transform
 
 import groovy.io.FileType
 import org.codehaus.groovy.control.CompilationUnit
+import spock.lang.IgnoreIf
 import spock.lang.Unroll
 
 class ScenariosTest extends AbstractDSLSpec {
 
     GroovyClassLoader incrementalLoader
 
+    @SuppressWarnings("UnnecessaryQualifiedReference")
     @Unroll("Scenario: #folder.name")
+    @IgnoreIf({ ScenariosTest.scenarios.isEmpty() })
     def "test compilation against real models in mock folder"() {
         given:
         incrementalLoader = new GroovyClassLoader()
@@ -55,7 +58,7 @@ class ScenariosTest extends AbstractDSLSpec {
         noExceptionThrown()
 
         where:
-        folder << getSubDirectories(new File("src/test/scenarios"))
+        folder << scenarios
     }
 
     def compile(File folder) {
@@ -65,13 +68,14 @@ class ScenariosTest extends AbstractDSLSpec {
             if (it.name.endsWith(".groovy"))
                 unit.addSource(it)
         }
-        unit.classes
-
         unit.compile()
-
     }
 
-    List<File> getSubDirectories(File root) {
+    static List<File> getScenarios() {
+        getSubDirectories(new File("src/test/scenarios"))
+    }
+
+    static List<File> getSubDirectories(File root) {
         List<File> result = []
 
         root.eachFile {
