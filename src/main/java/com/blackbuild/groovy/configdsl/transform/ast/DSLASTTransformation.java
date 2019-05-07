@@ -53,7 +53,6 @@ import org.codehaus.groovy.ast.MixinNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.PropertyNode;
 import org.codehaus.groovy.ast.VariableScope;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -138,7 +137,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getAllMethods;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
@@ -150,10 +148,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.addMethodGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.createGenericsSpec;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.extractSuperClassGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
@@ -256,84 +250,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
 
-    private final static List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
-            Arrays.asList("canEqual", "methodMissing", "propertyMissing");
-
     private void delegateRwToModel() {
-        for (MethodNode method : annotatedClass.getMethods()) {
-            if (method.isStatic()) continue;
-            if ((method.getModifiers() & ACC_SYNTHETIC) != 0) continue;
-            if (method.getName().contains("$")) continue;
-            if (IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName())) continue;
-            if (method.isPrivate()) continue;
-
-            delegateMethodToRw(method);
-        }
-    }
-
-    private void delegateMethodToRw(MethodNode candidate) {
-        Map<String,ClassNode> genericsSpec = createGenericsSpec(rwClass);
-        genericsSpec = addMethodGenerics(candidate, genericsSpec);
-        extractSuperClassGenerics(annotatedClass, candidate.getDeclaringClass(), genericsSpec);
-
-        // ignore methods already in owner
-        for (MethodNode mn : getAllMethods(rwClass)) {
-            if (mn.getTypeDescriptor().equals(candidate.getTypeDescriptor())) {
-                return;
-            }
-        }
-
-        final ArgumentListExpression args = new ArgumentListExpression();
-        final Parameter[] params = candidate.getParameters();
-        final Parameter[] newParams = new Parameter[params.length];
-
-        List<String> currentMethodGenPlaceholders = genericPlaceholderNames(candidate);
-        for (int i = 0; i < newParams.length; i++) {
-            ClassNode newParamType = correctToGenericsSpecRecurse(genericsSpec, params[i].getType(), currentMethodGenPlaceholders);
-            Parameter newParam = new Parameter(newParamType, getParamName(params, i, NAME_OF_MODEL_FIELD_IN_RW_CLASS));
-            newParam.setInitialExpression(params[i].getInitialExpression());
-
-            newParams[i] = newParam;
-        }
-
-        MethodNode newMethod = createMethod(candidate.getName())
-                .optional()
-                .mod(candidate.getModifiers() & (~ACC_ABSTRACT) & (~ACC_NATIVE))
-                .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
-                .params(newParams)
-                .callMethod(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
-                        candidate.getName(),
-                        args(newParams))
-                .addTo(rwClass);
-
-        newMethod.setGenericsTypes(candidate.getGenericsTypes());
-    }
-
-    private List<String> genericPlaceholderNames(MethodNode candidate) {
-        GenericsType[] candidateGenericsTypes = candidate.getGenericsTypes();
-        List<String> names = new ArrayList<String>();
-        if (candidateGenericsTypes != null) {
-            for (GenericsType gt : candidateGenericsTypes) {
-                names.add(gt.getName());
-            }
-        }
-        return names;
-    }
-
-    private String getParamName(Parameter[] params, int i, String fieldName) {
-        String name = params[i].getName();
-        while(name.equals(fieldName) || clashesWithOtherParams(name, params, i)) {
-            name = "_" + name;
-        }
-        return name;
-    }
-
-    private boolean clashesWithOtherParams(String name, Parameter[] params, int i) {
-        for (int j = 0; j < params.length; j++) {
-            if (i == j) continue;
-            if (params[j].getName().equals(name)) return true;
-        }
-        return false;
+        new DelegateFromRwToModel(annotatedClass).invoke();
     }
 
     private void warnIfAFieldIsNamedOwner() {
