@@ -42,7 +42,8 @@ class ScenariosTest extends AbstractDSLSpec {
 
         when:
         getSubDirectories(folder).sort().each {
-            compile(it)
+            println "compiling $it.key"
+            compile(it.value)
         }
 
         then:
@@ -51,7 +52,7 @@ class ScenariosTest extends AbstractDSLSpec {
         when:
         def assertScript = new File(folder, "assert.groovy")
         if (assertScript.isFile()) {
-            new GroovyShell(loader).run(assertScript, [])
+            new GroovyShell(incrementalLoader).run(assertScript, [])
         }
 
         then:
@@ -62,7 +63,6 @@ class ScenariosTest extends AbstractDSLSpec {
     }
 
     def compile(File folder) {
-        println "compiling $folder.name"
         CompilationUnit unit = new CompilationUnit(compilerConfiguration, null, incrementalLoader)
         folder.eachFileRecurse(FileType.FILES) {
             if (it.name.endsWith(".groovy"))
@@ -71,18 +71,19 @@ class ScenariosTest extends AbstractDSLSpec {
         unit.compile()
     }
 
-    static List<File> getScenarios() {
-        getSubDirectories(new File("src/test/scenarios"))
+    static Collection<File> getScenarios() {
+        getSubDirectories(new File("src/test/scenarios/")).values()
     }
 
-    static List<File> getSubDirectories(File root) {
-        List<File> result = []
+    static Map<String, File> getSubDirectories(File root) {
+        Map<String, File> result = [:]
 
         root.eachFile {
-            if (it.isDirectory())
-                result << it
-            else if (it.name.endsWith(".link"))
-                result << new File(root, it.text)
+            if (it.isDirectory()) {
+                result[it.name] = it
+            } else if (it.name.endsWith(".link")) {
+                result[it.name] = new File(root.toURI().resolve(it.text))
+            }
         }
 
         return result
