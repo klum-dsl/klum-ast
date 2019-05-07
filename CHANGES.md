@@ -34,7 +34,9 @@
       of the outer instance. See [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
     - Inner objects are now validated as part of the validation of outer objects (see [#120](https://github.com/klum-dsl/klum-ast/issues/120))
     - Failed validations now throw an AssertionError instead of a an IllegalStateException
-
+    - Changed RW class to a static inner class (formerly non static). This fixes a some issues with
+      Groovy handling of inner classes but might introduce some issues in corner cases (methodMissing methods
+      from Model is not reachable from RW class)
 
 ## 1.1.1
 - access to owner from inner closures failed with static type checking (see [#99](https://github.com/klum-dsl/klum-ast/issues/99))
