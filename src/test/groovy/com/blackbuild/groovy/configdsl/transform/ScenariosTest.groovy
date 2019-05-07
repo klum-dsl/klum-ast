@@ -23,24 +23,65 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-
+import groovy.io.FileType
 import org.codehaus.groovy.control.CompilationUnit
-import spock.lang.Ignore
+import spock.lang.Unroll
 
-class MockTest extends AbstractDSLSpec {
+class ScenariosTest extends AbstractDSLSpec {
 
-    @Ignore("only for manual debugging")
+    GroovyClassLoader incrementalLoader
+
+    @Unroll("Scenario: #folder.name")
     def "test compilation against real models in mock folder"() {
         given:
-        CompilationUnit unit = new CompilationUnit(loader)
-        unit.addSources(new File("src/mock").listFiles())
+        incrementalLoader = new GroovyClassLoader()
+        incrementalLoader.addURL(compilerConfiguration.targetDirectory.toURI().toURL())
 
         when:
-        unit.compile()
+        getSubDirectories(folder).sort().each {
+            compile(it)
+        }
 
         then:
         noExceptionThrown()
+
+        when:
+        def assertScript = new File(folder, "assert.groovy")
+        if (assertScript.isFile()) {
+            new GroovyShell(loader).run(assertScript, [])
+        }
+
+        then:
+        noExceptionThrown()
+
+        where:
+        folder << getSubDirectories(new File("src/test/scenarios"))
     }
 
+    def compile(File folder) {
+        println "compiling $folder.name"
+        CompilationUnit unit = new CompilationUnit(compilerConfiguration, null, incrementalLoader)
+        folder.eachFileRecurse(FileType.FILES) {
+            if (it.name.endsWith(".groovy"))
+                unit.addSource(it)
+        }
+        unit.classes
+
+        unit.compile()
+
+    }
+
+    List<File> getSubDirectories(File root) {
+        List<File> result = []
+
+        root.eachFile {
+            if (it.isDirectory())
+                result << it
+            else if (it.name.endsWith(".link"))
+                result << new File(root, it.text)
+        }
+
+        return result
+    }
 
 }
