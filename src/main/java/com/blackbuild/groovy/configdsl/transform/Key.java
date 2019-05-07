@@ -94,7 +94,7 @@ import java.lang.annotation.Target;
  * Currently only fields of type String are allowed to be keys.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Key {
 }

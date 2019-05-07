@@ -175,7 +175,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
 
-
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
     public static final ClassNode MAP_ENTRY_TYPE = make(Map.Entry.class);
@@ -228,7 +227,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
-        addDirectGettersForOwnerAndKeyFields();
+        addDirectGettersForKeyField();
 
         setPropertyAccessors();
         createCanonicalMethods();
@@ -245,7 +244,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createSetOwnersMethod();
 
+        delegateRwToModel();
+
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+
+    private void delegateRwToModel() {
+        new DelegateFromRwToModel(annotatedClass).invoke();
     }
 
     private void warnIfAFieldIsNamedOwner() {
@@ -267,19 +273,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
-    private void addDirectGettersForOwnerAndKeyFields() {
-        createDirectGetterFor(keyField, "get$key");
-    }
-
-    private void createDirectGetterFor(FieldNode targetField, String getterName) {
-        if (targetField == null)
+    private void addDirectGettersForKeyField() {
+        if (keyField == null)
             return;
-        if (annotatedClass != targetField.getOwner())
+        if (annotatedClass != keyField.getOwner())
             return;
-        createPublicMethod(getterName)
+        createPublicMethod("get$key")
                 .mod(ACC_FINAL)
-                .returning(targetField.getType())
-                .doReturn(targetField.getName())
+                .returning(keyField.getType())
+                .doReturn(keyField.getName())
                 .addTo(annotatedClass);
     }
 
@@ -355,6 +357,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
         }
 
+        // TODO what about protected methods?
         createPublicMethod(getterName)
                 .returning(pNode.getType())
                 .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
@@ -384,13 +387,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
-                0,
+                ACC_PROTECTED | ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
-                new MixinNode[0]);
+                MixinNode.EMPTY_ARRAY);
 
         // Need to explicitly add this field for non static inner classes (Groovy Bug?)
-        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+        FieldNode modelFieldInRwClass = rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+
+
+        BlockStatement block = new BlockStatement();
+        if (parentRW != null)
+            block.addStatement(ctorSuperS(varX("model")));
+        block.addStatement(assignS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX("model")));
+
+        rwClass.addConstructor(
+                ACC_PROTECTED,
+                params(param(newClass(annotatedClass), "model")),
+                ClassNode.EMPTY_ARRAY,
+                block
+        );
 
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));

@@ -65,7 +65,7 @@ import java.lang.annotation.Target;
  * I.e. the first object that an object is assigned to, is the actual owner.*
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Owner {
 }

@@ -99,13 +99,19 @@ public class DslAstHelper {
 
         ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
 
-        if (result == null) {
+        if (result != null) {
+            return result;
+        }
+
+        if (classNode.isResolved()) {
+            // no way to easily get the inner class node?
+            result = classNode.getField("$rw").getType().getPlainNodeReference();
+        } else {
             // parent has not yet been compiled. We create an unresolved parent class
             result = ClassHelper.makeWithoutCaching(classNode.getName() + "$_RW");
             classNode.getCompileUnit().addClassNodeToCompile(result, classNode.getModule().getContext());
-            classNode.redirect().setNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY, result);
         }
-
+        classNode.redirect().setNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY, result);
         return result;
     }
 
