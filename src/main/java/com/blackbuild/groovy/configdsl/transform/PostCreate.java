@@ -30,7 +30,7 @@ import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.CLASS;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Designates a method to be executed after create has been called and the templates have been applied. These methods
@@ -78,7 +78,7 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * overridden method is called along with the {@code Parent}'s methods.</p>
  */
 @Target({FIELD, METHOD})
-@Retention(CLASS)
+@Retention(RUNTIME)
 @Inherited
 @Documented
 public @interface PostCreate {

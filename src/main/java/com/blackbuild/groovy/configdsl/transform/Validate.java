@@ -97,7 +97,7 @@ import java.lang.annotation.Target;
  * <p>if the validation fails for any validation field or method, an {@link IllegalStateException} is thrown.</p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Validate {
 

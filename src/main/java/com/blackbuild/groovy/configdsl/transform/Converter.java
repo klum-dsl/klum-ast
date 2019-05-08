@@ -40,7 +40,7 @@ import java.lang.annotation.Target;
  * The method must be static, return an instance of the annotated class and can contain an arbitrary number of parameters.
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Converter {
 }

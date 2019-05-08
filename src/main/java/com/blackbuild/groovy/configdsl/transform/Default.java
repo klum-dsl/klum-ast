@@ -81,7 +81,7 @@ import java.lang.annotation.Target;
  * ```
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Default {
 

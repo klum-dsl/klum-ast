@@ -38,7 +38,7 @@ import java.lang.annotation.Target;
  * Note that the annotation on a field completely replaces the annotation on the class for that field.
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @Documented
 public @interface Converters {

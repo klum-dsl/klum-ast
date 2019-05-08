@@ -62,7 +62,7 @@ import java.lang.annotation.Target;
  * @see Validate
  */
 @Target(ElementType.TYPE)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Validation {
 

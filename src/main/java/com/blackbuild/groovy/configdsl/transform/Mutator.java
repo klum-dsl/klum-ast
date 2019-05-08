@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  * called inside an create / apply block. Technically, they are transfered to the RW class instance.
  */
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Mutator {
 }

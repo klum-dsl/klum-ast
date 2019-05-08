@@ -30,7 +30,7 @@ import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.CLASS;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Designates a method to be executed after apply has been called. There can be an arbitrary number of {@link PostApply}
@@ -43,7 +43,7 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * {@code Child}, the overridden method is called along with the {@code Parent}'s methods.</p>
  */
 @Target({FIELD, METHOD})
-@Retention(CLASS)
+@Retention(RUNTIME)
 @Inherited
 @Documented
 public @interface PostApply {
