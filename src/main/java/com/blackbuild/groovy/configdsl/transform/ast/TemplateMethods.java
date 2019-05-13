@@ -36,6 +36,7 @@ import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.TryCatchStatement;
+import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -342,11 +343,9 @@ class TemplateMethods {
                 .addTo(templateClass);
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
-        if (abstractMethods != null) {
-            for (MethodNode abstractMethod : abstractMethods) {
+        if (abstractMethods != null)
+            for (MethodNode abstractMethod : abstractMethods)
                 implementAbstractMethod(abstractMethod);
-            }
-        }
 
         annotatedClass.getModule().addClass(templateClass);
     }
@@ -365,7 +364,43 @@ class TemplateMethods {
     }
 
     private boolean methodIsAnAlreadyImplementedInterfaceMethod(MethodNode abstractMethod) {
-        return abstractMethod.getDeclaringClass().isInterface() && !annotatedClass.getMethod(abstractMethod.getName(), abstractMethod.getParameters()).isAbstract();
+        if (!abstractMethod.getDeclaringClass().isInterface())
+            return false;
+
+        MethodNode existingMethod = annotatedClass.getMethod(abstractMethod.getName(), abstractMethod.getParameters());
+
+        if (existingMethod != null && existingMethod.isAbstract())
+            return false;
+
+        if (existingMethod != null)
+            return true;
+
+        String fieldName = fieldForGetter(abstractMethod);
+
+        if (fieldName == null)
+            return false;
+
+        if (annotatedClass.getField(fieldName) != null)
+            return true;
+
+        return false;
     }
+
+    private String fieldForGetter(MethodNode method) {
+        if (ClassHelper.VOID_TYPE==method.getReturnType())
+            return null;
+
+        if (method.getParameters().length != 0)
+            return null;
+
+        if (method.getName().startsWith("is")) {
+            return StringGroovyMethods.uncapitalize(method.getName().substring(2));
+        } else if (method.getName().startsWith("get")) {
+            return StringGroovyMethods.uncapitalize(method.getName().substring(3));
+        } else {
+            return null;
+        }
+    }
+
 
 }
