@@ -62,9 +62,13 @@ import java.lang.annotation.Target;
  * will be set to the owner value.
  *
  * This means that if an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
- * I.e. the first object that an object is assigned to, is the actual owner.*
+ * I.e. the first object that an object is assigned to, is the actual owner.
+ *
+ * Can also be used to annotate a single parameter method. All matching methods are also called when the object is
+ * added to another object.
+ *
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Owner {

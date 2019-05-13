@@ -25,7 +25,6 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
-import spock.lang.Ignore
 import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -74,27 +73,6 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         notThrown(MultipleCompilationErrorsException)
-    }
-
-    @Ignore("Currently, we allow non dsl-owners (for example Object)")
-    def "error: owner field is no dsl object"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                Bar bar
-            }
-
-            @DSL
-            class Bar {
-                @Owner String owner
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
     }
 
     def "owner reference for single dsl object"() {
@@ -634,6 +612,48 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         then:
         barInstance.foo.is(instance)
         barInstance.moo.is(instance2)
+    }
+
+    def "Owner methods are called"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            }
+
+            @DSL
+            class Bar {
+                
+                @Field(FieldType.IGNORED)
+                @Validate(Validate.Ignore)
+                Foo foo
+            
+                @Owner 
+                void setFooAsOwner(Foo foo) {
+                    this.foo = foo
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.create {
+            bar {}
+        }
+
+        then:
+        instance.bar.foo.is(instance)
+
+        when:
+        Class Bar = getClass("pk.Bar")
+        instance = clazz.create {
+            bar(Bar) {}
+        }
+
+        then:
+        instance.bar.foo.is(instance)
     }
 
 

@@ -32,8 +32,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Controls specific behaviour for certain fields. Currently, this annotation only makes sense for
- * collection fields.
+ * Controls specific behaviour for certain fields.
  * <p>
  *     This can be used to explicitly name the members of a collection. By default, the member name of collection
  *     is the name of the collection minus a trailing 's', i.e. environments :: environment. The member name is used

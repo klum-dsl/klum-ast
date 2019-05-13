@@ -95,8 +95,8 @@ import java.util.Map;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldNames;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslCollection;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
@@ -213,7 +213,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
 
         keyField = getKeyField(annotatedClass);
-        ownerFields = getOwnerField(annotatedClass);
+        ownerFields = getOwnerFields(annotatedClass);
         dslAnnotation = (AnnotationNode) nodes[0];
 
         if (isDSLObject(annotatedClass.getSuperClass()))
@@ -534,9 +534,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
             if (validateAnnotation != null)
                 validateField(block, fieldNode, validateAnnotation);
-
-            validateInnerDslObjects(block, fieldNode);
+            if (!isValidationIgnoredSet(validateAnnotation))
+                validateInnerDslObjects(block, fieldNode);
         }
+    }
+
+    private boolean isValidationIgnoredSet(AnnotationNode validateAnnotation) {
+        if (validateAnnotation == null)
+            return false;
+        Expression member = validateAnnotation.getMember("value");
+        if (member == null)
+            return false;
+        if (!(member instanceof ClassExpression))
+            return false;
+        return member.getType().equals(ClassHelper.make(Validate.Ignore.class));
     }
 
     private void validateField(BlockStatement block, FieldNode fieldNode, AnnotationNode validateAnnotation) {
@@ -726,6 +737,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 // access the field directly to prevent StackOverflow
                                 notX(attrX(varX("this"), constX(ownerField.getName())))),
                         assignX(attrX(varX("this"), constX(ownerField.getName())), varX("value"))
+                    )
+            );
+        }
+
+        for (MethodNode ownerMethod : rwClass.getAllDeclaredMethods()) {
+            if (!DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
+                continue;
+
+            if (ownerMethod.getParameters().length != 1)
+                addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod);
+
+            ClassNode parameterType = ownerMethod.getParameters()[0].getOriginType();
+
+            methodBody.addStatement(
+                    ifS(
+                            isInstanceOfX(varX("value"), parameterType),
+                            callX(propX(varX("this"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), ownerMethod.getName(), varX("value"))
                     )
             );
         }
