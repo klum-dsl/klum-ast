@@ -344,15 +344,17 @@ class TemplateMethods {
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null) {
             for (MethodNode abstractMethod : abstractMethods) {
-                implementAbstractMethod(templateClass, abstractMethod);
+                implementAbstractMethod(abstractMethod);
             }
         }
 
         annotatedClass.getModule().addClass(templateClass);
     }
 
-    private void implementAbstractMethod(ClassNode target, MethodNode abstractMethod) {
-        target.addMethod(
+    private void implementAbstractMethod(MethodNode abstractMethod) {
+        if (methodIsAnAlreadyImplementedInterfaceMethod(abstractMethod))
+            return;
+        templateClass.addMethod(
                 abstractMethod.getName(),
                 abstractMethod.getModifiers() ^ ACC_ABSTRACT,
                 abstractMethod.getReturnType(),
@@ -360,6 +362,10 @@ class TemplateMethods {
                 abstractMethod.getExceptions(),
                 block()
         );
+    }
+
+    private boolean methodIsAnAlreadyImplementedInterfaceMethod(MethodNode abstractMethod) {
+        return abstractMethod.getDeclaringClass().isInterface() && !annotatedClass.getMethod(abstractMethod.getName(), abstractMethod.getParameters()).isAbstract();
     }
 
 }

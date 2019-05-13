@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 class TemplatesSpec extends AbstractDSLSpec {
@@ -1146,6 +1147,29 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         then:
         thrown(NoSuchMethodException)
+    }
+
+    def "BUG: abstract class extends implements an interface which is fullfilled by covariant Field method fails in template"() {
+        when:
+        createSecondaryClass '''
+            package pk
+            
+            interface MyFieldInterface {}
+            
+            interface MyModelInterface {
+                MyFieldInterface getField()
+            }
+            
+            @DSL
+            class FieldImplementer implements MyFieldInterface {}
+            
+            @DSL
+            abstract class Implementer implements MyModelInterface {
+                FieldImplementer field
+            } 
+            '''
+            then:
+            notThrown(MultipleCompilationErrorsException)
     }
 
 }
