@@ -23,6 +23,7 @@
   if Jackson is found on the classpath during compilation. This will eventually be moved
   into a separate module (klum-ast-jackson and later klum-ast-json)
 - Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [Advanced Techniques](https://github.com/klum-dsl/klum-ast/wiki/Advanced-Techniques) and [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
+- Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))

@@ -289,7 +289,11 @@ Config.create {
 There is, however one small differences in the timing with this approach. With the normal approach, the owner
 reference of the inner object is set __before__ the configuration closure is called, meaning that the closure can
 access the owner field or methods which use it. With the second approach, the owner is set __after__ the create closure
-is completed.
+is completed. In this case, it might make more sense to use an Owner method instead
+of an owner field.
+
+If you want a field to only use the reuse syntax ('link' type fields), you can annotate them
+with `@Field(LINK)`, which prevents the creation of creation methods, but generates reuse setters.
 
 ### Virtual Fields
 
@@ -537,6 +541,17 @@ Foo.create {
 
 __Because `owner` is a property of `Closure`, it is not advisable to name the Owner field (or any other field) actually `owner`,
 because it would be overshadowed in configuration closures.__
+
+## Owner methods
+
+Setter like methods (single parameter methods) can also be annotated with `@Owner. In that case,
+all matching Owner methods are called if the object is added to another DSL object (i.e. if
+the Container object ist assignable to the method parameter type). Owner methods are
+mutator methods and thus moved into the RW class.
+
+__Overriding owner methods might lead to unexpected behaviour, as currently, both methods
+would be called__
+
 
 # Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field

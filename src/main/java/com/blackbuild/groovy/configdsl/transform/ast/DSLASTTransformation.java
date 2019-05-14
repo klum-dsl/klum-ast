@@ -741,12 +741,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             );
         }
 
-        for (MethodNode ownerMethod : rwClass.getAllDeclaredMethods()) {
+        for (MethodNode ownerMethod : rwClass.getMethods()) {
             if (!DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
                 continue;
 
             if (ownerMethod.getParameters().length != 1)
                 addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod);
+
+            if (dslParent != null) {
+                MethodNode superOwnerMethod = rwClass.getSuperClass().getDeclaredMethod(ownerMethod.getName(), ownerMethod.getParameters());
+                if (superOwnerMethod != null && DslAstHelper.hasAnnotation(superOwnerMethod, OWNER_ANNOTATION))
+                    addCompileWarning(sourceUnit, String.format("%s overrides %s, which might lead to unexpected results", ownerMethod, superOwnerMethod), ownerMethod);
+            }
 
             ClassNode parameterType = ownerMethod.getParameters()[0].getOriginType();
 

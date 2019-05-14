@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class OwnerReferencesSpec extends AbstractDSLSpec {
@@ -614,6 +615,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         barInstance.moo.is(instance2)
     }
 
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/176")
     def "Owner methods are called"() {
         given:
         createClass('''
@@ -654,6 +656,51 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         instance.bar.foo.is(instance)
+    }
+
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/176")
+    @PendingFeature
+    def "overridden Owner methods are called only once"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+            }
+
+            @DSL
+            class Bar {
+                boolean barCalled
+            
+                @Owner 
+                void setFooAsOwner(Foo foo) {
+                    barCalled = true
+                }
+            }
+            @DSL
+            class Boo extends Bar {
+                boolean booCalled
+            
+                @Owner 
+                void setFooAsOwner(Foo foo) {
+                    booCalled = true
+                }
+            }
+        ''')
+
+        when:
+        def Boo = getClass("pk.Boo")
+        instance = clazz.create {
+            bar(Boo) {}
+        }
+
+        then: 'overridden method not called'
+        !instance.bar.barCalled
+
+        and:
+        instance.bar.booCalled
     }
 
 
