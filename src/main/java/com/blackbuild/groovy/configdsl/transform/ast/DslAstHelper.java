@@ -239,7 +239,7 @@ public class DslAstHelper {
         return result;
     }
 
-    static List<FieldNode> getOwnerField(ClassNode target) {
+    static List<FieldNode> getOwnerFields(ClassNode target) {
         List<FieldNode> result = target.getNodeMetaData(OWNER_FIELD_METADATA_KEY);
 
         if (result != null)
@@ -253,7 +253,7 @@ public class DslAstHelper {
     }
 
     static List<String> getOwnerFieldNames(ClassNode target) {
-        List<FieldNode> ownerFieldsOfElement = getOwnerField(target);
+        List<FieldNode> ownerFieldsOfElement = getOwnerFields(target);
         ArrayList<String> result = new ArrayList<>(ownerFieldsOfElement.size());
 
         for (FieldNode fieldNode : ownerFieldsOfElement) {

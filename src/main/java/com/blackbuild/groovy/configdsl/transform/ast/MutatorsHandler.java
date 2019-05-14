@@ -40,11 +40,9 @@ public class MutatorsHandler {
 
     public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     private final ClassNode annotatedClass;
-    private final ClassNode rwClass;
 
     MutatorsHandler(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
-        this.rwClass = annotatedClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
     }
 
     public void invoke() {
@@ -52,22 +50,19 @@ public class MutatorsHandler {
         //createSyntheticDelegatorsForAllProtectedMethodsOfModel();
     }
 
-
     private void moveAllDeclaredMutatorMethodsToRWClass() {
-        for (MethodNode method : findAllDeclaredMutatorMethods()) {
+        for (MethodNode method : findAllDeclaredMutatorMethods())
             moveMethodFromModelToRWClass(method);
-        }
     }
 
     private List<MethodNode> findAllDeclaredMutatorMethods() {
         List<MethodNode> mutators = new ArrayList<MethodNode>();
-        for (MethodNode method : annotatedClass.getMethods()) {
-
-
+        for (MethodNode method : annotatedClass.getMethods())
             if (DslAstHelper.hasAnnotation(method, MUTATOR_ANNOTATION)
-                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.DSL_FIELD_ANNOTATION))
+                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.DSL_FIELD_ANNOTATION)
+                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.OWNER_ANNOTATION)
+            )
                 mutators.add(method);
-        }
         return mutators;
     }
 
