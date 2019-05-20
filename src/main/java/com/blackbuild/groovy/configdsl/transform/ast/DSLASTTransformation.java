@@ -104,6 +104,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.cre
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
+import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
@@ -147,6 +148,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
@@ -221,6 +223,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (keyField != null)
             createKeyConstructor();
+        else
+            createExplicitEmptyConstructor();
 
         determineFieldTypes();
 
@@ -249,6 +253,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
     }
 
+    private void createExplicitEmptyConstructor() {
+        annotatedClass.addConstructor(
+                ACC_PROTECTED | ACC_SYNTHETIC,
+                Parameter.EMPTY_ARRAY,
+                NO_EXCEPTIONS,
+                block()
+        );
+    }
 
     private void delegateRwToModel() {
         new DelegateFromRwToModel(annotatedClass).invoke();
@@ -785,6 +797,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 )
         );
         keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
+
+        annotatedClass.addConstructor(
+                ACC_PROTECTED | ACC_SYNTHETIC,
+                Parameter.EMPTY_ARRAY,
+                NO_EXCEPTIONS,
+                block(
+                    throwS(ctorX(make(UnsupportedOperationException.class), constX("empty constructor is only to satisfy IDEs")))
+                )
+        );
+
     }
 
     private void createCanonicalMethods() {
