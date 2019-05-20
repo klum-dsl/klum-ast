@@ -26,9 +26,11 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
@@ -41,6 +43,10 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getHier
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.moveMethodFromModelToRWClass;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /**
  * Helper class to create lifecycle methods for a given annotation
@@ -61,14 +67,27 @@ class LifecycleMethodBuilder {
     }
 
     void invoke() {
+        createLifecycleControlField();
         moveMethodsFromModelToRWClass();
         createLifecycleCallerMethod();
+    }
+
+    private void createLifecycleControlField() {
+        rwClass.addField(
+                "$skip" + annotationType.getNameWithoutPackage(),
+                ACC_SYNTHETIC | ACC_PUBLIC,
+                ClassHelper.boolean_TYPE, constX(false)
+                );
     }
 
     private void createLifecycleCallerMethod() {
         lifecycleMethod = DslMethodBuilder
                 .createPrivateMethod("$" + annotationType.getNameWithoutPackage())
-                .mod(Opcodes.ACC_SYNTHETIC);
+                .mod(Opcodes.ACC_SYNTHETIC)
+                .statement(ifS(
+                        varX("$skip" + annotationType.getNameWithoutPackage()),
+                        ReturnStatement.RETURN_NULL_OR_VOID
+                ));
         for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             addLifecycleMethodsForClass(level);
         }

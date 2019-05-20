@@ -11,6 +11,7 @@ Templates are regular instances of DSL objects, which will usually be assigned t
  
  - is always unkeyed (setting the key to null in case of a keyed class)
  - validation is turned off (since null as key might lead to an invalid object)
+ - Lifecycle methods (`@PostApply`, `@PostCreate` and future PostTree/PostModel) are not called
  - provides a non-abstract implementation for abstract classes, implementing all possible methods empty or returning null
  
  ```groovy

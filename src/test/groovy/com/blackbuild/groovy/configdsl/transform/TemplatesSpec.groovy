@@ -158,6 +158,39 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
+    def "createAsTemplate should never call lifecyle methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                boolean postApplyCalled
+                boolean postCreateCalled
+
+                @PostApply
+                void markPostApplyCalled() {
+                    postApplyCalled = true
+                }
+                @PostCreate
+                void markPostCreateCalled() {
+                    postCreateCalled = true
+                }
+
+            }
+        ''')
+
+        when:
+        def template = clazz.createAsTemplate {
+            name "Default"
+        }
+
+        then:
+        template.postApplyCalled == false
+        template.postCreateCalled == false
+    }
+
     def "create method should apply template for keyed objects"() {
         given:
         createClass('''

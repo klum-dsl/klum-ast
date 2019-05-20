@@ -283,6 +283,8 @@ class TemplateMethods {
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
+                .assignS(propX(propX(varX("result"), "$rw"), "$skipPostApply"), constX(true))
+                .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
                 .addTo(annotatedClass);

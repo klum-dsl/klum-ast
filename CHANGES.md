@@ -26,6 +26,7 @@
 - Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
+    - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
     - this means that either klum-ast or future klum-util package needs to be present in the classpath during
       runtime
