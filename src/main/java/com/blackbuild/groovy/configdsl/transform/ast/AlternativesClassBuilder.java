@@ -214,7 +214,7 @@ class AlternativesClassBuilder {
     }
 
     private void createNamedAlternativeMethodsForSubclasses() {
-        List<ClassNode> subclasses = CommonAstHelper.findAllKnownSubclassesOf(elementType);
+        List<ClassNode> subclasses = CommonAstHelper.findAllKnownSubclassesOf(elementType, annotatedClass.getCompileUnit());
         for (ClassNode subclass : subclasses) {
             createNamedAlternativeMethodsForSingleSubclass(subclass);
         }
