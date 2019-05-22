@@ -27,15 +27,18 @@ import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getAnnotatedFieldsOfHierarchy;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
 /**
@@ -64,15 +67,17 @@ public class AddJacksonIgnoresTransformation extends AbstractASTTransformation {
         if (annotatedClass.isInterface())
             return;
 
-        List<String> fieldsToIgnore = new ArrayList<>();
+        Set<String> fieldsToIgnore = new HashSet<>();
 
         fieldsToIgnore.add("$key");
-        fieldsToIgnore.addAll(DslAstHelper.getOwnerFieldNames(annotatedClass));
+        for (FieldNode fieldNode : getAnnotatedFieldsOfHierarchy(annotatedClass, DSLASTTransformation.OWNER_ANNOTATION)) {
+            fieldsToIgnore.add(fieldNode.getName());
+        }
 
         addIgnoreAnnotation(fieldsToIgnore);
     }
 
-    void addIgnoreAnnotation(List<String> propertiesToIgnore) {
+    void addIgnoreAnnotation(Collection<String> propertiesToIgnore) {
         ListExpression ignoreArguments = new ListExpression();
 
         for (String property : propertiesToIgnore) {
