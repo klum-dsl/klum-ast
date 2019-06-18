@@ -219,35 +219,32 @@ class TemplateMethods {
         for (FieldNode fieldNode : annotatedClass.getFields()) {
             if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
 
-            String fieldName = fieldNode.getName();
-            String undefaultedGetter = "get$" + fieldName;
-
             if (CommonAstHelper.isCollection(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
-                                callX(varX("template"), undefaultedGetter),
+                                propX(varX("template"), fieldNode.getName()),
                                 block(
                                         // we need an empty collection, since template replaces the field
-                                        stmt(callX(propX(varX("this"), fieldName), "clear")),
-                                        stmt(callX(propX(varX("this"), fieldName), "addAll", callX(varX("template"), undefaultedGetter)))
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "addAll", propX(varX("template"), fieldNode.getName())))
                                 )
                         )
                 );
             else if (CommonAstHelper.isMap(fieldNode.getType()))
                 templateApply.statement(
                         ifS(
-                                callX(varX("template"), undefaultedGetter),
+                                propX(varX("template"), fieldNode.getName()),
                                 block(
-                                        stmt(callX(propX(varX("this"), fieldName), "clear")),
-                                        stmt(callX(propX(varX("this"), fieldName), "putAll", callX(varX("template"), undefaultedGetter)))
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "clear")),
+                                        stmt(callX(propX(varX("this"), fieldNode.getName()), "putAll", propX(varX("template"), fieldNode.getName())))
                                 )
                         )
                 );
             else
                 templateApply.statement(
                         ifS(
-                                callX(varX("template"), undefaultedGetter),
-                                assignS(propX(varX("this"), fieldName), callX(varX("template"), undefaultedGetter))
+                                propX(varX("template"), fieldNode.getName()),
+                                assignS(propX(varX("this"), fieldNode.getName()), propX(varX("template"), fieldNode.getName()))
                         )
                 );
         }
