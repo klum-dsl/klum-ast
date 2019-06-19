@@ -173,6 +173,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
+    public static final String DEFAULT_ANNOTATION_METHOD_NAME = "$Default";
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
@@ -1423,6 +1424,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 )
                 .callMethod("closure", "call")
                 .callMethod(NAME_OF_RW_FIELD_IN_MODEL_CLASS, POSTAPPLY_ANNOTATION_METHOD_NAME)
+                .callMethod(NAME_OF_RW_FIELD_IN_MODEL_CLASS, DEFAULT_ANNOTATION_METHOD_NAME)
                 .doReturn("this")
                 .addTo(annotatedClass);
 
@@ -1506,6 +1508,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                     .callMethod("script", "run")
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), DEFAULT_ANNOTATION_METHOD_NAME)
                     .callValidationOn("result")
                     .doReturn("result")
                     .addTo(annotatedClass);
@@ -1533,7 +1536,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
                     .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
                     .callMethod("script", "run")
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), DEFAULT_ANNOTATION_METHOD_NAME)
                     .callValidationOn("result")
                     .doReturn("result")
                     .addTo(annotatedClass);

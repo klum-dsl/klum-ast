@@ -24,34 +24,29 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.ElvisOperatorExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.classgen.Verifier;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
@@ -62,6 +57,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
 public class DefaultMethods {
     public static final String CLOSURE_VAR_NAME = "closure";
     private DSLASTTransformation transformation;
+    private DslMethodBuilder defaultMethod;
 
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
 
@@ -72,40 +68,36 @@ public class DefaultMethods {
 
 
     public void execute() {
+        defaultMethod = DslMethodBuilder
+                .createPrivateMethod("$Default")
+                .mod(Opcodes.ACC_SYNTHETIC);
+
+        if (transformation.dslParent != null)
+            defaultMethod.statement(callSuperX("$Default"));
+
         for (FieldNode fNode : transformation.annotatedClass.getFields()) {
             AnnotationNode defaultAnnotation = getAnnotation(fNode, DEFAULT_ANNOTATION);
 
-            createUndefaultedGetter(fNode);
+            if (defaultAnnotation == null)
+                continue;
 
-            if (defaultAnnotation != null) {
-                Statement getterCode = createDefaultValueFor(fNode, defaultAnnotation);
-                MethodNode getter = transformation.annotatedClass.getGetterMethod("get" + Verifier.capitalize(fNode.getName()));
-
-                getter.setCode(getterCode);
-
-                if (ClassHelper.boolean_TYPE == fNode.getType() || ClassHelper.Boolean_TYPE == fNode.getType()) {
-                    MethodNode secondGetter = transformation.annotatedClass.getGetterMethod("is" + Verifier.capitalize(fNode.getName()));
-                    secondGetter.setCode(getterCode);
-                }
-            }
+            defaultMethod.statement(
+                    ifS(
+                            notX(propX(varX("this"), constX(fNode.getName()))),
+                            createDefaultValueFor(fNode, defaultAnnotation)
+                    )
+            );
         }
-    }
-
-    private void createUndefaultedGetter(FieldNode fNode) {
-        if ((fNode.getModifiers() & ACC_SYNTHETIC) != 0)
-            return;
-
-        createProtectedMethod("get$" + fNode.getName())
-                .optional()
-                .mod(ACC_SYNTHETIC)
-                .returning(fNode.getType())
-                .sourceLinkTo(fNode)
-                .statement(returnS(attrX(varX("this"), constX(fNode.getName()))))
-                .addTo(transformation.annotatedClass);
+        defaultMethod.addTo(transformation.rwClass);
     }
 
     private Statement createDefaultValueFor(FieldNode fNode, AnnotationNode defaultAnnotation) {
-        assertOnlyOneMemberOfAnnotationIsSet(defaultAnnotation);
+        assertExactlyOneMemberOfAnnotationIsSet(defaultAnnotation);
+
+        ClosureExpression code = DslAstHelper.getCodeClosureFor(fNode, defaultAnnotation, "code");
+        if (code != null) {
+            return createClosureMethod(fNode, code);
+        }
 
         String fieldMember = getMemberStringValue(defaultAnnotation, "value");
 
@@ -113,30 +105,30 @@ public class DefaultMethods {
             fieldMember = getMemberStringValue(defaultAnnotation, "field");
 
         if (fieldMember != null) {
-            return createFieldMethod(fNode, fieldMember);
+            return castToAndAssign(fNode, createFieldMethod(fieldMember));
         }
 
-        ClosureExpression code = DslAstHelper.getCodeClosureFor(fNode, defaultAnnotation, "code");
-        if (code != null) {
-            return createClosureMethod(fNode, code);
-        }
 
         String delegateMember = getMemberStringValue(defaultAnnotation, "delegate");
         if (delegateMember != null) {
-            return createDelegateMethod(fNode, delegateMember);
+            return castToAndAssign(fNode, createDelegateMethod(fNode, delegateMember));
         }
 
         throw new IllegalStateException("Illegal use of Default annotation. This should have been catched earlier");
     }
 
-    private Statement createDelegateMethod(FieldNode fNode, String delegate) {
-        String delegateGetter = getGetterName(delegate);
-        return stmt(
-                asExpression(fNode.getType(), new ElvisOperatorExpression(
-                        varX(fNode.getName()),
-                        new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fNode.getName()), true))
+    private Statement castToAndAssign(FieldNode fNode, Expression value) {
+        return assignS(
+                propX(varX("this"), constX(fNode.getName())),
+                asExpression(
+                        fNode.getType(),
+                        value
                 )
         );
+    }
+
+    private Expression createDelegateMethod(FieldNode fNode, String delegate) {
+        return new PropertyExpression(propX(varX("this"), delegate), constX(fNode.getName()), true);
     }
 
     private Statement createClosureMethod(FieldNode fNode, ClosureExpression code) {
@@ -147,20 +139,16 @@ public class DefaultMethods {
                         propX(varX(CLOSURE_VAR_NAME), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 ),
-                stmt(asExpression(fNode.getType(), new ElvisOperatorExpression(varX(fNode.getName()), callX(varX(CLOSURE_VAR_NAME), "call"))))
+
+                castToAndAssign(fNode, callX(varX(CLOSURE_VAR_NAME), "call"))
         );
     }
 
-    private Statement createFieldMethod(FieldNode fNode, String targetField) {
-        String fieldGetter = getGetterName(targetField);
-        return stmt(asExpression(fNode.getType(), new ElvisOperatorExpression(varX(fNode.getName()), callThisX(fieldGetter))));
+    private Expression createFieldMethod(String targetField) {
+        return propX(varX("this"), targetField);
     }
 
-    private String getGetterName(String property) {
-        return "get" + Verifier.capitalize(property);
-    }
-
-    private void assertOnlyOneMemberOfAnnotationIsSet(AnnotationNode annotationNode) {
+    private void assertExactlyOneMemberOfAnnotationIsSet(AnnotationNode annotationNode) {
         int numberOfMembers = annotationNode.getMembers().size();
 
         if (numberOfMembers == 0)

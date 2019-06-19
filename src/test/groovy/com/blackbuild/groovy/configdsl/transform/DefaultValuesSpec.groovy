@@ -58,7 +58,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "b"
     }
 
-    def "undefaulted getter is created"() {
+    def "simple default values apply to the fields directly"() {
         given:
         createClass '''
             package pk
@@ -77,9 +77,16 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.value == "a"
-        instance.$value == null
+        instance.@value == "a"
 
+        when:
+        instance = create("pk.Foo") {
+            value "b"
+            another "a"
+        }
+
+        then:
+        instance.@value == "b"
     }
 
     def "default value cascade"() {
