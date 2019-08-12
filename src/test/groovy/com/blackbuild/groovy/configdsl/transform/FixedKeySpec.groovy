@@ -83,4 +83,32 @@ class FixedKeySpec extends AbstractDSLSpec {
         instance.singleBar.id == "static"
     }
 
+    def "Field can be set by fieldname"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(key = Field.FieldName)
+                Bar singleBar
+            }
+
+            @DSL
+            class Bar {
+                @Key String id
+                String value
+            }
+        ''')
+
+        when:
+        instance = create("pk.Foo") {
+            singleBar()
+        }
+
+        then:
+        instance.singleBar.id == "singleBar"
+    }
+
+
 }
