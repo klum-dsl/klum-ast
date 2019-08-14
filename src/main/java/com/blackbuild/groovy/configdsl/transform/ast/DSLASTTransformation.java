@@ -717,7 +717,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 && (!isDSLObject(fieldNode.getType()) || getKeyField(fieldNode.getType()) == null))
             addCompileError(
                     sourceUnit, "@Field.key is only valid for keyed dsl fields",
-                    annotation.getMember("members")
+                    annotation.getMember("key")
             );
     }
 

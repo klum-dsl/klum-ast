@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
 @Issue("https://github.com/klum-dsl/klum-ast/issues/186")
@@ -108,6 +109,51 @@ class FixedKeySpec extends AbstractDSLSpec {
 
         then:
         instance.singleBar.id == "singleBar"
+    }
+
+    def "it is illegal to set Field.key for a collection"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(key = { 'bla' })
+                List<Bar> singleBar
+            }
+
+            @DSL
+            class Bar {
+                @Key String id
+                String value
+            }
+        ''')
+
+        then:
+        def exception = thrown(MultipleCompilationErrorsException)
+        exception.errorCollector.errors
+    }
+
+    def "it is illegal to set Field.key for a non keyed field"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Field(key = { 'bla' })
+                Bar singleBar
+            }
+
+            @DSL
+            class Bar {
+                String value
+            }
+        ''')
+
+        then:
+        def exception = thrown(MultipleCompilationErrorsException)
+        exception.errorCollector.errors
     }
 
 
