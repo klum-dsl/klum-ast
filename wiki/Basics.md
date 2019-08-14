@@ -604,3 +604,42 @@ Outer.create {
 
 Note that the usage of non-DSL classes implementing DSL interfaces might lead to runtime errors when instantiating a model.
 
+# Fixed keys
+
+Using the `key` member of `@Field` the key of a keyed member can be set
+by to a fixed or derived value. This removes the key parameter from all 
+creation methods.
+
+`key` is either a closure on the owning instance or the special class
+`Field.FieldName` which uses the name of the member as fixed key.
+
+This is useful if the member is derived from some value of the owner.
+
+For example, consider the following classes:
+
+```groovy
+@DSL
+class Database {
+    @Key String name
+    //... more values
+}
+
+@DSL
+class Server {
+    @Key String name
+    @Field(key = { name })
+    Database database
+}
+```
+
+This allows creating the server like: 
+
+```
+Server.create("INT") {
+    database {  // instead of database("INT") {
+       //...
+    }
+}
+```
+
+The `key`-member is only valid for single keyed fields.

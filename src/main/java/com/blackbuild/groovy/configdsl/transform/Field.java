@@ -33,18 +33,18 @@ import java.lang.annotation.Target;
 
 /**
  * Controls specific behaviour for certain fields.
- * <p>
+ *
  *     This can be used to explicitly name the members of a collection. By default, the member name of collection
  *     is the name of the collection minus a trailing 's', i.e. environments :: environment. The member name is used
  *     as name for the generation of adder methods.
- * </p>
- * <p>
- *     Using {@code @Field}, this can be explicitly overridden, for example for values with different plural rules.
+ *
+ *    Using {@code @Field}, this can be explicitly overridden, for example for values with different plural rules.
  *     For example, the field {@code libraries} would by default contain the wrong elements name {@code librarie},
  *     which could be changed:
- * </p>
- * <p>{@code @Field(member = 'library') Set<String> libraries}</p>
- * <p><b>Note that the member names must be unique across all collections of a DSL hierarchy.</b></p>
+ *
+ *    `@Field(member = 'library') Set<String> libraries`
+ *
+ * *Note that the member names must be unique across all collections of a DSL hierarchy.*
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -71,6 +71,13 @@ public @interface Field {
      * gets a single parameter of the value type and must return a value of the key type.
      */
     Class keyMapping() default Undefined.class;
+
+    /**
+     * Allows to set the key for a single Keyed Object field to a value defined
+     * by the owner. This member can contain either Closure executed against the owner
+     * object or the special entry {@link FieldName}, which takes the name of the field.
+     */
+    Class key() default Undefined.class;
 
     /**
      * Create converter methods for this field. Converter methods have the same name as regular setter / adders, but
@@ -110,4 +117,10 @@ public @interface Field {
      *
      */
     Class[] converters() default {};
+
+    /**
+     * Marker interface used to designate a field to use the field name of the owner
+     * as key.
+     */
+    interface FieldName {}
 }

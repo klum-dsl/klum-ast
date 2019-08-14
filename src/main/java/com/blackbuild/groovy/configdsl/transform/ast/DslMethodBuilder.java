@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.common.GenericsMethodBuilder;
+import groovy.lang.Closure;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -33,7 +34,9 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
+import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
@@ -45,6 +48,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
@@ -78,6 +82,23 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
     public static DslMethodBuilder createPrivateMethod(String name) {
         return new DslMethodBuilder(name).mod(Opcodes.ACC_PRIVATE);
+    }
+
+    static DslMethodBuilder createMethodFromClosure(String name, ClassNode type, ClosureExpression closureExpression, Expression delegate, Expression parameter) {
+        return createPrivateMethod(name)
+                .returning(type)
+                .optional()
+                .declareVariable("closure", closureExpression)
+                .assignS(propX(varX("closure"), "delegate"), delegate)
+                .assignS(
+                        propX(varX("closure"), "resolveStrategy"),
+                        constX(Closure.DELEGATE_ONLY)
+                )
+                .doReturn(callX(
+                        varX("closure"),
+                        "call",
+                        parameter != null ? parameter : MethodCallExpression.NO_ARGUMENTS)
+                );
     }
 
     public DslMethodBuilder forS(Parameter variable, Expression collection, Statement... code) {
