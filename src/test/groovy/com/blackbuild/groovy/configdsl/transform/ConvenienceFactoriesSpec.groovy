@@ -83,6 +83,38 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/195")
+    def "convenience factory from script class for abstract class"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String value
+            }
+            
+            @DSL
+            class Bar extends Foo {}
+        ''')
+
+        def scriptClass = createSecondaryClass('''
+            import pk.Bar
+
+            Bar.create {
+                value "bla"
+            }
+        ''')
+
+        when:
+        instance = getClass("pk.Foo").createFrom(scriptClass)
+
+        then:
+        instance.class.name == "pk.Bar"
+        instance.value == "bla"
+    }
+
+
     def "convenience factory from delegating script class calls post-apply method"() {
         given:
         createClass('''
@@ -495,6 +527,41 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.createFromClasspath()
+
+        then:
+        instance.name == "hallo"
+        instance.value == "welt"
+    }
+
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/195")
+    def "read model from classpath for abstract class"() {
+        given:
+        def classPathRoot = temp.newFolder()
+        def properties = new File(classPathRoot, "META-INF/klum-model/pk.Config.properties")
+        properties.parentFile.mkdirs()
+        createClass'''
+            package pk
+
+            @DSL
+            abstract class Config {
+                String name
+            }
+
+            @DSL
+            class ConfigImpl extends Config {
+                String value
+            }'''
+        createSecondaryClass'''
+            package impl
+            pk.ConfigImpl.create {
+                name "hallo"
+                value "welt"
+            }''', "Configuration.groovy"
+        properties.text = "model-class: impl.Configuration"
+        loader.addURL(classPathRoot.toURI().toURL())
+
+        when:
+        instance = getClass("pk.Config").createFromClasspath()
 
         then:
         instance.name == "hallo"
