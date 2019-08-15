@@ -25,6 +25,7 @@
 - Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [Advanced Techniques](https://github.com/klum-dsl/klum-ast/wiki/Advanced-Techniques) and [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
 - Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
 - Added option to auto set the key value on a single dsl field with a keyed parameter (see [#186](https://github.com/klum-dsl/klum-ast/issues/186))
+- Allow convenience factories for abstract classes as well (see [#195](https://github.com/klum-dsl/klum-ast/issues/195))
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
 - __(Potentially) breaking changes:__
     - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))

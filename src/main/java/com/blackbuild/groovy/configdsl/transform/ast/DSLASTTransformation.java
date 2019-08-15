@@ -1513,45 +1513,54 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createFactoryMethods() {
         new LifecycleMethodBuilder(rwClass, POSTCREATE_ANNOTATION).invoke();
 
-        if (!isInstantiable(annotatedClass)) return;
+        if (isInstantiable(annotatedClass)) {
+            createPublicMethod(CREATE_METHOD_NAME)
+                    .returning(newClass(annotatedClass))
+                    .mod(ACC_STATIC)
+                    .namedParams("values")
+                    .optionalStringParam("name", keyField)
+                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
+                    .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
+                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod("result", "apply", args("values", "closure"))
+                    .callValidationOn("result")
+                    .doReturn("result")
+                    .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_METHOD_NAME)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .namedParams("values")
-                .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
-                .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                .callMethod("result", "apply", args("values", "closure"))
-                .callValidationOn("result")
-                .doReturn("result")
-                .addTo(annotatedClass);
 
+            createPublicMethod(CREATE_METHOD_NAME)
+                    .returning(newClass(annotatedClass))
+                    .mod(ACC_STATIC)
+                    .optionalStringParam("name", keyField)
+                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
+                    .doReturn(callX(annotatedClass, CREATE_METHOD_NAME,
+                            keyField != null ?
+                                    args(new MapExpression(), varX("name"), varX("closure"))
+                                    : args(new MapExpression(), varX("closure"))
+                    ))
+                    .addTo(annotatedClass);
+        }
 
-        createPublicMethod(CREATE_METHOD_NAME)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(annotatedClass, CREATE_METHOD_NAME,
-                        keyField != null ?
-                        args(new MapExpression(), varX("name"), varX("closure"))
-                        : args(new MapExpression(), varX("closure"))
-                ))
-                .addTo(annotatedClass);
-
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                .statement(ifS(
-                        notX(callX(classX(DELEGATING_SCRIPT), "isAssignableFrom", args("configType"))),
-                        returnS(callX(callX(varX("configType"), "newInstance"), "run"))
-                ))
-                .doReturn(callX(annotatedClass, CREATE_FROM, callX(varX("configType"), "newInstance")))
-                .addTo(annotatedClass);
+        if (isInstantiable(annotatedClass)) {
+            createPublicMethod(CREATE_FROM)
+                    .returning(newClass(annotatedClass))
+                    .mod(ACC_STATIC)
+                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
+                    .statement(ifS(
+                            notX(callX(classX(DELEGATING_SCRIPT), "isAssignableFrom", args("configType"))),
+                            returnS(callX(callX(varX("configType"), "newInstance"), "run"))
+                    ))
+                    .doReturn(callX(annotatedClass, CREATE_FROM, callX(varX("configType"), "newInstance")))
+                    .addTo(annotatedClass);
+        } else {
+            createPublicMethod(CREATE_FROM)
+                    .returning(newClass(annotatedClass))
+                    .mod(ACC_STATIC)
+                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
+                    .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
+                    .addTo(annotatedClass);
+        }
 
         if (keyField != null) {
             createPublicMethod(CREATE_FROM)
@@ -1569,7 +1578,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
                     .addTo(annotatedClass);
 
-            createPublicMethod(CREATE_FROM) // Delegating Script
+            if (isInstantiable(annotatedClass))
+                createPublicMethod(CREATE_FROM) // Delegating Script
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC | ACC_SYNTHETIC)
                     .param(DELEGATING_SCRIPT, "script")
@@ -1598,7 +1608,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
                     .addTo(annotatedClass);
 
-            createPublicMethod(CREATE_FROM) // Delegating Script
+            if (isInstantiable(annotatedClass))
+                createPublicMethod(CREATE_FROM) // Delegating Script
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC | ACC_SYNTHETIC)
                     .param(newClass(DELEGATING_SCRIPT), "script")
