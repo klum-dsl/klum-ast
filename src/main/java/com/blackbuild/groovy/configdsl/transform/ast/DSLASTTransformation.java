@@ -214,8 +214,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass = (ClassNode) nodes[1];
 
-        if (annotatedClass.isInterface())
+        if (annotatedClass.isInterface()) {
+            createConvenienceFactories();
             return;
+        }
 
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
@@ -244,6 +246,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createApplyMethods();
         createTemplateMethods();
         createFactoryMethods();
+        createConvenienceFactories();
         createFieldDSLMethods();
         createValidateMethod();
         createDefaultMethods();
@@ -1541,7 +1544,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     ))
                     .addTo(annotatedClass);
         }
+    }
 
+    private void createConvenienceFactories() {
         if (isInstantiable(annotatedClass)) {
             createPublicMethod(CREATE_FROM)
                     .returning(newClass(annotatedClass))
