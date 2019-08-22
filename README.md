@@ -22,7 +22,7 @@ Take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) 
 
 # What is KlumAST?
 
-KlumAST is the first part of the KlumDSL suite. It provides and easy way to create a complete DSL for a simple model class.
+KlumAST is the first part of the KlumDSL suite. It provides and easy way to create a complete DSL for a model classes.
  
 There are two main objectives for this project:
 
