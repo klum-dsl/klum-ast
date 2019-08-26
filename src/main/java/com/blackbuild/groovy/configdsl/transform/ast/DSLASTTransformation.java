@@ -45,6 +45,7 @@ import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.InnerClassNode;
@@ -119,6 +120,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
+import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.DYNAMIC_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
@@ -215,7 +217,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass = (ClassNode) nodes[1];
 
         if (annotatedClass.isInterface()) {
-            createConvenienceFactories();
             return;
         }
 
@@ -826,15 +827,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
 
-        annotatedClass.addConstructor(
-                ACC_PROTECTED | ACC_SYNTHETIC,
+        ConstructorNode dummyConstructor = annotatedClass.addConstructor(
+                ACC_PROTECTED,
                 Parameter.EMPTY_ARRAY,
                 NO_EXCEPTIONS,
                 block(
-                    throwS(ctorX(make(UnsupportedOperationException.class), constX("empty constructor is only to satisfy IDEs")))
+                        throwS(ctorX(make(UnsupportedOperationException.class), constX("empty constructor is only to satisfy IDEs")))
                 )
         );
 
+        dummyConstructor.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
     }
 
     private void createCanonicalMethods() {
