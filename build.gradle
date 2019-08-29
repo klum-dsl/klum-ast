@@ -80,7 +80,7 @@ dependencies {
     testRuntime "net.bytebuddy:byte-buddy:1.7.5"
     testRuntime "org.objenesis:objenesis:2.6"
     testCompile 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
-    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.7"
+    compile "com.blackbuild.klum.common:klum-common:0.6.0-rc.8"
 }
 
 configurations.all {

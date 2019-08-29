@@ -34,6 +34,7 @@
     - Fix delegating script factory for keyed objects
     - Execute Post-apply for delegating scripts as well
     - Fixed a bug that occured when the name of an field dsl methods was identical to the name of the target's key field
+    - Fixed a bug concerning reused classnodes
 
 - __(Potentially) breaking changes:__
     - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))

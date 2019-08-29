@@ -135,7 +135,7 @@ class Outer {
 
     def "BUG: naming clash if instance methods is the same as the key field (map)"() {
         given:
-        createClass """
+        createClass '''
 @DSL
 class Outer {
     Map<String, Inner> jobs
@@ -144,7 +144,7 @@ class Outer {
 @DSL class Inner  {
     @Key String job
 }
-"""
+'''
 
         when:
         def hint = getClass("Outer").create {
@@ -156,7 +156,7 @@ class Outer {
     }
     def "BUG: naming clash if instance methods is the same as the key field (list)"() {
         given:
-        createClass """
+        createClass '''
 @DSL
 class Outer {
     List<Inner> jobs
@@ -165,7 +165,7 @@ class Outer {
 @DSL class Inner  {
     @Key String job
 }
-"""
+'''
 
         when:
         def hint = getClass("Outer").create {
@@ -176,5 +176,24 @@ class Outer {
         noExceptionThrown()
     }
 
+    def "new bug"() {
+        when:
+        createClass '''
+@DSL
+class Outer {
+    @Field(key = {Inner.DEFAULT})
+    Inner defaultInner
+    List<Inner> inners
+}
+
+@DSL class Inner  {
+    static final String DEFAULT
+    @Key String name
+}
+'''
+
+        then:
+        noExceptionThrown()
+    }
 
 }
