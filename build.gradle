@@ -56,7 +56,11 @@ configurations {
 }
 
 license {
-    mapping("gdsl", "JAVADOC_STYLE")
+    mapping("java", "SLASHSTAR_STYLE")
+    mapping("groovy", "SLASHSTAR_STYLE")
+    mapping("gdsl", "SLASHSTAR_STYLE")
+    exclude("mockup/**")
+    strictCheck(true)
 }
 
 dependencies {
