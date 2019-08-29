@@ -1,33 +1,40 @@
 ## 1.2.0 (unreleased)
-- Fix delegating script factory for keyed objects
-- Execute Post-apply for delegating scripts as well
-- Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))
-- Collection factories can now include templates (see [#77](https://github.com/klum-dsl/klum-ast/issues/77))
-- Replaced the `@ReadOnly` annotation with a `@Field(FieldType.PROTECTED)` (see [#108](https://github.com/klum-dsl/klum-ast/issues/108))
-- Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
-- PROTECTED (former ReadOnly) fields now DO create adder methods, although protected (see [#78](https://github.com/klum-dsl/klum-ast/issues/78))
-- IGNORED fields don't get DSL methods, but their setters are still only in the RW Model (see [#126](https://github.com/klum-dsl/klum-ast/issues/126))
-- LINK fields only get reuse DSL methods, but no creation methods. (see [#172](https://github.com/klum-dsl/klum-ast/issues/172))
-- Issue a warning if a field is named `owner`
-- interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
-  types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete
-  which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
-- Allow non-keyed abstract ancestors for key hierarchies. (see [#143](https://github.com/klum-dsl/klum-ast/issues/143))
-- New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
-- For map fields, arbitrary key types (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127) and [#128](https://github.com/klum-dsl/klum-ast/issues/128))
-- Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
-- All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
-- Using [converters](https://github.com/klum-dsl/klum-ast/wiki/Converters), additional setters / adders with different parameter sets can be generated (see [#148](https://github.com/klum-dsl/klum-ast/issues/148), [#152](https://github.com/klum-dsl/klum-ast/issues/152) and [#154](https://github.com/klum-dsl/klum-ast/issues/154))
-- allow any number of owner fields across the hierarchy (see [#171](https://github.com/klum-dsl/klum-ast/issues/171))
-- Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
-  if Jackson is found on the classpath during compilation. This will eventually be moved
-  into a separate module (klum-ast-jackson and later klum-ast-json)
-- Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [Advanced Techniques](https://github.com/klum-dsl/klum-ast/wiki/Advanced-Techniques) and [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
-- Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
-- Added option to auto set the key value on a single dsl field with a keyed parameter (see [#186](https://github.com/klum-dsl/klum-ast/issues/186))
-- Allow convenience factories for abstract classes as well (see [#195](https://github.com/klum-dsl/klum-ast/issues/195))
-- Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
-- Fixed a bug that occured when the name of an field dsl methods was identical to the name of the target's key field
+- New Features
+    - Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))
+    - Collection factories can now include templates (see [#77](https://github.com/klum-dsl/klum-ast/issues/77))
+    - Field Types:
+        - Replaced the `@ReadOnly` annotation with a `@Field(FieldType.PROTECTED)` (see [#108](https://github.com/klum-dsl/klum-ast/issues/108))
+        - Included a TRANSIENT field type to allow fields that are not part of the model (see [#102](https://github.com/klum-dsl/klum-ast/issues/102))
+        - PROTECTED (former ReadOnly) fields now DO create adder methods, although protected (see [#78](https://github.com/klum-dsl/klum-ast/issues/78))
+        - IGNORED fields don't get DSL methods, but their setters are still only in the RW Model (see [#126](https://github.com/klum-dsl/klum-ast/issues/126))
+        - LINK fields only get reuse DSL methods, but no creation methods. (see [#172](https://github.com/klum-dsl/klum-ast/issues/172))
+    - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
+    - For map fields, arbitrary key values (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127) and [#128](https://github.com/klum-dsl/klum-ast/issues/128))
+    - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
+    - Using [converters](https://github.com/klum-dsl/klum-ast/wiki/Converters), additional setters / adders with different parameter sets can be generated (see [#148](https://github.com/klum-dsl/klum-ast/issues/148), [#152](https://github.com/klum-dsl/klum-ast/issues/152) and [#154](https://github.com/klum-dsl/klum-ast/issues/154))
+    - allow any number of owner fields across the hierarchy (see [#171](https://github.com/klum-dsl/klum-ast/issues/171))
+    - Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
+      if Jackson is found on the classpath during compilation. This will eventually be moved
+      into a separate module (klum-ast-jackson and later klum-ast-json)
+    - Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [Advanced Techniques](https://github.com/klum-dsl/klum-ast/wiki/Advanced-Techniques) and [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
+    - Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
+    - Added option to auto set the key value on a single dsl field with a keyed parameter (see [#186](https://github.com/klum-dsl/klum-ast/issues/186))
+    - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
+
+- Changes/Improvements
+    - Issue a warning if a field is named `owner`
+    - interfaces can also be annotated with `@DSL`. While they won't be converted in any way, field with DSL interface
+      types will get DSL methods generated. Note that in this case verification of the inheritance tree is incomplete
+      which might lead to issues in specific corner cases (DSL interface <- non DSL class <- DSL class). (see [#121](https://github.com/klum-dsl/klum-ast/issues/121))
+    - Allow non-keyed abstract ancestors for key hierarchies. (see [#143](https://github.com/klum-dsl/klum-ast/issues/143))
+    - All single object setter/adder for existing objects now return the added object (see [#131](https://github.com/klum-dsl/klum-ast/issues/131))
+    - Allow convenience factories for abstract classes as well (see [#195](https://github.com/klum-dsl/klum-ast/issues/195))
+
+- Fixes
+    - Fix delegating script factory for keyed objects
+    - Execute Post-apply for delegating scripts as well
+    - Fixed a bug that occured when the name of an field dsl methods was identical to the name of the target's key field
+
 - __(Potentially) breaking changes:__
     - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
