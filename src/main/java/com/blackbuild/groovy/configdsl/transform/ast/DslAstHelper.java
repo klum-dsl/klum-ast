@@ -33,9 +33,12 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
+import org.codehaus.groovy.ast.expr.ArrayExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -54,6 +57,8 @@ import static com.blackbuild.klum.common.CommonAstHelper.isAbstract;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -237,6 +242,10 @@ public class DslAstHelper {
                 result.add(fieldNode);
 
         return result;
+    }
+
+    public static MethodCallExpression callMethodViaInvoke(String methodName, ArgumentListExpression arguments) {
+        return callThisX("invokeMethod", args(constX(methodName), new ArrayExpression(ClassHelper.OBJECT_TYPE, arguments.getExpressions())));
     }
 
     static List<FieldNode> getOwnerFields(ClassNode target) {

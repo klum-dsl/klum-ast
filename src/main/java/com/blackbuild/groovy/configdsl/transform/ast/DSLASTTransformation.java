@@ -93,6 +93,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.callMethodViaInvoke;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
@@ -1091,7 +1092,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(fieldKeyName, "closure")))
+                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapAndOptionalKey(fieldKeyName, "closure")))
                         .addTo(rwClass);
             }
 
@@ -1121,7 +1122,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKeyName, "closure")))
+                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKeyName, "closure")))
                         .addTo(rwClass);
             }
         }
@@ -1294,7 +1295,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .optionalStringParam(elementKeyFieldName, elementKeyField != null)
                         .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .doReturn(callThisX(methodName, argsWithEmptyMapAndOptionalKey(elementKeyFieldName, "closure")))
+                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
 
@@ -1324,7 +1325,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(elementKeyFieldName, elementKeyField != null)
                         .delegatingClosureParam()
-                        .doReturn(callThisX(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
+                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
         }
@@ -1406,7 +1407,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
                     .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callThisX(fieldName, argsWithEmptyMapAndOptionalKey(needKeyParameter ? targetKeyFieldName : null, "closure")))
+                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapAndOptionalKey(needKeyParameter ? targetKeyFieldName : null, "closure")))
                     .addTo(rwClass);
         }
 
@@ -1439,7 +1440,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
                     .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callThisX(fieldName, argsWithEmptyMapClassAndOptionalKey(targetKeyFieldName, "closure")))
+                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapClassAndOptionalKey(targetKeyFieldName, "closure")))
                     .addTo(rwClass);
         }
     }

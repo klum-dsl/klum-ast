@@ -111,5 +111,70 @@ class ImagePushSpecification {
         instance.getDescriptions() == ["Klaus", "2Klaus"]
     }
 
+    def "BUG: naming clash if instance methods is the same as the key field (single field)"() {
+        given:
+        createClass """
+@DSL
+class Outer {
+    Inner job
+}
+
+@DSL class Inner  {
+    @Key String job
+}
+"""
+
+        when:
+        def hint = getClass("Outer").create {
+            job("Nightly")
+        }
+
+        then:
+        noExceptionThrown()
+    }
+
+    def "BUG: naming clash if instance methods is the same as the key field (map)"() {
+        given:
+        createClass """
+@DSL
+class Outer {
+    Map<String, Inner> jobs
+}
+
+@DSL class Inner  {
+    @Key String job
+}
+"""
+
+        when:
+        def hint = getClass("Outer").create {
+            job("Nightly")
+        }
+
+        then:
+        noExceptionThrown()
+    }
+    def "BUG: naming clash if instance methods is the same as the key field (list)"() {
+        given:
+        createClass """
+@DSL
+class Outer {
+    List<Inner> jobs
+}
+
+@DSL class Inner  {
+    @Key String job
+}
+"""
+
+        when:
+        def hint = getClass("Outer").create {
+            job("Nightly")
+        }
+
+        then:
+        noExceptionThrown()
+    }
+
 
 }

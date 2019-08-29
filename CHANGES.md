@@ -27,6 +27,7 @@
 - Added option to auto set the key value on a single dsl field with a keyed parameter (see [#186](https://github.com/klum-dsl/klum-ast/issues/186))
 - Allow convenience factories for abstract classes as well (see [#195](https://github.com/klum-dsl/klum-ast/issues/195))
 - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
+- Fixed a bug that occured when the name of an field dsl methods was identical to the name of the target's key field
 - __(Potentially) breaking changes:__
     - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))
     - Introduce a new createFromClasspath method (see [#110](https://github.com/klum-dsl/klum-ast/issues/110))
