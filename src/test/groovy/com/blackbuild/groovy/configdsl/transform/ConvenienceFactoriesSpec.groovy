@@ -598,4 +598,46 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "welt"
     }
 
+    def "multiple convenience factory calls"() {
+        given:
+        createClass '''
+package model
+
+@DSL
+class Container {
+    List<Element> elements
+} 
+
+@DSL
+class Element {
+    String name
+}
+'''
+        def first = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create {
+  name "first"
+}
+''', "First.groovy"
+        def second = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create(name: "second")
+''', "Second.groovy"
+
+        when:
+        instance = clazz.create {
+            elements(first, second)
+        }
+
+        then:
+        instance.elements[0].name == "First"
+        instance.elements[1].name == "Second"
+    }
+
 }
