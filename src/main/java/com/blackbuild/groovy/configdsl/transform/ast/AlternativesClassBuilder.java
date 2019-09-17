@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.klum.ast.internal.model.DslClass.DSL_CONFIG_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createDelegateMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;

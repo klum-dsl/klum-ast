@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
@@ -32,6 +31,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
+import com.blackbuild.klum.ast.internal.model.DslClass;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
@@ -171,7 +171,6 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
-    public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
@@ -1004,7 +1003,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
-        if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
+        if (hasAnnotation(elementType, DslClass.DSL_CONFIG_ANNOTATION))
             createCollectionOfDSLObjectMethods(fieldNode, elementType);
         else
             createCollectionOfSimpleElementsMethods(fieldNode, elementType);
