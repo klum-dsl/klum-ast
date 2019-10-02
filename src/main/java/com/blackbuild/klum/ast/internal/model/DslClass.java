@@ -8,6 +8,8 @@ import org.codehaus.groovy.ast.FieldNode;
 
 import java.util.Map;
 
+import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
+import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static java.util.stream.Collectors.toMap;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
@@ -20,30 +22,25 @@ public class DslClass {
     private final ClassNode classNode;
     private final AnnotationNode annotation;
     private final Map<String, FieldContainer> fields;
+    private final KeyField keyField;
 
-
-    public DslClass(ClassNode annotatedClass) {
+    private DslClass(ClassNode annotatedClass) {
         classNode = annotatedClass;
         annotation = CommonAstHelper.getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION);
 
         fields = initFields();
+        keyField = KeyField.from(this);
     }
 
     private Map<String, FieldContainer> initFields() {
         return classNode.getFields()
                 .stream()
-                .collect(toMap(FieldNode::getName, FieldContainer::create));
+                .collect(toMap(FieldNode::getName, FieldContainer::getOrCreate));
     }
 
     public DslClass getSuperClass() {
-        return getDslClass(classNode.getSuperClass());
+        return getOrCreate(classNode.getSuperClass());
     }
-
-    public FieldNode getKeyField() {
-        return null;
-    }
-
-
 
     public ClassNode getClassNode() {
         return classNode;
@@ -53,18 +50,46 @@ public class DslClass {
         return annotation;
     }
 
-    public static DslClass getDslClass(ClassNode type) {
+    public Map<String, FieldContainer> getFields() {
+        return fields;
+    }
+
+    public KeyField getKeyField() {
+        return keyField;
+    }
+
+    public static DslClass getOrCreate(ClassNode type) {
         if (type == null)
             return null;
 
-        DslClass existingClass = type.getNodeMetaData(DslClass.class);
+        DslClass result = type.getNodeMetaData(DslClass.class);
 
-        if (existingClass != null)
-            return existingClass;
+        if (result == null && CommonAstHelper.getAnnotation(type, DSL_CONFIG_ANNOTATION) != null) {
+            result = new DslClass(type);
+            type.setNodeMetaData(DslClass.class, result);
+        }
 
-        if (CommonAstHelper.getAnnotation(type, DSL_CONFIG_ANNOTATION) != null)
-            return new DslClass(type);
+        return result;
+    }
 
-        return null;
+    public static DslClass getOrFail(ClassNode type) {
+        DslClass dslClass = type.getNodeMetaData(DslClass.class);
+
+        if (dslClass == null)
+            throw new IllegalStateException("Expected an existing DslClass instance");
+
+        return dslClass;
+    }
+
+    public boolean isAbstract() {
+        return (classNode.getModifiers() & ACC_ABSTRACT) != 0;
+    }
+
+    public boolean isFinal() {
+        return (classNode.getModifiers() & ACC_FINAL) != 0;
+    }
+
+    public String getName() {
+        return classNode.getName();
     }
 }

@@ -21,7 +21,25 @@ public class FieldContainer {
         annotation = CommonAstHelper.getAnnotation(fieldNode, DSLASTTransformation.DSL_FIELD_ANNOTATION);
     }
 
-    public static FieldContainer create(FieldNode node) {
-        return new FieldContainer(node);
+    public FieldNode getFieldNode() {
+        return fieldNode;
+    }
+
+    public ClassNode getOwner() {
+        return owner;
+    }
+
+    public AnnotationNode getAnnotation() {
+        return annotation;
+    }
+
+    public static FieldContainer getOrCreate(FieldNode node) {
+        FieldContainer container = node.getNodeMetaData(FieldContainer.class);
+
+        if (container == null) {
+            container = new FieldContainer(node);
+            node.setNodeMetaData(FieldContainer.class, container);
+        }
+        return container;
     }
 }

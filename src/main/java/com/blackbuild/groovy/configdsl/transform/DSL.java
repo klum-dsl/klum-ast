@@ -27,6 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.ast.AddJacksonIgnoresTransforma
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation;
+import com.blackbuild.klum.ast.internal.model.InternalModelBuilder;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
@@ -429,6 +430,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass(classes={
+        InternalModelBuilder.class,
         DSLASTTransformation.class,
         ModelVerifierTransformation.class,
         DelegatesToRWTransformation.class,
