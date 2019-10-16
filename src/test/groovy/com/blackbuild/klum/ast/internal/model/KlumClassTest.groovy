@@ -14,7 +14,7 @@ import org.junit.Rule
 import org.junit.rules.TestName
 import spock.lang.Specification
 
-class DslClassTest extends Specification {
+class KlumClassTest extends Specification {
 
     @Rule TestName testName = new TestName()
     CompilerConfiguration compilerConfiguration
@@ -36,14 +36,14 @@ class DslClassTest extends Specification {
         return cu.AST
     }
 
-    DslClass getDslClass(@Language("groovy") String script, String classname, CompilePhase phase = CompilePhase.CLASS_GENERATION) {
-        return DslClass.getOrFail(compileScript(script, phase).getClass(classname))
+    KlumClass getDslClass(@Language("groovy") String script, String classname, CompilePhase phase = CompilePhase.CLASS_GENERATION) {
+        return KlumClass.getOrFail(compileScript(script, phase).getClass(classname))
     }
 
-    DslClass getDslClass(@Language("groovy") String script, CompilePhase phase = CompilePhase.CLASS_GENERATION) {
+    KlumClass getDslClass(@Language("groovy") String script, CompilePhase phase = CompilePhase.CLASS_GENERATION) {
         def classes = compileScript(script, phase).classes.findAll { !(it instanceof InnerClassNode) }
         assert classes.size() == 1 : "Need exactly one class"
-        return DslClass.getOrFail(classes.first() as ClassNode)
+        return KlumClass.getOrFail(classes.first() as ClassNode)
     }
 
     String getErrorMessage(MultipleCompilationErrorsException exception) {

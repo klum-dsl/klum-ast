@@ -6,6 +6,7 @@ import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -16,29 +17,38 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 /**
  * Access Wrapper for a single DSL annotation
  */
-public class DslClass {
+public class KlumClass {
 
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private final ClassNode classNode;
     private final AnnotationNode annotation;
-    private final Map<String, FieldContainer> fields;
+    private final Map<String, FieldContainer> fields = new HashMap<>();
     private final KeyField keyField;
 
-    private DslClass(ClassNode annotatedClass) {
+    private KlumClass(ClassNode annotatedClass) {
+        annotatedClass.setNodeMetaData(KlumClass.class, this);
         classNode = annotatedClass;
         annotation = CommonAstHelper.getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION);
 
-        fields = initFields();
-        keyField = KeyField.from(this);
+        initFields();
+        keyField = KeyField.fromOld(this);
     }
 
-    private Map<String, FieldContainer> initFields() {
-        return classNode.getFields()
-                .stream()
-                .collect(toMap(FieldNode::getName, FieldContainer::getOrCreate));
+    private void determineFieldTypes() {
+        for (FieldNode fieldNode : annotatedClass.getFields()) {
+            storeFieldType(fieldNode);
+            warnIfInvalid(fieldNode);
+        }
     }
 
-    public DslClass getSuperClass() {
+
+    private void initFields() {
+        for (FieldNode fieldNode : classNode.getFields()) {
+            fields.put(fieldNode.getName(), FieldFactory.toKlumField(fieldNode));
+        }
+    }
+
+    public KlumClass getSuperClass() {
         return getOrCreate(classNode.getSuperClass());
     }
 
@@ -58,27 +68,27 @@ public class DslClass {
         return keyField;
     }
 
-    public static DslClass getOrCreate(ClassNode type) {
+    public static KlumClass getOrCreate(ClassNode type) {
         if (type == null)
             return null;
 
-        DslClass result = type.getNodeMetaData(DslClass.class);
+        KlumClass result = type.getNodeMetaData(KlumClass.class);
 
         if (result == null && CommonAstHelper.getAnnotation(type, DSL_CONFIG_ANNOTATION) != null) {
-            result = new DslClass(type);
-            type.setNodeMetaData(DslClass.class, result);
+            result = new KlumClass(type);
+            type.setNodeMetaData(KlumClass.class, result);
         }
 
         return result;
     }
 
-    public static DslClass getOrFail(ClassNode type) {
-        DslClass dslClass = type.getNodeMetaData(DslClass.class);
+    public static KlumClass getOrFail(ClassNode type) {
+        KlumClass klumClass = type.getNodeMetaData(KlumClass.class);
 
-        if (dslClass == null)
+        if (klumClass == null)
             throw new IllegalStateException("Expected an existing DslClass instance");
 
-        return dslClass;
+        return klumClass;
     }
 
     public boolean isAbstract() {

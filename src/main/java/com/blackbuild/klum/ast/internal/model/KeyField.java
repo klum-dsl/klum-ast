@@ -12,14 +12,13 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 /**
  * Represents the key field of a dsl class.
  */
-public class KeyField {
+public class KeyField extends KlumField {
 
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
-    private final DslClass owner;
     private final FieldNode field;
 
-    public KeyField(DslClass owner, FieldNode field) {
-        this.owner = owner;
+    public KeyField(FieldNode field) {
+        super(field);
         this.field = field;
         validateKeyType();
     }
@@ -29,22 +28,25 @@ public class KeyField {
             addCompileError("Keyfields must be Strings", field);
     }
 
-    public DslClass getOwner() {
-        return owner;
-    }
-
     public FieldNode getField() {
         return field;
     }
 
-    public static KeyField from(DslClass owner) {
+    public static KeyField from(FieldNode node) {
+        if (ModelHelper.hasAnnotation(node, KEY_ANNOTATION))
+            return new KeyField(node);
+        else
+            return null;
+    }
+
+    public static KeyField fromOld(KlumClass owner) {
         ClassNode classNode = owner.getClassNode();
 
         FieldNode determinedKeyField = ModelHelper.getSingleFieldAnnotatedBy(classNode, KEY_ANNOTATION);
-        DslClass superClass = owner.getSuperClass();
+        KlumClass superClass = owner.getSuperClass();
 
         if (superClass == null)
-            return determinedKeyField != null ? new KeyField(owner, determinedKeyField) : null;
+            return determinedKeyField != null ? new KeyField(determinedKeyField) : null;
 
         KeyField superClassKeyField = superClass.getKeyField();
         if (determinedKeyField == null)
@@ -52,7 +54,7 @@ public class KeyField {
 
         if (superClassKeyField != null) {
             addCompileError(String.format("Class '%s' defines a key field '%s', but its ancestor '%s' already defines the key '%s'",
-                    classNode.getName(), determinedKeyField.getName(), superClassKeyField.getOwner().getName(), superClassKeyField.getName()),
+                    classNode.getName(), determinedKeyField.getName(), superClassKeyField.getOwnerClass().getName(), superClassKeyField.getName()),
                     determinedKeyField);
             return null;
         }
@@ -63,7 +65,7 @@ public class KeyField {
                     determinedKeyField);
             return null;
         }
-        return new KeyField(owner, determinedKeyField);
+        return new KeyField(determinedKeyField);
     }
 
     private String getName() {

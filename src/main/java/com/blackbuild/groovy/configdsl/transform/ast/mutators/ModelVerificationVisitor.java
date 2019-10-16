@@ -26,7 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
-import com.blackbuild.klum.ast.internal.model.DslClass;
+import com.blackbuild.klum.ast.internal.model.KlumClass;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -190,6 +190,6 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     private boolean isDslType(ClassNode classNode) {
-        return !classNode.getAnnotations(DslClass.DSL_CONFIG_ANNOTATION).isEmpty();
+        return !classNode.getAnnotations(KlumClass.DSL_CONFIG_ANNOTATION).isEmpty();
     }
 }

@@ -31,7 +31,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
-import com.blackbuild.klum.ast.internal.model.DslClass;
+import com.blackbuild.klum.ast.internal.model.KlumClass;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
@@ -288,7 +288,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void warnIfInvalid(FieldNode fieldNode) {
-        if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) != 0)
+        if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) == 0)
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
@@ -1003,7 +1003,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
 
-        if (hasAnnotation(elementType, DslClass.DSL_CONFIG_ANNOTATION))
+        if (hasAnnotation(elementType, KlumClass.DSL_CONFIG_ANNOTATION))
             createCollectionOfDSLObjectMethods(fieldNode, elementType);
         else
             createCollectionOfSimpleElementsMethods(fieldNode, elementType);

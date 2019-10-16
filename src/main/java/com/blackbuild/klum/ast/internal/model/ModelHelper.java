@@ -1,5 +1,6 @@
 package com.blackbuild.klum.ast.internal.model;
 
+import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 
@@ -40,4 +41,8 @@ final class ModelHelper {
         return !field.getAnnotations(annotation).isEmpty();
     }
 
+    static <T> T compilerError(String message, FieldNode node) {
+        CommonAstHelper.addCompileError(message, node);
+        return null;
+    }
 }

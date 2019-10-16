@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.ast.internal.model.DslClass;
+import com.blackbuild.klum.ast.internal.model.KlumClass;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
@@ -73,7 +73,7 @@ public class DslAstHelper {
     private DslAstHelper() {}
 
     public static boolean isDSLObject(ClassNode classNode) {
-        return CommonAstHelper.getAnnotation(classNode, DslClass.DSL_CONFIG_ANNOTATION) != null;
+        return CommonAstHelper.getAnnotation(classNode, KlumClass.DSL_CONFIG_ANNOTATION) != null;
     }
 
     public static ClassNode getHighestAncestorDSLObject(ClassNode target) {
@@ -142,7 +142,7 @@ public class DslAstHelper {
     }
 
 
-    static String getElementNameForCollectionField(FieldNode fieldNode) {
+    public static String getElementNameForCollectionField(FieldNode fieldNode) {
         String result = fieldNode.getNodeMetaData(ELEMENT_NAME_METADATA_KEY);
         if (result != null)
             return result;

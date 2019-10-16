@@ -16,11 +16,11 @@ public class InternalModelBuilder extends AbstractASTTransformation {
 
     public void visit(ASTNode[] astNodes, SourceUnit sourceUnit) {
         init(astNodes, sourceUnit);
-        if (!((AnnotationNode) astNodes[0]).getClassNode().equals(DslClass.DSL_CONFIG_ANNOTATION))
+        if (!((AnnotationNode) astNodes[0]).getClassNode().equals(KlumClass.DSL_CONFIG_ANNOTATION))
             addError("Internal Error: Expected DSL annotation", astNodes[0]);
         if (!(astNodes[1] instanceof ClassNode))
             addError("Internal Error: Expected ClassNode", astNodes[1]);
 
-        DslClass.getOrCreate((ClassNode) astNodes[1]);
+        KlumClass.getOrCreate((ClassNode) astNodes[1]);
     }
 }
