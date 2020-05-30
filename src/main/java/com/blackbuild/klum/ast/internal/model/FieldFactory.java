@@ -20,7 +20,7 @@ public class FieldFactory {
         return instance;
     }
 
-    public KlumField toKlumField(FieldNode node) {
+    public static KlumField toKlumField(FieldNode node) {
         FieldContainer container = node.getNodeMetaData(FieldContainer.class);
         if (container != null) return container;
 

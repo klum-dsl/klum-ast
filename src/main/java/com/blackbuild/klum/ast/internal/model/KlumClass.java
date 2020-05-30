@@ -9,9 +9,9 @@ import org.codehaus.groovy.ast.FieldNode;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.blackbuild.klum.ast.internal.model.FieldFactory.toKlumField;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
-import static java.util.stream.Collectors.toMap;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
@@ -22,7 +22,7 @@ public class KlumClass {
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     private final ClassNode classNode;
     private final AnnotationNode annotation;
-    private final Map<String, FieldContainer> fields = new HashMap<>();
+    private final Map<String, KlumField> fields = new HashMap<>();
     private final KeyField keyField;
 
     private KlumClass(ClassNode annotatedClass) {
@@ -44,7 +44,7 @@ public class KlumClass {
 
     private void initFields() {
         for (FieldNode fieldNode : classNode.getFields()) {
-            fields.put(fieldNode.getName(), FieldFactory.toKlumField(fieldNode));
+            fields.put(fieldNode.getName(), toKlumField(fieldNode));
         }
     }
 
@@ -60,7 +60,7 @@ public class KlumClass {
         return annotation;
     }
 
-    public Map<String, FieldContainer> getFields() {
+    public Map<String, KlumField> getFields() {
         return fields;
     }
 

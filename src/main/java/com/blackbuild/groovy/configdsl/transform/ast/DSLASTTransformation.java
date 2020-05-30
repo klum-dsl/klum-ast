@@ -209,12 +209,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     List<FieldNode> ownerFields;
     AnnotationNode dslAnnotation;
     InnerClassNode rwClass;
+    private KlumClass klumClass;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
         init(nodes, source);
 
-        annotatedClass = (ClassNode) nodes[1];
+        klumClass = KlumClass.getOrFail((ClassNode) nodes[1]);
 
         if (annotatedClass.isInterface()) {
             return;
