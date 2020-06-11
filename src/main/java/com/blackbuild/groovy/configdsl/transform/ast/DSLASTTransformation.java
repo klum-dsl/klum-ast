@@ -1343,6 +1343,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
+
+            createMethod(fieldName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
+                    .forS(
+                            param(CLASS_Type, "script"),
+                            "scripts",
+                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
+                    )
+                    .addTo(rwClass);
         }
 
         createMethod(methodName)
