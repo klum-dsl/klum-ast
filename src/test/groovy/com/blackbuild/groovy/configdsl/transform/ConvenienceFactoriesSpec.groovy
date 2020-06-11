@@ -619,7 +619,7 @@ package scripts
 import model.Element
 
 Element.create {
-  name "first"
+  name "first-from-script"
 }
 ''', "First.groovy"
         def second = createSecondaryClass '''
@@ -627,7 +627,7 @@ package scripts
 
 import model.Element
 
-Element.create(name: "second")
+Element.create(name: "second-from-script")
 ''', "Second.groovy"
 
         when:
@@ -636,8 +636,8 @@ Element.create(name: "second")
         }
 
         then:
-        instance.elements[0].name == "First"
-        instance.elements[1].name == "Second"
+        instance.elements[0].name == "first-from-script"
+        instance.elements[1].name == "second-from-script"
     }
 
 }
