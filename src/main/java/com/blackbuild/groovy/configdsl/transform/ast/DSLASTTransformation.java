@@ -123,6 +123,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
 import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.DYNAMIC_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
@@ -156,6 +157,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
@@ -1125,6 +1127,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKeyName, "closure")))
                         .addTo(rwClass);
             }
+
+            createMethod(fieldName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
+                    .forS(
+                            param(CLASS_Type, "script"),
+                            "scripts",
+                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
+                    )
+                    .addTo(rwClass);
+
         }
 
         createMethod(methodName)
@@ -1328,6 +1343,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
+
+            createMethod(fieldName)
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
+                    .forS(
+                            param(CLASS_Type, "script"),
+                            "scripts",
+                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
+                    )
+                    .addTo(rwClass);
         }
 
         createMethod(methodName)

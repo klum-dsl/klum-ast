@@ -598,4 +598,91 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance.value == "welt"
     }
 
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/198")
+    def "multiple convenience factory calls for lists"() {
+        given:
+        createClass '''
+package model
+
+@DSL
+class Container {
+    List<Element> elements
+} 
+
+@DSL
+class Element {
+    String name
+}
+'''
+        def first = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create {
+  name "first-from-script"
+}
+''', "First.groovy"
+        def second = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create(name: "second-from-script")
+''', "Second.groovy"
+
+        when:
+        instance = clazz.create {
+            elements(first, second)
+        }
+
+        then:
+        instance.elements[0].name == "first-from-script"
+        instance.elements[1].name == "second-from-script"
+    }
+
+    @Issue("https://github.com/klum-dsl/klum-ast/issues/198")
+    def "multiple convenience factory calls for maps"() {
+        given:
+        createClass '''
+package model
+
+@DSL
+class Container {
+    Map<String, Element> elements
+} 
+
+@DSL
+class Element {
+    @Key String id
+    String name
+}
+'''
+        def first = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create("a") {
+  name "first-from-script"
+}
+''', "First.groovy"
+        def second = createSecondaryClass '''
+package scripts
+
+import model.Element
+
+Element.create("b", name: "second-from-script")
+''', "Second.groovy"
+
+        when:
+        instance = clazz.create {
+            elements(first, second)
+        }
+
+        then:
+        instance.elements.a.name == "first-from-script"
+        instance.elements.b.name == "second-from-script"
+    }
+
 }
