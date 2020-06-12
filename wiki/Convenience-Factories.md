@@ -32,6 +32,31 @@ To most convenient solution is for [[Usage#schema---model---consumer]] setup to 
 
 See the example projects for details.
 
+## Script and delegating script for collections and maps
+
+For DSL element maps and collections, there is also a convenience method for creating multiple elements
+from a couple of script, each element in a single script. The generated method has the form 
+`<fieldName>(Class<? extends Script>...)` for both maps and collections, and allows Scripts as well 
+as delegating scripts. This allows for an easy way to split a bigger model into separate files:
+
+With the DSL
+
+```groovy
+@DSL class Container {
+    List<Element> elements
+}
+
+@DSL class Element { ... }
+```
+
+And the model:
+
+```groovy
+Container.create {
+    elements(AScript, AnotherScript, ThirdScript)
+}
+```
+
 
 # Text
 `MyConfig.createFrom(text)` or `MyConfig.createFrom(key, text)` handles the given text as the content of the create 

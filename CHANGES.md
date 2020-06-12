@@ -20,6 +20,7 @@
     - Allow owner methods in addition to owner fields (see [Owner methods](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-annotations) and [#176](https://github.com/klum-dsl/klum-ast/issues/176)) 
     - Added option to auto set the key value on a single dsl field with a keyed parameter (see [#186](https://github.com/klum-dsl/klum-ast/issues/186))
     - Added experimental gdsl file to fix code completion for polymorphic methods (at least in IntelliJ IDEA)
+    - Convenience factory for multiple scripts at once (see [#198]("https://github.com/klum-dsl/klum-ast/issues/198"))
 
 - Changes/Improvements
     - Issue a warning if a field is named `owner`
