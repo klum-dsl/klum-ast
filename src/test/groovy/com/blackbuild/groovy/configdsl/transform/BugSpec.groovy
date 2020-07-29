@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
+
+import spock.lang.Issue
+
 /**
  * Tests for various encountered bugs.
  */
@@ -196,4 +199,22 @@ class Outer {
         noExceptionThrown()
     }
 
+    @Issue("206")
+    def "don't create toString method if already created manually"() {
+        when:
+        createInstance '''
+@DSL
+class Foo {
+    String name 
+    
+    @Override
+    String toString(){
+        return "hardcoded"
+    }
+}
+'''
+        then:
+        instance.toString() == "hardcoded"
+
+    }
 }
