@@ -155,21 +155,26 @@ class ConverterBuilder {
         List<MethodNode> result = new ArrayList<>();
 
         for (MethodNode method : converterClass.getMethods()) {
-            if (method.isStatic() && method.isPublic() &&
-                    (isConverterMethod(method) ||
-                        isValidName(method.getName()) &&
-                        !isKlumMethod(method)
-                    ) &&
-                    method.getReturnType().isDerivedFrom(elementType)
-            )
+            if (method.isStatic() && method.isPublic() && isConverterMethod(method) && isAssignable(method.getReturnType(), elementType))
                 result.add(method);
         }
 
         return result;
     }
 
+    private boolean isAssignable(ClassNode type, ClassNode classOrInterface) {
+        return type.isDerivedFrom(classOrInterface) || type.implementsInterface(classOrInterface);
+    }
+
+    @SuppressWarnings("RedundantIfStatement")
     private boolean isConverterMethod(MethodNode method) {
-        return hasAnnotation(method.getDeclaringClass(), CONVERTER_ANNOTATION) || hasAnnotation(method, CONVERTER_ANNOTATION);
+        if (hasAnnotation(method.getDeclaringClass(), CONVERTER_ANNOTATION))
+            return true;
+        if (hasAnnotation(method, CONVERTER_ANNOTATION))
+            return true;
+        if (isValidName(method.getName()) && !isKlumMethod(method))
+            return true;
+        return false;
     }
 
     private boolean isValidName(String name) {
