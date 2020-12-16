@@ -336,6 +336,44 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", String, String)
     }
 
+    def "Converters on sublass of target"() {
+        given:
+        createClass '''
+            import java.util.function.Supplier
+            @DSL class Foo {
+                @Converters(StringSupplier)
+                Supplier<String> name
+            }
+            
+            class StringSupplier implements Supplier<String> {
+                final String value
+                private StringSupplier(String value) {
+                    this.value = value
+                }
+            
+                @Override
+                String get() {
+                    return value
+                }
+            
+                static StringSupplier of(String value) {
+                    return new StringSupplier(value)
+                }
+            }
+
+        '''
+
+
+        when:
+        instance = create("Foo") {
+            name "Bla"
+        }
+
+        then:
+        instance.name.get() == "Bla"
+
+    }
+
 
 
 
