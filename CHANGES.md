@@ -1,4 +1,4 @@
-## 1.2.0 (unreleased)
+## 1.2.0
 - New Features
     - Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))
     - Collection factories can now include templates (see [#77](https://github.com/klum-dsl/klum-ast/issues/77))

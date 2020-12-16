@@ -10,9 +10,13 @@ Turn your models into supermodels!
 
 # Breaking changes
 
-New features being introduced in 1.2.0 will need KlumAST (or KlumUtil) to
-be present on the classpath during runtime. The details are not yet finalized, take
-care when adopting a 1.2.0 release candidate.
+I decided to release 1.2.0 prior to doing some extensive refactorings including splitting into runtime and compile
+time dependencies.
+
+Thus 1.2.0 is simply a step up to 2.0.0, mainly designed to replace various rc-version in use.
+
+Some new features being introduced in 1.2.0 need KlumAST to
+be present on the classpath during runtime.
 
 Closure are now all `DELEGATE_ONLY`, this means methods of an outer object cannot be
 directly accessed. This is cleaner and somewhat closer to the behaviour of
