@@ -13,6 +13,8 @@ configurations {
 }
 
 dependencies {
+    api project(':klum-ast-annotations')
+
     gdsl 'com.github.adedayo.intellij.sdk:groovy-psi:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:openapi:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:java-psi-api:142.1'

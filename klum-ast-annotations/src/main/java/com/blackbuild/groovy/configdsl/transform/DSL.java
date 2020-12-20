@@ -23,10 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import com.blackbuild.groovy.configdsl.transform.ast.AddJacksonIgnoresTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
@@ -428,11 +424,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
-@GroovyASTTransformationClass(classes={
-        DSLASTTransformation.class,
-        ModelVerifierTransformation.class,
-        DelegatesToRWTransformation.class,
-        AddJacksonIgnoresTransformation.class
+@GroovyASTTransformationClass({
+        "com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation",
+        "com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation",
+        "com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation",
+        "com.blackbuild.groovy.configdsl.transform.ast.AddJacksonIgnoresTransformation",
 })
 @Documented
 public @interface DSL {

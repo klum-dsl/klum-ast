@@ -4,3 +4,8 @@ test {
     outputs.dir file("$buildDir/test-classes")
 }
 
+dependencies {
+
+    api project(':klum-ast-annotations')
+    api project(':klum-ast-runtime')
+}
