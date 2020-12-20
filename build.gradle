@@ -14,9 +14,6 @@ buildscript {
 }
 
 plugins {
-    id 'groovy'
-    id 'java-library'
-    id 'jacoco'
     id 'nebula.maven-publish' version '17.3.2'
     id 'nebula.javadoc-jar' version '17.3.2'
     id 'nebula.source-jar' version '17.3.2'
@@ -29,32 +26,14 @@ plugins {
     id "com.github.ben-manes.versions" version "0.36.0"
 }
 
-apply plugin: 'ch.raffael.markdown-doclet'
 
-description 'A transformation for creating convenient configuration model DSLs.'
 group 'com.blackbuild.klum.ast'
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
-
-repositories {
-    jcenter()
-}
+description 'A transformation for creating convenient configuration model DSLs.'
 
 
-sourceSets {
-    main {
-        resources {
-            srcDir("src/gdsl")
-        }
-    }
-}
 
-configurations {
-    gdsl
-    compileOnly.extendsFrom gdsl
-    testCompileOnly.extendsFrom compileOnly
-}
+
 
 license {
     mapping("java", "SLASHSTAR_STYLE")
@@ -64,35 +43,45 @@ license {
     strictCheck(true)
 }
 
-dependencies {
-    compileOnly "org.codehaus.groovy:groovy-all"
-    //compileOnly "com.intellij:openapi:7.0.3"
 
-    gdsl 'com.github.adedayo.intellij.sdk:groovy-psi:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:openapi:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:java-psi-api:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:util:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:core-api:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:java-psi-impl:142.1'
-    gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'groovy'
+    apply plugin: 'jacoco'
+    apply plugin: 'ch.raffael.markdown-doclet'
 
-    testImplementation("org.spockframework:spock-core:1.1-groovy-2.4")
-    testImplementation "org.jetbrains:annotations:16.0.2"
-    testRuntimeOnly "net.bytebuddy:byte-buddy:1.7.5"
-    testRuntimeOnly "org.objenesis:objenesis:2.6"
-    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
-    implementation "com.blackbuild.klum.common:klum-common:0.6.0"
-}
 
-configurations.all {
-    resolutionStrategy {
-        force "org.codehaus.groovy:groovy-all:2.4.13"
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    repositories {
+        jcenter()
     }
-}
+    jacoco {
+        toolVersion = "0.8.2"
+    }
 
-test {
-    inputs.dir file("src/test/scenarios")
-    outputs.dir file("$buildDir/test-classes")
+
+    dependencies {
+        compileOnly "org.codehaus.groovy:groovy-all"
+        compileOnly "org.jetbrains:annotations:16.0.2"
+        //compileOnly "com.intellij:openapi:7.0.3"
+
+        testImplementation("org.spockframework:spock-core:1.1-groovy-2.4")
+        testImplementation "org.jetbrains:annotations:16.0.2"
+        testRuntimeOnly "net.bytebuddy:byte-buddy:1.7.5"
+        testRuntimeOnly "org.objenesis:objenesis:2.6"
+        testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
+        implementation "com.blackbuild.klum.common:klum-common:0.6.0"
+    }
+
+    configurations.testCompileOnly.extendsFrom configurations.compileOnly
+
+    configurations.all {
+        resolutionStrategy {
+            force "org.codehaus.groovy:groovy-all:2.4.13"
+        }
+    }
 }
 
 bintray {
@@ -151,9 +140,6 @@ gitPublish {
     commitMessage = "updated wiki for $version"
 }
 
-jacoco {
-    toolVersion = "0.8.2"
-}
 
 contacts {
     'stephan@blackbuild.com' {
@@ -182,5 +168,5 @@ releaseCheck.doLast {
         throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
 }
 
-tasks.release.dependsOn tasks.build
+tasks.release.dependsOn 'build'
 tasks.postRelease.dependsOn tasks.publish, tasks.gitPublishPush

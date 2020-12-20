@@ -1,0 +1,6 @@
+
+test {
+    inputs.dir file("src/test/scenarios")
+    outputs.dir file("$buildDir/test-classes")
+}
+

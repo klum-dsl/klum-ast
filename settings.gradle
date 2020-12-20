@@ -1,1 +1,5 @@
 rootProject.name = 'klum-ast'
+include 'klum-ast-annotations'
+include 'klum-ast-transformation'
+include 'klum-ast-runtime'
+
