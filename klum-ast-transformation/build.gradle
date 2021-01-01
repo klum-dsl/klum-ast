@@ -1,4 +1,3 @@
-
 test {
     inputs.dir file("src/test/scenarios")
     outputs.dir file("$buildDir/test-classes")
@@ -6,6 +5,7 @@ test {
 
 dependencies {
 
-    api project(':klum-ast-annotations')
-    api project(':klum-ast-runtime')
+    implementation project(':klum-ast-annotations')
+    implementation project(':klum-ast-runtime')
+    implementation "com.blackbuild.klum.common:klum-common:$commonVersion"
 }
