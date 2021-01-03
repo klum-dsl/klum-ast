@@ -14,13 +14,13 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.maven-publish' version '17.3.2'
+    id 'nebula.maven-publish' version '17.3.2' apply false
     id 'nebula.javadoc-jar' version '17.3.2'
     id 'nebula.source-jar' version '17.3.2'
     id 'nebula.release' version '15.2.0'
     id 'nebula.contacts' version '5.1.0'
     id 'nebula.info' version '9.1.2'
-    id "com.jfrog.bintray" version "1.8.5"
+    id "com.jfrog.bintray" version "1.8.5" apply false
     id "com.github.hierynomus.license" version "0.15.0"
     id 'org.ajoberstar.git-publish' version '3.0.0'
     id "com.github.ben-manes.versions" version "0.36.0"
@@ -50,7 +50,8 @@ subprojects {
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
     apply plugin: 'ch.raffael.markdown-doclet'
-    apply plugin:   'nebula.maven-publish'
+    apply plugin: 'nebula.maven-publish'
+    apply plugin: 'com.jfrog.bintray'
 
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
@@ -99,43 +100,47 @@ subprojects {
             }
         }
     }
-}
 
-bintray {
-    user = findProperty('bintrayUser')
-    key = findProperty('bintrayApiKey')
+    bintray {
+        user = findProperty('bintrayUser')
+        key = findProperty('bintrayApiKey')
 
-    publications = ['nebula']
-    dryRun = false
-    publish = true
-    pkg {
-        repo = 'klum-dsl'
-        userOrg = 'klum-dsl'
-        name = project.name
-        desc = project.description
-        websiteUrl = 'https://github.com/klum-dsl/klum-ast'
-        issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
-        vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
-        licenses = ['MIT']
-        labels = ['groovy', 'ast']
-        publicDownloadNumbers = true
-        attributes = [:]
-        version {
-            name = project.version
-            vcsTag = project.version
+        publications = ['nebula']
+        dryRun = true
+        publish = true
+        pkg {
+            repo = 'klum-dsl'
+            userOrg = 'klum-dsl'
+            name = project.name
+            desc = project.description
+            websiteUrl = 'https://github.com/klum-dsl/klum-ast'
+            issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
+            vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
+            licenses = ['MIT']
+            labels = ['groovy', 'ast']
+            publicDownloadNumbers = true
             attributes = [:]
-            gpg {
-                sign = true
-                passphrase = findProperty("signing.password")
-            }
-            mavenCentralSync {
-                sync = !version.toString().contains(".dev+")
-                user = findProperty("nexusUsername")
-                password = findProperty("nexusPassword")
+            version {
+                name = project.version
+                vcsTag = project.version
+                attributes = [:]
+                gpg {
+                    sign = true
+                    passphrase = findProperty("signing.password")
+                }
+                mavenCentralSync {
+                    sync = !version.toString().contains(".dev+")
+                    user = findProperty("nexusUsername")
+                    password = findProperty("nexusPassword")
+                }
             }
         }
     }
+
+    rootProject.tasks.release.dependsOn tasks.build
+    rootProject.tasks.release.finalizedBy tasks.publish
 }
+
 
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
@@ -172,5 +177,9 @@ releaseCheck.doLast {
         throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
 }
 
-tasks.release.dependsOn 'build'
-tasks.postRelease.dependsOn "publish", tasks.gitPublishPush
+evaluationDependsOnChildren()
+
+
+tasks.candidate.finalizedBy tasks.gitPublishPush
+tasks.final.finalizedBy tasks.gitPublishPush
+
