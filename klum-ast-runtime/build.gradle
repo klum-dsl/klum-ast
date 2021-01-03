@@ -1,5 +1,7 @@
 apply plugin: 'java-library'
 
+description "Runtime Library for KlumAST"
+
 sourceSets {
     main {
         resources {

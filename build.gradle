@@ -36,70 +36,43 @@ ext {
 }
 
 
-
-license {
-    mapping("java", "SLASHSTAR_STYLE")
-    mapping("groovy", "SLASHSTAR_STYLE")
-    mapping("gdsl", "SLASHSTAR_STYLE")
-    exclude("mockup/**")
-    strictCheck(true)
-}
-
-
-subprojects {
-    apply plugin: 'groovy'
-    apply plugin: 'jacoco'
-    apply plugin: 'ch.raffael.markdown-doclet'
+allprojects {
     apply plugin: 'nebula.maven-publish'
+    apply plugin: 'nebula.javadoc-jar'
+    apply plugin: 'nebula.source-jar'
+    apply plugin: 'nebula.release'
+    apply plugin: 'nebula.contacts'
+    apply plugin: 'nebula.info'
     apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'com.github.hierynomus.license'
 
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-
-    repositories {
-        jcenter()
-    }
-    jacoco {
-        toolVersion = "0.8.2"
-    }
-
-
-    dependencies {
-        compileOnly "org.codehaus.groovy:groovy-all"
-        compileOnly "org.jetbrains:annotations:16.0.2"
-        //compileOnly "com.intellij:openapi:7.0.3"
-
-        testImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
-        testImplementation "org.jetbrains:annotations:16.0.2"
-
-        testRuntimeOnly "net.bytebuddy:byte-buddy:1.9.3"
-        testRuntimeOnly "org.objenesis:objenesis:2.6"
-        testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
-
-    }
-
-    configurations.testCompileOnly.extendsFrom configurations.compileOnly
-
-    configurations.all {
-        resolutionStrategy {
-            force "org.codehaus.groovy:groovy-all:2.4.13"
-        }
+    license {
+        mapping("java", "SLASHSTAR_STYLE")
+        mapping("groovy", "SLASHSTAR_STYLE")
+        mapping("gdsl", "SLASHSTAR_STYLE")
+        exclude("mockup/**")
+        strictCheck(true)
     }
 
     publishing {
         publications {
             nebula(MavenPublication) {
+                pom {
+                    name = 'KlumAST'
+                    licenses {
+                        license {
+                            name = 'The MIT License (MIT)'
+                            url = 'http://opensource.org/licenses/MIT'
+                        }
+                    }
+                }
                 pom.withXml {
-                    def p = asNode()
-                    p.dependencies.dependency.find { it.artifactId.text() == "groovy-all" }?.appendNode('optional', true)
-                    p.name.first().setValue('KlumAST')
-                    p.appendNode('licenses').appendNode('license').
-                            appendNode('name', 'The MIT License (MIT)').parent().
-                            appendNode('url', 'http://opensource.org/licenses/MIT')
+                    asNode().dependencies.dependency.find { it.artifactId.text() == "groovy-all" }?.appendNode('optional', true)
                 }
             }
         }
     }
+
 
     bintray {
         user = findProperty('bintrayUser')
@@ -137,10 +110,52 @@ subprojects {
         }
     }
 
+}
+
+
+
+subprojects {
+    apply plugin: 'groovy'
+    apply plugin: 'jacoco'
+    apply plugin: 'ch.raffael.markdown-doclet'
+
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    repositories {
+        jcenter()
+    }
+    jacoco {
+        toolVersion = "0.8.2"
+    }
+
+
+    dependencies {
+        compileOnly "org.codehaus.groovy:groovy-all"
+        compileOnly "org.jetbrains:annotations:16.0.2"
+        //compileOnly "com.intellij:openapi:7.0.3"
+
+        testImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
+        testImplementation "org.jetbrains:annotations:16.0.2"
+
+        testRuntimeOnly "net.bytebuddy:byte-buddy:1.9.3"
+        testRuntimeOnly "org.objenesis:objenesis:2.6"
+        testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
+
+    }
+
+    configurations.testCompileOnly.extendsFrom configurations.compileOnly
+
+    configurations.all {
+        resolutionStrategy {
+            force "org.codehaus.groovy:groovy-all:2.4.13"
+        }
+    }
+
+
     rootProject.tasks.release.dependsOn tasks.build
     rootProject.tasks.release.finalizedBy tasks.publish
 }
-
 
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
