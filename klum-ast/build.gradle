@@ -13,3 +13,4 @@ dependencies {
     api project(':klum-ast-runtime')
     api "com.blackbuild.klum.common:klum-common:$commonVersion"
 }
+

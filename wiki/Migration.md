@@ -1,13 +1,57 @@
-# Breaking changes in 1.2
+Breaking changes in 1.2/2.0
+---------------------------
 
-## compileOnly vs. runtime scope
-Some features now rely on a classes being present in during runtime (up to 1.1, Klum-AST
-was strictly compile time). I expect to move more features into runtime helpers to reduce
-complexity of the code.
+# 2.0
 
-So you might want to check the scope of your dependency to klum-ast and change it from
-`provided` to (default) `runtime` for Maven, and from `compileOnly` / `implementationOnly` to `compile` / `api`
-for Gradle.
+## module names
+For 2.0, the single klum-ast dependeny is replaced by two KlumAST is split into three distinct jars:
+
+### klum-ast-annotations
+
+Does not usually need to be adressed directly except in very special cases, since it is a dependency of both of
+the other jars.
+
+### klum-ast
+
+Contains the actual AST transformations, i.e. the core of KlumAST. These need to be present during compile-time only
+and need not be present on runtime (usually it should be safe if they are).
+
+### klum-ast-runtime
+
+Contains classes needed during runtime.
+
+### compileOnly vs. runtime scope
+
+Since klum-ast now relies on a runtime component, a schema now should have two separate dependencies, `klum-ast` as 
+`compileOnly` (`provided` for Maven) and and `klum-ast-runtime` as `api`  (`runtime` for Maven), i.e.:
+
+```groovy
+dependencies {
+  compileOnly 'com.blackbuild.klum.ast:klum-ast:<version>'
+  implementation 'com.blackbuild.klum.ast:klum-ast-runtime:<version>'
+}
+```
+
+or
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>com.blackbuild.klum.ast</groupId>
+    <artifactId>klum-ast</artifactId>
+    <version>...</version>
+    <optional>true</optional>
+  </dependency>
+  <dependency>
+    <groupId>com.blackbuild.klum.ast</groupId>
+    <artifactId>klum-ast-runtime</artifactId>
+    <version>...</version>
+    <scope>runtime</scope>
+  </dependency>
+</dependencies>
+```
+
+# 1.2
 
 ## DelegateOnly Strategy for closures
 
