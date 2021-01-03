@@ -23,7 +23,7 @@ plugins {
     id 'nebula.contacts' version '5.1.0' apply false
     id 'nebula.info' version '9.1.2' apply false
     id "com.jfrog.bintray" version "1.8.5" apply false
-    id "com.github.hierynomus.license" version "0.15.0" apply false
+    id "com.github.hierynomus.license" version "0.15.0"
     id 'org.ajoberstar.git-publish' version '3.0.0'
     id "com.github.ben-manes.versions" version "0.36.0"
 }
@@ -37,6 +37,14 @@ ext {
     commonVersion = '0.6.0'
 }
 
+license {
+    mapping("java", "SLASHSTAR_STYLE")
+    mapping("groovy", "SLASHSTAR_STYLE")
+    mapping("gdsl", "SLASHSTAR_STYLE")
+    exclude("mockup/**")
+    strictCheck(true)
+}
+
 subprojects {
     apply plugin: 'nebula.maven-publish'
     apply plugin: 'nebula.javadoc-jar'
@@ -45,7 +53,6 @@ subprojects {
     apply plugin: 'nebula.contacts'
     apply plugin: 'nebula.info'
     apply plugin: 'com.jfrog.bintray'
-    apply plugin: 'com.github.hierynomus.license'
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
     apply plugin: 'ch.raffael.markdown-doclet'
@@ -83,14 +90,6 @@ subprojects {
         resolutionStrategy {
             force "org.codehaus.groovy:groovy-all:2.4.13"
         }
-    }
-
-    license {
-        mapping("java", "SLASHSTAR_STYLE")
-        mapping("groovy", "SLASHSTAR_STYLE")
-        mapping("gdsl", "SLASHSTAR_STYLE")
-        exclude("mockup/**")
-        strictCheck(true)
     }
 
     contacts {
