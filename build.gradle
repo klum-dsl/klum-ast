@@ -121,7 +121,7 @@ subprojects {
         key = findProperty('bintrayApiKey')
 
         publications = ['nebula']
-        dryRun = true
+        dryRun = false
         publish = true
         pkg {
             repo = 'klum-dsl'
