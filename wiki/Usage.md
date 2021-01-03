@@ -11,12 +11,19 @@ Use the following snippet to include KlumAST in your project:
 ## Maven
 ```xml
 <dependencies>
-    <dependency>
-        <groupId>com.blackbuild.klum.ast</groupId>
-        <artifactId>klum-ast</artifactId>
-        <version>@version@</version>
-    </dependency>
-    ...
+ <dependency>
+  <groupId>com.blackbuild.klum.ast</groupId>
+  <artifactId>klum-ast</artifactId>
+  <version>...</version>
+  <optional>true</optional>
+ </dependency>
+ <dependency>
+  <groupId>com.blackbuild.klum.ast</groupId>
+  <artifactId>klum-ast-runtime</artifactId>
+  <version>...</version>
+  <scope>runtime</scope>
+ </dependency>
+ ...
 </dependencies>
 ```
 
@@ -29,13 +36,12 @@ For Gradle, setup is similar:
 
 ```groovy
 dependencies {
-    compile 'com.blackbuild.klum.ast:klum-ast:@version@'
-    compileOnly 'org.codehaus.groovy:groovy-all:2.4.12'
+  compileOnly 'org.codehaus.groovy:groovy-all:2.4.12'
+  compileOnly 'com.blackbuild.klum.ast:klum-ast:<version>'
+  implementation 'com.blackbuild.klum.ast:klum-ast-runtime:<version>'
+  ...
 }
 ```
-
-__Attention:__  as of 1.2.0, advanced features of KlumAST need the library to
-be present on the classpath during runtime
 
 # Project setup
 

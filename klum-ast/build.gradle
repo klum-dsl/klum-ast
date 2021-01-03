@@ -1,0 +1,16 @@
+apply plugin: 'java-library'
+
+description "compileOnly part of KlumAST"
+
+test {
+    inputs.dir file("src/test/scenarios")
+    outputs.dir file("$buildDir/test-classes")
+}
+
+dependencies {
+    // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
+    api project(':klum-ast-annotations')
+    api project(':klum-ast-runtime')
+    api "com.blackbuild.klum.common:klum-common:$commonVersion"
+}
+

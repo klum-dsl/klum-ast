@@ -1,0 +1,28 @@
+apply plugin: 'java-library'
+
+description "Runtime Library for KlumAST"
+
+sourceSets {
+    main {
+        resources {
+            srcDir("src/gdsl")
+        }
+    }
+}
+
+configurations {
+    gdsl
+    compileOnly.extendsFrom gdsl
+}
+
+dependencies {
+    api project(':klum-ast-annotations')
+
+    gdsl 'com.github.adedayo.intellij.sdk:groovy-psi:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:openapi:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:java-psi-api:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:util:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:core-api:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:java-psi-impl:142.1'
+    gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
+}

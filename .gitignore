@@ -8,9 +8,10 @@
 /*.sublime-workspace
 # Gradle
 /.gradle
-/build
+/build/
 # IDEA
-/*.iml
+*.iml
 /.idea
 /out
 .DS_Store
+/*/build/

@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import com.blackbuild.groovy.configdsl.transform.ast.deprecations.FieldTypeDeprecationTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.ElementType;
@@ -39,7 +38,7 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
-@GroovyASTTransformationClass(classes = FieldTypeDeprecationTransformation.class)
+@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.deprecations.FieldTypeDeprecationTransformation")
 @Deprecated
 public @interface ReadOnly {
 }
