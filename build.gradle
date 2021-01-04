@@ -144,7 +144,7 @@ subprojects {
                     passphrase = findProperty("signing.password")
                 }
                 mavenCentralSync {
-                    sync = !version.toString().contains(".dev+")
+                    sync = !version.toString().contains("-dev.")
                     user = findProperty("nexusUsername")
                     password = findProperty("nexusPassword")
                 }
