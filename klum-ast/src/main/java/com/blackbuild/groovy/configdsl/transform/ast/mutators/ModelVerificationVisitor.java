@@ -26,7 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
-import com.blackbuild.klum.ast.util.RwProxy;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -184,8 +184,8 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (currentMethod == null)
             return false;
         return currentMethod.getAnnotations(MutatorsHandler.MUTATOR_ANNOTATION).size()
-                    + currentMethod.getAnnotations(RwProxy.POSTAPPLY_ANNOTATION).size()
-                    + currentMethod.getAnnotations(RwProxy.POSTCREATE_ANNOTATION).size()
+                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTAPPLY_ANNOTATION).size()
+                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTCREATE_ANNOTATION).size()
                     > 0;
     }
 

@@ -37,7 +37,7 @@ import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
 import java.util.Collections;
 import java.util.List;
 
-import static com.blackbuild.klum.ast.util.RwProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
+import static com.blackbuild.klum.ast.util.KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
 
 /**
  * Created by stephan on 12.04.2017.
