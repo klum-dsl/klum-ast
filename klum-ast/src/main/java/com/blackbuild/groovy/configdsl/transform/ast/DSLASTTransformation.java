@@ -63,13 +63,8 @@ import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
-import org.codehaus.groovy.ast.stmt.CatchStatement;
-import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
-import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.ast.stmt.ThrowStatement;
-import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.classgen.Verifier;
@@ -99,8 +94,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyF
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldNames;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslCollection;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethodFromClosure;
@@ -112,6 +105,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapClassAndOptionalKey;
+import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsParameterless;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
@@ -123,7 +117,6 @@ import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
 import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.DYNAMIC_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
@@ -142,7 +135,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
@@ -470,9 +462,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createValidateMethod() {
         assertNoValidateMethodDeclared();
+        checkValidateAnnotationsOnMethods();
+        checkValidAnnotationsOnFields();
 
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
+        // TODO: to proxy
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
             // TODO field could be added to rw as well
@@ -483,114 +478,40 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        DslMethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
-
-        if (dslParent != null) {
-            methodBuilder.statement(callSuperX(VALIDATE_METHOD));
-        }
-
-        BlockStatement block = new BlockStatement();
-        validateFields(block);
-        validateCustomMethods(block);
-
-        TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
-        tryCatchStatement.addCatch(new CatchStatement(
-                param(EXCEPTION_TYPE, "e"),
-                new ThrowStatement(ctorX(ASSERTION_ERROR_TYPE, args("e")))
-                )
-        );
-
-        methodBuilder
-                .statement(tryCatchStatement)
+        createPublicMethod(VALIDATE_METHOD)
+                .callMethod(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, VALIDATE_METHOD)
                 .addTo(annotatedClass);
     }
 
-    private void assertNoValidateMethodDeclared() {
-        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
-        if (existingValidateMethod != null)
-            addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
+    private void checkValidAnnotationsOnFields() {
+        annotatedClass.getFields().stream()
+                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, VALIDATE_ANNOTATION))
+                .forEach(this::checkValidateAnnotationOnSingleField);
     }
 
-    private void validateCustomMethods(BlockStatement block) {
-        warnIfUnannotatedDoValidateMethod();
-
-        for (MethodNode method : annotatedClass.getMethods()) {
-            AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
-            if (validateAnnotation == null) continue;
-
-            CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
-            assertAnnotationHasNoValueOrMessage(validateAnnotation);
-
-            block.addStatement(stmt(callX(varX("this"), method.getName())));
-        }
-    }
-
-    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
-        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
-    }
-
-    private void warnIfUnannotatedDoValidateMethod() {
-        MethodNode doValidate = annotatedClass.getMethod("doValidate", Parameter.EMPTY_ARRAY);
-
-        if (doValidate == null) return;
-
-        if (getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
-
-        CommonAstHelper.addCompileWarning(sourceUnit, "Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
-        doValidate.addAnnotation(new AnnotationNode(VALIDATE_ANNOTATION));
-    }
-
-    private void validateFields(BlockStatement block) {
-        Validation.Option mode = getEnumMemberValue(
-                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
-                "option",
-                Validation.Option.class,
-                Validation.Option.IGNORE_UNMARKED);
-        for (final FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
-
-            AnnotationNode validateAnnotation = getOrCreateValidateAnnotation(mode, fieldNode);
-
-            if (validateAnnotation != null)
-                validateField(block, fieldNode, validateAnnotation);
-            if (!isValidationIgnoredSet(validateAnnotation))
-                validateInnerDslObjects(block, fieldNode);
-        }
-    }
-
-    private boolean isValidationIgnoredSet(AnnotationNode validateAnnotation) {
-        if (validateAnnotation == null)
-            return false;
-        Expression member = validateAnnotation.getMember("value");
-        if (member == null)
-            return false;
-        if (!(member instanceof ClassExpression))
-            return false;
-        return member.getType().equals(ClassHelper.make(Validate.Ignore.class));
-    }
-
-    private void validateField(BlockStatement block, FieldNode fieldNode, AnnotationNode validateAnnotation) {
+    private void checkValidateAnnotationOnSingleField(FieldNode fieldNode) {
+        AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
         String message = getMemberStringValue(validateAnnotation, "message");
-        Expression member = validateAnnotation.getMember("value");
+        Expression validationExpression = validateAnnotation.getMember("value");
 
-        if (member == null)
-            addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
-        else if (member instanceof ClassExpression) {
-            ClassNode memberType = member.getType();
-            if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
-                addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
-            else if (!memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
-        } else if (member instanceof ClosureExpression) {
-            ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) member, fieldNode.getType());
+        if (validationExpression == null)
+            return;
+
+        if (validationExpression instanceof ClosureExpression) {
+            ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
+            convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-            block.addStatement(convertToAssertStatement(fieldNode.getName(), validationClosure, message));
+        }
+
+        if (validationExpression instanceof ClassExpression) {
+            ClassNode memberType = validationExpression.getType();
+            if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)) && !memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
         }
     }
 
-    Statement convertToAssertStatement(String fieldName, ClosureExpression closure, String message) {
+    void convertClosureExpressionToAssertStatement(String fieldName, ClosureExpression closure, String message) {
         BlockStatement block = (BlockStatement) closure.getCode();
 
         if (block.getStatements().size() != 1)
@@ -609,7 +530,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             assertStatement = assertStmt(new BooleanExpression(check), message);
         } else {
             addError("Content of validation closure must either be an assert statement or an expression", codeStatement);
-            return null;
+            return;
         }
 
         String closureParameterName = closureParameter.getName();
@@ -620,73 +541,38 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             Arrays.asList(constX("Field '" + fieldName + "' ("), constX(") is invalid")),
                             Collections.<Expression>singletonList(
                                     callX(
-                                        INVOKER_HELPER_CLASS,
-                                        "format",
-                                        args(varX(closureParameterName), ConstantExpression.PRIM_TRUE)
+                                            INVOKER_HELPER_CLASS,
+                                            "format",
+                                            args(varX(closureParameterName), ConstantExpression.PRIM_TRUE)
                                     )
                             )
                     )
             );
         }
 
-        return block(
-                declS(varX(closureParameterName, closureParameter.getType()), varX(fieldName)),
-                assertStatement
-        );
+        closure.setCode(assertStatement);
     }
 
-    private void validateInnerDslObjects(BlockStatement block, FieldNode fieldNode) {
-        if (isOwnerField(fieldNode)) return;
 
-        if (isDSLObject(fieldNode.getType()))
-            validateSingleInnerField(block, fieldNode);
-        else if (isDslMap(fieldNode))
-            validateInnerMap(block, fieldNode);
-        else if (isDslCollection(fieldNode))
-            validateInnerCollection(block, fieldNode);
+    private void assertNoValidateMethodDeclared() {
+        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
+        if (existingValidateMethod != null)
+            addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
     }
 
-    private AnnotationNode getOrCreateValidateAnnotation(Validation.Option mode, FieldNode fieldNode) {
-        AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
-
-        if (validateAnnotation == null && mode == Validation.Option.VALIDATE_UNMARKED) {
-            validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
-            fieldNode.addAnnotation(validateAnnotation);
-        }
-        return validateAnnotation;
+    private void checkValidateAnnotationsOnMethods() {
+        annotatedClass.getMethods().forEach(this::checkValidateAnnotationOnSingleMethod);
     }
 
-    private void addAssert(BlockStatement block, Expression check, String message) {
-        block.addStatement(assertStmt(check, message));
+    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
+        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
+            addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
     }
+
 
     private AssertStatement assertStmt(Expression check, String message) {
         if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);
         else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
-    }
-
-    private void validateInnerCollection(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(
-                new ForStatement(
-                        param(DYNAMIC_TYPE, "next"),
-                        varX(fieldNode.getName()),
-                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
-                )
-        );
-    }
-
-    private void validateInnerMap(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(
-                new ForStatement(
-                        param(DYNAMIC_TYPE, "next"),
-                        callX(varX(fieldNode.getName()), "values"),
-                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
-                )
-        );
-    }
-
-    private void validateSingleInnerField(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(ifS(varX(fieldNode), callX(varX(fieldNode.getName()), VALIDATE_METHOD)));
     }
 
     @NotNull
@@ -956,12 +842,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private boolean isKeyField(FieldNode fieldNode) {
         return fieldNode == keyField;
-    }
-
-    boolean shouldFieldBeIgnoredForValidation(FieldNode fieldNode) {
-        if (fieldNode.getName().startsWith("$")) return true;
-        if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
-        return false;
     }
 
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
@@ -1692,4 +1572,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
+    private void checkValidateAnnotationOnSingleMethod(MethodNode method) {
+        AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
+        if (validateAnnotation == null)
+            return;
+        assertMethodIsParameterless(method, sourceUnit);
+        assertAnnotationHasNoValueOrMessage(validateAnnotation);
+    }
 }

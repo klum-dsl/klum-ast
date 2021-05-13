@@ -1,92 +1,118 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 import static org.codehaus.groovy.runtime.InvokerHelper.getAttribute;
+import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
 public class Validator {
 
-    private GroovyObject instance;
+    private final Object instance;
     private boolean manualValidation;
+    private Validation.Option currentValidationMode;
+    private Class<?> currentType;
 
-    public Validator(GroovyObject instance) {
+    public Validator(Object instance) {
         this.instance = instance;
     }
 
     public void execute() {
-        Class<?> level = instance.getClass();
-        while (isDslType(level)) {
-            //noinspection unchecked
-            validateLevel((Class<? extends GroovyObject>) level);
-            level = level.getSuperclass();
+        currentType = instance.getClass();
+        while (isDslType(currentType)) {
+            validateCurrentType();
+            currentType = currentType.getSuperclass();
         }
     }
 
-    private void validateLevel(Class<? extends GroovyObject> type) {
+    private void validateCurrentType() {
+        currentValidationMode = getValidationMode();
         try {
-            validateFields(type);
-            validateCustomMethods(type);
+            validateFields();
+            executeCustomValidationMethods();
         } catch (Exception e) {
             throw new AssertionError(e);
         }
     }
 
-    private void validateCustomMethods(Class<? extends GroovyObject> type) {
-        stream(type.getDeclaredMethods()).filter(m -> m.isAnnotationPresent(Validate.class)).forEach(this::validateCustomMethod);
+    private void executeCustomValidationMethods() {
+        stream(currentType.getDeclaredMethods())
+                .filter(m -> m.isAnnotationPresent(Validate.class))
+                .forEach(this::validateCustomMethod);
     }
 
     private void validateCustomMethod(Method method) {
-        InvokerHelper.invokeMethod(instance, method.getName(), new Object[0]);
+        InvokerHelper.invokeMethod(instance, method.getName(), null);
     }
 
-    private boolean isDslType(Class<?> type) {
-        return type != null && GroovyObject.class.isAssignableFrom(type) && type.isAnnotationPresent(DSL.class);
+    private boolean isDslType(Type type) {
+        if (!(type instanceof Class))
+            return false;
+        Class<?> clazz = (Class<?>) type;
+        return GroovyObject.class.isAssignableFrom(clazz) && clazz.isAnnotationPresent(DSL.class);
     }
 
-    private void validateFields(Class<?> type) {
-        Validation.Option mode = getValidationMode(type);
-        stream(type.getDeclaredFields()).filter(f -> shouldValidate(f, mode)).forEach(this::validateField);
+    private void validateFields() {
+        stream(currentType.getDeclaredFields())
+                .filter(this::isNotExplicitlyIgnored)
+                .forEach(this::validateField);
     }
 
     @NotNull
-    private Validation.Option getValidationMode(Class<?> type) {
-        Validation annotation = type.getDeclaredAnnotation(Validation.class);
+    private Validation.Option getValidationMode() {
+        Validation annotation = currentType.getDeclaredAnnotation(Validation.class);
         return annotation != null ? annotation.option() : Validation.Option.IGNORE_UNMARKED;
     }
 
-    private boolean shouldValidate(Field field, Validation.Option validationMode) {
+    private boolean isNotExplicitlyIgnored(Field field) {
+        Validate validate = field.getAnnotation(Validate.class);
+        return validate == null || validate.value() !=  Validate.Ignore.class;
+    }
+
+    private boolean shouldValidate(Field field) {
         if (field.getName().startsWith("$")) return false;
         if (Modifier.isTransient(field.getModifiers())) return false;
 
-        Validate validate = field.getAnnotation(Validate.class);
-        Class<?> validateClosure = validate != null ? validate.value() : Validate.GroovyTruth.class;
-
-        if (validateClosure == Validate.Ignore.class)
-            return false;
-
-        return validationMode != Validation.Option.IGNORE_UNMARKED || validate != null;
+        return currentValidationMode == Validation.Option.VALIDATE_UNMARKED || field.isAnnotationPresent(Validate.class);
     }
 
     private void validateField(Field field) {
-        Validate validate = field.getAnnotation(Validate.class);
+        if (field.isAnnotationPresent(Owner.class))
+            return;
+
+        validateInnerDslObjects(field);
+
+        if (!shouldValidate(field))
+            return;
 
         Object value = getAttribute(instance, field.getName());
-        Class<?> validationValue = validate.value();
+
+        Validate validate = field.getAnnotation(Validate.class);
+        Class<?> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
+
         if (validationValue == Validate.GroovyTruth.class) {
-            if (!toBoolean(value)) {
-                InvokerHelper.assertFailed(field.getName() + " as Boolean", null);
+            if (!castToBoolean(value)) {
+                String message = validate != null ? validate.message() : "";
+                if (message.isEmpty())
+                    message = String.format("'%s' must be set.", field.getName());
+                InvokerHelper.assertFailed(field.getName() + " as Boolean", message);
             }
             return;
         }
@@ -95,11 +121,43 @@ public class Validator {
         closure.setResolveStrategy(Closure.DELEGATE_FIRST);
         closure.setDelegate(instance);
         closure.call(value);
+
     }
 
-    private boolean toBoolean(Object value) {
-        // asBoolean uses Java compile time binding, i.e. compares to null. Invoke Helper uses runtime binding
-        return (boolean) InvokerHelper.invokeMethod(DefaultGroovyMethods.class, "asBoolean", value);
+    private void validateInnerDslObjects(Field field) {
+        getDslObjectsFor(field).filter(Objects::nonNull).map(Validator::new).forEach(Validator::execute);
+    }
+
+    private Stream<?> getDslObjectsFor(Field field) {
+        Class<?> type = field.getType();
+        if (isDslType(type))
+            return Stream.of(InvokerHelper.getAttribute(instance, field.getName()));
+
+        if (!Collection.class.isAssignableFrom(type) && !Map.class.isAssignableFrom(type))
+            return Stream.empty();
+
+        Type elementType = getElementType(field);
+
+        if (Collection.class.isAssignableFrom(type) && isDslType(elementType))
+            return ((Collection<?>) InvokerHelper.getAttribute(instance, field.getName())).stream();
+
+        if (Map.class.isAssignableFrom(type) && isDslType(elementType))
+            return ((Map<?, ?>) InvokerHelper.getAttribute(instance, field.getName())).values().stream();
+
+        return Stream.empty();
+    }
+
+    private Type getElementType(Field field) {
+        Type genericType = field.getGenericType();
+
+        if (!(genericType instanceof ParameterizedType))
+            return null;
+
+        ParameterizedType parameterizedType = (ParameterizedType) genericType;
+        Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+
+        return actualTypeArguments[actualTypeArguments.length - 1];
+
     }
 
 }

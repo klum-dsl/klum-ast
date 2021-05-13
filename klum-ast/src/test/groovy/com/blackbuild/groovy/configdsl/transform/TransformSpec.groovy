@@ -27,6 +27,7 @@ import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.reflect.Method
@@ -35,7 +36,7 @@ import static com.blackbuild.groovy.configdsl.transform.TestHelper.*
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 
 @SuppressWarnings("GroovyAssignabilityCheck")
-class TransformSpec extends AbstractDSLSpec {
+class fTransformSpec extends AbstractDSLSpec {
 
     def "apply method is created"() {
         when:
@@ -239,6 +240,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Klaus"
     }
 
+    @Ignore("Legacy feature")
     def 'Key is reachable with get$Key()'() {
         given:
         createClass('''
