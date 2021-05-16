@@ -6,6 +6,7 @@ import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -32,21 +33,33 @@ public class KlumInstanceProxy {
         this.instance = instance;
     }
 
-    public GroovyObject apply(Map<String, Object> values, Closure<?> body) {
-        GroovyObject rw = (GroovyObject) instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
+    public static KlumInstanceProxy getProxyFor(Object target) {
+        return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
+    }
+
+    protected Object getRwInstance() {
+        return getInstanceAttribute(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
+    }
+
+    private Object getInstanceAttribute(String nameOfRwFieldInModelClass) {
+        return InvokerHelper.getAttribute(instance, nameOfRwFieldInModelClass);
+    }
+
+    public Object apply(Map<String, Object> values, Closure<?> body) {
+        Object rw = instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         applyNamedParameters(rw, values);
 
         body.setDelegate(rw);
         body.setResolveStrategy(Closure.DELEGATE_ONLY);
         body.call();
-        rw.invokeMethod(POSTAPPLY_ANNOTATION_METHOD_NAME, new Object[0]);
+        InvokerHelper.invokeMethod(rw, POSTAPPLY_ANNOTATION_METHOD_NAME, null);
 
         return instance;
     }
 
     // TODO: in RW Proxy
-    public void applyNamedParameters(GroovyObject rw, Map<String, Object> values) {
-        values.forEach(rw::invokeMethod);
+    public void applyNamedParameters(Object rw, Map<String, Object> values) {
+        values.forEach((key, value) -> InvokerHelper.invokeMethod(rw, key, value));
     }
 
     public Object getKey() {
@@ -64,5 +77,8 @@ public class KlumInstanceProxy {
         new Validator(instance).execute();
     }
 
+    boolean getManualValidation() {
+        return (boolean) getInstanceAttribute("$manualValidation");
+    }
 
 }

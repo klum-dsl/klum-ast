@@ -23,10 +23,13 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
+import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -60,7 +63,20 @@ public class FactoryHelper {
         }
     }
 
+    public static <T> T create(Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
+        T result = (T) InvokerHelper.invokeConstructorOf(type, key);
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        Object rwInstance = proxy.getRwInstance();
+        InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
+        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME, null);
 
+        proxy.apply(values, body);
+
+        if (!proxy.getManualValidation())
+            proxy.validate();
+
+        return result;
+    }
 
     @SuppressWarnings("unchecked")
     private static <T extends GroovyObject> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {

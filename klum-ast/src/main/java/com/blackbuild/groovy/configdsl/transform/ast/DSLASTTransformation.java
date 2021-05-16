@@ -421,7 +421,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
         if (dslParent == null)
-            annotatedClass.addField(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, ACC_PROTECTED | ACC_SYNTHETIC | ACC_FINAL, INSTANCE_PROXY, ctorX(INSTANCE_PROXY, varX("this")));
+            annotatedClass.addField(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, ACC_PUBLIC | ACC_SYNTHETIC | ACC_FINAL, INSTANCE_PROXY, ctorX(INSTANCE_PROXY, varX("this")));
 
         ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
         if (parentProxy == null)
@@ -1416,31 +1416,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new LifecycleMethodBuilder(rwClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
 
         if (isInstantiable(annotatedClass)) {
+
+            Expression keyArg = keyField != null ? varX("name") : ConstantExpression.NULL;
+
             createPublicMethod(CREATE_METHOD_NAME)
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
                     .namedParams("values")
-                    .optionalStringParam("name", keyField)
+                    .optionalStringParam("name", keyField != null)
                     .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("result", "apply", args("values", "closure"))
-                    .callValidationOn("result")
-                    .doReturn("result")
+                    .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, varX("values"), varX("closure"))))
                     .addTo(annotatedClass);
-
 
             createPublicMethod(CREATE_METHOD_NAME)
                     .returning(newClass(annotatedClass))
                     .mod(ACC_STATIC)
-                    .optionalStringParam("name", keyField)
+                    .optionalStringParam("name", keyField != null)
                     .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callX(annotatedClass, CREATE_METHOD_NAME,
-                            keyField != null ?
-                                    args(new MapExpression(), varX("name"), varX("closure"))
-                                    : args(new MapExpression(), varX("closure"))
-                    ))
+                    .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, new MapExpression(), varX("closure"))))
                     .addTo(annotatedClass);
         }
     }
