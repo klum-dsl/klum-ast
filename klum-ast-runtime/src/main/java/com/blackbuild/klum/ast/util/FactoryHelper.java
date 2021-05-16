@@ -24,11 +24,20 @@
 package com.blackbuild.klum.ast.util;
 
 import groovy.lang.Closure;
+import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyObject;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
+import groovy.util.DelegatingScript;
+import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 
@@ -76,6 +85,60 @@ public class FactoryHelper {
             proxy.validate();
 
         return result;
+    }
+
+    public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
+        if (DelegatingScript.class.isAssignableFrom(scriptType))
+            return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
+        return (T) InvokerHelper.runScript(scriptType, null);
+    }
+
+    public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
+        Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : InvokerHelper.invokeConstructorOf(type, null);
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        Object rwInstance = proxy.getRwInstance();
+        InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
+        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME, null);
+
+        script.setDelegate(rwInstance);
+        script.run();
+
+        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTAPPLY_ANNOTATION_METHOD_NAME, null);
+
+        if (!proxy.getManualValidation())
+            proxy.validate();
+
+        return (T) result;
+    }
+
+    public static <T> T createFrom(Class<T> type, Script script) {
+        return null;
+    }
+
+    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
+        GroovyShell shell = new GroovyShell(gLoader, compilerConfiguration);
+        return createFromDelegatingScript(type, (DelegatingScript) shell.parse(text, name));
+    }
+
+    public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
+        try {
+            String path = Paths.get(src.getPath()).getFileName().toString();
+            return createFrom(type, path, ResourceGroovyMethods.getText(src), loader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T createFrom(Class<T> type, File file, ClassLoader loader) {
+        try {
+            return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @SuppressWarnings("unchecked")

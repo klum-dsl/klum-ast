@@ -1,6 +1,5 @@
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import groovy.lang.Closure;
@@ -8,11 +7,9 @@ import groovy.lang.GroovyObject;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Optional;
 
-import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
@@ -63,14 +60,12 @@ public class KlumInstanceProxy {
     }
 
     public Object getKey() {
-        Optional<Field> keyField = stream(instance.getClass().getDeclaredFields())
-                .filter(field -> field.isAnnotationPresent(Key.class))
-                .findFirst();
+        Optional<String> keyField = DslHelper.getKeyField(instance.getClass());
 
         if (!keyField.isPresent())
             throw new AssertionError();
 
-        return instance.getProperty(keyField.get().getName());
+        return instance.getProperty(keyField.get());
     }
 
     public void validate() {

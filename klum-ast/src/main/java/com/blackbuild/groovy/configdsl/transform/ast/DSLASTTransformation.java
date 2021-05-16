@@ -34,9 +34,6 @@ import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
-import groovy.lang.Binding;
-import groovy.lang.GroovyClassLoader;
-import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
@@ -69,7 +66,6 @@ import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
-import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
@@ -1439,87 +1435,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createConvenienceFactories() {
-        if (isInstantiable(annotatedClass)) {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                    .statement(ifS(
-                            notX(callX(classX(DELEGATING_SCRIPT), "isAssignableFrom", args("configType"))),
-                            returnS(callX(callX(varX("configType"), "newInstance"), "run"))
-                    ))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, callX(varX("configType"), "newInstance")))
-                    .addTo(annotatedClass);
-        } else {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                    .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
-                    .addTo(annotatedClass);
-        }
+        createPublicMethod(CREATE_FROM)
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
+                .doReturn(callX(FACTORY_HELPER, CREATE_FROM, args(classX(annotatedClass), varX("configType"))))
+                .addTo(annotatedClass);
 
-        if (keyField != null) {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("name")
-                    .stringParam("text")
-                    .optionalClassLoaderParam()
-                    .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
-                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
-                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
-                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
-                    .declareVariable("script", callX(varX("shell"), "parse", args("text", "name")))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
-                    .addTo(annotatedClass);
-
-            if (isInstantiable(annotatedClass))
-                createPublicMethod(CREATE_FROM) // Delegating Script
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC | ACC_SYNTHETIC)
-                    .param(DELEGATING_SCRIPT, "script")
-                    .declareVariable("simpleName", callX(callX(varX("script"), "getClass"), "getSimpleName"))
-                    .declareVariable("result", ctorX(annotatedClass, args("simpleName")))
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("script", "setDelegate", propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTAPPLY_ANNOTATION_METHOD_NAME)
-                    .callValidationOn("result")
-                    .doReturn("result")
-                    .addTo(annotatedClass);
-        } else {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("text")
-                    .optionalClassLoaderParam()
-                    .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
-                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
-                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
-                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
-                    .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
-                    .addTo(annotatedClass);
-
-            if (isInstantiable(annotatedClass))
-                createPublicMethod(CREATE_FROM) // Delegating Script
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC | ACC_SYNTHETIC)
-                    .param(newClass(DELEGATING_SCRIPT), "script")
-                    .declareVariable("result", ctorX(annotatedClass))
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("script", "setDelegate", propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callMethod(propX(varX("result"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTAPPLY_ANNOTATION_METHOD_NAME)
-                    .callValidationOn("result")
-                    .doReturn("result")
-                    .addTo(annotatedClass);
-        }
+        createPublicMethod(CREATE_FROM)
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .optionalStringParam("name", keyField != null)
+                .stringParam("text")
+                .optionalClassLoaderParam()
+                .doReturn(callX(FACTORY_HELPER, CREATE_FROM, args(classX(annotatedClass), keyField != null ? varX("name") : constX("dummy"), varX("text"), varX("loader"))))
+                .addTo(annotatedClass);
 
         createPublicMethod(CREATE_FROM)
                 .returning(newClass(annotatedClass))
@@ -1546,7 +1476,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Enum> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
+    public <T extends Enum<?>> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
         if (node == null) return defaultValue;
 
         final PropertyExpression member = (PropertyExpression) node.getMember(name);

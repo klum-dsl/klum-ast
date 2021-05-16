@@ -72,5 +72,8 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
         clazz = loader.parseClass(code)
     }
 
+    Class<?> getClass(String classname) {
+        loader.loadClass(classname)
+    }
 
 }

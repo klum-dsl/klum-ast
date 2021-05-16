@@ -1,11 +1,9 @@
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
-import groovy.lang.GroovyObject;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +34,7 @@ public class Validator {
 
     public void execute() {
         currentType = instance.getClass();
-        while (isDslType(currentType)) {
+        while (DslHelper.isDslType(currentType)) {
             validateCurrentType();
             currentType = currentType.getSuperclass();
         }
@@ -60,13 +58,6 @@ public class Validator {
 
     private void validateCustomMethod(Method method) {
         InvokerHelper.invokeMethod(instance, method.getName(), null);
-    }
-
-    private boolean isDslType(Type type) {
-        if (!(type instanceof Class))
-            return false;
-        Class<?> clazz = (Class<?>) type;
-        return GroovyObject.class.isAssignableFrom(clazz) && clazz.isAnnotationPresent(DSL.class);
     }
 
     private void validateFields() {
@@ -130,7 +121,7 @@ public class Validator {
 
     private Stream<?> getDslObjectsFor(Field field) {
         Class<?> type = field.getType();
-        if (isDslType(type))
+        if (DslHelper.isDslType(type))
             return Stream.of(InvokerHelper.getAttribute(instance, field.getName()));
 
         if (!Collection.class.isAssignableFrom(type) && !Map.class.isAssignableFrom(type))
@@ -138,10 +129,10 @@ public class Validator {
 
         Type elementType = getElementType(field);
 
-        if (Collection.class.isAssignableFrom(type) && isDslType(elementType))
+        if (Collection.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
             return ((Collection<?>) InvokerHelper.getAttribute(instance, field.getName())).stream();
 
-        if (Map.class.isAssignableFrom(type) && isDslType(elementType))
+        if (Map.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
             return ((Map<?, ?>) InvokerHelper.getAttribute(instance, field.getName())).values().stream();
 
         return Stream.empty();
