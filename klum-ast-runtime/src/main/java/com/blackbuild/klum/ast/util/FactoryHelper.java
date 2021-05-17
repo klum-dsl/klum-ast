@@ -77,8 +77,7 @@ public class FactoryHelper {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         Object rwInstance = proxy.getRwInstance();
         InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
-        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME, null);
-
+        proxy.postCreate();
         proxy.apply(values, body);
 
         if (!proxy.getManualValidation())
@@ -99,12 +98,12 @@ public class FactoryHelper {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         Object rwInstance = proxy.getRwInstance();
         InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
-        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME, null);
+        proxy.postCreate();
 
         script.setDelegate(rwInstance);
         script.run();
 
-        InvokerHelper.invokeMethod(rwInstance, KlumInstanceProxy.POSTAPPLY_ANNOTATION_METHOD_NAME, null);
+        proxy.postApply();
 
         if (!proxy.getManualValidation())
             proxy.validate();

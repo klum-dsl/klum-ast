@@ -7,6 +7,7 @@ import groovy.lang.GroovyObject;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.annotation.Annotation;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,11 +21,11 @@ public class KlumInstanceProxy {
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
     public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
-    public static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
-    public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
 
     private GroovyObject instance;
+    private boolean skipPostCreate;
+    private boolean skipPostApply;
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -49,7 +50,7 @@ public class KlumInstanceProxy {
         body.setDelegate(rw);
         body.setResolveStrategy(Closure.DELEGATE_ONLY);
         body.call();
-        InvokerHelper.invokeMethod(rw, POSTAPPLY_ANNOTATION_METHOD_NAME, null);
+        postApply();
 
         return instance;
     }
@@ -66,6 +67,22 @@ public class KlumInstanceProxy {
             throw new AssertionError();
 
         return instance.getProperty(keyField.get());
+    }
+
+    public void postCreate() {
+        if (!skipPostCreate)
+            executeLifecycleMethod(PostCreate.class);
+    }
+
+    public void postApply() {
+        if (!skipPostApply)
+            executeLifecycleMethod(PostApply.class);
+    }
+
+    private void executeLifecycleMethod(Class<? extends Annotation> annotation) {
+        Object rw = getRwInstance();
+        DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
+                .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
     }
 
     public void validate() {

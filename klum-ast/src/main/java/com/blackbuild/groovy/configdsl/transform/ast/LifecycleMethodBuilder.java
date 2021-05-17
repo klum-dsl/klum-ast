@@ -24,124 +24,55 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
-import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.control.SourceUnit;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getHierarchyOfDSLObjectAncestors;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.moveMethodFromModelToRWClass;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /**
  * Helper class to create lifecycle methods for a given annotation
  */
 class LifecycleMethodBuilder {
-    private InnerClassNode rwClass;
-    private ClassNode annotationType;
-    private DslMethodBuilder lifecycleMethod;
-    private Set<String> alreadyHandled = new HashSet<String>();
-    private ClassNode annotatedClass;
-    private SourceUnit sourceUnit;
+    private final ClassNode annotationType;
+    private final ClassNode annotatedClass;
+    private final SourceUnit sourceUnit;
 
-    LifecycleMethodBuilder(InnerClassNode rwClass, ClassNode annotationType) {
-        this.rwClass = rwClass;
+    LifecycleMethodBuilder(ClassNode annotatedClass, ClassNode annotationType) {
         this.annotationType = annotationType;
-        this.annotatedClass = rwClass.getOuterClass();
+        this.annotatedClass = annotatedClass;
         this.sourceUnit = annotatedClass.getModule().getContext();
     }
 
     void invoke() {
-        createLifecycleControlField();
-        moveMethodsFromModelToRWClass();
-        createLifecycleCallerMethod();
+        getAllValidLifecycleMethods(annotatedClass).forEach(this::moveMethodToRwClass);
     }
 
-    private void createLifecycleControlField() {
-        rwClass.addField(
-                "$skip" + annotationType.getNameWithoutPackage(),
-                ACC_SYNTHETIC | ACC_PUBLIC,
-                ClassHelper.boolean_TYPE, constX(false)
-                );
-    }
-
-    private void createLifecycleCallerMethod() {
-        lifecycleMethod = DslMethodBuilder
-                .createPrivateMethod("$" + annotationType.getNameWithoutPackage())
-                .mod(Opcodes.ACC_SYNTHETIC)
-                .statement(ifS(
-                        varX("$skip" + annotationType.getNameWithoutPackage()),
-                        ReturnStatement.RETURN_NULL_OR_VOID
-                ));
-        for (ClassNode level : getHierarchyOfDSLObjectAncestors(annotatedClass)) {
-            addLifecycleMethodsForClass(level);
-        }
-        lifecycleMethod.addTo(rwClass);
-    }
-
-    private void addLifecycleMethodsForClass(ClassNode level) {
-        ClassNode rwLevel = level.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
-        List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(level);
-        // lifecycle methods form parent classes have already been removed, so
-        // we take the lifecycle methods from RW class as well
-        lifecycleMethods.addAll(getAllValidLifecycleMethods(rwLevel));
-        addCallToAllMethods(lifecycleMethods);
+    private void moveMethodToRwClass(MethodNode method) {
+        moveMethodFromModelToRWClass(method);
+        int modifiers = method.getModifiers() & ~ACC_PUBLIC | ACC_PROTECTED;
+        method.setModifiers(modifiers);
     }
 
     private List<MethodNode> getAllValidLifecycleMethods(ClassNode level) {
         if (level == null)
             return Collections.emptyList();
 
-        List<MethodNode> lifecycleMethods = new ArrayList<MethodNode>();
-
-        for (MethodNode method : level.getMethods()) {
-            AnnotationNode targetAnnotation = CommonAstHelper.getAnnotation(method, annotationType);
-
-            if (targetAnnotation == null)
-                continue;
-
-            CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
-            CommonAstHelper.assertMethodIsNotPrivate(method, sourceUnit);
-
-            lifecycleMethods.add(method);
-        }
+        List<MethodNode> lifecycleMethods = level.getMethods().stream().filter(method -> hasAnnotation(method, annotationType)).collect(Collectors.toList());
+        lifecycleMethods.forEach(this::assertMethodIsValidLifecyleMethod);
         return lifecycleMethods;
     }
 
-    private void moveMethodsFromModelToRWClass() {
-        List<MethodNode> lifecycleMethods = getAllValidLifecycleMethods(annotatedClass);
-        for (MethodNode method : lifecycleMethods) {
-            moveMethodFromModelToRWClass(method);
-            int modifiers = method.getModifiers() & ~ACC_PUBLIC | ACC_PROTECTED;
-            method.setModifiers(modifiers);
-        }
+    private void assertMethodIsValidLifecyleMethod(MethodNode method) {
+        CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
+        CommonAstHelper.assertMethodIsNotPrivate(method, sourceUnit);
     }
 
-    private void addCallToAllMethods(List<MethodNode> lifecycleMethods) {
-        for (MethodNode method : lifecycleMethods) {
-            addCallTo(method.getName());
-        }
-    }
-
-    private void addCallTo(String method) {
-        if (!alreadyHandled.contains(method)) {
-            lifecycleMethod.callThis(method);
-            alreadyHandled.add(method);
-        }
-    }
 }

@@ -33,14 +33,11 @@ public class Validator {
     }
 
     public void execute() {
-        currentType = instance.getClass();
-        while (DslHelper.isDslType(currentType)) {
-            validateCurrentType();
-            currentType = currentType.getSuperclass();
-        }
+        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
     }
 
-    private void validateCurrentType() {
+    private void validateType(Class<?> type) {
+        currentType = type;
         currentValidationMode = getValidationMode();
         try {
             validateFields();

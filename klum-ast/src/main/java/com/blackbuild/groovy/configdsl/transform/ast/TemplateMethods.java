@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -283,7 +284,7 @@ class TemplateMethods {
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
-                .assignS(propX(propX(varX("result"), "$rw"), "$skipPostApply"), constX(true))
+                .assignS(propX(propX(varX("result"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "skipPostApply"), constX(true))
                 .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")

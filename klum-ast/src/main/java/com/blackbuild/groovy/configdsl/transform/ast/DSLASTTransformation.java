@@ -956,7 +956,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners("created")
                         .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                        .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod("created", "apply", args("values", "closure"))
                         .doReturn("created")
                         .addTo(rwClass);
@@ -986,7 +986,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners("created")
                         .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                        .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod("created", "apply", args("values", "closure"))
                         .doReturn("created")
                         .addTo(rwClass);
@@ -1172,7 +1172,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField, "key")))
                         .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod(elementToAddVarName, "apply", args("values", "closure"))
                         .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
                         .doReturn(elementToAddVarName)
@@ -1201,7 +1201,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField, "key")))
                         .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod(elementToAddVarName, "apply", args("values", "closure"))
                         .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
                         .doReturn(elementToAddVarName)
@@ -1294,7 +1294,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
                     .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .setOwners("created")
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callMethod("this", setterName, args("created"))
                     .doReturn("created")
@@ -1326,7 +1326,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
                     .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                     .setOwners("created")
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), KlumInstanceProxy.POSTCREATE_ANNOTATION_METHOD_NAME)
+                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                     .callMethod(varX("created"), "apply", args("values", "closure"))
                     .callMethod("this", setterName, args("created"))
                     .doReturn("created")
@@ -1405,33 +1405,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .callThis("apply", args(new MapExpression(), varX("closure")))
                 .addTo(annotatedClass);
 
-        new LifecycleMethodBuilder(rwClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();
     }
 
     private void createFactoryMethods() {
-        new LifecycleMethodBuilder(rwClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
 
-        if (isInstantiable(annotatedClass)) {
+        if (!isInstantiable(annotatedClass))
+            return;
 
-            Expression keyArg = keyField != null ? varX("name") : ConstantExpression.NULL;
+        Expression keyArg = keyField != null ? varX("name") : ConstantExpression.NULL;
 
-            createPublicMethod(CREATE_METHOD_NAME)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .namedParams("values")
-                    .optionalStringParam("name", keyField != null)
-                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, varX("values"), varX("closure"))))
-                    .addTo(annotatedClass);
+        createPublicMethod(CREATE_METHOD_NAME)
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .namedParams("values")
+                .optionalStringParam("name", keyField != null)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
+                .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, varX("values"), varX("closure"))))
+                .addTo(annotatedClass);
 
-            createPublicMethod(CREATE_METHOD_NAME)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .optionalStringParam("name", keyField != null)
-                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, new MapExpression(), varX("closure"))))
-                    .addTo(annotatedClass);
-        }
+        createPublicMethod(CREATE_METHOD_NAME)
+                .returning(newClass(annotatedClass))
+                .mod(ACC_STATIC)
+                .optionalStringParam("name", keyField != null)
+                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
+                .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, new MapExpression(), varX("closure"))))
+                .addTo(annotatedClass);
     }
 
     private void createConvenienceFactories() {
