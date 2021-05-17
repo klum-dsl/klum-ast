@@ -400,7 +400,7 @@ class LifecycleSpec extends AbstractDSLSpec {
                 }
 
                 @PostCreate
-                def otherParent() {
+                def theOtherParent() {
                     caller << "otherParent"
                 }
             }

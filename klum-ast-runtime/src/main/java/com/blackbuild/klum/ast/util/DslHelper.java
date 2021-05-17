@@ -10,6 +10,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,7 +68,7 @@ public class DslHelper {
         return getRwHierarchyOf(rwClass)
                 .stream()
                 .map(Class::getDeclaredMethods)
-                .flatMap(Arrays::stream)
+                .flatMap(array -> Arrays.stream(array).sorted(Comparator.comparing(Method::getName)))
                 .filter(method -> method.isAnnotationPresent(annotation))
                 .map(Method::getName)
                 .distinct()
