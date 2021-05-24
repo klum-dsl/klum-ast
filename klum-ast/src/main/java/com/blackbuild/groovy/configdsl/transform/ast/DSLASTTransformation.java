@@ -48,7 +48,6 @@ import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.MixinNode;
 import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.PropertyNode;
 import org.codehaus.groovy.ast.VariableScope;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
@@ -93,7 +92,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLOb
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethodFromClosure;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
@@ -108,7 +106,6 @@ import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
-import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
 import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
@@ -132,7 +129,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
@@ -296,7 +292,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void setPropertyAccessors() {
-        new PropertyAccessors().invoke();
+        new PropertyAccessors(this).invoke();
     }
 
     private void createRWClass() {
@@ -1415,98 +1411,4 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
-    private class PropertyAccessors {
-        public void invoke() {
-            List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
-            for (PropertyNode pNode : getInstanceProperties(annotatedClass)) {
-                adjustPropertyAccessorsForSingleField(pNode, newNodes);
-            }
-
-            setAccessorsForOwnerFields(newNodes);
-
-            if (keyField != null)
-                setAccessorsForKeyField();
-
-            replaceProperties(annotatedClass, newNodes);
-        }
-
-        private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
-            if (shouldFieldBeIgnored(pNode.getField()))
-                return;
-
-            String capitalizedFieldName = Verifier.capitalize(pNode.getName());
-            String getterName = "get" + capitalizedFieldName;
-            String setterName = "set" + capitalizedFieldName;
-            String rwGetterName;
-            String rwSetterName = setterName + "$rw";
-
-            if (CommonAstHelper.isCollectionOrMap(pNode.getType())) {
-                rwGetterName = getterName + "$rw";
-
-                pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
-
-                createProtectedMethod(rwGetterName)
-                        .mod(ACC_SYNTHETIC)
-                        .returning(pNode.getType())
-                        .doReturn(attrX(varX("this"), constX(pNode.getName())))
-                        .addTo(annotatedClass);
-            } else {
-                rwGetterName = "get" + capitalizedFieldName;
-                pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
-            }
-
-            // TODO what about protected methods?
-            createPublicMethod(getterName)
-                    .returning(pNode.getType())
-                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
-                    .addTo(rwClass);
-
-            createProtectedMethod(rwSetterName)
-                    .mod(ACC_SYNTHETIC)
-                    .returning(ClassHelper.VOID_TYPE)
-                    .param(pNode.getType(), "value")
-                    .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
-                    .addTo(annotatedClass);
-
-            createMethod(setterName)
-                    .mod(isProtected(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
-                    .returning(ClassHelper.VOID_TYPE)
-                    .param(pNode.getType(), "value")
-                    .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
-                    .addTo(rwClass);
-
-            pNode.setSetterBlock(null);
-            newNodes.add(pNode);
-        }
-
-        private void setAccessorsForOwnerFields(List<PropertyNode> newNodes) {
-            for (FieldNode ownerField : ownerFields)
-                if (ownerField.getOwner() == annotatedClass)
-                    newNodes.add(setAccessorsForOwnerField(ownerField));
-        }
-
-        private void setAccessorsForKeyField() {
-            String keyGetter = "get" + Verifier.capitalize(keyField.getName());
-            createPublicMethod(keyGetter)
-                    .returning(keyField.getType())
-                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
-                    .addTo(rwClass);
-        }
-
-        private PropertyNode setAccessorsForOwnerField(FieldNode ownerField) {
-            String ownerFieldName = ownerField.getName();
-            PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
-            ownerProperty.setSetterBlock(null);
-            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
-
-            String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
-            createPublicMethod(ownerGetter)
-                    .returning(ownerField.getType())
-                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
-                    .addTo(rwClass);
-
-            return ownerProperty;
-        }
-
-    }
 }
