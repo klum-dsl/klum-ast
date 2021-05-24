@@ -2,6 +2,11 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Key;
+import groovy.lang.MetaBeanProperty;
+import groovy.lang.MetaProperty;
+import groovy.lang.MissingPropertyException;
+import org.codehaus.groovy.reflection.CachedField;
+import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -41,6 +46,32 @@ public class DslHelper {
             type = type.getSuperclass();
         }
         return result;
+    }
+
+    public static List<Class<?>> getHierarchyOf(Class<?> type) {
+        List<Class<?>> result = new ArrayList<>();
+        while (type != null) {
+            result.add(type);
+            type = type.getSuperclass();
+        }
+        return result;
+    }
+
+    public static Field getField(Class<?> type, String name) {
+        return getHierarchyOf(type).stream()
+                .map(layer -> getFieldOfHierarchyLayer(layer, name))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst().orElseThrow(() -> new MissingPropertyException(name, type));
+    }
+
+    private static Optional<Field> getFieldOfHierarchyLayer(Class<?> layer, String name) {
+        MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
+        if (metaProperty instanceof MetaBeanProperty) {
+            CachedField field = ((MetaBeanProperty) metaProperty).getField();
+            return field != null ? Optional.of(field.field) : Optional.empty();
+        }
+        return Optional.empty();
     }
 
     public static Optional<String> getKeyField(Class<?> type) {

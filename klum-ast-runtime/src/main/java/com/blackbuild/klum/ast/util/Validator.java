@@ -105,11 +105,7 @@ public class Validator {
             return;
         }
 
-        Closure<?> closure = ClosureHelper.createClosureInstance(validationValue);
-        closure.setResolveStrategy(Closure.DELEGATE_FIRST);
-        closure.setDelegate(instance);
-        closure.call(value);
-
+        ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value);
     }
 
     private void validateInnerDslObjects(Field field) {

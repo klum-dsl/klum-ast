@@ -1,13 +1,18 @@
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,7 +28,7 @@ public class KlumInstanceProxy {
     public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
     public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
 
-    private GroovyObject instance;
+    private final GroovyObject instance;
     private boolean skipPostCreate;
     private boolean skipPostApply;
 
@@ -36,11 +41,44 @@ public class KlumInstanceProxy {
     }
 
     protected Object getRwInstance() {
-        return getInstanceAttribute(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
+        return InvokerHelper.getAttribute(instance, KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
     }
 
-    private Object getInstanceAttribute(String nameOfRwFieldInModelClass) {
-        return InvokerHelper.getAttribute(instance, nameOfRwFieldInModelClass);
+    public Object getInstanceAttribute(String attributeName) {
+        try {
+            return DslHelper.getField(instance.getClass(), attributeName).get(instance);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Object getInstanceProperty(String name){
+        Object value = makeReadOnly(getInstanceAttribute(name));
+
+        if (DefaultTypeTransformation.castToBoolean(value))
+            return value;
+
+        Default defaultAnnotation = getField(name).getAnnotation(Default.class);
+        if (defaultAnnotation == null)
+            return value;
+
+        if (!defaultAnnotation.field().isEmpty())
+            return getInstanceProperty(defaultAnnotation.field());
+
+        if (!defaultAnnotation.delegate().isEmpty())
+            return getProxyFor(getInstanceProperty(defaultAnnotation.delegate())).getInstanceProperty(name);
+
+        return ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance);
+    }
+
+    private <T> T makeReadOnly(T value) {
+        if (value instanceof Collection || value instanceof Map)
+            return (T) InvokerHelper.invokeMethod(DefaultGroovyMethods.class, "asImmutable", value);
+        return value;
+    }
+
+    private Field getField(String name) {
+        return DslHelper.getField(instance.getClass(), name);
     }
 
     public Object apply(Map<String, Object> values, Closure<?> body) {
@@ -90,7 +128,7 @@ public class KlumInstanceProxy {
     }
 
     boolean getManualValidation() {
-        return (boolean) getInstanceAttribute("$manualValidation");
+        return (boolean) InvokerHelper.getAttribute(instance, "$manualValidation");
     }
 
 }
