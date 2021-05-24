@@ -322,6 +322,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 block
         );
 
+        DslMethodBuilder.createProtectedMethod("get$proxy")
+                .returning(make(KlumInstanceProxy.class))
+                .doReturn(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
+                .addTo(rwClass);
+
         annotatedClass.getModule().addClass(rwClass);
         annotatedClass.addField(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
         if (dslParent == null)
@@ -845,7 +850,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfSetWithoutKeyedElements(fieldNode, elementType, fieldKey);
 
         String fieldName = fieldNode.getName();
-        String fieldRWName = fieldName + "$rw";
 
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
@@ -863,7 +867,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey, "key")))
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners("created")
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
+                        .callMethod(
+                                callX(
+                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                        "getInstanceAttribute",
+                                        args(constX(fieldName))
+                                ), "add", varX("created"))
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod("created", "apply", args("values", "closure"))
                         .doReturn("created")
@@ -893,7 +902,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey, "key")))
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
                         .setOwners("created")
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
+                        .callMethod(
+                                callX(
+                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                        "getInstanceAttribute",
+                                        args(constX(fieldName))
+                                ), "add", varX("created"))
                         .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod("created", "apply", args("values", "closure"))
                         .doReturn("created")
@@ -930,7 +944,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
-                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("value"))
+                .callMethod(
+                        callX(
+                                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                "getInstanceAttribute",
+                                args(constX(fieldName))
+                        ), "add", varX("value"))
                 .setOwners("value")
                 .doReturn("value")
                 .addTo(rwClass);
@@ -1061,7 +1080,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
 
         String fieldName = fieldNode.getName();
-        String fieldRWName = fieldName + "$rw";
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(elementType);
         int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
@@ -1082,7 +1100,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .setOwners(elementToAddVarName)
                         .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                        .callMethod(
+                                callX(
+                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                        "getInstanceAttribute",
+                                        args(constX(fieldName))
+                                ), "put", args(readKeyExpression, varX(elementToAddVarName))
+                        )
                         .doReturn(elementToAddVarName)
                         .addTo(rwClass);
                 createMethod(methodName)
@@ -1111,7 +1135,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .setOwners(elementToAddVarName)
                         .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
                         .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                        .callMethod(
+                                callX(
+                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                        "getInstanceAttribute",
+                                        args(constX(fieldName))
+                                ), "put", args(readKeyExpression, varX(elementToAddVarName))
+                        )
                         .doReturn(elementToAddVarName)
                         .addTo(rwClass);
                 createMethod(methodName)
@@ -1145,7 +1175,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, elementToAddVarName)
-                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
+                .callMethod(
+                        callX(
+                                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                                "getInstanceAttribute",
+                                args(constX(fieldName))
+                        ), "put", args(readKeyExpression, varX(elementToAddVarName))
+                )
                 .setOwners(elementToAddVarName)
                 .doReturn(elementToAddVarName)
                 .addTo(rwClass);

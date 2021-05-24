@@ -1,11 +1,11 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.common.CommonAstHelper;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.PropertyNode;
-import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.classgen.Verifier;
 
 import java.util.ArrayList;
@@ -26,90 +26,84 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 class PropertyAccessors {
     private final DSLASTTransformation dslastTransformation;
-    private List<PropertyNode> newNodes;
+    private final List<PropertyNode> propertiesToReplace = new ArrayList<>();;
 
     public PropertyAccessors(DSLASTTransformation dslastTransformation) {
         this.dslastTransformation = dslastTransformation;
     }
 
     public void invoke() {
-        newNodes = new ArrayList<>();
-        for (PropertyNode pNode : getInstanceProperties(dslastTransformation.annotatedClass)) {
-            adjustPropertyAccessorsForSingleField(pNode);
-        }
+        getInstanceProperties(dslastTransformation.annotatedClass).forEach(this::adjustPropertyAccessorsForSingleField);
 
         setAccessorsForOwnerFields();
 
         if (dslastTransformation.keyField != null)
             setAccessorsForKeyField();
 
-        replaceProperties(dslastTransformation.annotatedClass, newNodes);
+        replaceProperties(dslastTransformation.annotatedClass, propertiesToReplace);
     }
 
     private void adjustPropertyAccessorsForSingleField(PropertyNode pNode) {
         if (dslastTransformation.shouldFieldBeIgnored(pNode.getField()))
             return;
 
-        String capitalizedFieldName = Verifier.capitalize(pNode.getName());
+        String fieldName = pNode.getName();
+        ClassNode fieldType = pNode.getType();
+
+        String capitalizedFieldName = Verifier.capitalize(fieldName);
         String getterName = "get" + capitalizedFieldName;
         String setterName = "set" + capitalizedFieldName;
-        String rwGetterName;
         String rwSetterName = setterName + "$rw";
 
-        if (CommonAstHelper.isCollectionOrMap(pNode.getType())) {
-            rwGetterName = getterName + "$rw";
-
-            pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
-
-            createProtectedMethod(rwGetterName)
-                    .mod(Opcodes.ACC_SYNTHETIC)
-                    .returning(pNode.getType())
-                    .doReturn(attrX(varX("this"), constX(pNode.getName())))
-                    .addTo(dslastTransformation.annotatedClass);
-        } else {
-            rwGetterName = "get" + capitalizedFieldName;
-            pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
-        }
+        pNode.setGetterBlock(stmt(
+                callX(
+                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                        "getInstanceProperty",
+                        args(constX(fieldName))
+                )
+        ));
 
         // TODO what about protected methods?
         createPublicMethod(getterName)
-                .returning(pNode.getType())
-                .doReturn(callX(GeneralUtils.varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
+                .returning(fieldType)
+                .doReturn(callX(
+                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                        "getInstanceAttribute",
+                        args(constX(fieldName)))
+                )
                 .addTo(dslastTransformation.rwClass);
 
         createProtectedMethod(rwSetterName)
                 .mod(Opcodes.ACC_SYNTHETIC)
                 .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
+                .param(fieldType, "value")
+                .statement(assignS(attrX(varX("this"), constX(fieldName)), varX("value")))
                 .addTo(dslastTransformation.annotatedClass);
 
         createMethod(setterName)
                 .mod(DSLASTTransformation.isProtected(pNode.getField()) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(callX(GeneralUtils.varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
+                .param(fieldType, "value")
+                .statement(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
                 .addTo(dslastTransformation.rwClass);
 
         pNode.setSetterBlock(null);
-        newNodes.add(pNode);
+        propertiesToReplace.add(pNode);
     }
 
     private void setAccessorsForOwnerFields() {
-        for (FieldNode ownerField : dslastTransformation.ownerFields)
-            if (ownerField.getOwner() == dslastTransformation.annotatedClass)
-                newNodes.add(setAccessorsForOwnerField(ownerField));
+        dslastTransformation.ownerFields.forEach(this::setAccessorsForOwnerField);
     }
 
     private void setAccessorsForKeyField() {
         String keyGetter = "get" + Verifier.capitalize(dslastTransformation.keyField.getName());
         createPublicMethod(keyGetter)
                 .returning(dslastTransformation.keyField.getType())
-                .doReturn(callX(GeneralUtils.varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
+                .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
                 .addTo(dslastTransformation.rwClass);
     }
 
-    private PropertyNode setAccessorsForOwnerField(FieldNode ownerField) {
+    private void setAccessorsForOwnerField(FieldNode ownerField) {
         String ownerFieldName = ownerField.getName();
         PropertyNode ownerProperty = dslastTransformation.annotatedClass.getProperty(ownerFieldName);
         ownerProperty.setSetterBlock(null);
@@ -118,10 +112,10 @@ class PropertyAccessors {
         String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
         createPublicMethod(ownerGetter)
                 .returning(ownerField.getType())
-                .doReturn(callX(GeneralUtils.varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
+                .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
                 .addTo(dslastTransformation.rwClass);
 
-        return ownerProperty;
+        propertiesToReplace.add(ownerProperty);
     }
 
 }
