@@ -19,7 +19,9 @@ abstract class AbstractRuntimeTest extends Specification {
         oldLoader = Thread.currentThread().contextClassLoader
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
-                "com.blackbuild.groovy.configdsl.transform"
+                "com.blackbuild.groovy.configdsl.transform",
+                "com.blackbuild.klum.ast.util",
+                this.getClass().getPackage().name
         )
 
         compilerConfiguration = new CompilerConfiguration()

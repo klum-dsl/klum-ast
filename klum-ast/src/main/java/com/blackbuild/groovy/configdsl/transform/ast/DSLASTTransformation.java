@@ -296,95 +296,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void setPropertyAccessors() {
-        List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
-        for (PropertyNode pNode : getInstanceProperties(annotatedClass)) {
-            adjustPropertyAccessorsForSingleField(pNode, newNodes);
-        }
-
-        setAccessorsForOwnerFields(newNodes);
-
-        if (keyField != null)
-            setAccessorsForKeyField();
-
-        replaceProperties(annotatedClass, newNodes);
-    }
-
-    private void setAccessorsForKeyField() {
-        String keyGetter = "get" + Verifier.capitalize(keyField.getName());
-        createPublicMethod(keyGetter)
-                .returning(keyField.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
-                .addTo(rwClass);
-    }
-
-    private void setAccessorsForOwnerFields(List<PropertyNode> newNodes) {
-        for (FieldNode ownerField : ownerFields)
-            if (ownerField.getOwner() == annotatedClass)
-                newNodes.add(setAccessorsForOwnerField(ownerField));
-    }
-
-    private PropertyNode setAccessorsForOwnerField(FieldNode ownerField) {
-        String ownerFieldName = ownerField.getName();
-        PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
-        ownerProperty.setSetterBlock(null);
-        ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
-
-        String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
-        createPublicMethod(ownerGetter)
-                .returning(ownerField.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
-                .addTo(rwClass);
-
-        return ownerProperty;
-    }
-
-    private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
-        if (shouldFieldBeIgnored(pNode.getField()))
-            return;
-
-        String capitalizedFieldName = Verifier.capitalize(pNode.getName());
-        String getterName = "get" + capitalizedFieldName;
-        String setterName = "set" + capitalizedFieldName;
-        String rwGetterName;
-        String rwSetterName = setterName + "$rw";
-
-        if (CommonAstHelper.isCollectionOrMap(pNode.getType())) {
-            rwGetterName = getterName + "$rw";
-
-            pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
-
-            createProtectedMethod(rwGetterName)
-                    .mod(ACC_SYNTHETIC)
-                    .returning(pNode.getType())
-                    .doReturn(attrX(varX("this"), constX(pNode.getName())))
-                    .addTo(annotatedClass);
-        } else {
-            rwGetterName = "get" + capitalizedFieldName;
-            pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
-        }
-
-        // TODO what about protected methods?
-        createPublicMethod(getterName)
-                .returning(pNode.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
-                .addTo(rwClass);
-
-        createProtectedMethod(rwSetterName)
-                .mod(ACC_SYNTHETIC)
-                .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
-                .addTo(annotatedClass);
-
-        createMethod(setterName)
-                .mod(isProtected(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
-                .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
-                .addTo(rwClass);
-
-        pNode.setSetterBlock(null);
-        newNodes.add(pNode);
+        new PropertyAccessors().invoke();
     }
 
     private void createRWClass() {
@@ -399,7 +311,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 MixinNode.EMPTY_ARRAY);
 
         // Need to explicitly add this field for non static inner classes (Groovy Bug?)
-        FieldNode modelFieldInRwClass = rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
 
         BlockStatement block = new BlockStatement();
@@ -807,16 +719,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createSingleFieldSetterMethod(fieldNode);
     }
 
-    private FieldType getFieldType(FieldNode fieldNode) {
+    static FieldType getFieldType(FieldNode fieldNode) {
         return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA);
     }
 
-    private void storeFieldType(FieldNode fieldNode) {
+    static void storeFieldType(FieldNode fieldNode) {
         FieldType type = CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
         fieldNode.putNodeMetaData(FIELD_TYPE_METADATA, type);
     }
 
-    private boolean isProtected(FieldNode fieldNode) {
+    static boolean isProtected(FieldNode fieldNode) {
         return getFieldType(fieldNode) == FieldType.PROTECTED;
     }
 
@@ -1501,5 +1413,100 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         assertMethodIsParameterless(method, sourceUnit);
         assertAnnotationHasNoValueOrMessage(validateAnnotation);
+    }
+
+    private class PropertyAccessors {
+        public void invoke() {
+            List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
+            for (PropertyNode pNode : getInstanceProperties(annotatedClass)) {
+                adjustPropertyAccessorsForSingleField(pNode, newNodes);
+            }
+
+            setAccessorsForOwnerFields(newNodes);
+
+            if (keyField != null)
+                setAccessorsForKeyField();
+
+            replaceProperties(annotatedClass, newNodes);
+        }
+
+        private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
+            if (shouldFieldBeIgnored(pNode.getField()))
+                return;
+
+            String capitalizedFieldName = Verifier.capitalize(pNode.getName());
+            String getterName = "get" + capitalizedFieldName;
+            String setterName = "set" + capitalizedFieldName;
+            String rwGetterName;
+            String rwSetterName = setterName + "$rw";
+
+            if (CommonAstHelper.isCollectionOrMap(pNode.getType())) {
+                rwGetterName = getterName + "$rw";
+
+                pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
+
+                createProtectedMethod(rwGetterName)
+                        .mod(ACC_SYNTHETIC)
+                        .returning(pNode.getType())
+                        .doReturn(attrX(varX("this"), constX(pNode.getName())))
+                        .addTo(annotatedClass);
+            } else {
+                rwGetterName = "get" + capitalizedFieldName;
+                pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
+            }
+
+            // TODO what about protected methods?
+            createPublicMethod(getterName)
+                    .returning(pNode.getType())
+                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
+                    .addTo(rwClass);
+
+            createProtectedMethod(rwSetterName)
+                    .mod(ACC_SYNTHETIC)
+                    .returning(ClassHelper.VOID_TYPE)
+                    .param(pNode.getType(), "value")
+                    .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
+                    .addTo(annotatedClass);
+
+            createMethod(setterName)
+                    .mod(isProtected(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
+                    .returning(ClassHelper.VOID_TYPE)
+                    .param(pNode.getType(), "value")
+                    .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
+                    .addTo(rwClass);
+
+            pNode.setSetterBlock(null);
+            newNodes.add(pNode);
+        }
+
+        private void setAccessorsForOwnerFields(List<PropertyNode> newNodes) {
+            for (FieldNode ownerField : ownerFields)
+                if (ownerField.getOwner() == annotatedClass)
+                    newNodes.add(setAccessorsForOwnerField(ownerField));
+        }
+
+        private void setAccessorsForKeyField() {
+            String keyGetter = "get" + Verifier.capitalize(keyField.getName());
+            createPublicMethod(keyGetter)
+                    .returning(keyField.getType())
+                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
+                    .addTo(rwClass);
+        }
+
+        private PropertyNode setAccessorsForOwnerField(FieldNode ownerField) {
+            String ownerFieldName = ownerField.getName();
+            PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
+            ownerProperty.setSetterBlock(null);
+            ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
+
+            String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
+            createPublicMethod(ownerGetter)
+                    .returning(ownerField.getType())
+                    .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
+                    .addTo(rwClass);
+
+            return ownerProperty;
+        }
+
     }
 }

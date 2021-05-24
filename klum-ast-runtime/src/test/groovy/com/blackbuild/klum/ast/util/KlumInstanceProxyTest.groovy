@@ -51,8 +51,6 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         createClass('''
             package pk
 
-import com.blackbuild.groovy.configdsl.transform.Default
-
             @DSL
             class Foo {
                 String child
@@ -80,7 +78,38 @@ import com.blackbuild.groovy.configdsl.transform.Default
         instance.withDefaultCode == "child"
     }
 
+    def "invoke via getProperty"() {
+        given:
+        createClass('''
+            package pk
+            
+            class Foo {
+                final KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            
+                String name 
+                
+                String getName() {
+                    $proxy.getInstanceProperty('name')
+                }
+            }
 
+            @DSL
+            class Bar extends Foo {
+                String child
+                
+                String getChild() {
+                    $proxy.getInstanceProperty('child')
+                }
+            }
+        ''')
 
+        when:
+        instance = newInstanceOf("pk.Bar")
+        instance.name = "myName"
+        instance.child = "myChild"
 
+        then:
+        instance.name == "myName"
+        instance.child == "myChild"
+    }
 }
