@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Issue
-import spock.lang.PendingFeature
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class OwnerReferencesSpec extends AbstractDSLSpec {
@@ -659,7 +658,6 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/176")
-    @PendingFeature
     def "overridden Owner methods are called only once"() {
         given:
         createClass('''
@@ -701,6 +699,30 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         and:
         instance.bar.booCalled
+    }
+
+    def "Owner methods must have exactly one argument"() {
+        when:
+        createClass '''
+            @DSL
+            class Foo {
+                @Owner 
+                void setFooAsOwner() {}
+            }'''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        when:
+        createClass '''
+            @DSL
+            class Bar {
+                @Owner 
+                void setFooAsOwner(String name, String blame) {}
+            }'''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
     }
 
 

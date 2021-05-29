@@ -48,7 +48,6 @@ import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.MixinNode;
 import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.VariableScope;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -69,7 +68,6 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.Serializable;
@@ -115,13 +113,9 @@ import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.andX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
@@ -131,8 +125,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
@@ -235,7 +227,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createDefaultMethods();
         moveMutatorsToRWClass();
 
-        createSetOwnersMethod();
+        validateOwnersMethods();
 
         delegateRwToModel();
 
@@ -484,13 +476,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
     }
 
-    @NotNull
-    private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
-        ClosureExpression result = new ClosureExpression(Parameter.EMPTY_ARRAY, returnS(varX("it")));
-        result.setVariableScope(new VariableScope());
-        return result;
-    }
-
     private void validateFieldAnnotations() {
         for (FieldNode fieldNode : annotatedClass.getFields())
             validateSingleFieldAnnotation(fieldNode);
@@ -559,54 +544,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
 
-    private void createSetOwnersMethod() {
-
-        BlockStatement methodBody = new BlockStatement();
-
-        if (dslParent != null)
-            methodBody.addStatement(stmt(callSuperX(SET_OWNERS_METHOD, varX("value"))));
-
-        for (FieldNode ownerField : ownerFields) {
-            methodBody.addStatement(
-                    ifS(
-                        andX(
-                                isInstanceOfX(varX("value"), ownerField.getType()),
-                                // access the field directly to prevent StackOverflow
-                                notX(attrX(varX("this"), constX(ownerField.getName())))),
-                        assignX(attrX(varX("this"), constX(ownerField.getName())), varX("value"))
-                    )
-            );
-        }
-
-        for (MethodNode ownerMethod : rwClass.getMethods()) {
-            if (!DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
-                continue;
-
-            if (ownerMethod.getParameters().length != 1)
-                addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod);
-
-            if (dslParent != null) {
-                MethodNode superOwnerMethod = rwClass.getSuperClass().getDeclaredMethod(ownerMethod.getName(), ownerMethod.getParameters());
-                if (superOwnerMethod != null && DslAstHelper.hasAnnotation(superOwnerMethod, OWNER_ANNOTATION))
-                    addCompileWarning(sourceUnit, String.format("%s overrides %s, which might lead to unexpected results", ownerMethod, superOwnerMethod), ownerMethod);
-            }
-
-            ClassNode parameterType = ownerMethod.getParameters()[0].getOriginType();
-
-            methodBody.addStatement(
-                    ifS(
-                            isInstanceOfX(varX("value"), parameterType),
-                            callX(propX(varX("this"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), ownerMethod.getName(), varX("value"))
-                    )
-            );
-        }
-
-        // public since we owner and owned can be in different packages
-        createPublicMethod(SET_OWNERS_METHOD)
-                .param(OBJECT_TYPE, "value")
-                .mod(ACC_SYNTHETIC)
-                .statement(methodBody)
-                .addTo(annotatedClass);
+    private void validateOwnersMethods() {
+        rwClass.getMethods()
+                .stream()
+                .filter(ownerMethod -> DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
+                .filter(ownerMethod -> ownerMethod.getParameters().length != 1)
+                .forEach(ownerMethod -> addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod));
     }
 
     private void createKeyConstructor() {

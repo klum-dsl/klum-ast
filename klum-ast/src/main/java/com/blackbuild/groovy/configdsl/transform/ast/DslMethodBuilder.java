@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.GenericsMethodBuilder;
 import groovy.lang.Closure;
 import groovyjarjarasm.asm.Opcodes;
@@ -44,7 +45,6 @@ import org.codehaus.groovy.ast.tools.GeneralUtils;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.SET_OWNERS_METHOD;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
@@ -123,7 +123,11 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
     }
 
     public DslMethodBuilder setOwners(String target) {
-        return callMethod(varX(target), SET_OWNERS_METHOD, varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS));
+        return callMethod(
+                propX(varX(target), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                "setOwners",
+                varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS)
+        );
     }
 
     public DslMethodBuilder setOwnersIf(String target, boolean apply) {

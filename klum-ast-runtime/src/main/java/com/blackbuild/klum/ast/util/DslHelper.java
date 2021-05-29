@@ -7,6 +7,7 @@ import groovy.lang.MetaProperty;
 import groovy.lang.MissingPropertyException;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -95,14 +96,28 @@ public class DslHelper {
         return result;
     }
 
-    public static List<String> getMethodsAnnotatedWith(Class<?> rwClass, Class<? extends Annotation> annotation) {
-        return getRwHierarchyOf(rwClass)
+    public static List<Method> getMethodsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
+
+        return getDslOrRwHierarchyOf(type)
                 .stream()
                 .map(Class::getDeclaredMethods)
                 .flatMap(array -> Arrays.stream(array).sorted(Comparator.comparing(Method::getName)))
                 .filter(method -> method.isAnnotationPresent(annotation))
-                .map(Method::getName)
-                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    @NotNull
+    private static List<Class<?>> getDslOrRwHierarchyOf(Class<?> type) {
+        return type.isAnnotationPresent(DSL.class) ? getDslHierarchyOf(type) : getRwHierarchyOf(type);
+    }
+
+    public static List<Field> getFieldsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
+
+        return getDslOrRwHierarchyOf(type)
+                .stream()
+                .map(Class::getDeclaredFields)
+                .flatMap(Arrays::stream)
+                .filter(field -> field.isAnnotationPresent(annotation))
                 .collect(Collectors.toList());
     }
 }

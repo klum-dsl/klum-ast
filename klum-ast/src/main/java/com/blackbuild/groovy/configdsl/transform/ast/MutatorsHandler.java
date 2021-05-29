@@ -56,6 +56,9 @@ public class MutatorsHandler {
     }
 
     private List<MethodNode> findAllDeclaredMutatorMethods() {
+        //TODO Don't allow private methods
+        // Simply Make synthetic?
+
         List<MethodNode> mutators = new ArrayList<MethodNode>();
         for (MethodNode method : annotatedClass.getMethods())
             if (DslAstHelper.hasAnnotation(method, MUTATOR_ANNOTATION)
