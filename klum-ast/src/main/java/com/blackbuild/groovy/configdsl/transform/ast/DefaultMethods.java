@@ -30,8 +30,8 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.ElvisOperatorExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.classgen.Verifier;
@@ -134,9 +134,13 @@ public class DefaultMethods {
         return stmt(
                 asExpression(fNode.getType(), new ElvisOperatorExpression(
                         varX(fNode.getName()),
-                        new PropertyExpression(callThisX(delegateGetter), new ConstantExpression(fNode.getName()), true))
-                )
+                        safePropX(callThisX(delegateGetter), fNode.getName())
+                ))
         );
+    }
+
+    private static PropertyExpression safePropX(Expression owner, String property) {
+        return new PropertyExpression(owner, constX(property), true);
     }
 
     private Statement createClosureMethod(FieldNode fNode, ClosureExpression code) {
