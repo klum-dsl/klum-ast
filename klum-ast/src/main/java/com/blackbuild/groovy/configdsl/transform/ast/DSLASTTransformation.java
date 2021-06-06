@@ -1209,14 +1209,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .setOwners("created")
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
-                    .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .callMethod("this", setterName, args("created"))
-                    .doReturn("created")
+                    .doReturn(callX(
+                            varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                            "createSingleChild",
+                            args(
+                                    constX(fieldName),
+                                    varX("typeToCreate"),
+                                    needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL,
+                                    varX("values"),
+                                    varX("closure")
+                            )))
                     .addTo(rwClass);
 
             createMethod(fieldName)
