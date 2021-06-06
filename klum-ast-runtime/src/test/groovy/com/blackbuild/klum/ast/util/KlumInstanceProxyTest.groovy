@@ -17,7 +17,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         ''')
 
         expect:
-        DslHelper.getKeyField(getClass("pk.Bar")).get() == "name"
+        DslHelper.getKeyField(getClass("pk.Bar")).get().getName() == "name"
 
     }
 
@@ -112,4 +112,39 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         instance.name == "myName"
         instance.child == "myChild"
     }
+
+    def "Field can be set via various methods"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String provider
+                
+                @Field(key = { provider })
+                Object viaProvider
+
+                @Field(key = Field.FieldName)
+                Object byFieldName
+                
+                @Field
+                Object noKeyMember
+
+                Object noFieldAnnotation
+            }
+         ''')
+
+        when:
+        instance = newInstanceOf("pk.Foo")
+        instance.provider = "bar"
+        def proxy = new KlumInstanceProxy(instance)
+
+        then:
+        proxy.resolveKeyForFieldFromAnnotation("viaProvider", proxy.getField("viaProvider")).get() == "bar"
+        proxy.resolveKeyForFieldFromAnnotation("byFieldName", proxy.getField("byFieldName")).get() == "byFieldName"
+        !proxy.resolveKeyForFieldFromAnnotation("noKeyMember", proxy.getField("noKeyMember")).isPresent()
+        !proxy.resolveKeyForFieldFromAnnotation("noFieldAnnotation", proxy.getField("noFieldAnnotation")).isPresent()
+    }
+
 }

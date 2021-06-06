@@ -4,12 +4,12 @@ import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
-import groovy.lang.MissingPropertyException;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -20,8 +20,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static java.util.Arrays.stream;
 
 public class DslHelper {
 
@@ -58,12 +56,28 @@ public class DslHelper {
         return result;
     }
 
-    public static Field getField(Class<?> type, String name) {
+    public static Optional<Field> getField(Class<?> type, String name) {
         return getHierarchyOf(type).stream()
                 .map(layer -> getFieldOfHierarchyLayer(layer, name))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .findFirst().orElseThrow(() -> new MissingPropertyException(name, type));
+                .findFirst();
+    }
+
+    public static Optional<Method> getMethod(Class<?> type, String name, Class<?>... args) {
+        return getHierarchyOf(type).stream()
+                .map(layer -> getMethodOfHierarchyLayer(layer, name, args))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+    }
+
+    public static Optional<? extends AnnotatedElement> getFieldOrMethod(Class<?> type, String name, Class<?> argumentType) {
+        Optional<Field> field = getField(type, name);
+        if (field.isPresent())
+            return field;
+
+        return getMethod(type, name, argumentType);
     }
 
     private static Optional<Field> getFieldOfHierarchyLayer(Class<?> layer, String name) {
@@ -75,11 +89,16 @@ public class DslHelper {
         return Optional.empty();
     }
 
-    public static Optional<String> getKeyField(Class<?> type) {
-        return stream(getDslAncestor(type).getDeclaredFields())
-                .filter(field -> field.isAnnotationPresent(Key.class))
-                .map(Field::getName)
-                .findFirst();
+    private static Optional<Method> getMethodOfHierarchyLayer(Class<?> layer, String name, Class<?>[] args) {
+        try {
+            return Optional.of(layer.getMethod(name,args));
+        } catch (NoSuchMethodException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<Field> getKeyField(Class<?> type) {
+        return getFieldsAnnotatedWith(type, Key.class).stream().findFirst();
     }
 
     public static boolean isKeyed(Class<?> type) {

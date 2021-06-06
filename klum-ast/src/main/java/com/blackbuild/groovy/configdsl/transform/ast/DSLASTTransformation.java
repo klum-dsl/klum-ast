@@ -615,14 +615,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFieldDSLMethods() {
-        for (FieldNode fieldNode : annotatedClass.getFields())
-            createDSLMethodsForSingleField(fieldNode);
-        for (MethodNode methodNode : annotatedClass.getMethods()) {
-            if (methodNode.getAnnotations(DSL_FIELD_ANNOTATION).isEmpty())
-                continue;
-
-            createDSLMethodsForVirtualFields(methodNode);
-        }
+        annotatedClass.getFields().forEach(this::createDSLMethodsForSingleField);
+        annotatedClass
+                .getMethods()
+                .stream()
+                .filter(methodNode -> !methodNode.getAnnotations(DSL_FIELD_ANNOTATION).isEmpty())
+                .forEach(this::createDSLMethodsForVirtualFields);
     }
 
     private void createDSLMethodsForVirtualFields(MethodNode methodNode) {
@@ -1177,14 +1175,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .setOwners("created")
-                    .callMethod(propX(varX("created"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
-                    .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .callMethod("this", setterName, args("created"))
-                    .doReturn("created")
+                    .doReturn(callX(
+                            varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                            "createSingleChild",
+                            args(
+                                    constX(fieldName),
+                                    classX(targetFieldType),
+                                    needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL,
+                                    varX("values"),
+                                    varX("closure")
+                            )))
                     .addTo(rwClass);
 
             createMethod(fieldName)

@@ -36,7 +36,7 @@ import static com.blackbuild.groovy.configdsl.transform.TestHelper.*
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 
 @SuppressWarnings("GroovyAssignabilityCheck")
-class fTransformSpec extends AbstractDSLSpec {
+class TransformSpec extends AbstractDSLSpec {
 
     def "apply method is created"() {
         when:
@@ -2096,7 +2096,7 @@ class fTransformSpec extends AbstractDSLSpec {
                 String name
                 
                 @Field
-                void setBar(Bar bar) {
+                void bar(Bar bar) {
                     this.name = bar.name
                 }
             }
@@ -2116,6 +2116,7 @@ class fTransformSpec extends AbstractDSLSpec {
         instance.name == "Hans"
     }
 
+    @Ignore("obsolete")
     def "Annotated non setter methods work for dsl types"() {
         given:
         createClass '''

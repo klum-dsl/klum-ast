@@ -6,12 +6,15 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
+import groovy.lang.MissingPropertyException;
+import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -48,7 +51,7 @@ public class KlumInstanceProxy {
 
     public Object getInstanceAttribute(String attributeName) {
         try {
-            return DslHelper.getField(instance.getClass(), attributeName).get(instance);
+            return getField(attributeName).get(instance);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -56,7 +59,7 @@ public class KlumInstanceProxy {
 
     public void setInstanceAttribute(String name, Object value) {
         try {
-            DslHelper.getField(instance.getClass(), name).set(instance, value);
+            getField(name).set(instance, value);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -87,8 +90,9 @@ public class KlumInstanceProxy {
         return value;
     }
 
-    private Field getField(String name) {
-        return DslHelper.getField(instance.getClass(), name);
+    Field getField(String name) {
+        return DslHelper.getField(instance.getClass(), name)
+                .orElseThrow(() -> new MissingPropertyException(name, instance.getClass()));
     }
 
     public Object apply(Map<String, Object> values, Closure<?> body) {
@@ -109,12 +113,12 @@ public class KlumInstanceProxy {
     }
 
     public Object getKey() {
-        Optional<String> keyField = DslHelper.getKeyField(instance.getClass());
+        Optional<Field> keyField = DslHelper.getKeyField(instance.getClass());
 
         if (!keyField.isPresent())
             throw new AssertionError();
 
-        return instance.getProperty(keyField.get());
+        return instance.getProperty(keyField.get().getName());
     }
 
     public void postCreate() {
@@ -157,6 +161,54 @@ public class KlumInstanceProxy {
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> getRwInstance().invokeMethod(method, value));
+    }
+
+    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
+        Optional<? extends AnnotatedElement> field = DslHelper.getField(instance.getClass(), fieldOrMethodName);
+        if (!field.isPresent())
+            field = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
+
+        String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, field.get()).orElse(key);
+        T created = (T) InvokerHelper.invokeConstructorOf(type, effectiveKey);;
+        KlumInstanceProxy createdProxy = getProxyFor(created);
+        createdProxy.copyFromTemplate();
+        createdProxy.setOwners(instance);
+        createdProxy.postCreate();
+        createdProxy.apply(values, body);
+        if (field.get() instanceof Field)
+            setInstanceAttribute(fieldOrMethodName, created);
+        else
+            invokeRwMethod(fieldOrMethodName, created);
+        return created;
+    }
+
+    public Object invokeMethod(String methodName, Object... args) {
+        return InvokerHelper.invokeMethod(instance, methodName, args);
+    }
+
+    public Object invokeRwMethod(String methodName, Object... args) {
+        return InvokerHelper.invokeMethod(getRwInstance(), methodName, args);
+    }
+
+    public void copyFromTemplate() {
+        getRwInstance().invokeMethod("copyFromTemplate", null);
+    }
+
+    Optional<String> resolveKeyForFieldFromAnnotation(String name, AnnotatedElement field) {
+        com.blackbuild.groovy.configdsl.transform.Field annotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+
+        if (annotation == null)
+            return Optional.empty();
+
+        Class<?> keyMember = annotation.key();
+
+        if (keyMember == Undefined.class)
+            return Optional.empty();
+
+        if (keyMember == com.blackbuild.groovy.configdsl.transform.Field.FieldName.class)
+            return Optional.of(name);
+
+        return Optional.of(ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<String>>) keyMember, instance, instance));
     }
 
 
