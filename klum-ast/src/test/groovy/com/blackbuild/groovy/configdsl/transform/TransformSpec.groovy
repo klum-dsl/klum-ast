@@ -2075,7 +2075,7 @@ class TransformSpec extends AbstractDSLSpec {
                 Date date
                 
                 @Field
-                void setDate(long value) {
+                void date(long value) {
                     this.date = new Date(value)
                 }
             }
@@ -2089,7 +2089,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.date != null
     }
 
-    def "Annotated setters work for dsl types"() {
+    def "Annotated setters work for dsl types as creators"() {
         given:
         createClass '''
             @DSL class Foo {
@@ -2114,6 +2114,33 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.name == "Hans"
+    }
+
+    def "Annotated setters work for dsl types as setters"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void bar(Bar bar) {
+                    this.name = bar.name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        def theBar = getClass("Bar").create { name 'Franz'}
+
+        instance = clazz.create {
+            bar theBar
+        }
+
+        then:
+        instance.name == "Franz"
     }
 
     @Ignore("obsolete")

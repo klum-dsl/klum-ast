@@ -81,7 +81,7 @@ class PropertyAccessors {
                 .addTo(dslastTransformation.annotatedClass);
 
         createMethod(setterName)
-                .mod(DSLASTTransformation.isProtected(pNode.getField()) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC)
+                .mod(DslAstHelper.isProtected(pNode.getField()) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(fieldType, "value")
                 .statement(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))

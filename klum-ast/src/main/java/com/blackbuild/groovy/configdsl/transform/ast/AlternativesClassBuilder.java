@@ -164,7 +164,7 @@ class AlternativesClassBuilder {
     }
 
     private boolean fieldNodeIsNoLink() {
-        return fieldNode.getNodeMetaData(DSLASTTransformation.FIELD_TYPE_METADATA) != FieldType.LINK;
+        return DslAstHelper.getFieldType(fieldNode) != FieldType.LINK;
     }
 
     private void delegateDefaultCreationMethodsToOuterInstance() {

@@ -177,4 +177,14 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return param(CLASSLOADER_TYPE, "loader", callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"));
     }
 
+    public DslMethodBuilder linkToField(AnnotatedNode annotatedNode) {
+        return inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
+    }
+
+    public DslMethodBuilder inheritDeprecationFrom(AnnotatedNode annotatedNode) {
+        if (!annotatedNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
+            return deprecated();
+        }
+        return this;
+    }
 }

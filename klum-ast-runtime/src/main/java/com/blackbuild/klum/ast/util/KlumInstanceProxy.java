@@ -6,6 +6,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
+import groovy.lang.GroovyRuntimeException;
 import groovy.lang.MissingPropertyException;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
@@ -21,6 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
@@ -164,23 +166,31 @@ public class KlumInstanceProxy {
     }
 
     public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
-        Optional<? extends AnnotatedElement> field = DslHelper.getField(instance.getClass(), fieldOrMethodName);
-        if (!field.isPresent())
-            field = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
+        Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
+        if (!fieldOrMethod.isPresent()) {
+            fieldOrMethod = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
+        }
 
-        String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, field.get()).orElse(key);
+        if (!fieldOrMethod.isPresent())
+            throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
+
+        String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
         T created = (T) InvokerHelper.invokeConstructorOf(type, effectiveKey);;
         KlumInstanceProxy createdProxy = getProxyFor(created);
         createdProxy.copyFromTemplate();
         createdProxy.setOwners(instance);
         createdProxy.postCreate();
         createdProxy.apply(values, body);
-        if (field.get() instanceof Field)
+        if (fieldOrMethod.get() instanceof Field)
             setInstanceAttribute(fieldOrMethodName, created);
         else
             invokeRwMethod(fieldOrMethodName, created);
         return created;
     }
+
+//    public <T> T setField(String fieldName, T value) {
+//
+//    }
 
     public Object invokeMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(instance, methodName, args);

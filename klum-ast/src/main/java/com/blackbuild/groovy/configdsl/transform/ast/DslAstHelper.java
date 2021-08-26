@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
@@ -365,5 +366,13 @@ public class DslAstHelper {
 
     static boolean isDslCollection(FieldNode fieldNode) {
         return isCollection(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[0].getType());
+    }
+
+    public static FieldType getFieldType(AnnotatedNode annotatedNode) {
+        return CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(annotatedNode, DSLASTTransformation.DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
+    }
+
+    static boolean isProtected(AnnotatedNode annotatedNode) {
+        return getFieldType(annotatedNode) == FieldType.PROTECTED;
     }
 }
