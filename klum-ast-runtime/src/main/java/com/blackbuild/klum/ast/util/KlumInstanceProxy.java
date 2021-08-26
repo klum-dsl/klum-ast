@@ -175,7 +175,7 @@ public class KlumInstanceProxy {
             throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
 
         String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
-        T created = (T) InvokerHelper.invokeConstructorOf(type, effectiveKey);;
+        T created = (T) InvokerHelper.invokeConstructorOf(type, effectiveKey);
         KlumInstanceProxy createdProxy = getProxyFor(created);
         createdProxy.copyFromTemplate();
         createdProxy.setOwners(instance);

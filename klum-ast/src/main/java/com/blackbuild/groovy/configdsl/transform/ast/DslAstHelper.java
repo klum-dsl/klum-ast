@@ -81,7 +81,7 @@ public class DslAstHelper {
     }
 
     public static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(ClassNode target) {
-        return getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
+        return getHierarchyOfDSLObjectAncestors(new LinkedList<>(), target);
     }
 
     private static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
@@ -226,7 +226,7 @@ public class DslAstHelper {
     }
 
     static List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
+        List<FieldNode> result = new ArrayList<>();
 
         for (ClassNode level : DslAstHelper.getHierarchyOfDSLObjectAncestors(target)) {
             result.addAll(getAnnotatedFieldsOfClass(level, annotation));
@@ -236,7 +236,7 @@ public class DslAstHelper {
     }
 
     private static List<FieldNode> getAnnotatedFieldsOfClass(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
+        List<FieldNode> result = new ArrayList<>();
 
         for (FieldNode fieldNode : target.getFields())
             if (!fieldNode.getAnnotations(annotation).isEmpty())

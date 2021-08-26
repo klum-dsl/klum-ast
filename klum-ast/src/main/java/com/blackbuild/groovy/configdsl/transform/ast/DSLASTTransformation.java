@@ -516,7 +516,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void assertMembersNamesAreUnique() {
-        Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<String, FieldNode>();
+        Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<>();
 
         for (ClassNode level : DslAstHelper.getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             for (FieldNode field : level.getFields()) {

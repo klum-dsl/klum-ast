@@ -26,7 +26,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 class PropertyAccessors {
     private final DSLASTTransformation dslastTransformation;
-    private final List<PropertyNode> propertiesToReplace = new ArrayList<>();;
+    private final List<PropertyNode> propertiesToReplace = new ArrayList<>();
 
     public PropertyAccessors(DSLASTTransformation dslastTransformation) {
         this.dslastTransformation = dslastTransformation;

@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.common.CommonAstHelper;
+import com.blackbuild.klum.common.GenericsMethodBuilder;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -120,7 +121,7 @@ class AlternativesClassBuilder {
             return Collections.emptyMap();
         }
 
-        Map<ClassNode, String> result = new HashMap<ClassNode, String>();
+        Map<ClassNode, String> result = new HashMap<>();
 
         for (MapEntryExpression entry : map.getMapEntryExpressions()) {
             String methodName = CommonAstHelper.getKeyStringFromLiteralMapEntry(entry, fieldNode);
@@ -177,7 +178,7 @@ class AlternativesClassBuilder {
         String factoryMethod = fieldNode.getName();
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, GenericsMethodBuilder.ClosureDefaultValue.NONE)
                 .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
                         propX(varX("closure"), "resolveStrategy"),
@@ -189,7 +190,7 @@ class AlternativesClassBuilder {
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .param(newClass(MAP_TYPE), "templateMap")
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, GenericsMethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
                                 elementType,
@@ -202,7 +203,7 @@ class AlternativesClassBuilder {
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .param(elementType, "template")
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, GenericsMethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
                                 elementType,
