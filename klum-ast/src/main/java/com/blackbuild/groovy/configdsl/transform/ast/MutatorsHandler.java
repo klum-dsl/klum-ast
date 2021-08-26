@@ -28,10 +28,10 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.moveMethodFromModelToRWClass;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Helper class to move mutators to RW class.
@@ -40,9 +40,14 @@ public class MutatorsHandler {
 
     public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     private final ClassNode annotatedClass;
+    private static final List<ClassNode> MUTATOR_ANNOTATIONS = Arrays.asList(MUTATOR_ANNOTATION, DSLASTTransformation.DSL_FIELD_ANNOTATION, DSLASTTransformation.OWNER_ANNOTATION);
 
     MutatorsHandler(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
+    }
+
+    private static boolean isMutatorMethod(MethodNode method) {
+        return MUTATOR_ANNOTATIONS.stream().anyMatch(classNode -> DslAstHelper.hasAnnotation(method, classNode));
     }
 
     public void invoke() {
@@ -51,22 +56,14 @@ public class MutatorsHandler {
     }
 
     private void moveAllDeclaredMutatorMethodsToRWClass() {
-        for (MethodNode method : findAllDeclaredMutatorMethods())
-            moveMethodFromModelToRWClass(method);
+        findAllDeclaredMutatorMethods().forEach(DslAstHelper::moveMethodFromModelToRWClass);
     }
 
     private List<MethodNode> findAllDeclaredMutatorMethods() {
         //TODO Don't allow private methods
         // Simply Make synthetic?
 
-        List<MethodNode> mutators = new ArrayList<MethodNode>();
-        for (MethodNode method : annotatedClass.getMethods())
-            if (DslAstHelper.hasAnnotation(method, MUTATOR_ANNOTATION)
-                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.DSL_FIELD_ANNOTATION)
-                    || DslAstHelper.hasAnnotation(method, DSLASTTransformation.OWNER_ANNOTATION)
-            )
-                mutators.add(method);
-        return mutators;
+        return annotatedClass.getMethods().stream().filter(MutatorsHandler::isMutatorMethod).collect(toList());
     }
 
     //    static class ReplaceDirectAccessWithSettersVisitor extends CodeVisitorSupport {
