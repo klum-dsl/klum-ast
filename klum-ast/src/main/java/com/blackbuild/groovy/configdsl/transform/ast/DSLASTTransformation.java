@@ -63,7 +63,6 @@ import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
-import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -679,7 +678,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         String fieldName = fieldNode.getName();
-        String setterName = "set" + Verifier.capitalize(fieldName);
+        String setterName = DslAstHelper.getSetterName(fieldName);
 
         createMethod(fieldName)
                 .optional()

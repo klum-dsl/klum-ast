@@ -40,6 +40,7 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -374,5 +375,17 @@ public class DslAstHelper {
 
     static boolean isProtected(AnnotatedNode annotatedNode) {
         return getFieldType(annotatedNode) == FieldType.PROTECTED;
+    }
+
+    static String getGetterName(String fieldName) {
+        return "get" + Verifier.capitalize(fieldName);
+    }
+
+    static String getBooleanGetterName(String fieldName) {
+        return "is" + Verifier.capitalize(fieldName);
+    }
+
+    static String getSetterName(String fieldName) {
+        return "set" + Verifier.capitalize(fieldName);
     }
 }

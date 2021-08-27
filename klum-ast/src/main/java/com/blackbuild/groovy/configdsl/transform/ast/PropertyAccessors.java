@@ -6,11 +6,11 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.PropertyNode;
-import org.codehaus.groovy.classgen.Verifier;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
@@ -50,9 +50,8 @@ class PropertyAccessors {
         String fieldName = pNode.getName();
         ClassNode fieldType = pNode.getType();
 
-        String capitalizedFieldName = Verifier.capitalize(fieldName);
-        String getterName = "get" + capitalizedFieldName;
-        String setterName = "set" + capitalizedFieldName;
+        String getterName = getGetterName(fieldName);
+        String setterName = DslAstHelper.getSetterName(fieldName);
         String rwSetterName = setterName + "$rw";
 
         pNode.setGetterBlock(stmt(
@@ -96,7 +95,7 @@ class PropertyAccessors {
     }
 
     private void setAccessorsForKeyField() {
-        String keyGetter = "get" + Verifier.capitalize(dslastTransformation.keyField.getName());
+        String keyGetter = getGetterName(dslastTransformation.keyField.getName());
         createPublicMethod(keyGetter)
                 .returning(dslastTransformation.keyField.getType())
                 .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
@@ -109,7 +108,7 @@ class PropertyAccessors {
         ownerProperty.setSetterBlock(null);
         ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
 
-        String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
+        String ownerGetter = getGetterName(ownerFieldName);
         createPublicMethod(ownerGetter)
                 .returning(ownerField.getType())
                 .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))

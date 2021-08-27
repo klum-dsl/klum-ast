@@ -188,10 +188,6 @@ public class KlumInstanceProxy {
         return created;
     }
 
-//    public <T> T setField(String fieldName, T value) {
-//
-//    }
-
     public Object invokeMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(instance, methodName, args);
     }

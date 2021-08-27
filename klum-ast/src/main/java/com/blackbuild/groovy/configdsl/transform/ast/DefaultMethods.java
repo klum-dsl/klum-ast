@@ -34,8 +34,8 @@ import org.codehaus.groovy.ast.expr.ElvisOperatorExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.classgen.Verifier;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
@@ -79,12 +79,12 @@ public class DefaultMethods {
 
             if (defaultAnnotation != null) {
                 Statement getterCode = createDefaultValueFor(fNode, defaultAnnotation);
-                MethodNode getter = transformation.annotatedClass.getGetterMethod("get" + Verifier.capitalize(fNode.getName()));
+                MethodNode getter = transformation.annotatedClass.getGetterMethod(getGetterName(fNode.getName()));
 
                 getter.setCode(getterCode);
 
                 if (ClassHelper.boolean_TYPE == fNode.getType() || ClassHelper.Boolean_TYPE == fNode.getType()) {
-                    MethodNode secondGetter = transformation.annotatedClass.getGetterMethod("is" + Verifier.capitalize(fNode.getName()));
+                    MethodNode secondGetter = transformation.annotatedClass.getGetterMethod(DslAstHelper.getBooleanGetterName(fNode.getName()));
                     secondGetter.setCode(getterCode);
                 }
             }
@@ -158,10 +158,6 @@ public class DefaultMethods {
     private Statement createFieldMethod(FieldNode fNode, String targetField) {
         String fieldGetter = getGetterName(targetField);
         return stmt(asExpression(fNode.getType(), new ElvisOperatorExpression(varX(fNode.getName()), callThisX(fieldGetter))));
-    }
-
-    private String getGetterName(String property) {
-        return "get" + Verifier.capitalize(property);
     }
 
     private void assertOnlyOneMemberOfAnnotationIsSet(AnnotationNode annotationNode) {
