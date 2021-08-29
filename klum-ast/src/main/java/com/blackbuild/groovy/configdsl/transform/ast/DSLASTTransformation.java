@@ -293,9 +293,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
 
-        // Need to explicitly add this field for non static inner classes (Groovy Bug?)
         rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
-
 
         BlockStatement block = new BlockStatement();
         if (parentRW != null)
@@ -847,14 +845,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
-                .callMethod(
-                        callX(
-                                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                                "getInstanceAttribute",
-                                args(constX(fieldName))
-                        ), "add", varX("value"))
-                .setOwners("value")
-                .doReturn("value")
+                .delegateToProxy("addElementToCollection", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -1310,7 +1301,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createPublicMethod(CREATE_FROM_CLASSPATH)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
+                .doReturn(callX(FACTORY_HELPER, CREATE_FROM_CLASSPATH, classX(annotatedClass)))
                 .addTo(annotatedClass);
     }
 
