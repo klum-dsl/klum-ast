@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
@@ -181,11 +182,22 @@ public class KlumInstanceProxy {
         createdProxy.setOwners(instance);
         createdProxy.postCreate();
         createdProxy.apply(values, body);
-        if (fieldOrMethod.get() instanceof Field)
-            setInstanceAttribute(fieldOrMethodName, created);
-        else
-            invokeRwMethod(fieldOrMethodName, created);
+        callSetterOrMethod(fieldOrMethodName, created);
         return created;
+    }
+
+    public <T> T setSingleField(String fieldOrMethodName, T value) {
+        if (value != null && isDslType(value.getClass()))
+            getProxyFor(value).setOwners(instance);
+        callSetterOrMethod(fieldOrMethodName, value);
+        return value;
+    }
+
+    private void callSetterOrMethod(String fieldOrMethodName, Object value) {
+        if (DslHelper.getField(instance.getClass(), fieldOrMethodName).isPresent())
+            setInstanceAttribute(fieldOrMethodName, value);
+        else
+            invokeRwMethod(fieldOrMethodName, value);
     }
 
     public Object invokeMethod(String methodName, Object... args) {

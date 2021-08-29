@@ -46,6 +46,7 @@ import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
@@ -120,6 +121,14 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
 
     private DslMethodBuilder callValidationMethodOn(Expression targetX) {
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
+    }
+
+    public DslMethodBuilder delegateToProxy(String methodName, Expression... args) {
+        return doReturn(callX(
+                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                methodName,
+                args(args)
+        ));
     }
 
     public DslMethodBuilder setOwners(String target) {
