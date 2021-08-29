@@ -74,6 +74,7 @@ public class DslAstHelper {
     private DslAstHelper() {}
 
     public static boolean isDSLObject(ClassNode classNode) {
+        if (classNode == null) return false;
         return CommonAstHelper.getAnnotation(classNode, DSLASTTransformation.DSL_CONFIG_ANNOTATION) != null;
     }
 

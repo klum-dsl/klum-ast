@@ -168,15 +168,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
-    public static final String SETTER_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".settername";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
-    public static final String FIELD_TYPE_METADATA = FieldType.class.getName();
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
-    public static final String SET_OWNERS_METHOD = "set$owner";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -255,9 +252,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void checkFieldNames() {
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            warnIfInvalid(fieldNode);
-        }
+        annotatedClass.getFields().forEach(this::warnIfInvalid);
     }
 
     private void warnIfInvalid(FieldNode fieldNode) {
@@ -265,6 +260,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
+    @Deprecated
     private void addDirectGettersForKeyField() {
         if (keyField == null)
             return;
@@ -346,9 +342,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        if (dslParent == null)
-            return null;
-
         return DslAstHelper.getRwClassOf(dslParent);
     }
 
@@ -618,7 +611,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass
                 .getMethods()
                 .stream()
-                .filter(methodNode -> !methodNode.getAnnotations(DSL_FIELD_ANNOTATION).isEmpty())
+                .filter(methodNode -> DslAstHelper.hasAnnotation(methodNode, DSL_FIELD_ANNOTATION))
                 .forEach(this::createDSLMethodsForVirtualFields);
     }
 
@@ -668,7 +661,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private boolean isOwnerField(FieldNode fieldNode) {
-        return !fieldNode.getAnnotations(OWNER_ANNOTATION).isEmpty();
+        return DslAstHelper.hasAnnotation(fieldNode, OWNER_ANNOTATION);
     }
 
     private boolean isKeyField(FieldNode fieldNode) {
@@ -685,15 +678,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .decoratedParam(fieldNode, fieldNode.getType(), "value")
-                .delegateToProxy("setSingleField", constX(fieldName), varX("value"))
+                .delegateToProxyReturning("setSingleField", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
             createMethod(fieldName)
                     .optional()
+                    .returning(Boolean_TYPE)
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .callThis(fieldName, constX(true))
+                    .delegateToProxyReturning("setSingleField", constX(fieldName), constX(true))
                     .addTo(rwClass);
         }
 
@@ -720,28 +714,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         String elementName = getElementNameForCollectionField(fieldNode);
-        createMethod(fieldNode.getName())
+        String fieldName = fieldNode.getName();
+        createMethod(fieldName)
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .arrayParam(elementType, "values")
-                .forS(
-                    param(elementType, "$value"),
-                    "values",
-                    stmt(callThisX(elementName, varX("$value")))
-                )
+                .delegateToProxy("addElementsToCollection", constX(fieldName), varX("values"))
                 .addTo(rwClass);
 
-        createMethod(fieldNode.getName())
+        createMethod(fieldName)
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
-                .forS(
-                    param(elementType, "$value"),
-                    "values",
-                    stmt(callThisX(elementName, varX("$value")))
-                )
+                .delegateToProxy("addElementsToCollection", constX(fieldName), varX("values"))
                 .addTo(rwClass);
 
         createMethod(elementName)
@@ -750,8 +737,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(elementType)
                 .linkToField(fieldNode)
                 .param(elementType, "value")
-                .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
-                .doReturn("value")
+                .delegateToProxyReturning("addElementToCollection", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, elementName, false);
@@ -1145,7 +1131,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .delegateToProxy("createSingleChild",
+                    .delegateToProxyReturning("createSingleChild",
                                     constX(fieldName),
                                     classX(targetFieldType),
                                     needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL,
@@ -1176,7 +1162,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
-                    .delegateToProxy("createSingleChild",
+                    .delegateToProxyReturning("createSingleChild",
                             constX(fieldName),
                             varX("typeToCreate"),
                             needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL,

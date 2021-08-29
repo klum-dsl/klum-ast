@@ -18,6 +18,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -187,10 +188,14 @@ public class KlumInstanceProxy {
     }
 
     public <T> T setSingleField(String fieldOrMethodName, T value) {
-        if (value != null && isDslType(value.getClass()))
-            getProxyFor(value).setOwners(instance);
+        setInstanceAsOwnerFor(value);
         callSetterOrMethod(fieldOrMethodName, value);
         return value;
+    }
+
+    private void setInstanceAsOwnerFor(Object value) {
+        if (value != null && isDslType(value.getClass()))
+            getProxyFor(value).setOwners(instance);
     }
 
     private void callSetterOrMethod(String fieldOrMethodName, Object value) {
@@ -198,6 +203,24 @@ public class KlumInstanceProxy {
             setInstanceAttribute(fieldOrMethodName, value);
         else
             invokeRwMethod(fieldOrMethodName, value);
+    }
+
+    public <T> T addElementToCollection(String fieldName, T element) {
+        setInstanceAsOwnerFor(element);
+        Class<?> elementType = DslHelper.getElementType(instance.getClass(), fieldName);
+        // Closures need to explicitly be cast to target types
+        if (element instanceof Closure)
+            element = (T) InvokerHelper.invokeMethod(element, "asType", elementType);
+        InvokerHelper.invokeMethod(getInstanceAttribute(fieldName), "add", element);
+        return element;
+    }
+
+    public void addElementsToCollection(String fieldName, Object... elements) {
+        Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
+    }
+
+    public void addElementsToCollection(String fieldName, Iterable<?> elements) {
+        elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
     public Object invokeMethod(String methodName, Object... args) {

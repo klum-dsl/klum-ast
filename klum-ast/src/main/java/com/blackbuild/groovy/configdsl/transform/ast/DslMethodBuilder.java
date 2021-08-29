@@ -123,12 +123,20 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
-    public DslMethodBuilder delegateToProxy(String methodName, Expression... args) {
+    public DslMethodBuilder delegateToProxyReturning(String methodName, Expression... args) {
         return doReturn(callX(
                 varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
                 methodName,
                 args(args)
         ));
+    }
+
+    public DslMethodBuilder delegateToProxy(String methodName, Expression... args) {
+        return callMethod(
+                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                methodName,
+                args(args)
+        );
     }
 
     public DslMethodBuilder setOwners(String target) {

@@ -4,6 +4,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
+import groovy.lang.MissingFieldException;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +13,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +56,16 @@ public class DslHelper {
             type = type.getSuperclass();
         }
         return result;
+    }
+
+    public static Class<?> getElementType(Class<?> type, String name) {
+        Optional<Field> field = getField(type, name);
+        if (!field.isPresent())
+            throw new MissingFieldException(name,type);
+        Type genericType = field.get().getGenericType();
+        ParameterizedType parameterizedType = (ParameterizedType) genericType;
+        Type[] typeArguments = parameterizedType.getActualTypeArguments();
+        return (Class<?>) typeArguments[typeArguments.length - 1];
     }
 
     public static Optional<Field> getField(Class<?> type, String name) {
