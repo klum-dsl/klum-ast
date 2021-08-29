@@ -73,7 +73,7 @@ public class FactoryHelper {
     }
 
     public static <T> T create(Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
-        T result = (T) InvokerHelper.invokeConstructorOf(type, key);
+        T result = createInstance(type, key);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         Object rwInstance = proxy.getRwInstance();
         InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
@@ -84,6 +84,11 @@ public class FactoryHelper {
             proxy.validate();
 
         return result;
+    }
+
+    static <T> T createInstance(Class<T> type, String key) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, key);
     }
 
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {

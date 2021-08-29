@@ -167,7 +167,7 @@ public class KlumInstanceProxy {
                 .forEach(method -> getRwInstance().invokeMethod(method, value));
     }
 
-    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
+    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> namedParams, Closure<?> body) {
         Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
         if (!fieldOrMethod.isPresent()) {
             fieldOrMethod = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
@@ -182,7 +182,7 @@ public class KlumInstanceProxy {
         createdProxy.copyFromTemplate();
         createdProxy.setOwners(instance);
         createdProxy.postCreate();
-        createdProxy.apply(values, body);
+        createdProxy.apply(namedParams, body);
         callSetterOrMethod(fieldOrMethodName, created);
         return created;
     }
@@ -213,6 +213,16 @@ public class KlumInstanceProxy {
             element = (T) InvokerHelper.invokeMethod(element, "asType", elementType);
         InvokerHelper.invokeMethod(getInstanceAttribute(fieldName), "add", element);
         return element;
+    }
+
+    public <T> T addDslElementToCollection(String collectionName, Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
+        T created = FactoryHelper.createInstance(type,key);
+        KlumInstanceProxy createdProxy = getProxyFor(created);
+        createdProxy.copyFromTemplate();
+        addElementToCollection(collectionName, created);
+        createdProxy.postCreate();
+        createdProxy.apply(namedParams, body);
+        return created;
     }
 
     public void addElementsToCollection(String fieldName, Object... elements) {
