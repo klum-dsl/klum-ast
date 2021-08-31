@@ -765,7 +765,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .delegateToProxyReturning("addDslElementToCollection",
+                        .delegateToProxyReturning(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
                                 constX(fieldName),
                                 classX(elementType),
                                 fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL,
@@ -781,7 +781,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .delegateToProxyReturning("addDslElementToCollection",
+                        .delegateToProxyReturning(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
                                 constX(fieldName),
                                 classX(elementType),
                                 fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL,
@@ -801,7 +801,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .delegateToProxyReturning("addDslElementToCollection",
+                        .delegateToProxyReturning(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
                                 constX(fieldName),
                                 varX("typeToCreate"),
                                 fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL,
@@ -817,7 +817,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .delegateToProxyReturning("addDslElementToCollection",
+                        .delegateToProxyReturning(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
                                 constX(fieldName),
                                 varX("typeToCreate"),
                                 fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL,

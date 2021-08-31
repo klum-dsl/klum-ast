@@ -167,7 +167,7 @@ public class KlumInstanceProxy {
                 .forEach(method -> getRwInstance().invokeMethod(method, value));
     }
 
-    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> namedParams, Closure<?> body) {
+    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
         Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
         if (!fieldOrMethod.isPresent()) {
             fieldOrMethod = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
@@ -177,20 +177,13 @@ public class KlumInstanceProxy {
             throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
 
         String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
-        T created = (T) InvokerHelper.invokeConstructorOf(type, effectiveKey);
-        KlumInstanceProxy createdProxy = getProxyFor(created);
-        createdProxy.copyFromTemplate();
-        createdProxy.setOwners(instance);
-        createdProxy.postCreate();
-        createdProxy.apply(namedParams, body);
-        callSetterOrMethod(fieldOrMethodName, created);
-        return created;
+        T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
+        return callSetterOrMethod(fieldOrMethodName, created);
     }
 
     public <T> T setSingleField(String fieldOrMethodName, T value) {
         setInstanceAsOwnerFor(value);
-        callSetterOrMethod(fieldOrMethodName, value);
-        return value;
+        return callSetterOrMethod(fieldOrMethodName, value);
     }
 
     private void setInstanceAsOwnerFor(Object value) {
@@ -198,15 +191,15 @@ public class KlumInstanceProxy {
             getProxyFor(value).setOwners(instance);
     }
 
-    private void callSetterOrMethod(String fieldOrMethodName, Object value) {
+    private <T> T callSetterOrMethod(String fieldOrMethodName, T value) {
         if (DslHelper.getField(instance.getClass(), fieldOrMethodName).isPresent())
             setInstanceAttribute(fieldOrMethodName, value);
         else
             invokeRwMethod(fieldOrMethodName, value);
+        return value;
     }
 
-    public <T> T addElementToCollection(String fieldName, T element) {
-        setInstanceAsOwnerFor(element);
+    private <T> T doAddElementToCollection(String fieldName, T element) {
         Class<?> elementType = DslHelper.getElementType(instance.getClass(), fieldName);
         // Closures need to explicitly be cast to target types
         if (element instanceof Closure)
@@ -215,11 +208,23 @@ public class KlumInstanceProxy {
         return element;
     }
 
-    public <T> T addDslElementToCollection(String collectionName, Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
-        T created = FactoryHelper.createInstance(type,key);
+    public <T> T addElementToCollection(String fieldName, T element) {
+        setInstanceAsOwnerFor(element);
+        return doAddElementToCollection(fieldName, element);
+    }
+
+    public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
+
+    public <T> T addNewDslElementToCollection(String collectionName, Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
+        T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
+        return doAddElementToCollection(collectionName, created);
+    }
+
+    private <T> T createNewInstanceFromParamsAndClosure(Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
+        T created = FactoryHelper.createInstance(type, key);
         KlumInstanceProxy createdProxy = getProxyFor(created);
         createdProxy.copyFromTemplate();
-        addElementToCollection(collectionName, created);
+        createdProxy.setOwners(instance);
         createdProxy.postCreate();
         createdProxy.apply(namedParams, body);
         return created;
