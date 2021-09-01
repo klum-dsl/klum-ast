@@ -8,6 +8,7 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyRuntimeException;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
@@ -23,6 +24,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -236,6 +238,15 @@ public class KlumInstanceProxy {
 
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
         elements.forEach(element -> addElementToCollection(fieldName, element));
+    }
+
+    public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
+    public void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = getElementType(instance.getClass(), fieldName);
+        Arrays.stream(scripts).forEach(script -> addElementToCollection(
+                fieldName,
+                InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
+        );
     }
 
     public Object invokeMethod(String methodName, Object... args) {

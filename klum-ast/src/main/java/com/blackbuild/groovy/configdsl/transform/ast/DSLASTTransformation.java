@@ -832,10 +832,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .forS(
-                            param(CLASS_Type, "script"),
-                            "scripts",
-                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
+                    .delegateToProxy(KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION,
+                            constX(fieldName),
+                            varX("scripts")
                     )
                     .addTo(rwClass);
 
