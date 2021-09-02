@@ -44,7 +44,7 @@ import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
@@ -204,7 +204,7 @@ class TemplateMethods {
     }
 
     private void copyFromMethod() {
-        DslMethodBuilder templateApply = createPublicMethod("copyFrom")
+        MethodBuilder templateApply = createPublicMethod("copyFrom")
                 // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
                 // see DefaultValuesSpec."template for parent class affects child instances"()
                 .param(newClass(dslAncestor), "template");
@@ -257,7 +257,7 @@ class TemplateMethods {
     }
 
     private void copyFromTemplateMethod() {
-        DslMethodBuilder
+        MethodBuilder
                 .createProtectedMethod(COPY_FROM_TEMPLATE)
                 .mod(ACC_SYNTHETIC)
                 .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
@@ -280,7 +280,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .namedParams("values")
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
                 .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
                 .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
@@ -293,7 +293,7 @@ class TemplateMethods {
         createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args(new MapExpression(), varX("closure"))))
                 .addTo(annotatedClass);
     }
@@ -327,7 +327,7 @@ class TemplateMethods {
                 .mod(Opcodes.ACC_STATIC)
                 .namedParams("values")
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .declareVariable("result", keyField != null ? ctorX(templateClass, args("name")) : ctorX(templateClass))
                 .callMethod("result", "apply", args("values", "closure"))
                 .doReturn("result")
@@ -337,7 +337,7 @@ class TemplateMethods {
                 .returning(newClass(annotatedClass))
                 .mod(Opcodes.ACC_STATIC)
                 .optionalStringParam("name", keyField)
-                .delegatingClosureParam(rwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(templateClass, "create",
                         keyField != null ?
                                 args(new MapExpression(), varX("name"), varX("closure"))

@@ -30,10 +30,10 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
+import com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.ClosureDefaultValue;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
-import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
@@ -88,9 +88,11 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwne
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethodFromClosure;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
@@ -105,7 +107,6 @@ import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrM
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
-import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
@@ -307,7 +308,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 block
         );
 
-        DslMethodBuilder.createProtectedMethod("get$proxy")
+        MethodBuilder.createProtectedMethod("get$proxy")
                 .returning(make(KlumInstanceProxy.class))
                 .doReturn(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
                 .addTo(rwClass);
@@ -772,7 +773,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE).delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args)
+                        .delegatingClosureParam(elementRwType, EMPTY_CLOSURE).delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args)
                         .addTo(rwClass);
             }
 

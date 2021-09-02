@@ -36,7 +36,7 @@ import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createProtectedMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.make;

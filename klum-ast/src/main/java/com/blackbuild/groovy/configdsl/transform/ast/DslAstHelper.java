@@ -49,7 +49,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;

@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createProtectedMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;

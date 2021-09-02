@@ -35,7 +35,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getAllMethods;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;

@@ -1,7 +1,7 @@
-/**
+/*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2017 Stephan Pauxberger
+ * Copyright (c) 2015-2019 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,11 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.common;
+package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -33,6 +38,7 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
@@ -48,6 +54,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
@@ -56,6 +64,8 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
@@ -64,27 +74,176 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
-@SuppressWarnings("unchecked")
-public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
+public final class MethodBuilder {
 
+    public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
+    public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
+    public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
     public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
     private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
     private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
     protected String name;
-    protected Map<Object, Object> metadata = new HashMap<Object, Object>();
+    protected Map<Object, Object> metadata = new HashMap<>();
+
+    boolean hasReturnType = false;
     private int modifiers;
     private ClassNode returnType = ClassHelper.VOID_TYPE;
-    private List<ClassNode> exceptions = new ArrayList<ClassNode>();
-    private List<Parameter> parameters = new ArrayList<Parameter>();
+    private List<ClassNode> exceptions = new ArrayList<>();
+    private List<Parameter> parameters = new ArrayList<>();
     private boolean deprecated;
     private BlockStatement body = new BlockStatement();
     private boolean optional;
     private ASTNode sourceLinkTo;
 
-    protected GenericsMethodBuilder(String name) {
+    private MethodBuilder(String name) {
         this.name = name;
+    }
+
+    public static MethodBuilder createMethod(String name) {
+        return new MethodBuilder(name);
+    }
+
+    public static MethodBuilder createPublicMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC);
+    }
+
+    public static MethodBuilder createOptionalPublicMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PUBLIC).optional();
+    }
+
+    public static MethodBuilder createProtectedMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PROTECTED);
+    }
+
+    public static MethodBuilder createPrivateMethod(String name) {
+        return new MethodBuilder(name).mod(Opcodes.ACC_PRIVATE);
+    }
+
+    static MethodBuilder createMethodFromClosure(String name, ClassNode type, ClosureExpression closureExpression, Expression delegate, Expression parameter) {
+        return createPrivateMethod(name)
+                .returning(type)
+                .optional()
+                .declareVariable("closure", closureExpression)
+                .assignS(propX(varX("closure"), "delegate"), delegate)
+                .assignS(
+                        propX(varX("closure"), "resolveStrategy"),
+                        constX(Closure.DELEGATE_ONLY)
+                )
+                .doReturn(callX(
+                        varX("closure"),
+                        "call",
+                        parameter != null ? parameter : MethodCallExpression.NO_ARGUMENTS)
+                );
+    }
+
+    public MethodBuilder forS(Parameter variable, Expression collection, Statement... code) {
+        return statement(new ForStatement(variable, collection, block(code)));
+    }
+
+    public MethodBuilder forS(Parameter variable, String collection, Statement... code) {
+        return forS(variable, varX(collection), code);
+    }
+
+    public MethodBuilder withoutMutatorCheck() {
+        metadata.put(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY, Boolean.TRUE);
+        return this;
+    }
+
+    public MethodBuilder callValidationOn(String target) {
+        return callValidationMethodOn(varX(target));
+    }
+
+    private MethodBuilder callValidationMethodOn(Expression targetX) {
+        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
+    }
+
+    public MethodBuilder returning(ClassNode returnType) {
+        if (returnType != null && !ClassHelper.VOID_TYPE.equals(returnType))
+            hasReturnType = true;
+        this.returnType = returnType;
+        return this;
+    }
+
+    public MethodBuilder delegateToProxy(String methodName, Expression... args) {
+        MethodCallExpression callExpression = callX(
+                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                methodName,
+                args(args)
+        );
+        if (hasReturnType)
+            doReturn(callExpression);
+        else
+            statement(callExpression);
+
+        return this;
+    }
+
+    public MethodBuilder setOwners(String target) {
+        return callMethod(
+                propX(varX(target), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                "setOwners",
+                varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS)
+        );
+    }
+
+    public MethodBuilder setOwnersIf(String target, boolean apply) {
+        if (apply)
+            return setOwners(target);
+        return this;
+    }
+
+    public MethodBuilder params(Parameter... params) {
+        for (Parameter param : params) {
+            param(param);
+        }
+        return this;
+    }
+
+    public MethodBuilder params(List<Parameter>params) {
+        for (Parameter param : params) {
+            param(param);
+        }
+        return this;
+    }
+
+    public MethodBuilder decoratedParam(FieldNode field, ClassNode type, String name) {
+
+        Parameter param = GeneralUtils.param(type, name);
+
+        List<AnnotationNode> annotations = field.getAnnotations();
+
+        for (AnnotationNode annotation : annotations)
+            if (hasAnnotation(annotation.getClassNode(), PARAMETER_ANNOTATION_TYPE))
+                copyAnnotationsFromMembersToParam(annotation, param);
+
+        return param(param);
+    }
+
+    public void copyAnnotationsFromMembersToParam(AnnotationNode source, AnnotatedNode target) {
+        for (Expression annotationMember : source.getMembers().values()) {
+            if (annotationMember instanceof AnnotationConstantExpression) {
+                AnnotationNode annotationNode = (AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue();
+                if (annotationNode.isTargetAllowed(AnnotationNode.PARAMETER_TARGET))
+                    target.addAnnotation(annotationNode);
+            }
+        }
+    }
+
+    public MethodBuilder optionalClassLoaderParam() {
+        return param(CLASSLOADER_TYPE, "loader", callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"));
+    }
+
+    public MethodBuilder linkToField(AnnotatedNode annotatedNode) {
+        return inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
+    }
+
+    public MethodBuilder inheritDeprecationFrom(AnnotatedNode annotatedNode) {
+        if (!annotatedNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
+            return deprecated();
+        }
+        return this;
     }
 
     /**
@@ -134,45 +293,36 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
     /**
      * Marks this method as optional. If set, {@link #addTo(ClassNode)} does not throw an error if the method already exists.
      */
-    public T optional() {
+    public MethodBuilder optional() {
         this.optional = true;
-        return (T)this;
+        return this;
     }
 
     /**
-     * Sets the return type of the generated method.
-     * @param returnType The return type.
+     * Sets the modifiers as defined by {@link Opcodes}.
      */
-    public T returning(ClassNode returnType) {
-        this.returnType = returnType;
-        return (T)this;
-    }
-
-    /**
-     * Sets the modifiers as defined by {@link groovyjarjarasm.asm.Opcodes}.
-     */
-    public T mod(int modifier) {
+    public MethodBuilder mod(int modifier) {
         modifiers |= modifier;
-        return (T)this;
+        return this;
     }
 
     /**
      * Add a parameter to the method.
      */
-    public T param(Parameter param) {
+    public MethodBuilder param(Parameter param) {
         parameters.add(param);
-        return (T)this;
+        return this;
     }
 
-    public T deprecated() {
+    public MethodBuilder deprecated() {
         deprecated = true;
-        return (T)this;
+        return this;
     }
 
     /**
      * Adds a map entry to the method signature.
      */
-    public T namedParams(String name) {
+    public MethodBuilder namedParams(String name) {
         GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
         wildcard.setWildcard(true);
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name);
@@ -182,7 +332,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * Adds a statement to the method body that converts each entry in the map into a call of a method with the key as
      * methodname and the value as method parameter.
      */
-    public T applyNamedParams(String parameterMapName) {
+    public MethodBuilder applyNamedParams(String parameterMapName) {
         statement(
                 new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(parameterMapName), "entrySet"),
                     new ExpressionStatement(
@@ -195,15 +345,15 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
                 )
         );
 
-        return (T)this;
+        return this;
     }
 
     /**
      * Adds a parameter of type closure.
      */
-    public T closureParam(String name) {
+    public MethodBuilder closureParam(String name) {
         param(GeneralUtils.param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), name));
-        return (T)this;
+        return this;
     }
 
     /**
@@ -211,7 +361,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param name Name of the parameter
      * @param upperBound The base class for the class parameter
      */
-    public T delegationTargetClassParam(String name, ClassNode upperBound) {
+    public MethodBuilder delegationTargetClassParam(String name, ClassNode upperBound) {
         Parameter param = GeneralUtils.param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
         param.addAnnotation(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION));
         return param(param);
@@ -223,7 +373,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param upperBound The base class for the class parameter
      * @return
      */
-    public T simpleClassParam(String name, ClassNode upperBound) {
+    public MethodBuilder simpleClassParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
     }
 
@@ -231,7 +381,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * Adds a string paramter with the given name.
      * @param name The name of the string parameter.
      */
-    public T stringParam(String name) {
+    public MethodBuilder stringParam(String name) {
         return param(ClassHelper.STRING_TYPE, name);
     }
 
@@ -241,7 +391,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param addIfNotNull If this parameter is null, the method does nothing
      */
     @Deprecated
-    public T optionalStringParam(String name, Object addIfNotNull) {
+    public MethodBuilder optionalStringParam(String name, Object addIfNotNull) {
         return optionalStringParam(name, addIfNotNull != null);
     }
 
@@ -250,17 +400,17 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param name The name of the parameter.
      * @param doAdd If this parameter is null, the method does nothing
      */
-    public T optionalStringParam(String name, boolean doAdd) {
+    public MethodBuilder optionalStringParam(String name, boolean doAdd) {
         if (doAdd)
             stringParam(name);
-        return (T)this;
+        return this;
     }
 
     /**
      * Add a generic object parameter.
      * @param name The name of the parameter
      */
-    public T objectParam(String name) {
+    public MethodBuilder objectParam(String name) {
         return param(ClassHelper.OBJECT_TYPE, name);
     }
 
@@ -269,7 +419,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param type The type of the parameter
      * @param name The name of the parameter
      */
-    public T param(ClassNode type, String name) {
+    public MethodBuilder param(ClassNode type, String name) {
         return param(new Parameter(type, name));
     }
 
@@ -279,7 +429,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param name The name of the parameter
      * @param defaultValue An expression to use for the default value for the parameter. Can be null.
      */
-    public T param(ClassNode type, String name, Expression defaultValue) {
+    public MethodBuilder param(ClassNode type, String name, Expression defaultValue) {
         return param(new Parameter(type, name, defaultValue));
     }
 
@@ -288,7 +438,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param type The type of the array elements
      * @param name The name of the parameter
      */
-    public T arrayParam(ClassNode type, String name) {
+    public MethodBuilder arrayParam(ClassNode type, String name) {
         return param(new Parameter(type.makeArray(), name));
     }
 
@@ -296,12 +446,12 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * Use all parameters of the given source method as parameters to this method.
      * @param sourceMethod The source of the parameter list
      */
-    public T cloneParamsFrom(MethodNode sourceMethod) {
+    public MethodBuilder cloneParamsFrom(MethodNode sourceMethod) {
         Parameter[] sourceParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
         for (Parameter parameter : sourceParams) {
             param(parameter);
         }
-        return (T)this;
+        return this;
     }
 
     /**
@@ -309,12 +459,12 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
      * @param key The key of the metadata
      * @param value The name of the metadata
      */
-    public T withMetadata(Object key, Object value) {
+    public MethodBuilder withMetadata(Object key, Object value) {
         metadata.put(key, value);
-        return (T)this;
+        return this;
     }
 
-    public T delegatingClosureParam(ClassNode delegationTarget, ClosureDefaultValue defaultValue) {
+    public MethodBuilder delegatingClosureParam(ClassNode delegationTarget, ClosureDefaultValue defaultValue) {
         ClosureExpression emptyClosure = null;
         if (defaultValue == ClosureDefaultValue.EMPTY_CLOSURE) {
             emptyClosure = closureX(block());
@@ -331,7 +481,7 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
     /**
      * Creates a delegating closure parameter that delegates to the type parameter of an existing class parameter.
      */
-    public T delegatingClosureParam() {
+    public MethodBuilder delegatingClosureParam() {
         return delegatingClosureParam(null, ClosureDefaultValue.EMPTY_CLOSURE);
     }
 
@@ -345,18 +495,18 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
         return result;
     }
 
-    public T statement(Statement statement) {
+    public MethodBuilder statement(Statement statement) {
         body.addStatement(statement);
-        return (T)this;
+        return this;
     }
 
-    public T statementIf(boolean condition, Statement statement) {
+    public MethodBuilder statementIf(boolean condition, Statement statement) {
         if (condition)
             body.addStatement(statement);
-        return (T)this;
+        return this;
     }
 
-    public T assignToProperty(String propertyName, Expression value) {
+    public MethodBuilder assignToProperty(String propertyName, Expression value) {
         String[] split = propertyName.split("\\.", 2);
         if (split.length == 1)
             return assignS(propX(varX("this"), propertyName), value);
@@ -364,90 +514,90 @@ public abstract class GenericsMethodBuilder<T extends GenericsMethodBuilder> {
         return assignS(propX(varX(split[0]), split[1]), value);
     }
 
-    public T assignS(Expression target, Expression value) {
+    public MethodBuilder assignS(Expression target, Expression value) {
         return statement(GeneralUtils.assignS(target, value));
     }
 
-    public T optionalAssignPropertyFromPropertyS(String target, String targetProperty, String value, String valueProperty, Object marker) {
+    public MethodBuilder optionalAssignPropertyFromPropertyS(String target, String targetProperty, String value, String valueProperty, Object marker) {
         if (marker != null)
             assignS(propX(varX(target), targetProperty), propX(varX(value), valueProperty));
-        return (T)this;
+        return this;
     }
 
-    public T declareVariable(String varName, Expression init) {
+    public MethodBuilder declareVariable(String varName, Expression init) {
         return statement(GeneralUtils.declS(varX(varName), init));
     }
 
-    public T optionalDeclareVariable(String varName, Expression init, boolean doAdd) {
+    public MethodBuilder optionalDeclareVariable(String varName, Expression init, boolean doAdd) {
         if (doAdd)
             statement(GeneralUtils.declS(varX(varName), init));
-        return (T)this;
+        return this;
     }
 
-    public T callMethod(Expression receiver, String methodName) {
+    public MethodBuilder callMethod(Expression receiver, String methodName) {
         return callMethod(receiver, methodName, MethodCallExpression.NO_ARGUMENTS);
     }
 
-    public T callMethod(String receiverName, String methodName) {
+    public MethodBuilder callMethod(String receiverName, String methodName) {
         return callMethod(varX(receiverName), methodName);
     }
 
-    public T callMethod(Expression receiver, String methodName, Expression args) {
+    public MethodBuilder callMethod(Expression receiver, String methodName, Expression args) {
         return statement(callX(receiver, methodName, args));
     }
 
-    public T callMethod(String receiverName, String methodName, Expression args) {
+    public MethodBuilder callMethod(String receiverName, String methodName, Expression args) {
         return callMethod(varX(receiverName), methodName, args);
     }
 
-    public T callThis(String methodName, Expression args) {
+    public MethodBuilder callThis(String methodName, Expression args) {
         return callMethod("this", methodName, args);
     }
 
-    public T callThis(String methodName) {
+    public MethodBuilder callThis(String methodName) {
         return callMethod("this", methodName);
     }
 
     @Deprecated
-    public T println(Expression args) {
+    public MethodBuilder println(Expression args) {
         return callThis("println", args);
     }
 
     @Deprecated
-    public T println(String string) {
+    public MethodBuilder println(String string) {
         return callThis("println", constX(string));
     }
 
-    public T statement(Expression expression) {
+    public MethodBuilder statement(Expression expression) {
         return statement(stmt(expression));
     }
 
-    public T statementIf(boolean condition, Expression expression) {
+    public MethodBuilder statementIf(boolean condition, Expression expression) {
         return statementIf(condition, stmt(expression));
     }
 
-    public T doReturn(String varName) {
+    public MethodBuilder doReturn(String varName) {
         return doReturn(varX(varName));
     }
 
-    public T doReturn(Expression expression) {
+    public MethodBuilder doReturn(Expression expression) {
         return statement(returnS(expression));
     }
 
-    public T linkToField(FieldNode fieldNode) {
-        return (T) inheritDeprecationFrom(fieldNode).sourceLinkTo(fieldNode);
+    public MethodBuilder linkToField(FieldNode fieldNode) {
+        return inheritDeprecationFrom(fieldNode).sourceLinkTo(fieldNode);
     }
 
-    public T inheritDeprecationFrom(FieldNode fieldNode) {
+    public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
         if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
             deprecated = true;
         }
-        return (T)this;
+        return this;
     }
 
-    public T sourceLinkTo(ASTNode sourceLinkTo) {
+    public MethodBuilder sourceLinkTo(ASTNode sourceLinkTo) {
         this.sourceLinkTo = sourceLinkTo;
-        return (T)this;
+        return this;
     }
 
     public enum ClosureDefaultValue { NONE, EMPTY_CLOSURE }

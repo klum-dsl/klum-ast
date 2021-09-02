@@ -44,7 +44,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClos
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
