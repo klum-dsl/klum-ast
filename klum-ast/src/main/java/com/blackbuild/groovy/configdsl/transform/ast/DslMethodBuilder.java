@@ -61,6 +61,8 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
     public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
     public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
 
+    boolean hasReturnType = false;
+
     private DslMethodBuilder(String name) {
         super(name);
     }
@@ -123,20 +125,25 @@ public final class DslMethodBuilder extends GenericsMethodBuilder<DslMethodBuild
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
-    public DslMethodBuilder delegateToProxyReturning(String methodName, Expression... args) {
-        return doReturn(callX(
-                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                methodName,
-                args(args)
-        ));
+    @Override
+    public DslMethodBuilder returning(ClassNode returnType) {
+        if (returnType != null && !ClassHelper.VOID_TYPE.equals(returnType))
+            hasReturnType = true;
+        return super.returning(returnType);
     }
 
     public DslMethodBuilder delegateToProxy(String methodName, Expression... args) {
-        return callMethod(
+        MethodCallExpression callExpression = callX(
                 varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
                 methodName,
                 args(args)
         );
+        if (hasReturnType)
+            doReturn(callExpression);
+        else
+            statement(callExpression);
+
+        return this;
     }
 
     public DslMethodBuilder setOwners(String target) {
