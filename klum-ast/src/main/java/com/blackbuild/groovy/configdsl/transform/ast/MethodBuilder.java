@@ -87,7 +87,6 @@ public final class MethodBuilder {
     protected String name;
     protected Map<Object, Object> metadata = new HashMap<>();
 
-    boolean hasReturnType = false;
     private int modifiers;
     private ClassNode returnType = ClassHelper.VOID_TYPE;
     private List<ClassNode> exceptions = new ArrayList<>();
@@ -96,6 +95,8 @@ public final class MethodBuilder {
     private BlockStatement body = new BlockStatement();
     private boolean optional;
     private ASTNode sourceLinkTo;
+    private boolean hasNamedParam;
+    private GenericsType[] genericsTypes;
 
     private MethodBuilder(String name) {
         this.name = name;
@@ -160,8 +161,6 @@ public final class MethodBuilder {
     }
 
     public MethodBuilder returning(ClassNode returnType) {
-        if (returnType != null && !ClassHelper.VOID_TYPE.equals(returnType))
-            hasReturnType = true;
         this.returnType = returnType;
         return this;
     }
@@ -172,7 +171,7 @@ public final class MethodBuilder {
                 methodName,
                 args(args)
         );
-        if (hasReturnType)
+        if (returnType != null && !returnType.equals(ClassHelper.VOID_TYPE))
             doReturn(callExpression);
         else
             statement(callExpression);
@@ -254,15 +253,14 @@ public final class MethodBuilder {
      * @return The newly created method or the existing method if `optional` is set and a method with that signature
      * already exists
      */
-    @SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
-    public MethodNode addTo(ClassNode target) {
+    public void addTo(ClassNode target) {
 
         Parameter[] parameterArray = this.parameters.toArray(EMPTY_PARAMETERS);
         MethodNode existing = target.getDeclaredMethod(name, parameterArray);
 
         if (existing != null) {
             if (optional)
-                return existing;
+                return;
             else
                 throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
         }
@@ -276,18 +274,16 @@ public final class MethodBuilder {
                 body
         );
 
+        if (genericsTypes != null)
+            method.setGenericsTypes(genericsTypes);
+
         if (deprecated)
             method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
 
-        for (Map.Entry<Object, Object> entry : metadata.entrySet()) {
-            method.putNodeMetaData(entry.getKey(), entry.getValue());
-        }
-
-
-        return method;
+        metadata.forEach(method::putNodeMetaData);
     }
 
     /**
@@ -323,6 +319,7 @@ public final class MethodBuilder {
      * Adds a map entry to the method signature.
      */
     public MethodBuilder namedParams(String name) {
+        hasNamedParam = true;
         GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
         wildcard.setWildcard(true);
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name);
@@ -597,6 +594,11 @@ public final class MethodBuilder {
 
     public MethodBuilder sourceLinkTo(ASTNode sourceLinkTo) {
         this.sourceLinkTo = sourceLinkTo;
+        return this;
+    }
+
+    public MethodBuilder setGenericsTypes(GenericsType[] genericsTypes) {
+        this.genericsTypes = genericsTypes;
         return this;
     }
 

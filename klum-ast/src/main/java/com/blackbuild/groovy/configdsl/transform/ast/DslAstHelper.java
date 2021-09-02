@@ -275,8 +275,8 @@ public class DslAstHelper {
         return result;
     }
 
-    static MethodNode createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
-        return createOptionalPublicMethod(targetMethod.getName())
+    static void createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
+        createOptionalPublicMethod(targetMethod.getName())
                 .returning(targetMethod.getReturnType())
                 .params(cloneParamsWithDefaultValues(targetMethod.getParameters()))
         .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))

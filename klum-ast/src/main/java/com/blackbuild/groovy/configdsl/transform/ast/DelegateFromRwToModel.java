@@ -95,8 +95,9 @@ class DelegateFromRwToModel {
             newParams[i] = newParam;
         }
 
-        MethodNode newMethod = createMethod(candidate.getName())
+        createMethod(candidate.getName())
                 .optional()
+                .setGenericsTypes(candidate.getGenericsTypes())
                 .mod(candidate.getModifiers() & (~Opcodes.ACC_ABSTRACT) & (~Opcodes.ACC_NATIVE))
                 .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
                 .params(newParams)
@@ -104,8 +105,6 @@ class DelegateFromRwToModel {
                         candidate.getName(),
                         args(newParams))
                 .addTo(rwClass);
-
-        newMethod.setGenericsTypes(candidate.getGenericsTypes());
     }
 
     private List<String> genericPlaceholderNames(MethodNode candidate) {
