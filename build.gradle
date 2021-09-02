@@ -3,7 +3,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
@@ -32,10 +31,6 @@ plugins {
 group 'com.blackbuild.klum.ast'
 
 description 'A transformation for creating convenient configuration model DSLs.'
-
-ext {
-    commonVersion = '0.6.0'
-}
 
 license {
     mapping("java", "SLASHSTAR_STYLE")
