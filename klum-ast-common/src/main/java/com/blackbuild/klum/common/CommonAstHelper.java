@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -91,6 +92,10 @@ public class CommonAstHelper {
     public static AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
         List<AnnotationNode> annotation = field.getAnnotations(type);
         return annotation.isEmpty() ? null : annotation.get(0);
+    }
+    public static Optional<AnnotationNode> getOptionalAnnotation(AnnotatedNode field, ClassNode type) {
+        List<AnnotationNode> annotation = field.getAnnotations(type);
+        return annotation.isEmpty() ? Optional.empty() : Optional.of(annotation.get(0));
     }
 
     public static boolean isCollectionOrMap(ClassNode type) {

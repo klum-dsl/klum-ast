@@ -93,6 +93,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPREC
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
@@ -671,12 +672,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         String fieldName = fieldNode.getName();
 
-        createMethod(fieldName)
+        createProxyMethod(fieldName, "setSingleField")
                 .optional()
                 .returning(fieldNode.getType())
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .decoratedParam(fieldNode, fieldNode.getType(), "value").delegateToProxy("setSingleField", constX(fieldName), varX("value"))
+                .constantParam(fieldName)
+                .decoratedParam(fieldNode, "value")
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
@@ -684,7 +686,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .returning(Boolean_TYPE)
                     .mod(visibility)
-                    .linkToField(fieldNode).delegateToProxy("setSingleField", constX(fieldName), constX(true))
+                    .linkToField(fieldNode)
+                    .delegateToProxy("setSingleField", constX(fieldName), constX(true))
                     .addTo(rwClass);
         }
 
@@ -733,7 +736,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
-                .param(elementType, "value").delegateToProxy("addElementToCollection", constX(fieldName), varX("value"))
+                .param(elementType, "value")
+                .delegateToProxy("addElementToCollection", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, elementName, false);
@@ -755,7 +759,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(elementType)) {
-                Expression[] args1 = new Expression[]{constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure")};
                 createMethod(methodName)
                         .optional()
                         .mod(visibility)
@@ -763,22 +766,22 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .namedParams("values")
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE).delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args1)
+                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
+                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure"))
                         .addTo(rwClass);
 
-                Expression[] args = new Expression[]{constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure")};
                 createMethod(methodName)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, EMPTY_CLOSURE).delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args)
+                        .delegatingClosureParam(elementRwType, EMPTY_CLOSURE)
+                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure"))
                         .addTo(rwClass);
             }
 
             if (!isFinal(elementType)) {
-                Expression[] args1 = new Expression[]{constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure")};
                 createMethod(methodName)
                         .optional()
                         .mod(visibility)
@@ -787,9 +790,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam().delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args1)
+                        .delegatingClosureParam()
+                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure"))
                         .addTo(rwClass);
-                Expression[] args = new Expression[]{constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure")};
                 createMethod(methodName)
                         .optional()
                         .mod(visibility)
@@ -797,7 +800,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam().delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, args)
+                        .delegatingClosureParam()
+                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure"))
                         .addTo(rwClass);
             }
 
@@ -806,7 +810,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .delegateToProxy(KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION,
+                    .delegateToProxy(
+                            KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION,
                             constX(fieldName),
                             varX("scripts")
                     )
@@ -1088,53 +1093,45 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
+        /*
+            optional, visibility, deprecation wie gehabt
+                Map<String, Object> namedParams,
+                String fieldOrMethodName,
+                Class<T> type,
+                String key,
+                Closure<T> body
+
+
+         */
+
+
+
+
         if (isInstantiable(targetFieldType)) {
-            Expression[] args = new Expression[]{constX(fieldName), classX(targetFieldType), needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL, varX("values"), varX("closure")};
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "createSingleChild")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
+                    .constantParam(fieldName)
+                    .constantClassParam(targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE).delegateToProxy("createSingleChild", args)
-                    .addTo(rwClass);
-
-            createMethod(fieldName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(targetFieldType)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapAndOptionalKey(needKeyParameter ? targetKeyFieldName : null, "closure")))
+                    .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
         }
 
         if (!isFinal(targetFieldType)) {
-            Expression[] args = new Expression[]{constX(fieldName), varX("typeToCreate"), needKeyParameter ? varX(targetKeyFieldName) : ConstantExpression.NULL, varX("values"), varX("closure")};
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "createSingleChild")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
-                    .delegationTargetClassParam("typeToCreate", targetFieldType)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam().delegateToProxy("createSingleChild", args)
-                    .addTo(rwClass);
-
-            createMethod(fieldName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(targetFieldType)
+                    .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapClassAndOptionalKey(targetKeyFieldName, "closure")))
                     .addTo(rwClass);
         }
     }

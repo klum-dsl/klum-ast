@@ -104,17 +104,22 @@ public class KlumInstanceProxy {
     public Object apply(Map<String, Object> values, Closure<?> body) {
         Object rw = instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         applyNamedParameters(rw, values);
-
-        body.setDelegate(rw);
-        body.setResolveStrategy(Closure.DELEGATE_ONLY);
-        body.call();
+        applyClosure(rw, body);
         postApply();
 
         return instance;
     }
 
+    private void applyClosure(Object rw, Closure<?> body) {
+        if (body == null) return;
+        body.setDelegate(rw);
+        body.setResolveStrategy(Closure.DELEGATE_ONLY);
+        body.call();
+    }
+
     // TODO: in RW Proxy
     public void applyNamedParameters(Object rw, Map<String, Object> values) {
+        if (values == null) return;
         values.forEach((key, value) -> InvokerHelper.invokeMethod(rw, key, value));
     }
 
@@ -169,7 +174,7 @@ public class KlumInstanceProxy {
                 .forEach(method -> getRwInstance().invokeMethod(method, value));
     }
 
-    public <T> T createSingleChild(String fieldOrMethodName, Class<T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
+    public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
         Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
         if (!fieldOrMethod.isPresent()) {
             fieldOrMethod = DslHelper.getMethod(getRwInstance().getClass(), fieldOrMethodName, type);
