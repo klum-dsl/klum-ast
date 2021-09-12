@@ -335,7 +335,8 @@ public final class ProxyMethodBuilder {
      * @param name The name of the parameter
      */
     public ProxyMethodBuilder param(ClassNode type, String name) {
-        return param(new Parameter(type, name));
+        params.add(new ProxiedArgument(name,type));
+        return this;
     }
 
     /**
@@ -354,7 +355,8 @@ public final class ProxyMethodBuilder {
      * @param name The name of the parameter
      */
     public ProxyMethodBuilder arrayParam(ClassNode type, String name) {
-        return param(new Parameter(type.makeArray(), name));
+        params.add(new ProxiedArgument(name, type.makeArray()));
+        return this;
     }
 
     /**
@@ -409,8 +411,8 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
-    public ProxyMethodBuilder constantParam(Object fieldName) {
-        params.add(new ConstantArgument(fieldName));
+    public ProxyMethodBuilder constantParam(Object constantValue) {
+        params.add(new ConstantArgument(constantValue));
         return this;
     }
 
@@ -418,8 +420,6 @@ public final class ProxyMethodBuilder {
         params.add(new FixedExpressionArgument(targetFieldType));
         return this;
     }
-
-    public enum ClosureDefaultValue { NONE, EMPTY_CLOSURE }
 
     private abstract static class ProxyMethodArgument {
         protected final String name;

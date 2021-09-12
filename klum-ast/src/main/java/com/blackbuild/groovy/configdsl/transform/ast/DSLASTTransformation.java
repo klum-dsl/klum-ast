@@ -682,12 +682,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "setSingleField")
                     .optional()
                     .returning(Boolean_TYPE)
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .delegateToProxy("setSingleField", constX(fieldName), constX(true))
+                    .constantParam(fieldName)
+                    .constantParam(true)
                     .addTo(rwClass);
         }
 
@@ -715,29 +716,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         String elementName = getElementNameForCollectionField(fieldNode);
         String fieldName = fieldNode.getName();
-        createMethod(fieldName)
+        createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .arrayParam(elementType, "values")
-                .delegateToProxy("addElementsToCollection", constX(fieldName), varX("values"))
                 .addTo(rwClass);
 
-        createMethod(fieldName)
+        createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
-                .delegateToProxy("addElementsToCollection", constX(fieldName), varX("values"))
                 .addTo(rwClass);
 
-        createMethod(elementName)
+        createProxyMethod(elementName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(elementType, "value")
-                .delegateToProxy("addElementToCollection", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, elementName, false);
