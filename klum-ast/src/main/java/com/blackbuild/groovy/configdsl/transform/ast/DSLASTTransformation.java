@@ -88,7 +88,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwne
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
@@ -760,73 +759,50 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
+                        .constantClassParam(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure"))
-                        .addTo(rwClass);
-
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, EMPTY_CLOSURE)
-                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), classX(elementType), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure"))
+                        .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
             }
 
             if (!isFinal(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, varX("values"), varX("closure"))
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam()
-                        .delegateToProxy(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION, constX(fieldName), varX("typeToCreate"), fieldKeyName != null ? varX(fieldKeyName) : ConstantExpression.NULL, new MapExpression(), varX("closure"))
                         .addTo(rwClass);
             }
 
-            createMethod(fieldName)
+            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .delegateToProxy(
-                            KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION,
-                            constX(fieldName),
-                            varX("scripts")
-                    )
                     .addTo(rwClass);
 
         }
 
-        createMethod(methodName)
+        createProxyMethod(methodName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(elementType, "value")
-                .delegateToProxy("addElementToCollection", constX(fieldName), varX("value"))
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);

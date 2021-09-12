@@ -222,7 +222,7 @@ public class KlumInstanceProxy {
 
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
 
-    public <T> T addNewDslElementToCollection(String collectionName, Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
+    public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
         T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
         return doAddElementToCollection(collectionName, created);
     }
