@@ -119,12 +119,12 @@ class ConverterBuilder {
     }
 
     void execute() {
-        for (ClosureExpression converterExpression : getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"))
-            createSingleConverterMethod(converterExpression);
+        getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters")
+                .forEach(this::createSingleConverterMethod);
 
         if (convertersAnnotation != null)
-            for (ClassNode converterClass : transformation.getClassList(convertersAnnotation, "value"))
-                createConverterMethodsFromFactoryMethods(converterClass);
+            transformation.getClassList(convertersAnnotation, "value")
+                    .forEach(this::createConverterMethodsFromFactoryMethods);
 
         createConverterMethodsFromOwnFactoryMethods();
         createConstructorConverters();
