@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -32,7 +31,6 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
@@ -42,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FACTORY_HELPER;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
@@ -286,20 +285,14 @@ class TemplateMethods {
                 .mod(ACC_STATIC)
                 .namedParams("values")
                 .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .declareVariable("result", keyField != null ? ctorX(templateClass, args(ConstantExpression.NULL)) : ctorX(templateClass))
-                .callMethod(propX(varX("result"), "$rw"), COPY_FROM_TEMPLATE) // to apply templates of super classes
-                .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
-                .assignS(propX(propX(varX("result"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "skipPostApply"), constX(true))
-                .callMethod(propX(varX("result"), "$rw"), "manualValidation", constX(true))
-                .callMethod("result", "apply", args("values", "closure"))
-                .doReturn("result")
+                .doReturn(callX(FACTORY_HELPER, CREATE_AS_TEMPLATE, args(classX(annotatedClass), varX("values"), varX("closure"))))
                 .addTo(annotatedClass);
 
         createPublicMethod(CREATE_AS_TEMPLATE)
                 .returning(newClass(annotatedClass))
                 .mod(ACC_STATIC)
                 .delegatingClosureParam(rwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(annotatedClass, CREATE_AS_TEMPLATE, args(new MapExpression(), varX("closure"))))
+                .doReturn(callX(FACTORY_HELPER, CREATE_AS_TEMPLATE, args(classX(annotatedClass), new MapExpression(), varX("closure"))))
                 .addTo(annotatedClass);
     }
 

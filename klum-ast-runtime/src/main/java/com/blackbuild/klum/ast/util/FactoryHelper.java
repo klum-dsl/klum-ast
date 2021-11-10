@@ -98,7 +98,7 @@ public class FactoryHelper {
     }
 
     public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
-        Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : InvokerHelper.invokeConstructorOf(type, null);
+        Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : createInstance(type, null);
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         Object rwInstance = proxy.getRwInstance();
@@ -142,6 +142,23 @@ public class FactoryHelper {
             return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
+        try {
+            Class<?> templateClass = DslHelper.isInstantiable(type) ? type : type.getClassLoader().loadClass(type.getName() + "$Template");
+
+            Object result = DslHelper.isKeyed(type) ? (T) InvokerHelper.invokeConstructorOf(templateClass, new Object[] {null}) : createInstance(templateClass, null);
+
+            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+            proxy.copyFromTemplate();
+            proxy.setManualValidation();
+            proxy.skipPostApply();
+            proxy.apply(values, closure);
+            return (T) result;
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(String.format("%s seems to be no KlumAst class", type), e);
         }
     }
 

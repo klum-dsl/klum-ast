@@ -101,6 +101,10 @@ public final class ProxyMethodBuilder {
         return new ProxyMethodBuilder(name, proxyMethodName);
     }
 
+    public static ProxyMethodBuilder createProxyMethod(String name) {
+        return new ProxyMethodBuilder(name, name);
+    }
+
     public ProxyMethodBuilder returning(ClassNode returnType) {
         this.returnType = returnType;
         return this;

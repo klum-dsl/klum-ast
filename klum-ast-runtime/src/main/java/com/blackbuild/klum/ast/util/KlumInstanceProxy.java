@@ -159,6 +159,10 @@ public class KlumInstanceProxy {
         return (boolean) InvokerHelper.getAttribute(instance, "$manualValidation");
     }
 
+    void setManualValidation() {
+        InvokerHelper.setAttribute(instance, "$manualValidation", true);
+    }
+
     public void setOwners(Object value) {
         DslHelper.getFieldsAnnotatedWith(instance.getClass(), Owner.class)
                 .stream()
@@ -281,6 +285,14 @@ public class KlumInstanceProxy {
             return Optional.of(name);
 
         return Optional.of(ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<String>>) keyMember, instance, instance));
+    }
+
+    void skipPostCreate() {
+        this.skipPostCreate = true;
+    }
+
+    void skipPostApply() {
+        this.skipPostApply = true;
     }
 
 

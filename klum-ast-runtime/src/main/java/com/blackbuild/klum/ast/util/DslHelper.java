@@ -5,6 +5,7 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
 import groovy.lang.MissingFieldException;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
@@ -125,6 +126,10 @@ public class DslHelper {
         }
         Collections.reverse(result);
         return result;
+    }
+
+    public static boolean isInstantiable(Class<?> type) {
+        return !type.isInterface() && ((type.getModifiers() & Opcodes.ACC_ABSTRACT) == 0);
     }
 
     public static List<Method> getMethodsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
