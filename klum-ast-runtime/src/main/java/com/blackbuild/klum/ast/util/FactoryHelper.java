@@ -75,8 +75,7 @@ public class FactoryHelper {
     public static <T> T create(Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
         T result = createInstance(type, key);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        Object rwInstance = proxy.getRwInstance();
-        InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
+        proxy.copyFromTemplate();
         proxy.postCreate();
         proxy.apply(values, body);
 
@@ -101,11 +100,10 @@ public class FactoryHelper {
         Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : createInstance(type, null);
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        Object rwInstance = proxy.getRwInstance();
-        InvokerHelper.invokeMethod(rwInstance, "copyFromTemplate", null);
+        proxy.copyFromTemplate();
         proxy.postCreate();
 
-        script.setDelegate(rwInstance);
+        script.setDelegate(proxy.getRwInstance());
         script.run();
 
         proxy.postApply();
