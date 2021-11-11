@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.Closure;
@@ -55,6 +56,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -79,7 +81,10 @@ public final class ProxyMethodBuilder {
     private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
     private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
+
     private final String name;
+    private final String proxyMethodName;
+    private final Expression proxyTarget;
 
     private int modifiers;
     private ClassNode returnType = ClassHelper.VOID_TYPE;
@@ -89,20 +94,24 @@ public final class ProxyMethodBuilder {
     private boolean optional;
     private ASTNode sourceLinkTo;
     private Parameter namedParam;
-    private String proxyMethodName;
     private List<ProxyMethodArgument> params = new ArrayList<>();
 
-    private ProxyMethodBuilder(String name, String proxyMethodName) {
+    private ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
+        this.proxyTarget = proxyTarget;
         this.name = name;
         this.proxyMethodName = proxyMethodName;
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name, String proxyMethodName) {
-        return new ProxyMethodBuilder(name, proxyMethodName);
+        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, proxyMethodName);
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name) {
-        return new ProxyMethodBuilder(name, name);
+        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, name);
+    }
+
+    public static ProxyMethodBuilder createFactoryMethod(String name) {
+        return new ProxyMethodBuilder(classX(FactoryHelper.class), name, name).mod(ACC_STATIC);
     }
 
     public ProxyMethodBuilder returning(ClassNode returnType) {
@@ -112,7 +121,7 @@ public final class ProxyMethodBuilder {
 
     private Statement delegateToProxy(String methodName, List<Expression> args) {
         MethodCallExpression callExpression = callX(
-                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
+                proxyTarget,
                 methodName,
                 args(args)
         );

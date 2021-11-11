@@ -72,7 +72,7 @@ public class FactoryHelper {
         }
     }
 
-    public static <T> T create(Class<T> type, String key, Map<String, Object> values, Closure<?> body) {
+    public static <T> T create(Map<String, Object> values, Class<T> type, String key, Closure<?> body) {
         T result = createInstance(type, key);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();

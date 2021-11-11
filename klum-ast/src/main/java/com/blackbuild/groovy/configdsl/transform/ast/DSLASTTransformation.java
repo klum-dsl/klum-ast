@@ -1183,21 +1183,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         Expression keyArg = keyField != null ? varX("name") : ConstantExpression.NULL;
 
-        createPublicMethod(CREATE_METHOD_NAME)
+        ProxyMethodBuilder.createFactoryMethod(CREATE_METHOD_NAME)
                 .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
                 .namedParams("values")
+                .constantClassParam(annotatedClass)
                 .optionalStringParam("name", keyField != null)
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, varX("values"), varX("closure"))))
-                .addTo(annotatedClass);
-
-        createPublicMethod(CREATE_METHOD_NAME)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .optionalStringParam("name", keyField != null)
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(FACTORY_HELPER, CREATE_METHOD_NAME, args(classX(annotatedClass), keyArg, new MapExpression(), varX("closure"))))
+                .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
     }
 
