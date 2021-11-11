@@ -89,45 +89,6 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "orig"
     }
 
-    def "a thread local template class field is created"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                String value = "hallo"
-            }
-        ''')
-
-        then:
-        clazz.$TEMPLATE instanceof ThreadLocal
-    }
-
-    def "withTemplate method sets template field"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                String value = "hallo"
-            }
-        ''')
-
-        then:
-        clazz.$TEMPLATE.get() == null
-
-        !clazz.withTemplate(name: 'Welt', value: 'Hallo') { // The '!' is to ignore the result of withTemplate, which is null in this case
-            assert clazz.$TEMPLATE.get().name == "Welt"
-            assert clazz.$TEMPLATE.get().value == "Hallo"
-        }
-
-        clazz.$TEMPLATE.get() == null
-    }
-
     def "create method should apply template"() {
         given:
         createClass('''
@@ -970,7 +931,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         def bar
         when:
         clazz.withTemplates([fooTemplate]) {
-            assert getClass('pk.Foo').$TEMPLATE.get() == fooTemplate
+            //assert getClass('pk.Foo').$TEMPLATE.get() == fooTemplate
             bar = getClass('pk.Bar').create {
                 token "b"
             }

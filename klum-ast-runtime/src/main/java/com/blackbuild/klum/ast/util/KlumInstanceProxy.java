@@ -322,7 +322,11 @@ public class KlumInstanceProxy {
     }
 
     public void copyFromTemplate() {
-        getRwInstance().invokeMethod("copyFromTemplate", null);
+        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::copyFromTemplateLayer);
+    }
+
+    private void copyFromTemplateLayer(Class<?> layer) {
+        copyFrom(TemplateManager.getInstance().getTemplate(layer));
     }
 
     Optional<String> resolveKeyForFieldFromAnnotation(String name, AnnotatedElement field) {

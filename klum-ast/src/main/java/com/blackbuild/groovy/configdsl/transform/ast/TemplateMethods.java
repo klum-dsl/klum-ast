@@ -23,20 +23,16 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapExpression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
-import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -46,15 +42,12 @@ import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.create
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
-import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
@@ -71,11 +64,9 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ternaryX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
 class TemplateMethods {
-    private static final String TEMPLATE_FIELD_NAME = "$TEMPLATE";
     public static final String WITH_TEMPLATE = "withTemplate";
     public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
     public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
@@ -96,7 +87,6 @@ class TemplateMethods {
     }
 
     public void invoke() {
-        addTemplateFieldToAnnotatedClass();
         createImplementationForAbstractClassIfNecessary();
         createAsTemplateMethods();
         copyFromTemplateMethod();
@@ -113,16 +103,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(dslAncestor), "template")
                 .closureParam("closure")
-                .declareVariable("oldTemplate", getTemplateValueExpression())
-                .statement(
-                        new TryCatchStatement(
-                                block(
-                                        stmt(setTemplateValueExpression(varX("template"))),
-                                        returnS(callX(varX("closure"), "call"))
-                                ),
-                                stmt(setTemplateValueExpression(varX("oldTemplate")))
-                        )
-                )
+                .callMethod(classX(TemplateManager.class), WITH_TEMPLATE, args(classX(annotatedClass), varX("template"), varX("closure")))
                 .addTo(annotatedClass);
     }
 
@@ -187,16 +168,6 @@ class TemplateMethods {
                 .addTo(annotatedClass);
     }
 
-
-    private void addTemplateFieldToAnnotatedClass() {
-        annotatedClass.addField(
-                TEMPLATE_FIELD_NAME,
-                ACC_STATIC | ACC_FINAL | ACC_PROTECTED | ACC_SYNTHETIC,
-                makeClassSafeWithGenerics(make(ThreadLocal.class), new GenericsType(annotatedClass)),
-                ctorX(make(ThreadLocal.class))
-        );
-    }
-
     private void createImplementationForAbstractClassIfNecessary() {
         if (!DslAstHelper.isInstantiable(annotatedClass))
             createTemplateClass();
@@ -210,23 +181,11 @@ class TemplateMethods {
                 .addTo(rwClass);
      }
 
+     @Deprecated // TO REMOVE
     private void copyFromTemplateMethod() {
-        MethodBuilder
-                .createProtectedMethod(COPY_FROM_TEMPLATE)
+        ProxyMethodBuilder.createProxyMethod("copyFromTemplate")
                 .mod(ACC_SYNTHETIC)
-                .statementIf(transformation.dslParent != null, callSuperX(COPY_FROM_TEMPLATE))
-                .callThis("copyFrom", args(getTemplateValueExpression()))
                 .addTo(rwClass);
-    }
-
-    @NotNull
-    private MethodCallExpression getTemplateValueExpression() {
-        return callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "get");
-    }
-
-    @NotNull
-    private MethodCallExpression setTemplateValueExpression(Expression value) {
-        return callX(propX(classX(annotatedClass), TEMPLATE_FIELD_NAME), "set", args(value));
     }
 
     private void createAsTemplateMethods() {

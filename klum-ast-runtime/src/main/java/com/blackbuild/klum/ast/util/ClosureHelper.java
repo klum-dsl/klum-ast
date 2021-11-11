@@ -32,11 +32,15 @@ public class ClosureHelper {
      * @return
      */
     public static <T> T invokeClosureWithDelegate(Class<? extends Closure<T>> closureType, Object delegate, Object... arguments) {
-        Closure<?> closure = createClosureInstance(closureType);
+        Closure<T> closure = (Closure<T>) createClosureInstance(closureType);
+        return invokeClosureWithDelegate(closure, delegate, arguments);
+    }
+
+    public static <T> T invokeClosureWithDelegate(Closure<T> closure,  Object delegate, Object... arguments) {
         if (delegate != null) {
             closure.setResolveStrategy(Closure.DELEGATE_FIRST);
             closure.setDelegate(delegate);
         }
-        return (T) closure.call(arguments);
+        return closure.call(arguments);
     }
 }

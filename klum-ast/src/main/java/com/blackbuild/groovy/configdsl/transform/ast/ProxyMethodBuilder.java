@@ -192,7 +192,7 @@ public final class ProxyMethodBuilder {
 
         doAddTo(target);
 
-        if (params.get(0) instanceof NamedParamsArgument) {
+        if (!params.isEmpty() && params.get(0) instanceof NamedParamsArgument) {
             params.set(0, new FixedExpressionArgument(new MapExpression()));
             doAddTo(target);
         }
