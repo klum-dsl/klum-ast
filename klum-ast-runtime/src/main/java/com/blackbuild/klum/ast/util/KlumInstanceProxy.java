@@ -1,6 +1,8 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
@@ -26,6 +28,9 @@ import java.util.Optional;
 
 import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
+import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
+import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_TRANSIENT;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
@@ -121,6 +126,56 @@ public class KlumInstanceProxy {
     public void applyNamedParameters(Object rw, Map<String, Object> values) {
         if (values == null) return;
         values.forEach((key, value) -> InvokerHelper.invokeMethod(rw, key, value));
+    }
+
+    public void copyFrom(Object template) {
+        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
+    }
+
+    private void copyFromLayer(Class<?> layer, Object template) {
+        if (layer.isInstance(template))
+            Arrays.stream(layer.getDeclaredFields()).filter(this::isNotIgnored).forEach(field -> copyFromField(field, template));
+    }
+
+    private boolean isIgnored(Field field) {
+        if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
+        if (field.isAnnotationPresent(Key.class)) return true;
+        if (field.isAnnotationPresent(Owner.class)) return true;
+        if (field.getName().startsWith("$")) return true;
+        if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
+        return false;
+    }
+
+    private boolean isNotIgnored(Field field) {
+        return !isIgnored(field);
+    }
+
+    private void copyFromField(Field field, Object template) {
+        String fieldName = field.getName();
+        Object templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
+
+        if (templateValue == null) return;
+
+        if (templateValue instanceof Collection)
+            copyFromCollectionField((Collection<?>) templateValue, fieldName);
+        else if (templateValue instanceof Map)
+            copyFromMapField((Map<?,?>) templateValue, fieldName);
+        else
+            setInstanceAttribute(fieldName, templateValue);
+    }
+
+    private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
+        if (templateValue.isEmpty()) return;
+        Map<K,V> instanceField = (Map<K,V>) getInstanceAttribute(fieldName);
+        instanceField.clear();
+        instanceField.putAll(templateValue);
+    }
+
+    private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
+        if (templateValue.isEmpty()) return;
+        Collection<T> instanceField = (Collection<T>) getInstanceAttribute(fieldName);
+        instanceField.clear();
+        instanceField.addAll(templateValue);
     }
 
     public Object getKey() {

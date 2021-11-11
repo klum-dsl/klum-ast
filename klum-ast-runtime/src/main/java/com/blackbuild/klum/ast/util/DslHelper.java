@@ -1,6 +1,7 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -42,9 +44,9 @@ public class DslHelper {
     }
 
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
-        List<Class<?>> result = new ArrayList<>();
+        List<Class<?>> result = new LinkedList<>();
         while (isDslType(type)) {
-            result.add(type);
+            result.add(0, type);
             type = type.getSuperclass();
         }
         return result;
@@ -75,6 +77,12 @@ public class DslHelper {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();
+    }
+
+    public static FieldType getKlumFieldType(Field field) {
+        com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (fieldAnnotation == null) return FieldType.DEFAULT;
+        return fieldAnnotation.value();
     }
 
     public static Optional<Method> getMethod(Class<?> type, String name, Class<?>... args) {

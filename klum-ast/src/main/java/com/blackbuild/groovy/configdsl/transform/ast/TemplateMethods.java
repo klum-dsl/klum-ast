@@ -42,7 +42,6 @@ import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FACTORY_HELPER;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
@@ -54,7 +53,6 @@ import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
@@ -65,7 +63,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
@@ -208,57 +205,10 @@ class TemplateMethods {
     }
 
     private void copyFromMethod() {
-        MethodBuilder templateApply = createPublicMethod("copyFrom")
-                // highest ancestor is needed because otherwise wrong methods are called if only parent has a template
-                // see DefaultValuesSpec."template for parent class affects child instances"()
-                .param(newClass(dslAncestor), "template");
-
-        ClassNode parentClass = annotatedClass.getSuperClass();
-
-        if (isDSLObject(parentClass)) {
-            templateApply.statement(callSuperX("copyFrom", args("template")));
-        }
-
-        templateApply.statement(ifS(notX(isInstanceOfX(varX("template"), annotatedClass)), returnS(constX(null))));
-
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (transformation.shouldFieldBeIgnored(fieldNode)) continue;
-
-            String fieldName = fieldNode.getName();
-            String undefaultedGetter = "get$" + fieldName;
-
-            if (CommonAstHelper.isCollection(fieldNode.getType()))
-                templateApply.statement(
-                        ifS(
-                                callX(varX("template"), undefaultedGetter),
-                                block(
-                                        // we need an empty collection, since template replaces the field
-                                        stmt(callX(propX(varX("this"), fieldName), "clear")),
-                                        stmt(callX(propX(varX("this"), fieldName), "addAll", callX(varX("template"), undefaultedGetter)))
-                                )
-                        )
-                );
-            else if (CommonAstHelper.isMap(fieldNode.getType()))
-                templateApply.statement(
-                        ifS(
-                                callX(varX("template"), undefaultedGetter),
-                                block(
-                                        stmt(callX(propX(varX("this"), fieldName), "clear")),
-                                        stmt(callX(propX(varX("this"), fieldName), "putAll", callX(varX("template"), undefaultedGetter)))
-                                )
-                        )
-                );
-            else
-                templateApply.statement(
-                        ifS(
-                                callX(varX("template"), undefaultedGetter),
-                                assignS(propX(varX("this"), fieldName), callX(varX("template"), undefaultedGetter))
-                        )
-                );
-        }
-
-        templateApply.addTo(rwClass);
-    }
+        ProxyMethodBuilder.createProxyMethod("copyFrom")
+                .param(newClass(dslAncestor), "template")
+                .addTo(rwClass);
+     }
 
     private void copyFromTemplateMethod() {
         MethodBuilder
