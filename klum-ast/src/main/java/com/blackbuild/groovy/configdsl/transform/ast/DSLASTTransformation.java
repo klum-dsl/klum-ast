@@ -55,7 +55,6 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.GStringExpression;
-import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -1160,17 +1159,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        createPublicMethod("apply")
+        createProxyMethod("apply")
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .callMethod(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, "apply", args("values", "closure"))
-                .addTo(annotatedClass);
-
-        createPublicMethod("apply")
-                .returning(newClass(annotatedClass))
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.NONE)
-                .callThis("apply", args(new MapExpression(), varX("closure")))
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
 
         new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();

@@ -405,7 +405,11 @@ public final class ProxyMethodBuilder {
     }
 
     public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
-        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), singletonList(createDelegatesToAnnotation(delegationTarget)), ConstantExpression.NULL));
+        return delegatingClosureParam(delegationTarget, ConstantExpression.NULL);
+    }
+
+    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget, Expression defaultValue) {
+        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), singletonList(createDelegatesToAnnotation(delegationTarget)), defaultValue));
         return this;
     }
 

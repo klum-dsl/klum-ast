@@ -138,7 +138,7 @@ class TemplateMethods {
                 .addTo(rwClass);
      }
 
-     @Deprecated // TO REMOVE
+    @Deprecated // TO REMOVE
     private void copyFromTemplateMethod() {
         createProxyMethod("copyFromTemplate")
                 .mod(ACC_SYNTHETIC)
