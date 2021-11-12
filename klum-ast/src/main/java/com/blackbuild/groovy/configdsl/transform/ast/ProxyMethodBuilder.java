@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
@@ -46,10 +47,8 @@ import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -90,6 +89,8 @@ public final class ProxyMethodBuilder {
     private int modifiers;
     private ClassNode returnType = ClassHelper.VOID_TYPE;
     private List<ClassNode> exceptions = new ArrayList<>();
+
+    @Deprecated
     private List<Parameter> parameters = new ArrayList<>();
     private boolean deprecated;
     private boolean optional;
@@ -119,6 +120,12 @@ public final class ProxyMethodBuilder {
                 .constantClassParam(factoryType);
     }
 
+    public static ProxyMethodBuilder createTemplateMethod(String name) {
+        return new ProxyMethodBuilder(classX(TemplateManager.class), name, name)
+                .mod(ACC_STATIC)
+                .returning(ClassHelper.DYNAMIC_TYPE);
+    }
+
     public ProxyMethodBuilder returning(ClassNode returnType) {
         this.returnType = returnType;
         return this;
@@ -134,16 +141,6 @@ public final class ProxyMethodBuilder {
             return returnS(callExpression);
         else
             return stmt(callExpression);
-    }
-
-    public ProxyMethodBuilder params(Parameter... params) {
-        Arrays.stream(params).forEach(this::param);
-        return this;
-    }
-
-    public ProxyMethodBuilder params(List<Parameter>params) {
-        params.forEach(this::param);
-        return this;
     }
 
     public ProxyMethodBuilder decoratedParam(FieldNode field, String name) {
@@ -268,8 +265,7 @@ public final class ProxyMethodBuilder {
      */
     @Deprecated
     public ProxyMethodBuilder param(Parameter param) {
-        parameters.add(param);
-        return this;
+        throw new AssertionError("Illegal call to method");
     }
 
     public ProxyMethodBuilder deprecated() {
@@ -283,6 +279,10 @@ public final class ProxyMethodBuilder {
     public ProxyMethodBuilder namedParams(String name) {
         if (namedParameterIndex == -1)
             namedParameterIndex = params.size();
+        return nonOptionalNamedParams(name);
+    }
+
+    public ProxyMethodBuilder nonOptionalNamedParams(String name) {
         params.add(new NamedParamsArgument(name));
         return this;
     }
@@ -291,7 +291,14 @@ public final class ProxyMethodBuilder {
      * Adds a parameter of type closure.
      */
     public ProxyMethodBuilder closureParam(String name) {
-        param(GeneralUtils.param(GenericsUtils.nonGeneric(ClassHelper.CLOSURE_TYPE), name));
+        return closureParam(name, ConstantExpression.NULL);
+    }
+
+    /**
+     * Adds a parameter of type closure.
+     */
+    public ProxyMethodBuilder closureParam(String name, ConstantExpression defaultValue) {
+        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), null, defaultValue));
         return this;
     }
 
@@ -389,6 +396,7 @@ public final class ProxyMethodBuilder {
      * Use all parameters of the given source method as parameters to this method.
      * @param sourceMethod The source of the parameter list
      */
+    @Deprecated
     public ProxyMethodBuilder cloneParamsFrom(MethodNode sourceMethod) {
         Parameter[] sourceParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
         for (Parameter parameter : sourceParams) {

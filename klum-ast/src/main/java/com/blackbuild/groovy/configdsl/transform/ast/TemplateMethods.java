@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -39,6 +38,7 @@ import java.util.List;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FACTORY_HELPER;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createTemplateMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
@@ -98,23 +98,18 @@ class TemplateMethods {
     }
 
     private void withTemplateMethod() {
-        createPublicMethod(WITH_TEMPLATE)
-                .mod(ACC_STATIC)
-                .returning(ClassHelper.DYNAMIC_TYPE)
+        createTemplateMethod(WITH_TEMPLATE)
+                .constantClassParam(annotatedClass)
                 .param(newClass(dslAncestor), "template")
-                .closureParam("closure")
-                .callMethod(classX(TemplateManager.class), WITH_TEMPLATE, args(classX(annotatedClass), varX("template"), varX("closure")))
+                .closureParam("closure", null)
                 .addTo(annotatedClass);
     }
 
     private void withTemplateConvenienceMethod() {
-        createPublicMethod(WITH_TEMPLATE)
-                .mod(ACC_STATIC)
-                .returning(ClassHelper.DYNAMIC_TYPE)
-                .namedParams("templateMap")
-                .closureParam("closure")
-                .declareVariable("templateInstance", callX(annotatedClass, CREATE_AS_TEMPLATE, args("templateMap")))
-                .callMethod(classX(annotatedClass), WITH_TEMPLATE, args("templateInstance", "closure"))
+        createTemplateMethod(WITH_TEMPLATE)
+                .constantClassParam(annotatedClass)
+                .nonOptionalNamedParams("templateMap")
+                .closureParam("closure", null)
                 .addTo(annotatedClass);
     }
 

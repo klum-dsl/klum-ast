@@ -31,6 +31,11 @@ public class TemplateManager {
         }
     }
 
+    public static <T> Object withTemplate(Class<T> type, Map<String, Object> template, Closure<?> body) {
+        T templateInstance = FactoryHelper.createAsTemplate(type, template, null);
+        return withTemplate(type,templateInstance, body);
+    }
+
     public <T> T getTemplate(Class<T> type) {
         return (T) templates.get(type);
     }
