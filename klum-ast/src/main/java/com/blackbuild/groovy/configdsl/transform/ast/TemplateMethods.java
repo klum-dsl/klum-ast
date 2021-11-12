@@ -71,15 +71,13 @@ class TemplateMethods {
     public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
     public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
     public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
-    private DSLASTTransformation transformation;
-    private ClassNode annotatedClass;
-    private FieldNode keyField;
+    private final ClassNode annotatedClass;
+    private final FieldNode keyField;
     private ClassNode templateClass;
-    private ClassNode dslAncestor;
+    private final ClassNode dslAncestor;
     private final InnerClassNode rwClass;
 
     public TemplateMethods(DSLASTTransformation transformation) {
-        this.transformation = transformation;
         annotatedClass = transformation.annotatedClass;
         rwClass = transformation.rwClass;
         keyField = transformation.keyField;
@@ -268,6 +266,7 @@ class TemplateMethods {
         );
     }
 
+    @SuppressWarnings("RedundantIfStatement")
     private boolean methodIsAnAlreadyImplementedInterfaceMethod(MethodNode abstractMethod) {
         if (!abstractMethod.getDeclaringClass().isInterface())
             return false;

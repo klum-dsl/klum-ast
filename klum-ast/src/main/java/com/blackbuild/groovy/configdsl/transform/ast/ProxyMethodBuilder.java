@@ -88,14 +88,14 @@ public final class ProxyMethodBuilder {
 
     private int modifiers;
     private ClassNode returnType = ClassHelper.VOID_TYPE;
-    private List<ClassNode> exceptions = new ArrayList<>();
+    private final List<ClassNode> exceptions = new ArrayList<>();
 
     @Deprecated
-    private List<Parameter> parameters = new ArrayList<>();
+    private final List<Parameter> parameters = new ArrayList<>();
     private boolean deprecated;
     private boolean optional;
     private ASTNode sourceLinkTo;
-    private List<ProxyMethodArgument> params = new ArrayList<>();
+    private final List<ProxyMethodArgument> params = new ArrayList<>();
 
     private int namedParameterIndex = -1;
 
@@ -320,7 +320,6 @@ public final class ProxyMethodBuilder {
      * Adds a class parameter without delegation.
      * @param name The name of the parameter
      * @param upperBound The base class for the class parameter
-     * @return
      */
     public ProxyMethodBuilder simpleClassParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);

@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class TemplateManager {
 
-    private static ThreadLocal<TemplateManager> INSTANCE = new ThreadLocal<>();
+    private static final ThreadLocal<TemplateManager> INSTANCE = new ThreadLocal<>();
 
     public static TemplateManager getInstance() {
         if (INSTANCE.get() == null)
@@ -36,6 +36,7 @@ public class TemplateManager {
         return withTemplate(type,templateInstance, body);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T getTemplate(Class<T> type) {
         return (T) templates.get(type);
     }
