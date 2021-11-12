@@ -925,13 +925,12 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String token
             }
         ''')
-        def fooClass = getClass('pk.Foo$Template')
-        def fooTemplate = fooClass.create(name: 'DefaultName')
+        def fooClass = getClass('pk.Foo')
+        def fooTemplate = fooClass.createAsTemplate(name: 'DefaultName')
 
         def bar
         when:
         clazz.withTemplates([fooTemplate]) {
-            //assert getClass('pk.Foo').$TEMPLATE.get() == fooTemplate
             bar = getClass('pk.Bar').create {
                 token "b"
             }
@@ -1068,7 +1067,7 @@ class TemplatesSpec extends AbstractDSLSpec {
                 def doIt() {}
             }
         ''')
-        def template = getClass('pk.Foo$Template').create {
+        def template = getClass('pk.Foo').createAsTemplate {
             name "Default"
         }
 

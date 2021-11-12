@@ -90,6 +90,11 @@ public class FactoryHelper {
         return (T) InvokerHelper.invokeConstructorOf(type, key);
     }
 
+    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, args);
+    }
+
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
         if (DelegatingScript.class.isAssignableFrom(scriptType))
             return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
@@ -145,19 +150,32 @@ public class FactoryHelper {
     }
 
     public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
+        T result;
+        if (!DslHelper.isInstantiable(type))
+            result = createAsSyntheticTemplate(type);
+        else if (DslHelper.isKeyed(type))
+            result = createInstanceWithNullArg(type);
+        else
+            result = createInstanceWithArgs(type);
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+        proxy.setManualValidation();
+        proxy.skipPostApply();
+        proxy.apply(values, closure);
+        return result;
+    }
+
+    private static <T> T createInstanceWithNullArg(Class<T> type) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, new Object[] {null});
+    }
+
+    private static <T> T createAsSyntheticTemplate(Class<T> type) {
         try {
-            Class<?> templateClass = DslHelper.isInstantiable(type) ? type : type.getClassLoader().loadClass(type.getName() + "$Template");
-
-            Object result = DslHelper.isKeyed(type) ? (T) InvokerHelper.invokeConstructorOf(templateClass, new Object[] {null}) : createInstance(templateClass, null);
-
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
-            proxy.setManualValidation();
-            proxy.skipPostApply();
-            proxy.apply(values, closure);
-            return (T) result;
-        } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException(String.format("%s seems to be no KlumAst class", type), e);
+            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").newInstance();
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            throw new IllegalArgumentException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
         }
     }
 
