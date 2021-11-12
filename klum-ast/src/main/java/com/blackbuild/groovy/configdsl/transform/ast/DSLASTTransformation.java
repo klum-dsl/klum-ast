@@ -72,7 +72,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -107,6 +106,7 @@ import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrM
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
+import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
@@ -553,20 +553,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();
-            createEquals(annotatedClass, true, dslParent != null, true, getAllTransientFields(), null);
+            createEquals(annotatedClass, true, dslParent != null, true, getAllIgnoredFieldNames(), null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
             createToString(annotatedClass, false, true, getOwnerFieldNames(annotatedClass), null, false);
         }
     }
 
-    private List<String> getAllTransientFields() {
-        List<String> result = new ArrayList<>();
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (fieldNode.getName().startsWith("$") || DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT)
-                result.add(fieldNode.getName());
-        }
-        return result;
+    private List<String> getAllIgnoredFieldNames() {
+        return annotatedClass.getFields()
+                .stream()
+                .filter(DSLASTTransformation::isFieldIgnoredForEquals)
+                .map(FieldNode::getName)
+                .collect(toList());
+    }
+
+    private static boolean isFieldIgnoredForEquals(FieldNode fieldNode) {
+        return fieldNode.getName().startsWith("$") || DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT;
     }
 
     private void createHashCodeIfNotDefined() {

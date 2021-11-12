@@ -36,8 +36,10 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
@@ -138,8 +140,7 @@ class ConverterBuilder {
         if (!transformation.memberHasValue(convertersAnnotation, "includeConstructors", true))
             return;
 
-        for (ConstructorNode constructor : elementType.getDeclaredConstructors())
-            createConverterConstructorCall(constructor);
+        elementType.getDeclaredConstructors().forEach(this::createConverterConstructorCall);
     }
 
     private void createConverterMethodsFromOwnFactoryMethods() {
@@ -147,19 +148,14 @@ class ConverterBuilder {
     }
 
     private void createConverterMethodsFromFactoryMethods(ClassNode converterClass) {
-        for (MethodNode converterMethod : findAllFactoryMethodsFor(converterClass))
-            createConverterFactoryCall(converterMethod);
+        findAllFactoryMethodsFor(converterClass).forEach(this::createConverterFactoryCall);
     }
 
     private List<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
-        List<MethodNode> result = new ArrayList<>();
-
-        for (MethodNode method : converterClass.getMethods()) {
-            if (method.isStatic() && method.isPublic() && isConverterMethod(method) && isAssignable(method.getReturnType(), elementType))
-                result.add(method);
-        }
-
-        return result;
+        return converterClass.getMethods()
+                .stream()
+                .filter(method -> method.isStatic() && method.isPublic() && isConverterMethod(method) && isAssignable(method.getReturnType(), elementType))
+                .collect(Collectors.toList());
     }
 
     private boolean isAssignable(ClassNode type, ClassNode classOrInterface) {
@@ -182,19 +178,11 @@ class ConverterBuilder {
     }
 
     private boolean isNameExcluded(String name) {
-        for (String prefix : excludes)
-            if (name.startsWith(prefix))
-                return true;
-        return false;
+        return excludes.stream().anyMatch(name::startsWith);
     }
 
     private boolean isNameIncluded(String name) {
-        if (includes.isEmpty())
-            return true;
-        for (String prefix : includes)
-            if (name.startsWith(prefix))
-                return true;
-        return false;
+        return includes.isEmpty() || includes.stream().anyMatch(name::startsWith);
     }
 
     private boolean isKlumMethod(MethodNode method) {
@@ -245,8 +233,7 @@ class ConverterBuilder {
         if (withKey)
             parameters.add(param(STRING_TYPE, "$key"));
 
-        for (Parameter parameter : source)
-            parameters.add(param(parameter.getOriginType(), parameter.getName()));
+        Arrays.stream(source).map(parameter -> param(parameter.getOriginType(), parameter.getName())).forEach(parameters::add);
 
         return parameters;
     }
