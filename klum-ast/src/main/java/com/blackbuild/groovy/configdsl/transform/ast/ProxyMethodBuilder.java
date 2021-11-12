@@ -367,7 +367,7 @@ public final class ProxyMethodBuilder {
      * @param name The name of the parameter
      */
     public ProxyMethodBuilder param(ClassNode type, String name) {
-        params.add(new ProxiedArgument(name,type));
+        params.add(new ProxiedArgument(name, type));
         return this;
     }
 
@@ -378,7 +378,8 @@ public final class ProxyMethodBuilder {
      * @param defaultValue An expression to use for the default value for the parameter. Can be null.
      */
     public ProxyMethodBuilder param(ClassNode type, String name, Expression defaultValue) {
-        return param(new Parameter(type, name, defaultValue));
+        params.add(new ProxiedArgument(name, type, null, defaultValue));
+        return this;
     }
 
     /**

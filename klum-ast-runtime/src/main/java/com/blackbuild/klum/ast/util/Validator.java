@@ -24,7 +24,6 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 public class Validator {
 
     private final Object instance;
-    private boolean manualValidation;
     private Validation.Option currentValidationMode;
     private Class<?> currentType;
 

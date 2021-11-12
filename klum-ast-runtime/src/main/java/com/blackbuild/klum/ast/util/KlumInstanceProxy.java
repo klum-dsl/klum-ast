@@ -6,6 +6,7 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
+import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.GroovyRuntimeException;
@@ -47,6 +48,7 @@ public class KlumInstanceProxy {
     private final GroovyObject instance;
     private boolean skipPostCreate;
     private boolean skipPostApply;
+    private boolean manualValidation;
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -211,11 +213,18 @@ public class KlumInstanceProxy {
     }
 
     boolean getManualValidation() {
-        return (boolean) InvokerHelper.getAttribute(instance, "$manualValidation");
+        if (manualValidation) return true;
+        Validation annotation = instance.getClass().getAnnotation(Validation.class);
+        if (annotation == null) return false;
+        return (annotation.mode() == Validation.Mode.MANUAL);
     }
 
-    void setManualValidation() {
-        InvokerHelper.setAttribute(instance, "$manualValidation", true);
+    void manualValidation() {
+        manualValidation = true;
+    }
+
+    void manualValidation(boolean value) {
+        manualValidation = value;
     }
 
     public void setOwners(Object value) {

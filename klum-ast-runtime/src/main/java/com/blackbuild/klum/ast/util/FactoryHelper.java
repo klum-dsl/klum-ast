@@ -160,7 +160,7 @@ public class FactoryHelper {
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
-        proxy.setManualValidation();
+        proxy.manualValidation();
         proxy.skipPostApply();
         proxy.apply(values, closure);
         return result;

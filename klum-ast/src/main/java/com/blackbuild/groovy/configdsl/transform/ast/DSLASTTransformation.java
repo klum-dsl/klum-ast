@@ -209,7 +209,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
-        addDirectGettersForKeyField();
 
         setPropertyAccessors();
         createCanonicalMethods();
@@ -261,19 +260,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
-    @Deprecated
-    private void addDirectGettersForKeyField() {
-        if (keyField == null)
-            return;
-        if (annotatedClass != keyField.getOwner())
-            return;
-        createPublicMethod("get$key")
-                .mod(ACC_FINAL)
-                .returning(keyField.getType())
-                .callMethod(classX(KlumInstanceProxy.class), "getKey", args("this"))
-                .doReturn(keyField.getName())
-                .addTo(annotatedClass);
-    }
 
     private void moveMutatorsToRWClass() {
         new MutatorsHandler(annotatedClass).invoke();
@@ -362,17 +348,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         // TODO: to proxy
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
-            // TODO field could be added to rw as well
-            annotatedClass.addField("$manualValidation", ACC_PROTECTED | ACC_SYNTHETIC, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
-            createPublicMethod("manualValidation")
+            createProxyMethod("manualValidation")
                     .param(Boolean_TYPE, "validation", constX(true))
-                    .assignS(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), "$manualValidation"), varX("validation"))
                     .addTo(rwClass);
         }
 
-        createPublicMethod(VALIDATE_METHOD)
-                .callMethod(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, VALIDATE_METHOD)
-                .addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD).addTo(annotatedClass);
     }
 
     private void checkValidAnnotationsOnFields() {
