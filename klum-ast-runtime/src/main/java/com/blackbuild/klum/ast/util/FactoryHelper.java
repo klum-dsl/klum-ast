@@ -72,7 +72,7 @@ public class FactoryHelper {
         }
     }
 
-    public static <T> T create(Map<String, Object> values, Class<T> type, String key, Closure<?> body) {
+    public static <T> T create(Class<T> type, Map<String, Object> values, String key, Closure<?> body) {
         T result = createInstance(type, key);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
@@ -123,7 +123,8 @@ public class FactoryHelper {
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
         compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
         GroovyShell shell = new GroovyShell(gLoader, compilerConfiguration);
-        return createFromDelegatingScript(type, (DelegatingScript) shell.parse(text, name));
+        Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
+        return createFromDelegatingScript(type, (DelegatingScript) parse);
     }
 
     public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
@@ -163,8 +164,8 @@ public class FactoryHelper {
     @SuppressWarnings("unchecked")
     private static <T extends GroovyObject> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
         try {
-            Class<T> modelClass = (Class<T>) loader.loadClass(configModelClassName);
-            return (T) type.getMethod("createFrom", Class.class).invoke(null, modelClass);
+            Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
+            return createFrom(type, modelClass);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
         } catch (Exception e) {

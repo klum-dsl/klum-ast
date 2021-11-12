@@ -50,13 +50,13 @@ import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -69,6 +69,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
 public final class ProxyMethodBuilder {
@@ -93,8 +94,9 @@ public final class ProxyMethodBuilder {
     private boolean deprecated;
     private boolean optional;
     private ASTNode sourceLinkTo;
-    private Parameter namedParam;
     private List<ProxyMethodArgument> params = new ArrayList<>();
+
+    private int namedParameterIndex = -1;
 
     private ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
         this.proxyTarget = proxyTarget;
@@ -110,8 +112,11 @@ public final class ProxyMethodBuilder {
         return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, name);
     }
 
-    public static ProxyMethodBuilder createFactoryMethod(String name) {
-        return new ProxyMethodBuilder(classX(FactoryHelper.class), name, name).mod(ACC_STATIC);
+    public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {
+        return new ProxyMethodBuilder(classX(FactoryHelper.class), name, name)
+                .mod(ACC_STATIC)
+                .returning(newClass(factoryType))
+                .constantClassParam(factoryType);
     }
 
     public ProxyMethodBuilder returning(ClassNode returnType) {
@@ -160,7 +165,13 @@ public final class ProxyMethodBuilder {
     }
 
     public ProxyMethodBuilder optionalClassLoaderParam() {
-        return param(CLASSLOADER_TYPE, "loader", callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"));
+        params.add(new ProxiedArgument(
+                "loader",
+                CLASSLOADER_TYPE,
+                null,
+                callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader")
+        ));
+        return this;
     }
 
     public ProxyMethodBuilder linkToField(AnnotatedNode annotatedNode) {
@@ -201,8 +212,8 @@ public final class ProxyMethodBuilder {
 
         doAddTo(target);
 
-        if (!params.isEmpty() && params.get(0) instanceof NamedParamsArgument) {
-            params.set(0, new FixedExpressionArgument(new MapExpression()));
+        if (namedParameterIndex != -1) {
+            params.set(namedParameterIndex, new FixedExpressionArgument(new MapExpression()));
             doAddTo(target);
         }
     }
@@ -270,6 +281,8 @@ public final class ProxyMethodBuilder {
      * Adds a map entry to the method signature.
      */
     public ProxyMethodBuilder namedParams(String name) {
+        if (namedParameterIndex == -1)
+            namedParameterIndex = params.size();
         params.add(new NamedParamsArgument(name));
         return this;
     }
@@ -291,7 +304,7 @@ public final class ProxyMethodBuilder {
         params.add(new ProxiedArgument(
                 name,
                 makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)),
-                Collections.singletonList(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION))
+                singletonList(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION))
         ));
         return this;
     }
@@ -385,9 +398,7 @@ public final class ProxyMethodBuilder {
     }
 
     public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
-        ProxiedArgument argument = new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), Collections.singletonList(createDelegatesToAnnotation(delegationTarget)));
-        argument.setDefaultValue(ConstantExpression.NULL);
-        params.add(argument);
+        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), singletonList(createDelegatesToAnnotation(delegationTarget)), ConstantExpression.NULL));
         return this;
     }
 
@@ -451,16 +462,21 @@ public final class ProxyMethodBuilder {
     private static class ProxiedArgument extends ProxyMethodArgument {
         private final ClassNode type;
         private final List<AnnotationNode> annotations;
-        private Expression defaultValue;
+        private final Expression defaultValue;
 
         public ProxiedArgument(String name, ClassNode type) {
-            this(name, type, null);
+            this(name, type, null, null);
         }
 
         public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations) {
+            this(name, type, annotations, null);
+        }
+
+        public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, Expression defaultValue) {
             super(name);
             this.type = type;
             this.annotations = annotations;
+            this.defaultValue = defaultValue;
         }
 
         @Override
@@ -469,10 +485,6 @@ public final class ProxyMethodBuilder {
             if (annotations != null)
                 annotations.forEach(param::addAnnotation);
             return Optional.of(param);
-        }
-
-        public void setDefaultValue(Expression defaultValue) {
-            this.defaultValue = defaultValue;
         }
     }
 

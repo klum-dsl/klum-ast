@@ -92,6 +92,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPREC
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
@@ -1181,55 +1182,36 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (!isInstantiable(annotatedClass))
             return;
 
-        Expression keyArg = keyField != null ? varX("name") : ConstantExpression.NULL;
-
-        ProxyMethodBuilder.createFactoryMethod(CREATE_METHOD_NAME)
-                .returning(newClass(annotatedClass))
+        createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
                 .namedParams("values")
-                .constantClassParam(annotatedClass)
                 .optionalStringParam("name", keyField != null)
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
     }
 
     private void createConvenienceFactories() {
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                .doReturn(callX(FACTORY_HELPER, CREATE_FROM, args(classX(annotatedClass), varX("configType"))))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .optionalStringParam("name", keyField != null)
                 .stringParam("text")
                 .optionalClassLoaderParam()
-                .doReturn(callX(FACTORY_HELPER, CREATE_FROM, args(classX(annotatedClass), keyField != null ? varX("name") : constX("dummy"), varX("text"), varX("loader"))))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .param(make(File.class), "src")
                 .optionalClassLoaderParam()
-                .doReturn(callX(annotatedClass, CREATE_FROM, args(callX(callX(varX("src"), "toURI"), "toURL"), varX("loader"))))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .param(make(URL.class), "src")
                 .optionalClassLoaderParam()
-                .declareVariable("text", propX(varX("src"), "text"))
-                .doReturn(callX(annotatedClass, CREATE_FROM, keyField != null ? args(propX(varX("src"), "path"), varX("text"), varX("loader")) : args("text", "loader")))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM_CLASSPATH)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .doReturn(callX(FACTORY_HELPER, CREATE_FROM_CLASSPATH, classX(annotatedClass)))
+        createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
+                .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }
 
