@@ -316,11 +316,11 @@ public class KlumInstanceProxy {
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
-    public <V> void addElementsToMapWithKeyMapping(String fieldName, Iterable<V> values) {
+    public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
         values.forEach(value -> addElementToMap(fieldName, value));
     }
 
-    public void addElementsToMapWithKeyMapping(String fieldName, Object... values) {
+    public void addElementsToMap(String fieldName, Object... values) {
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, value));
     }
 

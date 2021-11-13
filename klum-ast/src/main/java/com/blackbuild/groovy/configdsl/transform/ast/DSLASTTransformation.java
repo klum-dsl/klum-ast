@@ -837,14 +837,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                     .addTo(rwClass);
         } else {
-            createProxyMethod(methodName, "addElementsToMapWithKeyMapping")
+            createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .constantParam(methodName)
                     .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
                     .addTo(rwClass);
-            createProxyMethod(methodName, "addElementsToMapWithKeyMapping")
+            createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1027,20 +1027,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;
 
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
-
-        /*
-            optional, visibility, deprecation wie gehabt
-                Map<String, Object> namedParams,
-                String fieldOrMethodName,
-                Class<T> type,
-                String key,
-                Closure<T> body
-
-
-         */
-
-
-
 
         if (isInstantiable(targetFieldType)) {
             createProxyMethod(fieldName, "createSingleChild")
