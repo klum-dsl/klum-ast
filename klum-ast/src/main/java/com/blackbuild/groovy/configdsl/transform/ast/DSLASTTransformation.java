@@ -859,7 +859,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .returning(valueType)
                 .linkToField(fieldNode)
                 .constantParam(methodName)
-                .conditionalParam(keyType, "key", keyMappingClosure == null)
+                .optionalParam(keyType, "key", keyMappingClosure == null)
                 .param(valueType, "value")
                 .addTo(rwClass);
 

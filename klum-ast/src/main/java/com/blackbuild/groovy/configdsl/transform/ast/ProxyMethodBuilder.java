@@ -353,6 +353,11 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
+    public ProxyMethodBuilder optionalParam(ClassNode type, String name, boolean doAdd) {
+        params.add(new OptionalArgument(name, type, doAdd));
+        return this;
+    }
+
     public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd) {
         if (doAdd)
             return param(type, name);

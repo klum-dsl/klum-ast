@@ -317,11 +317,16 @@ public class KlumInstanceProxy {
     }
 
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
-        values.forEach(value -> addElementToMap(fieldName, value));
+        values.forEach(value -> addElementToMap(fieldName, null, value));
     }
 
     public void addElementsToMap(String fieldName, Object... values) {
-        Arrays.stream(values).forEach(value -> addElementToMap(fieldName, value));
+        Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
+    }
+
+    public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
+        T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
+        return doAddElementToMap(mapName, key, created);
     }
 
     public <K,V> V addElementToMap(String fieldName, K key, V value) {
@@ -329,22 +334,14 @@ public class KlumInstanceProxy {
         return doAddElementToMap(fieldName, key, value);
     }
 
-    public <V> V addElementToMap(String fieldName, V value) {
-        setInstanceAsOwnerFor(value);
-        return doAddElementToMap(fieldName, value);
-    }
-
     private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
         Class<V> elementType = (Class<V>) DslHelper.getElementType(instance.getClass(), fieldName);
+        if (key == null)
+            key = determineKeyFromMappingClosure(fieldName, value);
         Map<K, V> target = getInstanceAttribute(fieldName);
         value = forceCastClosure(value, elementType);
         target.put(key, value);
         return value;
-    }
-
-    private <K, V> V doAddElementToMap(String fieldName, V value) {
-        K key = determineKeyFromMappingClosure(fieldName, value);
-        return doAddElementToMap(fieldName, key, value);
     }
 
     private <V> V forceCastClosure(Object value, Class<V> elementType) {
