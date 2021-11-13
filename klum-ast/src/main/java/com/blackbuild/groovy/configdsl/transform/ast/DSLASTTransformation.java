@@ -829,64 +829,38 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
 
         if (keyMappingClosure == null) {
-            createMethod(methodName)
-                .optional()
-                .mod(visibility)
-                .linkToField(fieldNode)
-                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-                .forS(
-                    param(makeClassSafeWithGenerics(MAP_ENTRY_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "entry"),
-                    "values",
-                    stmt(callThisX(singleElementMethod, args(
-                            propX(varX("entry"), "key"),
-                            propX(varX("entry"), "value")))
-                    )
-                )
-                .addTo(rwClass);
-        } else {
-            createMethod(methodName)
+            createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(methodName)
+                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
+                    .addTo(rwClass);
+        } else {
+            createProxyMethod(methodName, "addElementsToMapWithKeyMapping")
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .constantParam(methodName)
                     .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
-                    .forS(
-                        param(valueType, "element"),
-                        "values",
-                        stmt(callThisX(singleElementMethod, varX("element")))
-                    )
                     .addTo(rwClass);
-            createMethod(methodName)
+            createProxyMethod(methodName, "addElementsToMapWithKeyMapping")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(methodName)
                     .arrayParam(valueType, "values")
-                    .forS(
-                            param(valueType, "element"),
-                            "values",
-                            stmt(callThisX(singleElementMethod, varX("element")))
-                    )
                     .addTo(rwClass);
         }
 
-        Expression readKeyExpression;
-        Parameter[] parameters;
-
-        if (keyMappingClosure == null) {
-            readKeyExpression = varX("key");
-            parameters = params(param(keyType, "key"), param(valueType, "value"));
-        } else {
-            readKeyExpression = callX(keyMappingClosure, "call", args("value"));
-            parameters = params(param(valueType, "value"));
-        }
-
-        createMethod(singleElementMethod)
+        createProxyMethod(singleElementMethod, "addElementToMap")
                 .optional()
                 .mod(visibility)
                 .returning(valueType)
                 .linkToField(fieldNode)
-                .params(parameters)
-                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args(readKeyExpression, varX("value")))
-                .doReturn("value")
+                .constantParam(methodName)
+                .conditionalParam(keyType, "key", keyMappingClosure == null)
+                .param(valueType, "value")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);

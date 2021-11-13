@@ -16,11 +16,16 @@ public class ClosureHelper {
      * @param closureType
      * @return
      */
-    public static Closure<?> createClosureInstance(Class<?> closureType) {
+    public static <T> Closure<T> createClosureInstance(Class<? extends Closure<T>> closureType) {
         if (!Closure.class.isAssignableFrom(closureType))
             throw new IllegalStateException(format("Expected a closure, but got %s instead.", closureType.getName()));
 
-        return (Closure<?>) InvokerHelper.invokeConstructorOf(closureType, new Object[] {null, null});
+        return (Closure<T>) InvokerHelper.invokeConstructorOf(closureType, new Object[] {null, null});
+    }
+
+    public static <T> T invokeClosure(Class<? extends Closure<T>> closureType, Object... arguments) {
+        Closure<T> closure = createClosureInstance(closureType);
+        return closure.call(arguments);
     }
 
     /**

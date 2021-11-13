@@ -353,6 +353,12 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
+    public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd) {
+        if (doAdd)
+            return param(type, name);
+        return this;
+    }
+
     /**
      * Add a generic object parameter.
      * @param name The name of the parameter

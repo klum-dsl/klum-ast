@@ -62,9 +62,9 @@ public class KlumInstanceProxy {
         return (GroovyObject) InvokerHelper.getAttribute(instance, KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
     }
 
-    public Object getInstanceAttribute(String attributeName) {
+    public <T> T getInstanceAttribute(String attributeName) {
         try {
-            return getField(attributeName).get(instance);
+            return (T) getField(attributeName).get(instance);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -275,11 +275,10 @@ public class KlumInstanceProxy {
     }
 
     private <T> T doAddElementToCollection(String fieldName, T element) {
-        Class<?> elementType = DslHelper.getElementType(instance.getClass(), fieldName);
-        // Closures need to explicitly be cast to target types
-        if (element instanceof Closure)
-            element = (T) InvokerHelper.invokeMethod(element, "asType", elementType);
-        InvokerHelper.invokeMethod(getInstanceAttribute(fieldName), "add", element);
+        Class<T> elementType = (Class<T>) DslHelper.getElementType(instance.getClass(), fieldName);
+        element = forceCastClosure(element, elementType);
+        Collection<T> target = getInstanceAttribute(fieldName);
+        target.add(element);
         return element;
     }
 
@@ -312,6 +311,62 @@ public class KlumInstanceProxy {
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
+
+    public <K,V> void addElementsToMap(String fieldName, Map<K, V> values) {
+        values.forEach((key, value) -> addElementToMap(fieldName, key, value));
+    }
+
+    public <V> void addElementsToMapWithKeyMapping(String fieldName, Iterable<V> values) {
+        values.forEach(value -> addElementToMap(fieldName, value));
+    }
+
+    public void addElementsToMapWithKeyMapping(String fieldName, Object... values) {
+        Arrays.stream(values).forEach(value -> addElementToMap(fieldName, value));
+    }
+
+    public <K,V> V addElementToMap(String fieldName, K key, V value) {
+        setInstanceAsOwnerFor(value);
+        return doAddElementToMap(fieldName, key, value);
+    }
+
+    public <V> V addElementToMap(String fieldName, V value) {
+        setInstanceAsOwnerFor(value);
+        return doAddElementToMap(fieldName, value);
+    }
+
+    private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
+        Class<V> elementType = (Class<V>) DslHelper.getElementType(instance.getClass(), fieldName);
+        Map<K, V> target = getInstanceAttribute(fieldName);
+        value = forceCastClosure(value, elementType);
+        target.put(key, value);
+        return value;
+    }
+
+    private <K, V> V doAddElementToMap(String fieldName, V value) {
+        K key = determineKeyFromMappingClosure(fieldName, value);
+        return doAddElementToMap(fieldName, key, value);
+    }
+
+    private <V> V forceCastClosure(Object value, Class<V> elementType) {
+        if (value instanceof Closure)
+            return DefaultGroovyMethods.asType((Closure<?>) value, elementType);
+        else if (elementType.isInstance(value))
+            //noinspection unchecked
+            return (V) value;
+        else
+            throw new IllegalArgumentException(format("Value is not of type %s", elementType));
+    }
+
+    private <K, V> K determineKeyFromMappingClosure(String fieldName, V element) {
+        Class<? extends Closure<K>> keyMappingClosure = getKeyMappingClosure(fieldName);
+        return ClosureHelper.invokeClosure(keyMappingClosure, element);
+    }
+
+    private <T> Class<? extends Closure<T>> getKeyMappingClosure(String fieldName) {
+        com.blackbuild.groovy.configdsl.transform.Field annotation = DslHelper.getField(instance.getClass(), fieldName).get().getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        return annotation.keyMapping();
+    }
+
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
     public void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
