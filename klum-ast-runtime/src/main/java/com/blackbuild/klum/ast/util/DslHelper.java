@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
+
 public class DslHelper {
 
     private DslHelper() {}
@@ -83,6 +85,13 @@ public class DslHelper {
         com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
         if (fieldAnnotation == null) return FieldType.DEFAULT;
         return fieldAnnotation.value();
+    }
+
+    public static <T extends Annotation> T getFieldAnnotation(Class<?> type, String fieldName, Class<T> annotationType) {
+        Optional<Field> field = getField(type, fieldName);
+        if (!field.isPresent())
+            throw new IllegalArgumentException(format("Type %s does not have a field named %s", type, fieldName));
+        return field.get().getAnnotation(annotationType);
     }
 
     public static Optional<Method> getMethod(Class<?> type, String name, Class<?>... args) {

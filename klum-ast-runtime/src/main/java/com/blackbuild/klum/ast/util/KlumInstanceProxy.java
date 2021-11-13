@@ -363,8 +363,7 @@ public class KlumInstanceProxy {
     }
 
     private <T> Class<? extends Closure<T>> getKeyMappingClosure(String fieldName) {
-        com.blackbuild.groovy.configdsl.transform.Field annotation = DslHelper.getField(instance.getClass(), fieldName).get().getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
-        return annotation.keyMapping();
+        return DslHelper.getFieldAnnotation(instance.getClass(), fieldName, com.blackbuild.groovy.configdsl.transform.Field.class).keyMapping();
     }
 
 
