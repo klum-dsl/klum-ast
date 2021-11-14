@@ -56,7 +56,14 @@ public class KlumInstanceProxy {
         this.instance = instance;
     }
 
+    /**
+     * Returns the proxy for a given dsl object. Throws an illegalArgumentException if target is not a dsl object.
+     * @param target the target object
+     * @return the proxy instance of the given target.
+     */
     public static KlumInstanceProxy getProxyFor(Object target) {
+        if (!isDslType(target.getClass()))
+            throw new IllegalArgumentException(format("Object of type %s is no dsl object", target.getClass()));
         return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
     }
 
@@ -64,6 +71,7 @@ public class KlumInstanceProxy {
         return (GroovyObject) InvokerHelper.getAttribute(instance, KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
     }
 
+    // TODO: protected/private
     public <T> T getInstanceAttribute(String attributeName) {
         try {
             return (T) getField(attributeName).get(instance);
@@ -72,7 +80,7 @@ public class KlumInstanceProxy {
         }
     }
 
-    public void setInstanceAttribute(String name, Object value) {
+    private void setInstanceAttribute(String name, Object value) {
         try {
             getField(name).set(instance, value);
         } catch (IllegalAccessException e) {
@@ -80,6 +88,7 @@ public class KlumInstanceProxy {
         }
     }
 
+    // TODO: private?
     public Object getInstanceProperty(String name){
         Object value = makeReadOnly(getInstanceAttribute(name));
 
@@ -110,6 +119,14 @@ public class KlumInstanceProxy {
                 .orElseThrow(() -> new MissingPropertyException(name, instance.getClass()));
     }
 
+    /**
+     * Applies the given named params and the closure to this proxy's object. Both params can be null.
+     * The map will be converted into a series of method calls, with the key being the method name and the
+     * value the single method argument.
+     * @param values Map of String to Object which will be translated into Method calls
+     * @param body Closure to be executed against the instance.
+     * @return the object itself
+     */
     public Object apply(Map<String, Object> values, Closure<?> body) {
         Object rw = instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         applyNamedParameters(rw, values);
@@ -126,12 +143,15 @@ public class KlumInstanceProxy {
         body.call();
     }
 
-    // TODO: in RW Proxy
-    public void applyNamedParameters(Object rw, Map<String, Object> values) {
+    private void applyNamedParameters(Object rw, Map<String, Object> values) {
         if (values == null) return;
         values.forEach((key, value) -> InvokerHelper.invokeMethod(rw, key, value));
     }
 
+    /**
+     * Copies all non null / non empty elements from target to this.
+     * @param template The template to apply
+     */
     public void copyFrom(Object template) {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
     }
@@ -182,21 +202,29 @@ public class KlumInstanceProxy {
         instanceField.addAll(templateValue);
     }
 
-    public Object getKey() {
-        Optional<Field> keyField = DslHelper.getKeyField(instance.getClass());
-
-        if (!keyField.isPresent())
-            throw new AssertionError();
-
-        return instance.getProperty(keyField.get().getName());
+    /**
+     * Returns the key of this proxies instance. Illegal to call on an non keyed instance.
+     * @return The key
+     */
+    Object getKey() {
+        return DslHelper.getKeyField(instance.getClass())
+                .map(Field::getName)
+                .map(instance::getProperty)
+                .orElseThrow(AssertionError::new);
     }
 
-    public void postCreate() {
+    /**
+     * Runs the postcreate lifecycle methods for this instance
+     */
+    void postCreate() {
         if (!skipPostCreate)
             executeLifecycleMethod(PostCreate.class);
     }
 
-    public void postApply() {
+    /**
+     * Runs the postapply lifecycle methods for this instance
+     */
+    void postApply() {
         if (!skipPostApply)
             executeLifecycleMethod(PostApply.class);
     }
@@ -210,6 +238,9 @@ public class KlumInstanceProxy {
                 .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
     }
 
+    /**
+     * Executes validation for this instance
+     */
     public void validate() {
         new Validator(instance).execute();
     }
@@ -229,7 +260,7 @@ public class KlumInstanceProxy {
         manualValidation = value;
     }
 
-    public void setOwners(Object value) {
+    void setOwners(Object value) {
         DslHelper.getFieldsAnnotatedWith(instance.getClass(), Owner.class)
                 .stream()
                 .filter(field -> field.getType().isInstance(value))
@@ -385,15 +416,15 @@ public class KlumInstanceProxy {
         );
     }
 
-    public Object invokeMethod(String methodName, Object... args) {
+    Object invokeMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(instance, methodName, args);
     }
 
-    public Object invokeRwMethod(String methodName, Object... args) {
+    Object invokeRwMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(getRwInstance(), methodName, args);
     }
 
-    public void copyFromTemplate() {
+    void copyFromTemplate() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::copyFromTemplateLayer);
     }
 
