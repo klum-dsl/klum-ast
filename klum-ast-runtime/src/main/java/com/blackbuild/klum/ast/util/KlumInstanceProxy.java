@@ -29,6 +29,7 @@ import java.util.Optional;
 
 import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
+import static com.blackbuild.klum.ast.util.DslHelper.isKeyed;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_TRANSIENT;
@@ -44,6 +45,7 @@ public class KlumInstanceProxy {
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
     public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
     public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
+    public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
 
     private final GroovyObject instance;
     private boolean skipPostCreate;
@@ -336,8 +338,9 @@ public class KlumInstanceProxy {
 
     private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
         Class<V> elementType = (Class<V>) DslHelper.getElementType(instance.getClass(), fieldName);
-        if (key == null)
-            key = determineKeyFromMappingClosure(fieldName, value);
+        key = determineKeyFromMappingClosure(fieldName, value, key);
+        if (key == null && isKeyed(elementType))
+            key = (K) getProxyFor(value).getKey();
         Map<K, V> target = getInstanceAttribute(fieldName);
         value = forceCastClosure(value, elementType);
         target.put(key, value);
@@ -354,13 +357,12 @@ public class KlumInstanceProxy {
             throw new IllegalArgumentException(format("Value is not of type %s", elementType));
     }
 
-    private <K, V> K determineKeyFromMappingClosure(String fieldName, V element) {
-        Class<? extends Closure<K>> keyMappingClosure = getKeyMappingClosure(fieldName);
-        return ClosureHelper.invokeClosure(keyMappingClosure, element);
-    }
-
-    private <T> Class<? extends Closure<T>> getKeyMappingClosure(String fieldName) {
-        return DslHelper.getFieldAnnotation(instance.getClass(), fieldName, com.blackbuild.groovy.configdsl.transform.Field.class).keyMapping();
+    private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
+        return (K) DslHelper.getOptionalFieldAnnotation(instance.getClass(), fieldName, FIELD_ANNOTATION)
+                .map(com.blackbuild.groovy.configdsl.transform.Field::keyMapping)
+                .filter(DslHelper::isClosure)
+                .map(value -> ClosureHelper.invokeClosure(value, element))
+                .orElse(defaultValue);
     }
 
 
@@ -369,6 +371,16 @@ public class KlumInstanceProxy {
         Class<?> elementType = getElementType(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(
                 fieldName,
+                InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
+        );
+    }
+
+    public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP = "addElementsFromScriptsToMap";
+    public void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = getElementType(instance.getClass(), fieldName);
+        Arrays.stream(scripts).forEach(script -> addElementToMap(
+                fieldName,
+                null,
                 InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
         );
     }

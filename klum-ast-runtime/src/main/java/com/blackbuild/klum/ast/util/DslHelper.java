@@ -3,6 +3,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
+import groovy.lang.Closure;
 import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
 import groovy.lang.MissingFieldException;
@@ -17,6 +18,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,8 +72,15 @@ public class DslHelper {
         Type genericType = field.get().getGenericType();
         ParameterizedType parameterizedType = (ParameterizedType) genericType;
         Type[] typeArguments = parameterizedType.getActualTypeArguments();
-        return (Class<?>) typeArguments[typeArguments.length - 1];
+        Type typeArgument = typeArguments[typeArguments.length - 1];
+        if (typeArgument instanceof Class)
+            return (Class<?>) typeArgument;
+        if (typeArgument instanceof WildcardType)
+            return (Class<?>) ((WildcardType) typeArgument).getUpperBounds()[0];
+        throw new IllegalArgumentException(format("ElementType %s is neither class nor Wildcard", typeArgument));
     }
+
+
 
     public static Optional<Field> getField(Class<?> type, String name) {
         return getHierarchyOf(type).stream()
@@ -92,6 +101,15 @@ public class DslHelper {
         if (!field.isPresent())
             throw new IllegalArgumentException(format("Type %s does not have a field named %s", type, fieldName));
         return field.get().getAnnotation(annotationType);
+    }
+
+    public static boolean isClosure(Class<?> type) {
+        return Closure.class.isAssignableFrom(type);
+    }
+
+    public static <T extends Annotation> Optional<T> getOptionalFieldAnnotation(Class<?> type, String fieldName, Class<T> annotationType) {
+        return getField(type, fieldName)
+                .map(value -> value.getAnnotation(annotationType));
     }
 
     public static Optional<Method> getMethod(Class<?> type, String name, Class<?>... args) {

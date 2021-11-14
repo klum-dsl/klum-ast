@@ -30,7 +30,6 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
-import com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.ClosureDefaultValue;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -78,7 +77,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.callMethodViaInvoke;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
@@ -87,7 +85,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwne
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
@@ -96,8 +93,6 @@ import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
-import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
-import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapClassAndOptionalKey;
 import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsParameterless;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
@@ -117,7 +112,6 @@ import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
@@ -130,7 +124,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
@@ -896,103 +889,50 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK) {
 
             if (isInstantiable(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
+                        .constantClassParam(elementType)
                         .optionalStringParam("key", elementKeyField != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField, "key")))
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
-                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(
-                                callX(
-                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                                        "getInstanceAttribute",
-                                        args(constX(fieldName))
-                                ), "put", args(readKeyExpression, varX(elementToAddVarName))
-                        )
-                        .doReturn(elementToAddVarName)
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .optionalStringParam(elementKeyFieldName, elementKeyField != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapAndOptionalKey(elementKeyFieldName, "closure")))
+                        .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
             }
 
             if (!isFinal(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam("key", elementKeyField)
+                        .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
-                        .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField, "key")))
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), "postCreate")
-                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(
-                                callX(
-                                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                                        "getInstanceAttribute",
-                                        args(constX(fieldName))
-                                ), "put", args(readKeyExpression, varX(elementToAddVarName))
-                        )
-                        .doReturn(elementToAddVarName)
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam(elementKeyFieldName, elementKeyField != null)
-                        .delegatingClosureParam()
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
 
-            createMethod(fieldName)
+            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .forS(
-                            param(CLASS_Type, "script"),
-                            "scripts",
-                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
-                    )
                     .addTo(rwClass);
         }
 
-        createMethod(methodName)
+        createProxyMethod(methodName, "addElementToMap")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
+                .constantParam(null)
                 .param(elementType, elementToAddVarName)
-                .callMethod(
-                        callX(
-                                varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                                "getInstanceAttribute",
-                                args(constX(fieldName))
-                        ), "put", args(readKeyExpression, varX(elementToAddVarName))
-                )
-                .setOwners(elementToAddVarName)
-                .doReturn(elementToAddVarName)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
