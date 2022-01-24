@@ -23,13 +23,10 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -43,24 +40,17 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
-import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
@@ -77,34 +67,13 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
-public final class MethodBuilder {
+public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
 
-    public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
-    public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
-    public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
-    public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
-    private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
-    private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
-    private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
-    private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
-    protected String name;
-    protected Map<Object, Object> metadata = new HashMap<>();
-
-    private int modifiers;
-    private ClassNode returnType = ClassHelper.VOID_TYPE;
-    private List<ClassNode> exceptions = new ArrayList<>();
-    private List<Parameter> parameters = new ArrayList<>();
-    private boolean deprecated;
-    private BlockStatement body = new BlockStatement();
-    private boolean optional;
-    private ASTNode sourceLinkTo;
-    private boolean hasNamedParam;
-    private GenericsType[] genericsTypes;
-    private String documentation;
-    private Set<String> tags = new HashSet<>();
+    private final List<Parameter> parameters = new ArrayList<>();
+    private final BlockStatement body = new BlockStatement();
 
     private MethodBuilder(String name) {
-        this.name = name;
+        super(name);
     }
 
     public static MethodBuilder createMethod(String name) {
@@ -128,17 +97,18 @@ public final class MethodBuilder {
     }
 
     static MethodBuilder createMethodFromClosure(String name, ClassNode type, ClosureExpression closureExpression, Expression delegate, Expression parameter) {
+        String closureVariable = "closure";
         return createPrivateMethod(name)
                 .returning(type)
                 .optional()
-                .declareVariable("closure", closureExpression)
-                .assignS(propX(varX("closure"), "delegate"), delegate)
+                .declareVariable(closureVariable, closureExpression)
+                .assignS(propX(varX(closureVariable), "delegate"), delegate)
                 .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
+                        propX(varX(closureVariable), "resolveStrategy"),
                         constX(Closure.DELEGATE_ONLY)
                 )
                 .doReturn(callX(
-                        varX("closure"),
+                        varX(closureVariable),
                         "call",
                         parameter != null ? parameter : MethodCallExpression.NO_ARGUMENTS)
                 );
@@ -152,22 +122,12 @@ public final class MethodBuilder {
         return forS(variable, varX(collection), code);
     }
 
-    public MethodBuilder withoutMutatorCheck() {
-        metadata.put(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY, Boolean.TRUE);
-        return this;
-    }
-
     public MethodBuilder callValidationOn(String target) {
         return callValidationMethodOn(varX(target));
     }
 
     private MethodBuilder callValidationMethodOn(Expression targetX) {
         return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
-    }
-
-    public MethodBuilder returning(ClassNode returnType) {
-        this.returnType = returnType;
-        return this;
     }
 
     public MethodBuilder delegateToProxy(String methodName, Expression... args) {
@@ -239,74 +199,14 @@ public final class MethodBuilder {
         return param(CLASSLOADER_TYPE, "loader", callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"));
     }
 
-    public MethodBuilder linkToField(AnnotatedNode annotatedNode) {
-        return inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
+    @Override
+    protected Parameter[] getMethodParameters() {
+        return this.parameters.toArray(EMPTY_PARAMETERS);
     }
 
-    public MethodBuilder inheritDeprecationFrom(AnnotatedNode annotatedNode) {
-        if (!annotatedNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
-            return deprecated();
-        }
-        return this;
-    }
-
-    /**
-     * Creates the actual method and adds it to the target class. If the target already contains a method with that
-     * signature, either an exception is thrown or the method is silently dropped, depending on the presence of
-     * the optional parameter.
-     * @param target The class node to add to
-     * @return The newly created method or the existing method if `optional` is set and a method with that signature
-     * already exists
-     */
-    public void addTo(ClassNode target) {
-
-        Parameter[] parameterArray = this.parameters.toArray(EMPTY_PARAMETERS);
-        MethodNode existing = target.getDeclaredMethod(name, parameterArray);
-
-        if (existing != null) {
-            if (optional)
-                return;
-            else
-                throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
-        }
-
-        MethodNode method = target.addMethod(
-                name,
-                modifiers,
-                returnType,
-                parameterArray,
-                exceptions.toArray(EMPTY_EXCEPTIONS),
-                body
-        );
-
-        if (genericsTypes != null)
-            method.setGenericsTypes(genericsTypes);
-
-        if (deprecated)
-            method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
-
-        if (sourceLinkTo != null)
-            method.setSourcePosition(sourceLinkTo);
-
-        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
-
-        metadata.forEach(method::putNodeMetaData);
-    }
-
-    /**
-     * Marks this method as optional. If set, {@link #addTo(ClassNode)} does not throw an error if the method already exists.
-     */
-    public MethodBuilder optional() {
-        this.optional = true;
-        return this;
-    }
-
-    /**
-     * Sets the modifiers as defined by {@link Opcodes}.
-     */
-    public MethodBuilder mod(int modifier) {
-        modifiers |= modifier;
-        return this;
+    @Override
+    protected Statement getMethodBody() {
+        return body;
     }
 
     /**
@@ -317,49 +217,13 @@ public final class MethodBuilder {
         return this;
     }
 
-    public MethodBuilder deprecated() {
-        deprecated = true;
-        return this;
-    }
-
-    public MethodBuilder documentation(String documentation) {
-        this.documentation = documentation;
-        return this;
-    }
-
-    public MethodBuilder tag(String tag) {
-        tags.add(tag);
-        return this;
-    }
-
     /**
      * Adds a map entry to the method signature.
      */
     public MethodBuilder namedParams(String name) {
-        hasNamedParam = true;
         GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
         wildcard.setWildcard(true);
         return param(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name);
-    }
-
-    /**
-     * Adds a statement to the method body that converts each entry in the map into a call of a method with the key as
-     * methodname and the value as method parameter.
-     */
-    public MethodBuilder applyNamedParams(String parameterMapName) {
-        statement(
-                new ForStatement(new Parameter(ClassHelper.DYNAMIC_TYPE, "it"), callX(varX(parameterMapName), "entrySet"),
-                    new ExpressionStatement(
-                            new MethodCallExpression(
-                                    varX("$rw"),
-                                    "invokeMethod",
-                                    args(propX(varX("it"), "key"), propX(varX("it"), "value"))
-                            )
-                    )
-                )
-        );
-
-        return this;
     }
 
     /**
@@ -385,7 +249,7 @@ public final class MethodBuilder {
      * Adds a class parameter without delegation.
      * @param name The name of the parameter
      * @param upperBound The base class for the class parameter
-     * @return
+     * @return the instance
      */
     public MethodBuilder simpleClassParam(String name, ClassNode upperBound) {
         return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
@@ -402,21 +266,11 @@ public final class MethodBuilder {
     /**
      * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
      * @param name The name of the parameter.
-     * @param addIfNotNull If this parameter is null, the method does nothing
-     */
-    @Deprecated
-    public MethodBuilder optionalStringParam(String name, Object addIfNotNull) {
-        return optionalStringParam(name, addIfNotNull != null);
-    }
-
-    /**
-     * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
-     * @param name The name of the parameter.
      * @param doAdd If this parameter is null, the method does nothing
      */
     public MethodBuilder optionalStringParam(String name, boolean doAdd) {
         if (doAdd)
-            stringParam(name);
+            return stringParam(name);
         return this;
     }
 
@@ -465,16 +319,6 @@ public final class MethodBuilder {
         for (Parameter parameter : sourceParams) {
             param(parameter);
         }
-        return this;
-    }
-
-    /**
-     * Add custom metadata to the created AST node of the methods
-     * @param key The key of the metadata
-     * @param value The name of the metadata
-     */
-    public MethodBuilder withMetadata(Object key, Object value) {
-        metadata.put(key, value);
         return this;
     }
 
@@ -572,11 +416,23 @@ public final class MethodBuilder {
         return callMethod("this", methodName);
     }
 
+    /**
+     * Insert a println statement into the method body. This is only for debug purposes.
+     * @param args The expression to print
+     * @return the MethodBuilderInstance
+     * @deprecated Debug only
+     */
     @Deprecated
     public MethodBuilder println(Expression args) {
         return callThis("println", args);
     }
 
+    /**
+     * Insert a println statement into the method body. This is only for debug purposes.
+     * @param string The string to print
+     * @return the MethodBuilderInstance
+     * @deprecated Debug only
+     */
     @Deprecated
     public MethodBuilder println(String string) {
         return callThis("println", constX(string));
@@ -596,27 +452,6 @@ public final class MethodBuilder {
 
     public MethodBuilder doReturn(Expression expression) {
         return statement(returnS(expression));
-    }
-
-    public MethodBuilder linkToField(FieldNode fieldNode) {
-        return inheritDeprecationFrom(fieldNode).sourceLinkTo(fieldNode);
-    }
-
-    public MethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
-        if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
-            deprecated = true;
-        }
-        return this;
-    }
-
-    public MethodBuilder sourceLinkTo(ASTNode sourceLinkTo) {
-        this.sourceLinkTo = sourceLinkTo;
-        return this;
-    }
-
-    public MethodBuilder setGenericsTypes(GenericsType[] genericsTypes) {
-        this.genericsTypes = genericsTypes;
-        return this;
     }
 
     public enum ClosureDefaultValue { NONE, EMPTY_CLOSURE }

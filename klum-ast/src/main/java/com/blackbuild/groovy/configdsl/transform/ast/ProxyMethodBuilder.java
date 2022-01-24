@@ -23,22 +23,16 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
-import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
-import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -49,19 +43,15 @@ import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
@@ -74,40 +64,18 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGener
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 
-public final class ProxyMethodBuilder {
+public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodBuilder> {
 
-    public static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
-    public static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
-    public static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
-    public static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
-    private static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
-    private static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
-    private static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
-    private static final ClassNode DELEGATES_TO_TARGET_ANNOTATION = make(DelegatesTo.Target.class);
-
-    private final String name;
     private final String proxyMethodName;
     private final Expression proxyTarget;
 
-    private int modifiers;
-    private ClassNode returnType = ClassHelper.VOID_TYPE;
-    private final List<ClassNode> exceptions = new ArrayList<>();
-
-    @Deprecated
-    private final List<Parameter> parameters = new ArrayList<>();
-    private boolean deprecated;
-    private boolean optional;
-    private ASTNode sourceLinkTo;
     private final List<ProxyMethodArgument> params = new ArrayList<>();
-
-    private String documentation;
-    private Set<String> tags = new HashSet<>();
 
     private int namedParameterIndex = -1;
 
     private ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
+        super(name);
         this.proxyTarget = proxyTarget;
-        this.name = name;
         this.proxyMethodName = proxyMethodName;
     }
 
@@ -130,11 +98,6 @@ public final class ProxyMethodBuilder {
         return new ProxyMethodBuilder(classX(TemplateManager.class), name, name)
                 .mod(ACC_STATIC)
                 .returning(ClassHelper.DYNAMIC_TYPE);
-    }
-
-    public ProxyMethodBuilder returning(ClassNode returnType) {
-        this.returnType = returnType;
-        return this;
     }
 
     private Statement delegateToProxy(String methodName, List<Expression> args) {
@@ -177,28 +140,7 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
-    public ProxyMethodBuilder linkToField(AnnotatedNode annotatedNode) {
-        return inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
-    }
-
-    public ProxyMethodBuilder inheritDeprecationFrom(AnnotatedNode annotatedNode) {
-        if (!annotatedNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
-            return deprecated();
-        }
-        return this;
-    }
-
-    public ProxyMethodBuilder documentation(String documentation) {
-        this.documentation = documentation;
-        return this;
-    }
-
-    public ProxyMethodBuilder tag(String tag) {
-        tags.add(tag);
-        return this;
-    }
-
-    private Parameter[] getMethodParameters() {
+    protected Parameter[] getMethodParameters() {
         return params.stream()
                 .map(ProxyMethodArgument::asProxyMethodParameter)
                 .filter(Optional::isPresent)
@@ -221,9 +163,9 @@ public final class ProxyMethodBuilder {
      * @param target The class node to add to
      * already exists
      */
+    @Override
     public void addTo(ClassNode target) {
-
-        doAddTo(target);
+        super.addTo(target);
 
         if (namedParameterIndex != -1) {
             params.set(namedParameterIndex, new FixedExpressionArgument(new MapExpression()));
@@ -231,64 +173,9 @@ public final class ProxyMethodBuilder {
         }
     }
 
-    private void doAddTo(ClassNode target) {
-        Parameter[] parameterArray = getMethodParameters();
-        MethodNode existing = target.getDeclaredMethod(name, parameterArray);
-
-        if (existing != null) {
-            if (optional)
-                return;
-            else
-                throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
-        }
-
-        List<Expression> proxyArguments = getProxyArguments();
-
-        MethodNode method = target.addMethod(
-                name,
-                modifiers,
-                returnType,
-                parameterArray,
-                exceptions.toArray(EMPTY_EXCEPTIONS),
-                delegateToProxy(proxyMethodName, proxyArguments)
-        );
-
-        if (deprecated)
-            method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
-
-        if (sourceLinkTo != null)
-            method.setSourcePosition(sourceLinkTo);
-
-        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
-    }
-
-    /**
-     * Marks this method as optional. If set, {@link #addTo(ClassNode)} does not throw an error if the method already exists.
-     */
-    public ProxyMethodBuilder optional() {
-        this.optional = true;
-        return this;
-    }
-
-    /**
-     * Sets the modifiers as defined by {@link Opcodes}.
-     */
-    public ProxyMethodBuilder mod(int modifier) {
-        modifiers |= modifier;
-        return this;
-    }
-
-    /**
-     * Add a parameter to the method.
-     */
-    @Deprecated
-    public ProxyMethodBuilder param(Parameter param) {
-        throw new AssertionError("Illegal call to method");
-    }
-
-    public ProxyMethodBuilder deprecated() {
-        deprecated = true;
-        return this;
+    @Override
+    protected Statement getMethodBody() {
+        return delegateToProxy(proxyMethodName, getProxyArguments());
     }
 
     /**
@@ -316,7 +203,7 @@ public final class ProxyMethodBuilder {
      * Adds a parameter of type closure.
      */
     public ProxyMethodBuilder closureParam(String name, ConstantExpression defaultValue) {
-        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), null, defaultValue));
+        params.add(new ProxiedArgument(name, nonGeneric(ClassHelper.CLOSURE_TYPE), null, defaultValue));
         return this;
     }
 
@@ -349,16 +236,6 @@ public final class ProxyMethodBuilder {
      */
     public ProxyMethodBuilder stringParam(String name) {
         return param(ClassHelper.STRING_TYPE, name);
-    }
-
-    /**
-     * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
-     * @param name The name of the parameter.
-     * @param addIfNotNull If this parameter is null, the method does nothing
-     */
-    @Deprecated
-    public ProxyMethodBuilder optionalStringParam(String name, Object addIfNotNull) {
-        return optionalStringParam(name, addIfNotNull != null);
     }
 
     /**
@@ -421,19 +298,6 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
-    /**
-     * Use all parameters of the given source method as parameters to this method.
-     * @param sourceMethod The source of the parameter list
-     */
-    @Deprecated
-    public ProxyMethodBuilder cloneParamsFrom(MethodNode sourceMethod) {
-        Parameter[] sourceParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
-        for (Parameter parameter : sourceParams) {
-            param(parameter);
-        }
-        return this;
-    }
-
     public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
         return delegatingClosureParam(delegationTarget, ConstantExpression.NULL);
     }
@@ -458,22 +322,6 @@ public final class ProxyMethodBuilder {
             result.setMember("genericTypeIndex", constX(0));
         result.setMember("strategy", constX(Closure.DELEGATE_ONLY));
         return result;
-    }
-
-    public ProxyMethodBuilder linkToField(FieldNode fieldNode) {
-        return inheritDeprecationFrom(fieldNode).sourceLinkTo(fieldNode);
-    }
-
-    public ProxyMethodBuilder inheritDeprecationFrom(FieldNode fieldNode) {
-        if (!fieldNode.getAnnotations(DEPRECATED_NODE).isEmpty()) {
-            deprecated = true;
-        }
-        return this;
-    }
-
-    public ProxyMethodBuilder sourceLinkTo(ASTNode sourceLinkTo) {
-        this.sourceLinkTo = sourceLinkTo;
-        return this;
     }
 
     public ProxyMethodBuilder constantParam(Object constantValue) {

@@ -86,16 +86,15 @@ public class CommonAstHelper {
 
     public static final ClassNode[] NO_EXCEPTIONS = ClassNode.EMPTY_ARRAY;
     public static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
-    public static ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
-    public static ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
+    public static final ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
+    public static final ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
 
     public static AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
-        List<AnnotationNode> annotation = field.getAnnotations(type);
-        return annotation.isEmpty() ? null : annotation.get(0);
+        return getOptionalAnnotation(field, type).orElse(null);
     }
     public static Optional<AnnotationNode> getOptionalAnnotation(AnnotatedNode field, ClassNode type) {
         List<AnnotationNode> annotation = field.getAnnotations(type);
-        return annotation.isEmpty() ? Optional.empty() : Optional.of(annotation.get(0));
+        return annotation.stream().findFirst();
     }
 
     public static boolean isCollectionOrMap(ClassNode type) {
