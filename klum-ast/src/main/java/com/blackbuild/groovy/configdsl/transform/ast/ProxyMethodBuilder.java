@@ -49,10 +49,13 @@ import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
@@ -96,6 +99,9 @@ public final class ProxyMethodBuilder {
     private boolean optional;
     private ASTNode sourceLinkTo;
     private final List<ProxyMethodArgument> params = new ArrayList<>();
+
+    private String documentation;
+    private Set<String> tags = new HashSet<>();
 
     private int namedParameterIndex = -1;
 
@@ -182,6 +188,16 @@ public final class ProxyMethodBuilder {
         return this;
     }
 
+    public ProxyMethodBuilder documentation(String documentation) {
+        this.documentation = documentation;
+        return this;
+    }
+
+    public ProxyMethodBuilder tag(String tag) {
+        tags.add(tag);
+        return this;
+    }
+
     private Parameter[] getMethodParameters() {
         return params.stream()
                 .map(ProxyMethodArgument::asProxyMethodParameter)
@@ -242,6 +258,8 @@ public final class ProxyMethodBuilder {
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
+
+        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
     }
 
     /**

@@ -25,7 +25,9 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
+import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
@@ -77,13 +79,12 @@ class ConverterBuilder {
     static final ClassNode CONVERTERS_ANNOTATION = make(Converters.class);
     static final ClassNode CONVERTER_ANNOTATION = make(Converter.class);
 
-    private final ClassNode annotatedClass;
     private final String methodName;
     private final boolean withKey;
     private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
     private final ClassNode rwClass;
-    private ClassNode elementType;
+    private final ClassNode elementType;
 
     private List<String> includes;
     private List<String> excludes;
@@ -92,7 +93,7 @@ class ConverterBuilder {
     ConverterBuilder(DSLASTTransformation transformation, FieldNode fieldNode, String methodName, boolean withKey) {
         this.transformation = transformation;
         this.fieldNode = fieldNode;
-        this.annotatedClass = fieldNode.getOwner();
+        ClassNode annotatedClass = fieldNode.getOwner();
         this.methodName = methodName;
         this.withKey = withKey;
         rwClass = getRwClassOf(annotatedClass);
@@ -154,8 +155,15 @@ class ConverterBuilder {
     private List<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
         return converterClass.getMethods()
                 .stream()
-                .filter(method -> method.isStatic() && method.isPublic() && isConverterMethod(method) && isAssignable(method.getReturnType(), elementType))
+                .filter(this::isFactoryMethod)
                 .collect(Collectors.toList());
+    }
+
+    private boolean isFactoryMethod(MethodNode method) {
+        return method.isStatic()
+                && method.isPublic()
+                && isConverterMethod(method)
+                && isAssignable(method.getReturnType(), elementType);
     }
 
     private boolean isAssignable(ClassNode type, ClassNode classOrInterface) {
@@ -186,7 +194,8 @@ class ConverterBuilder {
     }
 
     private boolean isKlumMethod(MethodNode method) {
-        return isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
+        return hasAnnotation(method, ClassHelper.make(KlumGenerated.class))
+                || isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
     }
 
     private void createConverterMethod(Parameter[] sourceParameters, Expression delegationExpression) {
@@ -249,4 +258,5 @@ class ConverterBuilder {
         }
         return result;
     }
+
 }

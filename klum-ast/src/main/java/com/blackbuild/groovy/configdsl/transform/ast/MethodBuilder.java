@@ -51,10 +51,13 @@ import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -97,6 +100,8 @@ public final class MethodBuilder {
     private ASTNode sourceLinkTo;
     private boolean hasNamedParam;
     private GenericsType[] genericsTypes;
+    private String documentation;
+    private Set<String> tags = new HashSet<>();
 
     private MethodBuilder(String name) {
         this.name = name;
@@ -283,6 +288,8 @@ public final class MethodBuilder {
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
 
+        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
+
         metadata.forEach(method::putNodeMetaData);
     }
 
@@ -312,6 +319,16 @@ public final class MethodBuilder {
 
     public MethodBuilder deprecated() {
         deprecated = true;
+        return this;
+    }
+
+    public MethodBuilder documentation(String documentation) {
+        this.documentation = documentation;
+        return this;
+    }
+
+    public MethodBuilder tag(String tag) {
+        tags.add(tag);
         return this;
     }
 
