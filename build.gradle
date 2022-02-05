@@ -20,7 +20,7 @@ plugins {
     id 'nebula.javadoc-jar' version '17.3.2' apply false
     id 'nebula.source-jar' version '17.3.2' apply false
     id 'nebula.contacts' version '5.1.0' apply false
-    id 'nebula.info' version '9.1.2' apply false
+    //id 'nebula.info' version '9.1.2' apply false
     id "com.jfrog.bintray" version "1.8.5" apply false
     id "com.github.hierynomus.license" version "0.15.0"
     id 'org.ajoberstar.git-publish' version '3.0.0'
@@ -46,7 +46,7 @@ subprojects {
     apply plugin: 'nebula.source-jar'
     apply plugin: 'nebula.release'
     apply plugin: 'nebula.contacts'
-    apply plugin: 'nebula.info'
+    // apply plugin: 'nebula.info'
     apply plugin: 'com.jfrog.bintray'
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
