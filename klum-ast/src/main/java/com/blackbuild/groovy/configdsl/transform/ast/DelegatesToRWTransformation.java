@@ -44,7 +44,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwCl
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
-@GroovyASTTransformation(phase = CompilePhase.INSTRUCTION_SELECTION)
+@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
     private final static ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);

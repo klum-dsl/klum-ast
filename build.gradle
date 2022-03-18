@@ -3,7 +3,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
@@ -21,10 +20,11 @@ plugins {
     id 'nebula.javadoc-jar' version '17.3.2' apply false
     id 'nebula.source-jar' version '17.3.2' apply false
     id 'nebula.contacts' version '5.1.0' apply false
-    id 'nebula.info' version '9.1.2' apply false
+    //id 'nebula.info' version '9.1.2' apply false
     id "com.jfrog.bintray" version "1.8.5" apply false
     id "com.github.hierynomus.license" version "0.15.0"
-    id 'org.ajoberstar.git-publish' version '3.0.0'
+    id 'org.ajoberstar.git-publish' version '3.0.1'
+    id 'org.ajoberstar.grgit' version '4.1.1'
     id "com.github.ben-manes.versions" version "0.36.0"
 }
 
@@ -51,7 +51,7 @@ subprojects {
     apply plugin: 'nebula.source-jar'
     apply plugin: 'nebula.release'
     apply plugin: 'nebula.contacts'
-    apply plugin: 'nebula.info'
+    // apply plugin: 'nebula.info'
     apply plugin: 'com.jfrog.bintray'
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
@@ -76,6 +76,8 @@ subprojects {
         //compileOnly "com.intellij:openapi:7.0.3"
 
         testImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
+        //testImplementation("org.spockframework:spock-core:2.1-groovy-3.0")
+        //testImplementation("org.spockframework:spock-junit4:2.1-groovy-3.0")
         testImplementation "org.jetbrains:annotations:16.0.2"
 
         testRuntimeOnly "net.bytebuddy:byte-buddy:1.9.3"
@@ -89,6 +91,7 @@ subprojects {
     configurations.all {
         resolutionStrategy {
             force "org.codehaus.groovy:groovy-all:2.4.13"
+            // force "org.codehaus.groovy:groovy-all:3.0.9"
         }
     }
 
@@ -115,7 +118,11 @@ subprojects {
         }
     }
 
-
+    /*
+    test {
+        useJUnitPlatform()
+    }
+    */
 
     bintray {
         user = findProperty('bintrayUser')

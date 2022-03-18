@@ -1,4 +1,6 @@
 ## 2.0.0 (unreleased)
+- New Features
+  - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
 - Breaking changes
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
