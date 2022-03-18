@@ -6,6 +6,10 @@
       klum-ast-runtime is needed for runtime as well. This completes
       the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
 
+## 1.2.1
+- Changes/Improvements
+    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
+
 ## 1.2.0
 - New Features
     - Allow manual IDE hints for delegation to the RW class (see [#101](https://github.com/klum-dsl/klum-ast/issues/101))

@@ -15,6 +15,7 @@ buildscript {
 plugins {
     id 'nebula.release' version '15.2.0'
     id 'base'
+    id 'signing'
 
     id 'nebula.maven-publish' version '17.3.2' apply false
     id 'nebula.javadoc-jar' version '17.3.2' apply false
@@ -63,7 +64,7 @@ subprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 
     repositories {
-        jcenter()
+        mavenCentral()
     }
     jacoco {
         toolVersion = "0.8.2"
@@ -123,46 +124,6 @@ subprojects {
         useJUnitPlatform()
     }
     */
-
-    bintray {
-        user = findProperty('bintrayUser')
-        key = findProperty('bintrayApiKey')
-
-        publications = ['nebula']
-        dryRun = false
-        publish = true
-        pkg {
-            repo = 'klum-dsl'
-            userOrg = 'klum-dsl'
-            name = project.name
-            desc = project.description
-            websiteUrl = 'https://github.com/klum-dsl/klum-ast'
-            issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
-            vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
-            licenses = ['MIT']
-            labels = ['groovy', 'ast']
-            publicDownloadNumbers = true
-            attributes = [:]
-            version {
-                name = project.version
-                vcsTag = project.version
-                attributes = [:]
-                gpg {
-                    sign = true
-                    passphrase = findProperty("signing.password")
-                }
-                mavenCentralSync {
-                    sync = !project.version.toString().contains("-dev.")
-                    user = findProperty("nexusUsername")
-                    password = findProperty("nexusPassword")
-                }
-            }
-        }
-    }
-
-    rootProject.tasks.release.dependsOn tasks.build
-    rootProject.tasks.release.finalizedBy tasks.publish
-}
 
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
