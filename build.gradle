@@ -106,11 +106,17 @@ subprojects {
             nebula(MavenPublication) {
 
                 pom {
+                    url = "https://github.com/klum-dsl/klum-ast"
                     licenses {
                         license {
                             name = 'The MIT License (MIT)'
                             url = 'http://opensource.org/licenses/MIT'
                         }
+                    }
+                    scm {
+                        connection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                        developerConnection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                        url = 'https://github.com/klum-dsl/klum-ast'
                     }
                 }
             }
