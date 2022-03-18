@@ -136,6 +136,7 @@ publishing {
             }
             pom {
                 name = "KlumAST"
+                url = "https://github.com/klum-dsl/klum-ast"
                 licenses {
                     license {
                         name = 'The MIT License (MIT)'
