@@ -16,12 +16,12 @@ plugins {
     id 'groovy'
     id 'java-library'
     id 'jacoco'
+    id 'signing'
     id 'nebula.maven-publish' version '9.5.0'
     id 'nebula.javadoc-jar' version '9.5.0'
     id 'nebula.source-jar' version '9.5.0'
     id 'nebula.release' version '9.2.0'
     id 'nebula.contacts' version '5.0.0'
-    id "com.jfrog.bintray" version "1.8.4"
     id "com.github.hierynomus.license" version "0.15.0"
     id 'org.ajoberstar.git-publish' version '2.1.1'
 }
@@ -92,42 +92,6 @@ test {
     outputs.dir file("$buildDir/test-classes")
 }
 
-bintray {
-    user = findProperty('bintrayUser')
-    key = findProperty('bintrayApiKey')
-
-    publications = ['nebula']
-    dryRun = false
-    publish = true
-    pkg {
-        repo = 'klum-dsl'
-        userOrg = 'klum-dsl'
-        name = project.name
-        desc = project.description
-        websiteUrl = 'https://github.com/klum-dsl/klum-ast'
-        issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
-        vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
-        licenses = ['MIT']
-        labels = ['groovy', 'ast']
-        publicDownloadNumbers = true
-        attributes = [:]
-        version {
-            name = project.version
-            vcsTag = project.version
-            attributes = [:]
-            gpg {
-                sign = true
-                passphrase = findProperty("signing.password")
-            }
-            mavenCentralSync {
-                sync = !version.toString().contains(".dev+")
-                user = findProperty("nexusUsername")
-                password = findProperty("nexusPassword")
-            }
-        }
-    }
-}
-
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
     branch = 'master'
@@ -159,6 +123,10 @@ contacts {
     }
 }
 
+signing {
+    sign publishing.publications.nebula
+}
+
 publishing {
     publications {
         nebula(MavenPublication) {
@@ -172,6 +140,16 @@ publishing {
             }
         }
     }
+    repositories {
+        maven {
+            url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username = findProperty("nexusUsername")
+                password = findProperty("nexusPassword")
+            }
+        }
+    }
+
 }
 
 releaseCheck.doLast {
