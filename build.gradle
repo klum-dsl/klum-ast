@@ -15,7 +15,6 @@ buildscript {
 plugins {
     id 'nebula.release' version '15.2.0'
     id 'base'
-    id 'signing'
 
     id 'nebula.maven-publish' version '17.3.2' apply false
     id 'nebula.javadoc-jar' version '17.3.2' apply false
@@ -53,10 +52,10 @@ subprojects {
     apply plugin: 'nebula.release'
     apply plugin: 'nebula.contacts'
     // apply plugin: 'nebula.info'
-    apply plugin: 'com.jfrog.bintray'
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
     apply plugin: 'ch.raffael.markdown-doclet'
+    apply plugin: 'signing'
 
     group 'com.blackbuild.klum.ast'
 
@@ -69,7 +68,6 @@ subprojects {
     jacoco {
         toolVersion = "0.8.2"
     }
-
 
     dependencies {
         compileOnly "org.codehaus.groovy:groovy-all"
@@ -117,6 +115,20 @@ subprojects {
                 }
             }
         }
+        repositories {
+            maven {
+                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+                credentials {
+                    username = findProperty("nexusUsername")
+                    password = findProperty("nexusPassword")
+                }
+            }
+        }
+    }
+
+    signing {
+        required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        sign publishing.publications.nebula
     }
 
     /*
@@ -124,6 +136,7 @@ subprojects {
         useJUnitPlatform()
     }
     */
+}
 
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
@@ -151,6 +164,7 @@ releaseCheck.doLast {
 }
 
 evaluationDependsOnChildren()
+
 
 
 tasks.candidate.finalizedBy tasks.gitPublishPush
