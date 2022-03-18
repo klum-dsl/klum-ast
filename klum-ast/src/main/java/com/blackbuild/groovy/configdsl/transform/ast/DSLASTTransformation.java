@@ -226,7 +226,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createExplicitEmptyConstructor() {
         annotatedClass.addConstructor(
-                ACC_PROTECTED | ACC_SYNTHETIC,
+                ACC_PROTECTED,
                 Parameter.EMPTY_ARRAY,
                 NO_EXCEPTIONS,
                 block()

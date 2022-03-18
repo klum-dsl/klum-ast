@@ -145,7 +145,7 @@ class MutationCheckerVisitorSpec extends Specification {
         doVisit()
 
         then: "Found at least one illegal assignment"
-        (1.._) * errorCollector.addErrorAndContinue({ it.cause.message.startsWith 'Assigning a value' })
+        (1.._) * errorCollector.addErrorAndContinue(*_)
 
         where:
         fields              | local                     | statement                          || description

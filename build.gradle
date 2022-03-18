@@ -48,10 +48,10 @@ subprojects {
     apply plugin: 'nebula.release'
     apply plugin: 'nebula.contacts'
     // apply plugin: 'nebula.info'
-    apply plugin: 'com.jfrog.bintray'
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
     apply plugin: 'ch.raffael.markdown-doclet'
+    apply plugin: 'signing'
 
     group 'com.blackbuild.klum.ast'
 
@@ -59,12 +59,11 @@ subprojects {
     targetCompatibility = JavaVersion.VERSION_1_8
 
     repositories {
-        jcenter()
+        mavenCentral()
     }
     jacoco {
         toolVersion = "0.8.2"
     }
-
 
     dependencies {
         compileOnly "org.codehaus.groovy:groovy-all"
@@ -72,6 +71,8 @@ subprojects {
         //compileOnly "com.intellij:openapi:7.0.3"
 
         testImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
+        //testImplementation("org.spockframework:spock-core:2.1-groovy-3.0")
+        //testImplementation("org.spockframework:spock-junit4:2.1-groovy-3.0")
         testImplementation "org.jetbrains:annotations:16.0.2"
 
         testRuntimeOnly "net.bytebuddy:byte-buddy:1.9.3"
@@ -85,6 +86,7 @@ subprojects {
     configurations.all {
         resolutionStrategy {
             force "org.codehaus.groovy:groovy-all:2.4.13"
+            // force "org.codehaus.groovy:groovy-all:3.0.9"
         }
     }
 
@@ -100,57 +102,42 @@ subprojects {
             nebula(MavenPublication) {
 
                 pom {
+                    url = "https://github.com/klum-dsl/klum-ast"
                     licenses {
                         license {
                             name = 'The MIT License (MIT)'
                             url = 'http://opensource.org/licenses/MIT'
                         }
                     }
+                    scm {
+                        connection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                        developerConnection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                        url = 'https://github.com/klum-dsl/klum-ast'
+                    }
                 }
             }
         }
-    }
-
-
-
-    bintray {
-        user = findProperty('bintrayUser')
-        key = findProperty('bintrayApiKey')
-
-        publications = ['nebula']
-        dryRun = false
-        publish = true
-        pkg {
-            repo = 'klum-dsl'
-            userOrg = 'klum-dsl'
-            name = project.name
-            desc = project.description
-            websiteUrl = 'https://github.com/klum-dsl/klum-ast'
-            issueTrackerUrl = 'https://github.com/klum-dsl/klum-ast/issues'
-            vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
-            licenses = ['MIT']
-            labels = ['groovy', 'ast']
-            publicDownloadNumbers = true
-            attributes = [:]
-            version {
-                name = project.version
-                vcsTag = project.version
-                attributes = [:]
-                gpg {
-                    sign = true
-                    passphrase = findProperty("signing.password")
-                }
-                mavenCentralSync {
-                    sync = !project.version.toString().contains("-dev.")
-                    user = findProperty("nexusUsername")
+        repositories {
+            maven {
+                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+                credentials {
+                    username = findProperty("nexusUsername")
                     password = findProperty("nexusPassword")
                 }
             }
         }
     }
 
-    rootProject.tasks.release.dependsOn tasks.build
-    rootProject.tasks.release.finalizedBy tasks.publish
+    signing {
+        required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        sign publishing.publications.nebula
+    }
+
+    /*
+    test {
+        useJUnitPlatform()
+    }
+    */
 }
 
 gitPublish {
@@ -179,6 +166,7 @@ releaseCheck.doLast {
 }
 
 evaluationDependsOnChildren()
+
 
 
 tasks.candidate.finalizedBy tasks.gitPublishPush

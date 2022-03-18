@@ -1,4 +1,6 @@
 ## 2.0.0 (unreleased)
+- New Features
+  - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
 - Breaking changes
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
@@ -7,6 +9,10 @@
       is identical to the method name (previously, the first element of the camel
       cased method name was removed).
     - methods named `doValidate` are no longer considered Validate methods by default.
+
+## 1.2.1
+- Changes/Improvements
+    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
 
 ## 1.2.0
 - New Features
