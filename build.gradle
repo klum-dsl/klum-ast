@@ -133,11 +133,22 @@ publishing {
             pom.withXml {
                 def p = asNode()
                 p.dependencies.dependency.find { it.artifactId.text() == "groovy-all" }.appendNode('optional', true)
-                p.name.first().setValue('KlumAST')
-                p.appendNode('licenses').appendNode('license').
-                        appendNode('name', 'The MIT License (MIT)').parent().
-                        appendNode('url', 'http://opensource.org/licenses/MIT')
             }
+            pom {
+                name = "KlumAST"
+                licenses {
+                    license {
+                        name = 'The MIT License (MIT)'
+                        url = 'http://opensource.org/licenses/MIT'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                    developerConnection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
+                    url = 'https://github.com/klum-dsl/klum-ast'
+                }
+            }
+
         }
     }
     repositories {
