@@ -3,7 +3,6 @@ import org.apache.tools.ant.filters.ReplaceTokens
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
@@ -22,7 +21,6 @@ plugins {
     id 'nebula.source-jar' version '9.5.0'
     id 'nebula.release' version '9.2.0'
     id 'nebula.contacts' version '5.0.0'
-    id 'nebula.info' version '5.0.0'
     id "com.jfrog.bintray" version "1.8.4"
     id "com.github.hierynomus.license" version "0.15.0"
     id 'org.ajoberstar.git-publish' version '2.1.1'
@@ -37,7 +35,7 @@ sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 
