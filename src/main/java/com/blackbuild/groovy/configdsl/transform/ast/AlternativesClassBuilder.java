@@ -293,7 +293,7 @@ class AlternativesClassBuilder {
     private void createInnerClass() {
         collectionFactory = new InnerClassNode(annotatedClass, annotatedClass.getName() + "$_" + fieldNode.getName(), ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
-        collectionFactory.addConstructor(ACC_PUBLIC | ACC_SYNTHETIC,
+        collectionFactory.addConstructor(ACC_PUBLIC,
                 params(param(rwClass, "rw")),
                 CommonAstHelper.NO_EXCEPTIONS,
                 block(
