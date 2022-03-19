@@ -294,6 +294,16 @@ public class KlumInstanceProxy {
         return callSetterOrMethod(fieldOrMethodName, value);
     }
 
+    public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
+    }
+
+    private <T> T createObjectViaConverter(Class<?> converterType, String converterMethod, Object... args) {
+        if (converterMethod == null)
+            return (T) InvokerHelper.invokeConstructorOf(converterType, args);
+        return (T) InvokerHelper.invokeMethod(converterType, converterMethod, args);
+    }
+
     private void setInstanceAsOwnerFor(Object value) {
         if (value != null && isDslType(value.getClass()))
             getProxyFor(value).setOwners(instance);
@@ -318,6 +328,10 @@ public class KlumInstanceProxy {
     public <T> T addElementToCollection(String fieldName, T element) {
         setInstanceAsOwnerFor(element);
         return doAddElementToCollection(fieldName, element);
+    }
+
+    public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
@@ -365,6 +379,10 @@ public class KlumInstanceProxy {
     public <K,V> V addElementToMap(String fieldName, K key, V value) {
         setInstanceAsOwnerFor(value);
         return doAddElementToMap(fieldName, key, value);
+    }
+
+    public <K,V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
+        return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
     }
 
     private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
@@ -456,6 +474,8 @@ public class KlumInstanceProxy {
     void skipPostApply() {
         this.skipPostApply = true;
     }
+
+
 
 
 }

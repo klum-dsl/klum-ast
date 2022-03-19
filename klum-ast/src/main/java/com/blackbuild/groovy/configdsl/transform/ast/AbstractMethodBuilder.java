@@ -107,17 +107,17 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public void addTo(ClassNode target) {
-        doAddTo(target);
+    public MethodNode addTo(ClassNode target) {
+        return doAddTo(target);
     }
 
-    protected void doAddTo(ClassNode target) {
+    protected MethodNode doAddTo(ClassNode target) {
         Parameter[] parameterArray = getMethodParameters();
         MethodNode existing = target.getDeclaredMethod(name, parameterArray);
 
         if (existing != null) {
             if (optional)
-                return;
+                return null;
             else
                 throw new MethodBuilderException("Method " + existing + " is already defined.", existing);
         }
@@ -141,6 +141,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
             method.setSourcePosition(sourceLinkTo);
 
         method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
+        return method;
     }
 
     protected abstract Parameter[] getMethodParameters();

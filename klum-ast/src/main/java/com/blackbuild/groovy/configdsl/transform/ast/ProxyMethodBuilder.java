@@ -33,6 +33,7 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.GenericsType;
+import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -162,15 +163,17 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * the optional parameter.
      * @param target The class node to add to
      * already exists
+     * @return
      */
     @Override
-    public void addTo(ClassNode target) {
-        super.addTo(target);
+    public MethodNode addTo(ClassNode target) {
+        MethodNode result = super.addTo(target);
 
         if (namedParameterIndex != -1) {
             params.set(namedParameterIndex, new FixedExpressionArgument(new MapExpression()));
             doAddTo(target);
         }
+        return result;
     }
 
     @Override

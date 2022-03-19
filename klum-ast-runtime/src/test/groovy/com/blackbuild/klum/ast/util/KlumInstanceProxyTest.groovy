@@ -1,6 +1,10 @@
 package com.blackbuild.klum.ast.util
 
+import spock.lang.Subject
+
 class KlumInstanceProxyTest extends AbstractRuntimeTest {
+
+    @Subject KlumInstanceProxy proxy
 
     void "getKey returns the correct key for inherited classes"() {
         given:
@@ -40,7 +44,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         instance = newInstanceOf("pk.Bar")
         instance.name = "myName"
         instance.child = "myChild"
-        def proxy = new KlumInstanceProxy(instance)
+        proxy = new KlumInstanceProxy(instance)
 
         then:
         proxy.getInstanceProperty("name") == "myName"
@@ -62,7 +66,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
 
         instance = newInstanceOf("pk.Foo")
         instance.child = "myChild"
-        def proxy = new KlumInstanceProxy(instance)
+        proxy = new KlumInstanceProxy(instance)
 
         expect:
         proxy.getInstanceProperty("child") == "myChild"
@@ -118,6 +122,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         createClass('''
             package pk
 
+            @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Foo {
                 String provider
@@ -125,7 +130,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
                 @Field(key = { provider })
                 Object viaProvider
 
-                @Field(key = Field.FieldName)
+                @Field(key = com.blackbuild.groovy.configdsl.transform.Field.FieldName)
                 Object byFieldName
                 
                 @Field
@@ -138,7 +143,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         when:
         instance = newInstanceOf("pk.Foo")
         instance.provider = "bar"
-        def proxy = new KlumInstanceProxy(instance)
+        proxy = new KlumInstanceProxy(instance)
 
         then:
         proxy.resolveKeyForFieldFromAnnotation("viaProvider", proxy.getField("viaProvider")).get() == "bar"

@@ -26,19 +26,18 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.stmt.BlockStatement;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,19 +47,18 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClos
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
+import static com.blackbuild.klum.common.CommonAstHelper.isMap;
+import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
+import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.cloneParams;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberList;
 
 /**
@@ -122,8 +120,7 @@ class ConverterBuilder {
     }
 
     void execute() {
-        getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters")
-                .forEach(this::createSingleConverterMethod);
+        convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"));
 
         if (convertersAnnotation != null)
             transformation.getClassList(convertersAnnotation, "value")
@@ -131,6 +128,41 @@ class ConverterBuilder {
 
         createConverterMethodsFromOwnFactoryMethods();
         createConstructorConverters();
+    }
+
+    private void convertClosureListToConverterClass(List<ClosureExpression> closures) {
+        if (closures.isEmpty()) return;
+
+        InnerClassNode converterClass = new InnerClassNode(
+                transformation.annotatedClass,
+                transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
+                ACC_PUBLIC | ACC_STATIC,
+                ClassHelper.OBJECT_TYPE);
+
+        closures.forEach(closureExpression -> closureToStaticConverterMethod(converterClass, closureExpression));
+
+        transformation.annotatedClass.getModule().addClass(converterClass);
+    }
+
+    private void closureToStaticConverterMethod(ClassNode converterClass, ClosureExpression converter) {
+        Parameter[] parameters = rescopeParameters(converter.getParameters());
+        String name = stream(parameters)
+                .map(Parameter::getOriginType)
+                .map(ClassNode::getNameWithoutPackage)
+                .collect(Collectors.joining("_"));
+
+        MethodBuilder builder = MethodBuilder.createPublicMethod("from_" + name)
+                .mod(ACC_STATIC)
+                .returning(elementType)
+                .params(parameters)
+                .sourceLinkTo(converter);
+
+        if (converter.getCode() instanceof BlockStatement)
+            ((BlockStatement) converter.getCode()).getStatements().forEach(builder::statement);
+        else
+            builder.statement(converter.getCode());
+
+        createConverterFactoryCall(builder.addTo(converterClass));
     }
 
     private void createConstructorConverters() {
@@ -198,53 +230,48 @@ class ConverterBuilder {
                 || isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
     }
 
-    private void createConverterMethod(Parameter[] sourceParameters, Expression delegationExpression) {
-        List<Parameter> parameters = cloneAndPrependParameters(sourceParameters);
-        ArgumentListExpression arguments = withKey ? args(varX("$key"), delegationExpression) : args(delegationExpression);
-
-        createPublicMethod(methodName)
+    private void createConverterMethod(Parameter[] sourceParameters, ClassNode converterType, String converterMethod, ASTNode sourceLink) {
+        ProxyMethodBuilder method = createProxyMethod(methodName, getProxyMethodName())
+                .mod(ACC_PUBLIC)
                 .optional()
                 .returning(elementType)
-                .params(parameters)
-                .sourceLinkTo(delegationExpression)
-                .callMethod(
-                    "this",
-                    methodName,
-                    arguments
-                ).addTo(rwClass);
+                .sourceLinkTo(sourceLink)
+                .constantParam(fieldNode.getName())
+                .constantClassParam(converterType)
+                .constantParam(converterMethod);
+
+        if (withKey)
+            method.param(STRING_TYPE, "$key");
+
+        stream(sourceParameters).forEach( parameter -> method.param(parameter.getOriginType(), parameter.getName()));
+        method.addTo(rwClass);
+    }
+
+    private String getProxyMethodName() {
+        if (isCollection(fieldNode.getType()))
+            return "addElementToCollectionViaConverter";
+        else if (isMap(fieldNode.getType()))
+            return "addElementToMapViaConverter";
+
+        return "setSingleFieldViaConverter";
     }
 
     private void createConverterFactoryCall(MethodNode converterMethod) {
         createConverterMethod(
                 converterMethod.getParameters(),
-                callX(converterMethod.getDeclaringClass(), converterMethod.getName(), args(cloneParams(converterMethod.getParameters())))
+                converterMethod.getDeclaringClass(),
+                converterMethod.getName(),
+                converterMethod
         );
     }
 
     private void createConverterConstructorCall(ConstructorNode constructor) {
         createConverterMethod(
                 constructor.getParameters(),
-                ctorX(constructor.getDeclaringClass(), args(cloneParams(constructor.getParameters())))
+                constructor.getDeclaringClass(),
+                null,
+                constructor
         );
-    }
-
-    private void createSingleConverterMethod(ClosureExpression converter) {
-        Parameter[] parameters = rescopeParameters(converter.getParameters());
-        createConverterMethod(
-                parameters,
-                callX(converter, "call", args(parameters))
-        );
-    }
-
-    private List<Parameter> cloneAndPrependParameters(Parameter[] source) {
-        List<Parameter> parameters = new ArrayList<>(source.length + 1);
-
-        if (withKey)
-            parameters.add(param(STRING_TYPE, "$key"));
-
-        Arrays.stream(source).map(parameter -> param(parameter.getOriginType(), parameter.getName())).forEach(parameters::add);
-
-        return parameters;
     }
 
     private Parameter[] rescopeParameters(Parameter[] source) {
@@ -253,7 +280,7 @@ class ConverterBuilder {
             Parameter srcParam = source[i];
             if (srcParam.getType() == null)
                 addCompileError("All parameters must have an explicit type for the parameter for a converter", elementType, srcParam);
-            Parameter dstParam = new Parameter(srcParam.getOriginType(), "_" + srcParam.getName());
+            Parameter dstParam = new Parameter(srcParam.getOriginType(), srcParam.getName());
             result[i] = dstParam;
         }
         return result;

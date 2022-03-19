@@ -130,11 +130,15 @@ public class DslHelper {
 
     private static Optional<Field> getFieldOfHierarchyLayer(Class<?> layer, String name) {
         MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
-        if (metaProperty instanceof MetaBeanProperty) {
-            CachedField field = ((MetaBeanProperty) metaProperty).getField();
-            return field != null ? Optional.of(field.field) : Optional.empty();
-        }
-        return Optional.empty();
+        if (!(metaProperty instanceof MetaBeanProperty)) return Optional.empty();
+
+        CachedField field = ((MetaBeanProperty) metaProperty).getField();
+        return Optional.ofNullable(getRealField(field));
+    }
+
+    // groovy 3 makes Field.field private, so we need a workaround
+    private static Field getRealField(CachedField cachedField) {
+        return cachedField != null ? (Field) InvokerHelper.getAttribute(cachedField, "field") : null;
     }
 
     private static Optional<Method> getMethodOfHierarchyLayer(Class<?> layer, String name, Class<?>[] args) {

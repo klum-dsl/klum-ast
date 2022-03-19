@@ -70,7 +70,7 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
 public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
 
     private final List<Parameter> parameters = new ArrayList<>();
-    private final BlockStatement body = new BlockStatement();
+    private BlockStatement body = new BlockStatement();
 
     private MethodBuilder(String name) {
         super(name);
@@ -355,6 +355,11 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
 
     public MethodBuilder statement(Statement statement) {
         body.addStatement(statement);
+        return this;
+    }
+
+    public MethodBuilder body(BlockStatement body) {
+        this.body = body;
         return this;
     }
 
