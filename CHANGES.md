@@ -1,3 +1,7 @@
+## 1.2.2
+- Changes/Improvements
+    - Allow coercion of RW instance to superclass of model instance (see [#225](https://github.com/klum-dsl/klum-ast/issues/225))
+
 ## 1.2.1
 - Changes/Improvements
     - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.

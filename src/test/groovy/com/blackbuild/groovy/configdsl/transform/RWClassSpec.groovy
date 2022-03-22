@@ -261,6 +261,29 @@ class RWClassSpec extends AbstractDSLSpec {
         coerced == instance
     }
 
+    @Issue("225")
+    def "RW instance can be coerced to model superclass"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            abstract class Model {
+            }
+            @DSL
+            class Impl extends Model {
+            }
+''')
+        instance = create("pk.Impl")
+        def rw = instance.$rw
+
+        when:
+        def coerced = rw.asType(getClass("pk.Model"))
+
+        then:
+        coerced == instance
+    }
+
     @Issue("99")
     def "config closures for inner objects have access to their owner field with static type checking enabled"() {
         given:

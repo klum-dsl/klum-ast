@@ -144,7 +144,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
@@ -448,7 +447,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(makeClassSafe(Class.class), "type")
                 .statement(
                         ifS(
-                                eqX(varX("type"), classX(annotatedClass)),
+                                callX(varX("type"), "isAssignableFrom", classX(annotatedClass)),
                                 returnS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS))
                         )
                 )
