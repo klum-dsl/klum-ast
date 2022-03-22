@@ -1,10 +1,14 @@
 ## 2.0.0 (unreleased)
 - New Features
-  - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
+    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
 - Breaking changes
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
       the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+
+## 1.2.2
+- Changes/Improvements
+    - Allow coercion of RW instance to superclass of model instance (see [#225](https://github.com/klum-dsl/klum-ast/issues/225))
 
 ## 1.2.1
 - Changes/Improvements
