@@ -79,7 +79,6 @@ class TemplateMethods {
     public void invoke() {
         createImplementationForAbstractClassIfNecessary();
         createAsTemplateMethods();
-        copyFromTemplateMethod();
         copyFromMethod();
         withTemplateMethod();
         withTemplateConvenienceMethod();
@@ -104,13 +103,15 @@ class TemplateMethods {
     }
 
     private void withTemplatesMapMethod() {
+        String templatesVarName = "templates";
+        String closureParamName = "closure";
         createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
                 .deprecated()
                 .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(MAP_TYPE), "templates")
-                .closureParam("closure")
-                .doReturn(callX(classX(TemplateManager.class), WITH_MULTIPLE_TEMPLATES, args("templates", "closure")))
+                .param(newClass(MAP_TYPE), templatesVarName)
+                .closureParam(closureParamName)
+                .doReturn(callX(classX(TemplateManager.class), WITH_MULTIPLE_TEMPLATES, args(templatesVarName, closureParamName)))
                 .addTo(annotatedClass);
     }
 
@@ -137,13 +138,6 @@ class TemplateMethods {
                 .param(newClass(dslAncestor), "template")
                 .addTo(rwClass);
      }
-
-    @Deprecated // TO REMOVE
-    private void copyFromTemplateMethod() {
-        createProxyMethod("copyFromTemplate")
-                .mod(ACC_SYNTHETIC)
-                .addTo(rwClass);
-    }
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
