@@ -36,7 +36,6 @@ import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.stmt.BlockStatement;
 
 import java.util.Collections;
 import java.util.List;
@@ -151,18 +150,15 @@ class ConverterBuilder {
                 .map(ClassNode::getNameWithoutPackage)
                 .collect(Collectors.joining("_"));
 
-        MethodBuilder builder = MethodBuilder.createPublicMethod("from_" + name)
+        MethodNode method = MethodBuilder.createPublicMethod("from_" + name)
                 .mod(ACC_STATIC)
                 .returning(elementType)
                 .params(parameters)
-                .sourceLinkTo(converter);
+                .sourceLinkTo(converter)
+                .statement(converter.getCode())
+                .addTo(converterClass);
 
-        if (converter.getCode() instanceof BlockStatement)
-            ((BlockStatement) converter.getCode()).getStatements().forEach(builder::statement);
-        else
-            builder.statement(converter.getCode());
-
-        createConverterFactoryCall(builder.addTo(converterClass));
+        createConverterFactoryCall(method);
     }
 
     private void createConstructorConverters() {
