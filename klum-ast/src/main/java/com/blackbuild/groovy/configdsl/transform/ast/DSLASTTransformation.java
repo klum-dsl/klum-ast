@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
@@ -117,9 +118,6 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.eqX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
@@ -149,6 +147,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
+
+    static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
@@ -216,7 +216,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createConvenienceFactories();
         createFieldDSLMethods();
         createValidateMethod();
-        createDefaultMethods();
+        validateDefaultAnnotation();
         moveMutatorsToRWClass();
 
         validateOwnersMethods();
@@ -329,14 +329,32 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
-    private void createDefaultMethods() {
-        new DefaultMethods(this).execute();
+    private void validateDefaultAnnotation() {
+        annotatedClass.getFields().stream()
+                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, DEFAULT_ANNOTATION))
+                .forEach(this::checkDefaultAnnotationOnSingleField);
+    }
+
+    private void checkDefaultAnnotationOnSingleField(FieldNode fieldNode) {
+        AnnotationNode annotationNode = getAnnotation(fieldNode, DEFAULT_ANNOTATION);
+        int numberOfMembers = annotationNode.getMembers().size();
+
+        if (numberOfMembers == 0)
+            addError("You must define either delegate, code or field for @Default annotations", annotationNode);
+
+        if (numberOfMembers > 1)
+            addError("Only one member for @Default annotation is allowed!", annotationNode);
+
+        Expression codeMember = annotationNode.getMember("code");
+        if (codeMember != null && !(codeMember instanceof ClosureExpression))
+            addError("@Default.code() must be a closure", annotationNode);
+
     }
 
     private void createValidateMethod() {
         assertNoValidateMethodDeclared();
         checkValidateAnnotationsOnMethods();
-        checkValidAnnotationsOnFields();
+        checkValidateAnnotationsOnFields();
 
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
@@ -351,7 +369,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(VALIDATE_METHOD).addTo(annotatedClass);
     }
 
-    private void checkValidAnnotationsOnFields() {
+    private void checkValidateAnnotationsOnFields() {
         annotatedClass.getFields().stream()
                 .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, VALIDATE_ANNOTATION))
                 .forEach(this::checkValidateAnnotationOnSingleField);

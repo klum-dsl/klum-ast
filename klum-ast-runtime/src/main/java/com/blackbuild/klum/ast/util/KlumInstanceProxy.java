@@ -99,13 +99,15 @@ public class KlumInstanceProxy {
         if (defaultAnnotation == null)
             return value;
 
+        Class<?> fieldType = getField(name).getType();
+
         if (!defaultAnnotation.field().isEmpty())
-            return getInstanceProperty(defaultAnnotation.field());
+            return InvokerHelper.invokeMethod(getInstanceProperty(defaultAnnotation.field()), "asType", fieldType);
 
         if (!defaultAnnotation.delegate().isEmpty())
-            return getProxyFor(getInstanceProperty(defaultAnnotation.delegate())).getInstanceProperty(name);
+            return InvokerHelper.invokeMethod(getProxyFor(getInstanceProperty(defaultAnnotation.delegate())).getInstanceProperty(name), "asType",  fieldType);
 
-        return ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance);
+        return InvokerHelper.invokeMethod(ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance), "asType", fieldType);
     }
 
     private <T> T makeReadOnly(T value) {
