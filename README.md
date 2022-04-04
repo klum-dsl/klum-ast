@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/klum-dsl/klum-ast.svg?branch=master)](https://travis-ci.org/klum-dsl/klum-ast)
+[![CI](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml)
 
 Welcome to KlumAST
 ==================
