@@ -9,6 +9,7 @@
       is identical to the method name (previously, the first element of the camel
       cased method name was removed).
     - methods named `doValidate` are no longer considered Validate methods by default.
+    - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
 
 ## 1.2.2
 - Changes/Improvements

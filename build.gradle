@@ -29,6 +29,7 @@ plugins {
 
 ext {
     groovyVersion = '2.4.21'
+    // groovyVersion = '3.0.10'
 }
 
 group 'com.blackbuild.klum.ast'

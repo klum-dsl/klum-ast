@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
+import spock.lang.Requires
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
 
@@ -285,6 +286,7 @@ class RWClassSpec extends AbstractDSLSpec {
     }
 
     @Issue("99")
+    @Requires({ GroovySystem.version.startsWith("2.") })
     def "config closures for inner objects have access to their owner field with static type checking enabled"() {
         given:
         createClass('''

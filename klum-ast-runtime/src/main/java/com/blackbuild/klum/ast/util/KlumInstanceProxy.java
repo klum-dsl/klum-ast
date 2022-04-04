@@ -14,6 +14,7 @@ import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
@@ -73,19 +74,11 @@ public class KlumInstanceProxy {
 
     // TODO: protected/private
     public <T> T getInstanceAttribute(String attributeName) {
-        try {
-            return (T) getField(attributeName).get(instance);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        return (T) getCachedField(attributeName).getProperty(instance);
     }
 
     private void setInstanceAttribute(String name, Object value) {
-        try {
-            getField(name).set(instance, value);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        getCachedField(name).setProperty(instance, value);
     }
 
     // TODO: private?
@@ -118,6 +111,11 @@ public class KlumInstanceProxy {
 
     Field getField(String name) {
         return DslHelper.getField(instance.getClass(), name)
+                .orElseThrow(() -> new MissingPropertyException(name, instance.getClass()));
+    }
+
+    CachedField getCachedField(String name) {
+        return DslHelper.getCachedField(instance.getClass(), name)
                 .orElseThrow(() -> new MissingPropertyException(name, instance.getClass()));
     }
 

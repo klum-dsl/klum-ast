@@ -90,6 +90,14 @@ public class DslHelper {
                 .findFirst();
     }
 
+    public static Optional<CachedField> getCachedField(Class<?> type, String name) {
+        return getHierarchyOf(type).stream()
+                .map(layer -> getCachedFieldOfHierarchyLayer(layer, name))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
+    }
+
     public static FieldType getKlumFieldType(Field field) {
         com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
         if (fieldAnnotation == null) return FieldType.DEFAULT;
@@ -129,11 +137,14 @@ public class DslHelper {
     }
 
     private static Optional<Field> getFieldOfHierarchyLayer(Class<?> layer, String name) {
+        return getCachedFieldOfHierarchyLayer(layer, name).map(DslHelper::getRealField);
+    }
+
+    private static Optional<CachedField> getCachedFieldOfHierarchyLayer(Class<?> layer, String name) {
         MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
         if (!(metaProperty instanceof MetaBeanProperty)) return Optional.empty();
 
-        CachedField field = ((MetaBeanProperty) metaProperty).getField();
-        return Optional.ofNullable(getRealField(field));
+        return Optional.ofNullable(((MetaBeanProperty) metaProperty).getField());
     }
 
     // groovy 3 makes Field.field private, so we need a workaround
