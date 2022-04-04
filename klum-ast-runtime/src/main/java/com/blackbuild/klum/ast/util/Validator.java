@@ -4,6 +4,8 @@ import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
+import groovy.lang.MissingPropertyException;
+import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,10 +17,10 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
-import static org.codehaus.groovy.runtime.InvokerHelper.getAttribute;
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
 public class Validator {
@@ -89,7 +91,7 @@ public class Validator {
         if (!shouldValidate(field))
             return;
 
-        Object value = getAttribute(instance, field.getName());
+        Object value = getAttribute(field.getName());
 
         Validate validate = field.getAnnotation(Validate.class);
         Class<?> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
@@ -114,7 +116,7 @@ public class Validator {
     private Stream<?> getDslObjectsFor(Field field) {
         Class<?> type = field.getType();
         if (DslHelper.isDslType(type))
-            return Stream.of(InvokerHelper.getAttribute(instance, field.getName()));
+            return Stream.of(getAttribute(field.getName()));
 
         if (!Collection.class.isAssignableFrom(type) && !Map.class.isAssignableFrom(type))
             return Stream.empty();
@@ -122,14 +124,23 @@ public class Validator {
         Type elementType = getElementType(field);
 
         if (Collection.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
-            return ((Collection<?>) InvokerHelper.getAttribute(instance, field.getName())).stream();
+            return ((Collection<?>) getAttribute(field.getName())).stream();
 
         if (Map.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
-            return ((Map<?, ?>) InvokerHelper.getAttribute(instance, field.getName())).values().stream();
+            return ((Map<?, ?>) getAttribute(field.getName())).values().stream();
 
         return Stream.empty();
     }
 
+    private Object getAttribute(String name) {
+        Optional<CachedField> cachedField = DslHelper.getCachedField(instance.getClass(), name);
+
+        // cannot use .map, because value can be null
+        if (cachedField.isPresent())
+            return cachedField.get().getProperty(instance);
+
+        throw new MissingPropertyException(name, instance.getClass());
+    }
     private Type getElementType(Field field) {
         Type genericType = field.getGenericType();
 
