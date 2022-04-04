@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 
 class DefaultValuesSpec extends AbstractDSLSpec {
 
@@ -58,6 +59,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "b"
     }
 
+    @Ignore("Obsolete")
     def "undefaulted getter is created"() {
         given:
         createClass '''
@@ -91,10 +93,10 @@ class DefaultValuesSpec extends AbstractDSLSpec {
             class Foo {
                 String base
             
-                @Default('base')
+                @Default(field = 'base')
                 String value
                 
-                @Default('value')
+                @Default(field = 'value')
                 String another
             }
 '''
@@ -203,7 +205,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.element.name == null
     }
 
-    def "It is illegal to use @Delegate without a member"() {
+    def "It is illegal to use @Default without a member"() {
         when:
         createClass '''
             package pk
@@ -218,7 +220,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "It is illegal to use more than one member of @Delegate"() {
+    def "It is illegal to use more than one member of @Default"() {
         when:
         createClass '''
             package pk

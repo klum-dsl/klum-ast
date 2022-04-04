@@ -5,6 +5,10 @@
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
       the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+    - The naming of virtual fields is changed, now the virtual field
+      is identical to the method name (previously, the first element of the camel
+      cased method name was removed).
+    - methods named `doValidate` are no longer considered Validate methods by default.
 
 ## 1.2.2
 - Changes/Improvements

@@ -1,0 +1,3 @@
+apply plugin: 'java-library'
+
+description "Common Classes (temp reinclusion from Klum-common)"

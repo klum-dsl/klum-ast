@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
@@ -36,18 +38,22 @@ import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.ArrayExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
@@ -68,10 +74,12 @@ public class DslAstHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
     private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
+    private static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private DslAstHelper() {}
 
     public static boolean isDSLObject(ClassNode classNode) {
+        if (classNode == null) return false;
         return CommonAstHelper.getAnnotation(classNode, DSLASTTransformation.DSL_CONFIG_ANNOTATION) != null;
     }
 
@@ -80,7 +88,7 @@ public class DslAstHelper {
     }
 
     public static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(ClassNode target) {
-        return getHierarchyOfDSLObjectAncestors(new LinkedList<ClassNode>(), target);
+        return getHierarchyOfDSLObjectAncestors(new LinkedList<>(), target);
     }
 
     private static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
@@ -225,7 +233,7 @@ public class DslAstHelper {
     }
 
     static List<FieldNode> getAnnotatedFieldsOfHierarchy(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
+        List<FieldNode> result = new ArrayList<>();
 
         for (ClassNode level : DslAstHelper.getHierarchyOfDSLObjectAncestors(target)) {
             result.addAll(getAnnotatedFieldsOfClass(level, annotation));
@@ -235,7 +243,7 @@ public class DslAstHelper {
     }
 
     private static List<FieldNode> getAnnotatedFieldsOfClass(ClassNode target, ClassNode annotation) {
-        List<FieldNode> result = new ArrayList<FieldNode>();
+        List<FieldNode> result = new ArrayList<>();
 
         for (FieldNode fieldNode : target.getFields())
             if (!fieldNode.getAnnotations(annotation).isEmpty())
@@ -272,8 +280,8 @@ public class DslAstHelper {
         return result;
     }
 
-    static MethodNode createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
-        return createOptionalPublicMethod(targetMethod.getName())
+    static void createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
+        createOptionalPublicMethod(targetMethod.getName())
                 .returning(targetMethod.getReturnType())
                 .params(cloneParamsWithDefaultValues(targetMethod.getParameters()))
         .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))
@@ -365,5 +373,43 @@ public class DslAstHelper {
 
     static boolean isDslCollection(FieldNode fieldNode) {
         return isCollection(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[0].getType());
+    }
+
+    public static FieldType getFieldType(AnnotatedNode annotatedNode) {
+        return CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(annotatedNode, DSLASTTransformation.DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
+    }
+
+    static boolean isProtected(AnnotatedNode annotatedNode) {
+        return getFieldType(annotatedNode) == FieldType.PROTECTED;
+    }
+
+    static String getGetterName(String fieldName) {
+        return "get" + Verifier.capitalize(fieldName);
+    }
+
+    static String getBooleanGetterName(String fieldName) {
+        return "is" + Verifier.capitalize(fieldName);
+    }
+
+    static String getSetterName(String fieldName) {
+        return "set" + Verifier.capitalize(fieldName);
+    }
+
+    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType) {
+        return createGeneratedAnnotation(generatorType, null, null);
+    }
+
+    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType, String documentation, Collection<String> tags) {
+        AnnotationNode result = new AnnotationNode(KLUM_GENERATED_CLASSNODE);
+        result.addMember("generator", constX(generatorType.getName()));
+        if (documentation != null)
+            result.addMember("documentation", constX(documentation));
+        if (tags != null && !tags.isEmpty())
+            result.addMember(
+                    "tags",
+                    new ListExpression(tags.stream().map(ConstantExpression::new).collect(Collectors.toList()))
+            );
+
+        return result;
     }
 }

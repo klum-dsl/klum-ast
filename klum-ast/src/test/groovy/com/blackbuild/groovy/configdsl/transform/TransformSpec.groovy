@@ -27,6 +27,7 @@ import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.reflect.Method
@@ -239,6 +240,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Klaus"
     }
 
+    @Ignore("Legacy feature")
     def 'Key is reachable with get$Key()'() {
         given:
         createClass('''
@@ -2073,7 +2075,7 @@ class TransformSpec extends AbstractDSLSpec {
                 Date date
                 
                 @Field
-                void setDate(long value) {
+                void date(long value) {
                     this.date = new Date(value)
                 }
             }
@@ -2087,14 +2089,14 @@ class TransformSpec extends AbstractDSLSpec {
         instance.date != null
     }
 
-    def "Annotated setters work for dsl types"() {
+    def "Annotated setters work for dsl types as creators"() {
         given:
         createClass '''
             @DSL class Foo {
                 String name
                 
                 @Field
-                void setBar(Bar bar) {
+                void bar(Bar bar) {
                     this.name = bar.name
                 }
             }
@@ -2114,6 +2116,34 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name == "Hans"
     }
 
+    def "Annotated setters work for dsl types as setters"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void bar(Bar bar) {
+                    this.name = bar.name
+                }
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+            '''
+        when:
+        def theBar = getClass("Bar").create { name 'Franz'}
+
+        instance = clazz.create {
+            bar theBar
+        }
+
+        then:
+        instance.name == "Franz"
+    }
+
+    @Ignore("obsolete")
     def "Annotated non setter methods work for dsl types"() {
         given:
         createClass '''

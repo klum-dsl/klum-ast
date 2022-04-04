@@ -24,24 +24,21 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.groovy.configdsl.transform.PostApply;
-import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
-import com.blackbuild.klum.common.GenericsMethodBuilder.ClosureDefaultValue;
-import groovy.lang.Binding;
-import groovy.lang.GroovyClassLoader;
-import groovy.lang.GroovyShell;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.ast.ASTNode;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -52,108 +49,81 @@ import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.MixinNode;
 import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.PropertyNode;
-import org.codehaus.groovy.ast.VariableScope;
 import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.GStringExpression;
-import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
-import org.codehaus.groovy.ast.stmt.CatchStatement;
-import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
-import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
-import org.codehaus.groovy.ast.stmt.ThrowStatement;
-import org.codehaus.groovy.ast.stmt.TryCatchStatement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
-import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.CompilePhase;
-import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.callMethodViaInvoke;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldNames;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslCollection;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createMethodFromClosure;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createProtectedMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
-import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapAndOptionalKey;
-import static com.blackbuild.klum.common.CommonAstHelper.argsWithEmptyMapClassAndOptionalKey;
+import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsParameterless;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
 import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.isMap;
-import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
-import static com.blackbuild.klum.common.GenericsMethodBuilder.DEPRECATED_NODE;
+import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.DYNAMIC_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.andX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callSuperX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.declS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.isInstanceOfX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
@@ -176,13 +146,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
-    public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
-    public static final String POSTAPPLY_ANNOTATION_METHOD_NAME = "$" + POSTAPPLY_ANNOTATION.getNameWithoutPackage();
-    public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
-    public static final String POSTCREATE_ANNOTATION_METHOD_NAME = "$" + POSTCREATE_ANNOTATION.getNameWithoutPackage();
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
+
+    static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
+    public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
     public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
@@ -195,16 +164,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
-    public static final String SETTER_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".settername";
     public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
-    public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
-    public static final String FIELD_TYPE_METADATA = FieldType.class.getName();
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
-    public static final String SET_OWNERS_METHOD = "set$owner";
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -234,12 +199,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else
             createExplicitEmptyConstructor();
 
-        determineFieldTypes();
+        checkFieldNames();
 
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
-        addDirectGettersForKeyField();
 
         setPropertyAccessors();
         createCanonicalMethods();
@@ -252,10 +216,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createConvenienceFactories();
         createFieldDSLMethods();
         createValidateMethod();
-        createDefaultMethods();
+        validateDefaultAnnotation();
         moveMutatorsToRWClass();
 
-        createSetOwnersMethod();
+        validateOwnersMethods();
 
         delegateRwToModel();
 
@@ -282,11 +246,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "Fields should not be named 'owner' to prevent naming clash with Closure.owner!", ownerNamedField);
     }
 
-    private void determineFieldTypes() {
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            storeFieldType(fieldNode);
-            warnIfInvalid(fieldNode);
-        }
+    private void checkFieldNames() {
+        annotatedClass.getFields().forEach(this::warnIfInvalid);
     }
 
     private void warnIfInvalid(FieldNode fieldNode) {
@@ -294,112 +255,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
 
-    private void addDirectGettersForKeyField() {
-        if (keyField == null)
-            return;
-        if (annotatedClass != keyField.getOwner())
-            return;
-        createPublicMethod("get$key")
-                .mod(ACC_FINAL)
-                .returning(keyField.getType())
-                .doReturn(keyField.getName())
-                .addTo(annotatedClass);
-    }
 
     private void moveMutatorsToRWClass() {
         new MutatorsHandler(annotatedClass).invoke();
     }
 
     private void setPropertyAccessors() {
-        List<PropertyNode> newNodes = new ArrayList<PropertyNode>();
-        for (PropertyNode pNode : getInstanceProperties(annotatedClass)) {
-            adjustPropertyAccessorsForSingleField(pNode, newNodes);
-        }
-
-        setAccessorsForOwnerFields(newNodes);
-
-        if (keyField != null)
-            setAccessorsForKeyField();
-
-        replaceProperties(annotatedClass, newNodes);
-    }
-
-    private void setAccessorsForKeyField() {
-        String keyGetter = "get" + Verifier.capitalize(keyField.getName());
-        createPublicMethod(keyGetter)
-                .returning(keyField.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
-                .addTo(rwClass);
-    }
-
-    private void setAccessorsForOwnerFields(List<PropertyNode> newNodes) {
-        for (FieldNode ownerField : ownerFields)
-            if (ownerField.getOwner() == annotatedClass)
-                newNodes.add(setAccessorsForOwnerField(ownerField));
-    }
-
-    private PropertyNode setAccessorsForOwnerField(FieldNode ownerField) {
-        String ownerFieldName = ownerField.getName();
-        PropertyNode ownerProperty = annotatedClass.getProperty(ownerFieldName);
-        ownerProperty.setSetterBlock(null);
-        ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
-
-        String ownerGetter = "get" + Verifier.capitalize(ownerFieldName);
-        createPublicMethod(ownerGetter)
-                .returning(ownerField.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
-                .addTo(rwClass);
-
-        return ownerProperty;
-    }
-
-    private void adjustPropertyAccessorsForSingleField(PropertyNode pNode, List<PropertyNode> newNodes) {
-        if (shouldFieldBeIgnored(pNode.getField()))
-            return;
-
-        String capitalizedFieldName = Verifier.capitalize(pNode.getName());
-        String getterName = "get" + capitalizedFieldName;
-        String setterName = "set" + capitalizedFieldName;
-        String rwGetterName;
-        String rwSetterName = setterName + "$rw";
-
-        if (CommonAstHelper.isCollectionOrMap(pNode.getType())) {
-            rwGetterName = getterName + "$rw";
-
-            pNode.setGetterBlock(stmt(callX(attrX(varX("this"), constX(pNode.getName())), "asImmutable")));
-
-            createProtectedMethod(rwGetterName)
-                    .mod(ACC_SYNTHETIC)
-                    .returning(pNode.getType())
-                    .doReturn(attrX(varX("this"), constX(pNode.getName())))
-                    .addTo(annotatedClass);
-        } else {
-            rwGetterName = "get" + capitalizedFieldName;
-            pNode.setGetterBlock(stmt(attrX(varX("this"), constX(pNode.getName()))));
-        }
-
-        // TODO what about protected methods?
-        createPublicMethod(getterName)
-                .returning(pNode.getType())
-                .doReturn(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwGetterName))
-                .addTo(rwClass);
-
-        createProtectedMethod(rwSetterName)
-                .mod(ACC_SYNTHETIC)
-                .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(assignS(attrX(varX("this"), constX(pNode.getName())), varX("value")))
-                .addTo(annotatedClass);
-
-        createMethod(setterName)
-                .mod(isProtected(pNode.getField()) ? ACC_PROTECTED : ACC_PUBLIC)
-                .returning(ClassHelper.VOID_TYPE)
-                .param(pNode.getType(), "value")
-                .statement(callX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
-                .addTo(rwClass);
-
-        pNode.setSetterBlock(null);
-        newNodes.add(pNode);
+        new PropertyAccessors(this).invoke();
     }
 
     private void createRWClass() {
@@ -413,9 +275,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
 
-        // Need to explicitly add this field for non static inner classes (Groovy Bug?)
-        FieldNode modelFieldInRwClass = rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
-
+        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
         BlockStatement block = new BlockStatement();
         if (parentRW != null)
@@ -429,8 +289,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 block
         );
 
+        MethodBuilder.createProtectedMethod("get$proxy")
+                .returning(make(KlumInstanceProxy.class))
+                .doReturn(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
+                .addTo(rwClass);
+
         annotatedClass.getModule().addClass(rwClass);
-        annotatedClass.addField(NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
+        annotatedClass.addField(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
+        if (dslParent == null)
+            annotatedClass.addField(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, ACC_PUBLIC | ACC_SYNTHETIC | ACC_FINAL, INSTANCE_PROXY, ctorX(INSTANCE_PROXY, varX("this")));
 
         ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
         if (parentProxy == null)
@@ -455,9 +322,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getRwClassOfDslParent() {
-        if (dslParent == null)
-            return null;
-
         return DslAstHelper.getRwClassOf(dslParent);
     }
 
@@ -465,133 +329,75 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
-    private void createDefaultMethods() {
-        new DefaultMethods(this).execute();
+    private void validateDefaultAnnotation() {
+        annotatedClass.getFields().stream()
+                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, DEFAULT_ANNOTATION))
+                .forEach(this::checkDefaultAnnotationOnSingleField);
+    }
+
+    private void checkDefaultAnnotationOnSingleField(FieldNode fieldNode) {
+        AnnotationNode annotationNode = getAnnotation(fieldNode, DEFAULT_ANNOTATION);
+        int numberOfMembers = annotationNode.getMembers().size();
+
+        if (numberOfMembers == 0)
+            addError("You must define either delegate, code or field for @Default annotations", annotationNode);
+
+        if (numberOfMembers > 1)
+            addError("Only one member for @Default annotation is allowed!", annotationNode);
+
+        Expression codeMember = annotationNode.getMember("code");
+        if (codeMember != null && !(codeMember instanceof ClosureExpression))
+            addError("@Default.code() must be a closure", annotationNode);
+
     }
 
     private void createValidateMethod() {
         assertNoValidateMethodDeclared();
+        checkValidateAnnotationsOnMethods();
+        checkValidateAnnotationsOnFields();
 
         Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
 
+        // TODO: to proxy
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
-            // TODO field could be added to rw as well
-            annotatedClass.addField("$manualValidation", ACC_PROTECTED | ACC_SYNTHETIC, ClassHelper.Boolean_TYPE, new ConstantExpression(mode == Validation.Mode.MANUAL));
-            createPublicMethod("manualValidation")
+            createProxyMethod("manualValidation")
                     .param(Boolean_TYPE, "validation", constX(true))
-                    .assignS(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), "$manualValidation"), varX("validation"))
                     .addTo(rwClass);
         }
 
-        DslMethodBuilder methodBuilder = createPublicMethod(VALIDATE_METHOD);
-
-        if (dslParent != null) {
-            methodBuilder.statement(callSuperX(VALIDATE_METHOD));
-        }
-
-        BlockStatement block = new BlockStatement();
-        validateFields(block);
-        validateCustomMethods(block);
-
-        TryCatchStatement tryCatchStatement = new TryCatchStatement(block, EmptyStatement.INSTANCE);
-        tryCatchStatement.addCatch(new CatchStatement(
-                param(EXCEPTION_TYPE, "e"),
-                new ThrowStatement(ctorX(ASSERTION_ERROR_TYPE, args("e")))
-                )
-        );
-
-        methodBuilder
-                .statement(tryCatchStatement)
-                .addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD).addTo(annotatedClass);
     }
 
-    private void assertNoValidateMethodDeclared() {
-        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
-        if (existingValidateMethod != null)
-            addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
+    private void checkValidateAnnotationsOnFields() {
+        annotatedClass.getFields().stream()
+                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, VALIDATE_ANNOTATION))
+                .forEach(this::checkValidateAnnotationOnSingleField);
     }
 
-    private void validateCustomMethods(BlockStatement block) {
-        warnIfUnannotatedDoValidateMethod();
-
-        for (MethodNode method : annotatedClass.getMethods()) {
-            AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
-            if (validateAnnotation == null) continue;
-
-            CommonAstHelper.assertMethodIsParameterless(method, sourceUnit);
-            assertAnnotationHasNoValueOrMessage(validateAnnotation);
-
-            block.addStatement(stmt(callX(varX("this"), method.getName())));
-        }
-    }
-
-    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
-        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
-    }
-
-    private void warnIfUnannotatedDoValidateMethod() {
-        MethodNode doValidate = annotatedClass.getMethod("doValidate", Parameter.EMPTY_ARRAY);
-
-        if (doValidate == null) return;
-
-        if (getAnnotation(doValidate, VALIDATE_ANNOTATION) != null) return;
-
-        CommonAstHelper.addCompileWarning(sourceUnit, "Using doValidation() is deprecated, mark validation methods with @Validate", doValidate);
-        doValidate.addAnnotation(new AnnotationNode(VALIDATE_ANNOTATION));
-    }
-
-    private void validateFields(BlockStatement block) {
-        Validation.Option mode = getEnumMemberValue(
-                getAnnotation(annotatedClass, VALIDATION_ANNOTATION),
-                "option",
-                Validation.Option.class,
-                Validation.Option.IGNORE_UNMARKED);
-        for (final FieldNode fieldNode : annotatedClass.getFields()) {
-            if (shouldFieldBeIgnoredForValidation(fieldNode)) continue;
-
-            AnnotationNode validateAnnotation = getOrCreateValidateAnnotation(mode, fieldNode);
-
-            if (validateAnnotation != null)
-                validateField(block, fieldNode, validateAnnotation);
-            if (!isValidationIgnoredSet(validateAnnotation))
-                validateInnerDslObjects(block, fieldNode);
-        }
-    }
-
-    private boolean isValidationIgnoredSet(AnnotationNode validateAnnotation) {
-        if (validateAnnotation == null)
-            return false;
-        Expression member = validateAnnotation.getMember("value");
-        if (member == null)
-            return false;
-        if (!(member instanceof ClassExpression))
-            return false;
-        return member.getType().equals(ClassHelper.make(Validate.Ignore.class));
-    }
-
-    private void validateField(BlockStatement block, FieldNode fieldNode, AnnotationNode validateAnnotation) {
+    private void checkValidateAnnotationOnSingleField(FieldNode fieldNode) {
+        AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
         String message = getMemberStringValue(validateAnnotation, "message");
-        Expression member = validateAnnotation.getMember("value");
+        Expression validationExpression = validateAnnotation.getMember("value");
 
-        if (member == null)
-            addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
-        else if (member instanceof ClassExpression) {
-            ClassNode memberType = member.getType();
-            if (memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)))
-                addAssert(block, varX(fieldNode.getName()), message != null ? message :  "'" + fieldNode.getName() + "' must be set");
-            else if (!memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
-        } else if (member instanceof ClosureExpression) {
-            ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) member, fieldNode.getType());
+        if (validationExpression == null)
+            return;
+
+        if (validationExpression instanceof ClosureExpression) {
+            ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
+            convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-            block.addStatement(convertToAssertStatement(fieldNode.getName(), validationClosure, message));
+        }
+
+        if (validationExpression instanceof ClassExpression) {
+            ClassNode memberType = validationExpression.getType();
+            if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)) && !memberType.equals(ClassHelper.make(Validate.Ignore.class)))
+                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
         }
     }
 
-    Statement convertToAssertStatement(String fieldName, ClosureExpression closure, String message) {
+    void convertClosureExpressionToAssertStatement(String fieldName, ClosureExpression closure, String message) {
         BlockStatement block = (BlockStatement) closure.getCode();
 
         if (block.getStatements().size() != 1)
@@ -610,7 +416,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             assertStatement = assertStmt(new BooleanExpression(check), message);
         } else {
             addError("Content of validation closure must either be an assert statement or an expression", codeStatement);
-            return null;
+            return;
         }
 
         String closureParameterName = closureParameter.getName();
@@ -621,80 +427,38 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             Arrays.asList(constX("Field '" + fieldName + "' ("), constX(") is invalid")),
                             Collections.<Expression>singletonList(
                                     callX(
-                                        INVOKER_HELPER_CLASS,
-                                        "format",
-                                        args(varX(closureParameterName), ConstantExpression.PRIM_TRUE)
+                                            INVOKER_HELPER_CLASS,
+                                            "format",
+                                            args(varX(closureParameterName), ConstantExpression.PRIM_TRUE)
                                     )
                             )
                     )
             );
         }
 
-        return block(
-                declS(varX(closureParameterName, closureParameter.getType()), varX(fieldName)),
-                assertStatement
-        );
+        closure.setCode(assertStatement);
     }
 
-    private void validateInnerDslObjects(BlockStatement block, FieldNode fieldNode) {
-        if (isOwnerField(fieldNode)) return;
 
-        if (isDSLObject(fieldNode.getType()))
-            validateSingleInnerField(block, fieldNode);
-        else if (isDslMap(fieldNode))
-            validateInnerMap(block, fieldNode);
-        else if (isDslCollection(fieldNode))
-            validateInnerCollection(block, fieldNode);
+    private void assertNoValidateMethodDeclared() {
+        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
+        if (existingValidateMethod != null)
+            addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
     }
 
-    private AnnotationNode getOrCreateValidateAnnotation(Validation.Option mode, FieldNode fieldNode) {
-        AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
-
-        if (validateAnnotation == null && mode == Validation.Option.VALIDATE_UNMARKED) {
-            validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
-            fieldNode.addAnnotation(validateAnnotation);
-        }
-        return validateAnnotation;
+    private void checkValidateAnnotationsOnMethods() {
+        annotatedClass.getMethods().forEach(this::checkValidateAnnotationOnSingleMethod);
     }
 
-    private void addAssert(BlockStatement block, Expression check, String message) {
-        block.addStatement(assertStmt(check, message));
+    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
+        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
+            addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
     }
+
 
     private AssertStatement assertStmt(Expression check, String message) {
         if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);
         else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
-    }
-
-    private void validateInnerCollection(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(
-                new ForStatement(
-                        param(DYNAMIC_TYPE, "next"),
-                        varX(fieldNode.getName()),
-                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
-                )
-        );
-    }
-
-    private void validateInnerMap(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(
-                new ForStatement(
-                        param(DYNAMIC_TYPE, "next"),
-                        callX(varX(fieldNode.getName()), "values"),
-                        ifS(varX("next"), callX(varX("next"), VALIDATE_METHOD))
-                )
-        );
-    }
-
-    private void validateSingleInnerField(BlockStatement block, FieldNode fieldNode) {
-        block.addStatement(ifS(varX(fieldNode), callX(varX(fieldNode.getName()), VALIDATE_METHOD)));
-    }
-
-    @NotNull
-    private ClosureExpression createGroovyTruthClosureExpression(VariableScope scope) {
-        ClosureExpression result = new ClosureExpression(Parameter.EMPTY_ARRAY, returnS(varX("it")));
-        result.setVariableScope(new VariableScope());
-        return result;
     }
 
     private void validateFieldAnnotations() {
@@ -737,7 +501,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void assertMembersNamesAreUnique() {
-        Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<String, FieldNode>();
+        Map<String, FieldNode> allDslCollectionFieldNodesOfHierarchy = new HashMap<>();
 
         for (ClassNode level : DslAstHelper.getHierarchyOfDSLObjectAncestors(annotatedClass)) {
             for (FieldNode field : level.getFields()) {
@@ -765,54 +529,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
 
-    private void createSetOwnersMethod() {
-
-        BlockStatement methodBody = new BlockStatement();
-
-        if (dslParent != null)
-            methodBody.addStatement(stmt(callSuperX(SET_OWNERS_METHOD, varX("value"))));
-
-        for (FieldNode ownerField : ownerFields) {
-            methodBody.addStatement(
-                    ifS(
-                        andX(
-                                isInstanceOfX(varX("value"), ownerField.getType()),
-                                // access the field directly to prevent StackOverflow
-                                notX(attrX(varX("this"), constX(ownerField.getName())))),
-                        assignX(attrX(varX("this"), constX(ownerField.getName())), varX("value"))
-                    )
-            );
-        }
-
-        for (MethodNode ownerMethod : rwClass.getMethods()) {
-            if (!DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
-                continue;
-
-            if (ownerMethod.getParameters().length != 1)
-                addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod);
-
-            if (dslParent != null) {
-                MethodNode superOwnerMethod = rwClass.getSuperClass().getDeclaredMethod(ownerMethod.getName(), ownerMethod.getParameters());
-                if (superOwnerMethod != null && DslAstHelper.hasAnnotation(superOwnerMethod, OWNER_ANNOTATION))
-                    addCompileWarning(sourceUnit, String.format("%s overrides %s, which might lead to unexpected results", ownerMethod, superOwnerMethod), ownerMethod);
-            }
-
-            ClassNode parameterType = ownerMethod.getParameters()[0].getOriginType();
-
-            methodBody.addStatement(
-                    ifS(
-                            isInstanceOfX(varX("value"), parameterType),
-                            callX(propX(varX("this"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), ownerMethod.getName(), varX("value"))
-                    )
-            );
-        }
-
-        // public since we owner and owned can be in different packages
-        createPublicMethod(SET_OWNERS_METHOD)
-                .param(OBJECT_TYPE, "value")
-                .mod(ACC_SYNTHETIC)
-                .statement(methodBody)
-                .addTo(annotatedClass);
+    private void validateOwnersMethods() {
+        rwClass.getMethods()
+                .stream()
+                .filter(ownerMethod -> DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
+                .filter(ownerMethod -> ownerMethod.getParameters().length != 1)
+                .forEach(ownerMethod -> addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod));
     }
 
     private void createKeyConstructor() {
@@ -844,20 +566,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();
-            createEquals(annotatedClass, true, dslParent != null, true, getAllTransientFields(), null);
+            createEquals(annotatedClass, true, dslParent != null, true, getAllIgnoredFieldNames(), null);
         }
         if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
             createToString(annotatedClass, false, true, getOwnerFieldNames(annotatedClass), null, false);
         }
     }
 
-    private List<String> getAllTransientFields() {
-        List<String> result = new ArrayList<>();
-        for (FieldNode fieldNode : annotatedClass.getFields()) {
-            if (fieldNode.getName().startsWith("$") || getFieldType(fieldNode) == FieldType.TRANSIENT)
-                result.add(fieldNode.getName());
-        }
-        return result;
+    private List<String> getAllIgnoredFieldNames() {
+        return annotatedClass.getFields()
+                .stream()
+                .filter(DSLASTTransformation::isFieldIgnoredForEquals)
+                .map(FieldNode::getName)
+                .collect(toList());
+    }
+
+    private static boolean isFieldIgnoredForEquals(FieldNode fieldNode) {
+        return fieldNode.getName().startsWith("$") || DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT;
     }
 
     private void createHashCodeIfNotDefined() {
@@ -878,14 +603,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createFieldDSLMethods() {
-        for (FieldNode fieldNode : annotatedClass.getFields())
-            createDSLMethodsForSingleField(fieldNode);
-        for (MethodNode methodNode : annotatedClass.getMethods()) {
-            if (methodNode.getAnnotations(DSL_FIELD_ANNOTATION).isEmpty())
-                continue;
-
-            createDSLMethodsForVirtualFields(methodNode);
-        }
+        annotatedClass.getFields().forEach(this::createDSLMethodsForSingleField);
+        annotatedClass
+                .getMethods()
+                .stream()
+                .filter(methodNode -> DslAstHelper.hasAnnotation(methodNode, DSL_FIELD_ANNOTATION))
+                .forEach(this::createDSLMethodsForVirtualFields);
     }
 
     private void createDSLMethodsForVirtualFields(MethodNode methodNode) {
@@ -894,29 +617,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         String methodName = methodNode.getName();
 
-        int index = DslAstHelper.findFirstUpperCaseCharacter(methodName);
-
-        String fieldName = index == -1 ? methodName : Character.toLowerCase(methodName.charAt(index)) + methodName.substring(index + 1);
-
         ClassNode parameterType = methodNode.getParameters()[0].getType();
-        FieldNode virtualField = new FieldNode(fieldName, ACC_PUBLIC, parameterType, annotatedClass, null);
+        FieldNode virtualField = new FieldNode(methodName, ACC_PUBLIC, parameterType, annotatedClass, null);
         virtualField.addAnnotations(methodNode.getAnnotations());
         virtualField.setSourcePosition(methodNode);
-        virtualField.setNodeMetaData(SETTER_NAME_METADATA_KEY, methodName);
 
         if (isDSLObject(parameterType))
-            createSingleDSLObjectFieldCreationMethods(virtualField);
+            createSingleDSLObjectFieldCreationMethods(virtualField, methodName, parameterType);
 
         createSingleFieldSetterMethod(virtualField);
     }
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
         if (shouldFieldBeIgnored(fieldNode)) return;
-        if (getFieldType(fieldNode) == FieldType.IGNORED) return;
+        if (DslAstHelper.getFieldType(fieldNode) == FieldType.IGNORED) return;
 
         if (isDSLObject(fieldNode.getType())) {
-            if (getFieldType(fieldNode) != FieldType.LINK)
-                createSingleDSLObjectFieldCreationMethods(fieldNode);
+            if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK)
+                createSingleDSLObjectFieldCreationMethods(fieldNode, fieldNode.getName(), fieldNode.getType());
             createSingleFieldSetterMethod(fieldNode);
         } else if (isMap(fieldNode.getType()))
             createMapMethods(fieldNode);
@@ -924,19 +642,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createCollectionMethods(fieldNode);
         else
             createSingleFieldSetterMethod(fieldNode);
-    }
-
-    private FieldType getFieldType(FieldNode fieldNode) {
-        return fieldNode.getNodeMetaData(FIELD_TYPE_METADATA);
-    }
-
-    private void storeFieldType(FieldNode fieldNode) {
-        FieldType type = CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
-        fieldNode.putNodeMetaData(FIELD_TYPE_METADATA, type);
-    }
-
-    private boolean isProtected(FieldNode fieldNode) {
-        return getFieldType(fieldNode) == FieldType.PROTECTED;
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -947,48 +652,39 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
-        if (getFieldType(fieldNode) == FieldType.TRANSIENT) return true;
+        if (DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT) return true;
         return false;
     }
 
     private boolean isOwnerField(FieldNode fieldNode) {
-        return !fieldNode.getAnnotations(OWNER_ANNOTATION).isEmpty();
+        return DslAstHelper.hasAnnotation(fieldNode, OWNER_ANNOTATION);
     }
 
     private boolean isKeyField(FieldNode fieldNode) {
         return fieldNode == keyField;
     }
 
-    boolean shouldFieldBeIgnoredForValidation(FieldNode fieldNode) {
-        if (fieldNode.getName().startsWith("$")) return true;
-        if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
-        return false;
-    }
-
     private void createSingleFieldSetterMethod(FieldNode fieldNode) {
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         String fieldName = fieldNode.getName();
-        String setterName = fieldNode.getNodeMetaData(SETTER_NAME_METADATA_KEY);
-        if (setterName == null)
-            setterName = "set" + Verifier.capitalize(fieldName);
 
-        createMethod(fieldName)
+        createProxyMethod(fieldName, "setSingleField")
                 .optional()
                 .returning(fieldNode.getType())
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .decoratedParam(fieldNode, fieldNode.getType(), "value")
-                .callMethod("this", setterName, args("value"))
-                .setOwnersIf("value", isDSLObject(fieldNode.getType()))
-                .doReturn("value")
+                .constantParam(fieldName)
+                .decoratedParam(fieldNode, "value")
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "setSingleField")
                     .optional()
+                    .returning(Boolean_TYPE)
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .callThis(fieldName, constX(true))
+                    .constantParam(fieldName)
+                    .constantParam(true)
                     .addTo(rwClass);
         }
 
@@ -996,7 +692,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
-        if (getFieldType(fieldNode) != FieldType.LINK)
+        if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK)
             new ConverterBuilder(this, fieldNode, methodName, withKey).execute();
     }
 
@@ -1012,41 +708,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createCollectionOfSimpleElementsMethods(FieldNode fieldNode, ClassNode elementType) {
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         String elementName = getElementNameForCollectionField(fieldNode);
-        createMethod(fieldNode.getName())
+        String fieldName = fieldNode.getName();
+        createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .arrayParam(elementType, "values")
-                .forS(
-                    param(elementType, "$value"),
-                    "values",
-                    stmt(callThisX(elementName, varX("$value")))
-                )
                 .addTo(rwClass);
 
-        createMethod(fieldNode.getName())
+        createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
-                .forS(
-                    param(elementType, "$value"),
-                    "values",
-                    stmt(callThisX(elementName, varX("$value")))
-                )
                 .addTo(rwClass);
 
-        createMethod(elementName)
+        createProxyMethod(elementName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(elementType, "value")
-                .statement(callX(propX(varX("this"), fieldNode.getName()), "add", varX("value")))
-                .doReturn("value")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, elementName, false);
@@ -1062,94 +750,56 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         warnIfSetWithoutKeyedElements(fieldNode, elementType, fieldKey);
 
         String fieldName = fieldNode.getName();
-        String fieldRWName = fieldName + "$rw";
 
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (getFieldType(fieldNode) != FieldType.LINK) {
+        if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
-                        .optionalStringParam("key", fieldKey != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .declareVariable("created", callX(classX(elementType), "newInstance", optionalKeyArg(fieldKey, "key")))
-                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners("created")
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                        .callMethod("created", "apply", args("values", "closure"))
-                        .doReturn("created")
-                        .addTo(rwClass);
-
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
+                        .constantParam(fieldName)
+                        .constantClassParam(elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapAndOptionalKey(fieldKeyName, "closure")))
+                        .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
             }
 
             if (!isFinal(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
-                        .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam("key", fieldKey != null)
-                        .delegatingClosureParam()
-                        .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(fieldKey, "key")))
-                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners("created")
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("created"))
-                        .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                        .callMethod("created", "apply", args("values", "closure"))
-                        .doReturn("created")
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
+                        .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", elementType)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(fieldKeyName, "closure")))
                         .addTo(rwClass);
             }
 
-            createMethod(fieldName)
+            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .forS(
-                            param(CLASS_Type, "script"),
-                            "scripts",
-                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
-                    )
                     .addTo(rwClass);
 
         }
 
-        createMethod(methodName)
+        createProxyMethod(methodName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
                 .param(elementType, "value")
-                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "add", varX("value"))
-                .setOwners("value")
-                .doReturn("value")
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -1187,69 +837,43 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
 
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         ClosureExpression keyMappingClosure = getTypedKeyMappingClosure(fieldNode, valueType);
 
         if (keyMappingClosure == null) {
-            createMethod(methodName)
-                .optional()
-                .mod(visibility)
-                .linkToField(fieldNode)
-                .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
-                .forS(
-                    param(makeClassSafeWithGenerics(MAP_ENTRY_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "entry"),
-                    "values",
-                    stmt(callThisX(singleElementMethod, args(
-                            propX(varX("entry"), "key"),
-                            propX(varX("entry"), "value")))
-                    )
-                )
-                .addTo(rwClass);
-        } else {
-            createMethod(methodName)
+            createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(methodName)
+                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
+                    .addTo(rwClass);
+        } else {
+            createProxyMethod(methodName, "addElementsToMap")
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .constantParam(methodName)
                     .param(makeClassSafeWithGenerics(COLLECTION_TYPE, new GenericsType(valueType)), "values")
-                    .forS(
-                        param(valueType, "element"),
-                        "values",
-                        stmt(callThisX(singleElementMethod, varX("element")))
-                    )
                     .addTo(rwClass);
-            createMethod(methodName)
+            createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(methodName)
                     .arrayParam(valueType, "values")
-                    .forS(
-                            param(valueType, "element"),
-                            "values",
-                            stmt(callThisX(singleElementMethod, varX("element")))
-                    )
                     .addTo(rwClass);
         }
 
-        Expression readKeyExpression;
-        Parameter[] parameters;
-
-        if (keyMappingClosure == null) {
-            readKeyExpression = varX("key");
-            parameters = params(param(keyType, "key"), param(valueType, "value"));
-        } else {
-            readKeyExpression = callX(keyMappingClosure, "call", args("value"));
-            parameters = params(param(valueType, "value"));
-        }
-
-        createMethod(singleElementMethod)
+        createProxyMethod(singleElementMethod, "addElementToMap")
                 .optional()
                 .mod(visibility)
                 .returning(valueType)
                 .linkToField(fieldNode)
-                .params(parameters)
-                .callMethod(propX(varX("this"), fieldNode.getName()), "put", args(readKeyExpression, varX("value")))
-                .doReturn("value")
+                .constantParam(methodName)
+                .optionalParam(keyType, "key", keyMappingClosure == null)
+                .param(valueType, "value")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);
@@ -1278,93 +902,57 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
 
         String fieldName = fieldNode.getName();
-        String fieldRWName = fieldName + "$rw";
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(elementType);
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (getFieldType(fieldNode) != FieldType.LINK) {
+        if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK) {
 
             if (isInstantiable(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
+                        .constantClassParam(elementType)
                         .optionalStringParam("key", elementKeyField != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .declareVariable(elementToAddVarName, callX(classX(elementType), "newInstance", optionalKeyArg(elementKeyField, "key")))
-                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
-                        .doReturn(elementToAddVarName)
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .optionalStringParam(elementKeyFieldName, elementKeyField != null)
-                        .delegatingClosureParam(elementRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapAndOptionalKey(elementKeyFieldName, "closure")))
+                        .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
             }
 
             if (!isFinal(elementType)) {
-                createMethod(methodName)
+                createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementType)
                         .namedParams("values")
+                        .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam("key", elementKeyField)
+                        .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
-                        .declareVariable(elementToAddVarName, callX(varX("typeToCreate"), "newInstance", optionalKeyArg(elementKeyField, "key")))
-                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                        .setOwners(elementToAddVarName)
-                        .callMethod(propX(varX(elementToAddVarName), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                        .callMethod(elementToAddVarName, "apply", args("values", "closure"))
-                        .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
-                        .doReturn(elementToAddVarName)
-                        .addTo(rwClass);
-                createMethod(methodName)
-                        .optional()
-                        .mod(visibility)
-                        .linkToField(fieldNode)
-                        .returning(elementType)
-                        .delegationTargetClassParam("typeToCreate", elementType)
-                        .optionalStringParam(elementKeyFieldName, elementKeyField != null)
-                        .delegatingClosureParam()
-                        .doReturn(callMethodViaInvoke(methodName, argsWithEmptyMapClassAndOptionalKey(elementKeyFieldName, "closure")))
                         .addTo(rwClass);
             }
 
-            createMethod(fieldName)
+            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
-                    .forS(
-                            param(CLASS_Type, "script"),
-                            "scripts",
-                            stmt(callThisX(methodName, callX(elementType, CREATE_FROM, varX("script"))))
-                    )
                     .addTo(rwClass);
         }
 
-        createMethod(methodName)
+        createProxyMethod(methodName, "addElementToMap")
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .constantParam(fieldName)
+                .constantParam(null)
                 .param(elementType, elementToAddVarName)
-                .callMethod(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), fieldRWName), "put", args(readKeyExpression, varX(elementToAddVarName)))
-                .setOwners(elementToAddVarName)
-                .doReturn(elementToAddVarName)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -1390,83 +978,41 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new AlternativesClassBuilder(fieldNode).invoke();
     }
 
-    private void createSingleDSLObjectFieldCreationMethods(FieldNode fieldNode) {
-        String fieldName = fieldNode.getName();
-        String setterName = fieldNode.getNodeMetaData(SETTER_NAME_METADATA_KEY);
-        if (setterName == null)
-            setterName = "set" + Verifier.capitalize(fieldName);
-
-        ClassNode targetFieldType = fieldNode.getType();
+    private void createSingleDSLObjectFieldCreationMethods(AnnotatedNode fieldNode, String fieldName, ClassNode targetFieldType) {
         FieldNode targetTypeKeyField = getKeyField(targetFieldType);
         String targetKeyFieldName = targetTypeKeyField != null ? targetTypeKeyField.getName() : null;
         ClassNode targetRwType = DslAstHelper.getRwClassOf(targetFieldType);
 
-        Expression keyProvider = getStaticKeyExpression(fieldNode);
+        Expression keyProvider = fieldNode instanceof FieldNode ? getStaticKeyExpression((FieldNode) fieldNode) : null;
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;
 
-        int visibility = isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
+        int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (isInstantiable(targetFieldType)) {
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "createSingleChild")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
+                    .constantParam(fieldName)
+                    .constantClassParam(targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .declareVariable("created", callX(classX(targetFieldType), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .setOwners("created")
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .callMethod("this", setterName, args("created"))
-                    .doReturn("created")
-                    .addTo(rwClass);
-
-            createMethod(fieldName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(targetFieldType)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam(targetRwType, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapAndOptionalKey(needKeyParameter ? targetKeyFieldName : null, "closure")))
+                    .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
         }
 
         if (!isFinal(targetFieldType)) {
-            createMethod(fieldName)
+            createProxyMethod(fieldName, "createSingleChild")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetFieldType)
                     .namedParams("values")
+                    .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", targetFieldType)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .declareVariable("created", callX(varX("typeToCreate"), "newInstance", optionalKeyArg(targetKeyFieldName, targetKeyFieldName)))
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .setOwners("created")
-                    .callMethod(propX(varX("created"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod(varX("created"), "apply", args("values", "closure"))
-                    .callMethod("this", setterName, args("created"))
-                    .doReturn("created")
-                    .addTo(rwClass);
-
-            createMethod(fieldName)
-                    .optional()
-                    .mod(visibility)
-                    .linkToField(fieldNode)
-                    .returning(targetFieldType)
-                    .delegationTargetClassParam("typeToCreate", targetFieldType)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
-                    .delegatingClosureParam()
-                    .optionalDeclareVariable(targetKeyFieldName, keyProvider, keyProvider != null)
-                    .doReturn(callMethodViaInvoke(fieldName, argsWithEmptyMapClassAndOptionalKey(targetKeyFieldName, "closure")))
                     .addTo(rwClass);
         }
     }
@@ -1517,173 +1063,56 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        createPublicMethod("apply")
+        createProxyMethod("apply")
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                .applyNamedParams("values")
-                .assignS(propX(varX("closure"), "delegate"), varX(NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
-                        propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
-                )
-                .callMethod("closure", "call")
-                .callMethod(NAME_OF_RW_FIELD_IN_MODEL_CLASS, POSTAPPLY_ANNOTATION_METHOD_NAME)
-                .doReturn("this")
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
 
-        createPublicMethod("apply")
-                .returning(newClass(annotatedClass))
-                .delegatingClosureParam(rwClass, ClosureDefaultValue.NONE)
-                .callThis("apply", args(new MapExpression(), varX("closure")))
-                .doReturn("this")
-                .addTo(annotatedClass);
-
-        new LifecycleMethodBuilder(rwClass, POSTAPPLY_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();
     }
 
     private void createFactoryMethods() {
-        new LifecycleMethodBuilder(rwClass, POSTCREATE_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
 
-        if (isInstantiable(annotatedClass)) {
-            createPublicMethod(CREATE_METHOD_NAME)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .namedParams("values")
-                    .optionalStringParam("name", keyField)
-                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .declareVariable("result", keyField != null ? ctorX(annotatedClass, args("name")) : ctorX(annotatedClass))
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("result", "apply", args("values", "closure"))
-                    .callValidationOn("result")
-                    .doReturn("result")
-                    .addTo(annotatedClass);
+        if (!isInstantiable(annotatedClass))
+            return;
 
-
-            createPublicMethod(CREATE_METHOD_NAME)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .optionalStringParam("name", keyField)
-                    .delegatingClosureParam(rwClass, ClosureDefaultValue.EMPTY_CLOSURE)
-                    .doReturn(callX(annotatedClass, CREATE_METHOD_NAME,
-                            keyField != null ?
-                                    args(new MapExpression(), varX("name"), varX("closure"))
-                                    : args(new MapExpression(), varX("closure"))
-                    ))
-                    .addTo(annotatedClass);
-        }
+        createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
+                .namedParams("values")
+                .optionalStringParam("name", keyField != null)
+                .delegatingClosureParam(rwClass)
+                .addTo(annotatedClass);
     }
 
     private void createConvenienceFactories() {
-        if (isInstantiable(annotatedClass)) {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                    .statement(ifS(
-                            notX(callX(classX(DELEGATING_SCRIPT), "isAssignableFrom", args("configType"))),
-                            returnS(callX(callX(varX("configType"), "newInstance"), "run"))
-                    ))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, callX(varX("configType"), "newInstance")))
-                    .addTo(annotatedClass);
-        } else {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
-                    .doReturn(callX(callX(varX("configType"), "newInstance"), "run"))
-                    .addTo(annotatedClass);
-        }
+        createFactoryMethod(CREATE_FROM, annotatedClass)
+                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
+                .addTo(annotatedClass);
 
-        if (keyField != null) {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("name")
-                    .stringParam("text")
-                    .optionalClassLoaderParam()
-                    .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
-                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
-                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
-                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
-                    .declareVariable("script", callX(varX("shell"), "parse", args("text", "name")))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
-                    .addTo(annotatedClass);
+        createFactoryMethod(CREATE_FROM, annotatedClass)
+                .optionalStringParam("name", keyField != null)
+                .stringParam("text")
+                .optionalClassLoaderParam()
+                .addTo(annotatedClass);
 
-            if (isInstantiable(annotatedClass))
-                createPublicMethod(CREATE_FROM) // Delegating Script
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC | ACC_SYNTHETIC)
-                    .param(DELEGATING_SCRIPT, "script")
-                    .declareVariable("simpleName", callX(callX(varX("script"), "getClass"), "getSimpleName"))
-                    .declareVariable("result", ctorX(annotatedClass, args("simpleName")))
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
-                    .callValidationOn("result")
-                    .doReturn("result")
-                    .addTo(annotatedClass);
-        } else {
-            createPublicMethod(CREATE_FROM)
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC)
-                    .stringParam("text")
-                    .optionalClassLoaderParam()
-                    .declareVariable("gloader", ctorX(ClassHelper.make(GroovyClassLoader.class), args("loader")))
-                    .declareVariable("config", ctorX(ClassHelper.make(CompilerConfiguration.class)))
-                    .assignS(propX(varX("config"), "scriptBaseClass"), constX(DelegatingScript.class.getName()))
-                    .declareVariable("binding", ctorX(ClassHelper.make(Binding.class)))
-                    .declareVariable("shell", ctorX(ClassHelper.make(GroovyShell.class), args("gloader", "binding", "config")))
-                    .declareVariable("script", callX(varX("shell"), "parse", args("text")))
-                    .doReturn(callX(annotatedClass, CREATE_FROM, args("script")))
-                    .addTo(annotatedClass);
-
-            if (isInstantiable(annotatedClass))
-                createPublicMethod(CREATE_FROM) // Delegating Script
-                    .returning(newClass(annotatedClass))
-                    .mod(ACC_STATIC | ACC_SYNTHETIC)
-                    .param(newClass(DELEGATING_SCRIPT), "script")
-                    .declareVariable("result", ctorX(annotatedClass))
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), TemplateMethods.COPY_FROM_TEMPLATE)
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTCREATE_ANNOTATION_METHOD_NAME)
-                    .callMethod("script", "setDelegate", propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS))
-                    .callMethod("script", "run")
-                    .callMethod(propX(varX("result"), NAME_OF_RW_FIELD_IN_MODEL_CLASS), POSTAPPLY_ANNOTATION_METHOD_NAME)
-                    .callValidationOn("result")
-                    .doReturn("result")
-                    .addTo(annotatedClass);
-        }
-
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .param(make(File.class), "src")
                 .optionalClassLoaderParam()
-                .doReturn(callX(annotatedClass, CREATE_FROM, args(callX(callX(varX("src"), "toURI"), "toURL"), varX("loader"))))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
+        createFactoryMethod(CREATE_FROM, annotatedClass)
                 .param(make(URL.class), "src")
                 .optionalClassLoaderParam()
-                .declareVariable("text", propX(varX("src"), "text"))
-                .doReturn(callX(annotatedClass, CREATE_FROM, keyField != null ? args(propX(varX("src"), "path"), varX("text"), varX("loader")) : args("text", "loader")))
                 .addTo(annotatedClass);
 
-        createPublicMethod(CREATE_FROM_CLASSPATH)
-                .returning(newClass(annotatedClass))
-                .mod(ACC_STATIC)
-                .doReturn(callX(FACTORY_HELPER, "createFromClasspath", classX(annotatedClass)))
+        createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
+                .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Enum> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
+    public <T extends Enum<?>> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
         if (node == null) return defaultValue;
 
         final PropertyExpression member = (PropertyExpression) node.getMember(name);
@@ -1700,6 +1129,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         } catch (Exception e) {
             return defaultValue;
         }
+    }
+
+    private void checkValidateAnnotationOnSingleMethod(MethodNode method) {
+        AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
+        if (validateAnnotation == null)
+            return;
+        assertMethodIsParameterless(method, sourceUnit);
+        assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
 }

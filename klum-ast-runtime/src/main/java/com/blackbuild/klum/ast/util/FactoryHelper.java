@@ -23,10 +23,22 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import groovy.lang.Closure;
+import groovy.lang.GroovyClassLoader;
 import groovy.lang.GroovyObject;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
+import groovy.util.DelegatingScript;
+import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -60,13 +72,118 @@ public class FactoryHelper {
         }
     }
 
+    public static <T> T create(Class<T> type, Map<String, Object> values, String key, Closure<?> body) {
+        T result = createInstance(type, key);
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+        proxy.postCreate();
+        proxy.apply(values, body);
 
+        if (!proxy.getManualValidation())
+            proxy.validate();
+
+        return result;
+    }
+
+    static <T> T createInstance(Class<T> type, String key) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, key);
+    }
+
+    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, args);
+    }
+
+    public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
+        if (DelegatingScript.class.isAssignableFrom(scriptType))
+            return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
+        return (T) InvokerHelper.runScript(scriptType, null);
+    }
+
+    public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
+        Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : createInstance(type, null);
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+        proxy.postCreate();
+
+        script.setDelegate(proxy.getRwInstance());
+        script.run();
+
+        proxy.postApply();
+
+        if (!proxy.getManualValidation())
+            proxy.validate();
+
+        return (T) result;
+    }
+
+    public static <T> T createFrom(Class<T> type, Script script) {
+        return null;
+    }
+
+    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
+        GroovyShell shell = new GroovyShell(gLoader, compilerConfiguration);
+        Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
+        return createFromDelegatingScript(type, (DelegatingScript) parse);
+    }
+
+    public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
+        try {
+            String path = Paths.get(src.getPath()).getFileName().toString();
+            return createFrom(type, path, ResourceGroovyMethods.getText(src), loader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T createFrom(Class<T> type, File file, ClassLoader loader) {
+        try {
+            return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
+        T result;
+        if (!DslHelper.isInstantiable(type))
+            result = createAsSyntheticTemplate(type);
+        else if (DslHelper.isKeyed(type))
+            result = createInstanceWithNullArg(type);
+        else
+            result = createInstanceWithArgs(type);
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+        proxy.manualValidation();
+        proxy.skipPostApply();
+        proxy.apply(values, closure);
+        return result;
+    }
+
+    private static <T> T createInstanceWithNullArg(Class<T> type) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, new Object[] {null});
+    }
+
+    private static <T> T createAsSyntheticTemplate(Class<T> type) {
+        try {
+            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").newInstance();
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            throw new IllegalArgumentException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
+        }
+    }
 
     @SuppressWarnings("unchecked")
     private static <T extends GroovyObject> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
         try {
-            Class<T> modelClass = (Class<T>) loader.loadClass(configModelClassName);
-            return (T) type.getMethod("createFrom", Class.class).invoke(null, modelClass);
+            Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
+            return createFrom(type, modelClass);
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
         } catch (Exception e) {

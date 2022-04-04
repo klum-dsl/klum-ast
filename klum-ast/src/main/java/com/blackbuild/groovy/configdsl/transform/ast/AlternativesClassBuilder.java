@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
@@ -53,8 +54,8 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getHier
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyType;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslMethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
@@ -120,7 +121,7 @@ class AlternativesClassBuilder {
             return Collections.emptyMap();
         }
 
-        Map<ClassNode, String> result = new HashMap<ClassNode, String>();
+        Map<ClassNode, String> result = new HashMap<>();
 
         for (MapEntryExpression entry : map.getMapEntryExpressions()) {
             String methodName = CommonAstHelper.getKeyStringFromLiteralMapEntry(entry, fieldNode);
@@ -164,7 +165,7 @@ class AlternativesClassBuilder {
     }
 
     private boolean fieldNodeIsNoLink() {
-        return fieldNode.getNodeMetaData(DSLASTTransformation.FIELD_TYPE_METADATA) != FieldType.LINK;
+        return DslAstHelper.getFieldType(fieldNode) != FieldType.LINK;
     }
 
     private void delegateDefaultCreationMethodsToOuterInstance() {
@@ -175,26 +176,27 @@ class AlternativesClassBuilder {
 
     private void createClosureForOuterClass() {
         String factoryMethod = fieldNode.getName();
+        String closureVarName = "closure";
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
-                .assignS(propX(varX("closure"), "delegate"), ctorX(collectionFactory, args("this")))
+                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .assignS(propX(varX(closureVarName), "delegate"), ctorX(collectionFactory, args("this")))
                 .assignS(
-                        propX(varX("closure"), "resolveStrategy"),
+                        propX(varX(closureVarName), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
-                .callMethod("closure", "call")
+                .callMethod(closureVarName, "call")
                 .addTo(rwClass);
 
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .param(newClass(MAP_TYPE), "templateMap")
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
                                 elementType,
                                 TemplateMethods.WITH_TEMPLATE,
-                                args(varX("templateMap"), closureX(stmt(callThisX(factoryMethod, varX("closure")))))
+                                args(varX("templateMap"), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
                 .addTo(rwClass);
@@ -202,12 +204,12 @@ class AlternativesClassBuilder {
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .param(elementType, "template")
-                .delegatingClosureParam(collectionFactory, DslMethodBuilder.ClosureDefaultValue.NONE)
+                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
                                 elementType,
                                 TemplateMethods.WITH_TEMPLATE,
-                                args(varX("template"), closureX(stmt(callThisX(factoryMethod, varX("closure")))))
+                                args(varX("template"), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
                 .addTo(rwClass);
@@ -231,28 +233,28 @@ class AlternativesClassBuilder {
 
         ClassNode subRwClass = getRwClassOf(subclass);
 
+        String valuesVarName = "values";
+        String closureVarName = "closure";
         createPublicMethod(methodName)
                 .linkToField(fieldNode)
                 .returning(elementType)
-                .namedParams("values")
-                .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .namedParams(valuesVarName).optionalStringParam("key", keyType != null)
+                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
-                                ? args(varX("values"), classX(subclass), varX("key"), varX("closure"))
-                                : args(varX("values"), classX(subclass), varX("closure"))
+                                ? args(varX(valuesVarName), classX(subclass), varX("key"), varX(closureVarName))
+                                : args(varX(valuesVarName), classX(subclass), varX(closureVarName))
                 ))
                 .addTo(collectionFactory);
 
         createPublicMethod(methodName)
                 .linkToField(fieldNode)
-                .returning(elementType)
-                .optionalStringParam( "key", keyType)
-                .delegatingClosureParam(subRwClass, DslMethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
+                .returning(elementType).optionalStringParam("key", keyType != null)
+                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
-                                ? args(classX(subclass), varX("key"), varX("closure"))
-                                : args(classX(subclass), varX("closure"))
+                                ? args(classX(subclass), varX("key"), varX(closureVarName))
+                                : args(classX(subclass), varX(closureVarName))
                 ))
                 .addTo(collectionFactory);
     }
@@ -263,8 +265,10 @@ class AlternativesClassBuilder {
         if (shortName != null)
             return shortName;
 
-        AnnotationNode annotationNode = CommonAstHelper.getAnnotation(subclass, DSL_CONFIG_ANNOTATION);
-        shortName = getMemberStringValue(annotationNode, "shortName");
+        Optional<AnnotationNode> annotationNode = CommonAstHelper.getOptionalAnnotation(subclass, DSL_CONFIG_ANNOTATION);
+
+        if (annotationNode.isPresent())
+            shortName = getMemberStringValue(annotationNode.get(), "shortName");
 
         if (shortName != null)
             return shortName;

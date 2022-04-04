@@ -25,7 +25,9 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -47,7 +49,6 @@ import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.FIELD_TYPE_METADATA;
 import static org.codehaus.groovy.syntax.Types.ASSIGNMENT_OPERATOR;
 import static org.codehaus.groovy.syntax.Types.LEFT_SQUARE_BRACKET;
 import static org.codehaus.groovy.syntax.Types.ofType;
@@ -150,7 +151,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         FieldNode fieldNode = (FieldNode) variable;
         if (fieldNode.isStatic())
             return;
-        if (fieldNode.getNodeMetaData(FIELD_TYPE_METADATA) == FieldType.TRANSIENT)
+        if (DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT)
             return;
         addError(String.format("Assigning a value to a field of a model is only allowed in Mutator methods: %s. Maybe you forgot to annotate %s with @Mutator?", variable.getName(), typeCheckingContext.getEnclosingMethod().getText()), expression);
     }
@@ -183,8 +184,8 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (currentMethod == null)
             return false;
         return currentMethod.getAnnotations(MutatorsHandler.MUTATOR_ANNOTATION).size()
-                    + currentMethod.getAnnotations(DSLASTTransformation.POSTAPPLY_ANNOTATION).size()
-                    + currentMethod.getAnnotations(DSLASTTransformation.POSTCREATE_ANNOTATION).size()
+                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTAPPLY_ANNOTATION).size()
+                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTCREATE_ANNOTATION).size()
                     > 0;
     }
 

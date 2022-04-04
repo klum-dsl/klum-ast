@@ -21,9 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
@@ -553,6 +555,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
     }
 
+    @Ignore("Legacy feature")
     def "explicit validation method"() {
         given:
         createClass('''

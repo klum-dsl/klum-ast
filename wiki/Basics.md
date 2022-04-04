@@ -299,8 +299,7 @@ with `@Field(LINK)`, which prevents the creation of creation methods, but genera
 
 In addition to fields, setter like methods (i.e. methods with a single parameter) can also be annotated with `@Field`,
 making them 'virtual fields'. For virtual fields, the same dsl methods are generated as for actual fields. The name
-is derived from the method name, skipping the part of the name up to the first capital letter
-(i.e. setValue -> value, addName -> name).
+of the methods is the same as the method name (this is different to KlumAST 1.2, where the name was derived).
 
 The annotated method is automatically converted into a Mutator method.
 

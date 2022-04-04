@@ -86,12 +86,6 @@ import java.lang.annotation.Target;
 public @interface Default {
 
     /**
-     * @deprecated Use {@link #field()} instead
-     */
-    @Deprecated
-    String value() default "";
-
-    /**
      * Delegates to the field with the given name, if the annotated field is empty.
      *
      * <p>{@code @Default(field = 'other') String aValue}</p>
