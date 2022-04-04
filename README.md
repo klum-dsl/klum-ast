@@ -1,4 +1,4 @@
-[![CI](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml)
+[![CI](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml)
 
 Welcome to KlumAST
 ==================
