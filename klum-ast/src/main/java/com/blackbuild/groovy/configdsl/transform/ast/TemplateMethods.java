@@ -102,6 +102,7 @@ class TemplateMethods {
                 .addTo(annotatedClass);
     }
 
+    @Deprecated
     private void withTemplatesMapMethod() {
         String templatesVarName = "templates";
         String closureParamName = "closure";
@@ -169,8 +170,7 @@ class TemplateMethods {
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null)
-            for (MethodNode abstractMethod : abstractMethods)
-                implementAbstractMethod(abstractMethod);
+            abstractMethods.forEach(this::implementAbstractMethod);
 
         annotatedClass.getModule().addClass(templateClass);
     }
