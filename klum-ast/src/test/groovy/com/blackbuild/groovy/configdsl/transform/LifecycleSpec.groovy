@@ -495,7 +495,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.foo.name == "bla"
     }
 
-    def "PostApply methods can set fields of child"() {
+    def "PostApply methods can set fields of inner object"() {
         given:
         createClass('''
             package pk
