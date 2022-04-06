@@ -3,4 +3,5 @@ include 'klum-ast-common'
 include 'klum-ast-annotations'
 include 'klum-ast'
 include 'klum-ast-runtime'
+include 'klum-ast-jackson'
 

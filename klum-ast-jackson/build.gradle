@@ -1,0 +1,13 @@
+apply plugin: 'java-library'
+
+description "Jackson enhancements for KlumAST"
+
+dependencies {
+    // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
+//    api project(':klum-ast-common')
+//    api project(':klum-ast-annotations')
+    api project(':klum-ast-runtime')
+
+    api "com.fasterxml.jackson.core:jackson-databind:2.12.2.2"
+}
+
