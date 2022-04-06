@@ -34,6 +34,7 @@ import java.lang.reflect.Method
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.*
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
+import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
@@ -134,6 +135,20 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    def "factory methods should be public"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+            }
+        ''')
+
+        then:
+        clazz.getDeclaredMethods().findAll { it.name.startsWith("create") }.every { it.modifiers & ACC_PUBLIC }
     }
 
     def "factory methods with named parameters"() {

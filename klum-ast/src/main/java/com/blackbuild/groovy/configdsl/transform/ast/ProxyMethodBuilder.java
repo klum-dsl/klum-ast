@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -90,14 +91,14 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {
         return new ProxyMethodBuilder(classX(FactoryHelper.class), name, name)
-                .mod(ACC_STATIC)
+                .mod(ACC_STATIC | ACC_PUBLIC)
                 .returning(newClass(factoryType))
                 .constantClassParam(factoryType);
     }
 
     public static ProxyMethodBuilder createTemplateMethod(String name) {
         return new ProxyMethodBuilder(classX(TemplateManager.class), name, name)
-                .mod(ACC_STATIC)
+                .mod(ACC_STATIC | ACC_PUBLIC)
                 .returning(ClassHelper.DYNAMIC_TYPE);
     }
 

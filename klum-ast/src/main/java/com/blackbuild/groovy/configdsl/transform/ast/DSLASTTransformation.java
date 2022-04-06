@@ -362,11 +362,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
             createProxyMethod("manualValidation")
+                    .mod(ACC_PUBLIC)
                     .param(Boolean_TYPE, "validation", constX(true))
                     .addTo(rwClass);
         }
 
-        createProxyMethod(VALIDATE_METHOD).addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).addTo(annotatedClass);
     }
 
     private void checkValidateAnnotationsOnFields() {
@@ -1064,6 +1065,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createApplyMethods() {
         createProxyMethod("apply")
+                .mod(ACC_PUBLIC)
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
                 .delegatingClosureParam(rwClass, null)

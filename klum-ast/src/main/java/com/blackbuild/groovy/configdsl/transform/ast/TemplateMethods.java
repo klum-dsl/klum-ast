@@ -136,6 +136,7 @@ class TemplateMethods {
 
     private void copyFromMethod() {
         createProxyMethod("copyFrom")
+                .mod(ACC_PUBLIC)
                 .param(newClass(dslAncestor), "template")
                 .addTo(rwClass);
      }
