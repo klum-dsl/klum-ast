@@ -36,14 +36,6 @@ group 'com.blackbuild.klum.ast'
 
 description 'A transformation for creating convenient configuration model DSLs.'
 
-license {
-    mapping("java", "SLASHSTAR_STYLE")
-    mapping("groovy", "SLASHSTAR_STYLE")
-    mapping("gdsl", "SLASHSTAR_STYLE")
-    exclude("mockup/**")
-    strictCheck(true)
-}
-
 subprojects {
     apply plugin: 'nebula.maven-publish'
     apply plugin: 'nebula.javadoc-jar'
@@ -55,6 +47,7 @@ subprojects {
     apply plugin: 'jacoco'
     apply plugin: 'ch.raffael.markdown-doclet'
     apply plugin: 'signing'
+    apply plugin: 'com.github.hierynomus.license'
 
     group 'com.blackbuild.klum.ast'
 
@@ -136,6 +129,14 @@ subprojects {
         sign publishing.publications.nebula
     }
 
+    license {
+        header = rootProject.file("LICENSE")
+        mapping("java", "SLASHSTAR_STYLE")
+        mapping("groovy", "SLASHSTAR_STYLE")
+        mapping("gdsl", "SLASHSTAR_STYLE")
+        exclude("mockup/**")
+        strictCheck(true)
+    }
 
     test {
         if (!rootProject.ext.groovyVersion.startsWith("2."))
