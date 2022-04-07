@@ -47,12 +47,12 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.extractSuperClassGener
 // Heavily copied from DelegateASTTransformation
 class DelegateFromRwToModel {
 
-    private final static List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
+    private static final List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
             Arrays.asList("canEqual", "methodMissing", "propertyMissing");
 
 
-    private ClassNode annotatedClass;
-    private ClassNode rwClass;
+    private final ClassNode annotatedClass;
+    private final ClassNode rwClass;
 
     DelegateFromRwToModel(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
@@ -60,15 +60,13 @@ class DelegateFromRwToModel {
     }
 
     void invoke() {
-        for (MethodNode method : annotatedClass.getMethods()) {
-            if (method.isStatic()) continue;
-            if ((method.getModifiers() & Opcodes.ACC_SYNTHETIC) != 0) continue;
-            if (method.getName().contains("$")) continue;
-            if (IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName())) continue;
-            if (method.isPrivate()) continue;
-
-            delegateMethodToRw(method);
-        }
+        annotatedClass.getMethods().stream()
+                .filter(method -> !method.isStatic())
+                .filter(method -> (method.getModifiers() & Opcodes.ACC_SYNTHETIC) == 0)
+                .filter(method -> !method.getName().contains("$"))
+                .filter(method -> !IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName()))
+                .filter(method -> !method.isPrivate())
+                .forEach(this::delegateMethodToRw);
     }
 
     private void delegateMethodToRw(MethodNode candidate) {
@@ -109,7 +107,7 @@ class DelegateFromRwToModel {
 
     private List<String> genericPlaceholderNames(MethodNode candidate) {
         GenericsType[] candidateGenericsTypes = candidate.getGenericsTypes();
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
         if (candidateGenericsTypes != null) {
             for (GenericsType gt : candidateGenericsTypes) {
                 names.add(gt.getName());

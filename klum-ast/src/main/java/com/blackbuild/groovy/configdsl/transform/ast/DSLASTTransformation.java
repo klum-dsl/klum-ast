@@ -356,8 +356,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         checkValidateAnnotationsOnMethods();
         checkValidateAnnotationsOnFields();
 
-        Validation.Mode mode = getEnumMemberValue(getAnnotation(annotatedClass, VALIDATION_ANNOTATION), "mode", Validation.Mode.class, Validation.Mode.AUTOMATIC);
-
         // TODO: to proxy
         if (dslParent == null) {
             // add manual validation only to root of hierarchy
@@ -894,11 +892,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         String elementToAddVarName = "elementToAdd";
-
-        String elementKeyFieldName = elementKeyField != null ? elementKeyField.getName() : null;
-        Expression readKeyExpression = keyMappingClosure != null
-                ? callX(keyMappingClosure, "call", args(elementToAddVarName))
-                : propX(varX(elementToAddVarName), elementKeyFieldName);
 
         String methodName = getElementNameForCollectionField(fieldNode);
 

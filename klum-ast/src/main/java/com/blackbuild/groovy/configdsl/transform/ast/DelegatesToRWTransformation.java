@@ -47,8 +47,8 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
-    private final static ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
-    private final static ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
+    private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
+    private static final ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
     private ClassNode model;
 
     @Override
