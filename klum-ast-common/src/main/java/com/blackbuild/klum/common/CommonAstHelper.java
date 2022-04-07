@@ -84,6 +84,7 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
  */
 public class CommonAstHelper {
 
+    private CommonAstHelper() { /* helper class */ }
     public static final ClassNode[] NO_EXCEPTIONS = ClassNode.EMPTY_ARRAY;
     public static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
     public static final ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
@@ -166,9 +167,9 @@ public class CommonAstHelper {
 
     public static void addCompileError(String msg, AnnotatedNode node, ASTNode sourcePosition) {
         if (node instanceof FieldNode)
-            addCompileError(msg, (FieldNode) node);
+            addCompileError(msg, (FieldNode) node, sourcePosition);
         else if (node instanceof ClassNode)
-            addCompileError(msg, (ClassNode) node);
+            addCompileError(msg, (ClassNode) node, sourcePosition);
         else
             throw new IllegalStateException(node.toString() + " must be either a ClassNode or a FieldNode");
     }
@@ -302,7 +303,7 @@ public class CommonAstHelper {
     public static List<ClassNode> findAllKnownSubclassesOf(ClassNode type, CompileUnit compileUnit) {
         if ((type.getModifiers() & ACC_FINAL) != 0)
             return Collections.emptyList();
-        List<ClassNode> result = new ArrayList<ClassNode>();
+        List<ClassNode> result = new ArrayList<>();
 
         for (ClassNode classInCU : (List<ClassNode>) compileUnit.getClasses())
             if (classInCU.isDerivedFrom(type))
@@ -384,7 +385,7 @@ public class CommonAstHelper {
         if (map == null)
             return null;
 
-        Map<String, ClassNode> result = new LinkedHashMap<String, ClassNode>();
+        Map<String, ClassNode> result = new LinkedHashMap<>();
 
         for (MapEntryExpression entry : map.getMapEntryExpressions()) {
             String key = getKeyStringFromLiteralMapEntry(entry, source);

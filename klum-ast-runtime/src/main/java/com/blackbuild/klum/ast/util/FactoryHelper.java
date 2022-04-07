@@ -119,10 +119,6 @@ public class FactoryHelper {
         return (T) result;
     }
 
-    public static <T> T createFrom(Class<T> type, Script script) {
-        return null;
-    }
-
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
         GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();

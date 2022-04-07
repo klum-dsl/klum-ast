@@ -60,7 +60,7 @@ public class ClosureHelper {
      * @return
      */
     public static <T> T invokeClosureWithDelegate(Class<? extends Closure<T>> closureType, Object delegate, Object... arguments) {
-        Closure<T> closure = (Closure<T>) createClosureInstance(closureType);
+        Closure<T> closure = createClosureInstance(closureType);
         return invokeClosureWithDelegate(closure, delegate, arguments);
     }
 
