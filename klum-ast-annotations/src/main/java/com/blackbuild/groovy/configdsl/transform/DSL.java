@@ -428,7 +428,6 @@ import java.lang.annotation.Target;
         "com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation",
         "com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation",
         "com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation",
-        "com.blackbuild.groovy.configdsl.transform.ast.AddJacksonIgnoresTransformation",
 })
 @Documented
 public @interface DSL {

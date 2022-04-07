@@ -583,7 +583,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private static boolean isFieldIgnoredForEquals(FieldNode fieldNode) {
-        return fieldNode.getName().startsWith("$") || DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT;
+        return fieldNode.getName().startsWith("$") || DslAstHelper.getFieldType(fieldNode) == FieldType.TRANSIENT || DslAstHelper.hasAnnotation(fieldNode, OWNER_ANNOTATION);
     }
 
     private void createHashCodeIfNotDefined() {

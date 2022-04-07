@@ -1,3 +1,9 @@
+package com.blackbuild.klum.ast.jackson
+
+import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.intellij.lang.annotations.Language
+
 /*
  * The MIT License (MIT)
  *
@@ -21,39 +27,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.databind.ObjectMapper
 
 class JsonExportSpec extends AbstractDSLSpec {
 
-    ObjectMapper mapper = new ObjectMapper()
-
-    def "json ignore annotation is created"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                Bar bar
-            }
-
-            @DSL
-            class Bar {
-                @Owner Foo foo
-            }
-        ''')
-
-        instance = clazz.create {
-            bar()
-        }
-
-        then:
-        JsonIgnoreProperties annotation = getClass("pk.Bar").getAnnotation(JsonIgnoreProperties.class)
-        annotation.value().contains("foo")
-    }
+    ObjectMapper mapper = new ObjectMapper().findAndRegisterModules()
 
     def "simple serialization"() {
         given:
@@ -108,6 +85,42 @@ class JsonExportSpec extends AbstractDSLSpec {
 
         then:
         mapper.writeValueAsString(instance) == '{"bars":{"Klaus":{"name":"Klaus"},"Dieter":{"name":"Dieter"}}}'
+    }
+
+    def "deserialization with map"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo foo
+                @Key String name
+            }
+        ''')
+        def Bar = getClass("pk.Bar")
+
+        instance = clazz.create {
+            bars {
+                bar("Klaus") {}
+                bar(Bar, "Dieter") {}
+            }
+        }
+        @Language("json")
+        def json = '''
+{"bars":{"Klaus":{"name":"Klaus"},"Dieter":{"name":"Dieter"}}}
+'''
+
+        when:
+        def deserialized = mapper.readValue(json, getClass("pk.Foo"))
+
+        then:
+        deserialized == instance
     }
 
 }

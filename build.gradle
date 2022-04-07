@@ -83,8 +83,6 @@ subprojects {
 
         testRuntimeOnly "net.bytebuddy:byte-buddy:1.9.3"
         testRuntimeOnly "org.objenesis:objenesis:2.6"
-        testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
-
     }
 
     configurations.testCompileOnly.extendsFrom configurations.compileOnly
