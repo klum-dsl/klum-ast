@@ -13,6 +13,7 @@
   * [[Inheritance]]
   * [[Alternatives Syntax]]
   * [[Advanced Techniques]]
+  * [[Jackson Integration]]
 * More
   * [[FAQ]]
   * [[Changelog]]
