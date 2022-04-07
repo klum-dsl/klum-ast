@@ -1,10 +1,12 @@
 ## 2.0.0 (unreleased)
 - New Features
     - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
+    - Replace basic jackson transformation with a dedicated JacksonModule (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration))).
 - Breaking changes
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
       the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+    - In order for the serialization in jackson to work, the new klum-ast-jackson module needs to be included in the project (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration)))
     - The naming of virtual fields is changed, now the virtual field
       is identical to the method name (previously, the first element of the camel
       cased method name was removed).
