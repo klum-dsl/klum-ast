@@ -86,6 +86,8 @@ public class FactoryHelper {
     }
 
     static <T> T createInstance(Class<T> type, String key) {
+        if (key == null && DslHelper.isKeyed(type))
+            return createInstanceWithNullArg(type);
         //noinspection unchecked
         return (T) InvokerHelper.invokeConstructorOf(type, key);
     }
