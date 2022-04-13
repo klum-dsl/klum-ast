@@ -11,6 +11,7 @@
   * [[Validation]]
   * [[Default Values]]
   * [[Inheritance]]
+  * [[Converters]]
   * [[Alternatives Syntax]]
   * [[Advanced Techniques]]
   * [[Jackson Integration]]
