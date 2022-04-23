@@ -132,5 +132,63 @@ class ValidatorTest extends AbstractRuntimeTest {
         noExceptionThrown()
     }
 
+    @Issue("223")
+    def "Validation on Boolean checks not null instead of Groovy Truth"() {
+        given:
+        createClass('''
+            package pk
+            import com.blackbuild.groovy.configdsl.transform.Validate
+
+            @DSL
+            class Foo {
+                @Validate Boolean value
+            }
+        ''')
+        instance = newInstanceOf("pk.Foo")
+
+        when:
+        new Validator(instance).execute()
+
+        then:
+        thrown(AssertionError)
+
+        when:
+        instance.value = false
+        new Validator(instance).execute()
+
+        then: 'False should satisfy validation'
+        noExceptionThrown()
+
+        when:
+        instance.value = true
+        new Validator(instance).execute()
+
+        then:
+        noExceptionThrown()
+    }
+
+    @Issue("223")
+    def "boolean fields are ignored on Validation Mode VALIDATE_UNMARKED"() {
+        given:
+        createClass('''
+            package pk
+            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.groovy.configdsl.transform.Validation
+
+            @DSL
+            @Validation(option=Validation.Option.VALIDATE_UNMARKED)
+            class Foo {
+                boolean value
+            }
+        ''')
+        instance = newInstanceOf("pk.Foo")
+
+        when:
+        new Validator(instance).execute()
+
+        then: 'boolean fields are ignored'
+        noExceptionThrown()
+    }
+
 
 }

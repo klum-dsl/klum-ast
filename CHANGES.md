@@ -2,7 +2,10 @@
 - New Features
     - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
     - Replace basic jackson transformation with a dedicated JacksonModule (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration))).
+- Improvements
+  - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))
 - Breaking changes
+    - it is a compile error to place the `@Validate` annotation on a boolean field.
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
       the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))

@@ -375,6 +375,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void checkValidateAnnotationOnSingleField(FieldNode fieldNode) {
+        if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
+            addCompileError("Validation is not valid on 'boolean' fields, use 'Boolean' instead.", fieldNode);
+            return;
+        }
+
         AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
         String message = getMemberStringValue(validateAnnotation, "message");
         Expression validationExpression = validateAnnotation.getMember("value");

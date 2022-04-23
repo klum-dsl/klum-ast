@@ -795,4 +795,19 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Validation of outer object fails'
         thrown(AssertionError)
     }
+
+    @Issue("223")
+    def "Validation on boolean is illegal"() {
+        when:
+        createClass('''
+            @DSL
+            class Outer {
+                @Validate
+                boolean myValue
+            }
+        ''')
+
+        then: 'Compilation fails'
+        thrown(MultipleCompilationErrorsException)
+    }
 }

@@ -109,6 +109,9 @@ public class Validator {
         if (field.isAnnotationPresent(Owner.class))
             return;
 
+        if (field.getType() == boolean.class)
+            return;
+
         validateInnerDslObjects(field);
 
         if (!shouldValidate(field))
@@ -120,12 +123,15 @@ public class Validator {
         Class<?> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
 
         if (validationValue == Validate.GroovyTruth.class) {
-            if (!castToBoolean(value)) {
-                String message = validate != null ? validate.message() : "";
-                if (message.isEmpty())
-                    message = String.format("'%s' must be set.", field.getName());
-                InvokerHelper.assertFailed(field.getName() + " as Boolean", message);
-            }
+            if (field.getType() == Boolean.class && value != null)
+                return;
+            if (castToBoolean(value))
+                return;
+
+            String message = validate != null ? validate.message() : "";
+            if (message.isEmpty())
+                message = String.format("'%s' must be set.", field.getName());
+            InvokerHelper.assertFailed(field.getName() + " as Boolean", message);
             return;
         }
 
