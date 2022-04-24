@@ -22,8 +22,10 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
+//file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
@@ -809,5 +811,33 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Compilation fails'
         thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("221")
+    void "Required as an alias for Validate"() {
+        given:
+        createInstance('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Required
+                String name
+            }
+        ''')
+
+        when:
+        instance.name = 'test'
+        new Validator(instance).execute()
+
+        then:
+        noExceptionThrown()
+
+        when:
+        instance.name = null
+        new Validator(instance).execute()
+
+        then:
+        thrown(AssertionError)
     }
 }
