@@ -68,6 +68,37 @@ class MyModel {
 If validation fails, an `AssertionError` is thrown, any other encountered exception during validation is also wrapped in an
 `AssertionError`. Unfortunately, Groovy's Power Assertion are currently not used in the output.
 
+# `@Required`
+
+`@Required` is a convenient alias for `@Validate` with an empty value (i.e. default validation), also with an optional message.
+
+```groovy
+@DSL
+class MyModel {
+
+ @Required
+ Person administrator
+
+ @Required("We really need another person (4-eyes principle)")
+ Person person
+}
+```
+
+Is the same as
+
+```groovy
+@DSL
+class MyModel {
+
+ @Validate
+ Person administrator
+
+ @Validate(message="We really need another person (4-eyes principle)")
+ Person person
+}
+```
+
+
 # Validation of inner objects
 Since inner objects are not created via a `create` call, their validation is not immediately called. Rather, inner objects are
 validated as part of their owner validation.
@@ -90,12 +121,12 @@ class Component {
     @Key String name
 }
 
-@DSL Helper {
+@DSL class Helper {
     @Owner Component component
     Pattern validForStages
 
     @Validate
-    void patternMustMatchAtLeastOneStage {
+    void patternMustMatchAtLeastOneStage() {
         assert component.allStages.keySet().any { it ==~ validForStages }
     }
 }
