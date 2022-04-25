@@ -544,16 +544,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createKeyConstructor() {
         boolean hasKeyedParent = !keyField.getOwner().equals(annotatedClass);
 
+        BlockStatement constructorBody = new BlockStatement();
+        if (hasKeyedParent) {
+            constructorBody.addStatement(ctorSuperS(args("key")));
+        } else {
+            constructorBody.addStatement(ctorSuperS());
+            constructorBody.addStatement(assignS(propX(varX("this"), keyField.getName()), varX("key")));
+        }
+
         annotatedClass.addConstructor(
                 ACC_PUBLIC,
                 params(param(STRING_TYPE, "key")),
                 CommonAstHelper.NO_EXCEPTIONS,
-                block(
-                        hasKeyedParent ? ctorSuperS(args("key")) : ctorSuperS(),
-                        assignS(propX(varX("this"), keyField.getName()), varX("key"))
-                )
+                constructorBody
         );
-        keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
+
+        if (!hasKeyedParent)
+            keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
 
         ConstructorNode dummyConstructor = annotatedClass.addConstructor(
                 ACC_PROTECTED,
