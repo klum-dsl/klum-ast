@@ -12,6 +12,8 @@ This provides helpers for serialization and deserialization of Klum objects:
 - KlumValueInstantiator handles instantiating Keyed Objects via the factory helper
 - All enhancements are packaged into a Jackson module (KlumAstModule)
 
+__Note that currently postApply and validation is deactivated for deserialized objects__
+
 # Usage
 
 In order to use the module, it needs to be included in the classpath.

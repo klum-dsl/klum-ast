@@ -69,6 +69,6 @@ public class KlumValueInstantiator extends ValueInstantiator.Base {
 
     @Override
     public Object createFromObjectWith(DeserializationContext ctxt, Object[] args) throws IOException {
-        return FactoryHelper.create(getValueClass(), null, (String) args[0], null);
+        return FactoryHelper.createAsStub(getValueClass(), (String) args[0]);
     }
 }
