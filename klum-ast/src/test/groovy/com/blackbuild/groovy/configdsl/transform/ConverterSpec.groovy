@@ -126,6 +126,33 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.value.time == 123L
     }
 
+    def "generated converter for keyed dsl field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                @Field(converters = [{String name, long value -> Bar.create(name, value: new Date(value))}])
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                @Key String name
+                Date value
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String, long)
+
+        when:
+        instance = clazz.create {
+            bar "bla", 123L
+        }
+
+        then:
+        instance.bar.value.time == 123L
+    }
+
     def "allow converter methods for map fields"() {
         when:
         createClass '''
@@ -216,6 +243,96 @@ class ConverterSpec extends AbstractDSLSpec {
 
         then:
         instance.bar.birthday.time == 123L
+    }
+
+    def "converter factory for keyed dsl field"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                @Key String name
+                Date birthday
+                
+                static Bar fromLong(String name, long value) {
+                    return create(name, birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String, long)
+
+        when:
+        instance = clazz.create {
+            bar "bla", 123L
+        }
+
+        then:
+        instance.bar.birthday.time == 123L
+    }
+
+    def "converter factory for keyed dsl list"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                List<Bar> bars
+            }
+            
+            @DSL class Bar {
+                @Key String name
+                Date birthday
+                
+                static Bar fromLong(String name, long value) {
+                    return create(name, birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String, long)
+
+        when:
+        instance = clazz.create {
+            bar "bla", 123L
+        }
+
+        then:
+        instance.bars.first().birthday.time == 123L
+    }
+
+    def "converter factory for keyed dsl map"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Map<String, Bar> bars
+            }
+            
+            @DSL class Bar {
+                @Key String name
+                Date birthday
+                
+                static Bar fromLong(String name, long value) {
+                    return create(name, birthday: new Date(value))
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", String, long)
+
+        when:
+        instance = clazz.create {
+            bar "bla", 123L
+        }
+
+        then:
+        instance.bars.bla.birthday.time == 123L
     }
 
     def "converter classes in Converters annotation"() {

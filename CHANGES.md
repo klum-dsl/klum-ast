@@ -17,6 +17,14 @@
     - methods named `doValidate` are no longer considered Validate methods by default.
     - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
 
+- Fixes
+  - since rc.11
+    - Converter methods not working for maps of DSL objects (see [#242](https://github.com/klum-dsl/klum-ast/issues/242))
+  - since rc.9
+    - Handling of key fields in hierarchies (see [#238](https://github.com/klum-dsl/klum-ast/issues/238))
+  - since rc.5
+    - Visiblity for creator methods was wrong (see [#232](https://github.com/klum-dsl/klum-ast/issues/232))
+    
 ## 1.2.2
 - Changes/Improvements
     - Allow coercion of RW instance to superclass of model instance (see [#225](https://github.com/klum-dsl/klum-ast/issues/225))

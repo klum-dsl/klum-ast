@@ -40,12 +40,14 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
@@ -180,11 +182,10 @@ class ConverterBuilder {
         findAllFactoryMethodsFor(converterClass).forEach(this::createConverterFactoryCall);
     }
 
-    private List<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
+    private Stream<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
         return converterClass.getMethods()
                 .stream()
-                .filter(this::isFactoryMethod)
-                .collect(Collectors.toList());
+                .filter(this::isFactoryMethod);
     }
 
     private boolean isFactoryMethod(MethodNode method) {
@@ -238,6 +239,8 @@ class ConverterBuilder {
 
         if (withKey)
             method.param(STRING_TYPE, "$key");
+        else if (isDslMap(fieldNode))
+            method.constantParam(null);
 
         stream(sourceParameters).forEach( parameter -> method.param(parameter.getOriginType(), parameter.getName()));
         method.addTo(rwClass);
