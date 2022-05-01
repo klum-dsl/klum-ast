@@ -172,3 +172,9 @@ evaluationDependsOnChildren()
 
 tasks.candidate.finalizedBy tasks.gitPublishPush
 tasks.final.finalizedBy tasks.gitPublishPush
+
+if (JavaVersion.current() != JavaVersion.VERSION_1_8) {
+    allprojects {
+        tasks.withType(Javadoc)*.enabled = false
+    }
+}
