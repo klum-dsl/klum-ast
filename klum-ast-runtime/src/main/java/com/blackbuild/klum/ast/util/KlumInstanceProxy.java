@@ -46,6 +46,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -351,7 +354,7 @@ public class KlumInstanceProxy {
     }
 
     private <T> T doAddElementToCollection(String fieldName, T element) {
-        Class<T> elementType = (Class<T>) DslHelper.getElementType(instance.getClass(), fieldName);
+        Type elementType = DslHelper.getElementType(instance.getClass(), fieldName);
         element = forceCastClosure(element, elementType);
         Collection<T> target = getInstanceAttribute(fieldName);
         target.add(element);
@@ -419,9 +422,9 @@ public class KlumInstanceProxy {
     }
 
     private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
-        Class<V> elementType = (Class<V>) DslHelper.getElementType(instance.getClass(), fieldName);
+        Type elementType = getElementType(instance.getClass(), fieldName);
         key = determineKeyFromMappingClosure(fieldName, value, key);
-        if (key == null && isKeyed(elementType))
+        if (key == null && isKeyed(getClassFromType(elementType)))
             key = (K) getProxyFor(value).getKey();
         Map<K, V> target = getInstanceAttribute(fieldName);
         value = forceCastClosure(value, elementType);
@@ -429,14 +432,26 @@ public class KlumInstanceProxy {
         return value;
     }
 
-    private <V> V forceCastClosure(Object value, Class<V> elementType) {
+    private <V> V forceCastClosure(Object value, Type elementType) {
+        Class<V> effectiveType = (Class<V>) getClassFromType(elementType);
+
         if (value instanceof Closure)
-            return castTo(value, elementType);
-        else if (elementType.isInstance(value))
+            return castTo(value, effectiveType);
+        else if (effectiveType.isInstance(value))
             //noinspection unchecked
             return (V) value;
         else
             throw new IllegalArgumentException(format("Value is not of type %s", elementType));
+    }
+
+    private Class<?> getClassFromType(Type type) {
+        if (type instanceof Class)
+            return (Class<?>) type;
+        if (type instanceof WildcardType)
+            return (Class<?>) ((WildcardType) type).getUpperBounds()[0];
+        if (type instanceof ParameterizedType)
+            return (Class<?>) ((ParameterizedType) type).getRawType();
+        throw new IllegalArgumentException("Unknown Type: " + type);
     }
 
     private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
@@ -449,8 +464,9 @@ public class KlumInstanceProxy {
 
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
-    public void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
-        Class<?> elementType = getElementType(instance.getClass(), fieldName);
+    @SafeVarargs
+    public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(
                 fieldName,
                 InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
@@ -458,8 +474,9 @@ public class KlumInstanceProxy {
     }
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP = "addElementsFromScriptsToMap";
-    public void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
-        Class<?> elementType = getElementType(instance.getClass(), fieldName);
+    @SafeVarargs
+    public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToMap(
                 fieldName,
                 null,

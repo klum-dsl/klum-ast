@@ -198,7 +198,7 @@ class Outer {
         noExceptionThrown()
     }
 
-    @Issue("243")
+    @Issue(["243","248"])
     def "BUG: Generics in Generics leads to compile error"() {
         given:
         createClass '''
@@ -213,6 +213,15 @@ class Outer {
         then:
         noExceptionThrown()
 
+        when:
+        instance = create("Outer") {
+            value "v1", ["bla", "bli"]
+            values(v2: ["blub", "bleu"], v3: ["blib", "bloe"])
+        }
+
+        then:
+        noExceptionThrown()
+        instance.values == [v1: ["bla", "bli"], v2: ["blub", "bleu"], v3: ["blib", "bloe"]]
     }
 
     @Issue("244")

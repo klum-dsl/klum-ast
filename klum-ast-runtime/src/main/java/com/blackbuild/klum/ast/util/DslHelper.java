@@ -88,7 +88,7 @@ public class DslHelper {
         return result;
     }
 
-    public static Class<?> getElementType(Class<?> type, String name) {
+    public static Type getElementType(Class<?> type, String name) {
         Optional<Field> field = getField(type, name);
         if (!field.isPresent())
             throw new MissingFieldException(name,type);
@@ -96,11 +96,9 @@ public class DslHelper {
         ParameterizedType parameterizedType = (ParameterizedType) genericType;
         Type[] typeArguments = parameterizedType.getActualTypeArguments();
         Type typeArgument = typeArguments[typeArguments.length - 1];
-        if (typeArgument instanceof Class)
-            return (Class<?>) typeArgument;
         if (typeArgument instanceof WildcardType)
-            return (Class<?>) ((WildcardType) typeArgument).getUpperBounds()[0];
-        throw new IllegalArgumentException(format("ElementType %s is neither class nor Wildcard", typeArgument));
+            return ((WildcardType) typeArgument).getUpperBounds()[0];
+        return typeArgument;
     }
 
     public static <T> T castTo(Object object, Class<T> targetType) {

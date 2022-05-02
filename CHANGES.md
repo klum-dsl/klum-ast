@@ -18,6 +18,8 @@
     - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
 
 - Fixes
+  - since rc.12
+    - More fixes to nested generics (see [#248](https://github.com/klum-dsl/klum-ast/issues/248))
   - since rc.11
     - Converter methods not working for maps of DSL objects (see [#242](https://github.com/klum-dsl/klum-ast/issues/242))
     - Created class is invalid if field type is generic and contains generic factories (like `List.of`) (see [#243](https://github.com/klum-dsl/klum-ast/issues/243))

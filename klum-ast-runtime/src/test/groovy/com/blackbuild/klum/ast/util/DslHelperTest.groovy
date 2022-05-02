@@ -103,5 +103,21 @@ class DslHelperTest extends AbstractRuntimeTest {
 
     }
 
+    def 'getElementType with nested generics'() {
+        given:
+        createClass('''
+            class Dummy {
+                Map<String, List<String>> authorizationRoles
+            }
+
+        ''')
+
+        when:
+        def dummy = getClass("Dummy")
+        def value = DslHelper.getElementType(dummy, "authorizationRoles")
+
+        then:
+        noExceptionThrown()
+    }
 
 }
