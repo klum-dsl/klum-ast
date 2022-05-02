@@ -103,7 +103,9 @@ public class DslHelper {
         throw new IllegalArgumentException(format("ElementType %s is neither class nor Wildcard", typeArgument));
     }
 
-
+    public static <T> T castTo(Object object, Class<T> targetType) {
+        return (T) InvokerHelper.invokeMethod(object, "asType", targetType);
+    }
 
     public static Optional<Field> getField(Class<?> type, String name) {
         return getHierarchyOf(type).stream()

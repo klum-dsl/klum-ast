@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static com.blackbuild.klum.ast.util.DslHelper.isKeyed;
@@ -100,13 +101,22 @@ public class KlumInstanceProxy {
         return (T) getCachedField(attributeName).getProperty(instance);
     }
 
+    public <T> T getInstanceAttributeOrGetter(String attributeName) {
+        Optional<CachedField> field = DslHelper.getCachedField(instance.getClass(), attributeName);
+
+        if (field.isPresent())
+            return (T) field.get().getProperty(instance);
+
+        return (T) InvokerHelper.getProperty(instance, attributeName);
+    }
+
     private void setInstanceAttribute(String name, Object value) {
         getCachedField(name).setProperty(instance, value);
     }
 
     // TODO: private?
     public Object getInstanceProperty(String name){
-        Object value = makeReadOnly(getInstanceAttribute(name));
+        Object value = makeReadOnly(getInstanceAttributeOrGetter(name));
 
         if (DefaultTypeTransformation.castToBoolean(value))
             return value;
@@ -118,12 +128,12 @@ public class KlumInstanceProxy {
         Class<?> fieldType = getField(name).getType();
 
         if (!defaultAnnotation.field().isEmpty())
-            return InvokerHelper.invokeMethod(getInstanceProperty(defaultAnnotation.field()), "asType", fieldType);
+            return castTo(getInstanceProperty(defaultAnnotation.field()), fieldType);
 
         if (!defaultAnnotation.delegate().isEmpty())
-            return InvokerHelper.invokeMethod(getProxyFor(getInstanceProperty(defaultAnnotation.delegate())).getInstanceProperty(name), "asType",  fieldType);
+            return castTo(InvokerHelper.getProperty(getInstanceProperty(defaultAnnotation.delegate()), name), fieldType);
 
-        return InvokerHelper.invokeMethod(ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance), "asType", fieldType);
+        return castTo(ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance), fieldType);
     }
 
     private <T> T makeReadOnly(T value) {
@@ -421,7 +431,7 @@ public class KlumInstanceProxy {
 
     private <V> V forceCastClosure(Object value, Class<V> elementType) {
         if (value instanceof Closure)
-            return DefaultGroovyMethods.asType((Closure<?>) value, elementType);
+            return castTo(value, elementType);
         else if (elementType.isInstance(value))
             //noinspection unchecked
             return (V) value;

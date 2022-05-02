@@ -215,4 +215,25 @@ class Outer {
 
     }
 
+    @Issue("244")
+    def "BUG: Default.delegate fails if delegate is a getter instead of a field"() {
+        when:
+        createInstance '''
+@DSL
+class Outer {
+    @Default(delegate = "defaults")
+    String name
+    
+    Map<String, String> getDefaults() {
+        return [name: "bla"]
+    }
+    
+}
+'''
+        then:
+        instance.name == "bla"
+    }
+
+
+
 }
