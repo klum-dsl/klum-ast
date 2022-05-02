@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrDeprecatedAPIUsage
 package com.blackbuild.groovy.configdsl.transform
 
 import groovy.time.TimeCategory
@@ -155,6 +156,7 @@ class ConverterSpec extends AbstractDSLSpec {
 
     def "allow converter methods for map fields"() {
         when:
+        //noinspection GroovyInfiniteRecursion
         createClass '''
             @DSL class Foo {
                 Map<String, Closure> closures
@@ -491,6 +493,38 @@ class ConverterSpec extends AbstractDSLSpec {
 
     }
 
+    @Issue("243")
+    def "Special case with different placeholders for factories"() {
+        given:
+        createClass '''
+@DSL
+class Outer {
+    Map<String, Other<String>> values
+}
+
+class Other<E> {
+    E entry
+    
+    static <T> Other<T> fromGeneric(T anObject) {
+        return new Other<T>(entry:  anObject) 
+    }
+}
+'''
+        when:
+        rwClazz.getMethod("value", String, String)
+
+        then:
+        thrown(NoSuchMethodException)
+
+        expect:
+        rwClazz.getMethod("value", String, Object)
+
+        when:
+        create("Outer")
+
+        then:
+        noExceptionThrown()
+    }
 
 
 

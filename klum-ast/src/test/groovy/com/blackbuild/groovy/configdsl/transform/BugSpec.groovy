@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
+
+import spock.lang.Issue
+
 /**
  * Tests for various encountered bugs.
  */
@@ -65,7 +68,6 @@ class ImagePushSpecification {
         '''
 
         when:
-        def DescriptionProvider = getClass("DescriptionProvider")
         instance = clazz.create {
             name "Klaus"
             descriptionProviders([{ "$name" }, {"2$name"}])
@@ -125,7 +127,7 @@ class Outer {
 """
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -147,7 +149,7 @@ class Outer {
 '''
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -168,7 +170,7 @@ class Outer {
 '''
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -187,13 +189,30 @@ class Outer {
 }
 
 @DSL class Inner  {
-    static final String DEFAULT
+    static final String DEFAULT = 'bla'
     @Key String name
 }
 '''
 
         then:
         noExceptionThrown()
+    }
+
+    @Issue("243")
+    def "BUG: Generics in Generics leads to compile error"() {
+        given:
+        createClass '''
+@DSL
+class Outer {
+    Map<String, List<String>> values
+}
+'''
+        when:
+        create("Outer")
+
+        then:
+        noExceptionThrown()
+
     }
 
 }
