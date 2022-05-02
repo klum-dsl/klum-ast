@@ -166,6 +166,12 @@ gitPublish {
 releaseCheck.doLast {
     if (!gradle.includedBuilds.isEmpty())
         throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
+
+    if (JavaVersion.current() != JavaVersion.VERSION_1_8)
+        throw new GradleException("Releasing must be done with JDK 8")
+
+    if (!rootProject.ext.groovyVersion.startsWith("2."))
+        throw new GradleException("Releasing must be done with Groovy 2.4")
 }
 
 evaluationDependsOnChildren()
