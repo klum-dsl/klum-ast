@@ -68,7 +68,6 @@ class ImagePushSpecification {
         '''
 
         when:
-        def DescriptionProvider = getClass("DescriptionProvider")
         instance = clazz.create {
             name "Klaus"
             descriptionProviders([{ "$name" }, {"2$name"}])
@@ -128,7 +127,7 @@ class Outer {
 """
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -150,7 +149,7 @@ class Outer {
 '''
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -171,7 +170,7 @@ class Outer {
 '''
 
         when:
-        def hint = getClass("Outer").create {
+        create("Outer") {
             job("Nightly")
         }
 
@@ -190,7 +189,7 @@ class Outer {
 }
 
 @DSL class Inner  {
-    static final String DEFAULT
+    static final String DEFAULT = 'bla'
     @Key String name
 }
 '''
