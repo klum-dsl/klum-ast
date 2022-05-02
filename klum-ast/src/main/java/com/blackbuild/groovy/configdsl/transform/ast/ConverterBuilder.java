@@ -26,19 +26,22 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
-import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.ConstructorNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.InnerClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -50,6 +53,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLOb
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
+import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
@@ -227,12 +231,16 @@ class ConverterBuilder {
                 || isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
     }
 
-    private void createConverterMethod(Parameter[] sourceParameters, ClassNode converterType, String converterMethod, ASTNode sourceLink) {
+    private void createConverterMethod(Parameter[] sourceParameters, ClassNode converterType, String converterMethod, MethodNode sourceMethod) {
+        Map<String, ClassNode> genericsSpec = GenericsUtils.createGenericsSpec(elementType);
+
+        checkForUnmatchedGenericPlaceholders(sourceMethod, genericsSpec);
+
         ProxyMethodBuilder method = createProxyMethod(methodName, getProxyMethodName())
                 .mod(ACC_PUBLIC)
                 .optional()
                 .returning(elementType)
-                .sourceLinkTo(sourceLink)
+                .sourceLinkTo(sourceMethod)
                 .constantParam(fieldNode.getName())
                 .constantClassParam(converterType)
                 .constantParam(converterMethod);
@@ -242,8 +250,15 @@ class ConverterBuilder {
         else if (isDslMap(fieldNode))
             method.constantParam(null);
 
-        stream(sourceParameters).forEach( parameter -> method.param(parameter.getOriginType(), parameter.getName()));
+        stream(sourceParameters).forEach( parameter -> method.param(GenericsUtils.correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()), parameter.getName()));
         method.addTo(rwClass);
+    }
+
+    private void checkForUnmatchedGenericPlaceholders(MethodNode sourceMethod, Map<String, ClassNode> genericsSpec) {
+        if (sourceMethod.getGenericsTypes() == null) return;
+        Set<String> unmappedPlaceholder = stream(sourceMethod.getGenericsTypes()).filter(GenericsType::isPlaceholder).map(GenericsType::getName).filter(name -> !genericsSpec.containsKey(name)).collect(Collectors.toSet());
+        if (!unmappedPlaceholder.isEmpty())
+            addCompileWarning(fieldNode.getOwner().getModule().getContext(), String.format("Placeholder(s) %s of factory method of %s is not used in Class generics of %s, this might lead to unexpected results", unmappedPlaceholder, sourceMethod, sourceMethod.getDeclaringClass()), sourceMethod);
     }
 
     private String getProxyMethodName() {

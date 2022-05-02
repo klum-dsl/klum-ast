@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 package com.blackbuild.groovy.configdsl.transform
+
+import spock.lang.Issue
+
 /**
  * Tests for various encountered bugs.
  */
@@ -194,6 +197,23 @@ class Outer {
 
         then:
         noExceptionThrown()
+    }
+
+    @Issue("243")
+    def "BUG: Generics in Generics leads to compile error"() {
+        given:
+        createClass '''
+@DSL
+class Outer {
+    Map<String, List<String>> values
+}
+'''
+        when:
+        create("Outer")
+
+        then:
+        noExceptionThrown()
+
     }
 
 }
