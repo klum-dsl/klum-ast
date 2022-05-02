@@ -51,6 +51,8 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         clazz.metaClass.getMetaMethod("apply", Map, Closure) != null
+        clazz.metaClass.getMetaMethod("apply", Map) != null
+        clazz.metaClass.getMetaMethod("apply", Closure) != null
     }
 
     def "apply method allows named parameters"() {

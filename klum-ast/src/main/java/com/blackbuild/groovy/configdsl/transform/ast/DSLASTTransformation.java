@@ -1073,7 +1073,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(ACC_PUBLIC)
                 .returning(newClass(annotatedClass))
                 .namedParams("values")
-                .delegatingClosureParam(rwClass, null)
+                .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
 
         new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();

@@ -22,6 +22,7 @@
     - Converter methods not working for maps of DSL objects (see [#242](https://github.com/klum-dsl/klum-ast/issues/242))
     - Created class is invalid if field type is generic and contains generic factories (like `List.of`) (see [#243](https://github.com/klum-dsl/klum-ast/issues/243))
     - Default delegate failed if delegate was a getter instead of a real field (see [#244](https://github.com/klum-dsl/klum-ast/issues/244))
+  - `apply` did not accept a Map only call (see [#241](https://github.com/klum-dsl/klum-ast/issues/241))
   - since rc.9
     - Handling of key fields in hierarchies (see [#238](https://github.com/klum-dsl/klum-ast/issues/238))
   - since rc.5

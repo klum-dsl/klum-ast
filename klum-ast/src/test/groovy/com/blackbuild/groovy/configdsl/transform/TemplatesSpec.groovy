@@ -1112,8 +1112,8 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "bla"
     }
 
-    @Issue('https://github.com/klum-dsl/klum-ast/issues/85')
-    def "Apply and collection Factories should not have a default value for closures"() {
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/82')
+    def "collection Factories should not have a default value for closures"() {
         given:
         createClass('''
             package pk
@@ -1128,12 +1128,6 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-
-        when:
-        clazz.getDeclaredMethod("apply")
-
-        then:
-        thrown(NoSuchMethodException)
 
         when:
         rwClazz.getDeclaredMethod("inners")
