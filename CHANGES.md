@@ -18,6 +18,8 @@
     - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
 
 - Fixes
+  - since rc.13
+    - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
   - since rc.12
     - More fixes to nested generics (see [#248](https://github.com/klum-dsl/klum-ast/issues/248))
   - since rc.11
