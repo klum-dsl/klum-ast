@@ -120,4 +120,25 @@ class DslHelperTest extends AbstractRuntimeTest {
         noExceptionThrown()
     }
 
+    def "getMatchingMethod with subclass Parameter"() {
+        given:
+        createClass('''
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            @DSL
+            class Dummy {
+                @com.blackbuild.groovy.configdsl.transform.Field
+                void doIt(Parent parent) {}
+            }
+            
+            abstract class Parent {}
+            class Child extends Parent {}
+        ''')
+
+        when:
+        def method = DslHelper.getVirtualSetter(clazz, "doIt", getClass("Child"))
+
+        then:
+        method.isPresent()
+    }
+
 }

@@ -55,6 +55,8 @@ import static java.lang.String.format;
 
 public class DslHelper {
 
+    public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
+
     private DslHelper() {}
 
     public static boolean isDslType(Type type) {
@@ -228,5 +230,21 @@ public class DslHelper {
                 .flatMap(Arrays::stream)
                 .filter(field -> field.isAnnotationPresent(annotation))
                 .collect(Collectors.toList());
+    }
+
+    public static <T> Optional<Method> getVirtualSetter(Class<?> rwType, String methodName, Class<T> type) {
+        List<Method> methods = getMethodsAnnotatedWith(rwType, FIELD_ANNOTATION)
+                .stream()
+                .filter(method -> method.getName().equals(methodName))
+                .filter(method -> method.getParameterTypes()[0].isAssignableFrom(type))
+                .collect(Collectors.toList());
+
+        if (methods.isEmpty())
+            return Optional.empty();
+
+        if (methods.size() == 1)
+            return Optional.of(methods.get(0));
+
+        throw new IllegalStateException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
     }
 }

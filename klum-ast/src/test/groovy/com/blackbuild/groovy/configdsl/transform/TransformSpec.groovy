@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
 import groovy.transform.stc.ClosureParams
@@ -2157,6 +2158,39 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         then:
+        instance.name == "Franz"
+    }
+
+    @Issue("250")
+    def "Annotated setters work for polymorphic dsl types as creator"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                String name
+                
+                @Field
+                void bar(Bar bar) {
+                    this.name = bar.name
+                }
+            }
+            
+            @DSL abstract class Bar {
+                String name
+            }
+            
+            @DSL class BarChild extends Bar {
+            }
+            '''
+        when:
+        def BarChild = getClass("BarChild")
+        instance = clazz.create {
+            bar(BarChild) {
+                name "Franz"
+            }
+        }
+
+        then:
+        noExceptionThrown()
         instance.name == "Franz"
     }
 
