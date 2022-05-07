@@ -51,6 +51,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
 
@@ -140,6 +141,8 @@ public class KlumInstanceProxy {
     }
 
     private <T> T makeReadOnly(T value) {
+        if (value instanceof EnumSet)
+            return (T) EnumSet.copyOf((EnumSet<?>) value);
         if (value instanceof Collection || value instanceof Map)
             return (T) InvokerHelper.invokeMethod(DefaultGroovyMethods.class, "asImmutable", value);
         return value;

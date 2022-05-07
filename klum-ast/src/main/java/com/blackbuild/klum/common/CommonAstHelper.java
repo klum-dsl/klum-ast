@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,8 @@ import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
@@ -89,6 +92,7 @@ public class CommonAstHelper {
     public static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
     public static final ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
     public static final ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
+    public static final ClassNode ENUM_SET_TYPE = makeWithoutCaching(EnumSet.class);
 
     public static AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
         return getOptionalAnnotation(field, type).orElse(null);
@@ -350,8 +354,13 @@ public class CommonAstHelper {
     }
 
     public static void initializeCollectionOrMap(FieldNode fieldNode) {
+        if (fieldNode.hasInitialExpression())
+            return;
+
         ClassNode fieldType = fieldNode.getType();
-        if (isCollection(fieldType))
+        if (fieldType.equals(ENUM_SET_TYPE))
+            initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementType(fieldNode))));
+        else if (isCollection(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new ListExpression()));
         else if (fieldType.equals(CommonAstHelper.SORTED_MAP_TYPE))
             initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
@@ -362,8 +371,7 @@ public class CommonAstHelper {
     }
 
     private static void initializeField(FieldNode fieldNode, Expression init) {
-        if (!fieldNode.hasInitialExpression())
-            fieldNode.setInitialValueExpression(init);
+        fieldNode.setInitialValueExpression(init);
     }
 
     public static String getQualifiedName(FieldNode node) {
