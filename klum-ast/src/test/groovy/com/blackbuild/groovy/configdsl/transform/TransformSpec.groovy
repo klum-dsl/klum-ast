@@ -26,14 +26,16 @@ package com.blackbuild.groovy.configdsl.transform
 
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
-import groovyjarjarasm.asm.Opcodes
+import org.codehaus.groovy.control.CompilePhase
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.reflect.Method
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.*
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
 
@@ -428,6 +430,8 @@ class TransformSpec extends AbstractDSLSpec {
     def "test existing method"() {
         given:
         createInstance('''
+            //file:noinspection GrMethodMayBeStatic
+
             @DSL
             class Foo {
                 String name, lastname
@@ -439,6 +443,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.name("Dieter") == "run"
     }
 
+    @SuppressWarnings('GroovyVariableNotAssigned')
     def "create inner object via closure"() {
         given:
         createInstance('''
@@ -956,6 +961,34 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         instance.values == ["asList", "Dieter", "Heinz", "Klaus", "singleadd"] as Set
+    }
+
+    @Issue("249")
+    def "enum set element"() {
+        when:
+        createInstance('''
+            package pk
+
+import org.codehaus.groovy.control.CompilePhase
+
+            @DSL
+            class Foo {
+                EnumSet<CompilePhase> values
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+        instance.values instanceof EnumSet
+        instance.values.isEmpty()
+
+        when:
+        instance.apply {
+            values CompilePhase.CANONICALIZATION, CompilePhase.CLASS_GENERATION
+        }
+
+        then:
+        instance.values == [CompilePhase.CANONICALIZATION, CompilePhase.CLASS_GENERATION] as Set
     }
 
     def "simple list element with different member name"() {
@@ -1680,7 +1713,7 @@ class TransformSpec extends AbstractDSLSpec {
     }
 
     def hasNoPublicMethodsNamed(String name) {
-        assert !allMethodsNamed(name).findAll { it.modifiers && Opcodes.ACC_PUBLIC }
+        assert !allMethodsNamed(name).findAll { it.modifiers && ACC_PUBLIC }
         return true
     }
 
