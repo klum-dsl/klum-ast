@@ -43,19 +43,19 @@ import java.lang.annotation.Target;
  *  <li>{@code closure}: execute the closure (in the context of {@code this}) and return the result</li>
  * </ul>
  *
- * ```groovy
+ * <pre><code>
  * given:
- * .@DSL
+ * {@literal @DSL}
  * class Container {
  *   String name
  *   Element element
  * }
  *
- * .@DSL
+ * {@literal @DSL}
  * class Element {
- *   .@Owner Container owner
+ *   {@literal @Owner} Container owner
  *
- *   .@Default(delegate = 'owner')
+ *   {@literal @Default(delegate} = 'owner')
  *   String name
  * }
  *
@@ -78,7 +78,8 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.element.name == "inner"
- * ```
+ * }
+ * </code></pre>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -88,7 +89,7 @@ public @interface Default {
     /**
      * Delegates to the field with the given name, if the annotated field is empty.
      *
-     * <p>{@code @Default(field = 'other') String aValue}</p>
+     * <p>{@literal @Default(field = 'other') String aValue}</p>
      * <p>leads to</p>
      * <p>{@code aValue ?: other}</p>
      */
@@ -97,7 +98,7 @@ public @interface Default {
     /**
      * Delegates to the given closure, if the annotated field is empty.
      *
-     * <p>{@code @Default(code = { name.toLowerCase() }) String aValue}</p>
+     * <p>{@literal @Default(code = { name.toLowerCase() }) String aValue}</p>
      * <p>leads to</p>
      * <p>{@code aValue ?: name.toLowerCase()}</p>
      */
@@ -106,7 +107,7 @@ public @interface Default {
     /**
      * Delegate to a field with the same name on the targeted field, if the annotated field is empty
      *
-     * <p>{@code @Default(delegate = 'other') String aValue}</p>
+     * <p>{@literal @Default(delegate = 'other') String aValue}</p>
      * <p>leads to</p>
      * <p>{@code aValue ?: parent.aValue}</p>
      */

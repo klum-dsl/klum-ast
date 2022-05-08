@@ -39,27 +39,27 @@ import java.lang.annotation.Target;
  * If the target annotation is placed on a (virtual) field, all annotation members of that annotation
  * with target type {@link ElementType#PARAMETER} will be placed on the value parameter of the generated DSL methods.
  *
- * ```groovy
- * .@interface MyAnnotation {
+ * <pre><code>
+ * {@literal @}interface MyAnnotation {
  *     MyParamAnnotation value()
  * }
- * .@DSL class Foo {
+ * {@literal @}DSL class Foo {
  *
- *   .@MyAnnotation(@MyParamAnnotation("text"))
+ *   {@literal @}MyAnnotation({@literal @}MyParamAnnotation("text"))
  *   String field
  *
  * }
- * ```
+ * </code></pre>
  *
  * Will have the setter method generated as follows:
  *
- * ```groovy
- * String field(@MyParamAnnotation("text") String value)
- * ```
+ * <pre><code>
+ * String field({@literal @}MyParamAnnotation("text") String value)
+ * </code></pre>
  *
  * Note that any default values of target annotation will currently *not* be copied over.
  *
- * Since this is especially useful for Closure fields and the `@DelegatesTo`/`@ClosureParams` annotations,
+ * Since this is especially useful for Closure fields and the {@code {@literal @}DelegatesTo}/{@code {@literal @}ClosureParams} annotations,
  * for this case the annotation {@link ParameterAnnotation.ClosureHint} is provided containing members for both annotations.
  *
  */
@@ -71,18 +71,18 @@ public @interface ParameterAnnotation {
      * Allows a {@link DelegatesTo} and or {@link ClosureParams} annotation to be placed on the element parameter
      * for adder methods (in case of collection or map only on the single adder methods).
      *
-     * ```groovy
-     * .@DSL class Foo {
+     * <pre><code>
+     * {@literal @}DSL class Foo {
      *
-     *   .@ParameterAnnotation.ClosureHint(delegatesTo=@DelegatesTo(Foo))
+     *   {@literal @}ParameterAnnotation.ClosureHint(delegatesTo=@DelegatesTo(Foo))
      *   String field
      * }
-     * ```
+     * </code></pre>
      * Will have the setter method generated as follows:
      *
-     * ```groovy
+     * <pre><code>
      * String field(@DelegatesTo(Foo) String value)
-     * ```
+     * </code></pre>
      */
     @ParameterAnnotation
     @Target({ElementType.FIELD, ElementType.METHOD})

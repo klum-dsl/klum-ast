@@ -33,7 +33,7 @@ import java.lang.annotation.Target;
 /**
  * Handles implicit and explicit converter creation. KlumAST creates converter methods from all "factory-like" methods
  * in the target class. A factory-like method is a public static method that returns the specified type or one of its
- * subclasses and whose name matches one of the prefixes: `from`, `of`, `create`, `parse`.
+ * subclasses and whose name matches one of the prefixes: {@code from}, {@code of}, {@code create}, {@code parse}.
  *
  * Note that the annotation on a field completely replaces the annotation on the class for that field.
  */

@@ -42,7 +42,7 @@ import java.lang.annotation.Target;
  *     For example, the field {@code libraries} would by default contain the wrong elements name {@code librarie},
  *     which could be changed:
  *
- *    `@Field(member = 'library') Set<String> libraries`
+ *    {@code @Field(member = 'library') Set<String> libraries}
  *
  * *Note that the member names must be unique across all collections of a DSL hierarchy.*
  */
@@ -62,7 +62,7 @@ public @interface Field {
 
     /**
      * Maps names to classes. If used, this value must be a closure which contains only a map with
-     * literal String to Class mappings, i.e. `@DSL(alternatives = {child: ChildElement, sub: SubElement})`.
+     * literal String to Class mappings, i.e. {@code @DSL(alternatives = {child: ChildElement, sub: SubElement})}.
      */
     Class alternatives() default Undefined.class;
 
@@ -87,7 +87,7 @@ public @interface Field {
      *
      * Example:
      *
-     * ```groovy
+     * <pre><code>
      * .@DSL class Foo {
      *   .@Field(converters = [
      *     {long value -> new Date(value)},
@@ -95,25 +95,25 @@ public @interface Field {
      *   ])
      *   Date birthday
      * }
-     * ```
+     * </code></pre>
      *
      * Creates additional methods:
      *
-     * ```groovy
+     * <pre><code>
      * Date birthday(long value)
      * Date birthday(int date, int month, year)
-     * ```
+     * </code></pre>
      *
      * The closures must return an instance of the field (or element) type.
      *
      * Example:
      *
-     * ```groovy
+     * <pre><code>
      * .@DSL class Foo {
      *   .@Field(annotations = [])
      *   Date birthday
      * }
-     * ```
+     * </code></pre>
      *
      */
     Class[] converters() default {};

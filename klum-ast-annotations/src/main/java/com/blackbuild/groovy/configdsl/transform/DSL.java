@@ -41,113 +41,113 @@ import java.lang.annotation.Target;
  are not visible by default, as not to clutter the interface of the model. Instead they are created in a special
  inner class that is only accessible with
 
- ## Factory and `apply` methods
+ <h2>Factory and {@code apply} methods</h2>
 
- A factory method named `create` is generated, using either a single closure as parameter, or, in case of a keyed
+ A factory method named {@code create} is generated, using either a single closure as parameter, or, in case of a keyed
  object, using a String and a closure parameter.
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
  class Config {
  }
 
- .@DSL
+ {@literal @}DSL
  class ConfigWithKey {
- {@literal @Key }String name
+   {@literal @Key} String name
  }
- ```
+ </code></pre>
 
  creates the following methods:
 
- ```groovy
+ <pre><code>
  static Config create(Closure c = {})
 
  static ConfigWithKey create(String name, Closure c = {})
- ```
+ </code></pre>
 
  __Note that the creation methods might be eventually moved to a separate factory class for a model.__
 
 
- Additionally, an `apply` method is created, which takes single closure and applies it to an existing object.
+ Additionally, an {@code apply} method is created, which takes single closure and applies it to an existing object.
 
- ```groovy
+ <pre><code>
  def void apply(Closure c)
- ```
+ </code></pre>
 
- Both `apply` and `create` also support named parameters, allowing to set values in a concise way. Every map element of
+ Both {@code apply} and {@code create} also support named parameters, allowing to set values in a concise way. Every map element of
  the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
 
 
- ```groovy
+ <pre><code>
  Config.create {
    name "Dieter"
    age 15
  }
- ```
+ </code></pre>
 
  Could also be written as:
- ```groovy
+ <pre><code>
  Config.create(name: 'Dieter', age: 15)
- ```
+ </code></pre>
 
  Of course, named parameters and regular calls inside the closure can be combined ad lib.
 
  There are also a couple of [[Convenience Factories]] to load a model into client code.
 
- ## Lifecycle Methods
+ <h2>Lifecycle Methods</h2>
 
- Lifecycle methods can are methods annotated with `{@literal @PostCreate}` and `{@literal @PostApply}`. These methods will be called
+ Lifecycle methods can are methods annotated with {@code {@literal @PostCreate}} and {@code {@literal @PostApply}}. These methods will be called
  automatically after the creation of the object (**after the [[template|Templates]] - if set - has been applied**) and
  after the call to the apply method, respectively.
 
- Lifecycle methods must not be `private` and will automatically be made protected, which means you can usually safely
- use default groovy visibility (i.e. simply use `def myMethod()`).
+ Lifecycle methods must not be {@code private} and will automatically be made protected, which means you can usually safely
+ use default groovy visibility (i.e. simply use {@code def myMethod()}).
 
- ## copyFrom() method
+ <h2>copyFrom() method</h2>
 
- Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
+ Each DSLObject gets a {@code copyFrom()} method with its own class as parameter. This method copies fields from the given
  object over to this objects, excluding key and owner fields. For non collection fields, only a reference is copied,
  for Lists and Maps, shallow copies are created.
 
  Currently, it is in discussion whether this should be deep clone instead, see: ([#36](https://github.com/klum-dsl/klum-core/issues/36))
 
- ## equals() and toString() methods
+ <h2>equals() and toString() methods</h2>
 
- If not yet present, `equals()` and `toString()` methods are generated using the respective ASTTransformations. You
+ If not yet present, {@code equals()} and {@code toString()} methods are generated using the respective ASTTransformations. You
  can customize them by using the original ASTTransformations.
 
- ## hashCode()
+ <h2>hashCode()</h2>
  A barebone hashcode is created, with a constant 0 for non-keyed objects, and the hashcode of
  the key for keyed objects. While this is correct and works with changing objects after
  adding them to a HashSet / HashMap, the performance for Sets of non-Keyed objects is severely
  reduced.
 
- ## Field setter
- ### Field setter for simple fields
+ <h2>Field setter</h2>
+ <h3>Field setter for simple fields</h3>
 
  For each simple value field create an accessor named like the field, containing the field type as parameter
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
  class Config {
    String name
  }
- ```
+ </code></pre>
 
  creates the following method:
 
- ```groovy
+ <pre><code>
  def name(String value)
- ```
+ </code></pre>
 
  Used by:
- ```groovy
+ <pre><code>
  Config.create {
    name "Hallo"
  }
- ```
+ </code></pre>
 
- ### Setter for simple collections
+ <h3>Setter for simple collections</h3>
 
  for each simple collection, two/three methods are generated:
 
@@ -156,71 +156,71 @@ import java.lang.annotation.Target;
 
  -   an adder method named like the element name of the collection an containing a the element type
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
  class Config {
-   List<String> roles
-   Map<String, Integer> levels
+   {@code List<String>} roles
+   {@code Map<String, Integer>} levels
  }
- ```
+ </code></pre>
 
  creates the following methods:
 
- ```groovy
+ <pre><code>
  def roles(String... values)
- def roles(Iterable<String> values)
+ def roles({@code Iterable<String>} values)
  def role(String value)
  def levels(Map levels)
  def level(String key, Integer value)
- ```
+ </code></pre>
 
  Usage:
- ```groovy
+ <pre><code>
  Config.create {
    roles "a", "b"
    role "another"
    levels a:5, b:10
    level "high", 8
  }
- ```
+ </code></pre>
 
  If the collection has no initial value, it is automatically initialized.
 
- ### Setters and closures for DSL-Object Fields
+ <h3>Setters and closures for DSL-Object Fields</h3>
 
  for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
  String parameter. Also, a regular setter method is created for reusing an existing object.
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
  class Config {
    UnKeyed unkeyed
    Keyed keyed
  }
 
- .@DSL
+ {@literal @}DSL
  class UnKeyed {
    String name
  }
 
- .@DSL
+ {@literal @}DSL
  class Keyed {
- .@Key String name
+ {@literal @}Key String name
  String value
  }
- ```
+ </code></pre>
 
  creates the following methods (in Config):
 
- ```groovy
+ <pre><code>
  def unkeyed(UnKeyed reuse) // reuse an exiting object
- Unkeyed unkeyed(.@DelegatesTo(Unkeyed) Closure closure)
+ Unkeyed unkeyed({@literal @}DelegatesTo(Unkeyed) Closure closure)
  def keyed(UnKeyed reuse) // reuse an exiting object
- Keyed keyed(String key, .@DelegatesTo(Unkeyed) Closure closure)
- ```
+ Keyed keyed(String key, {@literal @}DelegatesTo(Unkeyed) Closure closure)
+ </code></pre>
 
  Usage:
- ```groovy
+ <pre><code>
  Config.create {
    unkeyed {
      name "other"
@@ -235,11 +235,11 @@ import java.lang.annotation.Target;
  Config.create {
    unkeyed objectForReuse
  }
- ```
+ </code></pre>
 
  The closure methods return the created objects, so you can also do the following:
 
- ```groovy
+ <pre><code>
  def objectForReuse
  Config.create {
    objectForReuse = unkeyed {
@@ -250,9 +250,9 @@ import java.lang.annotation.Target;
  Config.create {
    unkeyed objectForReuse
  }
- ```
+ </code></pre>
 
- ### Collections of DSL Objects
+ <h3>Collections of DSL Objects</h3>
 
  Collections of DSL-Objects are created using a nested closure. The name of the (optional) outer closure is the field name, the
  name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
@@ -265,23 +265,23 @@ import java.lang.annotation.Target;
 
  As with simple objects, the inner closures return the existing object for reuse
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
  class Config {
-   List<UnKeyed> elements
-   List<Keyed> keyedElements
-   Map<String, Keyed> mapElements
+   {@code List<UnKeyed>} elements
+   {@code List<Keyed>} keyedElements
+   {@code Map<String, Keyed>} mapElements
  }
 
- .@DSL
+ {@literal @}DSL
  class UnKeyed {
    String name
  }
 
- .@DSL
+ {@literal @}DSL
  class Keyed {
-   .@Owner owner
-   .@Key String name
+   {@literal @}Owner owner
+   {@literal @}Key String name
    String value
  }
 
@@ -334,29 +334,29 @@ import java.lang.annotation.Target;
    mapElement anotherObjectForReuse // owner is NOT changed
    mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
  }
- ```
+ </code></pre>
 
- ## On collections
+ <h2>On collections</h2>
 
- Although most examples in this wiki use `List`, basically any class implementing / sub interface of `Collection` can be
+ Although most examples in this wiki use {@code List}, basically any class implementing / sub interface of {@code Collection} can be
  used instead. There are a couple of points to take note, however:
 
  - The default Java Collection Framework interfaces (Collection, List, Set, SortedSet, Stack, Queue) work out of the box
- - When using a custom collection **class** or **interface**, in order for initial values to be provided, `List` must be
- coerced to your custom type, i.e. the code `[] as <YourType>` must be resolvable. This can be done by
- - enhance the `List.asType()` method to handle your custom type
- - in case of a custom class, provide a constructor taking an `Iterable` (or `Collection` or `List`) argument
+ - When using a custom collection **class** or **interface**, in order for initial values to be provided, {@code List} must be
+ coerced to your custom type, i.e. the code {@code [] as <YourType>} must be resolvable. This can be done by
+ - enhance the {@code List.asType()} method to handle your custom type
+ - in case of a custom class, provide a constructor taking an {@code Iterable} (or {@code Collection} or {@code List}) argument
 
  However, it is strongly advised to only take the basic interfaces. If additional functionality is needed, it might make more
  sense to apply it using a decorator (for example using KlumWrap) after the object is constructed.
 
- For maps, **only `Map` and `SortedMap` is supported**.
+ For maps, **only {@code Map} and {@code SortedMap} is supported**.
 
-  __Be careful when using a simple `Set`.__ Since Klum creates barebone hashcode implementations
- (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
+  __Be careful when using a simple {@code Set}.__ Since Klum creates barebone hashcode implementations
+ (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted){@code Set} of
  non-Keyed model objects might result in a severe degradation of performance of that Set.
 
- # The .@Key annotation
+ # The {@literal @}Key annotation
 
  The key annotation is used to designate a special key field, making the annotated class a keyed class. This has the
  following consequences:
@@ -366,9 +366,9 @@ import java.lang.annotation.Target;
  - factory and apply methods get an additional key parameter
  - only keyed classes are allowed as values in a Map
 
- # The .@Owner annotation
+ # The {@literal @}Owner annotation
 
- DSL-Objects can have an optional owner field, decorated with the `.@Owner` annotation.
+ DSL-Objects can have an optional owner field, decorated with the {@code {@literal @}Owner} annotation.
 
  When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
  the owner-field is automatically set to the outer instance.
@@ -380,15 +380,15 @@ import java.lang.annotation.Target;
  - If an object that already has an existing owner is reused, the owner is not overridden, but silently ignored. I.e. the first
  object that an object is assigned to, is the actual owner.
 
- ```groovy
- .@DSL
+ <pre><code>
+ {@literal @}DSL
    class Foo {
    Bar bar
  }
 
- .@DSL
+ {@literal @}DSL
  class Bar {
-   .@Owner Foo owner
+   {@literal @}Owner Foo owner
  }
 
  def c = Config.create {
@@ -396,17 +396,17 @@ import java.lang.annotation.Target;
  }
 
  assert c.bar.owner === c
- ```
+ </code></pre>
 
- Note that since 0.17.0, the `projects` closure is only optional syntactic sugar, `project` entry could also be out
+ Note that since 0.17.0, the {@code projects} closure is only optional syntactic sugar, {@code project} entry could also be out
  directly under config.
 
  Since complete objects are created, using the configuration is simple:
 
- ```groovy
+ <pre><code>
  if (config.debugMode) println "Debug mode is active!"
 
- config.projects.each { name, project ->
+ config.projects.each { name, project {@code ->}
    println "Running $name with '${project.mvn.goals.join(' ')}'"
  }
 
@@ -418,7 +418,7 @@ import java.lang.annotation.Target;
      println it
    }
  }
- ```
+ </code></pre>
 
  */
 @Target(ElementType.TYPE)

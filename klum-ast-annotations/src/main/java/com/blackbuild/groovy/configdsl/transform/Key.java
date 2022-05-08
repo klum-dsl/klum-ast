@@ -48,7 +48,7 @@ import java.lang.annotation.Target;
  *     argument of the annotated type
  * * for this field, no dsl setter methods are created
  *
- * ```groovy
+ * <pre><code>
  * given:
  * {@literal @DSL}
  * class Foo {
@@ -60,11 +60,11 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.name == "Dieter"
- * ```
+ * </code></pre>
  *
  * Example with map
  * ----------------
- * ```groovy
+ * <pre><code>
  *  given:
  * {@literal @DSL}
  *  class Foo {
@@ -89,7 +89,7 @@ import java.lang.annotation.Target;
  *  instance.bars.Dieter.url == "1"
  *  instance.bars.Klaus.url == "2"
  *
- * ```
+ * </code></pre>
  *
  * Currently only fields of type String are allowed to be keys.
  */

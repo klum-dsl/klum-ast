@@ -32,7 +32,7 @@ import java.lang.annotation.Target;
 /**
  * Designates a field as owner field. Owner fields is automatically set when an instance of the
  * containing class is first added to another DSL-Object, either as value of a field or as member of a collection.
- * ```groovy
+ * <pre><code>
  * given:
  * .@DSL
  * class Foo {
@@ -51,9 +51,9 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.bar.owner.is(instance)
- * ```
+ * </code></pre>
  *
- * A dsl hierarchy can have any number of `Owner` fields. When the object is added to another object,
+ * A dsl hierarchy can have any number of {@code Owner} fields. When the object is added to another object,
  * any owner field of that object that:
  *
  * - is not set

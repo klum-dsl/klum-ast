@@ -43,9 +43,9 @@ public enum FieldType {
     /**
      * Designates a field as transient. Transient fields are not formally part of the model, but can be used to
      * store additional, changeable state directly inside the model. Transient fields can be accessed directly,
-     * without using `apply` or a mutator method. The are ignored for the purpose of hashCode or equals.
+     * without using {@code apply} or a mutator method. The are ignored for the purpose of hashCode or equals.
      *
-     * As opposed to the `transient` keyword of Java / Groovy, `FieldType.TRANSIENT` fields **will** be part of serialization
+     * As opposed to the {@code transient} keyword of Java / Groovy, {@code FieldType.TRANSIENT} fields **will** be part of serialization
      * by default.
      */
     TRANSIENT,
