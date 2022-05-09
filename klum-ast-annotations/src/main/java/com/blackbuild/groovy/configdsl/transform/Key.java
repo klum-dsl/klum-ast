@@ -30,25 +30,28 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a field as the key of the containing class. The main usage of this is that this field is automatically used
- * when an instance of the class is put into a map.
+ * <p>Designates a field as the key of the containing class. The main usage of this is that this field is automatically used
+ * when an instance of the class is put into a map.</p>
  *
- * In a hierarchy of model objects, the ancestor model defines whether the hierarchy is keyed or not.
+ * <p>In a hierarchy of model objects, the ancestor model defines whether the hierarchy is keyed or not.</p>
  *
- * it is illegal
+ * <p>it is illegal</p>
  *
- * * to put this annotation on a field of any other class than the ancestor of a hierarchy
- * * to put this annotation on more than one field in a class.
+ * <ul>
+ * <li>to put this annotation on a field of any other class than the ancestor of a hierarchy</li>
+ * <li>to put this annotation on more than one field in a class.</li>
+ * </ul>
  *
- * Marking a field as key has the following consequences:
+ * <p>Marking a field as key has the following consequences:</p>
  *
- * * a constructor is created with a single argument of the type of the key field, the default constructor is
- *     removed
- * * the {@code create} method and all adder / setter methods creating an instance of this type take an additional
- *     argument of the annotated type
- * * for this field, no dsl setter methods are created
+ * <ul>
+ * <li>a constructor is created with a single argument of the type of the key field, the default constructor is removed</li>
+ * <li>the {@code create} method and all adder / setter methods creating an instance of this type take an additional
+ * argument of the annotated type</li>
+ * <li>for this field, no dsl setter methods are created</li>
+ * </ul>
  *
- * ```groovy
+ * <pre><code>
  * given:
  * {@literal @DSL}
  * class Foo {
@@ -60,11 +63,11 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.name == "Dieter"
- * ```
+ * </code></pre>
  *
- * Example with map
- * ----------------
- * ```groovy
+ * <h2>Example with map</h2>
+ *
+ * <pre><code>
  *  given:
  * {@literal @DSL}
  *  class Foo {
@@ -89,9 +92,9 @@ import java.lang.annotation.Target;
  *  instance.bars.Dieter.url == "1"
  *  instance.bars.Klaus.url == "2"
  *
- * ```
+ * </code></pre>
  *
- * Currently only fields of type String are allowed to be keys.
+ * <p>Currently only fields of type String are allowed to be keys.</p>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

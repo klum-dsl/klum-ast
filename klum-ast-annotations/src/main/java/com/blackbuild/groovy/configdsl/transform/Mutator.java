@@ -30,8 +30,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a method as mutator. Mutators can changes the state of a model instance and can only be
- * called inside an create / apply block. Technically, they are transfered to the RW class instance.
+ * Designates a method as mutator. Mutators can change the state of a model instance and can only be
+ * called inside a {@code create} / {@code apply} block. Technically, they are transferred to the RW class instance.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

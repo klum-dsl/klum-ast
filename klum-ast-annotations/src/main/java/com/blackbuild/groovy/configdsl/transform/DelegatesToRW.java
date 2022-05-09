@@ -33,8 +33,8 @@ import java.lang.annotation.Target;
 
 /**
  * This annotation can be used to mark a closure method to be delegating to an RW class. This works
- * similar to `DelegatesTo`, but since the RW class does not yet exist during parsing of the schema, it
- * is not possible to simply write `{@link groovy.lang.DelegatesTo}(MyClass._RW)`. Can take an optional
+ * similar to {@code DelegatesTo}, but since the RW class does not yet exist during parsing of the schema, it
+ * is not possible to simply write {@code {@link groovy.lang.DelegatesTo}(MyClass._RW)}. Can take an optional
  * value of the target class whose RW class should be delegated to.
  */
 @Target(ElementType.PARAMETER)

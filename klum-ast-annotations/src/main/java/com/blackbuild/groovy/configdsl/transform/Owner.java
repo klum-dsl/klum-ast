@@ -30,18 +30,23 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a field as owner field. Owner fields is automatically set when an instance of the
- * containing class is first added to another DSL-Object, either as value of a field or as member of a collection.
- * ```groovy
+ * <p>Designates a field or method as owner field or method.</p>
+ *
+ * <p>Owners are automatically set when an instance of the containing class is first to another DSL-Object, either as
+ * value of a field or as member of a collection.</p>
+ *
+ * <h2>Fields</h2>
+ *
+ * <pre><code>
  * given:
- * .@DSL
+ * {@literal @DSL}
  * class Foo {
  *   Bar bar
  * }
  *
- * .@DSL
+ * {@literal @DSL}
  * class Bar {
- *   &#064;Owner Foo owner
+ *   {@literal @Owner} Foo container
  * }
  *
  * when:
@@ -50,22 +55,50 @@ import java.lang.annotation.Target;
  * }
  *
  * then:
- * instance.bar.owner.is(instance)
- * ```
+ * instance.bar.container.is(instance)
+ * </code></pre>
  *
- * A dsl hierarchy can have any number of `Owner` fields. When the object is added to another object,
- * any owner field of that object that:
+ * <p>A dsl hierarchy can have any number of {@code Owner} fields. When the object is added to another object,
+ * any owner field of that object that:</p>
  *
- * - is not set
- * - has a type that the container object is derived from (i.e. the object is a legal value for that field)
+ * <ul>
+ * <li>is not set</li>
+ * <li>has a type that the container object is derived from (i.e. the object is a legal value for that field)</li>
+ * </ul>
  *
- * will be set to the owner value.
+ * <p>will be set to the owner value.</p>
  *
- * This means that if an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
- * I.e. the first object that an object is assigned to, is the actual owner.
+ * <p>This means that if an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
+ * I.e. the first object that an object is assigned to, is the actual owner.</p>
  *
- * Can also be used to annotate a single parameter method. All matching methods are also called when the object is
- * added to another object.
+ * <h2>Methods</h2>
+ * <p>Can also be used to annotate a single parameter method. All matching methods are also called when the object is
+ * added to another object. Other as with fields, these methods are called multiple times, if applicable.</p>
+ *
+ * <pre><code>
+ * given:
+ * {@literal @DSL}
+ * class Foo {
+ *   {@literal @Key} String name
+ *   Bar bar
+ * }
+ *
+ * {@literal @DSL}
+ * class Bar {
+ *   String containerName
+ *   {@literal @Owner} void container(Foo foo) {
+ *       containerName = foo.name
+ *   }
+ * }
+ *
+ * when:
+ * instance = Foo.create("bla") {
+ *   bar {}
+ * }
+ *
+ * then:
+ * instance.bar.containerName == "bla"
+ * </code></pre>
  *
  */
 @Target({ElementType.FIELD, ElementType.METHOD})

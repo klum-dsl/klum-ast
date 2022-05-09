@@ -41,28 +41,26 @@ public enum FieldType {
     PROTECTED,
 
     /**
-     * Designates a field as transient. Transient fields are not formally part of the model, but can be used to
+     * <p>Designates a field as transient. Transient fields are not formally part of the model, but can be used to
      * store additional, changeable state directly inside the model. Transient fields can be accessed directly,
-     * without using `apply` or a mutator method. The are ignored for the purpose of hashCode or equals.
+     * without using {@code apply} or a mutator method. The are ignored for the purpose of hashCode or equals.</p>
      *
-     * As opposed to the `transient` keyword of Java / Groovy, `FieldType.TRANSIENT` fields **will** be part of serialization
-     * by default.
+     * <p>As opposed to the {@code transient} keyword of Java / Groovy, {@code FieldType.TRANSIENT} fields **will** be part of serialization
+     * by default.</p>
      */
     TRANSIENT,
 
     /**
-     * Designates that no accessor methods should be created at all, i.e. the regular setters are still part of the
+     * <p>Designates that no accessor methods should be created at all, i.e. the regular setters are still part of the
      * RW model and can only be accessed from inside a mutator. Not that the automatic initialization of empty collections /
-     * maps is not active for these fields as well, so you need to make sure the field is initialized.
+     * maps is not active for these fields as well, so you need to make sure the field is initialized.</p>
      */
     IGNORED,
 
     /**
-     * Designates this field as a link to an existing object. Link field are only valid for DSL fields or collections
+     * <p>Designates this field as a link to an existing object. Link field are only valid for DSL fields or collections
      * and only create dsl methods for existing objects (i.e. using a instance as parameter), but no methods to
-     * create new instances (Map and/or Closure parameters).
+     * create new instances (Map and/or Closure parameters).</p>
      */
     LINK
-
-
 }

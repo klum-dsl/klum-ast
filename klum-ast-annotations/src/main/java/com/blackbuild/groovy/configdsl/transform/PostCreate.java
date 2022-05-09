@@ -33,29 +33,29 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * Designates a method to be executed after create has been called and the templates have been applied. These methods
+ * <p>Designates a method to be executed after create has been called and the templates have been applied. These methods
  * are called before named parameters or the creation closure is applied, but after an {@link Owner} has been set.
  * There can be an arbitrary number of {@link PostCreate} methods in a class. Like other lifecycle methods,
  * {@link PostCreate} methods must not be private, and they can be overridden, it is advised to make
- * them protected.
+ * them protected.</p>
  * <p>A common usage for post create methods is to extract data from the owner that is needed to further configure the
  * object, which might not be feasible using default values (the following example <i>could</i> be done with Default
  * values, though.</p>
  *
  * <pre><code>
  * given:
- * &#064;DSL
+ * {@literal @DSL}
  * class Container {
  *   Foo foo
  *   String name
  * }
  *
- * &#064;DSL
+ * {@literal @DSL}
  * class Foo {
- *   &#064;Owner Container owner
+ *   {@literal @Owner} Container owner
  *   String childName
  *
- *   &#064;PostCreate
+ *   {@literal @PostCreate}
  *   def setDefaultValueOfChildName() {
  *     // set a value derived from owner
  *     childName = "$owner.name::child"

@@ -32,8 +32,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a default value for the given field. This automatically creates a getter providing
- * that default value when the value of the annotated field is empty (as defined by Groovy Truth).
+ * <p>Designates a default value for the given field. This automatically creates a getter providing
+ * that default value when the value of the annotated field is empty (as defined by Groovy Truth).</p>
  *
  * <p>The default target as decided by the members must be exactly one of:</p>
  * <ul>
@@ -43,19 +43,19 @@ import java.lang.annotation.Target;
  *  <li>{@code closure}: execute the closure (in the context of {@code this}) and return the result</li>
  * </ul>
  *
- * ```groovy
+ * <pre><code>
  * given:
- * .@DSL
+ * {@literal @DSL}
  * class Container {
  *   String name
  *   Element element
  * }
  *
- * .@DSL
+ * {@literal @DSL}
  * class Element {
- *   .@Owner Container owner
+ *   {@literal @Owner} Container owner
  *
- *   .@Default(delegate = 'owner')
+ *   {@literal @Default(delegate} = 'owner')
  *   String name
  * }
  *
@@ -78,7 +78,8 @@ import java.lang.annotation.Target;
  *
  * then:
  * instance.element.name == "inner"
- * ```
+ * }
+ * </code></pre>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -86,29 +87,29 @@ import java.lang.annotation.Target;
 public @interface Default {
 
     /**
-     * Delegates to the field with the given name, if the annotated field is empty.
+     * <p>Delegates to the field with the given name, if the annotated field is empty.</p>
      *
-     * <p>{@code @Default(field = 'other') String aValue}</p>
+     * <code>{@literal @Default(field = 'other') String aValue}</code>
      * <p>leads to</p>
-     * <p>{@code aValue ?: other}</p>
+     * <code>aValue ?: other</code>
      */
     String field() default "";
 
     /**
      * Delegates to the given closure, if the annotated field is empty.
      *
-     * <p>{@code @Default(code = { name.toLowerCase() }) String aValue}</p>
+     * <code>{@literal @Default(code = { name.toLowerCase() }) String aValue}</code>
      * <p>leads to</p>
-     * <p>{@code aValue ?: name.toLowerCase()}</p>
+     * <code>aValue ?: name.toLowerCase()</code>
      */
     Class code() default Undefined.class;
 
     /**
      * Delegate to a field with the same name on the targeted field, if the annotated field is empty
      *
-     * <p>{@code @Default(delegate = 'other') String aValue}</p>
+     * <code>{@literal @Default(delegate = 'other') String aValue}</code>
      * <p>leads to</p>
-     * <p>{@code aValue ?: parent.aValue}</p>
+     * <code>aValue ?: parent.aValue</code>
      */
     String delegate() default "";
 }
