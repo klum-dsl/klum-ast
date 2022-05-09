@@ -30,7 +30,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Configures validation for a given model class. There are two configurable parameters:
+ * <p>Configures validation for a given model class. There are two configurable parameters:</p>
  *
  * <ul>
  *     <li>{@link #option()} configures <b>which fields</b> are validated.</li>
@@ -40,7 +40,8 @@ import java.lang.annotation.Target;
  * <p>If this annotation is not present, the model behaves with default values {@code Validation(option = IGNORE_UNMARKED, mode = AUTOMATIC)},
  * in other words, it does not make sense to apply this annotation without any values.</p>
  *
- * <h1>option</h1>
+ * <h2>option</h2>
+ *
  * <p>By default ({@link Option#IGNORE_UNMARKED}), only fields explicitly marked with {@link Validate} are validated,
  * unmarked fields are not.
  * By setting the option to {@link Option#VALIDATE_UNMARKED}, this behaviour is inverted. In that case,
@@ -50,15 +51,19 @@ import java.lang.annotation.Target;
  *     <li>{@code transient} fields</li>
  *     <li>fields whose name starts with '$' (as these fields are ignored by KlumAST altogether)</li>
  * </ul>
- * <p>Unmarked fields are validated agains Groovy Truth.</p>
  *
+ * <p>Unmarked fields are validated against Groovy Truth (or against not-null for Boolean). Primitve boolean fields
+ * are always ignored.</p>
  *
- * <h1>mode</h1>
+ * <h2>mode</h2>
+ *
  * <p>The default behaviour ({@link Mode#AUTOMATIC}) for validation is to be executed directly
  * after the {@code apply()} method has executed. By setting {@link #mode()} to {@link Mode#MANUAL}, the validation
  * is never called automatically and needs to instead be called manually by calling the {@code validate()} method.</p>
+ *
  * <p>Note that it is also possible to configure a single instance of a model class to defer validation by calling
  * the {@code manualValidation()} method during the create/apply closure.</p>
+ *
  * @see Validate
  */
 @Target(ElementType.TYPE)

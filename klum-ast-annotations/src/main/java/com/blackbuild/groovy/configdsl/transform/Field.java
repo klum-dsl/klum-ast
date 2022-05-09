@@ -32,19 +32,19 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Controls specific behaviour for certain fields.
+ * <p>Controls specific behaviour for certain fields.</p>
  *
- *     This can be used to explicitly name the members of a collection. By default, the member name of collection
- *     is the name of the collection minus a trailing 's', i.e. environments :: environment. The member name is used
- *     as name for the generation of adder methods.
+ * <p>This can be used to explicitly name the members of a collection. By default, the member name of collection
+ * is the name of the collection minus a trailing 's', i.e. environments :: environment. The member name is used
+ * as name for the generation of adder methods.</p>
  *
- *    Using {@code @Field}, this can be explicitly overridden, for example for values with different plural rules.
- *     For example, the field {@code libraries} would by default contain the wrong elements name {@code librarie},
- *     which could be changed:
+ * <p>Using {@code @Field}, this can be explicitly overridden, for example for values with different plural rules.
+ * For example, the field {@code libraries} would by default contain the wrong elements name {@code librarie},
+ * which could be changed:</p>
  *
- *    {@code @Field(member = 'library') Set<String> libraries}
+ * <p>{@code @Field(member = 'library') Set<String> libraries}</p>
  *
- * *Note that the member names must be unique across all collections of a DSL hierarchy.*
+ * <p><b>Note that the member names must be unique across all collections of a DSL hierarchy.</b></p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -80,37 +80,37 @@ public @interface Field {
     Class key() default Undefined.class;
 
     /**
-     * Create converter methods for this field. Converter methods have the same name as regular setter / adders, but
+     * <p>Create converter methods for this field. Converter methods have the same name as regular setter / adders, but
      * different parameters. A converter is a closure with zero or more explicit parameters that is called to create the
      * target type (or the element type for collections / maps). Note that for maps of simple types, a key parameter
-     * is added to the adder as well.
+     * is added to the adder as well.</p>
      *
-     * Example:
+     * <p>Example:</p>
      *
      * <pre><code>
-     * .@DSL class Foo {
-     *   .@Field(converters = [
-     *     {long value -> new Date(value)},
-     *     {int date, int month, int year -> new Date(year, month, date)}
+     * {@literal @}DSL class Foo {
+     *   {@literal @}Field(converters = [
+     *     {long value {@literal ->} new Date(value)},
+     *     {int date, int month, int year {@literal ->} new Date(year, month, date)}
      *   ])
      *   Date birthday
      * }
      * </code></pre>
      *
-     * Creates additional methods:
+     * <p>Creates additional methods:</p>
      *
      * <pre><code>
      * Date birthday(long value)
      * Date birthday(int date, int month, year)
      * </code></pre>
      *
-     * The closures must return an instance of the field (or element) type.
+     * <p>The closures must return an instance of the field (or element) type.</p>
      *
-     * Example:
+     * <p>Example:</p>
      *
      * <pre><code>
-     * .@DSL class Foo {
-     *   .@Field(annotations = [])
+     * {@literal @}DSL class Foo {
+     *   {@literal @}Field(annotations = [])
      *   Date birthday
      * }
      * </code></pre>

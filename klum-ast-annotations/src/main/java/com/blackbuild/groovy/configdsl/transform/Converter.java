@@ -30,14 +30,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a static (factory) method as a converter. When the annotated class is used as field or collection
- * element inside another class, converter methods are automatically translated into additional setters / adders.
+ * <p>Designates a static (factory) method as a converter. When the annotated class is used as field or collection
+ * element inside another class, converter methods are automatically translated into additional setters / adders.</p>
  *
- * Note that factory methods named "from*", or "of*" are automatically considered as converters.
+ * <p>Note that factory methods named "from*", or "of*" are automatically considered as converters.</p>
  *
- * If placed on a class, all public static non void methods are considered as factories.
+ * <p>If placed on a class, all public static non void methods are considered as factories.</p>
  *
- * The method must be static, return an instance of the annotated class and can contain an arbitrary number of parameters.
+ * <p>The method must be static, return an instance of the annotated class and can contain an arbitrary number of parameters.</p>
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)

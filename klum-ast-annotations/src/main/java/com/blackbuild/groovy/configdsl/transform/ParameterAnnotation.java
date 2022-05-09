@@ -33,11 +33,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Mark an annotation as provider for parameter annotations to be copied to the adder/setter methods. The target
- * annotation must be settable on methods and/or fields.
+ * <p>Mark an annotation as provider for parameter annotations to be copied to the adder/setter methods. The target
+ * annotation must be settable on methods and/or fields.</p>
  *
- * If the target annotation is placed on a (virtual) field, all annotation members of that annotation
- * with target type {@link ElementType#PARAMETER} will be placed on the value parameter of the generated DSL methods.
+ * <p>If the target annotation is placed on a (virtual) field, all annotation members of that annotation
+ * with target type {@link ElementType#PARAMETER} will be placed on the value parameter of the generated DSL methods.</p>
  *
  * <pre><code>
  * {@literal @}interface MyAnnotation {
@@ -51,16 +51,16 @@ import java.lang.annotation.Target;
  * }
  * </code></pre>
  *
- * Will have the setter method generated as follows:
+ * <p>Will have the setter method generated as follows:</p>
  *
  * <pre><code>
  * String field({@literal @}MyParamAnnotation("text") String value)
  * </code></pre>
  *
- * Note that any default values of target annotation will currently *not* be copied over.
+ * <p>Note that any default values of target annotation will currently <b>not</b> be copied over.</p>
  *
- * Since this is especially useful for Closure fields and the {@code {@literal @}DelegatesTo}/{@code {@literal @}ClosureParams} annotations,
- * for this case the annotation {@link ParameterAnnotation.ClosureHint} is provided containing members for both annotations.
+ * <p>Since this is especially useful for Closure fields and the {@code {@literal @DelegatesTo}}/{@code {@literal @ClosureParams}} annotations,
+ * for this case the annotation {@link ClosureHint} is provided containing members for both annotations.</p>
  *
  */
 @Target(ElementType.ANNOTATION_TYPE)
@@ -68,8 +68,8 @@ import java.lang.annotation.Target;
 public @interface ParameterAnnotation {
 
     /**
-     * Allows a {@link DelegatesTo} and or {@link ClosureParams} annotation to be placed on the element parameter
-     * for adder methods (in case of collection or map only on the single adder methods).
+     * <p>Allows a {@link DelegatesTo} and or {@link ClosureParams} annotation to be placed on the element parameter
+     * for adder methods (in case of collection or map only on the single adder methods).</p>
      *
      * <pre><code>
      * {@literal @}DSL class Foo {

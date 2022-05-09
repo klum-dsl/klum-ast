@@ -31,9 +31,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a field as read only. Read only fields do not get any DSL methods or public setters in the RW class
+ * <p>Designates a field as read only. Read only fields do not get any DSL methods or public setters in the RW class
  * making them not directly changeable from a configuration. The can, however be changed from inside {@link Mutator}
- * or lifecycle methods.
+ * or lifecycle methods.</p>
  * @deprecated Use {@code Field(FieldType.READ_ONLY)} instead.
  */
 @Target(ElementType.FIELD)

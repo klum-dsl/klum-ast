@@ -31,11 +31,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Handles implicit and explicit converter creation. KlumAST creates converter methods from all "factory-like" methods
+ * <p>Handles implicit and explicit converter creation. KlumAST creates converter methods from all "factory-like" methods
  * in the target class. A factory-like method is a public static method that returns the specified type or one of its
- * subclasses and whose name matches one of the prefixes: {@code from}, {@code of}, {@code create}, {@code parse}.
+ * subclasses and whose name matches one of the prefixes: {@code from}, {@code of}, {@code create}, {@code parse}.</p>
  *
- * Note that the annotation on a field completely replaces the annotation on the class for that field.
+ * <p>Note that the annotation on a field completely replaces the annotation on the class for that field.</p>
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
