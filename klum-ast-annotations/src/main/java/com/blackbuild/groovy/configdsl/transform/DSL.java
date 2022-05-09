@@ -360,63 +360,6 @@ import java.lang.annotation.Target;
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted){@code Set} of
  non-Keyed model objects might result in a severe degradation of performance of that Set.</p>
 
-
- # The {@literal @}Owner annotation
-
- <p>DSL-Objects can have an optional owner field, decorated with the {@code {@literal @}Owner} annotation.</p>
-
- <p>When the inner object (containing the owner) is added to another dsl-object, either directly or into a collection,
- the owner-field is automatically set to the outer instance.</p>
-
- <p>This has two dangers:</p>
-
- <ul>
- <li>no validity checks are performed during transformation time, leading to runtime ClassCastExceptions if the owner
- type is incorrect</li>
- <li>If an object that already has an existing owner is reused, the owner is not overridden, but silently ignored. I.e. the first
- object that an object is assigned to, is the actual owner.</li>
- </ul>
-
- <pre><code>
- {@literal @}DSL
-   class Foo {
-   Bar bar
- }
-
- {@literal @}DSL
- class Bar {
-   {@literal @}Owner Foo owner
- }
-
- def c = Config.create {
-   bar {}
- }
-
- assert c.bar.owner === c
- </code></pre>
-
- <p>Note that the {@code projects} closure is only optional, {@code project} entry could also be out
- directly under config. However, collection closures provide additional functionalities, like alternative syntax.</p>
-
- <p>Since complete objects are created, using the configuration is simple:</p>
-
- <pre><code>
- if (config.debugMode) println "Debug mode is active!"
-
- config.projects.each { name, project {@code ->}
-   println "Running $name with '${project.mvn.goals.join(' ')}'"
- }
-
- def projectsWithoutClean = config.projects.findAll { !it.value.mvn.goals.contains("clean")}.values()
-
- if (projectsWithoutClean) {
-   println "WARNING: The following projects do not clean before build:"
-   projectsWithoutClean.each {
-     println it
-   }
- }
- </code></pre>
-
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

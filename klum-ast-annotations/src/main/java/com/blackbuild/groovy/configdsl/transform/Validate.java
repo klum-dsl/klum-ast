@@ -38,7 +38,8 @@ import java.lang.annotation.Target;
  * {@code apply()} method or during manual validation, as determined by the {@link Validation} annotation. The actual
  * validation can be one of the following:</p>
  * 
- * <table summary='Valid options to use Validate annotation on a field'>
+ * <table border='1'>
+ *     <caption>Valid options to use Validate annotation on a field</caption>
  *     <tr><td>empty</td><td>Validates the content of the field according to groovy truth</td></tr>
  *     <tr><td>empty (for Boolean fields)</td><td>Validates that the content of the field is not null</td></tr>
  *     <tr><td>{@link Validate.Ignore}</td><td>Don't validate this field. This can be used if {@link Validation#option()}
