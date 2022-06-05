@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util
 
+import spock.lang.Issue
 import spock.lang.Subject
 
 class KlumInstanceProxyTest extends AbstractRuntimeTest {
@@ -175,4 +176,44 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         !proxy.resolveKeyForFieldFromAnnotation("noFieldAnnotation", proxy.getField("noFieldAnnotation")).isPresent()
     }
 
+    @Issue("36")
+    def "copy from creates copies of nested DSL objects"() {
+        given:
+        createClass('''
+            package pk
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Outer {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+                
+                Inner inner
+            }
+            
+            @DSL
+            class Inner {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String value
+            } 
+         ''')
+
+        def inner = newInstanceOf("pk.Inner")
+        def outer = newInstanceOf("pk.Outer")
+        inner.value = "bla"
+        outer.inner = inner
+        outer.name = "bli"
+
+        when:
+        def copy = newInstanceOf("pk.Outer")
+        proxy = KlumInstanceProxy.getProxyFor(copy)
+        proxy.copyFrom(outer)
+
+        then:
+        copy.name == "bli"
+        copy.inner.value == "bla"
+        !copy.inner.is(inner)
+    }
 }

@@ -194,6 +194,12 @@ public class KlumInstanceProxy {
     public void copyFrom(Object template) {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
     }
+    public Object cloneInstance() {
+        Object key = isKeyed(instance.getClass()) ? getKey() : null;
+        Object result = FactoryHelper.createInstance(instance.getClass(), (String) key);
+        getProxyFor(result).copyFrom(instance);
+        return result;
+    }
 
     private void copyFromLayer(Class<?> layer, Object template) {
         if (layer.isInstance(template))
@@ -223,20 +229,30 @@ public class KlumInstanceProxy {
             copyFromCollectionField((Collection<?>) templateValue, fieldName);
         else if (templateValue instanceof Map)
             copyFromMapField((Map<?,?>) templateValue, fieldName);
+        else if (isDslType(templateValue.getClass()))
+            setInstanceAttribute(fieldName, getProxyFor(templateValue).cloneInstance());
         else
             setInstanceAttribute(fieldName, templateValue);
     }
 
+    private <T> T getCopiedValue(T templateValue) {
+        if (isDslType(templateValue.getClass()))
+            return (T) getProxyFor(templateValue).cloneInstance();
+        else
+            return templateValue;
+
+    }
+
     private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = (Map<K,V>) getInstanceAttribute(fieldName);
+        Map<K,V> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
         instanceField.putAll(templateValue);
     }
 
     private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = (Collection<T>) getInstanceAttribute(fieldName);
+        Collection<T> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
         instanceField.addAll(templateValue);
     }
