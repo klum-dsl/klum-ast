@@ -229,10 +229,8 @@ public class KlumInstanceProxy {
             copyFromCollectionField((Collection<?>) templateValue, fieldName);
         else if (templateValue instanceof Map)
             copyFromMapField((Map<?,?>) templateValue, fieldName);
-        else if (isDslType(templateValue.getClass()))
-            setInstanceAttribute(fieldName, getProxyFor(templateValue).cloneInstance());
         else
-            setInstanceAttribute(fieldName, templateValue);
+            setInstanceAttribute(fieldName, getCopiedValue(templateValue));
     }
 
     private <T> T getCopiedValue(T templateValue) {
@@ -240,21 +238,21 @@ public class KlumInstanceProxy {
             return (T) getProxyFor(templateValue).cloneInstance();
         else
             return templateValue;
-
     }
 
     private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
         Map<K,V> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
-        instanceField.putAll(templateValue);
+        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
     }
 
     private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
         Collection<T> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
-        instanceField.addAll(templateValue);
+
+        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
     }
 
     /**

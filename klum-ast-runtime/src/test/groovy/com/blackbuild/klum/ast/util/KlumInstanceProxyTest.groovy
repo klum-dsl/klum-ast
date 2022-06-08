@@ -216,4 +216,68 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         copy.inner.value == "bla"
         !copy.inner.is(inner)
     }
+    @Issue("36")
+    def "copy from creates copies of nested DSL object collection"() {
+        given:
+        createClass('''
+            package pk
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Outer {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+                
+                List<Inner> inners = []
+                Map<String, Inner> mappedInners = [:]
+            }
+            
+            @DSL
+            class Inner {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String value
+            } 
+         ''')
+
+        def inner = newInstanceOf("pk.Inner")
+        def inner2 = newInstanceOf("pk.Inner")
+        def minner = newInstanceOf("pk.Inner")
+        def minner2 = newInstanceOf("pk.Inner")
+        def outer = newInstanceOf("pk.Outer")
+        inner.value = "bla"
+        inner2.value = "blu"
+        minner.value = "mbla"
+        minner2.value = "mblu"
+        outer.inners.add inner
+        outer.inners.add inner2
+
+        outer.mappedInners.putAll(one: minner, two: minner2)
+        outer.name = "bli"
+
+        when:
+        def copy = newInstanceOf("pk.Outer")
+        proxy = KlumInstanceProxy.getProxyFor(copy)
+        proxy.copyFrom(outer)
+
+        then:
+        copy.name == "bli"
+        !copy.inners.is(outer.inners)
+        copy.inners.size() == 2
+
+        and:
+        copy.inners[0].value == "bla"
+        copy.inners[1].value == "blu"
+        !copy.inners[0].is(inner)
+        !copy.inners[1].is(inner2)
+
+        and:
+        copy.mappedInners.one.value == "mbla"
+        copy.mappedInners.two.value == "mblu"
+        !copy.mappedInners.one.is(minner)
+        !copy.mappedInners.two.is(minner2)
+    }
+
+    // TODO: List of Lists, Maps of Lists, mixed dsl / non dsl elements
 }
