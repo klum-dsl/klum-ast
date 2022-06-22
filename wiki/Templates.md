@@ -3,7 +3,7 @@
 The system includes a simple mechanism for configuring default values (as part of the instance creation, not in the classes):
 
 Templates are regular instances of DSL objects, which will usually be assigned to a local variable. Applying a template means
- that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, shallow copies 
+ that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, deep copies 
  will be created. 
  
  Ignorable fields of the template (key, owner, transient or marked as `@Ignore`) are never copied over. To make creating

@@ -194,10 +194,18 @@ public class KlumInstanceProxy {
     public void copyFrom(Object template) {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
     }
+    public Object cloneInstance() {
+        Object key = isKeyed(instance.getClass()) ? getKey() : null;
+        Object result = FactoryHelper.createInstance(instance.getClass(), (String) key);
+        getProxyFor(result).copyFrom(instance);
+        return result;
+    }
 
     private void copyFromLayer(Class<?> layer, Object template) {
         if (layer.isInstance(template))
-            Arrays.stream(layer.getDeclaredFields()).filter(this::isNotIgnored).forEach(field -> copyFromField(field, template));
+            Arrays.stream(layer.getDeclaredFields())
+                    .filter(this::isNotIgnored)
+                    .forEach(field -> copyFromField(field, template));
     }
 
     private boolean isIgnored(Field field) {
@@ -224,21 +232,45 @@ public class KlumInstanceProxy {
         else if (templateValue instanceof Map)
             copyFromMapField((Map<?,?>) templateValue, fieldName);
         else
-            setInstanceAttribute(fieldName, templateValue);
+            setInstanceAttribute(fieldName, getCopiedValue(templateValue));
+    }
+
+    private <T> T getCopiedValue(T templateValue) {
+        if (isDslType(templateValue.getClass()))
+            return (T) getProxyFor(templateValue).cloneInstance();
+        else if (templateValue instanceof Collection)
+            return (T) createCopyOfCollection((Collection) templateValue);
+        else if (templateValue instanceof Map)
+            return (T) createCopyOfMap((Map) templateValue);
+        else
+            return templateValue;
+    }
+
+    private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
+        Collection<T> result = (Collection<T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        templateValue.stream().map(this::getCopiedValue).forEach(result::add);
+        return result;
+    }
+
+    private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
+        Map<String, T> result = (Map<String, T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
+        return result;
     }
 
     private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = (Map<K,V>) getInstanceAttribute(fieldName);
+        Map<K,V> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
-        instanceField.putAll(templateValue);
+        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
     }
 
     private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = (Collection<T>) getInstanceAttribute(fieldName);
+        Collection<T> instanceField = getInstanceAttribute(fieldName);
         instanceField.clear();
-        instanceField.addAll(templateValue);
+
+        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
     }
 
     /**
