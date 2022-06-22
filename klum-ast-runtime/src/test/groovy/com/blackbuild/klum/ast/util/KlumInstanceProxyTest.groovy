@@ -216,8 +216,9 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         copy.inner.value == "bla"
         !copy.inner.is(inner)
     }
+
     @Issue("36")
-    def "copy from creates copies of nested DSL object collection"() {
+    def "copy from creates copies of nested DSL object collections and maps"() {
         given:
         createClass('''
             package pk
@@ -279,5 +280,53 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         !copy.mappedInners.two.is(minner2)
     }
 
-    // TODO: List of Lists, Maps of Lists, mixed dsl / non dsl elements
+    @Issue("36")
+    def "copy from creates copies of Maps of Lists"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Outer {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+                
+                Map<String, List<String>> inners = [:]
+                List<List<String>> innerLists = []
+            }
+         ''')
+
+        def outer = newInstanceOf("pk.Outer")
+        outer.name = "bli"
+        outer.inners.put "a", ["a1", "a2"]
+        outer.inners.put "b", ["b1", "b2"]
+        outer.innerLists.add(["a1", "a2"])
+        outer.innerLists.add(["b1", "b2"])
+
+        when:
+        def copy = newInstanceOf("pk.Outer")
+        proxy = KlumInstanceProxy.getProxyFor(copy)
+        proxy.copyFrom(outer)
+
+        then:
+        copy.name == "bli"
+        copy.inners == outer.inners
+        !copy.inners.is(outer.inners)
+        copy.innerLists == outer.innerLists
+        !copy.innerLists.is(outer.innerLists)
+
+        and:
+        copy.inners.a == outer.inners.a
+        !copy.inners.a.is(outer.inners.a)
+
+        and:
+        copy.innerLists[0] == outer.innerLists[0]
+        !copy.innerLists[0].is(outer.innerLists[0])
+
+    }
+
+    // TODO: List of Lists, mixed dsl / non dsl elements
 }

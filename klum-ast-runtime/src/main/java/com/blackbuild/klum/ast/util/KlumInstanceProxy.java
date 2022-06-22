@@ -203,7 +203,9 @@ public class KlumInstanceProxy {
 
     private void copyFromLayer(Class<?> layer, Object template) {
         if (layer.isInstance(template))
-            Arrays.stream(layer.getDeclaredFields()).filter(this::isNotIgnored).forEach(field -> copyFromField(field, template));
+            Arrays.stream(layer.getDeclaredFields())
+                    .filter(this::isNotIgnored)
+                    .forEach(field -> copyFromField(field, template));
     }
 
     private boolean isIgnored(Field field) {
@@ -236,8 +238,24 @@ public class KlumInstanceProxy {
     private <T> T getCopiedValue(T templateValue) {
         if (isDslType(templateValue.getClass()))
             return (T) getProxyFor(templateValue).cloneInstance();
+        else if (templateValue instanceof Collection)
+            return (T) createCopyOfCollection((Collection) templateValue);
+        else if (templateValue instanceof Map)
+            return (T) createCopyOfMap((Map) templateValue);
         else
             return templateValue;
+    }
+
+    private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
+        Collection<T> result = (Collection<T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        templateValue.stream().map(this::getCopiedValue).forEach(result::add);
+        return result;
+    }
+
+    private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
+        Map<String, T> result = (Map<String, T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
+        return result;
     }
 
     private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
