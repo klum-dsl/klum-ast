@@ -55,7 +55,6 @@ import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,6 +65,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
@@ -308,12 +308,12 @@ public class CommonAstHelper {
     public static List<ClassNode> findAllKnownSubclassesOf(ClassNode type, CompileUnit compileUnit) {
         if ((type.getModifiers() & ACC_FINAL) != 0)
             return Collections.emptyList();
-        List<ClassNode> result = new ArrayList<>();
 
-        for (ClassNode classInCU : (List<ClassNode>) compileUnit.getClasses())
-            if (classInCU.isDerivedFrom(type))
-                result.add(classInCU);
-        return result;
+        //noinspection unchecked
+        return ((List<ClassNode>) compileUnit.getClasses())
+                .stream()
+                .filter(classInCU -> classInCU.isDerivedFrom(type))
+                .collect(Collectors.toList());
     }
 
     public static GenericsType[] getGenericsTypes(FieldNode fieldNode) {
