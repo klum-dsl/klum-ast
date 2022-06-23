@@ -8,7 +8,7 @@ dependencies {
 //    api project(':klum-ast-annotations')
     api project(':klum-ast-runtime')
 
-    api "com.fasterxml.jackson.core:jackson-databind:2.12.2"
+    api 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
 
     testImplementation project(':klum-ast')
     testImplementation(testFixtures(project(":klum-ast")))

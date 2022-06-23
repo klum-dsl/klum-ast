@@ -34,6 +34,10 @@
   - since rc.5
     - Visiblity for creator methods was wrong (see [#232](https://github.com/klum-dsl/klum-ast/issues/232))
     
+- Dependency changes/Internal
+  - since rc.14
+    - Update Jackson to 2.13.3 (see [#239](https://github.com/klum-dsl/klum-ast/issues/239))
+
 ## 1.2.2
 - Changes/Improvements
     - Allow coercion of RW instance to superclass of model instance (see [#225](https://github.com/klum-dsl/klum-ast/issues/225))
