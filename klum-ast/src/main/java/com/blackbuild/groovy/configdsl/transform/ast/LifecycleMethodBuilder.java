@@ -57,7 +57,7 @@ class LifecycleMethodBuilder {
 
     private void moveMethodToRwClass(MethodNode method) {
         moveMethodFromModelToRWClass(method);
-        int modifiers = method.getModifiers() & ~ACC_PUBLIC | ACC_PROTECTED;
+        int modifiers = (method.getModifiers() & ~ACC_PUBLIC) | ACC_PROTECTED;
         method.setModifiers(modifiers);
     }
 
