@@ -214,7 +214,7 @@ class TemplateMethods {
     }
 
     private String fieldForGetter(MethodNode method) {
-        if (ClassHelper.VOID_TYPE==method.getReturnType())
+        if (ClassHelper.VOID_TYPE.equals(method.getReturnType()))
             return null;
 
         if (method.getParameters().length != 0)

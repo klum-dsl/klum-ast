@@ -45,12 +45,13 @@ import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
@@ -88,7 +89,7 @@ public class DslAstHelper {
     }
 
     public static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(ClassNode target) {
-        return getHierarchyOfDSLObjectAncestors(new LinkedList<>(), target);
+        return getHierarchyOfDSLObjectAncestors(new ArrayDeque<>(), target);
     }
 
     private static Deque<ClassNode> getHierarchyOfDSLObjectAncestors(Deque<ClassNode> hierarchy, ClassNode target) {
@@ -137,7 +138,7 @@ public class DslAstHelper {
         if (outerClass == null)
             return null;
 
-        if (getRwClassOf(outerClass) == classNode)
+        if (Objects.equals(getRwClassOf(outerClass), classNode))
             return outerClass;
 
         return null;

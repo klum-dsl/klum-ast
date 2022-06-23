@@ -244,7 +244,7 @@ public class CommonAstHelper {
             getter.setSynthetic(true);
             addPropertyMethod(cNode, getter);
 
-            if (ClassHelper.boolean_TYPE == pNode.getType() || ClassHelper.Boolean_TYPE == pNode.getType()) {
+            if (ClassHelper.boolean_TYPE.equals(pNode.getType()) || ClassHelper.Boolean_TYPE.equals(pNode.getType())) {
                 String secondGetterName = "is" + capitalizedName;
                 MethodNode secondGetter =
                         new MethodNode(secondGetterName, modifiers, pNode.getType(), Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, getterBlock);
