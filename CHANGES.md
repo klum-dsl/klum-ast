@@ -36,7 +36,8 @@
     
 - Dependency changes/Internal
   - since rc.14
-    - Update Jackson to 2.13.3 (see [#239](https://github.com/klum-dsl/klum-ast/issues/239))
+    - Update Jackson to 2.13.3 (see [#260](https://github.com/klum-dsl/klum-ast/issues/260))
+    - Use Sonatype Lift
 
 ## 1.2.2
 - Changes/Improvements
