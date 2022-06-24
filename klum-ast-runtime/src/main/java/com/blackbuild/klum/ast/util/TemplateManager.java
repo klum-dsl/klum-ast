@@ -44,6 +44,11 @@ public class TemplateManager {
             INSTANCE.set(new TemplateManager());
         return INSTANCE.get();
     }
+    
+    private void deregister() {
+        if (templates.isEmpty())
+            INSTANCE.remove();
+    }
 
     Map<Class<?>, Object> templates = new HashMap<>();
 
@@ -55,6 +60,7 @@ public class TemplateManager {
             return body.call();
         } finally {
             manager.setTemplate(type, oldTemplate);
+            manager.deregister();
         }
     }
 
@@ -73,16 +79,17 @@ public class TemplateManager {
         Map<Class<?>, Object> oldTemplates = new HashMap<>(manager.templates);
 
         try {
-            manager.templates.putAll(effectiveTemplates);
+            manager.addTemplates(effectiveTemplates);
             return body.call();
         } finally {
-            manager.templates.clear();
-            manager.templates.putAll(oldTemplates);
+            manager.setTemplates(oldTemplates);
+            manager.deregister();
         }
     }
 
     private static Object mapToTemplate(Map.Entry<Class<?>, Object> entry) {
         if (entry.getValue() instanceof Map)
+            //noinspection unchecked
             return FactoryHelper.createAsTemplate(entry.getKey(), (Map<String, Object>) entry.getValue(), null);
         else
             return entry.getValue();
@@ -108,6 +115,15 @@ public class TemplateManager {
             templates.put(type, template);
         else
             templates.remove(type);
+    }
+
+    public void addTemplates(Map<Class<?>, Object> newTemplates) {
+        templates.putAll(newTemplates);
+    }
+
+    public void setTemplates(Map<Class<?>, Object> newTemplates) {
+        templates.clear();
+        addTemplates(newTemplates);
     }
 
 

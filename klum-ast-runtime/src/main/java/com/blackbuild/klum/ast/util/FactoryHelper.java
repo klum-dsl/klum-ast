@@ -135,7 +135,7 @@ public class FactoryHelper {
             String path = Paths.get(src.getPath()).getFileName().toString();
             return createFrom(type, path, ResourceGroovyMethods.getText(src), loader);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new KlumException(e);
         }
     }
 
@@ -143,7 +143,7 @@ public class FactoryHelper {
         try {
             return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new KlumException(e);
         }
     }
 
