@@ -55,7 +55,6 @@ import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,6 +65,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
@@ -244,7 +244,7 @@ public class CommonAstHelper {
             getter.setSynthetic(true);
             addPropertyMethod(cNode, getter);
 
-            if (ClassHelper.boolean_TYPE == pNode.getType() || ClassHelper.Boolean_TYPE == pNode.getType()) {
+            if (ClassHelper.boolean_TYPE.equals(pNode.getType()) || ClassHelper.Boolean_TYPE.equals(pNode.getType())) {
                 String secondGetterName = "is" + capitalizedName;
                 MethodNode secondGetter =
                         new MethodNode(secondGetterName, modifiers, pNode.getType(), Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, getterBlock);
@@ -304,18 +304,18 @@ public class CommonAstHelper {
         return findAllKnownSubclassesOf(type, type.getCompileUnit());
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     public static List<ClassNode> findAllKnownSubclassesOf(ClassNode type, CompileUnit compileUnit) {
         if ((type.getModifiers() & ACC_FINAL) != 0)
             return Collections.emptyList();
-        List<ClassNode> result = new ArrayList<>();
 
-        for (ClassNode classInCU : (List<ClassNode>) compileUnit.getClasses())
-            if (classInCU.isDerivedFrom(type))
-                result.add(classInCU);
-        return result;
+        //noinspection unchecked
+        return ((List<ClassNode>) compileUnit.getClasses())
+                .stream()
+                .filter(classInCU -> classInCU.isDerivedFrom(type))
+                .collect(Collectors.toList());
     }
 
-    @SuppressWarnings("ConstantConditions")
     public static GenericsType[] getGenericsTypes(FieldNode fieldNode) {
         GenericsType[] types = fieldNode.getType().getGenericsTypes();
 
@@ -326,18 +326,26 @@ public class CommonAstHelper {
 
     public static ClassNode getElementType(FieldNode fieldNode) {
         if (isMap(fieldNode.getType()))
-            return getGenericsTypes(fieldNode)[1].getType();
+            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 1);
         else if (isCollection(fieldNode.getType()))
-            return getGenericsTypes(fieldNode)[0].getType();
+            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 0);
         else
             return fieldNode.getType();
+    }
+
+    private static ClassNode getTypeFromArrayNullSafe(GenericsType[] array, int index) {
+        if (array == null)
+            return ClassHelper.DYNAMIC_TYPE;
+        if (array.length <= index)
+            return ClassHelper.DYNAMIC_TYPE;
+        return array[index].getType();
     }
 
     public static String getNullSafeMemberStringValue(AnnotationNode fieldAnnotation, String name, String defaultValue) {
         return fieldAnnotation == null ? defaultValue : AbstractASTTransformation.getMemberStringValue(fieldAnnotation, name, defaultValue);
     }
 
-    public static <T extends Enum> T getNullSafeEnumMemberValue(AnnotationNode node, String name, T defaultValue) {
+    public static <T extends Enum<T>> T getNullSafeEnumMemberValue(AnnotationNode node, String name, T defaultValue) {
         if (node == null)
             return defaultValue;
 
@@ -350,7 +358,7 @@ public class CommonAstHelper {
 
         String value = ((PropertyExpression) member).getPropertyAsString();
 
-        return (T) Enum.valueOf(defaultValue.getClass(), value);
+        return Enum.valueOf(defaultValue.getDeclaringClass(), value);
     }
 
     public static void initializeCollectionOrMap(FieldNode fieldNode) {
@@ -420,7 +428,7 @@ public class CommonAstHelper {
             return result.getType();
 
         CommonAstHelper.addCompileError("Map values may only be classes.", source, entryExpression);
-        return null;
+        return ClassHelper.DYNAMIC_TYPE;
     }
 
 }

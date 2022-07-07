@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -73,7 +72,7 @@ public class DslHelper {
     }
 
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
-        List<Class<?>> result = new LinkedList<>();
+        List<Class<?>> result = new ArrayList<>();
         while (isDslType(type)) {
             result.add(0, type);
             type = type.getSuperclass();
@@ -103,6 +102,7 @@ public class DslHelper {
         return typeArgument;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> T castTo(Object object, Class<T> targetType) {
         return (T) InvokerHelper.invokeMethod(object, "asType", targetType);
     }

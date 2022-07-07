@@ -74,12 +74,7 @@ class DelegateFromRwToModel {
         genericsSpec = addMethodGenerics(candidate, genericsSpec);
         extractSuperClassGenerics(annotatedClass, candidate.getDeclaringClass(), genericsSpec);
 
-        // ignore methods already in owner
-        for (MethodNode mn : getAllMethods(rwClass)) {
-            if (mn.getTypeDescriptor().equals(candidate.getTypeDescriptor())) {
-                return;
-            }
-        }
+        if (matchingMethodAlreadyExists(candidate)) return;
 
         final Parameter[] params = candidate.getParameters();
         final Parameter[] newParams = new Parameter[params.length];
@@ -96,13 +91,21 @@ class DelegateFromRwToModel {
         createMethod(candidate.getName())
                 .optional()
                 .setGenericsTypes(candidate.getGenericsTypes())
-                .mod(candidate.getModifiers() & (~Opcodes.ACC_ABSTRACT) & (~Opcodes.ACC_NATIVE))
+                .mod(candidate.getModifiers() & ~Opcodes.ACC_ABSTRACT & ~Opcodes.ACC_NATIVE)
                 .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
                 .params(newParams)
                 .callMethod(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS, GenericsUtils.correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
                         candidate.getName(),
                         args(newParams))
                 .addTo(rwClass);
+    }
+
+    private boolean matchingMethodAlreadyExists(MethodNode candidate) {
+        String candidateTypeDescriptor = candidate.getTypeDescriptor();
+        return getAllMethods(rwClass)
+                .stream()
+                .map(MethodNode::getTypeDescriptor)
+                .anyMatch(candidateTypeDescriptor::equals);
     }
 
     private List<String> genericPlaceholderNames(MethodNode candidate) {

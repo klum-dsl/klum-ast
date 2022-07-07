@@ -114,7 +114,7 @@ public @interface Validate {
      * A closure to be executed to validate the annotated field. If empty, Groovy Truth is used to validate the field.
      * Illegal when annotating a method.
      */
-    Class value() default GroovyTruth.class;
+    Class<?> value() default GroovyTruth.class;
 
     /**
      * A message to be returned when validation fails.

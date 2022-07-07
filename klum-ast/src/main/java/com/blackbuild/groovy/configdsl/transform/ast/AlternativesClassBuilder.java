@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -103,6 +102,7 @@ class AlternativesClassBuilder {
         alternatives = readAlternativesAnnotation();
     }
 
+    @SuppressWarnings("MixedMutabilityReturnType")
     private Map<ClassNode, String> readAlternativesAnnotation() {
         AnnotationNode fieldAnnotation = CommonAstHelper.getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
         if (fieldAnnotation == null)
@@ -216,10 +216,8 @@ class AlternativesClassBuilder {
     }
 
     private void createNamedAlternativeMethodsForSubclasses() {
-        List<ClassNode> subclasses = CommonAstHelper.findAllKnownSubclassesOf(elementType, annotatedClass.getCompileUnit());
-        for (ClassNode subclass : subclasses) {
-            createNamedAlternativeMethodsForSingleSubclass(subclass);
-        }
+        CommonAstHelper.findAllKnownSubclassesOf(elementType, annotatedClass.getCompileUnit())
+                .forEach(this::createNamedAlternativeMethodsForSingleSubclass);
     }
 
     private void createNamedAlternativeMethodsForSingleSubclass(ClassNode subclass) {

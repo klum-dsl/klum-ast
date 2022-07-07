@@ -228,7 +228,7 @@ class ConverterBuilder {
 
     private boolean isKlumMethod(MethodNode method) {
         return hasAnnotation(method, ClassHelper.make(KlumGenerated.class))
-                || isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName());
+                || (isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName()));
     }
 
     private void createConverterMethod(Parameter[] sourceParameters, ClassNode converterType, String converterMethod, MethodNode sourceMethod) {
