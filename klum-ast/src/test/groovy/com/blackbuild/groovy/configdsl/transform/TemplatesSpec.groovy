@@ -21,10 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
+//file:noinspection GroovyVariableNotAssigned
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 class TemplatesSpec extends AbstractDSLSpec {
 
@@ -1158,5 +1161,52 @@ class TemplatesSpec extends AbstractDSLSpec {
             then:
             notThrown(MultipleCompilationErrorsException)
     }
+
+    @Issue("210")
+    @PendingFeature
+    def "Nested templates with owner fields"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+                String name
+            }
+            
+            @DSL class Bar {
+                @Owner Foo container
+                String value
+            }
+        ''')
+
+        when:
+        def template = clazz.createAsTemplate {
+            name = "outer"
+            bar {
+                value "inner"
+            }
+        }
+
+        then:
+        template.name == "outer"
+        template.bar.container.is(template)
+        template.bar.value == "inner"
+
+        when:
+        clazz.withTemplate(template) {
+            instance = clazz.create()
+        }
+
+        then:
+        !instance.is(template)
+        instance.name == "outer"
+        !instance.bar.container.is(template)
+        instance.bar.container.is(instance)
+        instance.bar.value == "inner"
+    }
+
+
 
 }
