@@ -29,6 +29,8 @@ import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
@@ -147,6 +149,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
+    public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
+    public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
 
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
@@ -1076,11 +1080,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
 
-        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, POSTAPPLY_ANNOTATION).invoke();
     }
 
     private void createFactoryMethods() {
-        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
+        new LifecycleMethodBuilder(annotatedClass, POSTCREATE_ANNOTATION).invoke();
 
         if (!isInstantiable(annotatedClass))
             return;

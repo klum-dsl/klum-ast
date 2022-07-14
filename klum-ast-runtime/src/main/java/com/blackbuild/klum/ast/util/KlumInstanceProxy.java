@@ -36,7 +36,6 @@ import groovy.lang.GroovyRuntimeException;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
-import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -63,7 +62,6 @@ import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_TRANSIENT;
 import static java.lang.String.format;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
  * Implementations for generated instance methods.
@@ -72,8 +70,6 @@ public class KlumInstanceProxy {
 
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
-    public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
-    public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
 
     private final GroovyObject instance;
