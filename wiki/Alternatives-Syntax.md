@@ -61,6 +61,7 @@ There are a couple of noteworthy points:
   This means that if you split your schema into different projects, you need to depend on the sources, not on the compiled
   classes of other schema parts (see [[Usage]] for details).
 - Different child classes with the same simple name (in different packages) is not allowed.
+- [[Convenience Factories]] also work on alternative methods. This works only for implicit and explicit factory methods in the subclass.
 
 
 There are four strategies for choosing alternative names (in order of precedence):
@@ -73,7 +74,7 @@ Using `@Field.alternatives`, a map of String/Class can be provided, which explic
 @DSL
 class Config {
     String name
-    @Field(alternatives = {[subby: SubElement, childy: ChildElement ]})
+    @Field(alternatives = {[subby: SubElement, childy: ChildElement]})
     Map<String, Element> elements
 }
 ```

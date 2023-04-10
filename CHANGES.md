@@ -7,6 +7,7 @@
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))
   - Provide `@Required` as an alternative to an empty `@Validate` annotation (see [#221](https://github.com/klum-dsl/klum-ast/issues/221))
   - `EnumSet` fields are no supported. Note that for enum sets a copy of the underlying set is returned as opposed to a readonly instance. (see [#249](https://github.com/klum-dsl/klum-ast/issues/249))
+  - Converter methods are now honored for Alternatives methods as well. (see [#270](https://github.com/klum-dsl/klum-ast/issues/270))
 - Breaking changes
     - it is a compile error to place the `@Validate` annotation on a boolean field.
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,

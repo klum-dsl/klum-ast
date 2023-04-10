@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -61,8 +62,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
-import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
@@ -84,6 +84,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
  */
 class AlternativesClassBuilder {
     private final ClassNode annotatedClass;
+    private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
     private InnerClassNode collectionFactory;
     private final ClassNode keyType;
@@ -92,7 +93,8 @@ class AlternativesClassBuilder {
     private final String memberName;
     private final Map<ClassNode, String> alternatives;
 
-    public AlternativesClassBuilder(FieldNode fieldNode) {
+    public AlternativesClassBuilder(DSLASTTransformation transformation, FieldNode fieldNode) {
+        this.transformation = transformation;
         this.fieldNode = fieldNode;
         this.annotatedClass = fieldNode.getOwner();
         rwClass = getRwClassOf(annotatedClass);
@@ -255,6 +257,8 @@ class AlternativesClassBuilder {
                                 : args(classX(subclass), varX(closureVarName))
                 ))
                 .addTo(collectionFactory);
+
+        new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);
     }
 
     private String getShortNameFor(ClassNode subclass) {
@@ -302,6 +306,11 @@ class AlternativesClassBuilder {
                         assignS(propX(varX("this"), "rw"), varX("rw"))
                 )
         );
+        MethodBuilder.createProtectedMethod("get$proxy")
+                .returning(make(KlumInstanceProxy.class))
+                .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
+                .addTo(collectionFactory);
+
         annotatedClass.getModule().addClass(collectionFactory);
         fieldNode.putNodeMetaData(COLLECTION_FACTORY_METADATA_KEY, collectionFactory);
     }
