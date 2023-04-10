@@ -404,7 +404,6 @@ class ConverterSpec extends AbstractDSLSpec {
             }
             
             class Bar {
-                @Converter 
                 static Bar fromString(String value) {
                     return new Bar()
                 }
