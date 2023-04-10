@@ -78,13 +78,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getCodeClosureFor;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFieldNames;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getOwnerFields;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isInstantiable;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
@@ -704,7 +698,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createConverterMethods(FieldNode fieldNode, String methodName, boolean withKey) {
         if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK)
-            new ConverterBuilder(this, fieldNode, methodName, withKey).execute();
+            new ConverterBuilder(this, fieldNode, methodName, withKey, getRwClassOf(this.annotatedClass)).execute();
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
@@ -981,7 +975,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createAlternativesClassFor(FieldNode fieldNode) {
-        new AlternativesClassBuilder(fieldNode).invoke();
+        new AlternativesClassBuilder(this, fieldNode).invoke();
     }
 
     private void createSingleDSLObjectFieldCreationMethods(AnnotatedNode fieldNode, String fieldName, ClassNode targetFieldType) {

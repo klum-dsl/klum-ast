@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -216,6 +217,61 @@ class ChildElement extends Element {
         instance.elements.size() == 2
         instance.elements.blub.class.simpleName == "SubElement"
         instance.elements.bli.class.simpleName == "ChildElement"
+    }
+
+    @SuppressWarnings('GroovyAssignabilityCheck')
+    @Issue("270")
+    def "factory methods are used for alternative methods"() {
+        given:
+        createClass('''
+package pk
+@DSL
+class Config {
+
+    String name
+
+    Map<String, Element> elements
+    List<Element> moreElements
+}
+
+@DSL
+abstract class Element {
+
+    @Key String name
+}
+
+@DSL
+class SubElement extends Element {
+
+    String role
+    static SubElement fromString(String name, int role) {
+        return SubElement.create(name.toUpperCase(), role: name.toLowerCase() + role)
+    } 
+}
+''')
+
+        when:
+        instance = clazz.create {
+            name "test"
+
+            elements {
+                subElement("Blub", 5)
+            }
+            moreElements {
+                subElement("Bli", 3)
+            }
+        }
+
+        then:
+        instance.elements.size() == 1
+        instance.elements.BLUB.class.simpleName == "SubElement"
+        instance.elements.BLUB.name == "BLUB"
+        instance.elements.BLUB.role == "blub5"
+
+        and:
+        instance.moreElements[0].class.simpleName == "SubElement"
+        instance.moreElements[0].name == "BLI"
+        instance.moreElements[0].role == "bli3"
     }
 
     def "alternative methods can get custom names"() {

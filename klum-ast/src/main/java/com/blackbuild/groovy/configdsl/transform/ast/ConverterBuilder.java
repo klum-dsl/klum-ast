@@ -47,7 +47,6 @@ import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
@@ -93,18 +92,17 @@ class ConverterBuilder {
     private List<String> excludes;
     private AnnotationNode convertersAnnotation;
 
-    ConverterBuilder(DSLASTTransformation transformation, FieldNode fieldNode, String methodName, boolean withKey) {
+    ConverterBuilder(DSLASTTransformation transformation, FieldNode fieldNode, String methodName, boolean withKey, ClassNode targetClass) {
         this.transformation = transformation;
         this.fieldNode = fieldNode;
-        ClassNode annotatedClass = fieldNode.getOwner();
         this.methodName = methodName;
         this.withKey = withKey;
-        rwClass = getRwClassOf(annotatedClass);
+        rwClass = targetClass;
         elementType = getElementType(fieldNode);
 
         convertersAnnotation = getAnnotation(fieldNode, CONVERTERS_ANNOTATION);
         if (convertersAnnotation == null)
-            convertersAnnotation = getAnnotation(annotatedClass, CONVERTERS_ANNOTATION);
+            convertersAnnotation = getAnnotation(transformation.annotatedClass, CONVERTERS_ANNOTATION);
 
         fillIncludesAndExcludes();
     }
@@ -182,7 +180,7 @@ class ConverterBuilder {
         createConverterMethodsFromFactoryMethods(elementType);
     }
 
-    private void createConverterMethodsFromFactoryMethods(ClassNode converterClass) {
+    void createConverterMethodsFromFactoryMethods(ClassNode converterClass) {
         findAllFactoryMethodsFor(converterClass).forEach(this::createConverterFactoryCall);
     }
 
