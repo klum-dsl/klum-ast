@@ -217,7 +217,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
-
     def "converter factory for dsl field"() {
         when:
         createClass '''
@@ -245,6 +244,46 @@ class ConverterSpec extends AbstractDSLSpec {
 
         then:
         instance.bar.birthday.time == 123L
+    }
+
+    def "converter factory for dsl field with default values"() {
+        when:
+        createClass '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                Date birthday
+                String token
+                
+                static Bar fromLong(long value, String token = "dummy") {
+                    return create(birthday: new Date(value), token: token)
+                }
+            }
+            '''
+
+        then:
+        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", long)
+        rwClazz.getMethod("bar", long, String)
+
+        when:
+        instance = clazz.create {
+            bar 123L
+        }
+
+        then:
+        instance.bar.birthday.time == 123L
+        instance.bar.token == "dummy"
+
+        when:
+        instance = clazz.create {
+            bar 123L, "flummy"
+        }
+
+        then:
+        instance.bar.token == "flummy"
     }
 
     def "converter factory for keyed dsl field"() {

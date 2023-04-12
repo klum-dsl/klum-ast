@@ -63,6 +63,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberList;
 
 /**
@@ -248,7 +249,11 @@ class ConverterBuilder {
         else if (isDslMap(fieldNode))
             method.constantParam(null);
 
-        stream(sourceParameters).forEach( parameter -> method.param(GenericsUtils.correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()), parameter.getName()));
+        stream(sourceParameters).forEach( parameter -> method.param(
+                        correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()),
+                        parameter.getName(),
+                        parameter.getInitialExpression()
+                ));
         method.addTo(rwClass);
     }
 

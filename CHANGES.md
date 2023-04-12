@@ -23,6 +23,7 @@
 - Fixes
   - since rc.13
     - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
+    - Converter methods should honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268))
   - since rc.12
     - More fixes to nested generics (see [#248](https://github.com/klum-dsl/klum-ast/issues/248))
   - since rc.11
