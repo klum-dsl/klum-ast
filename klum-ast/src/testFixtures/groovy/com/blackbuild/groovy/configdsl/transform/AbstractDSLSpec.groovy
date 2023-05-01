@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
+import org.codehaus.groovy.runtime.InvokerHelper
 import org.intellij.lang.annotations.Language
 import org.junit.Rule
 import org.junit.rules.TestName
@@ -74,6 +75,10 @@ class AbstractDSLSpec extends Specification {
 
     def newInstanceOf(String className) {
         return getClass(className).newInstance()
+    }
+
+    def newInstanceOf(String className, Object... args) {
+        return InvokerHelper.invokeConstructorOf(getClass(className), args)
     }
 
     def createClass(@Language("groovy") String code) {

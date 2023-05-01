@@ -14,6 +14,7 @@
   * [[Converters]]
   * [[Alternatives Syntax]]
   * [[Advanced Techniques]]
+  * [[Layer3]]
   * [[Jackson Integration]]
 * More
   * [[FAQ]]

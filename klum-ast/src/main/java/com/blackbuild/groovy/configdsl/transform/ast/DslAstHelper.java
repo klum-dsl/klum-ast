@@ -55,14 +55,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.klum.common.CommonAstHelper.NO_SUCH_FIELD;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
-import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
-import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
-import static com.blackbuild.klum.common.CommonAstHelper.getQualifiedName;
-import static com.blackbuild.klum.common.CommonAstHelper.isAbstract;
-import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
-import static com.blackbuild.klum.common.CommonAstHelper.isMap;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
@@ -369,11 +362,11 @@ public class DslAstHelper {
     }
 
     static boolean isDslMap(FieldNode fieldNode) {
-        return isMap(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[1].getType());
+        return isMap(fieldNode.getType()) && isDSLObject(getElementTypeForMap(fieldNode.getType()));
     }
 
     static boolean isDslCollection(FieldNode fieldNode) {
-        return isCollection(fieldNode.getType()) && isDSLObject(getGenericsTypes(fieldNode)[0].getType());
+        return isCollection(fieldNode.getType()) && isDSLObject(getElementTypeForCollection(fieldNode.getType()));
     }
 
     public static FieldType getFieldType(AnnotatedNode annotatedNode) {

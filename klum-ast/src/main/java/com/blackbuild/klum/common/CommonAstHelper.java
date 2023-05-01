@@ -324,13 +324,40 @@ public class CommonAstHelper {
         return types;
     }
 
+    public static ClassNode getElementTypeForMap(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        // error handling
+        return genericsTypes[1].getType();
+    }
+
+    public static ClassNode getKeyTypeForMap(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        // error handling
+        return genericsTypes[0].getType();
+    }
+
+    public static ClassNode getElementTypeForCollection(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        if (genericsTypes == null || genericsTypes.length == 0)
+            return null;
+
+        return genericsTypes[0].getType();
+    }
+
     public static ClassNode getElementType(FieldNode fieldNode) {
-        if (isMap(fieldNode.getType()))
-            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 1);
-        else if (isCollection(fieldNode.getType()))
-            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 0);
+        return getElementType(fieldNode.getType());
+    }
+
+    private static ClassNode getElementType(ClassNode type) {
+        if (isMap(type))
+            return getElementTypeForMap(type);
+        else if (isCollection(type))
+            return getElementTypeForCollection(type);
         else
-            return fieldNode.getType();
+            return type;
     }
 
     private static ClassNode getTypeFromArrayNullSafe(GenericsType[] array, int index) {
@@ -367,7 +394,7 @@ public class CommonAstHelper {
 
         ClassNode fieldType = fieldNode.getType();
         if (fieldType.equals(ENUM_SET_TYPE))
-            initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementType(fieldNode))));
+            initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementTypeForCollection(fieldType))));
         else if (isCollection(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new ListExpression()));
         else if (fieldType.equals(CommonAstHelper.SORTED_MAP_TYPE))
