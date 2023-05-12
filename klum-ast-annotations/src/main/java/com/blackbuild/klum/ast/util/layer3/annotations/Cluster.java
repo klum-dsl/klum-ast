@@ -85,7 +85,17 @@ import java.lang.annotation.*;
 @GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.ClusterTransformation")
 public @interface Cluster {
 
+    /**
+     * If set, filters the results by the given annotation.
+     * @return The annotation to filter on.
+     */
     Class<? extends Annotation> value() default Undefined.class;
+
+    /**
+     * If set to false, null values are not included in the result.
+     * @return To return or ignore null values.
+     */
+    boolean includeNulls() default true;
 
     @interface Undefined {}
 }

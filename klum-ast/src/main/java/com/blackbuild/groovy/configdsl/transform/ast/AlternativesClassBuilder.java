@@ -38,12 +38,7 @@ import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 
 import java.beans.Introspector;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
@@ -99,6 +94,7 @@ class AlternativesClassBuilder {
         this.annotatedClass = fieldNode.getOwner();
         rwClass = getRwClassOf(annotatedClass);
         elementType = CommonAstHelper.getElementType(fieldNode);
+        Objects.requireNonNull(elementType);
         keyType = getKeyType(elementType);
         memberName = getElementNameForCollectionField(fieldNode);
         alternatives = readAlternativesAnnotation();

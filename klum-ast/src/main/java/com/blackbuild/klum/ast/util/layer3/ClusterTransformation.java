@@ -66,10 +66,10 @@ public class ClusterTransformation extends AbstractASTTransformation {
         assertIsParameterless(method);
         assertReturnsMapOfStrings(method);
 
-        ClassNode filterAnnotation = getMemberClassValue(anno,"value");
+
 
         method.setModifiers(method.getModifiers() & 0x7);
-        method.setCode(createMethodBody(method, filterAnnotation));
+        method.setCode(createMethodBody(method, anno));
     }
 
     private void assertReturnsMapOfStrings(MethodNode method) {
@@ -107,9 +107,12 @@ public class ClusterTransformation extends AbstractASTTransformation {
         addError(format("Method %s must be abstract, empty or return either null or [:]", method), method);
     }
 
-    private Statement createMethodBody(MethodNode method, ClassNode filterAnnotation) {
+    private Statement createMethodBody(MethodNode method, AnnotationNode anno) {
+        ClassNode filterAnnotation = getMemberClassValue(anno,"value");
+        boolean includeNulls = !memberHasValue(anno, "includeNulls", false);
+
         ClassNode elementType = method.getReturnType().getGenericsTypes()[1].getType();
-        String targetMethod = "getPropertyMap";
+        String targetMethod = includeNulls ? "getPropertyMap" : "getNonEmptyPropertyMap";
 
         if (elementType.implementsInterface(COLLECTION_TYPE) || elementType.isDerivedFrom(COLLECTION_TYPE)) {
             if (elementType.isUsingGenerics()) {
