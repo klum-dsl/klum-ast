@@ -72,25 +72,25 @@ class ClusterModelTest extends AbstractRuntimeTest {
         Class<Annotation> important = getClass("Important") as Class<Annotation>
 
         when:
-        def props = ClusterModel.getPropertyMap(instance, String)
+        def props = ClusterModel.getPropertiesOfType(instance, String)
 
         then:
         props == [firstname: "John", lastname: "Doe", nickname: "Johnny"]
 
         when:
-        props = ClusterModel.getPropertyMap(instance, String, {it.isAnnotationPresent(important) })
+        props = ClusterModel.getPropertiesOfType(instance, String, {it.isAnnotationPresent(important) })
 
         then:
         props == [firstname: "John", lastname: "Doe"]
 
         when:
-        props = ClusterModel.getPropertyMap(instance, String, important)
+        props = ClusterModel.getPropertiesOfType(instance, String, important)
 
         then:
         props == [firstname: "John", lastname: "Doe"]
     }
 
-    def "getPropertyListMap returns only returns collections of correct type"() {
+    def "getCollectionsOfType returns only returns collections of correct type"() {
         given:
         createClass '''
             class Person {
@@ -104,8 +104,8 @@ class ClusterModelTest extends AbstractRuntimeTest {
         instance = newInstanceOf("Person", [nicknames: ["John", "Johnny"], hobbies: ["Soccer", "Tennis"], ages: [42, 43], name: "John Doe"])
 
         then:
-        ClusterModel.getPropertyListMap(instance, String) == [nicknames: ["John", "Johnny"], hobbies: ["Soccer", "Tennis"]]
-        ClusterModel.getPropertyListMap(instance, Integer) == [ages: [42, 43]]
+        ClusterModel.getCollectionsOfType(instance, String) == [nicknames: ["John", "Johnny"], hobbies: ["Soccer", "Tennis"]]
+        ClusterModel.getCollectionsOfType(instance, Integer) == [ages: [42, 43]]
     }
 
     def "getNameOfFieldContaining returns the correct field"() {
@@ -129,9 +129,9 @@ class ClusterModelTest extends AbstractRuntimeTest {
         def owner = newInstanceOf("Owner", [name: "John", child: child1, otherChild: child2])
 
         then:
-        ClusterModel.getNameOfFieldContaining(owner, child1).get() == "child"
-        ClusterModel.getNameOfFieldContaining(owner, child2).get() == "otherChild"
-        !ClusterModel.getNameOfFieldContaining(owner, child3).present
+        StructureUtil.getNameOfFieldContaining(owner, child1).get() == "child"
+        StructureUtil.getNameOfFieldContaining(owner, child2).get() == "otherChild"
+        !StructureUtil.getNameOfFieldContaining(owner, child3).present
     }
 
     def "isCollectionOf works"() {

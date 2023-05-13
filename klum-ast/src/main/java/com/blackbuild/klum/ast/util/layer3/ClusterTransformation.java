@@ -112,12 +112,12 @@ public class ClusterTransformation extends AbstractASTTransformation {
         boolean includeNulls = !memberHasValue(anno, "includeNulls", false);
 
         ClassNode elementType = method.getReturnType().getGenericsTypes()[1].getType();
-        String targetMethod = includeNulls ? "getPropertyMap" : "getNonEmptyPropertyMap";
+        String targetMethod = includeNulls ? "getPropertiesOfType" : "getNonEmptyPropertiesOfType";
 
         if (elementType.implementsInterface(COLLECTION_TYPE) || elementType.isDerivedFrom(COLLECTION_TYPE)) {
             if (elementType.isUsingGenerics()) {
                 elementType = elementType.getGenericsTypes()[0].getType();
-                targetMethod = "getPropertyListMap";
+                targetMethod = "getCollectionsOfType";
             } else {
                 sourceUnit.getErrorCollector().addWarning(
                         WarningMessage.LIKELY_ERRORS,

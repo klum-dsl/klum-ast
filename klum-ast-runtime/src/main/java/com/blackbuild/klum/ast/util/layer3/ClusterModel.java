@@ -29,13 +29,11 @@ import groovy.transform.stc.SimpleType;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.reflection.CachedMethod;
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -51,26 +49,6 @@ public class ClusterModel {
     private ClusterModel() {}
 
     /**
-     * Returns the default name for a field of the given type. This is the uncapitalized simple name of the type. I.e.
-     * if a class Database had a single field of type UtilSchema, then the default name of such a field would be "utilSchema".
-     * @param type The class
-     * @return the uncapitalized named of the class.
-     */
-    public static String toDefaultFieldName(Class<?> type) {
-        return StringGroovyMethods.uncapitalize(type.getSimpleName());
-    }
-
-    /**
-     * Returns the default name for the type of the given object.
-     * @see #toDefaultFieldName(Class)
-     * @param object The object to determine the default name
-     * @return The uncapitalized name of object's class
-     */
-    public static String toDefaultFieldName(Object object) {
-        return toDefaultFieldName(object.getClass());
-    }
-
-    /**
      * Returns a map of all fields of the given container with the given type, using the given filter.
      * This includes null values.
      * @param container The object whose fields should be returned
@@ -78,8 +56,8 @@ public class ClusterModel {
      * @param filter Filter closure on the AnnotatedElement (Method or Field)
      * @return A Map of property names to property values containing all properties of the given type.
      */
-    public static <T> Map<String, T> getPropertyMap(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
-        return getPropertyMap(container, fieldType, filter::call);
+    public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
+        return getPropertiesOfType(container, fieldType, filter::call);
     }
 
     /**
@@ -90,7 +68,7 @@ public class ClusterModel {
      * @return A Map of property names to property values containing all properties of the given type.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, T> getPropertyMap(Object container, Class<T> fieldType) {
+    public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType) {
         return (Map<String, T>) getPropertiesStream(container, fieldType)
                 .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
     }
@@ -104,7 +82,7 @@ public class ClusterModel {
      * @return A Map of property names to property values containing all properties of the given type.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, T> getPropertyMap(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
+    public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
         return (Map<String, T>) getPropertiesStream(container, fieldType, it -> it.isAnnotationPresent(filter))
                 .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
     }
@@ -118,7 +96,7 @@ public class ClusterModel {
      * @return A Map of property names to property values containing all properties of the given type.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, T> getPropertyMap(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
+    public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
         return (Map<String, T>) getPropertiesStream(container, fieldType, filter)
                 .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
     }
@@ -131,8 +109,8 @@ public class ClusterModel {
      * @param filter Filter closure on the AnnotatedElement (Method or Field)
      * @return A Map of property names to property values containing all properties of the given type.
      */
-    public static <T> Map<String, T> getNonEmptyPropertyMap(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
-        return getNonEmptyPropertyMap(container,fieldType, filter::call);
+    public static <T> Map<String, T> getNonEmptyPropertiesOfType(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
+        return getNonEmptyPropertiesOfType(container,fieldType, filter::call);
     }
 
     /**
@@ -143,8 +121,8 @@ public class ClusterModel {
      * @param filter Annotation type that must be present on the field
      * @return A Map of property names to property values containing all properties of the given type.
      */
-    public static <T> Map<String, T> getNonEmptyPropertyMap(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
-        return getNonEmptyPropertyMap(container,fieldType, it -> it.isAnnotationPresent(filter));
+    public static <T> Map<String, T> getNonEmptyPropertiesOfType(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
+        return getNonEmptyPropertiesOfType(container,fieldType, it -> it.isAnnotationPresent(filter));
     }
 
     /**
@@ -155,7 +133,7 @@ public class ClusterModel {
      * @return A Map of property names to property values containing all properties of the given type.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, T> getNonEmptyPropertyMap(Object container, Class<T> fieldType) {
+    public static <T> Map<String, T> getNonEmptyPropertiesOfType(Object container, Class<T> fieldType) {
         return (Map<String, T>) getPropertiesStream(container, fieldType)
                 .filter(it -> it.getValue() != null)
                 .collect(toMap(PropertyValue::getName, PropertyValue::getValue));   }
@@ -169,7 +147,7 @@ public class ClusterModel {
      * @return A Map of property names to property values containing all properties of the given type.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, T> getNonEmptyPropertyMap(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
+    public static <T> Map<String, T> getNonEmptyPropertiesOfType(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
         return (Map<String, T>) getPropertiesStream(container, fieldType, filter)
                 .filter(it -> it.getValue() != null)
                 .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
@@ -182,8 +160,8 @@ public class ClusterModel {
      * @param filter Filter closure on the AnnotatedElement (Method or Field)
      * @return A Map of property names to collections of values.
      */
-    public static <T> Map<String, Collection<T>> getPropertyListMap(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
-        return getPropertyListMap(container, fieldType, filter::call);
+    public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
+        return getCollectionsOfType(container, fieldType, filter::call);
     }
 
     /**
@@ -193,8 +171,8 @@ public class ClusterModel {
      * @param filter Annotation type that must be present on the field
      * @return A Map of property names to collections of values.
      */
-    public static <T> Map<String, Collection<T>> getPropertyListMap(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
-        return getPropertyListMap(container, fieldType, it -> it.isAnnotationPresent(filter));
+    public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
+        return getCollectionsOfType(container, fieldType, it -> it.isAnnotationPresent(filter));
     }
 
     /**
@@ -204,7 +182,7 @@ public class ClusterModel {
      * @return A Map of property names to collections of values.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, Collection<T>> getPropertyListMap(Object container, Class<T> fieldType) {
+    public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType) {
         return getPropertiesStream(container, Collection.class)
                 .filter(it -> (boolean) InvokerHelper.invokeMethod(it.getValue(), "asBoolean", null))
                 .filter(it -> isCollectionOf(container, it, fieldType))
@@ -240,7 +218,7 @@ public class ClusterModel {
      * @return A Map of property names to collections of values.
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
-    public static <T> Map<String, Collection<T>> getPropertyListMap(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
+    public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
         return getPropertiesStream(container, Collection.class, filter)
                 .filter(it -> (boolean) InvokerHelper.invokeMethod(it.getValue(), "asBoolean", null))
                 .filter(it -> isCollectionOf(container, it, fieldType))
@@ -261,19 +239,19 @@ public class ClusterModel {
                 .filter(it -> hasField(container.getClass(), it.getName()));  // TODO Do we want to exclude getter only fields?
     }
 
-    public static List<PropertyValue> getUnsetProperties(Object container, Class<?> fieldType) {
+    public static List<PropertyValue> getUnsetPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> it.getValue() == null)
                 .collect(toList());
     }
 
-    public static List<PropertyValue> getSetProperties(Object container, Class<?> fieldType) {
+    public static List<PropertyValue> getSetPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> it.getValue() != null)
                 .collect(toList());
     }
 
-    public static List<PropertyValue> getAllProperties(Object container, Class<?> fieldType) {
+    public static List<PropertyValue> getAllPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .collect(toList());
     }
@@ -305,87 +283,8 @@ public class ClusterModel {
         return ((CachedMethod) property.getGetter()).getCachedMethod();
     }
 
-    /**
-     * Returns the name of the field of the container containing the given object. If the object is not
-     * contained in a field, returns an empty Optional.
-     * @param container The container object to search
-     * @param child The child object to look for
-     * @return The name of the field containing the child object, or an empty Optional if the object is not contained in a field.
-     */
-    public static Optional<String> getNameOfFieldContaining(Object container, @NotNull Object child) {
-        Objects.requireNonNull(child);
-        Optional<MetaProperty> field = getMetaClass(container).getProperties().stream()
-                .filter(ClusterModel::isNoInternalProperty)
-                .filter(MetaBeanProperty.class::isInstance)
-                .filter(it -> ((MetaBeanProperty) it).getGetter() != null)
-                .filter(it -> it.getType().isInstance(child))
-                .filter(it -> child == it.getProperty(container))
-                .findFirst();
-
-        return field.map(MetaProperty::getName);
-    }
-
-    static boolean isNoInternalProperty(MetaProperty property) {
-        return !property.getName().contains("$");
-    }
-
     static boolean isNoInternalProperty(PropertyValue property) {
         return !property.getName().contains("$");
-    }
-
-    /**
-     * Iterates through a data structure and returns all fields of the given type.
-     * @param container The container from which to extract the types
-     * @param type The target type to retrieve
-     * @param ignoredTypes All types in this list are completely ignored, i.e. not visited
-     * @param path The prefix to attach to the path
-     * @return a map of strings to objects
-     */
-    public static <T> Map<String, T> deepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path) {
-        return doDeepFind(container, type, ignoredTypes, path, new ArrayList<>());
-    }
-
-    protected static <T> Map<String, T> doDeepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path, List<Object> visited) {
-        Map<String, T> result = new HashMap<>();
-        if (container == null
-                || ignoredTypes.stream().anyMatch(it -> it.isInstance(container))
-                || visited.stream().anyMatch(it -> it == container))
-            return result;
-
-        visited.add(container);
-
-        if (type.isInstance(container)) {
-            //noinspection unchecked
-            result.put(path, (T) container);
-            return result;
-        }
-
-        if (container instanceof Collection) {
-            AtomicInteger index = new AtomicInteger();
-            ((Collection<?>) container).forEach(member -> result.putAll(doDeepFind(member, type, ignoredTypes, path + "[" + index.getAndIncrement() + "]", visited)));
-        }
-        else if (container instanceof Map) {
-            ((Map<?, ?>) container).forEach((key, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + key, visited)));
-        }
-        else {
-            getNonIgnoredProperties(container).forEach((name, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + name, visited)));
-        }
-
-        return result;
-    }
-
-    static Map<String, Object> getNonIgnoredProperties(Object container) {
-        Map<String, Object> result = new HashMap<>();
-        Class<?> type = container.getClass();
-
-        while (type != null) {
-            Arrays.stream(type.getDeclaredFields())
-                    .filter(it -> !it.getName().contains("$"))
-                    .forEach(it -> result.put(it.getName(), InvokerHelper.getProperty(container, it.getName())));
-            type = type.getSuperclass();
-        }
-
-        return result;
     }
 
     public static <T> T getSingleValueOrFail(Object container, Class<T> type, @ClosureParams(value = SimpleType.class, options = "java.lang.reflect.AnnotatedElement") Closure<Boolean> filter) {
@@ -434,7 +333,7 @@ public class ClusterModel {
     }
 
     public static <T> T getFieldOfType(Object container, Class<T> type, String name) {
-        Map<String, T> properties = getPropertyMap(container, type);
+        Map<String, T> properties = getPropertiesOfType(container, type);
 
         if (!properties.containsKey(name))
             throw new IllegalArgumentException("Class ${container.getClass().name} does not have a field '$name' with type '$type.name'");
@@ -449,7 +348,7 @@ public class ClusterModel {
     }
 
     public static Map<String, Object> getFieldsValues(Object object, Class<? extends Annotation> annotation) {
-        return getPropertyMap(object, Object.class, annotation);
+        return getPropertiesOfType(object, Object.class, annotation);
     }
 
     /**

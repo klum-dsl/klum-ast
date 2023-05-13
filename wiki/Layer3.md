@@ -134,7 +134,7 @@ For example, the `getApplications` method is implemented like this:
 
 ```groovy
 Map<String, Application> getApplications() {
-    ClusterModel.getPropertyMap(this, Application)
+    ClusterModel.getPropertiesOfType(this, Application)
 }
 ```
 
@@ -156,7 +156,7 @@ will be converted to
 
 ```groovy
 Map<String, Application> getApplications() {
-    return ClusterModel.getPropertyMap(this, Application, Important)
+    return ClusterModel.getPropertiesOfType(this, Application, Important)
 }
 ```
 ## Benefits of a Layer3 model
