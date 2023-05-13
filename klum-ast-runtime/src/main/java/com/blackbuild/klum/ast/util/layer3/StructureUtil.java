@@ -1,5 +1,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.DslHelper;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovy.lang.MetaProperty;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
@@ -7,6 +9,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -201,5 +204,43 @@ public class StructureUtil {
 
     static boolean isNoInternalProperty(MetaProperty property) {
         return !property.getName().contains("$");
+    }
+
+    /**
+     * Returns the full path of the given leaf object relative to its root element. This is determined by traversing
+     * the owner fields up until no more owner fields are encountered. Note that corner cases, like an object having two
+     * different owners or having only an owner method are not handled. The optional rootPath will be prepended to
+     * the path. If leaf is not a DSL object or does not have an owner, an empty string is returned, regardless of the rootPath
+     * @param leaf The object whose path is to be determined
+     * @param rootPath on optional root element to prepend to the path
+     * @return The full path of the object.
+     */
+    public static @NotNull String getFullPath(@NotNull Object leaf, @Nullable String rootPath) {
+        Deque<String> elements = new LinkedList<>();
+        addParentPaths(leaf, elements);
+
+        if (elements.isEmpty())
+            return "";
+
+        if (rootPath != null)
+            elements.addFirst(rootPath);
+        return String.join(".", elements);
+    }
+
+    public static void addParentPaths(Object leaf, Deque<String> elements) {
+        if (!DslHelper.isDslObject(leaf))
+            return;
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(leaf);
+        Object owner = proxy.getSingleOwner();
+        if (!DslHelper.isDslObject(owner))
+            return;
+
+        Optional<String> pathOfFieldContaining = getPathOfFieldContaining(owner, leaf);
+
+        if (!pathOfFieldContaining.isPresent())
+            return;
+        elements.addFirst(pathOfFieldContaining.get());
+        addParentPaths(owner, elements);
     }
 }

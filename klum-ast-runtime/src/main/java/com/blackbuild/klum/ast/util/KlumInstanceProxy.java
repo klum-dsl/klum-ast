@@ -36,6 +36,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.util.DslHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
@@ -68,7 +69,7 @@ public class KlumInstanceProxy {
      * @return the proxy instance of the given target.
      */
     public static KlumInstanceProxy getProxyFor(Object target) {
-        if (!isDslType(target.getClass()))
+        if (!isDslObject(target))
             throw new IllegalArgumentException(format("Object of type %s is no dsl object", target.getClass()));
         return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
     }
@@ -327,14 +328,19 @@ public class KlumInstanceProxy {
      * Returns the first nonNull field annotated with {@link Owner} or null if none is found.
      * @return
      */
-    Object getOwner() {
-        return DslHelper.getFieldsAnnotatedWith(instance.getClass(), Owner.class)
-                .stream()
+    public Object getSingleOwner() {
+        Set<Object> owners = getOwners();
+        if (owners.size() > 1)
+            throw new IllegalStateException("Object has more that on distinct owner");
+        return owners.stream().findFirst().orElse(null);
+    }
+
+    public Set<Object> getOwners() {
+        return getFieldsAnnotatedWith(instance.getClass(), Owner.class).stream()
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+                .collect(Collectors.toSet());
     }
 
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
