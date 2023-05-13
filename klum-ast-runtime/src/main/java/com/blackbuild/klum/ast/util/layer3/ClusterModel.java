@@ -23,7 +23,10 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import groovy.lang.*;
+import groovy.lang.Closure;
+import groovy.lang.GroovySystem;
+import groovy.lang.MetaBeanProperty;
+import groovy.lang.PropertyValue;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
 import org.codehaus.groovy.reflection.CachedField;
@@ -32,14 +35,19 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.*;
-import static org.codehaus.groovy.runtime.DefaultGroovyMethods.*;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static org.codehaus.groovy.runtime.DefaultGroovyMethods.getMetaClass;
+import static org.codehaus.groovy.runtime.DefaultGroovyMethods.getMetaPropertyValues;
 
 /**
  * Helper class that can be used for (not only) cluster models. A cluster model provides access to
@@ -184,7 +192,6 @@ public class ClusterModel {
     @SuppressWarnings("unchecked") // PropertyValue is not generic
     public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType) {
         return getPropertiesStream(container, Collection.class)
-                .filter(it -> (boolean) InvokerHelper.invokeMethod(it.getValue(), "asBoolean", null))
                 .filter(it -> isCollectionOf(container, it, fieldType))
                 .collect(toMap(PropertyValue::getName, it -> (Collection<T>) it.getValue()));
     }
@@ -193,21 +200,42 @@ public class ClusterModel {
         if (!Collection.class.isAssignableFrom(value.getType()))
             return false;
 
+        Optional<ParameterizedType> aType = getParameterizedTypeForProperty(container, value);
+
+        return getGenericParameter(aType, 1)
+                .filter(type::isAssignableFrom)
+                .isPresent();
+    }
+
+    static <T> boolean isMapOf(Object container, PropertyValue value, Class<T> type) {
+        if (!Map.class.isAssignableFrom(value.getType()))
+            return false;
+
+        Optional<ParameterizedType> aType = getParameterizedTypeForProperty(container, value);
+
+        return getGenericParameter(aType, 2)
+                .filter(type::isAssignableFrom)
+                .isPresent();
+    }
+
+    @NotNull
+    private static Optional<Class<?>> getGenericParameter(Optional<ParameterizedType> aType, int index) {
+        return aType
+                .map(ParameterizedType::getActualTypeArguments)
+                .filter(fieldArgTypes -> fieldArgTypes.length >= index)
+                .map(fieldArgTypes -> fieldArgTypes[index - 1])
+                .map(it -> (Class<?>) it);
+    }
+
+    private static Optional<ParameterizedType> getParameterizedTypeForProperty(Object container, PropertyValue value) {
         AnnotatedElement element = getAnnotatedElementForProperty(container, value);
-        if (!(element instanceof Field))
-            return false;
-        Field field = (Field) element;
 
-        Type genericFieldType = field.getGenericType();
-        if (!(genericFieldType instanceof ParameterizedType))
-            return false;
-
-        ParameterizedType aType = (ParameterizedType) genericFieldType;
-        Type[] fieldArgTypes = aType.getActualTypeArguments();
-        if (fieldArgTypes == null || fieldArgTypes.length == 0)
-            return false;
-        Type fieldArgType = fieldArgTypes[0];
-        return type.isAssignableFrom((Class<?>) fieldArgType);
+        return Optional.of(element)
+                .filter(Field.class::isInstance)
+                .map(it -> (Field) it)
+                .map(Field::getGenericType)
+                .filter(ParameterizedType.class::isInstance)
+                .map(it -> (ParameterizedType) it);
     }
 
     /**
@@ -220,19 +248,18 @@ public class ClusterModel {
     @SuppressWarnings("unchecked") // PropertyValue is not generic
     public static <T> Map<String, Collection<T>> getCollectionsOfType(Object container, Class<T> fieldType, Predicate<AnnotatedElement> filter) {
         return getPropertiesStream(container, Collection.class, filter)
-                .filter(it -> (boolean) InvokerHelper.invokeMethod(it.getValue(), "asBoolean", null))
                 .filter(it -> isCollectionOf(container, it, fieldType))
                 .collect(toMap(PropertyValue::getName, it -> (Collection<T>) it.getValue()));
     }
 
     @NotNull
-    private static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType, Predicate<AnnotatedElement> filter) {
+    static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType, Predicate<AnnotatedElement> filter) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> filter.test(getAnnotatedElementForProperty(container, it)));
     }
 
     @NotNull
-    private static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType) {
+    static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType) {
         return getMetaPropertyValues(container).stream()
                 .filter(ClusterModel::isNoInternalProperty)
                 .filter(it -> fieldType.isAssignableFrom(it.getType()))

@@ -23,18 +23,8 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.groovy.configdsl.transform.Default;
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.groovy.configdsl.transform.Key;
-import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.groovy.configdsl.transform.PostApply;
-import com.blackbuild.groovy.configdsl.transform.PostCreate;
-import com.blackbuild.groovy.configdsl.transform.Validation;
-import groovy.lang.Closure;
-import groovy.lang.GroovyObject;
-import groovy.lang.GroovyRuntimeException;
-import groovy.lang.MissingPropertyException;
-import groovy.lang.Script;
+import com.blackbuild.groovy.configdsl.transform.*;
+import groovy.lang.*;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.reflection.CachedField;
@@ -43,25 +33,12 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Optional;
+import java.lang.reflect.*;
+import java.util.*;
 
-import static com.blackbuild.klum.ast.util.DslHelper.castTo;
-import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
-import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
-import static com.blackbuild.klum.ast.util.DslHelper.isKeyed;
-import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_TRANSIENT;
+import static com.blackbuild.klum.ast.util.DslHelper.*;
+import static groovyjarjarasm.asm.Opcodes.*;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
@@ -344,6 +321,20 @@ public class KlumInstanceProxy {
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> getRwInstance().invokeMethod(method, value));
+    }
+
+    /**
+     * Returns the first nonNull field annotated with {@link Owner} or null if none is found.
+     * @return
+     */
+    Object getOwner() {
+        return DslHelper.getFieldsAnnotatedWith(instance.getClass(), Owner.class)
+                .stream()
+                .map(Field::getName)
+                .map(instance::getProperty)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {

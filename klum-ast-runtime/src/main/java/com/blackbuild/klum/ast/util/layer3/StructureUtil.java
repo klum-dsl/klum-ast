@@ -1,7 +1,8 @@
 package com.blackbuild.klum.ast.util.layer3;
 
-import groovy.lang.MetaBeanProperty;
 import groovy.lang.MetaProperty;
+import groovy.lang.PropertyValue;
+import groovy.lang.Tuple2;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.codehaus.groovy.tools.Utilities;
@@ -11,7 +12,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
-import static org.codehaus.groovy.runtime.DefaultGroovyMethods.getMetaClass;
 
 public class StructureUtil {
 
@@ -140,20 +140,63 @@ public class StructureUtil {
      * @param child The child object to look for
      * @return The name of the field containing the child object, or an empty Optional if the object is not contained in a field.
      */
-    public static Optional<String> getNameOfFieldContaining(Object container, @NotNull Object child) {
-        Objects.requireNonNull(child);
-        Optional<MetaProperty> field = getMetaClass(container).getProperties().stream()
-                .filter(StructureUtil::isNoInternalProperty)
-                .filter(MetaBeanProperty.class::isInstance)
-                .filter(it -> ((MetaBeanProperty) it).getGetter() != null)
-                .filter(it -> it.getType().isInstance(child))
-                .filter(it -> child == it.getProperty(container))
+    public static Optional<String> getPathOfFieldContaining(Object container, @NotNull Object child) {
+        Optional<String> singleValuePath = getPathOfSingleField(container, child);
+        if (singleValuePath.isPresent()) return singleValuePath;
+
+        Optional<String> collectionPath = getPathOfCollectionMember(container, child);
+        if (collectionPath.isPresent()) return collectionPath;
+
+        return getPathOfMapMember(container, child);
+    }
+
+    @NotNull
+    static Optional<String> getPathOfMapMember(Object container, @NotNull Object child) {
+        return ClusterModel.getPropertiesStream(container, Map.class)
+                .filter(it -> ClusterModel.isMapOf(container, it, child.getClass()))
+                .map(it -> new Tuple2<Object, Optional<?>>(it.getName(), findKeyForValue((Map<?, ?>) it.getValue(), child)))
+                .filter(it -> it.getSecond().isPresent())
+                .map(it -> toGPath(it.getFirst()) + "." + toGPath(it.getSecond().get()))
                 .findFirst();
+    }
 
-        if (field.isPresent())
-            return field.map(MetaProperty::getName).map(StructureUtil::toGPath);
+    @NotNull
+    static Optional<String> getPathOfCollectionMember(Object container, @NotNull Object child) {
+        return ClusterModel.getPropertiesStream(container, Collection.class)
+                .filter(it -> ClusterModel.isCollectionOf(container, it, child.getClass()))
+                .map(it -> new Tuple2<>(it.getName(), getIndexInCollection((Collection<?>) it.getValue(), child)))
+                .filter(it -> it.getSecond() != -1)
+                .map(it -> toGPath(it.getFirst()) + "[" + it.getSecond() + "]")
+                .findFirst();
+    }
 
-        return Optional.empty(); // TODO fix
+    @NotNull
+    static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
+        return ClusterModel.getPropertiesStream(container, child.getClass())
+                .filter(it -> it.getValue() == child)
+                .map(PropertyValue::getName)
+                .map(StructureUtil::toGPath)
+                .findFirst();
+    }
+
+    static int getIndexInCollection(Collection<?> container, Object child) {
+        if (container instanceof List)
+            return ((List<?>) container).indexOf(child);
+
+        int index = 0;
+        for (Object element: container) {
+            if (element == child)
+                return index;
+            index++;
+        }
+        return -1;
+    }
+
+    static Optional<?> findKeyForValue(Map<?, ?> map, @NotNull Object value) {
+        return map.entrySet().stream()
+                .filter(it -> it.getValue() == value)
+                .map(Map.Entry::getKey)
+                .findFirst();
     }
 
     static boolean isNoInternalProperty(MetaProperty property) {
