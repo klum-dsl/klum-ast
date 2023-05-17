@@ -140,7 +140,7 @@ import com.blackbuild.groovy.configdsl.transform.Owner
     }
 
     @SuppressWarnings('GroovyAssignabilityCheck')
-    def "Relative path is correctly returned"() {
+    def "Ancestor of type is returned"() {
         when:
         def demoProject = instance.projects.demo
         def demo2Project = instance.projects['demo-2']
@@ -148,9 +148,9 @@ import com.blackbuild.groovy.configdsl.transform.Owner
         def demo2Mvn = demo2Project.mvn
 
         then:
-        StructureUtil.getAncestorOfType(demoMvn, Config) == instance
-        StructureUtil.getAncestorOfType(demo2Mvn, Config) == instance
-        StructureUtil.getAncestorOfType(demoMvn, Project) == demoProject
-        StructureUtil.getAncestorOfType(demo2Mvn, Project) == demo2Project
+        StructureUtil.getAncestorOfType(demoMvn, Config).get() == instance
+        StructureUtil.getAncestorOfType(demo2Mvn, Config).get() == instance
+        StructureUtil.getAncestorOfType(demoMvn, Project).get() == demoProject
+        StructureUtil.getAncestorOfType(demo2Mvn, Project).get() == demo2Project
     }
 }

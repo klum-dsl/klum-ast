@@ -258,7 +258,7 @@ public class StructureUtil {
                     .filter(i -> stopCondition.test(ownerHierarchy.get(i)))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Could not find matching ancestor"));
-            truncatedList = ownerHierarchy.subList(indexOfAncestor, ownerHierarchy.size());
+            truncatedList = ownerHierarchy.subList(0, indexOfAncestor + 1);
         } else {
             truncatedList = ownerHierarchy;
         }
@@ -338,11 +338,11 @@ public class StructureUtil {
 
     static Deque<String> hierarchyToPath(List<Object> hierarchy) {
         Deque<String> result = new ArrayDeque<>();
-        for (int i = hierarchy.size() - 1;  i > 1; i--) {
+        for (int i = hierarchy.size() - 1;  i > 0; i--) {
             Object owner = hierarchy.get(i);
             Object child = hierarchy.get(i - 1);
             String path = getPathOfFieldContaining(owner, child).orElseThrow(() -> new IllegalStateException("Object " + owner + " does not contain " + child));
-            result.addFirst(path);
+            result.add(path);
         }
         return result;
     }
