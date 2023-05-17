@@ -337,7 +337,7 @@ public class StructureUtil {
     }
 
     static Deque<String> hierarchyToPath(List<Object> hierarchy) {
-        Deque<String> result = new LinkedList<>();
+        Deque<String> result = new ArrayDeque<>();
         for (int i = hierarchy.size() - 1;  i > 1; i--) {
             Object owner = hierarchy.get(i);
             Object child = hierarchy.get(i - 1);

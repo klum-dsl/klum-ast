@@ -325,8 +325,10 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Returns the first nonNull field annotated with {@link Owner} or null if none is found.
-     * @return
+     * Returns the owner of this object. If the object has more than one field annotated with {@link Owner},
+     * all of them that are not null must point to the same object, otherwise an {@link IllegalStateException}
+     * is thrown.
+     * @return The found owner or null
      */
     public Object getSingleOwner() {
         Set<Object> owners = getOwners();
@@ -335,6 +337,11 @@ public class KlumInstanceProxy {
         return owners.stream().findFirst().orElse(null);
     }
 
+    /**
+     * Returns the unique values of all fields annotated with {@link Owner} that are not null, i.e.
+     * if multiple owner fields point to the same object, it is included only once in the result.
+     * @return The set of owners
+     */
     public Set<Object> getOwners() {
         return getFieldsAnnotatedWith(instance.getClass(), Owner.class).stream()
                 .map(Field::getName)
