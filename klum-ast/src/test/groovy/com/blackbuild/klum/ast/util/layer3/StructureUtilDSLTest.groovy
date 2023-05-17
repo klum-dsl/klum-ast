@@ -28,7 +28,12 @@ import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 class StructureUtilDSLTest extends AbstractDSLSpec {
 
-    def "Root path is correctly returned"() {
+    Class<?> Project
+    Class<?> Config
+    Class<?> MavenConfig
+
+    @SuppressWarnings(['GrPackage', 'GroovyAssignabilityCheck'])
+    def setup() {
         createClass('''
             package tmp
 
@@ -63,7 +68,6 @@ import com.blackbuild.groovy.configdsl.transform.Owner
             }
         ''')
 
-        when:
         def github = "http://github.com"
         instance = create("tmp.Config") {
 
@@ -95,8 +99,58 @@ import com.blackbuild.groovy.configdsl.transform.Owner
             }
         }
 
+        Project = getClass("tmp.Project")
+        Config = getClass("tmp.Config")
+        MavenConfig = getClass("tmp.MavenConfig")
+    }
+
+
+    def "Root path is correctly returned"() {
+        when:
+        def demoProject = instance.projects.demo
+        def demo2Project = instance.projects['demo-2']
+        def demoMvn = demoProject.mvn
+        def demo2Mvn = demo2Project.mvn
+
         then:
-        StructureUtil.getFullPath(instance.projects.demo.mvn, "<root>") == "<root>.projects.demo.mvn"
-        StructureUtil.getFullPath(instance.projects['demo-2'].mvn, "<root>") == "<root>.projects.'demo-2'.mvn"
+        StructureUtil.getFullPath(demoMvn, "<root>") == "<root>.projects.demo.mvn"
+        StructureUtil.getFullPath(demo2Mvn, "<root>") == "<root>.projects.'demo-2'.mvn"
+    }
+
+    def "Relative path is correctly returned"() {
+        when:
+        def demoProject = instance.projects.demo
+        def demo2Project = instance.projects['demo-2']
+        def demoMvn = demoProject.mvn
+        def demo2Mvn = demo2Project.mvn
+
+        then:
+        StructureUtil.getRelativePath(demoProject, demoMvn) == "mvn"
+
+        when:
+        StructureUtil.getRelativePath(demoProject, demo2Mvn)
+
+        then:
+        thrown(IllegalArgumentException)
+
+        expect:
+        StructureUtil.getRelativePath(Project, demo2Mvn) == "mvn"
+        StructureUtil.getRelativePath(Project, demoMvn) == "mvn"
+        StructureUtil.getRelativePath(Config, demoMvn) == "projects.demo.mvn"
+    }
+
+    @SuppressWarnings('GroovyAssignabilityCheck')
+    def "Relative path is correctly returned"() {
+        when:
+        def demoProject = instance.projects.demo
+        def demo2Project = instance.projects['demo-2']
+        def demoMvn = demoProject.mvn
+        def demo2Mvn = demo2Project.mvn
+
+        then:
+        StructureUtil.getAncestorOfType(demoMvn, Config) == instance
+        StructureUtil.getAncestorOfType(demo2Mvn, Config) == instance
+        StructureUtil.getAncestorOfType(demoMvn, Project) == demoProject
+        StructureUtil.getAncestorOfType(demo2Mvn, Project) == demo2Project
     }
 }

@@ -36,9 +36,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 
-import static java.lang.String.format;
-
+/**
+ * Utility class for working with data structures. Provides methods to iterate through data structures and find
+ * specific ancestors or GPath expressions.
+ */
 public class StructureUtil {
 
     private StructureUtil() {
@@ -130,16 +134,6 @@ public class StructureUtil {
         return result;
     }
 
-    public static String getRelativePath(Object container, Object child, List<Class<?>> ignoredTypes) {
-        Map<String, ?> stringMap = deepFind(container, child.getClass(), ignoredTypes);
-        // return the first key of stringMap that has child as value
-        return stringMap.entrySet().stream()
-                .filter(it -> it.getValue() == child)
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(format("Object %s is not contained in %s", child, container)));
-    }
-
     static String toGPath(Object value) {
         String text = value.toString();
         return Utilities.isJavaIdentifier(text) ? text : InvokerHelper.inspect(text);
@@ -178,9 +172,10 @@ public class StructureUtil {
 
     @NotNull
     static Optional<String> getPathOfMapMember(Object container, @NotNull Object child) {
+        //noinspection unchecked
         return ClusterModel.getPropertiesStream(container, Map.class)
                 .filter(it -> ClusterModel.isMapOf(container, it, child.getClass()))
-                .map(it -> new Tuple2<Object, Optional<?>>(it.getName(), findKeyForValue((Map<?, ?>) it.getValue(), child)))
+                .map(it -> new Tuple2<Object, Optional<String>>(it.getName(), findKeyForValue((Map<String, Object>) it.getValue(), child)))
                 .filter(it -> it.getSecond().isPresent())
                 .map(it -> toGPath(it.getFirst()) + "." + toGPath(it.getSecond().get()))
                 .findFirst();
@@ -218,7 +213,7 @@ public class StructureUtil {
         return -1;
     }
 
-    static Optional<?> findKeyForValue(Map<?, ?> map, @NotNull Object value) {
+    static <K, V> Optional<K> findKeyForValue(Map<K, V> map, @NotNull V value) {
         return map.entrySet().stream()
                 .filter(it -> it.getValue() == value)
                 .map(Map.Entry::getKey)
@@ -232,6 +227,18 @@ public class StructureUtil {
     /**
      * Returns the full path of the given leaf object relative to its root element. This is determined by traversing
      * the owner fields up until no more owner fields are encountered. Note that corner cases, like an object having two
+     * different owners or having only an owner method are not handled.
+     *
+     * @param leaf The object whose path is to be determined
+     * @return The full path of the object.
+     */
+    public static @NotNull String getFullPath(@NotNull Object leaf) {
+        return getFullPath(leaf, null);
+    }
+
+    /**
+     * Returns the full path of the given leaf object relative to its root element. This is determined by traversing
+     * the owner fields up until no more owner fields are encountered. Note that corner cases, like an object having two
      * different owners or having only an owner method are not handled. The optional rootPath will be prepended to
      * the path. If leaf is not a DSL object or does not have an owner, an empty string is returned, regardless of the rootPath
      * @param leaf The object whose path is to be determined
@@ -239,31 +246,122 @@ public class StructureUtil {
      * @return The full path of the object.
      */
     public static @NotNull String getFullPath(@NotNull Object leaf, @Nullable String rootPath) {
-        Deque<String> elements = new LinkedList<>();
-        addParentPaths(leaf, elements);
+        return createPath(leaf, null, rootPath);
+    }
 
-        if (elements.isEmpty())
-            return "";
+    static String createPath(Object child, Predicate<Object> stopCondition, String rootPath) {
+        final List<Object> ownerHierarchy = getOwnerHierarchy(child);
+
+        List<Object> truncatedList;
+        if (stopCondition != null) {
+            int indexOfAncestor = IntStream.range(0, ownerHierarchy.size())
+                    .filter(i -> stopCondition.test(ownerHierarchy.get(i)))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Could not find matching ancestor"));
+            truncatedList = ownerHierarchy.subList(indexOfAncestor, ownerHierarchy.size());
+        } else {
+            truncatedList = ownerHierarchy;
+        }
+
+        Deque<String> elements = hierarchyToPath(truncatedList);
 
         if (rootPath != null)
             elements.addFirst(rootPath);
+
         return String.join(".", elements);
     }
 
-    public static void addParentPaths(Object leaf, Deque<String> elements) {
-        if (!DslHelper.isDslObject(leaf))
-            return;
-
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(leaf);
-        Object owner = proxy.getSingleOwner();
-        if (!DslHelper.isDslObject(owner))
-            return;
-
-        Optional<String> pathOfFieldContaining = getPathOfFieldContaining(owner, leaf);
-
-        if (!pathOfFieldContaining.isPresent())
-            return;
-        elements.addFirst(pathOfFieldContaining.get());
-        addParentPaths(owner, elements);
+    /**
+     * Returns the path from the container to the child object, but searching upwards through the owner objects
+     * of each layer until the container is found. If the root is reached without finding the container, or if the
+     * ancestor structure is invalid, an IllegalArgumentException is thrown.
+     * @param container The container object to search
+     * @param child The target of the path
+     * @return The path from the container to the child object
+     */
+    public static String getRelativePath(Object container, Object child) {
+        return getRelativePath(container, child, null);
     }
+
+    /**
+     * Returns the path from the container to the child object, but searching upwards through the owner objects
+     * of each layer until the container is found. If the root is reached without finding the container, or if the
+     * ancestor structure is invalid, an IllegalArgumentException is thrown.
+     * @param container The container object to search
+     * @param child The target of the path
+     * @param rootPath on optional root element to prepend to the path
+     * @return The path from the container to the child object
+     */
+    public static String getRelativePath(Object container, Object child, String rootPath) {
+        return createPath(child, container::equals, rootPath);
+    }
+
+    /**
+     * Returns the path from the container to the child object, but searching upwards through the owner objects
+     * of each layer until an ancestor of the given type is found. If the root is reached without finding the container, or if the
+     * ancestor structure is invalid, an IllegalArgumentException is thrown.
+     * @param containerType The type of ancestor to be searched for
+     * @param child The target of the path
+     * @return The path from the container to the child object
+     */
+    public static String getRelativePath(Class<?> containerType, Object child) {
+        return getRelativePath(containerType, child, null);
+    }
+
+    /**
+     * Returns the path from the container to the child object, but searching upwards through the owner objects
+     * of each layer until an ancestor of the given type is found. If the root is reached without finding the container, or if the
+     * ancestor structure is invalid, an IllegalArgumentException is thrown.
+     * @param containerType The type of ancestor to be searched for
+     * @param child The target of the path
+     * @param rootPath on optional root element to prepend to the path
+     * @return The path from the container to the child object
+     */
+    public static String getRelativePath(Class<?> containerType, Object child, String rootPath) {
+        return createPath(child, containerType::isInstance, rootPath);
+    }
+
+    /**
+     * Returns the ancestor of the given type for the given child object. If the child object is not a DSL object or has
+     * no ancestor of the given type, an empty optional is returned.
+     * @param child The child whose ancestor is to be found
+     * @param type The type of ancestor to be found
+     * @return The ancestor of the given type, or an empty optional if none was found
+     * @param <T> The type of ancestor to be found
+     */
+    public static <T> Optional<T> getAncestorOfType(Object child, Class<T> type) {
+        //noinspection unchecked
+        return (Optional<T>) getOwnerHierarchy(child).stream()
+                .filter(type::isInstance)
+                .findFirst();
+    }
+
+    static Deque<String> hierarchyToPath(List<Object> hierarchy) {
+        Deque<String> result = new LinkedList<>();
+        for (int i = hierarchy.size() - 1;  i > 1; i--) {
+            Object owner = hierarchy.get(i);
+            Object child = hierarchy.get(i - 1);
+            String path = getPathOfFieldContaining(owner, child).orElseThrow(() -> new IllegalStateException("Object " + owner + " does not contain " + child));
+            result.addFirst(path);
+        }
+        return result;
+    }
+
+    /**
+     * Returns the owner hierarchy of the given leaf object, starting with the leaf object itself and ending with the root object.
+     * Throws an IllegalStateException if an object in the hierarchy contains more than one owner or if the hierarchy contains a cycle.
+     * @param leaf The leaf object
+     * @return The owner hierarchy of the leaf object
+     */
+    public static List<Object> getOwnerHierarchy(Object leaf) {
+        List<Object> result = new ArrayList<>();
+        while (DslHelper.isDslObject(leaf)) {
+            if (result.contains(leaf))
+                throw new IllegalStateException("Object " + leaf + " has an owner cycle");
+            result.add(leaf);
+            leaf = KlumInstanceProxy.getProxyFor(leaf).getSingleOwner();
+        }
+        return result;
+     }
+
 }
