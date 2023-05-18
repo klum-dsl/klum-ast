@@ -23,39 +23,15 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.DSL;
-import com.blackbuild.groovy.configdsl.transform.Default;
-import com.blackbuild.groovy.configdsl.transform.Field;
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.groovy.configdsl.transform.Key;
-import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.groovy.configdsl.transform.Validate;
-import com.blackbuild.groovy.configdsl.transform.Validation;
+import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import groovy.util.DelegatingScript;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.ConstructorNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.InnerClassNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.MixinNode;
-import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.expr.BooleanExpression;
-import org.codehaus.groovy.ast.expr.ClassExpression;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.GStringExpression;
-import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
@@ -72,58 +48,18 @@ import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.DEPRECATED_NODE;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethodFromClosure;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
-import static com.blackbuild.klum.common.CommonAstHelper.COLLECTION_TYPE;
-import static com.blackbuild.klum.common.CommonAstHelper.NO_EXCEPTIONS;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
-import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsParameterless;
-import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
-import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
-import static com.blackbuild.klum.common.CommonAstHelper.getGenericsTypes;
-import static com.blackbuild.klum.common.CommonAstHelper.initializeCollectionOrMap;
-import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
-import static com.blackbuild.klum.common.CommonAstHelper.isMap;
-import static com.blackbuild.klum.common.CommonAstHelper.toStronglyTypedClosure;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.util.stream.Collectors.toList;
-import static org.codehaus.groovy.ast.ClassHelper.Boolean_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.hasDeclaredMethod;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
 import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
@@ -164,6 +100,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
+
     ClassNode annotatedClass;
     ClassNode dslParent;
     FieldNode keyField;
@@ -208,6 +145,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createTemplateMethods();
         createFactoryMethods();
         createConvenienceFactories();
+
+
         createFieldDSLMethods();
         createValidateMethod();
         validateDefaultAnnotation();
@@ -704,7 +643,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createCollectionMethods(FieldNode fieldNode) {
         initializeCollectionOrMap(fieldNode);
 
-        ClassNode elementType = getGenericsTypes(fieldNode)[0].getType();
+        ClassNode elementType = getElementTypeForCollection(fieldNode.getType());
+
+        if (elementType == null) {
+            addCompileError("Collection must have a generic type.", fieldNode);
+            return;
+        }
 
         if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
             createCollectionOfDSLObjectMethods(fieldNode, elementType);
@@ -828,7 +772,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createMapMethods(FieldNode fieldNode) {
         initializeCollectionOrMap(fieldNode);
 
-        ClassNode valueType = getElementType(fieldNode);
+        ClassNode valueType = getElementTypeForMap(fieldNode.getType());
 
         if (isDSLObject(valueType))
             createMapOfDSLObjectMethods(fieldNode, valueType);
@@ -840,7 +784,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = fieldNode.getName();
         String singleElementMethod = getElementNameForCollectionField(fieldNode);
 
-        ClassNode keyType = getGenericsTypes(fieldNode)[0].getType();
+        ClassNode keyType = getKeyTypeForMap(fieldNode.getType());
 
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
@@ -1140,4 +1084,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
+    public ClassNode getAnnotatedClass() {
+        return annotatedClass;
+    }
 }

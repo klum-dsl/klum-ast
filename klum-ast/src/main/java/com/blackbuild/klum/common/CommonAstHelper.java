@@ -23,26 +23,8 @@
  */
 package com.blackbuild.klum.common;
 
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.CompileUnit;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.PropertyNode;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
-import org.codehaus.groovy.ast.expr.ClassExpression;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.ListExpression;
-import org.codehaus.groovy.ast.expr.MapEntryExpression;
-import org.codehaus.groovy.ast.expr.MapExpression;
-import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
@@ -55,16 +37,7 @@ import org.codehaus.groovy.syntax.Token;
 import org.codehaus.groovy.syntax.Types;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -72,14 +45,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
 
 /**
@@ -324,13 +290,42 @@ public class CommonAstHelper {
         return types;
     }
 
+    public static ClassNode getElementTypeForMap(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        if (genericsTypes == null || genericsTypes.length < 2)
+            return null;
+
+        return genericsTypes[1].getType();
+    }
+
+    public static ClassNode getKeyTypeForMap(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        // error handling
+        return genericsTypes[0].getType();
+    }
+
+    public static ClassNode getElementTypeForCollection(ClassNode type) {
+        GenericsType[] genericsTypes = type.getGenericsTypes();
+
+        if (genericsTypes == null || genericsTypes.length == 0)
+            return null;
+
+        return genericsTypes[0].getType();
+    }
+
     public static ClassNode getElementType(FieldNode fieldNode) {
-        if (isMap(fieldNode.getType()))
-            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 1);
-        else if (isCollection(fieldNode.getType()))
-            return getTypeFromArrayNullSafe(getGenericsTypes(fieldNode), 0);
+        return getElementType(fieldNode.getType());
+    }
+
+    private static ClassNode getElementType(ClassNode type) {
+        if (isMap(type))
+            return getElementTypeForMap(type);
+        else if (isCollection(type))
+            return getElementTypeForCollection(type);
         else
-            return fieldNode.getType();
+            return type;
     }
 
     private static ClassNode getTypeFromArrayNullSafe(GenericsType[] array, int index) {
@@ -367,7 +362,7 @@ public class CommonAstHelper {
 
         ClassNode fieldType = fieldNode.getType();
         if (fieldType.equals(ENUM_SET_TYPE))
-            initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementType(fieldNode))));
+            initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementTypeForCollection(fieldType))));
         else if (isCollection(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new ListExpression()));
         else if (fieldType.equals(CommonAstHelper.SORTED_MAP_TYPE))

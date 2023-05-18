@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
+import org.codehaus.groovy.runtime.InvokerHelper
 import org.intellij.lang.annotations.Language
 import org.junit.Rule
 import org.junit.rules.TestName
@@ -34,7 +35,7 @@ abstract class AbstractRuntimeTest extends Specification {
     @Rule TestName testName = new TestName()
     ClassLoader oldLoader
     GroovyClassLoader loader
-    GroovyObject instance
+    Object instance
     Class<?> clazz
     CompilerConfiguration compilerConfiguration
 
@@ -90,7 +91,7 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
     }
 
     def newInstanceOf(String className, Object[] args = []) {
-        return getClass(className).newInstance(args)
+        return InvokerHelper.invokeConstructorOf(getClass(className), args)
     }
 
     def createClass(@Language("groovy") String code) {

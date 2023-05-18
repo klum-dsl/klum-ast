@@ -1,7 +1,8 @@
 ## 2.0.0 (unreleased)
 - New Features
-    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins).
+    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins).
     - Replace basic jackson transformation with a dedicated (beta) JacksonModule (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration))).
+    - First steps for Layer3 models. (see [Layer3](https://github.com/klum-dsl/klum-ast/wiki/Layer3))
 - Improvements
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))
@@ -34,7 +35,7 @@
   - since rc.9
     - Handling of key fields in hierarchies (see [#238](https://github.com/klum-dsl/klum-ast/issues/238))
   - since rc.5
-    - Visiblity for creator methods was wrong (see [#232](https://github.com/klum-dsl/klum-ast/issues/232))
+    - Visibility for creator methods was wrong (see [#232](https://github.com/klum-dsl/klum-ast/issues/232))
     
 - Dependency changes/Internal
   - since rc.14
@@ -47,7 +48,7 @@
 
 ## 1.2.1
 - Changes/Improvements
-    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatitibility with Jenkins). Note that this is not yet automatically tested.
+    - Compatibility with Groovy 3. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins). Note that this is not yet automatically tested.
 
 ## 1.2.0
 - New Features
@@ -60,11 +61,11 @@
         - IGNORED fields don't get DSL methods, but their setters are still only in the RW Model (see [#126](https://github.com/klum-dsl/klum-ast/issues/126))
         - LINK fields only get reuse DSL methods, but no creation methods. (see [#172](https://github.com/klum-dsl/klum-ast/issues/172))
     - New optional classloader parameter for `createFrom(String|File|Url)` (see [#123](https://github.com/klum-dsl/klum-ast/issues/123))
-    - For map fields, arbitrary key values (derived from the element) can be used using a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127) and [#128](https://github.com/klum-dsl/klum-ast/issues/128))
+    - For map fields, arbitrary key values (derived from the element) can be used with a new `Field.keyMapping` value (see [#127](https://github.com/klum-dsl/klum-ast/issues/127) and [#128](https://github.com/klum-dsl/klum-ast/issues/128))
     - Setter-like methods (with exactly one parameter) can be declared as [virtual fields](https://github.com/klum-dsl/klum-ast/wiki/Basics#virtual-fields) using the `@Field` annotation (see [#19](https://github.com/klum-dsl/klum-ast/issues/19))
     - Using [converters](https://github.com/klum-dsl/klum-ast/wiki/Converters), additional setters / adders with different parameter sets can be generated (see [#148](https://github.com/klum-dsl/klum-ast/issues/148), [#152](https://github.com/klum-dsl/klum-ast/issues/152) and [#154](https://github.com/klum-dsl/klum-ast/issues/154))
     - allow any number of owner fields across the hierarchy (see [#171](https://github.com/klum-dsl/klum-ast/issues/171))
-    - Experimental support for JsonIgnore Annotations. Currently, this is hardbaked in the lib and activates
+    - Experimental support for JsonIgnore Annotations. Currently, this is hard baked in the lib and activates
       if Jackson is found on the classpath during compilation. This will eventually be moved
       into a separate module (klum-ast-jackson and later klum-ast-json)
     - Allow custom parameters to be injected to DSL method parameters (esp. DelegatesTo and ClosureParams for closure fields) (see [Advanced Techniques](https://github.com/klum-dsl/klum-ast/wiki/Advanced-Techniques) and [#150](https://github.com/klum-dsl/klum-ast/issues/150)) 
@@ -85,8 +86,8 @@
 - Fixes
     - Fix delegating script factory for keyed objects
     - Execute Post-apply for delegating scripts as well
-    - Fixed a bug that occured when the name of an field dsl methods was identical to the name of the target's key field
-    - Fixed a bug concerning reused classnodes
+    - Fixed a bug that occurred when the name of a field dsl methods was identical to the name of the target's key field
+    - Fixed a bug concerning reused class nodes
 
 - __(Potentially) breaking changes:__
     - Templates do not get PostApply Lifecycle methods called. This was fixes some problems with complex template structures and should never have been done anyway (postCreate was never called) [#194](https://github.com/klum-dsl/klum-ast/issues/194))
@@ -98,8 +99,8 @@
       you need to access the outer object directly, using the `owner` property of `Closure` or an `@Owner` field
       of the outer instance. See [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) for details. ([#72](https://github.com/klum-dsl/klum-ast/issues/72))
     - Inner objects are now validated as part of the validation of outer objects (see [#120](https://github.com/klum-dsl/klum-ast/issues/120))
-    - Failed validations now throw an AssertionError instead of a an IllegalStateException
-    - Changed RW class to a static inner class (formerly non static). This fixes a some issues with
+    - Failed validations now throw an AssertionError instead of an IllegalStateException
+    - Changed RW class to a static inner class (formerly non-static). This fixes a some issues with
       Groovy handling of inner classes but might introduce some issues in corner cases (methodMissing methods
       from Model is not reachable from RW class)
 
@@ -160,7 +161,7 @@
 ## 0.97.1
 - Critical Bugfix: all methods were marked as deprecated
 - Fix: PostCreate was not called on inner objects (see [#64](https://github.com/klum-dsl/klum-ast/issues/64))
-- reduced to barebone hashcodes for models (constant 0 for non-Keyed, hash of the keye for keyed)
+- reduced to bare-bone hashcodes for models (constant 0 for non-Keyed, hash of the key for keyed)
 - lots of JavaDoc
 
 ## 0.97
@@ -204,7 +205,7 @@ No code changes, renamed project coordinates and URLs to new name
 - new Features:
   - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
 - Closures for create method are now optional (This is especially useful in combination with named parameters) ([#20](https://github.com/klum-dsl/klum-ast/issues/20))
-- Resolved a potential Stackoverflow in GDSL (which happened in a two step recursion, i.e. A contains B and B contains A)
+- Resolved a potential Stackoverflow in GDSL (which happened in a two-step recursion, i.e. A contains B and B contains A)
 
 ## 0.17.0
 - Breaking changes:
@@ -225,7 +226,7 @@ No code changes, renamed project coordinates and URLs to new name
 
 ## 0.15.1
 - Fixed: Validation changes broke template behaviour. Previously, each call of `createTemplate` created a 
- new instance as the template. Now the new template was accidently created based on the previous
+ new instance as the template. Now the new template was accidentally created based on the previous
  template.
 
 ## 0.15.0

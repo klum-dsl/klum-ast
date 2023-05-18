@@ -65,6 +65,10 @@ public class DslHelper {
         return clazz.isAnnotationPresent(DSL.class);
     }
 
+    public static boolean isDslObject(Object object) {
+        return object != null && isDslType(object.getClass());
+    }
+
     public static Class<?> getDslAncestor(Class<?> type) {
         while (isDslType(type.getSuperclass()))
             type = type.getSuperclass();

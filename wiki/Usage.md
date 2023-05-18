@@ -107,3 +107,7 @@ Segregation Principle_). In this setup, decorator and consumer are usually in th
 
 Decorators in Groovy can be implemented using the `@Delegate` annotation, which unfortunately does not provide proper
 support for decorated collections. To allow nicer delegates is the goal of the Klum-Wrap project.
+
+## Layer3 structure: API - Schema - Model
+
+This approach is similar to the above approach, but adds an additional layer of abstraction. The API layer contains a generic API that is directly consumed, while the Schema makes the modelling easier. See [[Layer3]] for details.

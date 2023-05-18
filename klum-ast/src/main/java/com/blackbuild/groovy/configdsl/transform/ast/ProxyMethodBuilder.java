@@ -75,7 +75,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private int namedParameterIndex = -1;
 
-    private ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
+    public ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
         super(name);
         this.proxyTarget = proxyTarget;
         this.proxyMethodName = proxyMethodName;
@@ -335,6 +335,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     public ProxyMethodBuilder constantClassParam(ClassNode targetFieldType) {
         params.add(new FixedExpressionArgument(targetFieldType));
+        return this;
+    }
+
+    public ProxyMethodBuilder thisParam() {
+        params.add(new FixedExpressionArgument(varX("this")));
         return this;
     }
 
