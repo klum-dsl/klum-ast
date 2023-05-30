@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovy.lang.MetaProperty;
 import groovy.lang.PropertyValue;
@@ -38,6 +37,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
+
+import static com.blackbuild.klum.ast.util.DslHelper.isDslObject;
 
 /**
  * Utility class for working with data structures. Provides methods to iterate through data structures and find
@@ -69,6 +70,42 @@ public class StructureUtil {
      */
     public static String toDefaultFieldName(Object object) {
         return toDefaultFieldName(object.getClass());
+    }
+
+    public static void visit(Object container, ModelVisitor visitor) {
+        visit(container, visitor, "<root>");
+    }
+
+    public static void visit(Object container, ModelVisitor visitor, String path) {
+        doVisit(container, visitor, new ArrayList<>(), path);
+    }
+
+    private static void doVisit(Object container, ModelVisitor visitor, List<Object> alreadyVisited, String path) {
+        if (container == null) return;
+        if (container instanceof Collection)
+            doVisitCollection((Collection<?>) container, visitor, alreadyVisited, path);
+        else if (container instanceof Map)
+            doVisitMap((Map<?, ?>) container, visitor, alreadyVisited, path);
+        else
+            doVisitObject(container, visitor, alreadyVisited, path);
+    }
+
+    private static void doVisitObject(Object container, ModelVisitor visitor, List<Object> alreadyVisited, String path) {
+        if (!isDslObject(container)) return;
+        if (alreadyVisited.stream().anyMatch(v -> v == container)) return;
+        visitor.visit(path, container);
+        alreadyVisited.add(container);
+        ClusterModel.getAllPropertiesStream(container)
+                .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName()));
+    }
+
+    private static void doVisitMap(Map<?, ?> container, ModelVisitor visitor, List<Object> alreadyVisited, String path) {
+        container.forEach((key, value) -> doVisit(value, visitor, alreadyVisited,path + "." + toGPath(key)));
+    }
+
+    private static void doVisitCollection(Collection<?> container, ModelVisitor visitor, List<Object> alreadyVisited, String path) {
+        AtomicInteger index = new AtomicInteger();
+        container.forEach(member -> doVisit(member, visitor, alreadyVisited, path + "[" + index.getAndIncrement() + "]"));
     }
 
     /**
@@ -336,7 +373,7 @@ public class StructureUtil {
                 .findFirst();
     }
 
-    static Deque<String> hierarchyToPath(List<Object> hierarchy) {
+    public static Deque<String> hierarchyToPath(List<Object> hierarchy) {
         Deque<String> result = new ArrayDeque<>();
         for (int i = hierarchy.size() - 1;  i > 0; i--) {
             Object owner = hierarchy.get(i);
@@ -355,7 +392,7 @@ public class StructureUtil {
      */
     public static List<Object> getOwnerHierarchy(Object leaf) {
         List<Object> result = new ArrayList<>();
-        while (DslHelper.isDslObject(leaf)) {
+        while (isDslObject(leaf)) {
             if (result.contains(leaf))
                 throw new IllegalStateException("Object " + leaf + " has an owner cycle");
             result.add(leaf);

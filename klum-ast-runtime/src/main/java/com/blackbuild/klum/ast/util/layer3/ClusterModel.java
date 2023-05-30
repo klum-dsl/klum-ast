@@ -260,10 +260,15 @@ public class ClusterModel {
 
     @NotNull
     static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType) {
-        return getMetaPropertyValues(container).stream()
-                .filter(ClusterModel::isNoInternalProperty)
+        return getAllPropertiesStream(container)
                 .filter(it -> fieldType.isAssignableFrom(it.getType()))
                 .filter(it -> hasField(container.getClass(), it.getName()));  // TODO Do we want to exclude getter only fields?
+    }
+
+    @NotNull
+    public static Stream<PropertyValue> getAllPropertiesStream(Object container) {
+        return getMetaPropertyValues(container).stream()
+                .filter(ClusterModel::isNoInternalProperty);
     }
 
     public static List<PropertyValue> getUnsetPropertiesOfType(Object container, Class<?> fieldType) {

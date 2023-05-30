@@ -153,4 +153,25 @@ import com.blackbuild.groovy.configdsl.transform.Owner
         StructureUtil.getAncestorOfType(demoMvn, Project).get() == demoProject
         StructureUtil.getAncestorOfType(demo2Mvn, Project).get() == demo2Project
     }
+
+    def "Visitor works"() {
+        given:
+        def result = [:]
+        def visitor = { String path, Object value ->
+            result[path] = value
+        }
+
+        when:
+        StructureUtil.visit(instance, visitor)
+
+        then:
+        result == [
+                "<root>" : instance,
+                "<root>.projects.demo" : instance.projects.demo,
+                "<root>.projects.demo.mvn" : instance.projects.demo.mvn,
+                "<root>.projects.'demo-2'" : instance.projects.'demo-2',
+                "<root>.projects.'demo-2'.mvn" : instance.projects.'demo-2'.mvn,
+        ]
+
+    }
 }
