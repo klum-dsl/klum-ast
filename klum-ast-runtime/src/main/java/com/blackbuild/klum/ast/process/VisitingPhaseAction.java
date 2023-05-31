@@ -23,24 +23,28 @@
  */
 package com.blackbuild.klum.ast.process;
 
-public enum KlumPhases {
+import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
+import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
-    CREATE(0),
-    AUTO_CREATE(5),
-    AUTO_LINK(10),
-    VALIDATE(15),
-    COMPLETE(100);
-    final int number;
+/**
+ * Represents an action that is executed in a phase. The action is executed for each element in the model.
+ */
+public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
-    KlumPhases(int number) {
-        this.number = number;
+    protected VisitingPhaseAction(int phase, String phaseName) {
+        super(phase, phaseName);
     }
 
-    public int getNumber() {
-        return number;
+    protected VisitingPhaseAction(KlumPhase phase) {
+        super(phase);
     }
 
-    public String getName() {
-        return name().toLowerCase();
+    /**
+     * Executes the phase on the root element of the model.
+     */
+    @Override
+    public void execute() {
+        Object root = PhaseDriver.getInstance().getRootObject();
+        StructureUtil.visit(root, this);
     }
 }

@@ -23,10 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.ServiceLoader;
+import java.util.*;
 
 public class PhaseDriver {
 
@@ -38,7 +35,7 @@ public class PhaseDriver {
         return instance.get();
     }
 
-    private final List<PhaseAction> phaseActions = new ArrayList<>();
+    private final SortedSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhase));
 
     private Object rootObject;
     private int activeObjectPointer = 0;
@@ -47,7 +44,10 @@ public class PhaseDriver {
 
     public PhaseDriver() {
         ServiceLoader.load(PhaseAction.class).forEach(phaseActions::add);
-        phaseActions.sort(Comparator.comparingInt(PhaseAction::getPhase));
+    }
+
+    public void addPhase(PhaseAction action) {
+        phaseActions.add(action);
     }
 
     public static void enter(Object object) {
@@ -76,8 +76,11 @@ public class PhaseDriver {
         if (phaseDriver.activeObjectPointer != 1) return;
         for (PhaseAction a : phaseDriver.phaseActions) {
             phaseDriver.currentPhase = a;
-            a.handle(phaseDriver.rootObject);
+            a.execute();
         }
     }
 
+    public Object getRootObject() {
+        return rootObject;
+    }
 }

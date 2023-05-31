@@ -26,10 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
-import groovy.lang.Closure;
-import groovy.lang.MetaBeanProperty;
-import groovy.lang.MetaProperty;
-import groovy.lang.MissingFieldException;
+import groovy.lang.*;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -250,5 +247,15 @@ public class DslHelper {
             return Optional.of(methods.get(0));
 
         throw new IllegalStateException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
+    }
+
+    static Object getAttributeValue(String name, Object instance) {
+        Optional<CachedField> cachedField = getCachedField(instance.getClass(), name);
+
+        // cannot use .map, because value can be null
+        if (cachedField.isPresent())
+            return cachedField.get().getProperty(instance);
+
+        throw new MissingPropertyException(name, instance.getClass());
     }
 }

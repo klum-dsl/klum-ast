@@ -21,23 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
-
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+package com.blackbuild.klum.ast.process;
 
 /**
- * Phase Action that validates the model.
+ * Default phases for Klum model creation. Note that the phases are not used directly, but
+ * rather the phase numbers are used to order the actions. This allows to add custom phases
+ * if needed.
  */
-public class ValidationPhase extends VisitingPhaseAction {
-    public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
+public enum KlumPhase {
+
+    CREATE(0),
+    AUTO_CREATE(5),
+    AUTO_LINK(10),
+    VALIDATE(15),
+    COMPLETE(100);
+    final int number;
+
+    KlumPhase(int number) {
+        this.number = number;
     }
 
-    @Override
-    public void visit(String path, Object element) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            proxy.validate();
+    public int getNumber() {
+        return number;
+    }
+
+    public String getName() {
+        return name().toLowerCase();
     }
 }

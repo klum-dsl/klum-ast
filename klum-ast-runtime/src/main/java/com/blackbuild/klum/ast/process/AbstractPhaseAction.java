@@ -21,23 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
-
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+package com.blackbuild.klum.ast.process;
 
 /**
- * Phase Action that validates the model.
+ * Represents an action that is executed in a phase. The action is executed for each element in the model.
  */
-public class ValidationPhase extends VisitingPhaseAction {
-    public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
+public abstract class AbstractPhaseAction implements PhaseAction {
+
+    private final int phase;
+    private final String phaseName;
+
+    protected AbstractPhaseAction(int phase, String phaseName) {
+        if (phase < 0)
+            throw new IllegalArgumentException("Phase must be >= 0");
+        if (phase == 0)
+            throw new IllegalArgumentException("Creation Phase (0) cannot execute custom actions");
+        this.phase = phase;
+        this.phaseName = phaseName;
+    }
+
+    protected AbstractPhaseAction(KlumPhase phase) {
+        this(phase.getNumber(), phase.getName());
     }
 
     @Override
-    public void visit(String path, Object element) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            proxy.validate();
+    public int getPhase() {
+        return phase;
+    }
+
+    @Override
+    public String getPhaseName() {
+        return phaseName;
     }
 }

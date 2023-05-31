@@ -23,35 +23,13 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
+public interface PhaseAction {
+    /**
+     * Executes the phase on the given root element.
+     */
+    void execute();
 
-/**
- * Represents an action that is executed in a phase.
- */
-public abstract class PhaseAction implements ModelVisitor {
+    int getPhase();
 
-    private final int phase;
-    private final String phaseName;
-
-    protected PhaseAction(int phase, String phaseName) {
-        this.phase = phase;
-        this.phaseName = phaseName;
-    }
-
-    protected PhaseAction(KlumPhases phase) {
-        this(phase.getNumber(), phase.getName());
-    }
-
-    public void handle(Object root) {
-        StructureUtil.visit(root, this);
-    }
-
-    public int getPhase() {
-        return phase;
-    }
-
-    public String getPhaseName() {
-        return phaseName;
-    }
+    String getPhaseName();
 }
