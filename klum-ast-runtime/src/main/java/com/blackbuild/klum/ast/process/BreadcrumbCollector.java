@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,6 +33,7 @@ public class BreadcrumbCollector {
     // Thread singleton
     private static final ThreadLocal<BreadcrumbCollector> instance = new ThreadLocal<>();
 
+    @NotNull
     public static BreadcrumbCollector getInstance() {
         if (instance.get() == null)
             instance.set(new BreadcrumbCollector());

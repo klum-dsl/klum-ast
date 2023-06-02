@@ -23,19 +23,22 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 
 public class PhaseDriver {
 
     private static final ThreadLocal<PhaseDriver> instance = new ThreadLocal<>();
 
+    @NotNull
     public static PhaseDriver getInstance() {
         if (instance.get() == null)
             instance.set(new PhaseDriver());
         return instance.get();
     }
 
-    private final SortedSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhase));
+    private final NavigableSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhase));
 
     private Object rootObject;
     private int activeObjectPointer = 0;
