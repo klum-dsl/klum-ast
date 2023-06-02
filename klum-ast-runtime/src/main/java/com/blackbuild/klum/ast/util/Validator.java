@@ -27,21 +27,12 @@ import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
-import groovy.lang.MissingPropertyException;
-import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.stream;
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
@@ -112,12 +103,10 @@ public class Validator {
         if (field.getType() == boolean.class)
             return;
 
-        validateInnerDslObjects(field);
-
         if (!shouldValidate(field))
             return;
 
-        Object value = getAttribute(field.getName());
+        Object value = DslHelper.getAttributeValue(field.getName(), instance);
 
         Validate validate = field.getAnnotation(Validate.class);
         Class<?> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
@@ -136,51 +125,6 @@ public class Validator {
         }
 
         ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value);
-    }
-
-    private void validateInnerDslObjects(Field field) {
-        getDslObjectsFor(field).filter(Objects::nonNull).map(Validator::new).forEach(Validator::execute);
-    }
-
-    private Stream<?> getDslObjectsFor(Field field) {
-        Class<?> type = field.getType();
-        if (DslHelper.isDslType(type))
-            return Stream.of(getAttribute(field.getName()));
-
-        if (!Collection.class.isAssignableFrom(type) && !Map.class.isAssignableFrom(type))
-            return Stream.empty();
-
-        Type elementType = getElementType(field);
-
-        if (Collection.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
-            return ((Collection<?>) getAttribute(field.getName())).stream();
-
-        if (Map.class.isAssignableFrom(type) && DslHelper.isDslType(elementType))
-            return ((Map<?, ?>) getAttribute(field.getName())).values().stream();
-
-        return Stream.empty();
-    }
-
-    private Object getAttribute(String name) {
-        Optional<CachedField> cachedField = DslHelper.getCachedField(instance.getClass(), name);
-
-        // cannot use .map, because value can be null
-        if (cachedField.isPresent())
-            return cachedField.get().getProperty(instance);
-
-        throw new MissingPropertyException(name, instance.getClass());
-    }
-    private Type getElementType(Field field) {
-        Type genericType = field.getGenericType();
-
-        if (!(genericType instanceof ParameterizedType))
-            return null;
-
-        ParameterizedType parameterizedType = (ParameterizedType) genericType;
-        Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-
-        return actualTypeArguments[actualTypeArguments.length - 1];
-
     }
 
 }

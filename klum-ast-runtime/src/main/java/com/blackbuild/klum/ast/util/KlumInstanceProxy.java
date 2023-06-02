@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.*;
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import groovy.lang.*;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.ast.ClassNode;
@@ -213,6 +214,7 @@ public class KlumInstanceProxy {
             setInstanceAttribute(fieldName, getCopiedValue(templateValue));
     }
 
+    @SuppressWarnings("unchecked")
     private <T> T getCopiedValue(T templateValue) {
         if (isDslType(templateValue.getClass()))
             return (T) getProxyFor(templateValue).cloneInstance();
@@ -351,17 +353,22 @@ public class KlumInstanceProxy {
     }
 
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
-        Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
+        try {
+            BreadcrumbCollector.getInstance().enter(fieldOrMethodName, key);
+            Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
 
-        if (!fieldOrMethod.isPresent())
-            fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
+            if (!fieldOrMethod.isPresent())
+                fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
 
-        if (!fieldOrMethod.isPresent())
-            throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
+            if (!fieldOrMethod.isPresent())
+                throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
 
-        String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
-        T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
-        return callSetterOrMethod(fieldOrMethodName, created);
+            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
+            T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
+            return callSetterOrMethod(fieldOrMethodName, created);
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+        }
     }
 
     public <T> T setSingleField(String fieldOrMethodName, T value) {
@@ -412,8 +419,13 @@ public class KlumInstanceProxy {
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
 
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
-        T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
-        return doAddElementToCollection(collectionName, created);
+        try {
+            BreadcrumbCollector.getInstance().enter(collectionName, key);
+            T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
+            return doAddElementToCollection(collectionName, created);
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+        }
     }
 
     private <T> T createNewInstanceFromParamsAndClosure(Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
@@ -447,8 +459,13 @@ public class KlumInstanceProxy {
     }
 
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
-        T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
-        return doAddElementToMap(mapName, key, created);
+        try {
+            BreadcrumbCollector.getInstance().enter(mapName, key);
+            T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
+            return doAddElementToMap(mapName, key, created);
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+        }
     }
 
     public <K,V> V addElementToMap(String fieldName, K key, V value) {

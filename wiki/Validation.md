@@ -1,5 +1,7 @@
 Resulting objects can be automatically be validated. This is controlled via two annotations `@Validate` and `@Validation`.
 
+TODO: Will be removed with #276
+
 # `@Validation`
 `@Validation` controls validation on Class level. Using the `option` value, the handling of unmarked fields can
 be configured. With `IGNORE_UNMARKED`, the default setting, only those fields are validated that have been marked
@@ -21,7 +23,7 @@ The `@Validate` annotation controls validation of a single field. If the annotat
  * `Validate.Ignore` excludes this field from validation, this can be necessary when the validation option is set
   to `VALIDATE_UNMARKED`
  * A closure that takes a single argument, the value of the field. This closure must either be a single expression that
-   is evaluated agains Groovy Truth or else an `assert` statement itself.
+   is evaluated against Groovy Truth or else an `assert` statement itself.
 
 ```groovy
 @DSL
@@ -100,10 +102,11 @@ class MyModel {
 
 
 # Validation of inner objects
-Since inner objects are not created via a `create` call, their validation is not immediately called. Rather, inner objects are
-validated as part of their owner validation.
+Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
+phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e. validation for
+the complete model tree runs immediately before the initial create method returns.
 
-This means that inner objects can make use of the complete model tree (provided they have an owner field.
+This means that inner objects can make use of the complete model tree (provided they have an owner field).
 
 ```groovy
 @DSL

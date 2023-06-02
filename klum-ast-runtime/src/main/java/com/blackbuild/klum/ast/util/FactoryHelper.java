@@ -23,11 +23,9 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import groovy.lang.Closure;
-import groovy.lang.GroovyClassLoader;
-import groovy.lang.GroovyObject;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.process.PhaseDriver;
+import groovy.lang.*;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -40,6 +38,8 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Helper methods fro use in convenience factories. This will eventually take a lot of code from
@@ -73,17 +73,30 @@ public class FactoryHelper {
     }
 
     public static <T> T create(Class<T> type, Map<String, Object> values, String key, Closure<?> body) {
-        T result = createInstance(type, key);
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.copyFromTemplate();
-        proxy.postCreate();
-        proxy.apply(values, body);
-
-        if (!proxy.getManualValidation())
-            proxy.validate();
-
-        return result;
+        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
+
+    private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
+        try {
+            BreadcrumbCollector.getInstance().enter(type.getSimpleName(), key);
+            T result = createInstance.get();
+            PhaseDriver.enter(result);
+            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+            proxy.copyFromTemplate();
+            proxy.postCreate();
+
+            apply.accept(proxy);
+
+            PhaseDriver.executeIfReady();
+
+            return result;
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+            PhaseDriver.leave();
+            PhaseDriver.cleanup();
+        }
+    }
+
 
     static <T> T createInstance(Class<T> type, String key) {
         if (key == null && DslHelper.isKeyed(type))
@@ -100,25 +113,24 @@ public class FactoryHelper {
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
         if (DelegatingScript.class.isAssignableFrom(scriptType))
             return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
-        return (T) InvokerHelper.runScript(scriptType, null);
+        Object result = InvokerHelper.runScript(scriptType, null);
+        if (!type.isInstance(result))
+            throw new IllegalStateException("Script " + scriptType.getName() + " did not return an instance of " + type.getName());
+        //noinspection unchecked
+        return (T) result;
     }
 
     public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
-        Object result = DslHelper.isKeyed(type) ? InvokerHelper.invokeConstructorOf(type, script.getClass().getSimpleName()) : createInstance(type, null);
+        Consumer<KlumInstanceProxy> apply = proxy -> {
+            script.setDelegate(proxy.getRwInstance());
+            script.run();
+            proxy.postApply();
+        };
 
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.copyFromTemplate();
-        proxy.postCreate();
-
-        script.setDelegate(proxy.getRwInstance());
-        script.run();
-
-        proxy.postApply();
-
-        if (!proxy.getManualValidation())
-            proxy.validate();
-
-        return (T) result;
+        if (DslHelper.isKeyed(type))
+            return doCreate(type, script.getClass().getSimpleName(), () -> createInstance(type, script.getClass().getSimpleName()), apply);
+        else
+            return doCreate(type, null, () -> createInstance(type, null), apply);
     }
 
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
@@ -209,6 +221,10 @@ public class FactoryHelper {
         if (configModelClassName == null)
             throw new IllegalStateException("No entry 'model-class' found in " + path);
         return configModelClassName;
+    }
+
+    private static void breadcrumb(String path) {
+        BreadcrumbCollector.getInstance().enter(path);
     }
 
 }
