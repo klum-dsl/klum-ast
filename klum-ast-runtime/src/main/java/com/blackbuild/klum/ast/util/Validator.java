@@ -25,10 +25,8 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
-import com.blackbuild.groovy.configdsl.transform.Validation;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -40,7 +38,7 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 public class Validator {
 
     private final Object instance;
-    private Validation.Option currentValidationMode;
+    private boolean classHasValidateAnnotation;
     private Class<?> currentType;
 
     public Validator(Object instance) {
@@ -53,7 +51,7 @@ public class Validator {
 
     private void validateType(Class<?> type) {
         currentType = type;
-        currentValidationMode = getValidationMode();
+        classHasValidateAnnotation = type.isAnnotationPresent(Validate.class);
         try {
             validateFields();
             executeCustomValidationMethods();
@@ -78,12 +76,6 @@ public class Validator {
                 .forEach(this::validateField);
     }
 
-    @NotNull
-    private Validation.Option getValidationMode() {
-        Validation annotation = currentType.getDeclaredAnnotation(Validation.class);
-        return annotation != null ? annotation.option() : Validation.Option.IGNORE_UNMARKED;
-    }
-
     private boolean isNotExplicitlyIgnored(Field field) {
         Validate validate = field.getAnnotation(Validate.class);
         return validate == null || validate.value() !=  Validate.Ignore.class;
@@ -93,7 +85,7 @@ public class Validator {
         if (field.getName().startsWith("$")) return false;
         if (Modifier.isTransient(field.getModifiers())) return false;
 
-        return currentValidationMode == Validation.Option.VALIDATE_UNMARKED || field.isAnnotationPresent(Validate.class);
+        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
     }
 
     private void validateField(Field field) {

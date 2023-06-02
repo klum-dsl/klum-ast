@@ -75,7 +75,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
-    public static final ClassNode VALIDATION_ANNOTATION = make(Validation.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
 
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
@@ -288,6 +287,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         assertNoValidateMethodDeclared();
         checkValidateAnnotationsOnMethods();
         checkValidateAnnotationsOnFields();
+        checkValidateAnnotationOnClass();
 
         // TODO: to proxy
         if (dslParent == null) {
@@ -387,11 +387,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.getMethods().forEach(this::checkValidateAnnotationOnSingleMethod);
     }
 
-    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
-        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError(sourceUnit, "@Validate annotation on method must not have parameters!", annotation);
+    private void checkValidateAnnotationOnClass() {
+        AnnotationNode validateAnnotation = getAnnotation(annotatedClass, VALIDATE_ANNOTATION);
+        if (validateAnnotation != null)
+            assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
+    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
+        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
+            addCompileError(sourceUnit, "@Validate annotation on method or class must not have parameters!", annotation);
+    }
 
     private AssertStatement assertStmt(Expression check, String message) {
         if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);

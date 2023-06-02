@@ -297,10 +297,7 @@ public class KlumInstanceProxy {
     }
 
     boolean getManualValidation() {
-        if (manualValidation) return true;
-        Validation annotation = instance.getClass().getAnnotation(Validation.class);
-        if (annotation == null) return false;
-        return (annotation.mode() == Validation.Mode.MANUAL);
+        return manualValidation;
     }
 
     void manualValidation() {
