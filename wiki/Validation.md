@@ -1,27 +1,17 @@
-Resulting objects can be automatically be validated. This is controlled via two annotations `@Validate` and `@Validation`.
+Resulting objects can be automatically be validated. This is controlled via the `@Validate` annotation.
 
-TODO: Will be removed with #276
-
-# `@Validation`
-`@Validation` controls validation on Class level. Using the `option` value, the handling of unmarked fields can
-be configured. With `IGNORE_UNMARKED`, the default setting, only those fields are validated that have been marked
-with the `@Validate` annotation. With `VALIDATE_UNMARKED`, all non-annotated fields are validated against Groovy truth
+# On classes
+`@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e. all not explicitly marked fields are validated
+against Groovy truth
  (i.e. numbers must be non-zero, collections and Strings non-empty and other objects not null).
- 
- `mode` controls _when_ validation should happen. The default is `AUTOMATIC` which automatically validates objects at the 
- end of the `create()` method. By setting this to `MANUAL` validation must be manually initiated using the `validate()`
- method. This can be used to defer the validation if the final objects is to be assembled in multiple steps.
- 
- The same effect as `Option.MANUAL` can be achieved for *single instances* by using the `manualValidation(boolean)` method.
    
-# `@Validate`
-The `@Validate` annotation controls validation of a single field. If the annotation is not present, the `@Validation.mode` 
+# On fields
+The `@Validate` annotation controls validation of a single field. If the annotation is not present, the presence on the class  
  controls whether this field will be evaluated. If present, the `value` field contains the actual validation criteria. 
  This can be one of the following:
  
  * `Validate.GroovyTruth` (default), to validate this field against Groovy Truth
- * `Validate.Ignore` excludes this field from validation, this can be necessary when the validation option is set
-  to `VALIDATE_UNMARKED`
+ * `Validate.Ignore` excludes this field from validation, this only makes sense when the class itself is marked with `@Validate`
  * A closure that takes a single argument, the value of the field. This closure must either be a single expression that
    is evaluated against Groovy Truth or else an `assert` statement itself.
 
@@ -100,6 +90,9 @@ class MyModel {
 }
 ```
 
+# On methods
+
+`@Validate` can also be used on parameterless methods. In this case, the method is executed during the validation phase. If it sucessfully returns, the validation is considered successful. If it throws an exception, the validation fails.
 
 # Validation of inner objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
@@ -137,3 +130,6 @@ class Component {
 
 Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
 
+# Manual validation
+
+Instances can be exempt from running automaticall by using the `manualValidation(boolean)` method.
