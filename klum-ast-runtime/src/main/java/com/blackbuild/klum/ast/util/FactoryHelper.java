@@ -170,18 +170,12 @@ public class FactoryHelper {
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
-        proxy.manualValidation();
-        proxy.skipPostApply();
-        proxy.apply(values, closure);
+        proxy.applyOnly(values, closure);
         return result;
     }
 
     public static <T> T createAsStub(Class<T> type, String key) {
-        T result = createInstance(type, key);
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.manualValidation();
-        proxy.skipPostApply();
-        return result;
+        return createInstance(type, key);
     }
 
     private static <T> T createInstanceWithNullArg(Class<T> type) {

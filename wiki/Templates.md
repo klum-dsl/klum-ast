@@ -10,8 +10,8 @@ Templates are regular instances of DSL objects, which will usually be assigned t
  templates easier, the `createAsTemplate` method is provided, which has the following behaviour:
  
  - is always unkeyed (setting the key to null in case of a keyed class)
- - validation is turned off (since null as key might lead to an invalid object)
- - Lifecycle methods (`@PostApply`, `@PostCreate` and future PostTree/PostModel) are not called
+ - Lifecycle methods (`@PostApply`, `@PostCreate`) are not called
+ - The template does not participate in KlumPhases (especially: no validation is performed)
  - provides a non-abstract implementation for abstract classes, implementing all possible methods empty or returning null
  
  ```groovy

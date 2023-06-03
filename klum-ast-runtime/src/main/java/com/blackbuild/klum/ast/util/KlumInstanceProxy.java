@@ -56,8 +56,6 @@ public class KlumInstanceProxy {
     public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
 
     private final GroovyObject instance;
-    private boolean skipPostCreate;
-    private boolean skipPostApply;
     private boolean manualValidation;
 
     public KlumInstanceProxy(GroovyObject instance) {
@@ -146,12 +144,15 @@ public class KlumInstanceProxy {
      * @return the object itself
      */
     public Object apply(Map<String, Object> values, Closure<?> body) {
+        applyOnly(values, body);
+        postApply();
+        return instance;
+    }
+
+    void applyOnly(Map<String, Object> values, Closure<?> body) {
         Object rw = instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         applyNamedParameters(rw, values);
         applyClosure(rw, body);
-        postApply();
-
-        return instance;
     }
 
     private void applyClosure(Object rw, Closure<?> body) {
@@ -268,16 +269,14 @@ public class KlumInstanceProxy {
      * Runs the postcreate lifecycle methods for this instance
      */
     void postCreate() {
-        if (!skipPostCreate)
-            executeLifecycleMethod(PostCreate.class);
+        executeLifecycleMethod(PostCreate.class);
     }
 
     /**
      * Runs the postapply lifecycle methods for this instance
      */
     void postApply() {
-        if (!skipPostApply)
-            executeLifecycleMethod(PostApply.class);
+        executeLifecycleMethod(PostApply.class);
     }
 
     private void executeLifecycleMethod(Class<? extends Annotation> annotation) {
@@ -569,16 +568,5 @@ public class KlumInstanceProxy {
 
         return Optional.of(ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<String>>) keyMember, instance, instance));
     }
-
-    void skipPostCreate() {
-        this.skipPostCreate = true;
-    }
-
-    void skipPostApply() {
-        this.skipPostApply = true;
-    }
-
-
-
 
 }
