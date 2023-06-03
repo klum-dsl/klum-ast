@@ -168,7 +168,7 @@ class ValidatorTest extends AbstractRuntimeTest {
     }
 
     @Issue("223")
-    def "boolean fields are ignored on Validation Mode VALIDATE_UNMARKED"() {
+    def "boolean fields are ignored on class level Validate"() {
         given:
         createClass('''
             package pk
@@ -176,7 +176,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validation
 
             @DSL
-            @Validation(option=Validation.Option.VALIDATE_UNMARKED)
+            @Validate
             class Foo {
                 boolean value
             }

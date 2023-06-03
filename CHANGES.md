@@ -10,6 +10,7 @@
   - Provide `@Required` as an alternative to an empty `@Validate` annotation (see [#221](https://github.com/klum-dsl/klum-ast/issues/221))
   - `EnumSet` fields are no supported. Note that for enum sets a copy of the underlying set is returned as opposed to a readonly instance. (see [#249](https://github.com/klum-dsl/klum-ast/issues/249))
   - Converter methods are now honored for Alternatives methods as well. (see [#270](https://github.com/klum-dsl/klum-ast/issues/270))
+  - `@Validate` now can be placed on classes. This effectively replaces `@Validate(option=Validation.Option.VALIDATE_UNMARKED)`, which is internally converted to the new format (see [#276](https://github.com/klum-dsl/klum-ast/issues/276)). The `@Validation` annotation is deprecated.
 - Breaking changes
     - it is a compile error to place the `@Validate` annotation on a boolean field.
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
@@ -21,6 +22,7 @@
       cased method name was removed).
     - methods named `doValidate` are no longer considered Validate methods by default.
     - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
+    - The `@Validation` annotation is deprecated, any use with the exception of `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
 
 - Fixes
   - since rc.13

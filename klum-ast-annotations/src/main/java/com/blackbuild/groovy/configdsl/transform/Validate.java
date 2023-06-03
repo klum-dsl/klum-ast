@@ -31,19 +31,22 @@ import java.lang.annotation.Target;
 
 /**
  * <p>Activates validation for the given field or marks the annotated method as validation method.</p>
- * 
+ *
+ * <h2>On a class</h2>
+ * <p>If set on a class, the class behaves as if the annotation was set on all fields of the class not already annotated.
+ * In this usage, fields can be exempted by annotating them with Validate(Ignore).</p>
+ *
  * <h2>On a field</h2>
  * 
- * <p>If this annotation is set on a field, this field is validated as part of the object validation, either after the
- * {@code apply()} method or during manual validation, as determined by the {@link Validation} annotation. The actual
- * validation can be one of the following:</p>
+ * <p>If this annotation is set on a field, this field is validated as part of the object validation, During the
+ * validation phase. The actual validation can be one of the following:</p>
  * 
  * <table border='1'>
  *     <caption>Valid options to use Validate annotation on a field</caption>
  *     <tr><td>empty</td><td>Validates the content of the field according to groovy truth</td></tr>
  *     <tr><td>empty (for Boolean fields)</td><td>Validates that the content of the field is not null</td></tr>
- *     <tr><td>{@link Validate.Ignore}</td><td>Don't validate this field. This can be used if {@link Validation#option()}
- *     is set to {@link Validation.Option#VALIDATE_UNMARKED}</td></tr>
+ *     <tr><td>{@link Validate.Ignore}</td><td>Don't validate this field. This only makes sense if the class itself is
+ *     annotated with Validate to exclude the annotated field from validation.</td></tr>
  *     <tr><td>a closure</td><td>The given closure is evaluated called with the field value as parameter. If the result
  *     of the call satisfies Groovy Truth, the field is assumed valid.</td></tr>
  * </table>
@@ -93,7 +96,7 @@ import java.lang.annotation.Target;
  * thrown(IllegalStateException)
  * </code></pre>
  * <p>Validation methods should not change the state of an object, use {@link PostApply} or {@link PostCreate} for that.</p>
- * <p>When using validation on a method, neither a {@link #message()} nor a {@link #value()} must be given.</p>
+ * <p>When using validation on a method or a class, neither a {@link #message()} nor a {@link #value()} must be given.</p>
  *
  * <h1>Order of validation</h1>
  * When validating an object, the following order is executed.
@@ -105,7 +108,7 @@ import java.lang.annotation.Target;
  *
  * <p>if the validation fails for any validation field or method, an {@link IllegalStateException} is thrown.</p>
  */
-@Target({ElementType.FIELD, ElementType.METHOD})
+@Target({ElementType.FIELD, ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Validate {

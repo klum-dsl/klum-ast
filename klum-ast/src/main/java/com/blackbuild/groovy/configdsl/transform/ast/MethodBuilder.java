@@ -27,14 +27,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
@@ -51,21 +44,8 @@ import java.util.List;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ifS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.notX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
 
@@ -120,14 +100,6 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
 
     public MethodBuilder forS(Parameter variable, String collection, Statement... code) {
         return forS(variable, varX(collection), code);
-    }
-
-    public MethodBuilder callValidationOn(String target) {
-        return callValidationMethodOn(varX(target));
-    }
-
-    private MethodBuilder callValidationMethodOn(Expression targetX) {
-        return statement(ifS(notX(propX(targetX,"$manualValidation")), callX(targetX, DSLASTTransformation.VALIDATE_METHOD)));
     }
 
     public MethodBuilder delegateToProxy(String methodName, Expression... args) {

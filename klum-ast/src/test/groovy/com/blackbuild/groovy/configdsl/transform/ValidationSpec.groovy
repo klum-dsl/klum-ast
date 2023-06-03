@@ -435,39 +435,6 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
     }
 
-    def "defer validation via annotation"() {
-        given:
-        createClass('''
-            @DSL
-            @Validation(mode = Validation.Mode.MANUAL)
-            class Foo {
-                @Validate
-                String validated
-            }
-        ''')
-
-        when:
-        instance = clazz.create {}
-
-        then:
-        notThrown(AssertionError)
-
-        when:
-        instance.validate()
-
-        then:
-        thrown(AssertionError)
-
-        when:
-        instance.apply {
-            validated "bla"
-        }
-        instance.validate()
-
-        then:
-        notThrown(AssertionError)
-    }
-
     def "validation is not performed on templates"() {
         given:
         createClass('''
@@ -508,11 +475,11 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
     }
 
-    def "Option.VALIDATE_UNMARKED validates all unmarked fields"() {
+    def "Validate on class validates all unmarked fields"() {
         given:
         createClass('''
             @DSL
-            @Validation(option = Validation.Option.VALIDATE_UNMARKED)
+            @Validate
             class Foo {
                 String validated
             }
@@ -531,6 +498,51 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         notThrown(AssertionError)
+    }
+
+    @Issue("276")
+    def "Validation on class is converted to validate"() {
+        when:
+        createClass('''
+            @DSL
+            @Validation(option = Validation.Option.VALIDATE_UNMARKED)
+            class Foo {
+                String validated
+            }
+        ''')
+
+        then:
+        clazz.getAnnotation(Validate) != null
+
+        when:
+        instance = clazz.create {}
+
+        then:
+        thrown(AssertionError)
+
+        when:
+        instance = clazz.create {
+            validated "bla"
+        }
+
+        then:
+        notThrown(AssertionError)
+    }
+
+    @Issue("276")
+    def "Validation on class is converted to validate with static import"() {
+        when:
+        createClass('''
+            import static com.blackbuild.groovy.configdsl.transform.Validation.Option.VALIDATE_UNMARKED
+            @DSL
+            @Validation(option = VALIDATE_UNMARKED)
+            class Foo {
+                String validated
+            }
+        ''')
+
+        then:
+        clazz.getAnnotation(Validate) != null
     }
 
     def "validation is inherited"() {
