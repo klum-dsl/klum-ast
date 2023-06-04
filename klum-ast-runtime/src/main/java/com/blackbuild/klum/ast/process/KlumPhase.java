@@ -30,10 +30,13 @@ package com.blackbuild.klum.ast.process;
  */
 public enum KlumPhase {
 
+    /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
     CREATE(0),
-    AUTO_CREATE(5),
-    AUTO_LINK(10),
-    VALIDATE(15),
+    /** Phase for automatic creation of missing objects, usually from annotations. */
+    AUTO_CREATE(10),
+    AUTO_LINK(20),
+    POST_TREE(30),
+    VALIDATE(50),
     COMPLETE(100);
     final int number;
 

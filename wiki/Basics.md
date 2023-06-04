@@ -326,8 +326,7 @@ def foo = Foo.create {
 assert foo.value == "Hans"
 ```
 
-Note that, as in the above example, this behaviour, while working with non dsl arguments as well, makes the most sense
-for actual DSL arguments.
+Note that, as in the above example, this behaviour, while working with non dsl arguments as well, makes the most sense for actual DSL arguments.
 
 ### Collections of DSL Objects
 

@@ -63,6 +63,8 @@ public class MutatorsHandler {
         //TODO Don't allow private methods
         // Simply Make synthetic?
 
+        // we explicitly create a list instead of passing the stream, since the consumer
+        // modifies the method list
         return annotatedClass.getMethods().stream().filter(MutatorsHandler::isMutatorMethod).collect(toList());
     }
 

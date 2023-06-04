@@ -45,6 +45,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({FIELD, METHOD})
 @Retention(RUNTIME)
 @Inherited
+@WriteAccess
 @Documented
 public @interface PostApply {
 }
