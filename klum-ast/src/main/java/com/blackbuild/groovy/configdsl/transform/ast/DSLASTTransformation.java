@@ -24,12 +24,12 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
+import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
-import groovy.util.DelegatingScript;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
@@ -92,8 +92,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
-    public static final String NO_MUTATION_CHECK_METADATA_KEY = DSLASTTransformation.class.getName() + ".nomutationcheck";
-    public static final ClassNode DELEGATING_SCRIPT = ClassHelper.make(DelegatingScript.class);
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
@@ -189,7 +187,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
 
     private void moveMutatorsToRWClass() {
-        new MutatorsHandler(annotatedClass).invoke();
+        new WriteAccessMethodsMover(annotatedClass, sourceUnit).invoke();
     }
 
     private void setPropertyAccessors() {
@@ -1018,13 +1016,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .namedParams("values")
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
-
-        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTAPPLY_ANNOTATION).invoke();
     }
 
     private void createFactoryMethods() {
-        new LifecycleMethodBuilder(annotatedClass, KlumInstanceProxy.POSTCREATE_ANNOTATION).invoke();
-
         if (!isInstantiable(annotatedClass))
             return;
 

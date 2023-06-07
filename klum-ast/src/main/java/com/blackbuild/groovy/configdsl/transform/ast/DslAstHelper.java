@@ -92,14 +92,6 @@ public class DslAstHelper {
         return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
     }
 
-    static void moveMethodFromModelToRWClass(MethodNode method) {
-        ClassNode declaringClass = method.getDeclaringClass();
-        declaringClass.removeMethod(method);
-        ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
-        // if method is public, it will already have been added by delegateTo, replace it again
-        CommonAstHelper.replaceMethod(rwClass, method);
-    }
-
     public static ClassNode getRwClassOf(ClassNode classNode) {
         if (!isDSLObject(classNode))
             return null;
@@ -347,7 +339,7 @@ public class DslAstHelper {
     }
 
 
-    static boolean hasAnnotation(AnnotatedNode node, ClassNode annotation) {
+    public static boolean hasAnnotation(AnnotatedNode node, ClassNode annotation) {
         return !node.getAnnotations(annotation).isEmpty();
     }
 
@@ -406,4 +398,5 @@ public class DslAstHelper {
 
         return result;
     }
+
 }

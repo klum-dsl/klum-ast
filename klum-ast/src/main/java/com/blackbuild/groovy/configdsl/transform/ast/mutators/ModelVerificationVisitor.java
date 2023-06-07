@@ -26,32 +26,16 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.groovy.configdsl.transform.ast.MutatorsHandler;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Variable;
-import org.codehaus.groovy.ast.expr.AttributeExpression;
-import org.codehaus.groovy.ast.expr.BinaryExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.PostfixExpression;
-import org.codehaus.groovy.ast.expr.PrefixExpression;
-import org.codehaus.groovy.ast.expr.PropertyExpression;
-import org.codehaus.groovy.ast.expr.TupleExpression;
-import org.codehaus.groovy.ast.expr.VariableExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.List;
 
-import static org.codehaus.groovy.syntax.Types.ASSIGNMENT_OPERATOR;
-import static org.codehaus.groovy.syntax.Types.LEFT_SQUARE_BRACKET;
-import static org.codehaus.groovy.syntax.Types.ofType;
+import static org.codehaus.groovy.syntax.Types.*;
 
 /**
  * Created by stephan on 12.04.2017.
@@ -99,20 +83,16 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (currentMethod == null)
             return; // code not inside a method (validation closure?)
 
-        if (currentMethod.getNodeMetaData(DSLASTTransformation.NO_MUTATION_CHECK_METADATA_KEY) != null)
-            return;
-
         if ("<init>".equals(currentMethod.getName()))
             return;
 
-        if (!currentMethod.isPublic())
-            return; // check only public methods for now
         if (currentMethod.isStatic())
             return; // ignore factory methods
         if ((currentMethod.getModifiers() & Opcodes.ACC_SYNTHETIC) != 0)
             return;
-        if (!currentMethod.getAnnotations(MutatorsHandler.MUTATOR_ANNOTATION).isEmpty())
-            return;
+
+        if (WriteAccessMethodsMover.getWriteAccessTypeForMethod(currentMethod).isPresent())
+            return; // ignore methods already marked as write access methods
 
         if (ofType(expression.getOperation().getType(), ASSIGNMENT_OPERATOR)) {
             assertTargetIsNoModelField(expression.getLeftExpression());
@@ -183,10 +163,8 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
         if (currentMethod == null)
             return false;
-        return currentMethod.getAnnotations(MutatorsHandler.MUTATOR_ANNOTATION).size()
-                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTAPPLY_ANNOTATION).size()
-                    + currentMethod.getAnnotations(KlumInstanceProxy.POSTCREATE_ANNOTATION).size()
-                    > 0;
+
+        return WriteAccessMethodsMover.getWriteAccessTypeForMethod(currentMethod).isPresent();
     }
 
     private boolean isDslType(ClassNode classNode) {
