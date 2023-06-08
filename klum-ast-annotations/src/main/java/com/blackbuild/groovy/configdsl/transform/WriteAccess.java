@@ -36,7 +36,7 @@ import java.lang.annotation.*;
 public @interface WriteAccess {
 
     /**
-     * @return the type of write access. LIFECYCLE means the method ist automatically called during
+     *Returns the type of write access. LIFECYCLE means the method ist automatically called during
      * a KlumPhase. MANUAL means the method is called manually by the user as part of the model.
      * Lifecycle methods must not have any parameters.
      */
