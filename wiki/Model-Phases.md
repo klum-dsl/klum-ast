@@ -22,15 +22,20 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 # Phase Details
 
-## AutoCreate (5)
+## AutoCreate (10)
 
 Not yet implemented. The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet.
 
-## AutoLink (10)
+## AutoLink (20)
 
 Not yet implemented. The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree.
 
-## Validation (15)
+## PostTree (30)
+
+The PostTree phase allows to execute actions on a completely realized model tree. This can be used
+to create interlinks between objects that are too complex for AutoLink/AutoCreate.
+
+## Validation (50)
 
 Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details.
 

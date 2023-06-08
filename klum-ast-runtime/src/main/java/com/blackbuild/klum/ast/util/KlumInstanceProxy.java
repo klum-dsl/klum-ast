@@ -27,7 +27,6 @@ import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import groovy.lang.*;
 import groovy.transform.Undefined;
-import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -42,7 +41,6 @@ import java.util.stream.Collectors;
 import static com.blackbuild.klum.ast.util.DslHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static java.lang.String.format;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
  * Implementations for generated instance methods.
@@ -51,8 +49,6 @@ public class KlumInstanceProxy {
 
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
-    public static final ClassNode POSTAPPLY_ANNOTATION = make(PostApply.class);
-    public static final ClassNode POSTCREATE_ANNOTATION = make(PostCreate.class);
     public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
 
     private final GroovyObject instance;
@@ -269,17 +265,17 @@ public class KlumInstanceProxy {
      * Runs the postcreate lifecycle methods for this instance
      */
     void postCreate() {
-        executeLifecycleMethod(PostCreate.class);
+        executeLifecycleMethods(PostCreate.class);
     }
 
     /**
      * Runs the postapply lifecycle methods for this instance
      */
     void postApply() {
-        executeLifecycleMethod(PostApply.class);
+        executeLifecycleMethods(PostApply.class);
     }
 
-    private void executeLifecycleMethod(Class<? extends Annotation> annotation) {
+    void executeLifecycleMethods(Class<? extends Annotation> annotation) {
         Object rw = getRwInstance();
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .stream()
