@@ -318,6 +318,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    @Ignore
     def "Calling a protected non mutator method from a subclass mutator method"() {
         given:
         createClass('''

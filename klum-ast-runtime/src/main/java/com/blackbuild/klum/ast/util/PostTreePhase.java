@@ -21,21 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.klum.ast.util;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.blackbuild.groovy.configdsl.transform.PostTree;
+import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
-/**
- * Designates a method as mutator. Mutators can change the state of a model instance and can only be
- * called inside a {@code create} / {@code apply} block. Technically, they are transferred to the RW class instance.
- */
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@WriteAccess(WriteAccess.Type.MANUAL)
-@Documented
-public @interface Mutator {
+public class PostTreePhase extends VisitingPhaseAction {
+    public PostTreePhase() {
+        super(KlumPhase.POST_TREE);
+    }
+
+    @Override
+    public void visit(String path, Object element) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
+        proxy.executeLifecycleMethods(PostTree.class);
+    }
 }

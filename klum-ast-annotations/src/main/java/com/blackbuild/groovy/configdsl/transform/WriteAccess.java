@@ -23,19 +23,24 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
+
 
 /**
- * Designates a method as mutator. Mutators can change the state of a model instance and can only be
- * called inside a {@code create} / {@code apply} block. Technically, they are transferred to the RW class instance.
+ * Meta-annotation to mark annotations that mark methods that change the model.
+ * WriteAccess marked methods are moved into the RW class during compilation.
  */
-@Target(ElementType.METHOD)
+@Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@WriteAccess(WriteAccess.Type.MANUAL)
 @Documented
-public @interface Mutator {
+public @interface WriteAccess {
+
+    /**
+     *Returns the type of write access. LIFECYCLE means the method ist automatically called during
+     * a KlumPhase. MANUAL means the method is called manually by the user as part of the model.
+     * Lifecycle methods must not have any parameters.
+     */
+    Type value() default Type.LIFECYCLE;
+
+    enum Type { LIFECYCLE, MANUAL }
 }

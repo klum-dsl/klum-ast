@@ -103,6 +103,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@WriteAccess(WriteAccess.Type.MANUAL)
 @Documented
 public @interface Owner {
 }

@@ -1,1 +1,2 @@
 com.blackbuild.klum.ast.util.ValidationPhase
+com.blackbuild.klum.ast.util.PostTreePhase
