@@ -37,8 +37,11 @@ import java.util.Map;
  * For keyed fields, the key must be passed as {@link #key()} parameter. Additionally, the
  * concrete type of the object to be created can be passed as {@link #type()} parameter. If
  * the annotated field is an abstract type, the type parameter is mandatory.
+ * <p>
+ * AutoCreate can also be used on methods. In that case, the method is handled as a regular
+ * lifecycle method.
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @Documented

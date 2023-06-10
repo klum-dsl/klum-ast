@@ -50,6 +50,8 @@ public class AutoCreationPhase extends VisitingPhaseAction {
                 .stream()
                 .filter(entry -> entry.getValue() == null)
                 .forEach(entry -> autoCreate(element, entry.getKey()));
+
+        KlumInstanceProxy.getProxyFor(element).executeLifecycleMethods(AutoCreate.class);
     }
 
     private void autoCreate(Object element, String fieldName) {
