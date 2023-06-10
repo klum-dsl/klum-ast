@@ -24,7 +24,7 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## AutoCreate (10)
 
-Not yet implemented. The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet.
+The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet.
 
 ## AutoLink (20)
 
