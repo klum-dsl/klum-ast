@@ -275,7 +275,7 @@ public class KlumInstanceProxy {
         executeLifecycleMethods(PostApply.class);
     }
 
-    void executeLifecycleMethods(Class<? extends Annotation> annotation) {
+    public void executeLifecycleMethods(Class<? extends Annotation> annotation) {
         Object rw = getRwInstance();
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .stream()

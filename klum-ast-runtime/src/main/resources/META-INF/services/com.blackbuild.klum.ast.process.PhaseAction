@@ -1,2 +1,3 @@
 com.blackbuild.klum.ast.util.ValidationPhase
 com.blackbuild.klum.ast.util.PostTreePhase
+com.blackbuild.klum.ast.util.layer3.AutoCreationPhase

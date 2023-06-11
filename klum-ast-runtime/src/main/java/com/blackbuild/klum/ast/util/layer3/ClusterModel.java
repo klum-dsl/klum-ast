@@ -91,8 +91,10 @@ public class ClusterModel {
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
     public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType, Class<? extends Annotation> filter) {
-        return (Map<String, T>) getPropertiesStream(container, fieldType, it -> it.isAnnotationPresent(filter))
-                .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
+        return getPropertiesStream(container, fieldType, it -> it.isAnnotationPresent(filter))
+                .collect(HashMap::new,
+                        (m, e) -> m.put(e.getName(), (T) e.getValue()),
+                        Map::putAll);
     }
 
     /**
@@ -374,12 +376,12 @@ public class ClusterModel {
     }
 
     public static Map<String, Object> getAnnotatedValues(Object object, Class<? extends Annotation> annotation) {
-        Map<String, Object> result = getFieldsValues(object, annotation);
+        Map<String, Object> result = getFieldsAnnotatedWith(object, annotation);
         result.putAll(getMethodBasedValues(object, annotation));
         return result;
     }
 
-    public static Map<String, Object> getFieldsValues(Object object, Class<? extends Annotation> annotation) {
+    public static Map<String, Object> getFieldsAnnotatedWith(Object object, Class<? extends Annotation> annotation) {
         return getPropertiesOfType(object, Object.class, annotation);
     }
 

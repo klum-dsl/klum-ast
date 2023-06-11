@@ -20,9 +20,10 @@ Since 0.98 and continuing to 1.0, KlumAST aspires to create SDMs by using the fo
   during apply and create methods. This means that all DSL features are readily available whenever a model instance 
   is created, but they do not pollute the interface of the model for the client (in observance of the Interface
   Segregation Principle)
-- Other methods changing the state of the model (for instance, pseudo setters) must be marked using the 
-  `@Mutator` annotation. These will be moved to the RW class as well.
-
+- Other methods changing the state of the model (for instance, pseudo setters) must be marked using the an annotation 
+  with the meta annotation `@WriteAccess`. These method will be moved to the RW class as well. Core annotations with 
+  write access are `@Mutator` for manual write access methods and the lifecycle methods `@PostCreate`, `@PostApply`,
+  `@PostTree` and `@AutoCreate`.
 
 # Transient fields
 
