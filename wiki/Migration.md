@@ -4,11 +4,11 @@ Breaking changes in 1.2/2.0
 # 2.0
 
 ## module names
-For 2.0, the single klum-ast dependeny is replaced by two KlumAST is split into three distinct jars:
+For 2.0, the single klum-ast dependenyc is replaced by two KlumAST is split into three distinct jars:
 
 ### klum-ast-annotations
 
-Does not usually need to be adressed directly except in very special cases, since it is a dependency of both of
+Does not usually need to be addressed directly except in very special cases, since it is a dependency of both of
 the other jars.
 
 ### klum-ast
