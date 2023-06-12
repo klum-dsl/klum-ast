@@ -229,7 +229,7 @@ public class StructureUtil {
     }
 
     @NotNull
-    static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
+    public static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
         return ClusterModel.getPropertiesStream(container, child.getClass())
                 .filter(it -> it.getValue() == child)
                 .map(PropertyValue::getName)

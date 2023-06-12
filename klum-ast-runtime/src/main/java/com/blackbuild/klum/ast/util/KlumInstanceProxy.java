@@ -73,6 +73,10 @@ public class KlumInstanceProxy {
         return (GroovyObject) InvokerHelper.getAttribute(instance, KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS);
     }
 
+    public Object getDSLInstance() {
+        return instance;
+    }
+
     // TODO: protected/private
     public <T> T getInstanceAttribute(String attributeName) {
         return (T) getCachedField(attributeName).getProperty(instance);
@@ -110,7 +114,7 @@ public class KlumInstanceProxy {
         if (!defaultAnnotation.delegate().isEmpty())
             return castTo(InvokerHelper.getProperty(getInstanceProperty(defaultAnnotation.delegate()), name), fieldType);
 
-        return castTo(ClosureHelper.invokeClosureWithDelegate(defaultAnnotation.code(), instance, instance), fieldType);
+        return castTo(ClosureHelper.invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), instance), fieldType);
     }
 
     private <T> T makeReadOnly(T value) {
@@ -562,7 +566,7 @@ public class KlumInstanceProxy {
         if (keyMember == com.blackbuild.groovy.configdsl.transform.Field.FieldName.class)
             return Optional.of(name);
 
-        return Optional.of(ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<String>>) keyMember, instance, instance));
+        return Optional.of(ClosureHelper.invokeClosureWithDelegateAsArgument((Class<? extends Closure<String>>) keyMember, instance));
     }
 
 }

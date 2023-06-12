@@ -64,6 +64,10 @@ public class ClosureHelper {
         return invokeClosureWithDelegate(closure, delegate, arguments);
     }
 
+    public static <T> T invokeClosureWithDelegateAsArgument(Class<? extends Closure<T>> closureType, Object delegate) {
+        return invokeClosureWithDelegate(closureType, delegate, delegate);
+    }
+
     public static <T> T invokeClosureWithDelegate(Closure<T> closure,  Object delegate, Object... arguments) {
         if (delegate != null) {
             closure.setResolveStrategy(Closure.DELEGATE_FIRST);
