@@ -80,8 +80,8 @@ public class AutoLinkPhase extends VisitingPhaseAction {
         if (!linkTo.fieldId().equals(""))
             throw new UnsupportedOperationException();
 
-        MetaProperty metaPropertyForFieldName = InvokerHelper.getMetaClass(ownerObject).getMetaProperty(field.getName());
-        MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, ownerObject);
+        MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, ownerObject, linkTo);
+        MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, ownerObject, linkTo);
 
         if (metaPropertyForInstanceName != null && metaPropertyForFieldName != null && !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName())) {
             switch (linkTo.strategy()) {
@@ -103,12 +103,17 @@ public class AutoLinkPhase extends VisitingPhaseAction {
         return ClusterModel.getSingleValueOrFail(ownerObject, field.getType(), it -> !it.isAnnotationPresent(LinkTarget.class));
     }
 
-    private static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object ownerObject) {
+    private static MetaProperty getFieldNameProperty(Field field, Object ownerObject, LinkTo linkTo) {
+        return InvokerHelper.getMetaClass(ownerObject).getMetaProperty(field.getName() + linkTo.nameSuffix());
+    }
+
+    private static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object ownerObject, LinkTo linkTo) {
         Set<Object> owners = proxy.getOwners();
         if (owners.size() != 1) return null;
 
         Object owner = owners.stream().findFirst().orElse(null);
         return StructureUtil.getPathOfSingleField(owner, proxy.getDSLInstance())
+                .map(it -> it + linkTo.nameSuffix())
                 .map(it -> InvokerHelper.getMetaClass(ownerObject).getMetaProperty(it))
                 .orElse(null);
     }

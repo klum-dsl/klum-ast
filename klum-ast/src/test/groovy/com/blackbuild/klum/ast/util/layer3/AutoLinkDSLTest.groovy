@@ -217,8 +217,8 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTarget
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTarget
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -256,6 +256,55 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
         then:
         instance.consumer.user.is(instance.producer.consumer)
+    }
+
+    def "auto link implicit instance name strategy, nameSuffix and owner closure"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTarget
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Container {
+                Producer producer
+                Consumer consumer
+            }
+
+            @DSL
+            abstract class Service {
+                @Owner Container container
+            }
+            
+            @DSL class Producer extends Service {
+                @LinkTarget("somethingElse") User adminUser
+                User consumerUser
+            }
+            
+            @DSL class Consumer extends Service {
+                @LinkTo(owner = {container.producer}, nameSuffix = "User") User user
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            consumer()
+            producer() {
+                adminUser('adminUser')
+                consumerUser('producerUser')
+            }
+        }
+
+        then:
+        instance.consumer.user.is(instance.producer.consumerUser)
     }
 
 }
