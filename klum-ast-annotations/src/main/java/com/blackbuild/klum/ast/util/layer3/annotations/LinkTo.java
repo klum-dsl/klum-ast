@@ -78,10 +78,10 @@ import java.lang.annotation.*;
  * Once the owner is determined, the field of the owner to be used as the provider of the link is determined. This is done the following way:
  * <ul>
  *     <li>If the field member is set, the field with the given name is used</li>
- *     <li>if the fieldId member is set, the field with the matching LinkTarget annotation is taken. It is illegal
+ *     <li>if the fieldId member is set, the field with the matching LinkSource annotation is taken. It is illegal
  *     to have field and fieldId set together</li>
  *     <li>if neither field nor fieldId is set, the field with the same name as the annotated field is used</li>
- *     <li>if no field with the given name exists and exactly one field not annotated with LinkTarget and of the correct type exists, that one is used</li>
+ *     <li>if no field with the given name exists and exactly one field not annotated with LinkSource and of the correct type exists, that one is used</li>
  * </ul>
  */
 @Target({ElementType.FIELD})
@@ -96,7 +96,7 @@ public @interface LinkTo {
     String field() default "";
 
     /**
-     * If set use the field of the owner with a matching LinkTarget annotation with the same id. Only one
+     * If set use the field of the owner with a matching LinkSource annotation with the same id. Only one
      * of field and targetId can be used at most.
      */
     String fieldId() default "";
@@ -105,6 +105,9 @@ public @interface LinkTo {
      * The owner of the link. By default, the owner of the annotated field's instance is used.
      */
     Class<? extends Closure<Object>> owner() default None.class;
+
+    /** If set, the owner is determined by walking the owner hierarchy up until the given type is found. */
+    Class<?> ownerType() default Object.class;
 
     Strategy strategy() default Strategy.AUTO;
 
@@ -126,7 +129,6 @@ public @interface LinkTo {
             return null;
         }
     }
-
 
     enum Strategy {
         AUTO,

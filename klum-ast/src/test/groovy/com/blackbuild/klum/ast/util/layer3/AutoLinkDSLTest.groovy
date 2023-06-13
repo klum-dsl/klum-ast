@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 @SuppressWarnings('GrPackage')
@@ -217,7 +219,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTarget
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
@@ -236,7 +238,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
             }
             
             @DSL class Producer extends Service {
-                @LinkTarget("somethingElse") User admin
+                @LinkSource("somethingElse") User admin
                 User consumer
             }
             
@@ -266,7 +268,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTarget
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
@@ -285,7 +287,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
             }
             
             @DSL class Producer extends Service {
-                @LinkTarget("somethingElse") User adminUser
+                @LinkSource("somethingElse") User adminUser
                 User consumerUser
             }
             
@@ -305,6 +307,124 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
 
         then:
         instance.consumer.user.is(instance.producer.consumerUser)
+    }
+
+    def "auto link with owner type"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Environment {
+                Container container
+                User adminUser
+                User user
+            }
+
+            @DSL class Container {
+                @Owner Environment environment
+                Service service
+            }
+
+            @DSL
+            class Service {
+                @Owner Container container
+                @LinkTo(ownerType = Environment) User user
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Environment") {
+            adminUser('admin')
+            user("defaultUser")
+            container() {
+                service()
+            }
+        }
+
+        then:
+        instance.container.service.user.is(instance.user)
+    }
+
+    def "determine owner scenarios"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Environment {
+                Container container
+                User adminUser
+                User user
+            }
+
+            @DSL class Container {
+                @Owner Environment environment
+                Service service
+                Service service2
+            }
+
+            @DSL
+            class Service {
+                @Owner Container container
+                User user
+            }
+        ''')
+
+        instance = create("tmp.Environment") {
+            adminUser('admin')
+            user("defaultUser")
+            container() {
+                service()
+                service2()
+            }
+        }
+        def linkTo = null
+
+        when:
+        linkTo = withDefaults(GroovyStub(LinkTo) {
+            ownerType() >> getClass("tmp.Environment")
+        })
+
+        then:
+        LinkHelper.determineOwnerObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance
+
+        when:
+        linkTo = withDefaults(GroovyStub(LinkTo) {
+            owner() >> { container.service2 }.getClass()
+        })
+
+        then:
+        LinkHelper.determineOwnerObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
+    }
+
+    LinkTo withDefaults(LinkTo stub) {
+        with(stub) {
+                field() >> ""
+                fieldId() >> ""
+                owner() >> LinkTo.None
+                ownerType() >> Object
+                strategy() >> LinkTo.Strategy.AUTO
+                nameSuffix() >> ""
+        }
+        return stub
     }
 
 }

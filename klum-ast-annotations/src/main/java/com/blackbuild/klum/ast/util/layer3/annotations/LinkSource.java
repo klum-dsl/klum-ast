@@ -26,12 +26,12 @@ package com.blackbuild.klum.ast.util.layer3.annotations;
 import java.lang.annotation.*;
 
 /**
- * A LinkTarget represents the supplier for a given link. If a {@link LinkTo} annotation sets a fieldId, the {@link LinkTarget}
+ * A LinkSource represents the supplier for a given link. If a {@link LinkTo} annotation sets a fieldId, the {@link LinkSource}
  * with the matching id will be selected.
  */
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface LinkTarget {
+public @interface LinkSource {
     String value();
 }
