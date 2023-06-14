@@ -8,6 +8,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkToWrapper;
 import groovy.lang.MetaProperty;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.util.Set;
 
@@ -39,7 +40,7 @@ public class LinkHelper {
             return InvokerHelper.getProperty(ownerObject, linkTo.field());
 
         if (!linkTo.fieldId().equals(""))
-            throw new UnsupportedOperationException();
+            return ClusterModel.getSingleValueOrFail(ownerObject, field.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
 
         MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, ownerObject, linkTo);
         MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, ownerObject, linkTo);
@@ -62,6 +63,10 @@ public class LinkHelper {
             return metaPropertyForFieldName.getProperty(ownerObject);
 
         return ClusterModel.getSingleValueOrFail(ownerObject, field.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
+    }
+
+    private static boolean isLinkSourceWithId(AnnotatedElement field, String id) {
+        return field.isAnnotationPresent(LinkSource.class) && field.getAnnotation(LinkSource.class).value().equals(id);
     }
 
     static MetaProperty getFieldNameProperty(Field field, Object ownerObject, LinkTo linkTo) {

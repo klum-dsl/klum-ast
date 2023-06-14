@@ -76,7 +76,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         instance.services.s3.user.name == 'serviceUser'
     }
 
-    def "auto link with explicit name and default owner"() {
+    def "auto link with explicit field name and default owner"() {
         given:
         createClass('''
             package tmp
@@ -100,6 +100,51 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
                 @Key String name
                 @Owner Container container
                 @LinkTo(field = "user") User aUser
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            service('s1')
+            service('s2')
+            service('s3') {
+                aUser('serviceUser')
+            }
+            user('containerUser', password: "secret")
+        }
+
+        then:
+        instance.services.s1.aUser.is(instance.user)
+        instance.services.s2.aUser.is(instance.user)
+        !instance.services.s3.aUser.is(instance.user)
+        instance.services.s3.aUser.name == 'serviceUser'
+    }
+
+    def "auto link with fieldId and default owner"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Container {
+                Map<String, Service> services
+                @LinkSource("custom") User user 
+                User admin
+            }
+
+            @DSL class Service {
+                @Key String name
+                @Owner Container container
+                @LinkTo(fieldId = "custom") User aUser
             }
         ''')
 
@@ -495,7 +540,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
                 service2()
             }
         }
-        def linkTo = null
+        def linkTo
 
         when:
         linkTo = withDefaults(GroovyStub(LinkTo) {
