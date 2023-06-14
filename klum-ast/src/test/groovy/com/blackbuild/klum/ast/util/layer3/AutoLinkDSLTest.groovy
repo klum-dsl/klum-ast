@@ -238,7 +238,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             }
             
             @DSL class Producer extends Service {
-                @LinkSource("somethingElse") User admin
+                User admin
                 User consumer
             }
             
@@ -252,6 +252,105 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             consumer()
             producer() {
                 admin('adminUser')
+                consumer('producerUser')
+            }
+        }
+
+        then:
+        instance.consumer.user.is(instance.producer.consumer)
+    }
+
+    def "auto link explicit instance name strategy and owner closure"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Container {
+                Producer producer
+                Consumer consumer
+            }
+
+            @DSL
+            abstract class Service {
+                @Owner Container container
+            }
+            
+            @DSL class Producer extends Service {
+                User user
+                User consumer
+            }
+            
+            @LinkTo(owner = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME)
+            @DSL class Consumer extends Service {
+                @LinkTo User user
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            consumer()
+            producer() {
+                user('adminUser')
+                consumer('producerUser')
+            }
+        }
+
+        then:
+        instance.consumer.user.is(instance.producer.consumer)
+    }
+
+    def "auto link explicit instance name strategy and owner closure on class"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Container {
+                Producer producer
+                Consumer consumer
+            }
+
+            @DSL
+            abstract class Service {
+                @Owner Container container
+            }
+            
+            @DSL class Producer extends Service {
+                User user
+                User consumer
+            }
+            
+            @DSL class Consumer extends Service {
+                @LinkTo(owner = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME) User user
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            consumer()
+            producer() {
+                user('adminUser')
                 consumer('producerUser')
             }
         }

@@ -4,6 +4,7 @@ import com.blackbuild.klum.ast.util.ClosureHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkToWrapper;
 import groovy.lang.MetaProperty;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
@@ -11,7 +12,6 @@ import java.lang.reflect.Field;
 import java.util.Set;
 
 import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
 
 public class LinkHelper {
 
@@ -21,7 +21,7 @@ public class LinkHelper {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(container);
         @SuppressWarnings("OptionalGetWithoutIsPresent")
         Field field = ClusterModel.getField(container.getClass(), fieldName).get();
-        LinkTo linkTo = field.getAnnotation(LinkTo.class);
+        LinkTo linkTo = new LinkToWrapper(field);
         autoLink(proxy, field, linkTo);
     }
 
@@ -33,6 +33,7 @@ public class LinkHelper {
 
     static Object determineLinkTarget(KlumInstanceProxy proxy, Field field, LinkTo linkTo) {
         Object ownerObject = determineOwnerObject(proxy, linkTo);
+        if (ownerObject == null) return null;
 
         if (!linkTo.field().equals(""))
             return InvokerHelper.getProperty(ownerObject, linkTo.field());
@@ -72,6 +73,9 @@ public class LinkHelper {
         if (owners.size() != 1) return null;
 
         Object owner = owners.stream().findFirst().orElseThrow(AssertionError::new);
+
+        if (owner == ownerObject) return null;
+
         return StructureUtil.getPathOfSingleField(owner, proxy.getDSLInstance())
                 .map(it -> it + linkTo.nameSuffix())
                 .map(it -> InvokerHelper.getMetaClass(ownerObject).getMetaProperty(it))
@@ -80,10 +84,10 @@ public class LinkHelper {
 
     static Object determineOwnerObject(KlumInstanceProxy proxy, LinkTo linkTo) {
         if (linkTo.owner() != LinkTo.None.class)
-            return requireNonNull(ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.owner(), proxy.getDSLInstance()));
+            return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.owner(), proxy.getDSLInstance());
         if (linkTo.ownerType() != Object.class)
             return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.ownerType())
-                    .orElseThrow(() -> new IllegalStateException(format("Could not find ancestor of type %s for %s", linkTo.ownerType().getName(), proxy.getDSLInstance())));
+                    .orElse(null);
 
         return proxy.getSingleOwner();
     }

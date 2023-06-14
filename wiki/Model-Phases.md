@@ -39,7 +39,8 @@ any lifecycle methods that are marked with `@AutoCreate`.
 
 ## AutoLink (20)
 
-Not yet implemented. The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree.
+The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
+by annotating fields with `@LinkTo`. Also, regular lifecycle methods can be annotated with `@AutoLink` to be executed.
 
 ## PostTree (30)
 
@@ -54,3 +55,6 @@ Validates the correctness of the model according to the presence of the `@Valida
 
 Has no default actions. Plugins can register actions to be executed after the model has been created and validated.
 This could, for example, be used for logging purpose or to register the model in some kind of external registry.
+
+Note that the lifecycle methods for AutoCreate, AutoLink and PostTree are technically identical, the difference being
+more of a semantic nature. So AutoCreate methods should actually create objects, AutoLink methods should link existing objects.

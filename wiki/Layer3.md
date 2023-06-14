@@ -209,20 +209,29 @@ With ShipmentApplication being a class with domain knowledge, it can also contai
 
 Making these validation with a domain schema is trivial.
 
-### Automatic linking
+### Automatic creation linking
 
 Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant, but also error-prone, since the monitoring service might be configured differently for each application.
 
-Using the schema layer, one could, for example define the microservice directly in the environment and let all applications automatically use it.
-
-Thus the `getMicroservices()` method in the applications would be overridden to include the generic microservice, something like:
+Using the schema layer with auto create, the monitoring service could automatically be created.
 
 ```groovy
-abstract class CustomerServiceApplication extends Application {
-    @Override
-    Map<String, Microservice> getMicroservices() {
-        return super.getMicroservices() + environment.microservices
-    }
+abstract class MonitoredApplication extends Application {
+  @AutoCreate
+  MonitoringService monitoring
 }
 ```
-In that example, the monitoring service could automatically be linked to database user of its respective application.
+
+Now, our monitoring service needs access to a database, but we want to reuse the database for the application. So we link
+the database field of the monitoring service to the database of its owner:
+
+```groovy
+import java.security.acl.Owner
+
+class MonitoringService extends Microservice {
+  @Owner MonitoresApplication application
+  @LinkTo Database database
+}
+```
+During the instantiation of the model, the database field will bea automatically filled, but can still be overwritten 
+on instance level.

@@ -62,16 +62,17 @@ import java.lang.annotation.*;
  *
  * <h3>owner</h3>
  *
- * The link mechanism is centered around the owner object, i.e. the object that contains the field to be linked. By default,
- * this is considered to be the owner of the annotated field's instance. This can be changed by various members:
+ * The link mechanism is centered around the owner object, i.e. the object that contains the field to be linked. This
+ * is determined the following way:
  *
  * <ul>
  *     <li>owner: contains a code closure that is run relative to the annotated field's instance to access the owner (like in the example)</li>
- *     <li>owner-type: TBD</li>
- *     <li>root: TBD</li>
+ *     <li>ownerType: contains a type of owner. Finds the first element of the given type in the owner hierarchy</li>
+ *     <li>otherwise, the single owner is used</li>
  * </ul>
  *
- * If the annotated field's instance has no owner or multiple owner fields, the owner must be specified explicitly.
+ * If the annotated field's instance has no owner or multiple owner fields, the owner must be specified explicitly using the owner member.
+ * If the owner evaluates to null, the link is not set (no exception is thrown).
  *
  * <h3>target field</h3>
  *
@@ -84,7 +85,7 @@ import java.lang.annotation.*;
  *     <li>if no field with the given name exists and exactly one field not annotated with LinkSource and of the correct type exists, that one is used</li>
  * </ul>
  */
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @Documented
