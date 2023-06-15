@@ -53,15 +53,15 @@ public @interface AutoCreate {
      * Closure that contains exactly one Map literal, which is passed to the
      * create method as named parameters.
      */
-    Class<? extends Closure<Map<String, Object>>> value() default DefaultValue.class;
+    Class<? extends Closure<Map<String, Object>>> value() default None.class;
 
     String key() default DEFAULT_KEY;
 
     Class<?> type() default Object.class;
 
     /** Marker class for default value. */
-    class DefaultValue extends Closure<Map<String, Object>> {
-        public DefaultValue(Object owner, Object thisObject) {
+    class None extends Closure<Map<String, Object>> {
+        public None(Object owner, Object thisObject) {
             super(owner, thisObject);
         }
 
