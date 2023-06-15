@@ -24,7 +24,10 @@
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.klum.ast.validation.AllowedMembersForMethod;
+import com.blackbuild.klum.ast.validation.NeedsDslClass;
 import groovy.lang.Closure;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.*;
 
@@ -88,7 +91,11 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
+@NeedsDslClass
+@AllowedMembersForMethod({"owner", "ownerType", "strategy"})
+@Inherited
 @Documented
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.AstValidator")
 public @interface LinkTo {
 
     /**
