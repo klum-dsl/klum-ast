@@ -234,4 +234,4 @@ class MonitoringService extends Microservice {
 }
 ```
 During the instantiation of the model, the database field will bea automatically filled, but can still be overwritten 
-on instance level.
+on instance level. See JavaDoc for `LinkTo` for more details.
