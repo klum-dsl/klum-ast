@@ -121,7 +121,6 @@ public @interface LinkTo {
 
     /**
      * If set, is added to automatically determined names (i.e. FIELD_NAME or INSTANCE_NAME).
-     * @return
      */
     String nameSuffix() default "";
     /**

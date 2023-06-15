@@ -30,7 +30,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Objects;
 
+@SuppressWarnings("ClassExplicitlyAnnotation")
 public class LinkToWrapper implements LinkTo {
 
     @Nullable private final LinkTo fromClass;
@@ -82,5 +84,18 @@ public class LinkToWrapper implements LinkTo {
         if (!fromField.nameSuffix().equals("")) return fromField.nameSuffix();
         if (fromClass != null) return fromClass.nameSuffix();
         return "";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LinkToWrapper that = (LinkToWrapper) o;
+        return Objects.equals(fromClass, that.fromClass) && Objects.equals(fromField, that.fromField);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fromClass, fromField);
     }
 }
