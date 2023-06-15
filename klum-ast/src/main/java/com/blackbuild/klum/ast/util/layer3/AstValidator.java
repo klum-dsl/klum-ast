@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
-@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
+@GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class AstValidator extends AbstractASTTransformation {
 
     protected static final ClassNode DSL_CN = ClassHelper.make(DSL.class);
@@ -43,11 +43,16 @@ public class AstValidator extends AbstractASTTransformation {
         validateAnnotation();
     }
 
-    private void validateAnnotation() {
+    protected void validateAnnotation() {
         validateDslNeeded();
         if (target instanceof MethodNode) validateMethodMembers();
         else if (target instanceof ClassNode) validateClassMembers();
         else if (target instanceof FieldNode) validateFieldMembers();
+        extraValidation();
+    }
+
+    protected void extraValidation() {
+        // hook method
     }
 
     private void validateFieldMembers() {
@@ -83,14 +88,14 @@ public class AstValidator extends AbstractASTTransformation {
 
         if (allowedMembers.containsAll(existingMembers)) return;
 
-        HashSet<String> forbbidenMembers = new HashSet<>(existingMembers);
-        forbbidenMembers.removeAll(allowedMembers);
+        HashSet<String> forbiddenMembers = new HashSet<>(existingMembers);
+        forbiddenMembers.removeAll(allowedMembers);
 
         addError(format(
                 "Annotation %s has members which are not allowed when placed on a %s (%s)",
                 annotation.getClassNode().getNameWithoutPackage(),
                 target.getClass().getSimpleName(),
-                forbbidenMembers
+                forbiddenMembers
                 ),
                 annotation);
     }

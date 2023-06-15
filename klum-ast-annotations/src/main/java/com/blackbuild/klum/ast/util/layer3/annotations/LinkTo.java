@@ -95,7 +95,7 @@ import java.lang.annotation.*;
 @AllowedMembersForMethod({"owner", "ownerType", "strategy"})
 @Inherited
 @Documented
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.AstValidator")
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.LinkToAstValidator")
 public @interface LinkTo {
 
     /**
