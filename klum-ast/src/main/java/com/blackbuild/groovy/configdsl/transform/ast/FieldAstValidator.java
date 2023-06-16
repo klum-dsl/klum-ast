@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.validation.AstValidator;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.transform.Undefined;
@@ -32,8 +33,7 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isKeyed;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.String.format;
 import static java.lang.reflect.Modifier.isFinal;
@@ -45,15 +45,14 @@ public class FieldAstValidator extends AstValidator {
 
     @Override
     protected void extraValidation() {
-        baseTypeMustBeSubtypeOfFieldType();
+        if (members.containsKey("baseType"))
+            validateBaseType();
         if (target instanceof FieldNode)
             validateField();
     }
 
-    private void baseTypeMustBeSubtypeOfFieldType() {
+    private void validateBaseType() {
         ClassNode baseType = getMemberClassValue(annotation, "baseType");
-        if (baseType == null) return;
-
         ClassNode fieldType = CommonAstHelper.getElementType((FieldNode) target);
 
         if (isFinal(fieldType.getModifiers()))
@@ -75,6 +74,13 @@ public class FieldAstValidator extends AstValidator {
                 sourceUnit,
                 format("annotated basetype %s of %s is not a valid subtype of it.", baseType.getName(), fieldType.getName()),
                 annotation
+            );
+
+        if (getFieldType(target) == FieldType.LINK)
+            addCompileError(
+                    sourceUnit,
+                    "BaseType is not allowed on LINK fields",
+                    annotation
             );
     }
 
