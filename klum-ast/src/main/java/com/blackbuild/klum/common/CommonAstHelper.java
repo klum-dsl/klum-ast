@@ -347,15 +347,23 @@ public class CommonAstHelper {
             return defaultValue;
 
         Expression member = node.getMember(name);
-        if (member == null)
-            return defaultValue;
-
         if (!(member instanceof PropertyExpression))
             return defaultValue;
 
         String value = ((PropertyExpression) member).getPropertyAsString();
 
         return Enum.valueOf(defaultValue.getDeclaringClass(), value);
+    }
+
+    public static ClassNode getNullSafeClassMember(AnnotationNode node,  String name, ClassNode defaultValue) {
+        if (node == null)
+            return defaultValue;
+
+        Expression member = node.getMember(name);
+        if (!(member instanceof ClassExpression))
+            return defaultValue;
+
+        return member.getType();
     }
 
     public static void initializeCollectionOrMap(FieldNode fieldNode) {

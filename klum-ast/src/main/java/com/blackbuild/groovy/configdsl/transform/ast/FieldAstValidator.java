@@ -32,9 +32,11 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isKeyed;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.String.format;
+import static java.lang.reflect.Modifier.isFinal;
 
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class FieldAstValidator extends AstValidator {
@@ -53,12 +55,27 @@ public class FieldAstValidator extends AstValidator {
         if (baseType == null) return;
 
         ClassNode fieldType = CommonAstHelper.getElementType((FieldNode) target);
-        if (fieldType.equals(UNDEFINED) || isAssignableTo(baseType, fieldType)) return;
-        addCompileError(
+
+        if (isFinal(fieldType.getModifiers()))
+            addCompileError(
+                    sourceUnit,
+                    format("annotated field %s is final and cannot be overridden.", ((FieldNode) target).getName()),
+                    annotation
+            );
+
+        if (!isDSLObject(baseType))
+            addCompileError(
+                    sourceUnit,
+                    "BaseType must be an DSL-Object",
+                    annotation
+            );
+
+        if (!fieldType.equals(UNDEFINED) && !isAssignableTo(baseType, fieldType))
+            addCompileError(
                 sourceUnit,
                 format("annotated basetype %s of %s is not a valid subtype of it.", baseType.getName(), fieldType.getName()),
                 annotation
-        );
+            );
     }
 
     private void validateField() {

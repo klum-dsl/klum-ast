@@ -539,16 +539,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (shouldFieldBeIgnored(fieldNode)) return;
         if (DslAstHelper.getFieldType(fieldNode) == FieldType.IGNORED) return;
 
-        if (isDSLObject(fieldNode.getType())) {
-            if (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK)
-                createSingleDSLObjectFieldCreationMethods(fieldNode, fieldNode.getName(), fieldNode.getType());
-            createSingleFieldSetterMethod(fieldNode);
-        } else if (isMap(fieldNode.getType()))
+        ClassNode fieldType = fieldNode.getType();
+
+        if (isMap(fieldType))
             createMapMethods(fieldNode);
-        else if (isCollection(fieldNode.getType()))
+        else if (isCollection(fieldType))
             createCollectionMethods(fieldNode);
-        else
+        else {
+            ClassNode baseType = getNullSafeClassMember(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "baseType", fieldType);
+            if (isDSLObject(baseType) && (DslAstHelper.getFieldType(fieldNode) != FieldType.LINK))
+                createSingleDSLObjectFieldCreationMethods(fieldNode, fieldNode.getName(), baseType);
             createSingleFieldSetterMethod(fieldNode);
+        }
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -607,14 +609,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         initializeCollectionOrMap(fieldNode);
 
         ClassNode elementType = getElementTypeForCollection(fieldNode.getType());
+        ClassNode baseType = getNullSafeClassMember(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "baseType", elementType);
 
-        if (elementType == null) {
+        if (baseType == null) {
             addCompileError("Collection must have a generic type.", fieldNode);
             return;
         }
 
-        if (hasAnnotation(elementType, DSL_CONFIG_ANNOTATION))
-            createCollectionOfDSLObjectMethods(fieldNode, elementType);
+        if (isDSLObject(baseType))
+            createCollectionOfDSLObjectMethods(fieldNode, baseType);
         else
             createCollectionOfSimpleElementsMethods(fieldNode, elementType);
     }
@@ -736,9 +739,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         initializeCollectionOrMap(fieldNode);
 
         ClassNode valueType = getElementTypeForMap(fieldNode.getType());
+        ClassNode baseType = getNullSafeClassMember(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "baseType", valueType);
 
-        if (isDSLObject(valueType))
-            createMapOfDSLObjectMethods(fieldNode, valueType);
+        if (isDSLObject(baseType))
+            createMapOfDSLObjectMethods(fieldNode, baseType);
         else
             createMapOfSimpleElementsMethods(fieldNode, valueType);
     }
