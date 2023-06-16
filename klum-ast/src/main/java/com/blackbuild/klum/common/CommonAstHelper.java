@@ -235,30 +235,30 @@ public class CommonAstHelper {
         classNode.addMethod(method);
         // GROOVY-4415 / GROOVY-4645: check that there's no abstract method which corresponds to this one
         List<MethodNode> abstractMethods = classNode.getAbstractMethods();
-        if (abstractMethods==null) return;
+        if (abstractMethods == null) return;
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         ClassNode methodReturnType = method.getReturnType();
-        for (MethodNode node : abstractMethods) {
-            if (!node.getDeclaringClass().equals(classNode)) continue;
-            if (node.getName().equals(methodName)
-                    && node.getParameters().length==parameters.length) {
-                if (parameters.length==1) {
-                    // setter
-                    ClassNode abstractMethodParameterType = node.getParameters()[0].getType();
-                    ClassNode methodParameterType = parameters[0].getType();
-                    if (!isAssignableTo(methodParameterType, abstractMethodParameterType))
-                        continue;
-                }
-                ClassNode nodeReturnType = node.getReturnType();
-                if (!isAssignableTo(methodReturnType, nodeReturnType)) {
-                    continue;
-                }
-                // matching method, remove abstract status and use the same body
-                node.setModifiers(node.getModifiers() ^ ACC_ABSTRACT);
-                node.setCode(method.getCode());
-            }
-        }
+
+        abstractMethods.stream()
+                .filter(node -> node.getDeclaringClass().equals(classNode))
+                .filter(node -> node.getName().equals(methodName))
+                .filter(node -> node.getParameters().length == parameters.length)
+                .filter(node -> isMatchingSetter(parameters, node) || isAssignableTo(methodReturnType, node.getReturnType()))
+                .findFirst()
+                .ifPresent(node -> {
+                    node.setModifiers(node.getModifiers() ^ ACC_ABSTRACT);
+                    node.setCode(method.getCode());
+                });
+    }
+
+    private static boolean isMatchingSetter(Parameter[] parameters, MethodNode node) {
+        if (parameters.length != 1) return false;
+        ClassNode abstractMethodParameterType = node.getParameters()[0].getType();
+        ClassNode methodParameterType = parameters[0].getType();
+        if (!isAssignableTo(methodParameterType, abstractMethodParameterType))
+            return false;
+        return true;
     }
 
     public static void replaceProperties(ClassNode annotatedClass, List<PropertyNode> newNodes) {

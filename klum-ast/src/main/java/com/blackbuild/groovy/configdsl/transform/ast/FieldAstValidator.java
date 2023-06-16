@@ -39,7 +39,7 @@ import static java.lang.String.format;
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class FieldAstValidator extends AstValidator {
 
-    private static ClassNode UNDEFINED = ClassHelper.make(Undefined.class);
+    private static final ClassNode UNDEFINED = ClassHelper.make(Undefined.class);
 
     @Override
     protected void extraValidation() {
