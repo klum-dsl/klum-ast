@@ -135,7 +135,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         setPropertyAccessors();
         createCanonicalMethods();
-        validateFieldAnnotations();
         assertMembersNamesAreUnique();
         makeClassSerializable();
         createApplyMethods();
@@ -399,45 +398,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private AssertStatement assertStmt(Expression check, String message) {
         if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);
         else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
-    }
-
-    private void validateFieldAnnotations() {
-        for (FieldNode fieldNode : annotatedClass.getFields())
-            validateSingleFieldAnnotation(fieldNode);
-    }
-
-    private void validateSingleFieldAnnotation(FieldNode fieldNode) {
-        AnnotationNode annotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-        if (annotation == null) return;
-
-        if (CommonAstHelper.isCollectionOrMap(fieldNode.getType())) {
-            validateFieldAnnotationOnCollection(annotation);
-        } else {
-            validateFieldAnnotationOnSingleField(fieldNode, annotation);
-        }
-    }
-
-    private void validateFieldAnnotationOnSingleField(FieldNode fieldNode, AnnotationNode annotation) {
-        if (annotation.getMember("members") != null)
-            addCompileError(
-                sourceUnit, String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
-                annotation.getMember("members")
-            );
-        if (annotation.getMember("key") != null
-                && (!isDSLObject(fieldNode.getType()) || getKeyField(fieldNode.getType()) == null))
-            addCompileError(
-                    sourceUnit, "@Field.key is only valid for keyed dsl fields",
-                    annotation.getMember("key")
-            );
-    }
-
-    private void validateFieldAnnotationOnCollection(AnnotationNode annotation) {
-        if (annotation.getMember("key") != null)
-            addCompileError(
-                    sourceUnit,
-                    "@Field.key is only allowed for non collection fields.",
-                    annotation.getMember("key")
-            );
     }
 
     private void assertMembersNamesAreUnique() {

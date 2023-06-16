@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
@@ -33,6 +34,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,6 +49,7 @@ public class AstValidator extends AbstractASTTransformation {
     protected AnnotatedNode target;
 
     protected ClassNode targetClass;
+    protected Map<String, Expression> members;
 
     protected Class<? extends Annotation> annotationClass;
 
@@ -58,6 +61,8 @@ public class AstValidator extends AbstractASTTransformation {
         annotationClass = annotation.getClassNode().getTypeClass();
         target = (AnnotatedNode) nodes[1];
         targetClass = target instanceof ClassNode ? (ClassNode) target : target.getDeclaringClass();
+
+        members = annotation.getMembers();
 
         validateAnnotation();
     }
@@ -103,7 +108,7 @@ public class AstValidator extends AbstractASTTransformation {
 
     private void assertAnnotationOnlyHasMembersFrom(String[] value) {
         Set<String> allowedMembers = Arrays.stream(value).collect(Collectors.toSet());
-        Set<String> existingMembers = annotation.getMembers().keySet();
+        Set<String> existingMembers = members.keySet();
 
         if (allowedMembers.containsAll(existingMembers)) return;
 
@@ -121,7 +126,7 @@ public class AstValidator extends AbstractASTTransformation {
 
     private void assertAnnotationHasNoMembersFrom(String[] value) {
         Set<String> forbiddenMembers = Arrays.stream(value).collect(Collectors.toSet());
-        Set<String> existingMembers = annotation.getMembers().keySet();
+        Set<String> existingMembers = members.keySet();
 
         forbiddenMembers.retainAll(existingMembers);
         if (forbiddenMembers.isEmpty()) return;
