@@ -57,24 +57,24 @@ abstract class AbstractRuntimeTest extends Specification {
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
 
-        // language=groovy
-        loader.parseClass("""
-package com.blackbuild.groovy.configdsl.transform.ast
+        createDummyTransformations("com.blackbuild.groovy.configdsl.transform.ast",
+                "DSLASTTransformation",
+                "DelegatesToRWTransformation",
+                "AddJacksonIgnoresTransformation",
+                "FieldAstValidator")
+        createDummyTransformations("com.blackbuild.groovy.configdsl.transform.ast.mutators",
+                "ModelVerifierTransformation")
+    }
+
+    void createDummyTransformations(String packageName, String... classNames) {
+        def typeDef = """
+package $packageName
 import org.codehaus.groovy.transform.GroovyASTTransformation
-import org.codehaus.groovy.control.CompilePhase
 import com.blackbuild.klum.ast.util.DummyAstTransformation
-@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION) class DSLASTTransformation extends DummyAstTransformation {}
-@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION) class DelegatesToRWTransformation extends DummyAstTransformation {}
-@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION) class AddJacksonIgnoresTransformation extends DummyAstTransformation {}
-""")
-        // language=groovy
-        loader.parseClass("""
-package com.blackbuild.groovy.configdsl.transform.ast.mutators
-import org.codehaus.groovy.transform.GroovyASTTransformation
-import org.codehaus.groovy.control.CompilePhase
-import com.blackbuild.klum.ast.util.DummyAstTransformation
-@GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION) class ModelVerifierTransformation extends DummyAstTransformation {}
-""")
+"""
+        for (className in classNames)
+            typeDef += "@GroovyASTTransformation class $className extends DummyAstTransformation {}\n"
+        loader.parseClass(typeDef)
     }
 
     def getSafeFilename() {

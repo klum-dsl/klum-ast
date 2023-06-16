@@ -51,12 +51,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnno
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileError;
-import static com.blackbuild.klum.common.CommonAstHelper.addCompileWarning;
-import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
-import static com.blackbuild.klum.common.CommonAstHelper.getElementType;
-import static com.blackbuild.klum.common.CommonAstHelper.isCollection;
-import static com.blackbuild.klum.common.CommonAstHelper.isMap;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Arrays.asList;
@@ -192,14 +187,11 @@ class ConverterBuilder {
     }
 
     private boolean isFactoryMethod(MethodNode method) {
-        return method.isStatic()
-                && method.isPublic()
-                && isConverterMethod(method)
-                && isAssignable(method.getReturnType(), elementType);
-    }
-
-    private boolean isAssignable(ClassNode type, ClassNode classOrInterface) {
-        return type.isDerivedFrom(classOrInterface) || type.implementsInterface(classOrInterface);
+        if (!method.isStatic()
+                || !method.isPublic()
+                || !isConverterMethod(method)) return false;
+        ClassNode type = method.getReturnType();
+        return isAssignableTo(type, elementType);
     }
 
     @SuppressWarnings("RedundantIfStatement")

@@ -21,13 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
-import com.blackbuild.klum.ast.validation.AllowedMembersForClass;
-import com.blackbuild.klum.ast.validation.AllowedMembersForField;
-import com.blackbuild.klum.ast.validation.AllowedMembersForMethod;
-import com.blackbuild.klum.ast.validation.NeedsDslClass;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
