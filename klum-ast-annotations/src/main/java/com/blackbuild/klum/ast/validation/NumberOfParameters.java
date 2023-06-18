@@ -21,34 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.validation.AstValidator;
-import org.codehaus.groovy.control.CompilePhase;
-import org.codehaus.groovy.transform.GroovyASTTransformation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.Set;
-
-@GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
-public class LinkToAstValidator extends AstValidator {
-
-    private Set<String> memberNames;
-
-    @Override
-    protected void extraValidation() {
-        memberNames = members.keySet();
-        ownerAndOwnerTypeAreMutuallyExclusive();
-        strategyInstanceNameNeedsOwnerOrOwnerType();
-    }
-
-    private void strategyInstanceNameNeedsOwnerOrOwnerType() {
-        if (!memberNames.contains("strategy")) return;
-        if (memberNames.contains("owner") || memberNames.contains("ownerType")) return;
-        addError("strategy INSTANCE_NAME needs owner or ownerType", annotation);
-    }
-
-    private void ownerAndOwnerTypeAreMutuallyExclusive() {
-        if (memberNames.contains("owner") && memberNames.contains("ownerType"))
-            addError("Only one of owner and ownerType is allowed", annotation);
-    }
+@Target(ElementType.ANNOTATION_TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface NumberOfParameters {
+    int value();
 }

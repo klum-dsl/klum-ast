@@ -154,6 +154,12 @@ public class DslAstHelper {
         return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
     }
 
+    static boolean isKeyed(ClassNode type) {
+        if (!isDSLObject(type))
+            return false;
+        return getKeyField(type) != null;
+    }
+
     static FieldNode getKeyField(ClassNode target) {
         FieldNode result = target.getNodeMetaData(KEY_FIELD_METADATA_KEY);
 

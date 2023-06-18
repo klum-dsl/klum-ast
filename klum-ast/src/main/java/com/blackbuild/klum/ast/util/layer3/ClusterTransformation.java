@@ -41,6 +41,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.Collection;
 
+import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -114,7 +115,7 @@ public class ClusterTransformation extends AbstractASTTransformation {
         ClassNode elementType = method.getReturnType().getGenericsTypes()[1].getType();
         String targetMethod = includeNulls ? "getPropertiesOfType" : "getNonEmptyPropertiesOfType";
 
-        if (elementType.implementsInterface(COLLECTION_TYPE) || elementType.isDerivedFrom(COLLECTION_TYPE)) {
+        if (isAssignableTo(elementType, COLLECTION_TYPE)) {
             if (elementType.isUsingGenerics()) {
                 elementType = elementType.getGenericsTypes()[0].getType();
                 targetMethod = "getCollectionsOfType";

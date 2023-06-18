@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import groovy.transform.Undefined;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.Documented;
@@ -381,4 +382,10 @@ public @interface DSL {
      * When present, the given suffix is stripped from child class names to determine the short name.
      */
     String stripSuffix() default "";
+
+    /**
+     * When present, the given type is used as default type for a field of this type.
+     * This makes most sense on interfaces or abstract classes.
+     */
+    Class<?> defaultImpl() default Undefined.class;
 }

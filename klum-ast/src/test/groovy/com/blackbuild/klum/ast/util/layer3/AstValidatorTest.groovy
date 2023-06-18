@@ -40,7 +40,7 @@ class AstValidatorTest extends AbstractDSLSpec {
 
             @Retention(RetentionPolicy.RUNTIME)
             @NeedsDslClass
-            @GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.AstValidator")
+            @GroovyASTTransformationClass("com.blackbuild.klum.ast.validation.AstValidator")
             @interface AWithDslNeeded {}
 '''
 
@@ -86,7 +86,7 @@ class AstValidatorTest extends AbstractDSLSpec {
             @AllowedMembersForClass("classMember")
             @AllowedMembersForMethod("methodMember")
             @AllowedMembersForField("fieldMember")
-            @GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.AstValidator")
+            @GroovyASTTransformationClass("com.blackbuild.klum.ast.validation.AstValidator")
             @interface MemberCheck {
                 String classMember() default ""
                 String methodMember() default ""
@@ -169,7 +169,7 @@ class AstValidatorTest extends AbstractDSLSpec {
             @AllowedMembersForClass(value = ["fieldMember", "methodMember"], invert = true)
             @AllowedMembersForMethod(value = ["classMember", "fieldMember"], invert = true)
             @AllowedMembersForField(value = ["classMember", "methodMember"], invert = true)
-            @GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.AstValidator")
+            @GroovyASTTransformationClass("com.blackbuild.klum.ast.validation.AstValidator")
             @interface MemberCheck {
                 String classMember() default ""
                 String methodMember() default ""

@@ -42,8 +42,7 @@ import java.util.stream.Collectors;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
-import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.makeWithoutCaching;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.expr.CastExpression.asExpression;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafe;
@@ -73,11 +72,15 @@ public class CommonAstHelper {
     }
 
     public static boolean isCollection(ClassNode type) {
-        return type.equals(COLLECTION_TYPE) || type.implementsInterface(COLLECTION_TYPE);
+        return isAssignableTo(type, COLLECTION_TYPE);
+    }
+
+    public static boolean isAssignableTo(ClassNode subType, ClassNode baseType) {
+        return subType.isDerivedFrom(baseType) || subType.implementsInterface(baseType);
     }
 
     public static boolean isMap(ClassNode type) {
-        return type.equals(ClassHelper.MAP_TYPE) || type.implementsInterface(ClassHelper.MAP_TYPE);
+        return isAssignableTo(type,MAP_TYPE);
     }
 
     public static boolean isAbstract(ClassNode classNode) {
@@ -232,31 +235,30 @@ public class CommonAstHelper {
         classNode.addMethod(method);
         // GROOVY-4415 / GROOVY-4645: check that there's no abstract method which corresponds to this one
         List<MethodNode> abstractMethods = classNode.getAbstractMethods();
-        if (abstractMethods==null) return;
+        if (abstractMethods == null) return;
         String methodName = method.getName();
         Parameter[] parameters = method.getParameters();
         ClassNode methodReturnType = method.getReturnType();
-        for (MethodNode node : abstractMethods) {
-            if (!node.getDeclaringClass().equals(classNode)) continue;
-            if (node.getName().equals(methodName)
-                    && node.getParameters().length==parameters.length) {
-                if (parameters.length==1) {
-                    // setter
-                    ClassNode abstractMethodParameterType = node.getParameters()[0].getType();
-                    ClassNode methodParameterType = parameters[0].getType();
-                    if (!methodParameterType.isDerivedFrom(abstractMethodParameterType) && !methodParameterType.implementsInterface(abstractMethodParameterType)) {
-                        continue;
-                    }
-                }
-                ClassNode nodeReturnType = node.getReturnType();
-                if (!methodReturnType.isDerivedFrom(nodeReturnType) && !methodReturnType.implementsInterface(nodeReturnType)) {
-                    continue;
-                }
-                // matching method, remove abstract status and use the same body
-                node.setModifiers(node.getModifiers() ^ ACC_ABSTRACT);
-                node.setCode(method.getCode());
-            }
-        }
+
+        abstractMethods.stream()
+                .filter(node -> node.getDeclaringClass().equals(classNode))
+                .filter(node -> node.getName().equals(methodName))
+                .filter(node -> node.getParameters().length == parameters.length)
+                .filter(node -> isMatchingSetter(parameters, node) || isAssignableTo(methodReturnType, node.getReturnType()))
+                .findFirst()
+                .ifPresent(node -> {
+                    node.setModifiers(node.getModifiers() ^ ACC_ABSTRACT);
+                    node.setCode(method.getCode());
+                });
+    }
+
+    private static boolean isMatchingSetter(Parameter[] parameters, MethodNode node) {
+        if (parameters.length != 1) return false;
+        ClassNode abstractMethodParameterType = node.getParameters()[0].getType();
+        ClassNode methodParameterType = parameters[0].getType();
+        if (!isAssignableTo(methodParameterType, abstractMethodParameterType))
+            return false;
+        return true;
     }
 
     public static void replaceProperties(ClassNode annotatedClass, List<PropertyNode> newNodes) {
@@ -345,15 +347,23 @@ public class CommonAstHelper {
             return defaultValue;
 
         Expression member = node.getMember(name);
-        if (member == null)
-            return defaultValue;
-
         if (!(member instanceof PropertyExpression))
             return defaultValue;
 
         String value = ((PropertyExpression) member).getPropertyAsString();
 
         return Enum.valueOf(defaultValue.getDeclaringClass(), value);
+    }
+
+    public static ClassNode getNullSafeClassMember(AnnotationNode node,  String name, ClassNode defaultValue) {
+        if (node == null)
+            return defaultValue;
+
+        Expression member = node.getMember(name);
+        if (!(member instanceof ClassExpression))
+            return defaultValue;
+
+        return member.getType();
     }
 
     public static void initializeCollectionOrMap(FieldNode fieldNode) {
@@ -365,7 +375,7 @@ public class CommonAstHelper {
             initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementTypeForCollection(fieldType))));
         else if (isCollection(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new ListExpression()));
-        else if (fieldType.equals(CommonAstHelper.SORTED_MAP_TYPE))
+        else if (fieldType.equals(SORTED_MAP_TYPE))
             initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
         else if (isMap(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new MapExpression()));
@@ -413,7 +423,7 @@ public class CommonAstHelper {
         if (result instanceof ConstantExpression && result.getType().equals(STRING_TYPE))
             return result.getText();
 
-        CommonAstHelper.addCompileError("Map keys may only be Strings.", source, entryExpression);
+        addCompileError("Map keys may only be Strings.", source, entryExpression);
         return null;
     }
 
@@ -422,7 +432,7 @@ public class CommonAstHelper {
         if (result instanceof ClassExpression)
             return result.getType();
 
-        CommonAstHelper.addCompileError("Map values may only be classes.", source, entryExpression);
+        addCompileError("Map values may only be classes.", source, entryExpression);
         return ClassHelper.DYNAMIC_TYPE;
     }
 

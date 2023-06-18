@@ -21,14 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
-import com.blackbuild.klum.ast.validation.AllowedMembersForClass;
-import com.blackbuild.klum.ast.validation.AllowedMembersForField;
-import com.blackbuild.klum.ast.validation.AllowedMembersForMethod;
-import com.blackbuild.klum.ast.validation.NeedsDslClass;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
@@ -37,6 +34,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -51,6 +49,7 @@ public class AstValidator extends AbstractASTTransformation {
     protected AnnotatedNode target;
 
     protected ClassNode targetClass;
+    protected Map<String, Expression> members;
 
     protected Class<? extends Annotation> annotationClass;
 
@@ -63,15 +62,52 @@ public class AstValidator extends AbstractASTTransformation {
         target = (AnnotatedNode) nodes[1];
         targetClass = target instanceof ClassNode ? (ClassNode) target : target.getDeclaringClass();
 
+        members = annotation.getMembers();
+
         validateAnnotation();
     }
 
     protected void validateAnnotation() {
         validateDslNeeded();
-        if (target instanceof MethodNode) validateMethodMembers();
-        else if (target instanceof ClassNode) validateClassMembers();
-        else if (target instanceof FieldNode) validateFieldMembers();
+        if (target instanceof MethodNode) validateMethod();
+        else if (target instanceof ClassNode) validateClass();
+        else if (target instanceof FieldNode) validateField();
         extraValidation();
+    }
+
+    protected void validateField() {
+        validateFieldMembers();
+        extraValidateField();
+    }
+
+    protected void extraValidateField() {
+        // hook method
+    }
+
+    protected void validateClass() {
+        validateClassMembers();
+        extraValidateClass();
+    }
+
+    protected void extraValidateClass() {
+        // hook method
+    }
+
+    protected void validateMethod() {
+        validateMethodMembers();
+        validateParameterNumbers();
+        extraValidateMethod();
+    }
+
+    protected void extraValidateMethod() {
+        // hook method
+    }
+
+    private void validateParameterNumbers() {
+        NumberOfParameters numberOfParameters = annotationClass.getAnnotation(NumberOfParameters.class);
+        if (numberOfParameters == null) return;
+        if (numberOfParameters.value() != ((MethodNode) target).getParameters().length)
+            addCompileError("Annotation %s must have %d parameters", annotationClass.getSimpleName(), numberOfParameters.value());
     }
 
     protected void extraValidation() {
@@ -107,43 +143,46 @@ public class AstValidator extends AbstractASTTransformation {
 
     private void assertAnnotationOnlyHasMembersFrom(String[] value) {
         Set<String> allowedMembers = Arrays.stream(value).collect(Collectors.toSet());
-        Set<String> existingMembers = annotation.getMembers().keySet();
+        Set<String> existingMembers = members.keySet();
 
         if (allowedMembers.containsAll(existingMembers)) return;
 
         HashSet<String> forbiddenMembers = new HashSet<>(existingMembers);
         forbiddenMembers.removeAll(allowedMembers);
 
-        addError(format(
-                "Annotation %s has members which are not allowed when placed on a %s (%s)",
-                annotation.getClassNode().getNameWithoutPackage(),
-                target.getClass().getSimpleName(),
-                forbiddenMembers
-                ),
-                annotation);
+        addCompileError(
+            "Annotation %s has members which are not allowed when placed on a %s (%s)",
+            annotation.getClassNode().getNameWithoutPackage(),
+            target.getClass().getSimpleName(),
+            forbiddenMembers
+        );
     }
 
     private void assertAnnotationHasNoMembersFrom(String[] value) {
         Set<String> forbiddenMembers = Arrays.stream(value).collect(Collectors.toSet());
-        Set<String> existingMembers = annotation.getMembers().keySet();
+        Set<String> existingMembers = members.keySet();
 
         forbiddenMembers.retainAll(existingMembers);
         if (forbiddenMembers.isEmpty()) return;
 
-        addError(format(
-                        "Annotation %s has members which are not allowed when placed on a %s (%s)",
-                        annotation.getClassNode().getNameWithoutPackage(),
-                        target.getClass().getSimpleName(),
-                        forbiddenMembers
-                ),
-                annotation);
+        addCompileError(
+            "Annotation %s has members which are not allowed when placed on a %s (%s)",
+            annotation.getClassNode().getNameWithoutPackage(),
+            target.getClass().getSimpleName(),
+            forbiddenMembers
+        );
     }
 
     private void validateDslNeeded() {
         if (!annotationClass.isAnnotationPresent(NeedsDslClass.class)) return;
+        if (!hasAnnotation(targetClass, DSL_CN))
+            addCompileError("Annotation %s can only be used on classes annotated with %s", annotationClass.getSimpleName(), DSL.class.getName());
+    }
 
-        if (!hasAnnotation(targetClass, DSL_CN)) {
-            addError("Annotation " + annotationClass.getName() + " can only be used on classes annotated with " + DSL.class.getName(), target);
-        }
+    protected void addCompileError(String template, Object... args) {
+        addError(format(template, args), target);
+    }
+    protected void addCompileError(String template) {
+        addError(template, target);
     }
 }

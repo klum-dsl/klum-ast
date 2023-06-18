@@ -23,13 +23,12 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.ast.validation.NeedsDslClass;
+import com.blackbuild.klum.ast.validation.NumberOfParameters;
 import groovy.transform.Undefined;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * <p>Controls specific behaviour for certain fields.</p>
@@ -53,7 +52,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.MANUAL)
+@NumberOfParameters(1)
+@NeedsDslClass
 @Documented
+@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator")
 public @interface Field {
 
     FieldType value() default FieldType.DEFAULT;
@@ -122,6 +124,12 @@ public @interface Field {
      *
      */
     Class[] converters() default {};
+
+    /**
+     * Allows to set the base type for the given field. DSL methods will be generated for the base type instead of the
+     * actual type. This is useful for interfaces or abstract classes.
+     */
+    Class<?> defaultImpl() default Undefined.class;
 
     /**
      * Marker interface used to designate a field to use the field name of the owner
