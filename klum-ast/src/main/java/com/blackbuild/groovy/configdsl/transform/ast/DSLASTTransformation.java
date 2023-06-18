@@ -753,6 +753,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode valueType = getElementTypeForMap(fieldNode.getType());
 
+        if (valueType == null) {
+            addCompileError("Collection must have a generic type.", fieldNode);
+            return;
+        }
+
         if (hasDefaultImpl(fieldNode) || hasDefaultImpl(valueType) || isDSLObject(valueType))
             createMapOfDSLObjectMethods(fieldNode, valueType);
         else
