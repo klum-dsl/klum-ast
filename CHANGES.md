@@ -8,6 +8,7 @@
       - PostTree: is run after the model is completely realized
       - AutoCreate: automatic creation of null fields
       - AutoLink: Links fields to other fields in the model
+    - default implementation: by providing the attribute `defaultImpl` on either `@DSL` or `@Field`, one can allow the creation of non polymorphic field methods even for interfaces and abstract types. (see [Default Implementations](https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations))
 - Improvements
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))

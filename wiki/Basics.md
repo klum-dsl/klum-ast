@@ -328,6 +328,62 @@ assert foo.value == "Hans"
 
 Note that, as in the above example, this behaviour, while working with non dsl arguments as well, makes the most sense for actual DSL arguments.
 
+### Default Implementation
+
+Using the `defaultImpl` attribute of the `Field` annotation, you can specify a default implementation for a field. That way,
+dsl methods are created as if the field were of the specified type. This is especially useful for interface as field type.
+
+```groovy
+@DSL
+class Foo {
+    @Field(defaultImpl = BarImpl)
+    Bar bar
+}
+
+interface Bar {
+    String getValue()
+}
+
+@DSL
+class BarImpl implements Bar {
+    String value
+} 
+```
+
+Although the field is not of an DSL type, normal DSL methods are created for it:
+
+```groovy
+Foo.create {
+    bar(value: "Dieter")
+}
+```
+
+This allows models to use interfaces defined elsewhere, by providing a dslified implementation.
+
+The defaultImplementation can also be set on a DSL class, providing the default implementation for all fields of that type:
+
+```groovy
+@DSL
+class Foo {
+    Bar bar
+}
+
+@DSL(defaultImpl = BarImpl)
+interface Bar {
+    String getValue()
+}
+
+Foo.create {
+    bar(value: "Dieter")
+}
+```
+
+Usually, default implentation is only used on interfaces or abstract classes, but this is not enforced, since there
+might be some corner cases where it is useful.
+
+`defaultImpl` can also be used on collections, maps and virtual fields.
+
+
 ### Collections of DSL Objects
 
 Collections of DSL-Objects are created using a nested closure. The name of the (optional) outer closure is the field name, the
@@ -341,7 +397,7 @@ In that case, **owner fields of the added object are only set, when they have no
  
 This syntax is especially useful for delegating the creation of objects into a separate method.
 
-As with simple objects, the inner closures return the existing object for reuse
+As with simple objects, the inner closures return the existing object for reuse.
 
 ```groovy
 @DSL
