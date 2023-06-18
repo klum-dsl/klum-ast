@@ -148,6 +148,34 @@ class DefaultImplTest extends AbstractDSLSpec {
         instance.myBar.value == "Dieter"
     }
 
+    def "dsl interface with class defaultImpl"() {
+        given:
+        createInstance('''
+            @DSL
+            class Foo {
+                Bar bar
+            }
+            
+            @DSL(defaultImpl = BarImpl)
+            interface Bar {
+                String getValue()
+            }
+            
+            @DSL
+            class BarImpl implements Bar {
+                String value
+            } 
+        ''')
+
+        when:
+        instance.apply {
+            bar(value: "Dieter")
+        }
+
+        then:
+        getClass("BarImpl").isInstance(instance.bar)
+        instance.bar.value == "Dieter"
+    }
 
 
 
