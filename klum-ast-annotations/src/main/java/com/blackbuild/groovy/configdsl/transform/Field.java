@@ -129,7 +129,7 @@ public @interface Field {
      * Allows to set the base type for the given field. DSL methods will be generated for the base type instead of the
      * actual type. This is useful for interfaces or abstract classes.
      */
-    Class<?> baseType() default Undefined.class;
+    Class<?> defaultImpl() default Undefined.class;
 
     /**
      * Marker interface used to designate a field to use the field name of the owner

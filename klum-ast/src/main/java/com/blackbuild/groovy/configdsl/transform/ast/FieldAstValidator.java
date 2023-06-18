@@ -48,20 +48,20 @@ public class FieldAstValidator extends AstValidator {
             validateFieldAnnotationOnCollection();
         else
             validateFieldAnnotationOnSingleField();
-        validateBaseType(CommonAstHelper.getElementType((FieldNode) target));
+        validateDefaultImpl(CommonAstHelper.getElementType((FieldNode) target));
     }
 
     @Override
     protected void extraValidateMethod() {
         if (getFieldType(target) == FieldType.LINK)
-            addCompileError("BaseType is not allowed on LINK fields");
-        validateBaseType(((MethodNode) target).getParameters()[0].getType());
+            addCompileError("Default Implementation is not allowed on LINK fields");
+        validateDefaultImpl(((MethodNode) target).getParameters()[0].getType());
     }
 
-    private void validateBaseType(ClassNode fieldType) {
-        if (!members.containsKey("baseType")) return;
+    private void validateDefaultImpl(ClassNode fieldType) {
+        if (!members.containsKey("defaultImpl")) return;
 
-        @NotNull ClassNode baseType = getMemberClassValue(annotation, "baseType");
+        @NotNull ClassNode defaultImpl = getMemberClassValue(annotation, "defaultImpl");
 
         if (isFinal(fieldType.getModifiers()))
             addCompileError(
@@ -69,21 +69,21 @@ public class FieldAstValidator extends AstValidator {
                     ((FieldNode) target).getName()
             );
 
-        if (!isDSLObject(baseType))
+        if (!isDSLObject(defaultImpl))
             addCompileError(
-                    "BaseType must be an DSL-Object"
+                    "Default Implementation must be an DSL-Object"
             );
 
-        if (baseType != null && !isAssignableTo(baseType, fieldType))
+        if (defaultImpl != null && !isAssignableTo(defaultImpl, fieldType))
             addCompileError(
-                "annotated basetype %s of %s is not a valid subtype of it.", baseType.getName(), fieldType.getName()
+                "Annotated Default Implementation %s of %s is not a valid subtype of it.", defaultImpl.getName(), fieldType.getName()
             );
 
         if (getFieldType(target) == FieldType.LINK)
-            addCompileError("BaseType is not allowed on LINK fields");
+            addCompileError("Default Implementation is not allowed on LINK fields");
 
-        if (isDSLObject(fieldType) && isKeyed(baseType) && !isKeyed(fieldType))
-            addCompileError("BaseType %s is keyed, but field %s is not.", baseType.getName(), ((FieldNode) target).getName());
+        if (isDSLObject(fieldType) && isKeyed(defaultImpl) && !isKeyed(fieldType))
+            addCompileError("Default Implementation %s is keyed, but field %s is not.", defaultImpl.getName(), ((FieldNode) target).getName());
     }
 
     private void validateFieldAnnotationOnSingleField() {

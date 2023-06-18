@@ -526,15 +526,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         virtualField.addAnnotations(methodNode.getAnnotations());
         virtualField.setSourcePosition(methodNode);
 
-        if (hasBaseType(methodNode) || isDSLObject(parameterType))
+        if (hasDefaultImpl(methodNode) || isDSLObject(parameterType))
             createSingleDSLObjectFieldCreationMethods(virtualField, methodName);
 
         createConverterMethods(virtualField, methodName, false);
     }
 
-    private boolean hasBaseType(AnnotatedNode fieldOrMethod) {
+    private boolean hasDefaultImpl(AnnotatedNode fieldOrMethod) {
         AnnotationNode fieldAnno = getAnnotation(fieldOrMethod, DSL_FIELD_ANNOTATION);
-        return fieldAnno != null && fieldAnno.getMember("baseType") != null;
+        return fieldAnno != null && fieldAnno.getMember("defaultImpl") != null;
     }
 
     private void createDSLMethodsForSingleField(FieldNode fieldNode) {
@@ -548,7 +548,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else if (isCollection(fieldType))
             createCollectionMethods(fieldNode);
         else {
-            if (hasBaseType(fieldNode) || isDSLObject(fieldType))
+            if (hasDefaultImpl(fieldNode) || isDSLObject(fieldType))
                 createSingleDSLObjectFieldCreationMethods(fieldNode, fieldNode.getName());
             createSingleFieldSetterMethod(fieldNode);
         }
@@ -616,7 +616,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        if (hasBaseType(fieldNode) || isDSLObject(elementType))
+        if (hasDefaultImpl(fieldNode) || isDSLObject(elementType))
             createCollectionOfDSLObjectMethods(fieldNode, elementType);
         else
             createCollectionOfSimpleElementsMethods(fieldNode, elementType);
@@ -657,9 +657,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createCollectionOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
         String methodName = getElementNameForCollectionField(fieldNode);
-        ClassNode baseType = getBaseTypeOfFieldOrMethod(fieldNode, elementType);
-        ClassNode dslBaseType = getDslBaseType(elementType, baseType);
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(baseType);
+        ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
+        ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
+        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
 
 
         FieldNode fieldKey = getKeyField(dslBaseType);
@@ -672,7 +672,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (getFieldType(fieldNode) != FieldType.LINK) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
-            if (isInstantiable(baseType)) {
+            if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
@@ -680,7 +680,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .namedParams("values")
                         .constantParam(fieldName)
-                        .constantClassParam(baseType)
+                        .constantClassParam(defaultImpl)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
@@ -742,7 +742,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         ClassNode valueType = getElementTypeForMap(fieldNode.getType());
 
-        if (hasBaseType(fieldNode) || isDSLObject(valueType))
+        if (hasDefaultImpl(fieldNode) || isDSLObject(valueType))
             createMapOfDSLObjectMethods(fieldNode, valueType);
         else
             createMapOfSimpleElementsMethods(fieldNode, valueType);
@@ -797,8 +797,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapOfDSLObjectMethods(FieldNode fieldNode, ClassNode elementType) {
-        ClassNode baseType = getBaseTypeOfFieldOrMethod(fieldNode, elementType);
-        ClassNode dslBaseType = getDslBaseType(elementType, baseType);
+        ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
+        ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
 
         FieldNode elementKeyField = getKeyField(dslBaseType);
 
@@ -819,12 +819,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
 
 
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(baseType);
+        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (getFieldType(fieldNode) != FieldType.LINK) {
 
-            if (isInstantiable(baseType)) {
+            if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
@@ -832,7 +832,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .namedParams("values")
                         .constantParam(fieldName)
-                        .constantClassParam(baseType)
+                        .constantClassParam(defaultImpl)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
@@ -898,19 +898,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (getFieldType(fieldNode) == FieldType.LINK) return;
 
         ClassNode targetFieldType = getTypeOfFieldOrMethod(fieldNode);
-        ClassNode baseType = getBaseTypeOfFieldOrMethod(fieldNode, targetFieldType);
-        ClassNode dslBaseType = getDslBaseType(targetFieldType, baseType);
+        ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, targetFieldType);
+        ClassNode dslBaseType = getDslBaseType(targetFieldType, defaultImpl);
 
         FieldNode targetTypeKeyField = getKeyField(dslBaseType);
         String targetKeyFieldName = targetTypeKeyField != null ? targetTypeKeyField.getName() : null;
-        ClassNode targetRwType = DslAstHelper.getRwClassOf(baseType);
+        ClassNode targetRwType = DslAstHelper.getRwClassOf(defaultImpl);
 
         Expression keyProvider = fieldNode instanceof FieldNode ? getStaticKeyExpression((FieldNode) fieldNode) : null;
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;
 
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (isInstantiable(baseType)) {
+        if (isInstantiable(defaultImpl)) {
             createProxyMethod(fieldName, "createSingleChild")
                     .optional()
                     .mod(visibility)
@@ -918,7 +918,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .returning(targetFieldType)
                     .namedParams("values")
                     .constantParam(fieldName)
-                    .constantClassParam(baseType)
+                    .constantClassParam(defaultImpl)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
@@ -939,12 +939,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    private ClassNode getDslBaseType(ClassNode targetFieldType, ClassNode baseType) {
-        if (targetFieldType.equals(baseType))
+    private ClassNode getDslBaseType(ClassNode targetFieldType, ClassNode defaultImpl) {
+        if (targetFieldType.equals(defaultImpl))
             return targetFieldType;
         if (isDSLObject(targetFieldType))
             return targetFieldType;
-        return baseType;
+        return defaultImpl;
     }
 
     private ClassNode getTypeOfFieldOrMethod(AnnotatedNode fieldNode) {
@@ -956,9 +956,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             throw new IllegalArgumentException("fieldNode must be either FieldNode or MethodNode");
     }
 
-    private ClassNode getBaseTypeOfFieldOrMethod(AnnotatedNode fieldNode, ClassNode fieldType) {
+    private ClassNode getDefaultImplOfFieldOrMethod(AnnotatedNode fieldNode, ClassNode fieldType) {
         AnnotationNode fieldAnno = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
-        return getNullSafeClassMember(fieldAnno, "baseType", fieldType);
+        return getNullSafeClassMember(fieldAnno, "defaultImpl", fieldType);
     }
 
     private Expression getStaticKeyExpression(FieldNode fieldNode) {

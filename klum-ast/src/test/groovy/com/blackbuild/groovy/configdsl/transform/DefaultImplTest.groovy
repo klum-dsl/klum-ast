@@ -26,14 +26,14 @@ package com.blackbuild.groovy.configdsl.transform
 import spock.lang.Issue
 
 @Issue("122")
-class BaseTypeTest extends AbstractDSLSpec {
+class DefaultImplTest extends AbstractDSLSpec {
 
-    def "interface with baseType"() {
+    def "interface with defaultImpl"() {
         given:
         createInstance('''
             @DSL
             class Foo {
-                @Field(baseType = BarImpl)
+                @Field(defaultImpl = BarImpl)
                 Bar bar
             }
             
@@ -57,12 +57,12 @@ class BaseTypeTest extends AbstractDSLSpec {
         instance.bar.value == "Dieter"
     }
 
-    def "List of interfaces with baseType"() {
+    def "List of interfaces with defaultImpl"() {
         given:
         createInstance('''
             @DSL
             class Foo {
-                @Field(baseType = BarImpl)
+                @Field(defaultImpl = BarImpl)
                 List<Bar> bar
             }
             
@@ -86,12 +86,12 @@ class BaseTypeTest extends AbstractDSLSpec {
         instance.bar.first().value == "Dieter"
     }
 
-    def "Map of interfaces with baseType"() {
+    def "Map of interfaces with defaultImpl"() {
         given:
         createInstance('''
             @DSL
             class Foo {
-                @Field(baseType = BarImpl)
+                @Field(defaultImpl = BarImpl)
                 Map<String, Bar> bar
             }
             
@@ -116,13 +116,13 @@ class BaseTypeTest extends AbstractDSLSpec {
         instance.bar.a.value == "Dieter"
     }
 
-    def "virtual setter with baseType"() {
+    def "virtual setter with defaultImpl"() {
         given:
         createInstance('''
             @DSL
             class Foo {
                 @Field(FieldType.IGNORED) Bar myBar
-                @Field(baseType = BarImpl)
+                @Field(defaultImpl = BarImpl)
                 void bar(Bar value) {
                     myBar = value
                 }
@@ -147,6 +147,8 @@ class BaseTypeTest extends AbstractDSLSpec {
         getClass("BarImpl").isInstance(instance.myBar)
         instance.myBar.value == "Dieter"
     }
+
+
 
 
 
