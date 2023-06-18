@@ -116,6 +116,38 @@ class BaseTypeTest extends AbstractDSLSpec {
         instance.bar.a.value == "Dieter"
     }
 
+    def "virtual setter with baseType"() {
+        given:
+        createInstance('''
+            @DSL
+            class Foo {
+                @Field(FieldType.IGNORED) Bar myBar
+                @Field(baseType = BarImpl)
+                void bar(Bar value) {
+                    myBar = value
+                }
+            }
+            
+            interface Bar {
+                String getValue()
+            }
+            
+            @DSL
+            class BarImpl implements Bar {
+                String value
+            } 
+        ''')
+
+        when:
+        instance.apply {
+            bar(value: "Dieter")
+        }
+
+        then:
+        getClass("BarImpl").isInstance(instance.myBar)
+        instance.myBar.value == "Dieter"
+    }
+
 
 
 }

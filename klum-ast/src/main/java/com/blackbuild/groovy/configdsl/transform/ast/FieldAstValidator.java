@@ -26,95 +26,78 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.validation.AstValidator;
 import com.blackbuild.klum.common.CommonAstHelper;
-import groovy.transform.Undefined;
-import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
+import org.jetbrains.annotations.NotNull;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.klum.common.CommonAstHelper.*;
-import static java.lang.String.format;
+import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
 import static java.lang.reflect.Modifier.isFinal;
 
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class FieldAstValidator extends AstValidator {
 
-    private static final ClassNode UNDEFINED = ClassHelper.make(Undefined.class);
-
     @Override
-    protected void extraValidation() {
-        if (members.containsKey("baseType"))
-            validateBaseType();
-        if (target instanceof FieldNode)
-            validateField();
-    }
-
-    private void validateBaseType() {
-        ClassNode baseType = getMemberClassValue(annotation, "baseType");
-        ClassNode fieldType = CommonAstHelper.getElementType((FieldNode) target);
-
-        if (isFinal(fieldType.getModifiers()))
-            addCompileError(
-                    sourceUnit,
-                    format("annotated field %s is final and cannot be overridden.", ((FieldNode) target).getName()),
-                    annotation
-            );
-
-        if (!isDSLObject(baseType))
-            addCompileError(
-                    sourceUnit,
-                    "BaseType must be an DSL-Object",
-                    annotation
-            );
-
-        if (!fieldType.equals(UNDEFINED) && !isAssignableTo(baseType, fieldType))
-            addCompileError(
-                sourceUnit,
-                format("annotated basetype %s of %s is not a valid subtype of it.", baseType.getName(), fieldType.getName()),
-                annotation
-            );
-
-        if (getFieldType(target) == FieldType.LINK)
-            addCompileError(
-                    sourceUnit,
-                    "BaseType is not allowed on LINK fields",
-                    annotation
-            );
-    }
-
-    private void validateField() {
+    protected void extraValidateField() {
         FieldNode fieldNode = (FieldNode) target;
         if (isCollectionOrMap(fieldNode.getType()))
             validateFieldAnnotationOnCollection();
         else
             validateFieldAnnotationOnSingleField();
+        validateBaseType(CommonAstHelper.getElementType((FieldNode) target));
+    }
+
+    @Override
+    protected void extraValidateMethod() {
+        if (getFieldType(target) == FieldType.LINK)
+            addCompileError("BaseType is not allowed on LINK fields");
+        validateBaseType(((MethodNode) target).getParameters()[0].getType());
+    }
+
+    private void validateBaseType(ClassNode fieldType) {
+        if (!members.containsKey("baseType")) return;
+
+        @NotNull ClassNode baseType = getMemberClassValue(annotation, "baseType");
+
+        if (isFinal(fieldType.getModifiers()))
+            addCompileError(
+                   "annotated field %s is final and cannot be overridden.",
+                    ((FieldNode) target).getName()
+            );
+
+        if (!isDSLObject(baseType))
+            addCompileError(
+                    "BaseType must be an DSL-Object"
+            );
+
+        if (baseType != null && !isAssignableTo(baseType, fieldType))
+            addCompileError(
+                "annotated basetype %s of %s is not a valid subtype of it.", baseType.getName(), fieldType.getName()
+            );
+
+        if (getFieldType(target) == FieldType.LINK)
+            addCompileError("BaseType is not allowed on LINK fields");
+
+        if (isDSLObject(fieldType) && isKeyed(baseType) && !isKeyed(fieldType))
+            addCompileError("BaseType %s is keyed, but field %s is not.", baseType.getName(), ((FieldNode) target).getName());
     }
 
     private void validateFieldAnnotationOnSingleField() {
         FieldNode fieldNode = (FieldNode) target;
         if (members.containsKey("members"))
-            addCompileError(
-                    sourceUnit,
-                    format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()),
-                    members.get("members")
-            );
+            addCompileError("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName());
 
         if (members.containsKey("key") && !isKeyed(fieldNode.getType()))
-            addCompileError(
-                    sourceUnit, "@Field.key is only valid for keyed dsl fields",
-                    members.get("key")
-            );
+            addCompileError("@Field.key is only valid for keyed dsl fields");
     }
 
     private void validateFieldAnnotationOnCollection() {
         if (members.containsKey("key"))
-            addCompileError(
-                    sourceUnit,
-                    "@Field.key is only allowed for non collection fields.",
-                    members.get("key")
-            );
+            addCompileError("@Field.key is only allowed for non collection fields.");
     }
 
 }

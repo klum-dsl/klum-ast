@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform;
 
 import com.blackbuild.klum.ast.validation.NeedsDslClass;
+import com.blackbuild.klum.ast.validation.NumberOfParameters;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
@@ -51,6 +52,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.MANUAL)
+@NumberOfParameters(1)
 @NeedsDslClass
 @Documented
 @GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator")
