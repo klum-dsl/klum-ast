@@ -32,23 +32,23 @@ import java.util.Set;
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class LinkToAstValidator extends AstValidator {
 
-    private Set<String> members;
+    private Set<String> memberNames;
 
     @Override
     protected void extraValidation() {
-        members = annotation.getMembers().keySet();
+        memberNames = members.keySet();
         ownerAndOwnerTypeAreMutuallyExclusive();
         strategyInstanceNameNeedsOwnerOrOwnerType();
     }
 
     private void strategyInstanceNameNeedsOwnerOrOwnerType() {
-        if (!members.contains("strategy")) return;
-        if (members.contains("owner") || members.contains("ownerType")) return;
+        if (!memberNames.contains("strategy")) return;
+        if (memberNames.contains("owner") || memberNames.contains("ownerType")) return;
         addError("strategy INSTANCE_NAME needs owner or ownerType", annotation);
     }
 
     private void ownerAndOwnerTypeAreMutuallyExclusive() {
-        if (members.contains("owner") && members.contains("ownerType"))
+        if (memberNames.contains("owner") && memberNames.contains("ownerType"))
             addError("Only one of owner and ownerType is allowed", annotation);
     }
 }
