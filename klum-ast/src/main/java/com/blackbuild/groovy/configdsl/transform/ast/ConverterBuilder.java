@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -59,7 +60,7 @@ import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
-import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberList;
+import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
 
 /**
  * Created by steph on 29.04.2017.
@@ -110,20 +111,27 @@ class ConverterBuilder {
             return;
         }
 
-        includes = getMemberList(convertersAnnotation, "includeMethods");
+        includes = getMemberStringList(convertersAnnotation, "includeMethods");
+        if (includes == null)
+            includes = Collections.emptyList();
 
         if (transformation.memberHasValue(convertersAnnotation, "excludeDefaultPrefixes", true))
             includes.addAll(DEFAULT_PREFIXES);
 
-        excludes = getMemberList(convertersAnnotation, "excludeMethods");
+        excludes = getMemberStringList(convertersAnnotation, "excludeMethods");
+        if (excludes == null)
+            excludes = Collections.emptyList();
     }
 
     void execute() {
         convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"));
 
-        if (convertersAnnotation != null)
-            transformation.getClassList(convertersAnnotation, "value")
-                    .forEach(this::createConverterMethodsFromFactoryMethods);
+        if (convertersAnnotation != null) {
+            List<ClassNode> classList = Groovy3To4MigrationHelper.getMemberClassList(convertersAnnotation, "value", transformation.annotatedClass.getModule().getContext());
+
+            if (classList != null)
+                classList.forEach(this::createConverterMethodsFromFactoryMethods);
+        }
 
         createConverterMethodsFromOwnFactoryMethods();
         createConstructorConverters();
