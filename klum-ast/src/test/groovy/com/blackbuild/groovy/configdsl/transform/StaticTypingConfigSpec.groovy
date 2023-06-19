@@ -25,10 +25,8 @@ package com.blackbuild.groovy.configdsl.transform
 
 import groovy.transform.TypeChecked
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer
-import spock.lang.Requires
 
 @SuppressWarnings("GroovyAssignabilityCheck")
-@Requires({ GroovySystem.version.startsWith("2.") })
 class StaticTypingConfigSpec extends AbstractDSLSpec {
 
     def setup() {
