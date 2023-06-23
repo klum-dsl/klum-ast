@@ -1,4 +1,4 @@
-name: CI JDK8
+name: CI Groovy 2.4
 
 on:
   push:

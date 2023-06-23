@@ -1,4 +1,4 @@
-name: CI JDK11
+name: CI Groovy 3
 
 on:
   push:
