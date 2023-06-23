@@ -70,8 +70,8 @@ public class PhaseDriver {
             instance.remove();
     }
 
-    public PhaseAction getCurrentPhase() {
-        return currentPhase;
+    public int getCurrentPhase() {
+        return currentPhase.getPhase();
     }
 
     public static void executeIfReady() {

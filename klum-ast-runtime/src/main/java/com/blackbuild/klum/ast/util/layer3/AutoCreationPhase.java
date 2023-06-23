@@ -30,11 +30,12 @@ import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
+import groovy.lang.Closure;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Map;
 
+import static com.blackbuild.klum.ast.util.DslHelper.isInstantiable;
 import static java.lang.String.format;
 
 public class AutoCreationPhase extends VisitingPhaseAction {
@@ -70,8 +71,9 @@ public class AutoCreationPhase extends VisitingPhaseAction {
             throw new IllegalArgumentException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", fieldName, field.getType().getName()));
 
         Class<?> type = autoCreate.type();
-        if (type == Object.class) {
-            if (field.getType().isInterface() || (field.getType().getModifiers() & Modifier.ABSTRACT) != 0)
+        if (type.equals(Object.class)) {
+            if (field.getType().equals(Closure.class)) return;
+            if (!isInstantiable(field.getType()))
                 throw new IllegalArgumentException(format("AutoCreate annotation for abstract typed field '%s' is missing a 'type' field.", fieldName));
             type = field.getType();
         } else if (!field.getType().isAssignableFrom(type)) {
