@@ -91,7 +91,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if ((currentMethod.getModifiers() & Opcodes.ACC_SYNTHETIC) != 0)
             return;
 
-        if (WriteAccessMethodsMover.getWriteAccessTypeForMethod(currentMethod).isPresent())
+        if (WriteAccessHelper.getWriteAccessTypeForMethodOrField(currentMethod).isPresent())
             return; // ignore methods already marked as write access methods
 
         if (ofType(expression.getOperation().getType(), ASSIGNMENT_OPERATOR)) {
@@ -164,7 +164,7 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         if (currentMethod == null)
             return false;
 
-        return WriteAccessMethodsMover.getWriteAccessTypeForMethod(currentMethod).isPresent();
+        return WriteAccessHelper.getWriteAccessTypeForMethodOrField(currentMethod).isPresent();
     }
 
     private boolean isDslType(ClassNode classNode) {

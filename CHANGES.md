@@ -3,11 +3,12 @@
     - Compatibility with Groovy 3 and 4. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins). Tests are run with Groovy 3 and 4 as well.
     - Replace basic jackson transformation with a dedicated (beta) JacksonModule (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration))).
     - First steps for Layer3 models. (see [Layer3](https://github.com/klum-dsl/klum-ast/wiki/Layer3))    
-    - Split model creation into distinct phases (validation for now) (see [#156](https://github.com/klum-dsl/klum-ast/issues/156), [#155](https://github.com/klum-dsl/klum-ast/issues/155),[#187](https://github.com/klum-dsl/klum-ast/issues/187) and [Model Phases](https://github.com/klum-dsl/klum-ast/wiki/Model-Phases))
+    - Split model creation into distinct phases (see [#156](https://github.com/klum-dsl/klum-ast/issues/156), [#155](https://github.com/klum-dsl/klum-ast/issues/155),[#187](https://github.com/klum-dsl/klum-ast/issues/187) and [Model Phases](https://github.com/klum-dsl/klum-ast/wiki/Model-Phases))
     - New Phases:
       - PostTree: is run after the model is completely realized
       - AutoCreate: automatic creation of null fields
       - AutoLink: Links fields to other fields in the model
+    - In addition to lifecycle methods, fields of type `Closure` can now be used to define model provided (instead of schema provided) lifecycle methods. These closoures will be executed in their respective Lifecycle phases.
     - default implementation: by providing the attribute `defaultImpl` on either `@DSL` or `@Field`, one can allow the creation of non polymorphic field methods even for interfaces and abstract types. (see [Default Implementations](https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations))
 - Improvements
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))

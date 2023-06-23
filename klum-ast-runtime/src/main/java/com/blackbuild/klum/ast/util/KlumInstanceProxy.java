@@ -286,6 +286,17 @@ public class KlumInstanceProxy {
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
+        DslHelper.getFieldsAnnotatedWith(instance.getClass(), annotation)
+                .stream()
+                .filter(field -> field.getType().equals(Closure.class))
+                .map(Field::getName)
+                .forEach(this::executeLifecycleClosure);
+    }
+
+    private void executeLifecycleClosure(String name) {
+        Closure<?> closure = getInstanceAttribute(name);
+        ClosureHelper.invokeClosureWithDelegateAsArgument(closure, getRwInstance());
+        setInstanceAttribute(name, null);
     }
 
     /**

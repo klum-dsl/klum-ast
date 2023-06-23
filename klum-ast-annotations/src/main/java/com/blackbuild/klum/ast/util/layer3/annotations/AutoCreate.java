@@ -38,6 +38,9 @@ import java.util.Map;
  * concrete type of the object to be created can be passed as {@link #type()} parameter. If
  * the annotated field is an abstract type, the type parameter is mandatory.
  * <p>
+ * When placed on a field of type closure, the behaviour is slightly different. In that case, the closure
+ * is called during the lifecycle phase.
+ * <p>
  * AutoCreate can also be used on methods. In that case, the method is handled as a regular
  * lifecycle method.
  */

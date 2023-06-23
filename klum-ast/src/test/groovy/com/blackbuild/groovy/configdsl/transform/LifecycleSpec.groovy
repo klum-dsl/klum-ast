@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.KlumPhase
+import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -573,4 +575,78 @@ class LifecycleSpec extends AbstractDSLSpec {
         then:
         notThrown(NullPointerException)
     }
+
+    def "lifecycle annotated closures are called in their respective lifecycle phase"() {
+        given:
+        def executedPhase = -1
+
+        when:
+        createClass('''
+            package pk
+            
+            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+    
+            @DSL
+            class Foo {
+                String name
+                @AutoCreate
+                Closure autoCreate
+            }
+        ''')
+
+        then: // dsl methods are created
+        hasMethod(rwClazz, "autoCreate", Closure)
+
+        when:
+        instance = clazz.create {
+            autoCreate {
+                name = "bla"
+                executedPhase = PhaseDriver.instance.currentPhase
+            }
+        }
+
+        then:
+        instance.name == "bla"
+        executedPhase == KlumPhase.AUTO_CREATE.number
+
+        when:
+        executedPhase = -1
+        def objType = null
+        instance = clazz.create {
+            autoCreate { obj ->
+                name = "bli"
+                objType = obj.getClass()
+                executedPhase = PhaseDriver.instance.currentPhase
+            }
+        }
+
+        then:
+        instance.name == "bli"
+        executedPhase == KlumPhase.AUTO_CREATE.number
+        objType == rwClazz
+    }
+
+    def "AutoCreate annotated closures not are not 'autoCreated'"() {
+        given:
+        createClass('''
+            package pk
+            
+            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+    
+            @DSL
+            class Foo {
+                String name
+                @AutoCreate
+                Closure autoCreate
+            }
+        ''')
+
+        when:
+        instance = clazz.create {}
+
+        then:
+        noExceptionThrown()
+    }
+
+
 }

@@ -26,16 +26,13 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.Mutator;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Optional;
 
 import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsNotPrivate;
@@ -84,7 +81,7 @@ public class WriteAccessMethodsMover {
     }
 
     private void ifMutatorMoveToRWClass(MethodNode method) {
-        Optional<WriteAccess.Type> writeType = getWriteAccessTypeForMethod(method);
+        Optional<WriteAccess.Type> writeType = WriteAccessHelper.getWriteAccessTypeForMethodOrField(method);
 
         if (!writeType.isPresent()) return;
 
@@ -94,22 +91,6 @@ public class WriteAccessMethodsMover {
             downgradeToProtected(method);
         }
         moveMethodFromModelToRWClass(method);
-    }
-
-    static Optional<WriteAccess.Type> getWriteAccessTypeForMethod(MethodNode method) {
-        return method.getAnnotations().stream()
-                .map(WriteAccessMethodsMover::getWriteAccessTypeForAnnotation)
-                .filter(Objects::nonNull)
-                .findAny();
-    }
-
-    private static WriteAccess.Type getWriteAccessTypeForAnnotation(AnnotationNode annotation) {
-        if (!DslAstHelper.hasAnnotation(annotation.getClassNode(), WRITE_ACCESS_ANNOTATION)) return null;
-
-        // We need to use the class explicitly, since we cannot access the members of metaAnnotations directly
-        // This is safe, since annotations are in a different module and thus already compiled
-        Class<?> annotationClass = annotation.getClassNode().getTypeClass();
-        return annotationClass.getAnnotation(WriteAccess.class).value();
     }
 
     //    static class ReplaceDirectAccessWithSettersVisitor extends CodeVisitorSupport {

@@ -34,18 +34,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createProtectedMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.attrX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getInstanceProperties;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 class PropertyAccessors {
     private final DSLASTTransformation dslastTransformation;
@@ -110,6 +101,7 @@ class PropertyAccessors {
                 .addTo(dslastTransformation.rwClass);
 
         pNode.setSetterBlock(null);
+
         propertiesToReplace.add(pNode);
     }
 

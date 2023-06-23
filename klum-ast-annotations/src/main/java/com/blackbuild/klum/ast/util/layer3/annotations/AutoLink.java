@@ -27,7 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 
 import java.lang.annotation.*;
 
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @Documented
