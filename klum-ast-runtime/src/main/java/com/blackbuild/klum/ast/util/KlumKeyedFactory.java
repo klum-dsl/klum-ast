@@ -37,7 +37,17 @@ public class KlumKeyedFactory<T extends GroovyObject> extends KlumFactory<T> {
         super(requireKeyed(type));
     }
 
-    public T Empty(String key) {
+    public T One(String key) {
+        return With(key, null, null);
+    }
+
+    /**
+     * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
+     * checking for arguments. This means that empty create calls like 'X.create("bla")' will correctly work afterward.
+     * @deprecated Use {@link #One(String)} instead.
+     */
+    @Deprecated
+    public T With(String key) {
         return With(key, null, null);
     }
 

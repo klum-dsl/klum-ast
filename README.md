@@ -23,6 +23,8 @@ directly accessed. This is cleaner and somewhat closer to the behaviour of
 xml or other structured languages. Accessing outer methods should be a corner case.
 Take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) if you encounter errors.
 
+Factory methods on DSL classes are deprecated in favor of a single `Create` class field which encapsulates all
+relevant factory methods.
 
 # What is KlumAST?
 
@@ -70,7 +72,7 @@ A config object can be created with the following dsl:
 def github = "http://github.com"
 
 
-def config = Config.create {
+def config = Config.Create.With {
 
     debugMode true
     
@@ -101,4 +103,4 @@ def config = Config.create {
 }
 ```
 
-Find more details on in our brand new [wiki](https://github.com/klum-dsl/klum-ast/wiki)
+Find more details on in our [wiki](https://github.com/klum-dsl/klum-ast/wiki)

@@ -21,44 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.groovy.configdsl.transform.ast;
 
-import groovy.lang.Closure;
-import groovy.lang.GroovyObject;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
 
-import java.util.Map;
+import static com.blackbuild.groovy.configdsl.transform.ast.AbstractMethodBuilder.DEPRECATED_NODE;
 
-@SuppressWarnings("java:S100")
-public class KlumUnkeyedFactory<T extends GroovyObject> extends KlumFactory<T> {
-    public KlumUnkeyedFactory(Class<T> type) {
-        super(DslHelper.requireNotKeyed(type));
-    }
+public enum DeprecationType {
 
-    public T One() {
-        return With(null, null);
-    }
+    DEPRECATED {
+        @Override
+        public AnnotationNode toNode() {
+            return new AnnotationNode(DEPRECATED_NODE);
+        }
+    },
+    FOR_REMOVAL {
+        @Override
+        public AnnotationNode toNode() {
+            AnnotationNode annotationNode = new AnnotationNode(DEPRECATED_NODE);
+            annotationNode.addMember("forRemoval", new ConstantExpression(true));
+            return annotationNode;
+        }
+    };
 
-    /**
-     * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
-     * checking for arguments. This means that emtpy create calls like 'X.create()' will correctly work afterwards.
-     * @deprecated Use {@link #One()} instead.
-     */
-    @Deprecated
-    public T With() {
-        return One();
-    }
-
-    public T With(Closure<?> body) {
-        return With(null, body);
-    }
-
-    public T With(Map<String, Object> values) {
-        return With(values, null);
-    }
-
-    public T With(Map<String, Object> values, Closure<?> body) {
-        return FactoryHelper.create(type, values, null, body);
-    }
-
+    abstract AnnotationNode toNode();
 
 }
