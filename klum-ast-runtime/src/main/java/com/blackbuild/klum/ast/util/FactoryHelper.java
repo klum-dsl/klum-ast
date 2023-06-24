@@ -120,7 +120,7 @@ public class FactoryHelper {
         return (T) result;
     }
 
-    public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
+    static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
         Consumer<KlumInstanceProxy> apply = proxy -> {
             script.setDelegate(proxy.getRwInstance());
             script.run();
