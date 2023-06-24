@@ -10,7 +10,7 @@ public class KlumUnkeyedFactory<T extends GroovyObject> extends KlumFactory<T> {
     public KlumUnkeyedFactory(Class<T> type) {
         super(DslHelper.requireNotKeyed(type));
     }
-    public T With() {
+    public T Empty() {
         return With(null, null);
     }
 

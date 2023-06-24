@@ -25,8 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
-import com.blackbuild.klum.ast.util.FactoryHelper;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
@@ -80,6 +79,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
+    public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
+    public static final ClassNode KEYED_FACTORY = make(KlumKeyedFactory.class);
+    public static final ClassNode UNKEYED_FACTORY = make(KlumUnkeyedFactory.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
@@ -97,6 +99,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
+    private static final String FACTORY_FIELD_NAME = "Create";
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -139,6 +142,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
         createApplyMethods();
         createTemplateMethods();
+        createFactoryField();
         createFactoryMethods();
         createConvenienceFactories();
 
@@ -162,6 +166,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileError(sourceUnit, "defaultImpl must be a subtype of the annotated class!", dslAnnotation);
         if (!isDSLObject(defaultImpl))
             addCompileError(sourceUnit, "defaultImpl must be a DSLObject!", dslAnnotation);
+        if (!isInstantiable(defaultImpl))
+            addCompileError(sourceUnit, "defaultImpl must be instantiable!", dslAnnotation);
     }
 
     private void createExplicitEmptyConstructor() {
@@ -1032,6 +1038,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .namedParams("values")
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
+    }
+
+    private void createFactoryField() {
+        ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
+
+        if (!isInstantiable(defaultImpl))
+            return;
+
+        ClassNode factoryType = keyField != null ? KEYED_FACTORY : UNKEYED_FACTORY;
+        FieldNode factoryField = new FieldNode(
+                FACTORY_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)),
+                annotatedClass,
+                ctorX(factoryType, classX(newClass(annotatedClass)))
+        );
+
+        annotatedClass.addField(factoryField);
     }
 
     private void createFactoryMethods() {

@@ -4,6 +4,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.Script;
+import groovy.transform.Undefined;
 
 import java.io.File;
 import java.net.URL;
@@ -38,7 +39,7 @@ public abstract class KlumFactory<T extends GroovyObject> {
     private Class<T> getTypeOrDefaultType(Class<T> type) {
         DSL annotation = type.getAnnotation(DSL.class);
         Class<?> defaultImpl = annotation.defaultImpl();
-        return defaultImpl.equals(Object.class) ? type : (Class<T>) defaultImpl;
+        return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
     }
 
     public T FromClasspath() {

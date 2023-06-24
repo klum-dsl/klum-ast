@@ -14,7 +14,7 @@ public class KlumKeyedFactory<T extends GroovyObject> extends KlumFactory<T> {
         super(requireKeyed(type));
     }
 
-    public T With(String key) {
+    public T Empty(String key) {
         return With(key, null, null);
     }
 
