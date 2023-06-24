@@ -1063,6 +1063,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
 
         createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
+                .deprecated()
                 .namedParams("values")
                 .optionalStringParam("name", keyField != null)
                 .delegatingClosureParam(rwClass)
@@ -1071,26 +1072,31 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createConvenienceFactories() {
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .deprecated()
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .deprecated()
                 .optionalStringParam("name", keyField != null)
                 .stringParam("text")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .deprecated()
                 .param(make(File.class), "src")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .deprecated()
                 .param(make(URL.class), "src")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
+                .deprecated()
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }
