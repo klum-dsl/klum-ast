@@ -7,6 +7,7 @@
   * [[Static Models]]
 * Advanced Features
   * [[Convenience Factories]]
+  * [[Factory Classes]]
   * [[Templates]]
   * [[Validation]]
   * [[Default Values]]

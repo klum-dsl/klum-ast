@@ -1043,19 +1043,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         boolean factoryIsGeneric = factoryType.redirect().getGenericsTypes() != null;
 
-        if (!isInstantiable(defaultImpl)) {
-            FieldNode factoryField = new FieldNode(
-                    FACTORY_FIELD_NAME,
-                    ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                    factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType),
-                    annotatedClass,
-                    factoryIsGeneric ? ctorX(factoryType, classX(defaultImpl)) : ctorX(factoryType)
-            );
-
-            annotatedClass.addField(factoryField);
-            return;
-        }
-
         InnerClassNode factoryClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$_Factory",

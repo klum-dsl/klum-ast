@@ -11,6 +11,7 @@
     - In addition to lifecycle methods, fields of type `Closure` can now be used to define model provided (instead of schema provided) lifecycle methods. These closoures will be executed in their respective Lifecycle phases.
     - default implementation: by providing the attribute `defaultImpl` on either `@DSL` or `@Field`, one can allow the creation of non polymorphic field methods even for interfaces and abstract types. (see [Default Implementations](https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations))
     - Creator methods have been moved to a separate creator class (see [#76](https://github.com/klum-dsl/klum-ast/issues/76)), creator methods on the model class have been deprecated (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)). 
+    - Custom creator classes can be provided (see [Factory Classes](https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes))
 - Improvements
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))

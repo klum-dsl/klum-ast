@@ -14,8 +14,9 @@ The DSL annotation leads to the creation of a couple of useful methods.
 
 ## Factory and `apply` methods
 
-Each instantiable DSL class gets a static field `Create` of either a Keyed or unkeyed factory, which provides methods to
-create instances of the class.
+Each instantiable DSL class gets a static field `Create` of either a subclass of `KlumFactory.Keyed` or
+`KlumFactory.Unkeyed`, which provides methods to create instances of the class; abstract classed get an
+implementation of `KlumFactory` instead.
 
 ```groovy
 @DSL
@@ -42,10 +43,15 @@ ConfigWithKey.Create.With('Dieter', a: 1, b: 2) { c 3 }
 ConfigWithKey.Create.With('Dieter') { c 3 }
 ```
 The optional closure to the `With` method is used to set values on the created object. The `One` method is a shortcut for
-`With` without any given values, which makes a nicer syntax (`Config.Create.With()` seems a bit strange).
+`With` without any given values, which makes a nicer syntax (`Config.Create.With()` seems a bit strange, 
+`Config.Create.One()` looks better).
 
 __Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods 
 are now deprecated in will be removed in a future version.__
+
+If the class contains an static inner class named 'Factory' of the appropriate type or the member factoryBase points
+to such a class, this class is used as a base
+for the generated factory instead. This allows adding additional methods to the factory.
 
 Additionally, an `apply` method is created, which takes single closure and applies it to an existing object.
  
