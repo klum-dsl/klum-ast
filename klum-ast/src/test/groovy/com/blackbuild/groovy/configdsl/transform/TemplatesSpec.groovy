@@ -43,11 +43,11 @@ class TemplatesSpec extends AbstractDSLSpec {
         rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
 
         when:
-        def template = clazz.create {
+        def template = clazz.Create.With {
             name "Welt"
         }
 
-        instance = clazz.create {
+        instance = clazz.Create.With {
             copyFrom template
         }
 
@@ -71,12 +71,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def template = clazz.create {
+        def template = clazz.Create.With {
             name "Welt"
             value null
         }
 
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "toOverride"
             value "orig"
             copyFrom template
@@ -109,7 +109,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 name "own"
             }
         }
@@ -173,7 +173,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(template) {
-            instance = clazz.create("Hallo") {
+            instance = clazz.Create.With("Hallo") {
                 value "own"
             }
         }
@@ -202,7 +202,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(template) {
-            instance = clazz.create {}
+            instance = clazz.Create.With {}
         }
 
         then:
@@ -242,7 +242,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(childTemplate) {
-            instance = grandChildClass.create("Bla") {}
+            instance = grandChildClass.Create.With("Bla") {}
         }
 
         then:
@@ -312,14 +312,14 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(template) {
-            instance = getClass('pk.Child').create()
+            instance = getClass('pk.Child').Create.With()
         }
 
         then:
         instance.name == 'Dieter'
 
         when: 'Using copyFrom'
-        instance = getClass('pk.Child').create(copyFrom: template)
+        instance = getClass('pk.Child').Create.With(copyFrom: template)
 
         then:
         instance.name == 'Dieter'
@@ -493,7 +493,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         getClass("pk.Child").withTemplate(template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 child {}
             }
         }
@@ -530,7 +530,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         getClass("pk.Parent").withTemplate(template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 child {}
             }
         }
@@ -569,7 +569,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         getClass("pk.Child").withTemplate(template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 children {
                     child {}
                 }
@@ -764,14 +764,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.create {
+        def template = clazz.Create.With {
             name "Default"
             value "DefaultValue"
         }
 
         when:
         clazz.withTemplate(template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 name "own"
             }
         }
@@ -794,14 +794,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.create {
+        def template = clazz.Create.With {
             name "Default"
             value "DefaultValue"
         }
 
         when:
         clazz.withTemplates((clazz): template) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 name "own"
             }
         }
@@ -825,7 +825,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplates([:]) {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 name "own"
             }
         }
@@ -852,19 +852,19 @@ class TemplatesSpec extends AbstractDSLSpec {
             }
         ''')
         def fooClass = getClass("pk.Foo")
-        def fooTemplate = fooClass.create(name: 'DefaultName')
+        def fooTemplate = fooClass.Create.With(name: 'DefaultName')
         def barClass = getClass("pk.Bar")
-        def barTemplate = barClass.create(token: 'DefaultToken')
+        def barTemplate = barClass.Create.With(token: 'DefaultToken')
 
 
         def foo, bar
         when:
         clazz.withTemplates((fooClass) : fooTemplate, (barClass) : barTemplate) {
-            foo = fooClass.create {
+            foo = fooClass.Create.With {
                 value 'blub'
             }
 
-            bar = barClass.create()
+            bar = barClass.Create.With()
         }
 
         then:
@@ -889,19 +889,19 @@ class TemplatesSpec extends AbstractDSLSpec {
             }
         ''')
         def fooClass = getClass("pk.Foo")
-        def fooTemplate = fooClass.create(name: 'DefaultName')
+        def fooTemplate = fooClass.Create.With(name: 'DefaultName')
         def barClass = getClass("pk.Bar")
-        def barTemplate = barClass.create(token: 'DefaultToken')
+        def barTemplate = barClass.Create.With(token: 'DefaultToken')
 
 
         def foo, bar
         when:
         clazz.withTemplates([fooTemplate, barTemplate]) {
-            foo = fooClass.create {
+            foo = fooClass.Create.With {
                 value 'blub'
             }
 
-            bar = barClass.create()
+            bar = barClass.Create.With()
         }
 
         then:
@@ -931,7 +931,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         def bar
         when:
         clazz.withTemplates([fooTemplate]) {
-            bar = getClass('pk.Bar').create {
+            bar = getClass('pk.Bar').Create.With {
                 token "b"
             }
         }
@@ -958,7 +958,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         def childClass = getClass('pk.Child')
 
         when:
-        getClass("pk.Parent").withTemplates((parentClass) : parentClass.create(name: "parent"), (childClass): childClass.create(names: ["child"])) {
+        getClass("pk.Parent").withTemplates((parentClass) : parentClass.Create.With(name: "parent"), (childClass): childClass.Create.With(names: ["child"])) {
             instance = create("pk.Child") { name "explicit" }
         }
 
@@ -980,7 +980,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(name: "Default", value: "DefaultValue") {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 name "own"
             }
         }
@@ -1013,11 +1013,11 @@ class TemplatesSpec extends AbstractDSLSpec {
         def foo, bar
         when:
         clazz.withTemplates((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
-            foo = fooClass.create {
+            foo = fooClass.Create.With {
                 value 'blub'
             }
 
-            bar = barClass.create()
+            bar = barClass.Create.With()
         }
 
         then:
@@ -1039,7 +1039,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         clazz.withTemplate(name: "Default") {
-            instance = clazz.create {
+            instance = clazz.Create.With {
                 value "bla"
             }
         }
@@ -1073,7 +1073,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         getClass("pk.Foo").withTemplate(template) {
-            instance = getClass("pk.Bar").create {
+            instance = getClass("pk.Bar").Create.With {
                 value "bla"
             }
         }
@@ -1102,7 +1102,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         getClass("pk.Foo").withTemplate(name: "Default") {
-            instance = getClass("pk.Bar").create {
+            instance = getClass("pk.Bar").Create.With {
                 value "bla"
             }
         }

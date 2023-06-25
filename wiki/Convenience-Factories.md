@@ -2,7 +2,7 @@ Since 0.16, KlumAST supports convenience factory methods that allow reading a co
 
 # Script classes
 
-`MyConfig.createFrom(Class<Script>)` runs the given Script and returns the result. The script must return the
+`MyConfig.Create.From(Class<Script>)` runs the given Script and returns the result. The script must return the
 proper type, for example:
 
 ```groovy
@@ -52,20 +52,20 @@ With the DSL
 And the model:
 
 ```groovy
-Container.create {
+Container.Create.With {
     elements(AScript, AnotherScript, ThirdScript)
 }
 ```
 
 
 # Text
-`MyConfig.createFrom(text)` or `MyConfig.createFrom(key, text)` handles the given text as the content of the create 
+`MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the create 
 closure.
 
 For example
 
 ```groovy
-def config = Config.createFrom(new File("bla.groovy").text)
+def config = Config.Create.From(new File("bla.groovy").text)
 ```
 
 and the file bla.groovy
@@ -82,7 +82,7 @@ assert config.value == "blub"
 `createFrom()` can also take an optional classloader as last parameter:
 
 ```groovy
-Config.createFrom(content, Config.class.classLoader)
+Config.Create.From(content, Config.class.classLoader)
 ```
 
 If no classloader is given, the current context classloader is used.
@@ -97,23 +97,23 @@ get complete code completion and syntax highlighting an specialized config files
 This allows splitting configurations into different files, which might be automatically resolved by something like:
  
 ```groovy
-Config.create {
+Config.Create.With {
     environments {
         new File("envdir").eachFile { file -> 
-            environment(Environment.createFrom(file)) 
+            environment(Environment.Create.From(file)) 
         }    
     }
 }
 ```
  
-__Note__: Currently, `createFrom` does not support any polymorphic creation. This might be added later,
+__Note__: Currently, `Create.From` does not support any polymorphic creation. This might be added later,
  see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
 
-As with `copyFrom(text)`, `copyFrom(File|Url)` supports an additional classloader parameter as well.
+As with `Create.From(text)`, `Create.From(File|Url)` supports an additional classloader parameter as well.
 
 # Classpath
 
-In addition, 1.2.0 introduces a new experimental feature for instantiating a a model automatically by placing
+In addition, 1.2.0 introduces a new feature for instantiating a model automatically by placing
 a property file in your model library. In order for this to work, the model needs one or more single
 entry points, i.e. instances that are usually present only once (like the all encompassing Config object).
 
@@ -135,7 +135,7 @@ package pk
 `Configuration.groovy`:
 ```groovy
 package impl
-Model.create {
+Model.Create.With {
   // regular dsl code
 }
 ```
@@ -153,7 +153,7 @@ model-class: impl.Configuration
 This allows the code consuming the model to simply obtain it via:
 
 ```groovy
-def model = Model.createFromClasspath()
+def model = Model.Create.FromClasspath()
 ```
 
 Using this technique, the same consumer can work with different models (most of the time: different packages),

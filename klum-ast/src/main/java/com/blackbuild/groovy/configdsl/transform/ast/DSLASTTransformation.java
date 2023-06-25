@@ -25,9 +25,9 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
-import com.blackbuild.klum.ast.util.FactoryHelper;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.common.CommonAstHelper;
+import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
@@ -80,6 +80,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
+    public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
+    public static final ClassNode KEYED_FACTORY = make(KlumFactory.KlumKeyedFactory.class);
+    public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.KlumUnkeyedFactory.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
@@ -97,6 +100,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
+    private static final String FACTORY_FIELD_NAME = "Create";
+    public static final ClassNode OVERRIDE = make(Override.class);
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -139,6 +144,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
         createApplyMethods();
         createTemplateMethods();
+        createFactoryField();
         createFactoryMethods();
         createConvenienceFactories();
 
@@ -162,6 +168,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             addCompileError(sourceUnit, "defaultImpl must be a subtype of the annotated class!", dslAnnotation);
         if (!isDSLObject(defaultImpl))
             addCompileError(sourceUnit, "defaultImpl must be a DSLObject!", dslAnnotation);
+        if (!isInstantiable(defaultImpl))
+            addCompileError(sourceUnit, "defaultImpl must be instantiable!", dslAnnotation);
     }
 
     private void createExplicitEmptyConstructor() {
@@ -1034,11 +1042,82 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
+    private void createFactoryField() {
+        ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
+
+        if (!isInstantiable(defaultImpl)) {
+            FieldNode factoryField = new FieldNode(
+                    FACTORY_FIELD_NAME,
+                    ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                    makeClassSafeWithGenerics(KLUM_FACTORY, new GenericsType(defaultImpl)),
+                    annotatedClass,
+                    ctorX(KLUM_FACTORY, classX(defaultImpl))
+            );
+
+            annotatedClass.addField(factoryField);
+            return;
+        }
+
+        ClassNode factoryType = keyField != null ? KEYED_FACTORY : UNKEYED_FACTORY;
+        InnerClassNode factoryClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$_Factory",
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl))
+        );
+        
+        factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, 
+                    ctorSuperS(classX(annotatedClass))
+                );
+
+        overrideClosureMethods(factoryClass, defaultImpl);
+
+        annotatedClass.getModule().addClass(factoryClass);
+
+        FieldNode factoryField = new FieldNode(
+                FACTORY_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                newClass(factoryClass),
+                annotatedClass,
+                ctorX(factoryClass)
+        );
+
+        annotatedClass.addField(factoryField);
+    }
+
+    private void overrideClosureMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {
+        for (MethodNode methodNode : factoryClass.getSuperClass().getMethods()) {
+            if (methodNode.getParameters().length == 0)
+                continue;
+            if (!methodNode.getParameters()[methodNode.getParameters().length - 1].getType().equals(CLOSURE_TYPE))
+                continue;
+            Parameter[] parameters = cloneParams(methodNode.getParameters());
+            Parameter closureParam = parameters[parameters.length - 1];
+
+            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
+            delegatesTo.setMember("value", classX(rwClass));
+            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
+            closureParam.addAnnotation(delegatesTo);
+
+            MethodNode newMethod = new MethodNode(
+                    methodNode.getName(),
+                    methodNode.getModifiers(),
+                    newClass(defaultImpl),
+                    parameters,
+                    methodNode.getExceptions(),
+                    returnS(callSuperX(methodNode.getName(), args(parameters)))
+            );
+            newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
+            factoryClass.addMethod(newMethod);
+        }
+    }
+
     private void createFactoryMethods() {
         if (!isInstantiable(annotatedClass))
             return;
 
         createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
+                .forRemoval()
                 .namedParams("values")
                 .optionalStringParam("name", keyField != null)
                 .delegatingClosureParam(rwClass)
@@ -1047,26 +1126,31 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createConvenienceFactories() {
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .forRemoval()
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .forRemoval()
                 .optionalStringParam("name", keyField != null)
                 .stringParam("text")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .forRemoval()
                 .param(make(File.class), "src")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
+                .forRemoval()
                 .param(make(URL.class), "src")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
+                .forRemoval()
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }

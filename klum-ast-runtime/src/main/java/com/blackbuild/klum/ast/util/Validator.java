@@ -77,6 +77,7 @@ public class Validator {
     }
 
     private boolean isNotExplicitlyIgnored(Field field) {
+        if (Modifier.isStatic(field.getModifiers())) return false;
         Validate validate = field.getAnnotation(Validate.class);
         return validate == null || validate.value() !=  Validate.Ignore.class;
     }

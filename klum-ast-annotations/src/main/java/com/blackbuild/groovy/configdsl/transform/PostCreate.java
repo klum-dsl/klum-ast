@@ -63,7 +63,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * }
  *
  * when:
- * instance = clazz.create {
+ * instance = clazz.Create.With {
  *   name "parent"
  *   foo {}
  * }

@@ -143,13 +143,13 @@ public class KlumInstanceProxy {
      * @param body Closure to be executed against the instance.
      * @return the object itself
      */
-    public Object apply(Map<String, Object> values, Closure<?> body) {
+    public Object apply(Map<String, ?> values, Closure<?> body) {
         applyOnly(values, body);
         postApply();
         return instance;
     }
 
-    void applyOnly(Map<String, Object> values, Closure<?> body) {
+    void applyOnly(Map<String, ?> values, Closure<?> body) {
         Object rw = instance.getProperty(NAME_OF_RW_FIELD_IN_MODEL_CLASS);
         applyNamedParameters(rw, values);
         applyClosure(rw, body);
@@ -162,7 +162,7 @@ public class KlumInstanceProxy {
         body.call();
     }
 
-    private void applyNamedParameters(Object rw, Map<String, Object> values) {
+    private void applyNamedParameters(Object rw, Map<String, ?> values) {
         if (values == null) return;
         values.forEach((key, value) -> InvokerHelper.invokeMethod(rw, key, value));
     }

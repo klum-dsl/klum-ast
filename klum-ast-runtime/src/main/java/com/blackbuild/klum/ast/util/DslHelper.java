@@ -62,8 +62,20 @@ public class DslHelper {
         return clazz.isAnnotationPresent(DSL.class);
     }
 
+    public static Type requireDslType(Type type) {
+        if (!isDslType(type))
+            throw new IllegalArgumentException(format("Type %s is not a DSL type", type));
+        return type;
+    }
+
     public static boolean isDslObject(Object object) {
         return object != null && isDslType(object.getClass());
+    }
+
+    public static Object requireDslObject(Object object) {
+        if (!isDslObject(object))
+            throw new IllegalArgumentException(format("Object %s is not a DSL object", object));
+        return object;
     }
 
     public static Class<?> getDslAncestor(Class<?> type) {
@@ -192,6 +204,18 @@ public class DslHelper {
 
     public static boolean isKeyed(Class<?> type) {
         return getKeyField(type).isPresent();
+    }
+
+    public static <T> Class<T> requireKeyed(Class<T> type) {
+        if (!isKeyed(type))
+            throw new IllegalArgumentException(format("Type %s is not keyed.", type));
+        return type;
+    }
+
+    public static <T> Class<T> requireNotKeyed(Class<T> type) {
+        if (isKeyed(type))
+            throw new IllegalArgumentException(format("Type %s is keyed.", type));
+        return type;
     }
 
     public static List<Class<?>> getRwHierarchyOf(Class<?> rwType) {

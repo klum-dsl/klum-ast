@@ -61,7 +61,7 @@ class StaticTypingConfigSpec extends AbstractDSLSpec {
         def script = createSecondaryClass '''
             import pk.*
             
-            Config.create {
+            Config.Create.With {
                 Component.withTemplate(name: 'Kurt') {
                     systems {
                         system {
@@ -73,7 +73,7 @@ class StaticTypingConfigSpec extends AbstractDSLSpec {
                 }
             }
 '''
-        instance = clazz.createFrom(script)
+        instance = clazz.Create.From(script)
 
         then:
         noExceptionThrown()

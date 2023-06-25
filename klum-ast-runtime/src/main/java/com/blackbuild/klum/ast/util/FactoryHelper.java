@@ -53,11 +53,11 @@ public class FactoryHelper {
         // static only
     }
 
-    public static <T extends GroovyObject> T createFromClasspath(Class<T> type) {
+    public static <T> T createFromClasspath(Class<T> type) {
         return createFromClasspath(type, Thread.currentThread().getContextClassLoader());
     }
 
-    public static <T extends GroovyObject> T createFromClasspath(Class<T> type, ClassLoader loader) {
+    public static <T> T createFromClasspath(Class<T> type, ClassLoader loader) {
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
 
         try (InputStream stream = loader.getResourceAsStream(path)) {
@@ -72,7 +72,7 @@ public class FactoryHelper {
         }
     }
 
-    public static <T> T create(Class<T> type, Map<String, Object> values, String key, Closure<?> body) {
+    public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
         return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
 
@@ -120,7 +120,7 @@ public class FactoryHelper {
         return (T) result;
     }
 
-    public static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
+    static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
         Consumer<KlumInstanceProxy> apply = proxy -> {
             script.setDelegate(proxy.getRwInstance());
             script.run();
@@ -192,7 +192,7 @@ public class FactoryHelper {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends GroovyObject> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
+    private static <T> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
         try {
             Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
             return createFrom(type, modelClass);

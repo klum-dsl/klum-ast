@@ -44,8 +44,8 @@ import java.lang.annotation.Target;
 
  <h2>Factory and {@code apply} methods</h2>
 
- <p>A factory method named {@code create} is generated, using either a single closure as parameter, or, in case of a keyed
- object, using a String and a closure parameter.</p>
+ <p>Each instantiable DSL class gets a static field {@code Create} of either a Keyed or unkeyed factory, which provides methods to
+ create instances of the class.</p>
 
  <pre><code>
  {@literal @}DSL
@@ -58,15 +58,25 @@ import java.lang.annotation.Target;
  }
  </code></pre>
 
- <p>creates the following methods:</p>
+ <p>allows to create instances with the following calls:</p>
 
  <pre><code>
- static Config create(Closure c = {})
+ Config.Create.One()
+ Config.Create.With(a: 1, b: 2)
+ Config.Create.With(a: 1, b: 2) { c 3 }
+ Config.Create.With { c 3 }
 
- static ConfigWithKey create(String name, Closure c = {})
+ ConfigWithKey.Create.One('Dieter')
+ ConfigWithKey.Create.With('Dieter', a: 1, b: 2)
+ ConfigWithKey.Create.With('Dieter', a: 1, b: 2) { c 3 }
+ ConfigWithKey.Create.With('Dieter') { c 3 }
  </code></pre>
 
- <p><b>Note that the creation methods might be eventually moved to a separate factory class for a model.</b></p>
+ The optional closure to the {@code With} method is used to set values on the created object. The 'One' method is a shortcut for
+ 'With' without any given values, which makes a nicer syntax ({@code Config.Create.With()} seems a bit strange).
+
+ <p><b>Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods
+ are now deprecated in will be removed in a future version.</b></p>
 
 
  <p>Additionally, an {@code apply} method is created, which takes single closure and applies it to an existing object.</p>
@@ -79,7 +89,7 @@ import java.lang.annotation.Target;
  the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):</p>
 
  <pre><code>
- Config.create {
+ Config.Create.With {
    name "Dieter"
    age 15
  }
@@ -87,7 +97,7 @@ import java.lang.annotation.Target;
 
  <p>Could also be written as:</p>
  <pre><code>
- Config.create(name: 'Dieter', age: 15)
+ Config.Create.With(name: 'Dieter', age: 15)
  </code></pre>
 
  <p>Of course, named parameters and regular calls inside the closure can be combined ad lib.</p>
@@ -142,7 +152,7 @@ import java.lang.annotation.Target;
 
  <p>Used by:</p>
  <pre><code>
- Config.create {
+ Config.Create.With {
    name "Hallo"
  }
  </code></pre>
@@ -177,7 +187,7 @@ import java.lang.annotation.Target;
 
  <p>Usage:</p>
  <pre><code>
- Config.create {
+ Config.Create.With {
    roles "a", "b"
    role "another"
    levels a:5, b:10
@@ -222,7 +232,7 @@ import java.lang.annotation.Target;
 
  <p>Usage:</p>
  <pre><code>
- Config.create {
+ Config.Create.With {
    unkeyed {
      name "other"
    }
@@ -231,9 +241,9 @@ import java.lang.annotation.Target;
    }
  }
 
- def objectForReuse = UnKeyed.create { name = "reuse" }
+ def objectForReuse = UnKeyed.Create.With { name = "reuse" }
 
- Config.create {
+ Config.Create.With {
    unkeyed objectForReuse
  }
  </code></pre>
@@ -242,13 +252,13 @@ import java.lang.annotation.Target;
 
  <pre><code>
  def objectForReuse
- Config.create {
+ Config.Create.With {
    objectForReuse = unkeyed {
      name "other"
    }
  }
 
- Config.create {
+ Config.Create.With {
    unkeyed objectForReuse
  }
  </code></pre>
@@ -286,14 +296,14 @@ import java.lang.annotation.Target;
    String value
  }
 
- def objectForReuse = UnKeyed.create { name "reuse" }
+ def objectForReuse = UnKeyed.Create.With { name "reuse" }
  def anotherObjectForReuse
 
  def createAnObject(String name, String value) {
-   Keyed.create(name) { value(value) }
+   Keyed.Create.With(name) { value(value) }
  }
 
- Config.create {
+ Config.Create.With {
    elements {
      element {
         name "an element"
@@ -318,7 +328,7 @@ import java.lang.annotation.Target;
  }
 
  // flat syntax without nested closures:
- Config.create {
+ Config.Create.With {
    element {
      name "an element"
    }

@@ -21,49 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.groovy.configdsl.transform.ast;
 
-import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
 
-class SpecialCasesSpec extends AbstractDSLSpec {
+import static com.blackbuild.groovy.configdsl.transform.ast.AbstractMethodBuilder.DEPRECATED_NODE;
 
-    def "methodMissing in class should be allowed"() {
-        when:
-        createClass '''
-package pk
+public enum DeprecationType {
 
-@DSL
-class DynamicModel {
+    DEPRECATED {
+        @Override
+        public AnnotationNode toNode() {
+            return new AnnotationNode(DEPRECATED_NODE);
+        }
+    },
+    FOR_REMOVAL {
+        @Override
+        public AnnotationNode toNode() {
+            AnnotationNode annotationNode = new AnnotationNode(DEPRECATED_NODE);
+            annotationNode.addMember("forRemoval", new ConstantExpression(true));
+            return annotationNode;
+        }
+    };
 
-    def methodMissing(String name, args) {
-        throw new MissingMethodException(name, this.class, args)
-    }
-}
-'''
-        then:
-        notThrown(MultipleCompilationErrorsException)
-
-    }
-
-    def "methodMissing should work"() {
-        given:
-        createClass '''
-package pk
-
-@DSL
-class DynamicModel {
-    static int count = 0
-
-    def methodMissing(String name, args) {
-        count++
-    }
-}
-'''
-        when:
-        instance = clazz.Create.With().bla()
-
-        then:
-        clazz.count == 1
-    }
+    abstract AnnotationNode toNode();
 
 }

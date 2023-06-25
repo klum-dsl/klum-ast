@@ -72,7 +72,7 @@ class JsonExportSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar()
         }
 
@@ -99,7 +99,7 @@ class JsonExportSpec extends AbstractDSLSpec {
         def Bar = getClass("pk.Bar")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bars {
                 bar("Klaus") {}
                 bar(Bar, "Dieter") {}
@@ -128,7 +128,7 @@ class JsonExportSpec extends AbstractDSLSpec {
         ''')
         def Bar = getClass("pk.Bar")
 
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bars {
                 bar("Klaus") {}
                 bar(Bar, "Dieter") {}

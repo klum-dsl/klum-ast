@@ -71,7 +71,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create() {}
+        instance = clazz.Create.With() {}
         instance.apply(field: 'bla') {
             another 12
         }
@@ -93,7 +93,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create() {}
+        instance = clazz.Create.With() {}
         instance.apply(value: 'bla') {}
 
         then:
@@ -112,7 +112,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create() {}
+        instance = clazz.Create.With() {}
         instance.apply(values: ['bla', 'blub']) {}
 
         then:
@@ -130,13 +130,13 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create() {}
+        instance = clazz.Create.With() {}
 
         then:
         instance.class.name == "pk.Foo"
 
         when: 'Closure is optional'
-        instance = clazz.create()
+        instance = clazz.Create.One()
 
         then:
         noExceptionThrown()
@@ -168,14 +168,14 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create(value: 'bla') {}
+        instance = clazz.Create.With(value: 'bla') {}
 
         then:
         instance.class.name == "pk.Foo"
         instance.value == 'bla'
 
         when: 'Closure is optional'
-        instance = clazz.create(value: 'blub')
+        instance = clazz.Create.With(value: 'blub')
 
         then:
         noExceptionThrown()
@@ -194,7 +194,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create("Dieter") {}
+        instance = clazz.Create.With("Dieter") {}
 
         then:
         instance.name == "Dieter"
@@ -203,7 +203,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.class.metaClass.getMetaMethod("name", String) == null
 
         when: 'Closure is optional'
-        instance = clazz.create("Klaus")
+        instance = clazz.Create.With("Klaus")
 
         then:
         noExceptionThrown()
@@ -223,7 +223,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create("Dieter", value: 'bla') {}
+        instance = clazz.Create.With("Dieter", value: 'bla') {}
 
         then:
         instance.name == "Dieter"
@@ -233,7 +233,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.class.metaClass.getMetaMethod("name", String) == null
 
         when: 'Closure is optional'
-        instance = clazz.create("Klaus", value: 'blub')
+        instance = clazz.Create.With("Klaus", value: 'blub')
 
         then:
         noExceptionThrown()
@@ -360,7 +360,7 @@ class TransformSpec extends AbstractDSLSpec {
         rwClazz.getDeclaredMethod("setValue", String).getModifiers() & ACC_PROTECTED
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             setAsLowerCase("HALLO")
         }
 
@@ -391,7 +391,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             helpful()
         }
 
@@ -1276,7 +1276,7 @@ import org.codehaus.groovy.control.CompilePhase
         def added = []
         def addObjects = []
 
-        clazz.create {
+        clazz.Create.With {
             added << bar(aBar)
             listBars {
                 added << listBar(aBar)
@@ -1363,7 +1363,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance = clazz.create(name: 'bla', other: 'blub')
+        instance = clazz.Create.With(name: 'bla', other: 'blub')
 
         then:
         instance.hashCode() == 0
@@ -1382,7 +1382,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance = clazz.create('bla', other: 'blub')
+        instance = clazz.Create.With('bla', other: 'blub')
 
         then:
         instance.hashCode() == 'bla'.hashCode()
@@ -1404,7 +1404,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance = clazz.create(other: 'blub')
+        instance = clazz.Create.With(other: 'blub')
 
         then:
         instance.hashCode() == 5
@@ -1422,9 +1422,9 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        def left = clazz.create(name: "a")
-        def right = clazz.create(name: "a")
-        def other = clazz.create(name: "b")
+        def left = clazz.Create.With(name: "a")
+        def right = clazz.Create.With(name: "a")
+        def other = clazz.Create.With(name: "b")
 
         then:
         left == right
@@ -1449,9 +1449,9 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        def left = clazz.create(name: "a") { bar(value: 'a')}
-        def right = clazz.create(name: "a") { bar(value: 'a')}
-        def other = clazz.create(name: "a") { bar(value: 'b')}
+        def left = clazz.Create.With(name: "a") { bar(value: 'a')}
+        def right = clazz.Create.With(name: "a") { bar(value: 'a')}
+        def other = clazz.Create.With(name: "a") { bar(value: 'b')}
 
         then:
         left == right
@@ -1474,7 +1474,7 @@ import org.codehaus.groovy.control.CompilePhase
                 @Owner Foo foo
             }
         ''')
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {}
         }
 
@@ -1823,7 +1823,7 @@ import org.codehaus.groovy.control.CompilePhase
         def script = '''getClass().classLoader.getResourceAsStream("mock")'''
 
         when:
-        clazz.createFrom(script, loader)
+        clazz.Create.From(script, loader)
 
         then: 'method is called from within script'
         1 * loader.getResource("mock")
@@ -1885,9 +1885,9 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         when:
-        def a = getClass("AHint").create(value: "blub")
-        def b = getClass("BHint").create(otherValue: "bli")
-        instance = clazz.create {
+        def a = getClass("AHint").Create.With(value: "blub")
+        def b = getClass("BHint").Create.With(otherValue: "bli")
+        instance = clazz.Create.With {
             hint(a)
             hint(b)
         }
@@ -1982,7 +1982,7 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {
                 secondary "blub"
             }
@@ -2050,9 +2050,9 @@ import org.codehaus.groovy.control.CompilePhase
         '''
 
         when:
-        def a = getClass("AHint").create(value: "blub")
-        def b = getClass("BHint").create(otherValue: "bli")
-        instance = clazz.create {
+        def a = getClass("AHint").Create.With(value: "blub")
+        def b = getClass("BHint").Create.With(otherValue: "bli")
+        instance = clazz.Create.With {
             hint(a)
             hint(b)
         }
@@ -2078,7 +2078,7 @@ import org.codehaus.groovy.control.CompilePhase
         rwClassHasMethod("value", String)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             value "Beer"
             value "BLUB"
             value "beer"
@@ -2108,7 +2108,7 @@ import org.codehaus.groovy.control.CompilePhase
         rwClassHasMethod("values", String[])
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             value "single"
             values "var1", "var2"
             values(["coll1", "coll2"])
@@ -2132,7 +2132,7 @@ import org.codehaus.groovy.control.CompilePhase
             }
             '''
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date 0L
         }
 
@@ -2157,7 +2157,7 @@ import org.codehaus.groovy.control.CompilePhase
             }
             '''
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {
                 name "Hans"
             }
@@ -2184,9 +2184,9 @@ import org.codehaus.groovy.control.CompilePhase
             }
             '''
         when:
-        def theBar = getClass("Bar").create { name 'Franz'}
+        def theBar = getClass("Bar").Create.With { name 'Franz'}
 
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar theBar
         }
 
@@ -2216,7 +2216,7 @@ import org.codehaus.groovy.control.CompilePhase
             '''
         when:
         def BarChild = getClass("BarChild")
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar(BarChild) {
                 name "Franz"
             }
@@ -2245,7 +2245,7 @@ import org.codehaus.groovy.control.CompilePhase
             }
             '''
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {
                 name "Hans"
             }

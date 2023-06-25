@@ -27,14 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 
 import java.util.ArrayList;
@@ -63,7 +56,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     protected final Set<String> tags = new HashSet<>();
     protected int modifiers;
     protected ClassNode returnType = ClassHelper.VOID_TYPE;
-    protected boolean deprecated;
+    protected DeprecationType deprecationType;
     protected boolean optional;
     protected ASTNode sourceLinkTo;
     protected String documentation;
@@ -121,7 +114,12 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     }
 
     public T deprecated() {
-        deprecated = true;
+        deprecationType = DeprecationType.DEPRECATED;
+        return (T) this;
+    }
+
+    public T forRemoval() {
+        deprecationType = DeprecationType.FOR_REMOVAL;
         return (T) this;
     }
 
@@ -154,8 +152,8 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
                 getMethodBody()
         );
 
-        if (deprecated)
-            method.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
+        if (deprecationType != null)
+            method.addAnnotation(deprecationType.toNode());
 
         if (genericsTypes != null)
             method.setGenericsTypes(genericsTypes);

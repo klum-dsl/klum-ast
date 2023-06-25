@@ -87,7 +87,7 @@ import java.lang.annotation.Target;
  * }
  *
  * when:
- * clazz.create {
+ * clazz.Create.With {
  *   value1 "abc"
  *   value2 "bl"
  * }

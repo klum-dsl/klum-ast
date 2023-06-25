@@ -143,6 +143,7 @@ class TemplateMethods {
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
+                .forRemoval()
                 .namedParams("values")
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);

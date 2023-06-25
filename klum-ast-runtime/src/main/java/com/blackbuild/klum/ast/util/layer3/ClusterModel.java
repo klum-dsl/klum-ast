@@ -23,10 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import groovy.lang.Closure;
-import groovy.lang.GroovySystem;
-import groovy.lang.MetaBeanProperty;
-import groovy.lang.PropertyValue;
+import groovy.lang.*;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
 import org.codehaus.groovy.reflection.CachedField;
@@ -305,15 +302,23 @@ public class ClusterModel {
     }
 
     static AnnotatedElement getAnnotatedElementForProperty(Object container, PropertyValue propertyValue) {
-        MetaBeanProperty property = (MetaBeanProperty) getMetaClass(container).getMetaProperty(propertyValue.getName());
+        MetaProperty metaProperty = getMetaClass(container).getMetaProperty(propertyValue.getName());
+        CachedField cachedField;
 
-        CachedField cachedField = property.getField();
+        if (metaProperty instanceof CachedField)
+            cachedField = (CachedField) metaProperty;
+        else if (metaProperty instanceof MetaBeanProperty)
+            cachedField = ((MetaBeanProperty) metaProperty).getField();
+        else
+            throw new IllegalArgumentException("Cannot get AnnotatedElement for " + propertyValue.getName());
+
         if (cachedField != null) {
             if (GroovySystem.getVersion().startsWith("2"))
                 return (Field) InvokerHelper.getProperty(cachedField, "field");
             else
                 return (Field) InvokerHelper.getProperty(cachedField, "cachedField");
         }
+        MetaBeanProperty property = (MetaBeanProperty) metaProperty;
         return ((CachedMethod) property.getGetter()).getCachedMethod();
     }
 

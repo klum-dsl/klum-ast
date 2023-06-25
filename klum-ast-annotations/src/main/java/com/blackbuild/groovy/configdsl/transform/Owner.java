@@ -50,7 +50,7 @@ import java.lang.annotation.Target;
  * }
  *
  * when:
- * instance = Foo.create {
+ * instance = Foo.Create.With {
  *   bar {}
  * }
  *
@@ -92,7 +92,7 @@ import java.lang.annotation.Target;
  * }
  *
  * when:
- * instance = Foo.create("bla") {
+ * instance = Foo.Create.With("bla") {
  *   bar {}
  * }
  *

@@ -93,10 +93,10 @@ class TransientSpec extends AbstractDSLSpec {
             }'''
 
         when:
-        def left = clazz.create {
+        def left = clazz.Create.With {
             name = "Bla"
         }
-        def right = clazz.create {
+        def right = clazz.Create.With {
             name = "Bla"
         }
 

@@ -94,7 +94,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def Bar = getClass("pk.Bar")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {}
         }
 
@@ -102,7 +102,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bar.foo.is(instance)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar(Bar) {}
         }
 
@@ -133,7 +133,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         reuse.foo == null
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar reuse
         }
 
@@ -141,7 +141,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         reuse.foo.is(instance)
 
         when:
-        def another = clazz.create {
+        def another = clazz.Create.With {
             bar reuse
         }
 
@@ -297,7 +297,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def Bar = getClass("pk.Bar")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bars {
                 bar {}
                 bar(Bar) {}
@@ -328,7 +328,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def Bar = getClass("pk.Bar")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bars {
                 bar("Klaus") {}
                 bar(Bar, "Dieter") {}
@@ -359,7 +359,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar") {}
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar(aBar)
         }
 
@@ -368,7 +368,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
 
         when:
-        def anotherInstance = clazz.create {
+        def anotherInstance = clazz.Create.With {
             bar(aBar)
         }
 
@@ -504,7 +504,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {
                 assert foo != null
             }
@@ -550,7 +550,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def barInstance
-        instance = clazz.create {
+        instance = clazz.Create.With {
             barInstance = bar {}
         }
 
@@ -597,7 +597,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def barInstance = create("pk.SubBar")
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar barInstance
         }
 
@@ -641,7 +641,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar {}
         }
 
@@ -650,7 +650,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         Class Bar = getClass("pk.Bar")
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar(Bar) {}
         }
 
@@ -691,7 +691,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def Boo = getClass("pk.Boo")
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar(Boo) {}
         }
 

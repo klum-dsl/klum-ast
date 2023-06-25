@@ -14,8 +14,8 @@ The DSL annotation leads to the creation of a couple of useful methods.
 
 ## Factory and `apply` methods
 
-A factory method named `create` is generated, using either a single closure as parameter, or, in case of a keyed
-object, using a String and a closure parameter.
+Each instantiable DSL class gets a static field `Create` of either a Keyed or unkeyed factory, which provides methods to
+create instances of the class.
 
 ```groovy
 @DSL
@@ -28,15 +28,24 @@ class ConfigWithKey {
 }
 ```
         
-creates the following methods:
+allows to create instances with the following calls:
     
 ```groovy
-static Config create(Closure c = {})
+Config.Create.One()
+Config.Create.With(a: 1, b: 2)
+Config.Create.With(a: 1, b: 2) { c 3 }
+Config.Create.With { c 3 }
 
-static ConfigWithKey create(String name, Closure c = {})
+ConfigWithKey.Create.One('Dieter')
+ConfigWithKey.Create.With('Dieter', a: 1, b: 2)
+ConfigWithKey.Create.With('Dieter', a: 1, b: 2) { c 3 }
+ConfigWithKey.Create.With('Dieter') { c 3 }
 ```
+The optional closure to the `With` method is used to set values on the created object. The `One` method is a shortcut for
+`With` without any given values, which makes a nicer syntax (`Config.Create.With()` seems a bit strange).
 
-__Note that the creation methods might be eventually moved to a separate factory class for a model.__
+__Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods 
+are now deprecated in will be removed in a future version.__
 
 Additionally, an `apply` method is created, which takes single closure and applies it to an existing object.
  
@@ -44,12 +53,12 @@ Additionally, an `apply` method is created, which takes single closure and appli
 def void apply(Closure c)
 ```
 
-Both `apply` and `create` also support named parameters, allowing to set values in a concise way. Every map element of
+Both `apply` and `Create.With` also support named parameters, allowing to set values in a concise way. Every map element of
 the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
 
 
 ```groovy
-Config.create {
+Config.Create.With {
     name "Dieter"
     age 15
 }
@@ -57,7 +66,7 @@ Config.create {
 
 Could also be written as:
 ```groovy
-Config.create(name: 'Dieter', age: 15)
+Config.Create.With(name: 'Dieter', age: 15)
 ```
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
@@ -111,7 +120,7 @@ def name(String value)
 
 Used by:
 ```groovy
-Config.create {
+Config.Create.With {
    name "Hallo"
 }
 ```
@@ -147,7 +156,7 @@ def level(String key, Integer value)
 
 Usage:
 ```groovy
-Config.create {
+Config.Create.With {
     roles "a", "b"
     role "another"
     levels a:5, b:10
@@ -175,7 +184,7 @@ the map adder is replaces with a collection adder.
     Map<String, String> values
 }
 
-Foo.create {
+Foo.Create.With {
     value "bla"
     value "BLUB"
     values "bla", "blub"
@@ -218,7 +227,7 @@ Keyed keyed(String key, @DelegatesTo(Unkeyed) Closure closure)
 
 Usage:
 ```groovy
-Config.create {
+Config.Create.With {
     unkeyed {
         name "other"
     }
@@ -227,9 +236,9 @@ Config.create {
     }
 }
 
-def objectForReuse = UnKeyed.create { name = "reuse" }
+def objectForReuse = UnKeyed.Create.With { name = "reuse" }
 
-Config.create {
+Config.Create.With {
     unkeyed objectForReuse
 }
 ```
@@ -238,13 +247,13 @@ The closure methods return the created objects, so you can also do the following
 
 ```groovy
 def objectForReuse
-Config.create {
+Config.Create.With {
     objectForReuse = unkeyed {
         name "other"
     }
 }
 
-Config.create {
+Config.Create.With {
     unkeyed objectForReuse
 }
 ```
@@ -259,7 +268,7 @@ type `SubElement`), there are several options:
 For non final field types, a polymorphic setter is created that takes the requested type as first parameter:
 
 ```groovy
-Config.create {
+Config.Create.With {
   main(SubElement) {
     ...
   }
@@ -279,8 +288,8 @@ IntelliJ idea.
 By using an actual `create` call on the target type, the target object is first created and than applied to field-method:
 
 ```groovy
-Config.create {
-  main SubElement.create {
+Config.Create.With {
+  main SubElement.Create.With {
     ...
   }
 }
@@ -317,7 +326,7 @@ The annotated method is automatically converted into a Mutator method.
     String name
 }
 
-def foo = Foo.create {
+def foo = Foo.Create.With {
     bar {
         name "Hans"
     }
@@ -353,7 +362,7 @@ class BarImpl implements Bar {
 Although the field is not of an DSL type, normal DSL methods are created for it:
 
 ```groovy
-Foo.create {
+Foo.Create.With {
     bar(value: "Dieter")
 }
 ```
@@ -373,7 +382,7 @@ interface Bar {
     String getValue()
 }
 
-Foo.create {
+Foo.Create.With {
     bar(value: "Dieter")
 }
 ```
@@ -419,14 +428,14 @@ class Keyed {
     String value
 }
 
-def objectForReuse = UnKeyed.create { name "reuse" }
+def objectForReuse = UnKeyed.Create.With { name "reuse" }
 def anotherObjectForReuse
 
 def createAnObject(String name, String value) {
-    Keyed.create(name) { value(value) }
+    Keyed.Create.With(name) { value(value) }
 }
 
-Config.create {
+Config.Create.With {
     elements { // optional, but provides grouping and additional convenience features
         element {
             name "an element"
@@ -451,7 +460,7 @@ Config.create {
 }
 
 // flat syntax without nested closures:
-Config.create {
+Config.Create.With {
     element {
         name "an element"
     }
@@ -491,7 +500,7 @@ This can be overridden using `@Field.keyMapping`, which also allows using unkeye
     String secondary
 }
 
-def instance = Foo.create {
+def instance = Foo.Create.With {
     bar {
         secondary "blub"
     }
@@ -573,7 +582,7 @@ class Bar {
     @Owner Foo outer
 }
 
-def c = Config.create {
+def c = Config.Create.With {
     bar {}
 }
 
@@ -583,7 +592,7 @@ assert c.bar.outer === c
 Note that the owner field is set before the actual configuration closure is executed, so it can be used to access the outer instance:
 
 ```groovy
-Foo.create {
+Foo.Create.With {
     fillDataFromDatabase() // Copy some data from somewhere else
     bar {
         if (outer.elements.size() > 10) // outer is Owner field in Bar
@@ -649,7 +658,7 @@ dsl methods generated:
     String getValue()
 }
 
-Outer.create {
+Outer.Create.With {
     foo(FooImpl) {
         value "name"
     }
@@ -688,8 +697,8 @@ class Server {
 
 This allows creating the server like: 
 
-```
-Server.create("INT") {
+```groovy
+Server.Create.With("INT") {
     database {  // instead of database("INT") {
        //...
     }

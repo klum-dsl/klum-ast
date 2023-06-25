@@ -3,8 +3,27 @@ Breaking changes in 1.2/2.0
 
 # 2.0
 
-## module names
-For 2.0, the single klum-ast dependenyc is replaced by two KlumAST is split into three distinct jars:
+## Factory methods -> Factory class
+
+All static factory methods on DSL classes are deprecated in favor of a single `Create` class field which encapsulates all
+relevant factory methods.
+
+The following factory calls should be renamed:
+
+| Old                            | New                             |
+|--------------------------------|---------------------------------|
+| `Foo.create()`                 | `Foo.Create.One()`              |
+| `Foo.create(...)`              | `Foo.Create.With(...)`          |
+| `Foo.createFrom(...)`          | `Foo.Create.From()`             |
+| `Foo.createAsTemplate(...)`    | `Foo.Create.Template(...)`      |
+| `Foo.createFromClasspath(...)` | `Foo.Create.FromClasspath(...)` |
+
+
+NOTE that in addition to `.One()` for empty factory calls, `.With()` is also working, but since it makes for a strange
+sounding call is deprecated and only present to allow a simple search and replace.
+
+## Dependency changes
+For 2.0, the single klum-ast dependency is replaced by two KlumAST is split into three distinct jars:
 
 ### klum-ast-annotations
 

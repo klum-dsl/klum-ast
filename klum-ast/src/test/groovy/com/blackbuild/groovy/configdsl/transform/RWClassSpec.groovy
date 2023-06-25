@@ -94,7 +94,7 @@ class RWClassSpec extends AbstractDSLSpec {
         rwClass.superclass.name == 'pk.Parent$_RW'
 
         when:
-        getClass("pk2.Child").create()
+        getClass("pk2.Child").Create.With()
 
         then:
         noExceptionThrown()
@@ -124,7 +124,7 @@ class RWClassSpec extends AbstractDSLSpec {
         rwClass.superclass.name == 'pk.Parent$_RW'
 
         when:
-        getClass("pk.Child").create()
+        getClass("pk.Child").Create.With()
 
         then:
         noExceptionThrown()
@@ -151,7 +151,7 @@ class RWClassSpec extends AbstractDSLSpec {
         rwClass.superclass.name == 'pk.Parent$_RW'
 
         when:
-        getClass('pk.Child').create()
+        getClass('pk.Child').Create.With()
 
         then:
         noExceptionThrown()
@@ -312,7 +312,7 @@ class RWClassSpec extends AbstractDSLSpec {
         class Configuration extends Script {
       
             def run() {
-                pk.Container.create {
+                pk.Container.Create.With {
                     name "parent"
                     foo {
                         childName "$container.name::child"                    
@@ -321,7 +321,7 @@ class RWClassSpec extends AbstractDSLSpec {
             }
         }  
 '''
-        instance = clazz.createFrom(script)
+        instance = clazz.Create.From(script)
 
         then:
         notThrown(MultipleCompilationErrorsException)
