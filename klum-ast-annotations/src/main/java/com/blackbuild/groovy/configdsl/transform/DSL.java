@@ -398,4 +398,11 @@ public @interface DSL {
      * This makes most sense on interfaces or abstract classes.
      */
     Class<?> defaultImpl() default Undefined.class;
+
+    /**
+     * When set, the given class, which must be a subclass of either KlumFactory (for abstract classes) or
+     * KlumFactory.Keyed/Unkeyed will be used as a base for the generated factory class. Note that if the annotated class
+     * contains a static inner class named "Factory", this class will be used by default.
+     */
+    Class<?> factoryBase() default Undefined.class;
 }

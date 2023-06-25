@@ -25,7 +25,9 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
-import com.blackbuild.klum.ast.util.*;
+import com.blackbuild.klum.ast.util.FactoryHelper;
+import com.blackbuild.klum.ast.util.KlumFactory;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
@@ -81,8 +83,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
-    public static final ClassNode KEYED_FACTORY = make(KlumFactory.KlumKeyedFactory.class);
-    public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.KlumUnkeyedFactory.class);
+    public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
+    public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
@@ -1051,17 +1053,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        ClassNode factoryType = keyField != null ? KEYED_FACTORY : UNKEYED_FACTORY;
+        ClassNode factoryType = getFactoryBase();
+
         InnerClassNode factoryClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$_Factory",
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl))
+                factoryType.redirect().getGenericsTypes() != null ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
-        
-        factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, 
-                    ctorSuperS(classX(annotatedClass))
-                );
+
+        if (factoryType.redirect().getGenericsTypes() != null)
+            factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
+                    ctorSuperS(classX(annotatedClass)));
 
         overrideClosureMethods(factoryClass, defaultImpl);
 
@@ -1076,6 +1079,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
 
         annotatedClass.addField(factoryField);
+    }
+
+    private ClassNode getFactoryBase() {
+        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factoryBase");
+        if (factoryBase == null) {
+            Iterator<InnerClassNode> it = annotatedClass.getInnerClasses();
+            while (it.hasNext()) {
+                ClassNode innerClass = it.next();
+                if (innerClass.getName().endsWith("$Factory")) {
+                    factoryBase = innerClass;
+                    break;
+                }
+            }
+        }
+
+        if (factoryBase == null)
+            return keyField == null ? UNKEYED_FACTORY : KEYED_FACTORY;
+
+        if (keyField != null && !isAssignableTo(factoryBase, KEYED_FACTORY))
+            addError("keyed factory must extend " + KEYED_FACTORY.getName(), dslAnnotation);
+        else if (keyField == null && !isAssignableTo(factoryBase, UNKEYED_FACTORY))
+            addError("unkeyed factory must extend " + UNKEYED_FACTORY.getName(), dslAnnotation);
+        return factoryBase;
     }
 
     private void overrideClosureMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {

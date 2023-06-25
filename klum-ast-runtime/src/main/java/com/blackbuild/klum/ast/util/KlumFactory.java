@@ -212,9 +212,9 @@ public class KlumFactory<T> {
      * @param <T> The type of the model.
      */
     @SuppressWarnings("java:S100")
-    public abstract static class KlumKeyedFactory<T> extends KlumFactory<T> {
+    public abstract static class Keyed<T> extends KlumFactory<T> {
 
-        protected KlumKeyedFactory(Class<T> type) {
+        protected Keyed(Class<T> type) {
             super(requireKeyed(type));
         }
 
@@ -296,8 +296,8 @@ public class KlumFactory<T> {
      * @param <T> The type of the model.
      */
     @SuppressWarnings("java:S100")
-    public abstract static class KlumUnkeyedFactory<T> extends KlumFactory<T> {
-        protected KlumUnkeyedFactory(Class<T> type) {
+    public abstract static class Unkeyed<T> extends KlumFactory<T> {
+        protected Unkeyed(Class<T> type) {
             super(DslHelper.requireNotKeyed(type));
         }
 
