@@ -25,6 +25,7 @@
 //file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
@@ -420,7 +421,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
 
         when:
-        instance.validate()
+        KlumInstanceProxy.getProxyFor(instance).validate()
 
         then:
         thrown(AssertionError)
@@ -429,7 +430,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance.apply {
             validated "bla"
         }
-        instance.validate()
+        KlumInstanceProxy.getProxyFor(instance).validate()
 
         then:
         notThrown(AssertionError)
@@ -633,6 +634,25 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "validation method is deprecated"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                private def stringLength() {
+                    assert value1.length() < value2.length()
+                }
+            }
+        ''')
+
+        then:
+        isDeprecated(clazz.getMethod("validate"))
+    }
+
     def "validation method"() {
         given:
         createClass('''
@@ -742,7 +762,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
     }
 
-    def "validate method must not be defined"() {
+    def "validate method can be be defined"() {
         when:
         createClass('''
             @DSL
@@ -753,7 +773,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        thrown(MultipleCompilationErrorsException)
+        notThrown(MultipleCompilationErrorsException)
     }
 
     @Issue("125")

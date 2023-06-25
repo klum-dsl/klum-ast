@@ -132,4 +132,4 @@ Thanks to deferred validation, it is irrelevant whether the stages are set befor
 
 # Manual validation
 
-Instances can be exempt from running automaticall by using the `manualValidation(boolean)` method.
+Instances can be exempt from running automatically by using the `manualValidation(boolean)` method.

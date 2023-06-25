@@ -298,7 +298,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createValidateMethod() {
-        assertNoValidateMethodDeclared();
         checkValidateAnnotationsOnMethods();
         checkValidateAnnotationsOnFields();
         checkValidateAnnotationOnClass();
@@ -312,7 +311,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).optional().forRemoval().addTo(annotatedClass);
     }
 
     private void checkValidateAnnotationsOnFields() {
@@ -388,12 +387,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         closure.setCode(assertStatement);
-    }
-
-    private void assertNoValidateMethodDeclared() {
-        MethodNode existingValidateMethod = annotatedClass.getDeclaredMethod(VALIDATE_METHOD, Parameter.EMPTY_ARRAY);
-        if (existingValidateMethod != null)
-            addCompileError(sourceUnit, "validate() must not be declared, use @Validate methods instead.", existingValidateMethod);
     }
 
     private void checkValidateAnnotationsOnMethods() {
