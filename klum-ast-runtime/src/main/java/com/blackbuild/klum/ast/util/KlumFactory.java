@@ -35,8 +35,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireDslType;
 import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
 
 /**
- * Factory to create DSL model objects. Two different subclasses handle keyed and unkeyed DSLs.
- * This allows for a cleaner API.
+ * Factory to create DSL model objects.
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings("java:S100")
@@ -54,50 +53,164 @@ public class KlumFactory<T> {
         return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
     }
 
+    /**
+     * Creates a new instance of this owner's model type by reading the script from a well-defined properties file
+     * placed in '/META-INF/klum-model/"schema-classname".properties'. The properties file must contain a property name
+     * "model-class" which contains the name of the compiled script to run, which must return an instance of the
+     * model class.
+     * @see #From(Class)
+     * @return The created model object.
+     */
     public T FromClasspath() {
         return FactoryHelper.createFromClasspath(type);
     }
 
+    /**
+     * Creates a new instance of this owner's model type by reading the script from a well-defined properties file
+     * placed in '/META-INF/klum-model/"schema-classname".properties'. The properties file must contain a property name
+     * "model-class" which contains the name of the compiled script to run, which must return an instance of the
+     * model class.
+     * @see #From(Class)
+     * @param loader The classloader to use to load the properties file.
+     * @return The created model object.
+     */
     public T FromClasspath(ClassLoader loader) {
         return FactoryHelper.createFromClasspath(type, loader);
     }
 
-    public T From(Class<? extends Script> scriptClass) {
-        return FactoryHelper.createFrom(type, scriptClass);
+    /**
+     * Creates a new instance of the model type by running the given script class. The script must either return an
+     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link groovy.util.DelegatingScript}
+     * whose contents are the same as create/apply closure for this model class.
+     * <p>
+     *     Note that in case of a Keyed object in combination with a DelegatingScript, the simple name of the script class
+     *     is used as key.
+     * @param configurationScript The script class to run.
+     * @return The instantiated object.
+     */
+    public T From(Class<? extends Script> configurationScript) {
+        return FactoryHelper.createFrom(type, configurationScript);
     }
 
-    public T From(URL src) {
-        return From(src, null);
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given url to it. In case of a keyed model, the last part of the URL is used as the key.
+     * @param configurationUrl The URL where to take the configuration text from.
+     * @see #From(URL, ClassLoader)
+     * @return The instantiated object.
+     */
+    public T From(URL configurationUrl) {
+        return From(configurationUrl, null);
     }
 
-    public T From(URL src, ClassLoader loader) {
-        return FactoryHelper.createFrom(type, src, loader);
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given url to it. In case of a keyed model, the last part of the URL is used as the key.
+     * @param configurationUrl The URL where to take the configuration text from.
+     * @param loader The classloader to use for compiling the configuration text.
+     * @return The instantiated object.
+     */
+    public T From(URL configurationUrl, ClassLoader loader) {
+        return FactoryHelper.createFrom(type, configurationUrl, loader);
     }
 
-    public T From(File file) {
-        return From(file, null);
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given file to it. In case of a keyed model, the filename is used as the key.
+     * @param configurationFile The file where to take the configuration text from.
+     * @see #From(File, ClassLoader) )
+     * @return The instantiated object.
+     */
+    public T From(File configurationFile) {
+        return From(configurationFile, null);
     }
 
-    public T From(File file, ClassLoader loader) {
-        return FactoryHelper.createFrom(type, file, loader);
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given file to it. In case of a keyed model, the filename is used as the key.
+     * @param configurationFile The file where to take the configuration text from.
+     * @param loader The classloader to use for compiling the configuration text.
+     * @return The instantiated object.
+     */
+    public T From(File configurationFile, ClassLoader loader) {
+        return FactoryHelper.createFrom(type, configurationFile, loader);
     }
 
+    /**
+     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @see #Template(Map, Closure)
+     * @return a template instance of the model type.
+     */
     public T Template() {
         return Template(null, null);
     }
 
-    public T Template(Closure<?> body) {
-        return Template(null, body);
+    /**
+     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @see #Template(Map, Closure)
+     * @param configuration The closure to apply to the template instance.
+     * @return a template instance of the model type.
+     */
+    public T Template(Closure<?> configuration) {
+        return Template(null, configuration);
     }
 
-    public T Template(Map<String, Object> values) {
-        return Template(values, null);
+    /**
+     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @see #Template(Map, Closure)
+     * @param configMap The values to set on the template instance.
+     * @return a template instance of the model type.
+     */
+    public T Template(Map<String, Object> configMap) {
+        return Template(configMap, null);
     }
 
-    public T Template(Map<String, Object> values, Closure<?> body) {
-        return FactoryHelper.createAsTemplate(type, values, body);
+    /**
+     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param configMap The values to set on the template instance.
+     * @param configuration The closure to apply to the template instance.
+     * @return a template instance of the model type.
+     */
+    public T Template(Map<String, Object> configMap, Closure<?> configuration) {
+        return FactoryHelper.createAsTemplate(type, configMap, configuration);
     }
 
+    /**
+     * Factory for keyed models.
+     * @param <T> The type of the model.
+     */
     @SuppressWarnings("java:S100")
     public abstract static class KlumKeyedFactory<T> extends KlumFactory<T> {
 
@@ -105,6 +218,12 @@ public class KlumFactory<T> {
             super(requireKeyed(type));
         }
 
+        /**
+         * Creates a new instance of the model by only setting the key, but not applying any configuration (apart from
+         * 'postCreate' and 'postApply' methods).
+         * @param key The key to use for the model.
+         * @return The instantiated object.
+         */
         public T One(String key) {
             return With(null, key, null);
         }
@@ -119,33 +238,74 @@ public class KlumFactory<T> {
             return With(null, key, null);
         }
 
-        public T With(String key, Closure<?> body) {
-            return With(null, key, body);
+        /**
+         * Creates a new instance of the model with the given key and applying the given configuration closure.
+         * @param key The key to use for the model.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(String key, Closure<?> configuration) {
+            return With(null, key, configuration);
         }
 
-        public T With(Map<String, ?> values, String key) {
-            return With(values, key, null);
+        /**
+         * Creates a new instance of the model with the given key and applying the given configuration map.
+         * @param configMap The configuration map to apply to the model.
+         * @param key The key to use for the model.
+         * @return The instantiated object.
+         */
+        public T With(Map<String, ?> configMap, String key) {
+            return With(configMap, key, null);
         }
 
-        public T With(Map<String, ?> values, String key, Closure<?> body) {
-            return FactoryHelper.create(type, values, key, body);
+        /**
+         * Creates a new instance of the model with the given key and applying the given configuration map and closure.
+         * @param configMap The configuration map to apply to the model.
+         * @param key The key to use for the model.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(Map<String, ?> configMap, String key, Closure<?> configuration) {
+            return FactoryHelper.create(type, configMap, key, configuration);
         }
 
-        public T From(String name, String text) {
-            return From(name, text, null);
+        /**
+         * Creates a new instance of the model with the given key and then applying the given text a configuration.
+         * @param key The key of the model to create.
+         * @param configuration the configuration text to apply to the model.
+         * @return The instantiated object.
+         */
+        public T From(String key, String configuration) {
+            return From(key, configuration, null);
         }
 
-        public T From(String name, String text, ClassLoader loader) {
-            return FactoryHelper.createFrom(type, name, text, loader);
+        /**
+         * Creates a new instance of the model with the given key and then applying the given text a configuration.
+         * @param key The key of the model to create.
+         * @param configuration the configuration text to apply to the model.
+         * @param loader The classloader used to compile the configuration text.
+         * @return The instantiated object.
+         */
+        public T From(String key, String configuration, ClassLoader loader) {
+            return FactoryHelper.createFrom(type, key, configuration, loader);
         }
     }
 
+    /**
+     * Factory for unkeyed models.
+     * @param <T> The type of the model.
+     */
     @SuppressWarnings("java:S100")
     public abstract static class KlumUnkeyedFactory<T> extends KlumFactory<T> {
         protected KlumUnkeyedFactory(Class<T> type) {
             super(DslHelper.requireNotKeyed(type));
         }
 
+        /**
+         * Creates a new instance of the model applying any configuration (apart from
+         * 'postCreate' and 'postApply' methods and any active templates).
+         * @return The instantiated object.
+         */
         public T One() {
             return With(null, null);
         }
@@ -160,24 +320,51 @@ public class KlumFactory<T> {
             return One();
         }
 
-        public T With(Closure<?> body) {
-            return With(null, body);
+        /**
+         * Creates a new instance of the model applying the given configuration closure.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(Closure<?> configuration) {
+            return With(null, configuration);
         }
 
-        public T With(Map<String, ?> values) {
-            return With(values, null);
+        /**
+         * Creates a new instance of the model applying the given configuration map.
+         * @param configMap The configuration map to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(Map<String, ?> configMap) {
+            return With(configMap, null);
         }
 
-        public T With(Map<String, ?> values, Closure<?> body) {
-            return FactoryHelper.create(type, values, null, body);
+        /**
+         * Creates a new instance of the model applying the given configuration map and closure.
+         * @param configMap The configuration map to apply to the model.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(Map<String, ?> configMap, Closure<?> configuration) {
+            return FactoryHelper.create(type, configMap, null, configuration);
         }
 
-        public T From(String text) {
-            return From(text, null);
+        /**
+         * Creates a new instance of the model and then applying the given text a configuration.
+         * @param configuration the configuration text to apply to the model.
+         * @return The instantiated object.
+         */
+        public T From(String configuration) {
+            return From(configuration, null);
         }
 
-        public T From(String text, ClassLoader loader) {
-            return FactoryHelper.createFrom(type, null, text, loader);
+        /**
+         * Creates a new instance of the model and then applying the given text a configuration.
+         * @param configuration the configuration text to apply to the model.
+         * @param loader The classloader used to compile the configuration text.
+         * @return The instantiated object.
+         */
+        public T From(String configuration, ClassLoader loader) {
+            return FactoryHelper.createFrom(type, null, configuration, loader);
         }
     }
 }

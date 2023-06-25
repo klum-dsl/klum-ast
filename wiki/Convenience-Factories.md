@@ -113,7 +113,7 @@ As with `Create.From(text)`, `Create.From(File|Url)` supports an additional clas
 
 # Classpath
 
-In addition, 1.2.0 introduces a new experimental feature for instantiating a a model automatically by placing
+In addition, 1.2.0 introduces a new feature for instantiating a model automatically by placing
 a property file in your model library. In order for this to work, the model needs one or more single
 entry points, i.e. instances that are usually present only once (like the all encompassing Config object).
 
