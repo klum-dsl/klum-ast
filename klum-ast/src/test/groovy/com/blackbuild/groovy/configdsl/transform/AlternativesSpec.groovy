@@ -251,7 +251,7 @@ class SubElement extends Element {
 ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {
@@ -306,7 +306,7 @@ class ChildElement extends Element {
 }''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {
@@ -353,7 +353,7 @@ class ChildElement extends Element {
 }''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {
@@ -398,7 +398,7 @@ class ChildElement extends Element {
 }''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {
@@ -512,7 +512,7 @@ class SubSubElement extends Element {
 }''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {

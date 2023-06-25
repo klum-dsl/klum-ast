@@ -68,7 +68,7 @@ class ImagePushSpecification {
         '''
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "Klaus"
             descriptionProviders([{ "$name" }, {"2$name"}])
         }
@@ -101,7 +101,7 @@ class ImagePushSpecification {
         '''
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "Klaus"
             descriptionProviders(a: { "$name" }, b: {"2$name"})
         }

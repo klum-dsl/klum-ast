@@ -273,11 +273,11 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.create {
+        def template = clazz.Create.With {
             another "template"
         }
 
-        def foo = clazz.create {
+        def foo = clazz.Create.With {
             copyFrom template
             another = "model"
         }

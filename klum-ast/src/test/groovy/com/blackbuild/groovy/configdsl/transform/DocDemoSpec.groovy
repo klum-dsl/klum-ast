@@ -61,7 +61,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
         when:
         def github = "http://github.com"
-        clazz.create {
+        clazz.Create.With {
 
             debugMode true
 
@@ -129,7 +129,7 @@ class DocDemoSpec extends AbstractDSLSpec {
 
         def GradleProject = getClass("GradleProject")
         def MavenProject = getClass("MavenProject")
-        clazz.create {
+        clazz.Create.With {
 
             projects {
                 project(MavenProject, "demo") {

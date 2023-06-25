@@ -1045,8 +1045,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createFactoryField() {
         ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
 
-        if (!isInstantiable(defaultImpl))
+        if (!isInstantiable(defaultImpl)) {
+            FieldNode factoryField = new FieldNode(
+                    FACTORY_FIELD_NAME,
+                    ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                    makeClassSafeWithGenerics(KLUM_FACTORY, new GenericsType(defaultImpl)),
+                    annotatedClass,
+                    ctorX(KLUM_FACTORY, classX(defaultImpl))
+            );
+
+            annotatedClass.addField(factoryField);
             return;
+        }
 
         ClassNode factoryType = keyField != null ? KEYED_FACTORY : UNKEYED_FACTORY;
         InnerClassNode factoryClass = new InnerClassNode(

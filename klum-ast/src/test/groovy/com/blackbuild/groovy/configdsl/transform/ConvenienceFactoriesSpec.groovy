@@ -51,7 +51,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -76,7 +76,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -107,7 +107,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = getClass("pk.Foo").createFrom(scriptClass)
+        instance = getClass("pk.Foo").Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Bar"
@@ -139,7 +139,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -166,7 +166,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''', 'BuBu.groovy')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -199,7 +199,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         ''', 'BuBu.groovy')
 
         when:
-        instance = clazz.createFrom(scriptClass)
+        instance = clazz.Create.From(scriptClass)
 
         then:
         instance.class.name == "pk.Foo"
@@ -224,7 +224,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -249,7 +249,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -273,7 +273,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         thrown AssertionError
@@ -306,7 +306,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -339,7 +339,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -364,7 +364,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom("blub", configText)
+        instance = clazz.Create.From("blub", configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -388,7 +388,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(src)
+        instance = clazz.Create.From(src)
 
         then:
         instance.class.name == "pk.Foo"
@@ -412,7 +412,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(src)
+        instance = clazz.Create.From(src)
 
         then:
         instance.class.name == "pk.Foo"
@@ -437,7 +437,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(src.toURI().toURL())
+        instance = clazz.Create.From(src.toURI().toURL())
 
         then:
         instance.class.name == "pk.Foo"
@@ -463,7 +463,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        instance = clazz.createFrom(configText)
+        instance = clazz.Create.From(configText)
 
         then:
         instance.class.name == "pk.Foo"
@@ -490,11 +490,11 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         '''
 
         and:
-        def template = clazz.create(name: 'Dieter')
+        def template = clazz.Create.With(name: 'Dieter')
 
         when:
         clazz.withTemplate(template) {
-            instance = clazz.createFrom(configText)
+            instance = clazz.Create.From(configText)
         }
 
         then:
@@ -518,7 +518,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
             }'''
         createSecondaryClass'''
             package impl
-            pk.Config.create {
+            pk.Config.Create.With {
                 name "hallo"
                 value "welt"
             }''', "Configuration.groovy"
@@ -553,7 +553,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
             }'''
         createSecondaryClass'''
             package impl
-            pk.ConfigImpl.create {
+            pk.ConfigImpl.Create.With {
                 name "hallo"
                 value "welt"
             }''', "Configuration.groovy"
@@ -619,7 +619,7 @@ package scripts
 
 import model.Element
 
-Element.create {
+Element.Create.With {
   name "first-from-script"
 }
 ''', "First.groovy"
@@ -628,11 +628,11 @@ package scripts
 
 import model.Element
 
-Element.create(name: "second-from-script")
+Element.Create.With(name: "second-from-script")
 ''', "Second.groovy"
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             elements(first, second)
         }
 
@@ -663,7 +663,7 @@ package scripts
 
 import model.Element
 
-Element.create("a") {
+Element.Create.With("a") {
   name "first-from-script"
 }
 ''', "First.groovy"
@@ -672,11 +672,11 @@ package scripts
 
 import model.Element
 
-Element.create("b", name: "second-from-script")
+Element.Create.With("b", name: "second-from-script")
 ''', "Second.groovy"
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             elements(first, second)
         }
 

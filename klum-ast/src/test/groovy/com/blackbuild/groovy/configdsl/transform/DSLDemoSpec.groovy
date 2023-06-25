@@ -45,7 +45,7 @@ class DSLDemoSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "Demo"
 
             envs {

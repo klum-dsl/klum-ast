@@ -321,7 +321,7 @@ class RWClassSpec extends AbstractDSLSpec {
             }
         }  
 '''
-        instance = clazz.createFrom(script)
+        instance = clazz.Create.From(script)
 
         then:
         notThrown(MultipleCompilationErrorsException)

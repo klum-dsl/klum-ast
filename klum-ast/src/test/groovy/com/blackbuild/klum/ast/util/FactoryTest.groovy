@@ -49,10 +49,6 @@ abstract class AbstractWithDefaultImpl {}
 
 @DSL class DefaultImpl extends AbstractWithDefaultImpl {}
 '''
-        then:
-        !getClass("AnAbstractClass").fields.any {it.name == "Create" }
-
-        when:
         def factoryField = getClass(className).getField("Create")
 
         then:
@@ -66,6 +62,7 @@ abstract class AbstractWithDefaultImpl {}
 
         where:
         className                              || factoryType           | factoryTargetClassName
+        "AnAbstractClass"                      || KlumFactory | "AnAbstractClass"
         "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.KlumUnkeyedFactory | "NonAbstractSubclassOfAnAbstractClass"
         "AClass"                               || KlumFactory.KlumUnkeyedFactory | "AClass"
         "AKeyedClass"                          || KlumFactory.KlumKeyedFactory | "AKeyedClass"

@@ -521,7 +521,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             validated "bla"
         }
 
@@ -585,7 +585,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "bla"
             value2 "b"
         }
@@ -594,7 +594,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "b"
             value2 "bla"
         }
@@ -649,7 +649,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "abc"
             value2 "bl"
         }
@@ -658,7 +658,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "b"
             value2 "bla"
         }
@@ -684,7 +684,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "abc"
             value2 "bl"
         }
@@ -694,7 +694,7 @@ class ValidationSpec extends AbstractDSLSpec {
         error.message.contains "value1 is too big"
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "b"
             value2 "bla"
         }
@@ -724,7 +724,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "ab"
             value2 "bla"
         }
@@ -733,7 +733,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             value1 "b"
             value2 "bla"
         }
@@ -775,7 +775,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             inner()
             afterInnerObject()
         }
@@ -802,7 +802,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             inner()
         }
 

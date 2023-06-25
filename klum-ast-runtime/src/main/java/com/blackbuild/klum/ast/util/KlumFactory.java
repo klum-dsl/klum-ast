@@ -40,7 +40,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings("java:S100")
-public abstract class KlumFactory<T> {
+public class KlumFactory<T> {
 
     protected final Class<T> type;
     protected KlumFactory(Class<T> type) {
@@ -64,14 +64,6 @@ public abstract class KlumFactory<T> {
 
     public T From(Class<? extends Script> scriptClass) {
         return FactoryHelper.createFrom(type, scriptClass);
-    }
-
-    public T From(String name, String text) {
-        return From(name, text, null);
-    }
-
-    public T From(String name, String text, ClassLoader loader) {
-        return FactoryHelper.createFrom(type, name, text, loader);
     }
 
     public T From(URL src) {
@@ -139,6 +131,13 @@ public abstract class KlumFactory<T> {
             return FactoryHelper.create(type, values, key, body);
         }
 
+        public T From(String name, String text) {
+            return From(name, text, null);
+        }
+
+        public T From(String name, String text, ClassLoader loader) {
+            return FactoryHelper.createFrom(type, name, text, loader);
+        }
     }
 
     @SuppressWarnings("java:S100")
@@ -173,6 +172,12 @@ public abstract class KlumFactory<T> {
             return FactoryHelper.create(type, values, null, body);
         }
 
+        public T From(String text) {
+            return From(text, null);
+        }
 
+        public T From(String text, ClassLoader loader) {
+            return FactoryHelper.createFrom(type, null, text, loader);
+        }
     }
 }
