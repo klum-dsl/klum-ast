@@ -29,8 +29,9 @@
       cased method name was removed).
     - methods named `doValidate` are no longer considered Validate methods by default.
     - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
-    - The `@Validation` annotation is deprecated, any use with the exception of `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
-    - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptionally write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
+    - The `@Validation` annotation is deprecated, any use except for `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
+    - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
+    - The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own validate methods is legal again.
 
 - Fixes
   - since rc.13
