@@ -1039,30 +1039,31 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createFactoryField() {
         ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
+        ClassNode factoryType = getFactoryBase(defaultImpl);
+
+        boolean factoryIsGeneric = factoryType.redirect().getGenericsTypes() != null;
 
         if (!isInstantiable(defaultImpl)) {
             FieldNode factoryField = new FieldNode(
                     FACTORY_FIELD_NAME,
                     ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                    makeClassSafeWithGenerics(KLUM_FACTORY, new GenericsType(defaultImpl)),
+                    factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType),
                     annotatedClass,
-                    ctorX(KLUM_FACTORY, classX(defaultImpl))
+                    factoryIsGeneric ? ctorX(factoryType, classX(defaultImpl)) : ctorX(factoryType)
             );
 
             annotatedClass.addField(factoryField);
             return;
         }
 
-        ClassNode factoryType = getFactoryBase();
-
         InnerClassNode factoryClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$_Factory",
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                factoryType.redirect().getGenericsTypes() != null ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
+                factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
 
-        if (factoryType.redirect().getGenericsTypes() != null)
+        if (factoryIsGeneric)
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
                     ctorSuperS(classX(annotatedClass)));
 
@@ -1081,7 +1082,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addField(factoryField);
     }
 
-    private ClassNode getFactoryBase() {
+    private ClassNode getFactoryBase(ClassNode defaultImpl) {
         ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factoryBase");
         if (factoryBase == null) {
             Iterator<InnerClassNode> it = annotatedClass.getInnerClasses();
@@ -1094,8 +1095,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
         }
 
-        if (factoryBase == null)
-            return keyField == null ? UNKEYED_FACTORY : KEYED_FACTORY;
+        if (!isInstantiable(defaultImpl)) {
+            if (factoryBase == null) return KLUM_FACTORY;
+            if (!isAssignableTo(factoryBase, KLUM_FACTORY))
+                addError("factoryBase must be a KlumFactory", dslAnnotation);
+            return factoryBase;
+        }
+
+        if (factoryBase == null) return keyField == null ? UNKEYED_FACTORY : KEYED_FACTORY;
 
         if (keyField != null && !isAssignableTo(factoryBase, KEYED_FACTORY))
             addError("keyed factory must extend " + KEYED_FACTORY.getName(), dslAnnotation);

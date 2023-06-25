@@ -61,14 +61,14 @@ abstract class AbstractWithDefaultImpl {}
         factory.type.name == factoryTargetClassName
 
         where:
-        className                              || factoryType                  | factoryTargetClassName
-        "AnAbstractClass"                      || KlumFactory                  | "AnAbstractClass"
-        "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.Unkeyed | "NonAbstractSubclassOfAnAbstractClass"
-        "AClass"                               || KlumFactory.Unkeyed | "AClass"
-        "AKeyedClass"                          || KlumFactory.Keyed | "AKeyedClass"
-        "ASubclassOfAKeyedClass"               || KlumFactory.Keyed | "ASubclassOfAKeyedClass"
-        "AbstractWithDefaultImpl"              || KlumFactory.Unkeyed | "DefaultImpl"
-        "DefaultImpl"                          || KlumFactory.Unkeyed | "DefaultImpl"
+        className                              || factoryType           | factoryTargetClassName
+        "AnAbstractClass"                      || KlumFactory           | "AnAbstractClass"
+        "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.Unkeyed   | "NonAbstractSubclassOfAnAbstractClass"
+        "AClass"                               || KlumFactory.Unkeyed   | "AClass"
+        "AKeyedClass"                          || KlumFactory.Keyed     | "AKeyedClass"
+        "ASubclassOfAKeyedClass"               || KlumFactory.Keyed     | "ASubclassOfAKeyedClass"
+        "AbstractWithDefaultImpl"              || KlumFactory.Unkeyed   | "DefaultImpl"
+        "DefaultImpl"                          || KlumFactory.Unkeyed   | "DefaultImpl"
     }
 
     def "basic test"() {
@@ -103,10 +103,13 @@ class MyClassFactory extends KlumFactory.Unkeyed<MyClass> {
     }
     
     public MyClass baker(String name) {
-        return create(name: name, job: "baker")
+        return Create.With(name: name, job: "baker")
     }
 }
 '''
+        expect:
+        getClass('MyClassFactory').isInstance(clazz.Create)
+
         when:
         instance = clazz.Create.baker("Hans")
 
@@ -133,10 +136,13 @@ class MyClassFactory<T> extends KlumFactory.Unkeyed<T> {
     }
     
     public T baker(String name) {
-        return create(name: name, job: "baker")
+        return Create.With(name: name, job: "baker")
     }
 }
 '''
+        expect:
+        getClass('MyClassFactory').isInstance(clazz.Create)
+
         when:
         instance = clazz.Create.baker("Hans")
 
@@ -162,12 +168,50 @@ class MyClass {
         }
         
         public MyClass baker(String name) {
-            return create(name: name, job: "baker")
+            return Create.With(name: name, job: "baker")
         }
     }
 }
 
 '''
+        expect:
+        getClass('MyClass$Factory').isInstance(clazz.Create)
+
+        when:
+        instance = clazz.Create.baker("Hans")
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+    }
+
+    def "allow overriding of factory base class with for abstract classes"() {
+        given:
+        createClass '''
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL
+abstract class MyClass {
+    String name
+    String job
+    
+    static class Factory extends KlumFactory<MyClass> {
+        Factory() {
+            super(MyClass)
+        }
+        
+        public MyClass baker(String name) {
+            return MyClassImpl.Create.With(name: name, job: "baker")
+        }
+    }
+}
+
+@DSL class MyClassImpl extends MyClass {}
+'''
+        expect:
+        getClass('MyClass$Factory').isInstance(clazz.Create)
+
         when:
         instance = clazz.Create.baker("Hans")
 
