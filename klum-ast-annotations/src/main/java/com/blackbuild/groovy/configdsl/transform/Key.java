@@ -59,7 +59,7 @@ import java.lang.annotation.Target;
  * }
  *
  * when:
- * instance = Foo.create("Dieter") {}
+ * instance = Foo.Create.With("Dieter") {}
  *
  * then:
  * instance.name == "Dieter"
@@ -81,7 +81,7 @@ import java.lang.annotation.Target;
  *  }
  *
  *  when:
- *  instance = Foo.create {
+ *  instance = Foo.Create.With {
  *    bars {
  *      bar("Dieter") { url "1" }
  *      bar("Klaus") { url "2" }

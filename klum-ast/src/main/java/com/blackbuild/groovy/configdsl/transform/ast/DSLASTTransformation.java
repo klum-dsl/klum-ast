@@ -27,6 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.common.CommonAstHelper;
+import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
 import groovy.transform.ToString;
 import org.codehaus.groovy.ast.*;
@@ -80,8 +81,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
-    public static final ClassNode KEYED_FACTORY = make(KlumKeyedFactory.class);
-    public static final ClassNode UNKEYED_FACTORY = make(KlumUnkeyedFactory.class);
+    public static final ClassNode KEYED_FACTORY = make(KlumFactory.KlumKeyedFactory.class);
+    public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.KlumUnkeyedFactory.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
 
     public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
@@ -100,6 +101,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     private static final String FACTORY_FIELD_NAME = "Create";
+    public static final ClassNode OVERRIDE = make(Override.class);
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -1047,15 +1049,57 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
 
         ClassNode factoryType = keyField != null ? KEYED_FACTORY : UNKEYED_FACTORY;
+        InnerClassNode factoryClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$_Factory",
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl))
+        );
+        
+        factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, 
+                    ctorSuperS(classX(annotatedClass))
+                );
+
+        overrideClosureMethods(factoryClass, defaultImpl);
+
+        annotatedClass.getModule().addClass(factoryClass);
+
         FieldNode factoryField = new FieldNode(
                 FACTORY_FIELD_NAME,
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)),
+                newClass(factoryClass),
                 annotatedClass,
-                ctorX(factoryType, classX(newClass(annotatedClass)))
+                ctorX(factoryClass)
         );
 
         annotatedClass.addField(factoryField);
+    }
+
+    private void overrideClosureMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {
+        for (MethodNode methodNode : factoryClass.getSuperClass().getMethods()) {
+            if (methodNode.getParameters().length == 0)
+                continue;
+            if (!methodNode.getParameters()[methodNode.getParameters().length - 1].getType().equals(CLOSURE_TYPE))
+                continue;
+            Parameter[] parameters = cloneParams(methodNode.getParameters());
+            Parameter closureParam = parameters[parameters.length - 1];
+
+            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
+            delegatesTo.setMember("value", classX(rwClass));
+            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
+            closureParam.addAnnotation(delegatesTo);
+
+            MethodNode newMethod = new MethodNode(
+                    methodNode.getName(),
+                    methodNode.getModifiers(),
+                    newClass(defaultImpl),
+                    parameters,
+                    methodNode.getExceptions(),
+                    returnS(callSuperX(methodNode.getName(), args(parameters)))
+            );
+            newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
+            factoryClass.addMethod(newMethod);
+        }
     }
 
     private void createFactoryMethods() {

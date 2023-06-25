@@ -138,7 +138,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.create {
+        clazz.Create.With {
             assert isCalled
         }
     }
@@ -170,7 +170,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             foo("1") {}
             listFoos {
                 listFoo("2")
@@ -212,7 +212,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             foo("1") {}
             listFoos {
                 listFoo("2")
@@ -254,7 +254,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "parent"
             foo {}
         }
@@ -489,7 +489,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             foo()
         }
 
@@ -520,7 +520,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             foo()
         }
 
@@ -528,7 +528,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.foo.name == "bla"
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
         }
 
         then:
@@ -558,7 +558,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             foos {
                 foo()
                 foo()
@@ -569,7 +569,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.foos.every { it.name == "bla" }
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
         }
 
         then:
@@ -598,7 +598,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         hasMethod(rwClazz, "autoCreate", Closure)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             autoCreate {
                 name = "bla"
                 executedPhase = PhaseDriver.instance.currentPhase
@@ -612,7 +612,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         when:
         executedPhase = -1
         def objType = null
-        instance = clazz.create {
+        instance = clazz.Create.With {
             autoCreate { obj ->
                 name = "bli"
                 objType = obj.getClass()

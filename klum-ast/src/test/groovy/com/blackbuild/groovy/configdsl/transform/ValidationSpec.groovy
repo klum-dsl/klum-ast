@@ -45,7 +45,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         thrown(AssertionError)
@@ -72,7 +72,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when: 'missing inner instance'
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
         }
 
@@ -80,7 +80,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when: 'inner instance does not validate'
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inner {}
         }
@@ -89,7 +89,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inner {
                 value "valid"
@@ -121,7 +121,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when: 'inners is empty'
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
         }
 
@@ -129,7 +129,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inners {
                 inner {}
@@ -140,7 +140,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inners {
                 inner {
@@ -176,7 +176,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when: 'inners is empty'
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
         }
 
@@ -184,7 +184,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inners {
                 inner("bla") {}
@@ -195,7 +195,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(AssertionError)
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "correct"
             inners {
                 inner("bla") {
@@ -219,7 +219,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         error = thrown(AssertionError)
@@ -237,7 +237,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         error = thrown(AssertionError)
@@ -255,7 +255,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         thrown(AssertionError)
@@ -272,7 +272,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         notThrown(AssertionError)
@@ -289,7 +289,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         def e = thrown(AssertionError)
@@ -297,14 +297,14 @@ class ValidationSpec extends AbstractDSLSpec {
 
 
         when:
-        clazz.create { validated "bla"}
+        clazz.Create.With { validated "bla"}
 
         then:
         error = thrown(AssertionError)
         error.message == "Field 'validated' ('bla') is invalid. Expression: (it?.length() > 3)"
 
         when:
-        clazz.create { validated "valid"}
+        clazz.Create.With { validated "valid"}
 
         then:
         notThrown(AssertionError)
@@ -321,20 +321,20 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         error = thrown(AssertionError)
         // error.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
 
         when:
-        clazz.create { validated "bla"}
+        clazz.Create.With { validated "bla"}
 
         then:
         thrown(AssertionError)
 
         when:
-        clazz.create { validated "valid"}
+        clazz.Create.With { validated "valid"}
 
         then:
         notThrown(AssertionError)
@@ -351,7 +351,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         error = thrown(AssertionError)
@@ -369,19 +369,19 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {}
+        clazz.Create.With {}
 
         then:
         thrown(AssertionError)
 
         when:
-        clazz.create { validated "bla"}
+        clazz.Create.With { validated "bla"}
 
         then:
         thrown(AssertionError)
 
         when:
-        clazz.create { validated "valid"}
+        clazz.Create.With { validated "valid"}
 
         then:
         notThrown(AssertionError)
@@ -412,7 +412,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             manualValidation(true)
         }
 
@@ -467,7 +467,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.create {
+        clazz.Create.With {
             validated "bla"
         }
 
@@ -486,13 +486,13 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {}
+        instance = clazz.Create.With {}
 
         then:
         thrown(AssertionError)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             validated "bla"
         }
 
@@ -515,7 +515,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.getAnnotation(Validate) != null
 
         when:
-        instance = clazz.create {}
+        instance = clazz.Create.With {}
 
         then:
         thrown(AssertionError)

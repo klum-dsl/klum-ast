@@ -72,7 +72,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("date")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date 123L
         }
 
@@ -80,7 +80,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.date.time == 123L
 
         when: "method with multiple parameters"
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date 25, 5, 2018
         }
 
@@ -93,7 +93,7 @@ class ConverterSpec extends AbstractDSLSpec {
         dateFromInstance.year == 2018
 
         when: "empty method"
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date()
         }
 
@@ -105,7 +105,7 @@ class ConverterSpec extends AbstractDSLSpec {
         when:
         createClass '''
             @DSL class Foo {
-                @Field(converters = [{long value -> Bar.create(value: new Date(value))}])
+                @Field(converters = [{long value -> Bar.Create.With(value: new Date(value))}])
                 Bar bar
             }
             
@@ -119,7 +119,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar 123L
         }
 
@@ -131,7 +131,7 @@ class ConverterSpec extends AbstractDSLSpec {
         when:
         createClass '''
             @DSL class Foo {
-                @Field(converters = [{String name, long value -> Bar.create(name, value: new Date(value))}])
+                @Field(converters = [{String name, long value -> Bar.Create.With(name, value: new Date(value))}])
                 Bar bar
             }
             
@@ -146,7 +146,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", String, long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar "bla", 123L
         }
 
@@ -187,7 +187,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("date", long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date 123L
         }
 
@@ -209,7 +209,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("date", String, long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             date "bla", 123L
         }
 
@@ -238,7 +238,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar 123L
         }
 
@@ -269,7 +269,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", long, String)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar 123L
         }
 
@@ -278,7 +278,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.token == "dummy"
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar 123L, "flummy"
         }
 
@@ -308,7 +308,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", String, long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar "bla", 123L
         }
 
@@ -338,7 +338,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", String, long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar "bla", 123L
         }
 
@@ -368,7 +368,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", String, long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar "bla", 123L
         }
 
@@ -400,7 +400,7 @@ class ConverterSpec extends AbstractDSLSpec {
         rwClazz.getMethod("bar", long)
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             bar 123L
         }
 

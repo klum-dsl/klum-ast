@@ -66,20 +66,20 @@ One goal of the Klum project is to eventually create Gradle / Maven projects to 
 
 ### Model
 
-The schema usually consists of one or more script files containing either a `Model.create` statement or, even more 
- convenient, only the content of the `create` closure (see [[Convenience Factories#delegating-scripts]]).
+The schema usually consists of one or more script files containing either a `Model.Create.With` statement or, even more 
+ convenient, only the content of the `Create.With` closure (see [[Convenience Factories#delegating-scripts]]).
  
 The model is than packed into a jar file (for convenience a shadowed jar containing the schema as well), which can 
  be used as the single dependency for all consumers.
 
 If the model has single entry points, i.e. instances of classes that are only present once in the
-model (which is usually the case), the model can make use of the new `createFromClasspath` feature, see
+model (which is usually the case), the model can make use of the new `Create.FromClasspath` feature, see
 [[Convenience Factories#classpath]] for details.
  
 ### Consumer
 
 The consuming projects (Docalot, Jenkins Pipeline, etc.) in itself have a dependency on the model jar. The can instantiate
-the main model by using `<MainSchemaClass>.createFromClasspath()` or `<MainSchemaClass>.createFrom(<ConfigurationModelClass>)`.
+the main model by using `<MainSchemaClass>.Create.FromClasspath()` or `<MainSchemaClass>.Create.From(<ConfigurationModelClass>)`.
 
 ## Schema - Consumer
 

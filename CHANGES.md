@@ -214,7 +214,7 @@ No code changes, renamed project coordinates and URLs to new name
 - __Breaking changes__:
   - removed the creation of `_create` and `_apply` if the original methods are already present. This will be replaced with a lifecycle mechanism (see [#38](https://github.com/klum-dsl/klum-ast/issues/38))
 - new Features:
-  - `create` and `apply` now support named parameters (`MyObject.create(value: 'x') {...`)  
+  - `create` and `apply` now support named parameters (`MyObject.Create.With(value: 'x') {...`)  
 - Closures for create method are now optional (This is especially useful in combination with named parameters) ([#20](https://github.com/klum-dsl/klum-ast/issues/20))
 - Resolved a potential Stackoverflow in GDSL (which happened in a two-step recursion, i.e. A contains B and B contains A)
 

@@ -56,7 +56,7 @@ abstract class AbstractWithDefaultImpl {}
         def factoryField = getClass(className).getField("Create")
 
         then:
-        factoryField?.type == factoryType
+        factoryType.isAssignableFrom(factoryField.type)
 
         when:
         KlumFactory factory = getClass(className).Create
@@ -66,12 +66,12 @@ abstract class AbstractWithDefaultImpl {}
 
         where:
         className                              || factoryType           | factoryTargetClassName
-        "NonAbstractSubclassOfAnAbstractClass" || KlumUnkeyedFactory    | "NonAbstractSubclassOfAnAbstractClass"
-        "AClass"                               || KlumUnkeyedFactory    | "AClass"
-        "AKeyedClass"                          || KlumKeyedFactory      | "AKeyedClass"
-        "ASubclassOfAKeyedClass"               || KlumKeyedFactory      | "ASubclassOfAKeyedClass"
-        "AbstractWithDefaultImpl"              || KlumUnkeyedFactory    | "DefaultImpl"
-        "DefaultImpl"                          || KlumUnkeyedFactory    | "DefaultImpl"
+        "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.KlumUnkeyedFactory | "NonAbstractSubclassOfAnAbstractClass"
+        "AClass"                               || KlumFactory.KlumUnkeyedFactory | "AClass"
+        "AKeyedClass"                          || KlumFactory.KlumKeyedFactory | "AKeyedClass"
+        "ASubclassOfAKeyedClass"               || KlumFactory.KlumKeyedFactory | "ASubclassOfAKeyedClass"
+        "AbstractWithDefaultImpl"              || KlumFactory.KlumUnkeyedFactory | "DefaultImpl"
+        "DefaultImpl"                          || KlumFactory.KlumUnkeyedFactory | "DefaultImpl"
     }
 
     def "basic test"() {
@@ -82,7 +82,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 @DSL class AClass {}
 '''
         when:
-        clazz.Create.Empty()
+        clazz.Create.One()
 
         then:
         noExceptionThrown()

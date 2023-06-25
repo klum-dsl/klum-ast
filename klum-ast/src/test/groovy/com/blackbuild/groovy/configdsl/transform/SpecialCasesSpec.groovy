@@ -60,7 +60,7 @@ class DynamicModel {
 }
 '''
         when:
-        instance = clazz.create().bla()
+        instance = clazz.Create.With().bla()
 
         then:
         clazz.count == 1

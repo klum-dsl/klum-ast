@@ -60,7 +60,7 @@ import java.lang.annotation.Target;
  * }
  *
  * when: "No name is set for the inner element"
- * instance = Container.create {
+ * instance = Container.Create.With {
  * name "outer"
  *   element {}
  * }
@@ -69,7 +69,7 @@ import java.lang.annotation.Target;
  * instance.element.name == "outer"
  *
  * when:
- * instance = Container.create {
+ * instance = Container.Create.With {
  *   name "outer"
  *   element {
  *     name "inner"

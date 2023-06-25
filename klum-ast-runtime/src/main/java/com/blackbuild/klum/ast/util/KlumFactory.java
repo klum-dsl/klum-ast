@@ -24,17 +24,15 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
-import groovy.lang.Closure;
-import groovy.lang.GroovyObject;
-import groovy.lang.Script;
+import groovy.lang.*;
 import groovy.transform.Undefined;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Map;
 
-import static com.blackbuild.klum.ast.util.DslHelper.isKeyed;
 import static com.blackbuild.klum.ast.util.DslHelper.requireDslType;
+import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
 
 /**
  * Factory to create DSL model objects. Two different subclasses handle keyed and unkeyed DSLs.
@@ -42,18 +40,9 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireDslType;
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings("java:S100")
-public abstract class KlumFactory<T extends GroovyObject> {
+public abstract class KlumFactory<T> {
 
     protected final Class<T> type;
-
-    public static <C extends GroovyObject> KlumFactory<C> create(Class<C> type) {
-        requireDslType(type);
-        if (isKeyed(type))
-            return new KlumKeyedFactory<>(type);
-        else
-            return new KlumUnkeyedFactory<>(type);
-    }
-
     protected KlumFactory(Class<T> type) {
         requireDslType(type);
         this.type = getTypeOrDefaultType(type);
@@ -115,5 +104,75 @@ public abstract class KlumFactory<T extends GroovyObject> {
 
     public T Template(Map<String, Object> values, Closure<?> body) {
         return FactoryHelper.createAsTemplate(type, values, body);
+    }
+
+    @SuppressWarnings("java:S100")
+    public abstract static class KlumKeyedFactory<T> extends KlumFactory<T> {
+
+        protected KlumKeyedFactory(Class<T> type) {
+            super(requireKeyed(type));
+        }
+
+        public T One(String key) {
+            return With(null, key, null);
+        }
+
+        /**
+         * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
+         * checking for arguments. This means that empty create calls like 'X.create("bla")' will correctly work afterward.
+         * @deprecated Use {@link #One(String)} instead.
+         */
+        @Deprecated
+        public T With(String key) {
+            return With(null, key, null);
+        }
+
+        public T With(String key, Closure<?> body) {
+            return With(null, key, body);
+        }
+
+        public T With(Map<String, ?> values, String key) {
+            return With(values, key, null);
+        }
+
+        public T With(Map<String, ?> values, String key, Closure<?> body) {
+            return FactoryHelper.create(type, values, key, body);
+        }
+
+    }
+
+    @SuppressWarnings("java:S100")
+    public abstract static class KlumUnkeyedFactory<T> extends KlumFactory<T> {
+        protected KlumUnkeyedFactory(Class<T> type) {
+            super(DslHelper.requireNotKeyed(type));
+        }
+
+        public T One() {
+            return With(null, null);
+        }
+
+        /**
+         * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
+         * checking for arguments. This means that emtpy create calls like 'X.create()' will correctly work afterwards.
+         * @deprecated Use {@link #One()} instead.
+         */
+        @Deprecated
+        public T With() {
+            return One();
+        }
+
+        public T With(Closure<?> body) {
+            return With(null, body);
+        }
+
+        public T With(Map<String, ?> values) {
+            return With(values, null);
+        }
+
+        public T With(Map<String, ?> values, Closure<?> body) {
+            return FactoryHelper.create(type, values, null, body);
+        }
+
+
     }
 }

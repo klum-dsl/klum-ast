@@ -107,7 +107,7 @@ class ChildElement extends Element {
 
 
         then:
-        clazz.create {
+        clazz.Create.With {
             name "test"
 
             elements {
@@ -133,7 +133,7 @@ class Element {
 }
 ''')
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             elements(value: 'fromTemplate') {
                 delegate.element("first")
             }
@@ -162,7 +162,7 @@ class Element {
         def template = getClass("pk.Element").createAsTemplate(value: "fromTemplate")
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             elements(template) {
                 element("first")
             }
@@ -204,7 +204,7 @@ class ChildElement extends Element {
 }''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             name "test"
 
             elements {
@@ -245,7 +245,7 @@ class SubElement extends Element {
 
     String role
     static SubElement fromString(String name, int role) {
-        return SubElement.create(name.toUpperCase(), role: name.toLowerCase() + role)
+        return SubElement.Create.With(name.toUpperCase(), role: name.toLowerCase() + role)
     } 
 }
 ''')

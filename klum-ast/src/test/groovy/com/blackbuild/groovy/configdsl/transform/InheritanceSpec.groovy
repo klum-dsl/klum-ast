@@ -166,7 +166,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
 
         when:
-        instance = getClass("pk.Bar").create("bla") {
+        instance = getClass("pk.Bar").Create.With("bla") {
             name "Kurt"
         }
 
@@ -196,7 +196,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = getClass("pk.Bar").create("bla")
+        instance = getClass("pk.Bar").Create.With("bla")
 
         then:
         instance.uniqueId == "bla-abc"
@@ -707,8 +707,8 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def left = getClass("pk.Bar").create(name: "a")
-        def right = getClass("pk.Bar").create(name: "b")
+        def left = getClass("pk.Bar").Create.With(name: "a")
+        def right = getClass("pk.Bar").Create.With(name: "b")
 
         then:
         !left.equals(right)

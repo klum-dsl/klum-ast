@@ -45,7 +45,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         def scriptClass = createSecondaryClass('''
             import pk.Foo
 
-            Foo.create {
+            Foo.Create.With {
                 value "bla"
             }
         ''')
@@ -101,7 +101,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         def scriptClass = createSecondaryClass('''
             import pk.Bar
 
-            Bar.create {
+            Bar.Create.With {
                 value "bla"
             }
         ''')

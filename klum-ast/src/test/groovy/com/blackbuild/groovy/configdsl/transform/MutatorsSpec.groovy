@@ -75,7 +75,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.create {
+        instance = clazz.Create.With {
             nameCaseInsensitive = "Bla"
         }
 
