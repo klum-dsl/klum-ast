@@ -44,13 +44,13 @@ import java.lang.annotation.Target;
 
  <h2>Factory and {@code apply} methods</h2>
 
- <p>Each instantiable DSL class gets a static field {@code Create} of either a Keyed or unkeyed factory, which provides methods to
- create instances of the class.</p>
+ <p>Each instantiable DSL class gets a static field {@code Create} of either a subclass of KlumFactory.Keyed or
+ KlumFactory.Unkeyed, which provides methods to create instances of the class; abstract classed get an
+ implementation of KlumFactory instead.</p>
 
  <pre><code>
  {@literal @}DSL
- class Config {
- }
+ class Config {}
 
  {@literal @}DSL
  class ConfigWithKey {
@@ -77,6 +77,10 @@ import java.lang.annotation.Target;
 
  <p><b>Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods
  are now deprecated in will be removed in a future version.</b></p>
+
+ <p>If the class contains an static inner class named Factory of the appropriate type or the member factoryBase points
+ to such a class, this class is used as a base
+ for the generated factory instead. This allows adding additional methods to the factory.</p>
 
 
  <p>Additionally, an {@code apply} method is created, which takes single closure and applies it to an existing object.</p>
@@ -398,4 +402,11 @@ public @interface DSL {
      * This makes most sense on interfaces or abstract classes.
      */
     Class<?> defaultImpl() default Undefined.class;
+
+    /**
+     * When set, the given class, which must be a subclass of either KlumFactory (for abstract classes) or
+     * KlumFactory.Keyed/Unkeyed will be used as a base for the generated factory class. Note that if the annotated class
+     * contains a static inner class named "Factory", this class will be used by default.
+     */
+    Class<?> factoryBase() default Undefined.class;
 }

@@ -62,13 +62,13 @@ abstract class AbstractWithDefaultImpl {}
 
         where:
         className                              || factoryType           | factoryTargetClassName
-        "AnAbstractClass"                      || KlumFactory | "AnAbstractClass"
-        "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.KlumUnkeyedFactory | "NonAbstractSubclassOfAnAbstractClass"
-        "AClass"                               || KlumFactory.KlumUnkeyedFactory | "AClass"
-        "AKeyedClass"                          || KlumFactory.KlumKeyedFactory | "AKeyedClass"
-        "ASubclassOfAKeyedClass"               || KlumFactory.KlumKeyedFactory | "ASubclassOfAKeyedClass"
-        "AbstractWithDefaultImpl"              || KlumFactory.KlumUnkeyedFactory | "DefaultImpl"
-        "DefaultImpl"                          || KlumFactory.KlumUnkeyedFactory | "DefaultImpl"
+        "AnAbstractClass"                      || KlumFactory           | "AnAbstractClass"
+        "NonAbstractSubclassOfAnAbstractClass" || KlumFactory.Unkeyed   | "NonAbstractSubclassOfAnAbstractClass"
+        "AClass"                               || KlumFactory.Unkeyed   | "AClass"
+        "AKeyedClass"                          || KlumFactory.Keyed     | "AKeyedClass"
+        "ASubclassOfAKeyedClass"               || KlumFactory.Keyed     | "ASubclassOfAKeyedClass"
+        "AbstractWithDefaultImpl"              || KlumFactory.Unkeyed   | "DefaultImpl"
+        "DefaultImpl"                          || KlumFactory.Unkeyed   | "DefaultImpl"
     }
 
     def "basic test"() {
@@ -85,6 +85,140 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         noExceptionThrown()
     }
 
+    def "allow overriding of factory base class with ungeneric factory"() {
+        given:
+        createClass '''
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL(factoryBase = MyClassFactory)
+class MyClass {
+    String name
+    String job
+}
+
+class MyClassFactory extends KlumFactory.Unkeyed<MyClass> {
+    MyClassFactory() {
+        super(MyClass)
+    }
+    
+    public MyClass baker(String name) {
+        return Create.With(name: name, job: "baker")
+    }
+}
+'''
+        expect:
+        getClass('MyClassFactory').isInstance(clazz.Create)
+
+        when:
+        instance = clazz.Create.baker("Hans")
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+    }
+
+    def "allow overriding of factory base class with generic factory"() {
+        given:
+        createClass '''
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL(factoryBase = MyClassFactory)
+class MyClass {
+    String name
+    String job
+}
+
+class MyClassFactory<T> extends KlumFactory.Unkeyed<T> {
+    MyClassFactory(Class<T> type) {
+        super(type)
+    }
+    
+    public T baker(String name) {
+        return Create.With(name: name, job: "baker")
+    }
+}
+'''
+        expect:
+        getClass('MyClassFactory').isInstance(clazz.Create)
+
+        when:
+        instance = clazz.Create.baker("Hans")
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+    }
+
+    def "allow overriding of factory base class with implicit factory"() {
+        given:
+        createClass '''
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL
+class MyClass {
+    String name
+    String job
+    
+    static class Factory extends KlumFactory.Unkeyed<MyClass> {
+        Factory() {
+            super(MyClass)
+        }
+        
+        public MyClass baker(String name) {
+            return Create.With(name: name, job: "baker")
+        }
+    }
+}
+
+'''
+        expect:
+        getClass('MyClass$Factory').isInstance(clazz.Create)
+
+        when:
+        instance = clazz.Create.baker("Hans")
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+    }
+
+    def "allow overriding of factory base class with for abstract classes"() {
+        given:
+        createClass '''
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL
+abstract class MyClass {
+    String name
+    String job
+    
+    static class Factory extends KlumFactory<MyClass> {
+        Factory() {
+            super(MyClass)
+        }
+        
+        public MyClass baker(String name) {
+            return MyClassImpl.Create.With(name: name, job: "baker")
+        }
+    }
+}
+
+@DSL class MyClassImpl extends MyClass {}
+'''
+        expect:
+        getClass('MyClass$Factory').isInstance(clazz.Create)
+
+        when:
+        instance = clazz.Create.baker("Hans")
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+    }
 
 
 }
