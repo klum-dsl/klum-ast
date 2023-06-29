@@ -436,4 +436,15 @@ public class CommonAstHelper {
         return ClassHelper.DYNAMIC_TYPE;
     }
 
+    public static ClassNode getInnerClass(ClassNode outerClass, String innerClassName) {
+        Iterator<InnerClassNode> it = outerClass.redirect().getInnerClasses();
+        String fullName = outerClass.getName() + "$" + innerClassName;
+        while (it.hasNext()) {
+            ClassNode innerClass = it.next();
+            if (innerClass.getName().equals(fullName)) {
+                return  innerClass;
+            }
+        }
+        return null;
+    }
 }

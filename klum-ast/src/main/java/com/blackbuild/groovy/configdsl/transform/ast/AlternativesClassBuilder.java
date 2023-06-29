@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -36,19 +37,14 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.beans.Introspector;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.COLLECTION_FACTORY_METADATA_KEY;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createDelegateMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getElementNameForCollectionField;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getHierarchyOfDSLObjectAncestors;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyType;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
@@ -58,19 +54,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
 import static org.codehaus.groovy.ast.ClassHelper.*;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.assignS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.closureX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.param;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.params;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
@@ -87,6 +71,8 @@ class AlternativesClassBuilder {
     private final ClassNode rwClass;
     private final String memberName;
     private final Map<ClassNode, String> alternatives;
+
+    private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
 
     public AlternativesClassBuilder(DSLASTTransformation transformation, FieldNode fieldNode) {
         this.transformation = transformation;
@@ -157,9 +143,39 @@ class AlternativesClassBuilder {
     public void invoke() {
         createInnerClass();
         createClosureForOuterClass();
-        if (fieldNodeIsNoLink())
+        if (fieldNodeIsNoLink()) {
+            createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
+        }
         delegateDefaultCreationMethodsToOuterInstance();
+    }
+
+    private void createMethodsFromFactory() {
+        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
+        if (factory != null)
+            doCreateMethodsFromFactory();
+        else
+            addDelayedAction(elementType, this::doCreateMethodsFromFactory);
+    }
+
+    private void doCreateMethodsFromFactory() {
+        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
+        while (factory != null && factory.isDerivedFrom(KLUM_FACTORY)) {
+            factory.getMethods().forEach(this::createDelegateFactoryMethod);
+            factory = factory.getSuperClass();
+        }
+    }
+
+    private void createDelegateFactoryMethod(MethodNode methodNode) {
+        if (methodNode.getName().startsWith("$")) return;
+        if (!methodNode.isPublic()) return;
+        if (methodNode.getName().equals("Template")) return;
+        MethodBuilder.createPublicMethod(StringGroovyMethods.uncapitalize(methodNode.getName()))
+                .returning(newClass(methodNode.getReturnType()))
+                .optional()
+                .cloneParamsFrom(methodNode)
+                .callThis(memberName, callX(propX(classX(elementType), "Create"), methodNode.getName(), args(cloneParams(methodNode.getParameters()))))
+                .addTo(collectionFactory);
     }
 
     private boolean fieldNodeIsNoLink() {
@@ -308,6 +324,5 @@ class AlternativesClassBuilder {
                 .addTo(collectionFactory);
 
         annotatedClass.getModule().addClass(collectionFactory);
-        fieldNode.putNodeMetaData(COLLECTION_FACTORY_METADATA_KEY, collectionFactory);
     }
 }

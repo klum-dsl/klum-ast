@@ -119,3 +119,5 @@ method name (if a shortName is given, strip suffix is ignored).
 
 In any other case, the name of the subclass with a lowercase first character is used.
 
+For more complex cases, custom [[Factory Classes]] can be used.
+

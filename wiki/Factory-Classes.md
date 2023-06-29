@@ -35,3 +35,63 @@ class MyClass {
 ```
 
 This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
+
+# Creator methods and collection factories
+
+When using the collection factory closure methods (as to calling the element methods directly), all creator class methods 
+are available as well (but with a lowercase first character). This is a more powerful alternative to the regular
+[Alternatives Syntax](Alternatives-Syntax.md), especially when using abstract classes.
+
+
+```groovy
+@DSL class Foo {
+    List<Bar> bars
+}
+
+@DSL abstract class Bar {
+    String name
+    
+    static class Factory extends KlumFactory.Unkeyed<Bar> {
+        protected Factory() {super(Bar)}
+
+        Bar aBaz(String name, @DelegatesToRW(Baz) Closure body) {
+            return Baz.Create.With(name: name, body)
+        }
+        
+        Bar bazWithNickname(String name) {
+            return Baz.Create.With(name: name, nickname: name)
+        }
+        
+        Bar aBla(String name, @DelegatesToRW(Bla) Closure body) {
+            return Bla.Create.With(name: name, body)
+        }
+    }
+}
+
+@DSL class Baz extends Bar {
+    String nickname
+}
+
+@DSL class Bla extends Bar {
+    String sickname
+}
+```
+
+In this case, all the following call are allowed:
+
+```groovy
+Foo.Create.With {
+    bars { // collection factory
+        aBaz("Baz") { // factory method
+            nickname "Bazzy"
+        }
+        aBla("Bla") { // factory method
+            sickname "Blabby"
+        }
+        bazWithNickname("Bazzy") // factory method
+        fromScript(MyScript) // default factory method
+    }
+}
+```
+
+Note that when in conflict, explicit factory methods take precedence over alternatives syntax methods.
