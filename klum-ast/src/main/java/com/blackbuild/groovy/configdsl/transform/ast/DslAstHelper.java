@@ -70,6 +70,8 @@ public class DslAstHelper {
     private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
     private static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
+    private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
+
     private DslAstHelper() {}
 
     public static boolean isDSLObject(ClassNode classNode) {
@@ -403,6 +405,28 @@ public class DslAstHelper {
             );
 
         return result;
+    }
+
+    static void addDelayedAction(ClassNode classNode, Runnable action) {
+        List<Runnable> actions = classNode.redirect().getNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
+        if (actions == null) {
+            actions = new ArrayList<>();
+            classNode.redirect().setNodeMetaData(DELAYED_ACTIONS_METADATA_KEY, actions);
+        }
+        actions.add(action);
+    }
+
+    static void runDelayedActions(ClassNode classNode) {
+        List<Runnable> actions = classNode.redirect().getNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
+        if (actions != null) actions.forEach(Runnable::run);
+        classNode.redirect().removeNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
+    }
+
+    static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
+        for (AnnotationNode annotation : source.getAnnotations()) {
+            if (annotation.isBuiltIn()) continue;
+            target.addAnnotation(annotation);
+        }
     }
 
 }

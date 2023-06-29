@@ -27,6 +27,10 @@ package com.blackbuild.groovy.configdsl.transform
 import groovy.time.TimeCategory
 import spock.lang.Issue
 
+import java.time.Duration
+
+import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+
 @SuppressWarnings("GroovyAssignabilityCheck")
 @Issue("148")
 class ConverterSpec extends AbstractDSLSpec {
@@ -564,6 +568,109 @@ class Other<E> {
         noExceptionThrown()
     }
 
+    @Issue("300")
+    def "methods of the factory are included in collection factories"() {
+        when:
+        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+
+import java.time.Duration
+@DSL class Foo {
+    List<Bar> bars
+}
+
+@DSL class Bar {
+    Date birthday
+    
+    static class Factory extends KlumFactory.Unkeyed<Bar> {
+        protected Factory() {
+            super(Bar)
+        }
+        Bar WithAge(Duration age) {
+            return With(birthday: new Date(System.currentTimeMillis() - age.toMillis())) 
+        }
+    }
+}
+ '''
+        def barsFactory = getClass('Foo$_bars')
+
+        then:
+        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'from', Class)
+        hasMethod(barsFactory, 'withAge', Duration)
+        !barsFactory.methods.any {it.name == "template" }
+
+        when:
+        instance = create("Foo") {
+            bars {
+                withAge Duration.ofDays(1)
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.bars.size() == 1
+    }
+
+    @Issue("300")
+    def "methods of the factory of abstract classes are included in collection factories"() {
+        when:
+        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL class Foo {
+    List<Bar> bars
+}
+
+@DSL abstract class Bar {
+    String name
+    
+    static class Factory extends KlumFactory.Unkeyed<Bar> {
+        protected Factory() {super(Bar)}
+
+        Bar aBaz(String name, @DelegatesToRW(Baz) Closure body) {
+            return Baz.Create.With(name: name, body)
+        }
+        
+        Bar aBla(String name, @DelegatesToRW(Bla) Closure body) {
+            return Bla.Create.With(name: name, body)
+        }
+    }
+}
+
+@DSL class Baz extends Bar {
+    String nickname
+}
+
+@DSL class Bla extends Bar {
+    String sickname
+}
+ '''
+        def barsFactory = getClass('Foo$_bars')
+
+        then:
+        hasMethod(barsFactory, 'aBaz', String, Closure)
+        hasMethod(barsFactory, 'aBla', String, Closure)
+
+        delegatesToPointsTo(barsFactory.getMethod('aBaz', String, Closure).getParameterAnnotations()[1], 'Baz._RW')
+
+        when:
+        instance = create("Foo") {
+            bars {
+                aBaz("Baz") {
+                    nickname "Bazzy"
+                }
+                aBla("Bla") {
+                    sickname "Blabby"
+                }
+            }
+        }
+
+        then:
+        instance.bars.size() == 2
+        instance.bars[0].name == "Baz"
+        instance.bars[0].nickname == "Bazzy"
+        instance.bars[1].name == "Bla"
+        instance.bars[1].sickname == "Blabby"
+    }
 
 
 

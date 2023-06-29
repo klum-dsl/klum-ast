@@ -79,6 +79,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
 
+    private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
+
     static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
     public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
@@ -96,7 +98,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
-    public static final String COLLECTION_FACTORY_METADATA_KEY = DSLASTTransformation.class.getName() + ".collectionFactory";
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
@@ -159,6 +160,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         validateOwnersMethods();
 
         delegateRwToModel();
+
+        runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
     }
@@ -1071,16 +1074,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
         ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factoryBase");
-        if (factoryBase == null) {
-            Iterator<InnerClassNode> it = annotatedClass.getInnerClasses();
-            while (it.hasNext()) {
-                ClassNode innerClass = it.next();
-                if (innerClass.getName().endsWith("$Factory")) {
-                    factoryBase = innerClass;
-                    break;
-                }
-            }
-        }
+        if (factoryBase == null) factoryBase = getInnerClass(annotatedClass, "Factory");
 
         if (!isInstantiable(defaultImpl)) {
             if (factoryBase == null) return KLUM_FACTORY;
@@ -1099,30 +1093,53 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void overrideClosureMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {
-        for (MethodNode methodNode : factoryClass.getSuperClass().getMethods()) {
-            if (methodNode.getParameters().length == 0)
-                continue;
-            if (!methodNode.getParameters()[methodNode.getParameters().length - 1].getType().equals(CLOSURE_TYPE))
-                continue;
-            Parameter[] parameters = cloneParams(methodNode.getParameters());
-            Parameter closureParam = parameters[parameters.length - 1];
+        ClassNode currentLevel = factoryClass.getSuperClass();
 
-            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
-            delegatesTo.setMember("value", classX(rwClass));
-            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
-            closureParam.addAnnotation(delegatesTo);
-
-            MethodNode newMethod = new MethodNode(
-                    methodNode.getName(),
-                    methodNode.getModifiers(),
-                    newClass(defaultImpl),
-                    parameters,
-                    methodNode.getExceptions(),
-                    returnS(callSuperX(methodNode.getName(), args(parameters)))
-            );
-            newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
-            factoryClass.addMethod(newMethod);
+        while (currentLevel != null && factoryClass.isDerivedFrom(KLUM_FACTORY)) {
+            for (MethodNode methodNode : currentLevel.getMethods()) {
+                overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode);
+            }
+            currentLevel = currentLevel.getSuperClass();
         }
+    }
+
+    private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+        if (methodNode.getParameters().length == 0)
+            return;
+        Parameter lastParam = methodNode.getParameters()[methodNode.getParameters().length - 1];
+        if (!lastParam.getType().equals(CLOSURE_TYPE))
+            return;
+        if (getAnnotation(lastParam, DELEGATES_TO_ANNOTATION) != null)
+            return;
+
+        AnnotationNode delegatesToRwAnnotation = getAnnotation(lastParam, DELEGATES_TO_RW_TYPE);
+        if (delegatesToRwAnnotation != null) {
+            ClassNode delegationTarget = getNullSafeClassMember(delegatesToRwAnnotation, "value", annotatedClass);
+            if (!isDSLObject(delegationTarget))
+                addError("delegatesToRw.value must be a DSL object", delegatesToRwAnnotation);
+
+            DelegatesToRWTransformation.addDelegatesToAnnotation(delegationTarget, lastParam);
+            return;
+        }
+
+        Parameter[] parameters = cloneParams(methodNode.getParameters());
+        Parameter closureParam = parameters[parameters.length - 1];
+
+        AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
+        delegatesTo.setMember("value", classX(rwClass));
+        delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
+        closureParam.addAnnotation(delegatesTo);
+
+        MethodNode newMethod = new MethodNode(
+                methodNode.getName(),
+                methodNode.getModifiers(),
+                newClass(defaultImpl),
+                parameters,
+                methodNode.getExceptions(),
+                returnS(callSuperX(methodNode.getName(), args(parameters)))
+        );
+        newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
+        factoryClass.addMethod(newMethod);
     }
 
     private void createFactoryMethods() {

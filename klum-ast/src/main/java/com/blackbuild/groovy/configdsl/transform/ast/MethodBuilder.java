@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -287,12 +288,15 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
      * @param sourceMethod The source of the parameter list
      */
     public MethodBuilder cloneParamsFrom(MethodNode sourceMethod) {
-        Parameter[] sourceParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
-        for (Parameter parameter : sourceParams) {
+        Parameter[] clonedParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
+        for (int i = 0; i < clonedParams.length; i++) {
+            Parameter parameter = clonedParams[i];
+            copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[i], parameter);
             param(parameter);
         }
         return this;
     }
+
 
     public MethodBuilder delegatingClosureParam(ClassNode delegationTarget, ClosureDefaultValue defaultValue) {
         ClosureExpression emptyClosure = null;

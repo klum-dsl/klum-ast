@@ -26,12 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassCodeVisitorSupport;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -50,6 +45,7 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
     private static final ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
     private ClassNode model;
+    private Visitor visitor;
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -57,12 +53,20 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
         model = (ClassNode) nodes[1];
 
-        Visitor visitor = new Visitor();
+        visitor = new Visitor();
         visitor.visitClass(model);
         visitor.visitClass(getRwClassOf(model));
+        // model.getInnerClasses().forEachRemaining(this::visitInnerClass);
     }
 
-    private class Visitor extends ClassCodeVisitorSupport {
+    private void visitInnerClass(ClassNode innerClass) {
+        while (innerClass != null && !innerClass.isResolved()) {
+            visitor.visitClass(innerClass);
+            innerClass = innerClass.getSuperClass();
+        }
+    }
+
+    class Visitor extends ClassCodeVisitorSupport {
 
         @Override
         protected SourceUnit getSourceUnit() {
@@ -76,6 +80,8 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
             List<AnnotationNode> annotations = node.getAnnotations(DELEGATES_TO_RW_TYPE);
             if (annotations.isEmpty()) return;
 
+            if (!node.getAnnotations(DELEGATES_TO_TYPE).isEmpty()) return;
+
             ClassExpression targetValue = (ClassExpression) annotations.get(0).getMember("value");
 
             ClassNode target = targetValue != null ? targetValue.getType() : model;
@@ -85,18 +91,16 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
                 return;
             }
 
-            AnnotationNode delegatesTo = createDelegatesToAnnotation(target);
-
-            node.addAnnotation(delegatesTo);
-
+            addDelegatesToAnnotation(target, node);
         }
 
-        private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
-            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
-            delegatesTo.addMember("value", new ClassExpression(getRwClassOf(target)));
-            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
-            return delegatesTo;
-        }
+    }
+
+    static void addDelegatesToAnnotation(ClassNode modelClass, AnnotatedNode node) {
+        AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_TYPE);
+        delegatesTo.addMember("value", new ClassExpression(getRwClassOf(modelClass)));
+        delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
+        node.addAnnotation(delegatesTo);
     }
 
 }
