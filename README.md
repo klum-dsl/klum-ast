@@ -1,4 +1,6 @@
-[![CI-JDK8](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-jdk8.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-jdk8.yml)[![CI-JDK11](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-jdk11.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-jdk11.yml)
+[![CI-Groovy 2.4](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-2.4.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-2.4.yml)
+[![CI-Groovy 3](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-3.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-3.yml)
+[![CI-Groovy 4](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-4.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-4.yml)
 
 Welcome to KlumAST
 ==================
