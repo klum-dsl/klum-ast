@@ -27,17 +27,11 @@ import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.InnerClassNode;
-import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
-import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.beans.Introspector;
 import java.util.*;
@@ -47,12 +41,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
-import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
-import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
-import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
-import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
@@ -170,7 +159,7 @@ class AlternativesClassBuilder {
         if (methodNode.getName().startsWith("$")) return;
         if (!methodNode.isPublic()) return;
         if (methodNode.getName().equals("Template")) return;
-        MethodBuilder.createPublicMethod(StringGroovyMethods.uncapitalize(methodNode.getName()))
+        MethodBuilder.createPublicMethod(methodNode.getName())
                 .returning(newClass(methodNode.getReturnType()))
                 .optional()
                 .cloneParamsFrom(methodNode)

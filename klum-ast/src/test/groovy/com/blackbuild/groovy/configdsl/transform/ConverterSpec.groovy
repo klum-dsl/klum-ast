@@ -595,14 +595,14 @@ import java.time.Duration
 
         then:
         hasMethod(barsFactory, 'bar', getClass('Bar'))
-        hasMethod(barsFactory, 'from', Class)
-        hasMethod(barsFactory, 'withAge', Duration)
+        hasMethod(barsFactory, 'From', Class)
+        hasMethod(barsFactory, 'WithAge', Duration)
         !barsFactory.methods.any {it.name == "template" }
 
         when:
         instance = create("Foo") {
             bars {
-                withAge Duration.ofDays(1)
+                WithAge(Duration.ofDays(1))
             }
         }
 
