@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
+import spock.lang.Ignore
 import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
@@ -151,7 +152,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
     def "using existing objects in list closure sets owner"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -167,7 +168,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar") {}
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar aBar
             }
@@ -179,7 +180,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
     def "reusing of objects in list closure does not set owner"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -195,13 +196,13 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def aBar
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 aBar = bar {}
             }
         }
 
-        def otherInstance = create("pk.Foo") {
+        def otherInstance = clazz.Create.With {
             bars {
                 bar(aBar)
             }
@@ -252,7 +253,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
     def "using existing objects in map closure sets owner"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -269,7 +270,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         def aBar = create("pk.Bar", "Klaus") {}
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar(aBar)
             }
@@ -479,6 +480,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         secondFoo.bars[0].foo == aFoo
     }
 
+    @Ignore("Obsolete with owner phases")
     def "owner must be set before calling the closure"() {
         given:
         createClass('''
@@ -506,7 +508,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             bar {
-                assert foo != null
+                assert owner.delegate.getClass().name == "pk.Foo$_RW"
             }
             listBars {
                 bar {

@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 import com.blackbuild.klum.ast.process.KlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Ignore
 import spock.lang.Issue
 
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
@@ -228,6 +229,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.mapFoos["3"].called == 1
     }
 
+    @Ignore("Obsolete with switch to owner phases")
     def "PostCreate methods have access to any owner objects"() {
         given:
         createClass('''

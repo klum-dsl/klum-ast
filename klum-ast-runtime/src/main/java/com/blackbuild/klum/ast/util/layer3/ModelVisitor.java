@@ -25,5 +25,5 @@ package com.blackbuild.klum.ast.util.layer3;
 
 public interface ModelVisitor {
 
-    void visit(String path, Object element);
+    void visit(String path, Object element, Object container);
 }

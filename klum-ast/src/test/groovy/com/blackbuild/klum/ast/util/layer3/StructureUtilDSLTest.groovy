@@ -157,7 +157,7 @@ import com.blackbuild.groovy.configdsl.transform.Owner
     def "Visitor works"() {
         given:
         def result = [:]
-        def visitor = { String path, Object value ->
+        def visitor = { String path, Object value, Object container ->
             result[path] = value
         }
 

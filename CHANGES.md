@@ -7,8 +7,10 @@
     - New Phases:
       - PostTree: is run after the model is completely realized
       - AutoCreate: automatic creation of null fields
+      - Owner: Sets owners and calls owner methods
       - AutoLink: Links fields to other fields in the model
-    - In addition to lifecycle methods, fields of type `Closure` can now be used to define model provided (instead of schema provided) lifecycle methods. These closoures will be executed in their respective Lifecycle phases.
+      - Validate: Validation of the model
+    - In addition to lifecycle methods, fields of type `Closure` can now be used to define model provided (instead of schema provided) lifecycle methods. These closures will be executed in their respective Lifecycle phases.
     - default implementation: by providing the attribute `defaultImpl` on either `@DSL` or `@Field`, one can allow the creation of non-polymorphic field methods even for interfaces and abstract types. (see [Default Implementations](https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations))
     - Creator methods have been moved to a separate creator class (see [#76](https://github.com/klum-dsl/klum-ast/issues/76)), creator methods on the model class have been deprecated (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)). 
     - Custom creator classes can be provided (see [Factory Classes](https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes))
@@ -35,6 +37,7 @@
     - The `@Validation` annotation is deprecated, any use except for `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
     - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
     - The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own validate methods is legal again.
+    - Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.
 
 - Fixes
   - since rc.13

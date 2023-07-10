@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
-import spock.lang.Requires
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
 
@@ -286,7 +285,7 @@ class RWClassSpec extends AbstractDSLSpec {
     }
 
     @Issue("99")
-    @Requires({ GroovySystem.version.startsWith("2.") })
+    //@Ignore("Obsolete with owner phases")
     def "config closures for inner objects have access to their owner field with static type checking enabled"() {
         given:
         createClass('''
@@ -303,6 +302,8 @@ class RWClassSpec extends AbstractDSLSpec {
             class Foo {
                 @Owner Container container
                 String childName
+                
+                @PostTree Closure postTree
             }
         ''')
 
@@ -315,7 +316,9 @@ class RWClassSpec extends AbstractDSLSpec {
                 pk.Container.Create.With {
                     name "parent"
                     foo {
-                        childName "$container.name::child"                    
+                        postTree {
+                            childName "$container.name::child"
+                        }
                     }
                 }
             }

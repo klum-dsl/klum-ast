@@ -36,7 +36,7 @@ public class AutoLinkPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element) {
+    public void visit(String path, Object element, Object container) {
         ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
                 .entrySet()
                 .stream()

@@ -35,7 +35,7 @@ public class ValidationPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element) {
+    public void visit(String path, Object element, Object container) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         if (!proxy.getManualValidation())
             proxy.validate();
