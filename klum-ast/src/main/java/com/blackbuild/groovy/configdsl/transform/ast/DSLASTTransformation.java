@@ -126,6 +126,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
 
+        assertKeyFieldHasNoOtherAnnotations();
+
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
 
@@ -164,6 +166,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+    private void assertKeyFieldHasNoOtherAnnotations() {
+        if (keyField == null) return;
+        if (DslAstHelper.hasAnnotation(keyField, OWNER_ANNOTATION))
+            addCompileError(sourceUnit, "Key field must not be an owner field!", keyField);
+        if (DslAstHelper.hasAnnotation(keyField, DSL_FIELD_ANNOTATION))
+            addCompileError(sourceUnit, "Key field must not have @Field annotation!", keyField);
     }
 
     private void validateDefaultImplementation() {

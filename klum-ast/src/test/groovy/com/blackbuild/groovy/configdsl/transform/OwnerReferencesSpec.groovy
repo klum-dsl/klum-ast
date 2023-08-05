@@ -726,5 +726,27 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    def "Key Field must not have an Owner annotation"() {
+        when:
+        createClass '''
+            @DSL
+            class Foo {
+                @Owner @Key String name
+            }'''
 
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    def "Key Field must not have a Field annotation"() {
+        when:
+        createClass '''
+            @DSL
+            class Foo {
+                @Field @Key String name
+            }'''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
 }
