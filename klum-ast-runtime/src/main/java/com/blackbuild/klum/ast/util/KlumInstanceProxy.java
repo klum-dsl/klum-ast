@@ -111,8 +111,10 @@ public class KlumInstanceProxy {
         if (!defaultAnnotation.field().isEmpty())
             return castTo(getInstanceProperty(defaultAnnotation.field()), fieldType);
 
-        if (!defaultAnnotation.delegate().isEmpty())
-            return castTo(InvokerHelper.getProperty(getInstanceProperty(defaultAnnotation.delegate()), name), fieldType);
+        if (!defaultAnnotation.delegate().isEmpty()) {
+            Object delegationTarget = getInstanceProperty(defaultAnnotation.delegate());
+            return delegationTarget != null ? castTo(InvokerHelper.getProperty(delegationTarget, name), fieldType) : null;
+        }
 
         return castTo(ClosureHelper.invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), instance), fieldType);
     }
@@ -286,6 +288,10 @@ public class KlumInstanceProxy {
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
+        executeLifecycleClosures(annotation);
+    }
+
+    public void executeLifecycleClosures(Class<? extends Annotation> annotation) {
         DslHelper.getFieldsAnnotatedWith(instance.getClass(), annotation)
                 .stream()
                 .filter(field -> field.getType().equals(Closure.class))
@@ -379,7 +385,6 @@ public class KlumInstanceProxy {
     }
 
     public <T> T setSingleField(String fieldOrMethodName, T value) {
-        setInstanceAsOwnerFor(value);
         return callSetterOrMethod(fieldOrMethodName, value);
     }
 
@@ -406,17 +411,12 @@ public class KlumInstanceProxy {
         return value;
     }
 
-    private <T> T doAddElementToCollection(String fieldName, T element) {
+    public <T> T addElementToCollection(String fieldName, T element) {
         Type elementType = DslHelper.getElementType(instance.getClass(), fieldName);
         element = forceCastClosure(element, elementType);
         Collection<T> target = getInstanceAttribute(fieldName);
         target.add(element);
         return element;
-    }
-
-    public <T> T addElementToCollection(String fieldName, T element) {
-        setInstanceAsOwnerFor(element);
-        return doAddElementToCollection(fieldName, element);
     }
 
     public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
@@ -429,7 +429,7 @@ public class KlumInstanceProxy {
         try {
             BreadcrumbCollector.getInstance().enter(collectionName, key);
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
-            return doAddElementToCollection(collectionName, created);
+            return addElementToCollection(collectionName, created);
         } finally {
             BreadcrumbCollector.getInstance().leave();
         }
@@ -439,7 +439,6 @@ public class KlumInstanceProxy {
         T created = FactoryHelper.createInstance(type, key);
         KlumInstanceProxy createdProxy = getProxyFor(created);
         createdProxy.copyFromTemplate();
-        createdProxy.setOwners(instance);
         createdProxy.postCreate();
         createdProxy.apply(namedParams, body);
         return created;
@@ -476,7 +475,6 @@ public class KlumInstanceProxy {
     }
 
     public <K,V> V addElementToMap(String fieldName, K key, V value) {
-        setInstanceAsOwnerFor(value);
         return doAddElementToMap(fieldName, key, value);
     }
 

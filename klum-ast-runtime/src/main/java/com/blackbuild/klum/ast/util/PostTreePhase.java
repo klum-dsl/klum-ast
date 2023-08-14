@@ -33,7 +33,7 @@ public class PostTreePhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element) {
+    public void visit(String path, Object element, Object container) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         proxy.executeLifecycleMethods(PostTree.class);
     }

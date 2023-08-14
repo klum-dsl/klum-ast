@@ -21,36 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process;
+package com.blackbuild.klum.ast.util;
 
-/**
- * Default phases for Klum model creation. Note that the phases are not used directly, but
- * rather the phase numbers are used to order the actions. This allows to add custom phases
- * if needed.
- */
-public enum KlumPhase {
+import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
-    /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
-    CREATE(0),
-    /** Phase for automatic creation of missing objects, usually from annotations. */
-    AUTO_CREATE(10),
-
-    OWNER(15),
-    AUTO_LINK(20),
-    POST_TREE(30),
-    VALIDATE(50),
-    COMPLETE(100);
-    final int number;
-
-    KlumPhase(int number) {
-        this.number = number;
+public class OwnerPhase extends VisitingPhaseAction {
+    public OwnerPhase() {
+        super(KlumPhase.OWNER);
     }
 
-    public int getNumber() {
-        return number;
-    }
-
-    public String getName() {
-        return name().toLowerCase();
+    @Override
+    public void visit(String path, Object element, Object container) {
+        if (container == null) return;
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
+        proxy.setOwners(container);
+        proxy.executeLifecycleClosures(Owner.class);
     }
 }

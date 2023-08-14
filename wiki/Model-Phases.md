@@ -10,7 +10,7 @@ corresponding phase. Lifecycle annotations are annotations marked with the meta 
 methods must be parameterless and not be private. Their visibility will be downgraded to `protected` and they will be moved to
 the RW class.
 
-In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations. These closures will be exectued
+In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner). These closures will be executed
 in their respective phases, with the RW object as delegate (i.e. will behave as like apply closures).
 
 The lifecycle annotations `@PostCreate` and `@PostApply` are a special case. These are not run as separate phases, but
@@ -39,6 +39,12 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
 any lifecycle methods that are marked with `@AutoCreate`.
+
+## Owner (15)
+
+The Owner phase is a special variant of the AutoLink phase in that it links objects together, in that case fields
+annotated with the `@Owner` annotation. This is done before the AutoLink phase since AutoLink makes usually makes
+heavy use of the owner field.
 
 ## AutoLink (20)
 

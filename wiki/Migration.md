@@ -1,9 +1,24 @@
-Breaking changes in 1.2/2.0
----------------------------
+Migration Guide
+---------------
 
-# 2.0
+# to 2.0
 
-## Factory methods -> Factory class
+## Owners are now set in the owner phase
+
+Previously, they have been set before apply was called, so `apply` had already access to the owner, which could be
+used in separate scripts. Any logic accessing the owner must be placed in a later phase (for example AutoLink or PostTree).
+
+This also holds true for methods using default values populated by the owner.
+
+`PostApply` methods accessing the owner must also be move to a later phase (or split).
+
+## Deprecation: Validation annotation -> Validate
+
+`@Validation.mode()` is replaced by phases and thus ignored. `Validation.Option.IGNORE_UNMARKED` is default anyway, so
+the only useful variation of the annotation is `@Validation(option=VALIDATE_UNMARKED)`, which is replaced by `@Validate`
+on class level.
+
+## Deprecation: Factory methods -> Factory class
 
 All static factory methods on DSL classes are deprecated in favor of a single `Create` class field which encapsulates all
 relevant factory methods.
@@ -70,7 +85,7 @@ or
 </dependencies>
 ```
 
-# 1.2
+# to 1.2
 
 ## DelegateOnly Strategy for closures
 

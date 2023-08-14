@@ -45,7 +45,7 @@ public class AutoCreationPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element) {
+    public void visit(String path, Object element, Object container) {
         ClusterModel.getFieldsAnnotatedWith(element, AutoCreate.class)
                 .entrySet()
                 .stream()
