@@ -40,6 +40,12 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
 any lifecycle methods that are marked with `@AutoCreate`.
 
+## Owner (15)
+
+The Owner phase is a special variant of the AutoLink phase in that it links objects together, in that case fields
+annotated with the `@Owner` annotation. This is done before the AutoLink phase since AutoLink makes usually makes
+heavy use of the owner field.
+
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done

@@ -81,18 +81,19 @@ There are also a couple of [[Convenience Factories]] to load a model into client
 
 ## Lifecycle Methods
 
-Lifecycle methods can are methods annotated with `@PostCreate` and `@PostApply`. These methods will be called automatically
-after the creation of the object (**after the template has been applied and the owner objects are set**) and after the call to the apply method, respectively.
+Lifecycle methods can are methods annotated with [Lifecycle](Model-Phases.md) annotations like `@PostCreate` and `@PostApply`.
+These methods will be called automatically
+after the creation of the object (**after templates have been applied**) and after the call to the apply method, respectively.
+
+Other lifecycle methods will be executed in the corresponding phase.
 
 Lifecycle methods must not be `private`. They will be automatically be made protected and moved to rw instance. 
 
 ## copyFrom() method
 
 Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
-object over to this objects, excluding key and owner fields. For non collection fields, only a reference is copied,
-for Lists and Maps, shallow copies are created.
-
-Currently, it is in discussion whether this should be deep clone instead, see: ([#36](https://github.com/klum-dsl/klum-core/issues/36))
+object over to this objects, excluding key and owner fields. This is done recursively, i.e. nested DSL objects are
+copied as well.
 
 ## equals() and toString() methods
 
@@ -308,7 +309,7 @@ is completed. In this case, it might make more sense to use an Owner method inst
 of an owner field.
 
 If you want a field to only use the reuse syntax ('link' type fields), you can annotate them
-with `@Field(LINK)`, which prevents the creation of creation methods, but generates reuse setters.
+with `@Field(LINK)`, which prevents the creation of generator methods, but still generates reuse setters.
 
 ### Virtual Fields
 
@@ -595,18 +596,10 @@ def c = Config.Create.With {
 assert c.bar.outer === c
 ```
 
-Note that the owner field is set before the actual configuration closure is executed, so it can be used to access the outer instance:
+The owner field will be set during the owner phase, meaning the owner is not set before the apply closure of the inner
+object is executed. This is a change of the behaviour in KlumAST 1.2, where the owner was set before the apply closure.
 
-```groovy
-Foo.Create.With {
-    fillDataFromDatabase() // Copy some data from somewhere else
-    bar {
-        if (outer.elements.size() > 10) // outer is Owner field in Bar
-            type = SPARE
-        // ...
-    }
-}
-```
+If the apply code needs to access the owner, the respective code must be moved to a lifecycle method or closure.
 
 __Because `owner` is a property of `Closure`, it is not advisable to name the Owner field (or any other field) actually `owner`,
 because it would be overshadowed in configuration closures.__

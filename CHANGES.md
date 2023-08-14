@@ -19,15 +19,18 @@
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))
   - Provide `@Required` as an alternative to an empty `@Validate` annotation (see [#221](https://github.com/klum-dsl/klum-ast/issues/221))
-  - `EnumSet` fields are no supported. Note that for enum sets a copy of the underlying set is returned as opposed to a readonly instance. (see [#249](https://github.com/klum-dsl/klum-ast/issues/249))
+  - `EnumSet` fields are now supported. Note that for enum sets a copy of the underlying set is returned as opposed to a readonly instance. (see [#249](https://github.com/klum-dsl/klum-ast/issues/249))
   - Converter methods are now honored for Alternatives methods as well. (see [#270](https://github.com/klum-dsl/klum-ast/issues/270))
   - `@Validate` now can be placed on classes. This effectively replaces `@Validate(option=Validation.Option.VALIDATE_UNMARKED)`, which is internally converted to the new format (see [#276](https://github.com/klum-dsl/klum-ast/issues/276)). The `@Validation` annotation is deprecated.
   - Sanity check: Key Fields must not have `@Owner` or `@Field` annotations.
-- Breaking changes
+- Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
+  - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
+  - creator methods on the model class have been deprecated.
+- Breaking changes ((see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
     - it is a compile error to place the `@Validate` annotation on a boolean field.
     - KlumAST is split into different modules, klum-ast-compile is compile-time only,
       klum-ast-runtime is needed for runtime as well. This completes
-      the changes started in 1.2.0 (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+      the changes started in 1.2.0
     - In order for the serialization in jackson to work, the new klum-ast-jackson module needs to be included in the project (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Jackson-Integration)))))
     - The naming of virtual fields is changed, now the virtual field
       is identical to the method name (previously, the first element of the camel

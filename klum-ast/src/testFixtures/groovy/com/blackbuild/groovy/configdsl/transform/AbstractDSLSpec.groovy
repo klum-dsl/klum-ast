@@ -99,11 +99,11 @@ class AbstractDSLSpec extends Specification {
     }
 
     def create(String classname, Closure closure = {}) {
-        getClass(classname).create(closure)
+        getClass(classname).Create.With(closure)
     }
 
     def create(String classname, String key, Closure closure = {}) {
-        getClass(classname).create(key, closure)
+        getClass(classname).Create.With(key, closure)
     }
 
     Class<?> getClass(String classname) {
