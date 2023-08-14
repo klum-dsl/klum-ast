@@ -160,6 +160,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         moveMutatorsToRWClass();
 
         validateOwnersMethods();
+        createOwnerClosureMethods();
 
         delegateRwToModel();
 
@@ -458,6 +459,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .filter(ownerMethod -> DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
                 .filter(ownerMethod -> ownerMethod.getParameters().length != 1)
                 .forEach(ownerMethod -> addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod));
+    }
+
+    private void createOwnerClosureMethods() {
+        annotatedClass.getFields()
+                .stream()
+                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, OWNER_ANNOTATION))
+                .filter(fieldNode -> fieldNode.getType().equals(CLOSURE_TYPE))
+                .forEach(this::createSingleFieldSetterMethod);
     }
 
     private void createKeyConstructor() {

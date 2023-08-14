@@ -10,7 +10,7 @@ corresponding phase. Lifecycle annotations are annotations marked with the meta 
 methods must be parameterless and not be private. Their visibility will be downgraded to `protected` and they will be moved to
 the RW class.
 
-In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations. These closures will be exectued
+In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner). These closures will be executed
 in their respective phases, with the RW object as delegate (i.e. will behave as like apply closures).
 
 The lifecycle annotations `@PostCreate` and `@PostApply` are a special case. These are not run as separate phases, but

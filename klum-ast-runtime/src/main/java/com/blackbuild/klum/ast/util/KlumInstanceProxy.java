@@ -288,6 +288,10 @@ public class KlumInstanceProxy {
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
+        executeLifecycleClosures(annotation);
+    }
+
+    public void executeLifecycleClosures(Class<? extends Annotation> annotation) {
         DslHelper.getFieldsAnnotatedWith(instance.getClass(), annotation)
                 .stream()
                 .filter(field -> field.getType().equals(Closure.class))

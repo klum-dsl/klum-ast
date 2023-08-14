@@ -599,7 +599,7 @@ assert c.bar.outer === c
 The owner field will be set during the owner phase, meaning the owner is not set before the apply closure of the inner
 object is executed. This is a change of the behaviour in KlumAST 1.2, where the owner was set before the apply closure.
 
-If the apply code needs to access the owner, the respective code must be moved to a lifecycle method or closure.
+If the apply code needs to access the owner, the respective code must be moved to a lifecycle method or closure (Owner methods and closures are executed after owner fields, so Owner would be a natural replacement for this functionality).
 
 __Because `owner` is a property of `Closure`, it is not advisable to name the Owner field (or any other field) actually `owner`,
 because it would be overshadowed in configuration closures.__

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
@@ -36,5 +37,6 @@ public class OwnerPhase extends VisitingPhaseAction {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         proxy.setOwners(container);
+        proxy.executeLifecycleClosures(Owner.class);
     }
 }

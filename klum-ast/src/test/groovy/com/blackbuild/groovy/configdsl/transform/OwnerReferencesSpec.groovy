@@ -24,6 +24,8 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.KlumPhase
+import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore
@@ -750,5 +752,41 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    def "Owner closures are executed as part of the owner phase"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar bar
+                String name
+            }
+
+            @DSL
+            class Bar {
+                @Owner Foo foo
+            
+                @Owner Closure ownerClosure
+            }
+        ''')
+
+        when:
+        int closurePhase = -1
+        instance = clazz.Create.With {
+            name "Klaus"
+            bar {
+                ownerClosure {
+                    closurePhase = PhaseDriver.instance.currentPhase
+                    assert foo.name == "Klaus"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        closurePhase == KlumPhase.OWNER.number
     }
 }
