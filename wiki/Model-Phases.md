@@ -51,6 +51,10 @@ heavy use of the owner field.
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
 by annotating fields with `@LinkTo`. Also, regular lifecycle methods can be annotated with `@AutoLink` to be executed.
 
+## Default (25)
+
+The Default phase is used to set default values for non-DSL fields. See [Default Values](Default-Values.md) for details.
+
 ## PostTree (30)
 
 The PostTree phase allows to execute actions on a completely realized model tree. This can be used

@@ -81,7 +81,7 @@ import java.lang.annotation.Target;
  * }
  * </code></pre>
  */
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Default {
@@ -96,7 +96,7 @@ public @interface Default {
     String field() default "";
 
     /**
-     * Delegates to the given closure, if the annotated field is empty.
+     * <p>Delegates to the given closure, if the annotated field is empty.</p>
      *
      * <code>{@literal @Default(code = { name.toLowerCase() }) String aValue}</code>
      * <p>leads to</p>
@@ -105,7 +105,7 @@ public @interface Default {
     Class code() default Undefined.class;
 
     /**
-     * Delegate to a field with the same name on the targeted field, if the annotated field is empty
+     * <p>Delegate to a field with the same name on the targeted field, if the annotated field is empty</p>
      *
      * <code>{@literal @Default(delegate = 'other') String aValue}</code>
      * <p>leads to</p>

@@ -3,6 +3,15 @@ Migration Guide
 
 # to 2.0
 
+## Default Values are actually set, not only returned
+
+This makes objects used in copyFrom behave differently. Previously, the copyFrom methode explicitly ignored default values,
+now the would be copied as well if already set. This can lead to different results if the copy source a) is not a template
+object and b) was created outside the current phase run.
+
+If the object was created outside the phase run, it will most likely be a template, so using the `Create.Template()` 
+creator method (or the deprecate `createAsTemplate()` method) will lead to the same result as before.
+
 ## Owners are now set in the owner phase
 
 Previously, they have been set before apply was called, so `apply` had already access to the owner, which could be

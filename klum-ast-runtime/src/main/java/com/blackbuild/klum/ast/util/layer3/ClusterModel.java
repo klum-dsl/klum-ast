@@ -260,7 +260,7 @@ public class ClusterModel {
     @NotNull
     static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType) {
         return getAllPropertiesStream(container)
-                .filter(it -> fieldType.isAssignableFrom(it.getType()))
+                .filter(it -> fieldType.isAssignableFrom(it.getType()) || it.getType().isPrimitive() && fieldType == Object.class)
                 .filter(it -> hasField(container.getClass(), it.getName()));  // TODO Do we want to exclude getter only fields?
     }
 

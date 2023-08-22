@@ -848,7 +848,7 @@ class ValidationSpec extends AbstractDSLSpec {
     @Issue("221")
     void "Required as an alias for Validate"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -857,6 +857,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
+        instance = clazz.Create.Template() // skip validation, we call validatior explicitly
 
         when:
         instance.name = 'test'

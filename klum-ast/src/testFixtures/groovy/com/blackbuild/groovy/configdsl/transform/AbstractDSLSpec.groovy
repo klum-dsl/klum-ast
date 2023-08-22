@@ -69,21 +69,21 @@ class AbstractDSLSpec extends Specification {
     }
 
     def createInstance(@Language("groovy") String code) {
-        createClass(code)
-        instance = clazz.newInstance()
+        instance = createClass(code).Create.One()
     }
 
     def newInstanceOf(String className) {
-        return getClass(className).newInstance()
+        return getClass(className).getDeclaredConstructor().newInstance()
     }
 
     def newInstanceOf(String className, Object... args) {
         return InvokerHelper.invokeConstructorOf(getClass(className), args)
     }
 
-    def createClass(@Language("groovy") String code) {
+    Class<?> createClass(@Language("groovy") String code) {
         clazz = loader.parseClass(code)
         rwClazz = getRwClass(clazz.name)
+        return clazz
     }
 
     def createNonDslClass(@Language("groovy") String code) {

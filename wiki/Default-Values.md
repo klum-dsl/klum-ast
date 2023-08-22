@@ -1,24 +1,20 @@
-Fields can be annotated with `@Default` to designate a default value, which is returned in case the value is not
-Groovy true. `@Default` supports three different members (only one at a time), which result in different return values
+Fields (of non DSL-types) can be annotated with `@Default` to designate a default value, which is set in the default phase in case the value is not
+Groovy Truth. `@Default` supports three different members (only one at a time), which result in different return values
 being returned. The default value is coerced to the correct result type.
 
-# Other fields (field)
+Note that the behaviour was different before 2.0. Previously, the getter was modified so that the default value was 
+returned, but since 2.0 the actual field is set during the "default"-phase.
 
-If the annotated field is empty, the value of the target field is returned instead:
+The values can be set using the following strategies:
+
+# Other fields (field)
+The default value is taken from the value of the target field (of the same instance):
 
 ```groovy
 @DSL
 class Config {
  String name
  @Default(field = 'name') String id
-}
-```
-
-creates the following method:
-
-```groovy
-String getId() {
-    id ?: getName()
 }
 ```
 
@@ -34,7 +30,7 @@ assert config.id == 'Hans' // defaults to name
 
 # Delegate fields (delegate)
 
-If the annotated field is empty, a property with the same name of the targeted delegate is returned. This is especially 
+The default value is taken from a property with the same name of the targeted delegate. This is especially 
 useful in object hierarchies in combination with the `@Owner` field.
 
 ```groovy
@@ -54,14 +50,6 @@ class Element {
 }
 ```
 
-creates the following method:
-
-```groovy
-String getName() {
-    name ?: getOwner()?.name
-}
-```
-
 Usage:
 
 ```groovy
@@ -73,24 +61,19 @@ def container = Container.create {
 assert container.element.name == 'cont' // defaults to owner?.name 
 ```
 
+Note that since the default phase runs after `Owner` as well as `AutoLink` and `AutoCreate` phases, the Default
+annotation can make use of fields set in those phases.
+
 # Arbitrary code (code)
 
 The `@Default` annotation can also include a closure to be executed if the annotated field is empty. The result of that
-closure is returned instead.
+closure is set as the value of that field.
 
 ```groovy
 @DSL
 class Config {
  String name
  @Default(code={name.toLowerCase()}) String lower
-}
-```
-
-creates the following methods:
-
-```groovy
-String getLower() {
-    lower ?: name.toLowerCase() // actually a closure is called, including setting of delegate etc...
 }
 ```
 
@@ -104,4 +87,9 @@ def config = Config.create {
 assert config.lower == 'hans' // defaults to lowercase name
 ```
 
-Note that default values do work with DSL fields and collections as well.
+# Default as lifecycle annotation
+
+As with other annotations, `@Default` can also be used to annotate parameter less methods or Closure fields to run
+in the Default-Phase, see [Model Phases](Model-Phases.md) for more information.
+
+```groovy

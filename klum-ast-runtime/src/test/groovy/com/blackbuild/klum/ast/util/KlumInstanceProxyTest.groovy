@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.klum.ast.util
 
 import spock.lang.Issue
@@ -68,42 +69,11 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         instance = newInstanceOf("pk.Bar")
         instance.name = "myName"
         instance.child = "myChild"
-        proxy = new KlumInstanceProxy(instance)
+        proxy = new KlumInstanceProxy(instance as GroovyObject)
 
         then:
         proxy.getInstanceProperty("name") == "myName"
         proxy.getInstanceProperty("child") == "myChild"
-    }
-    def "Default values"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String child
-                @Default(field = "child") String withDefaultValue
-                @Default(code =  {child.toLowerCase()}) String withDefaultCode
-                
-            }
-        ''')
-
-        instance = newInstanceOf("pk.Foo")
-        instance.child = "myChild"
-        proxy = new KlumInstanceProxy(instance)
-
-        expect:
-        proxy.getInstanceProperty("child") == "myChild"
-        proxy.getInstanceProperty("withDefaultValue") == "myChild"
-        proxy.getInstanceProperty("withDefaultCode") == "mychild"
-
-        when:
-        instance.withDefaultValue = "my"
-        instance.withDefaultCode = "child"
-
-        then:
-        instance.withDefaultValue == "my"
-        instance.withDefaultCode == "child"
     }
 
     def "invoke via getProperty"() {
@@ -217,6 +187,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         !copy.inner.is(inner)
     }
 
+    @SuppressWarnings('GroovyAssignabilityCheck')
     @Issue("36")
     def "copy from creates copies of nested DSL object collections and maps"() {
         given:
