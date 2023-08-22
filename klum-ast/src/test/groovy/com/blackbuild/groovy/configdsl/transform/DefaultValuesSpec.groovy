@@ -21,7 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
+
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
@@ -237,7 +239,6 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-
     def "default values are coerced to target type"() {
         given:
         createClass '''
@@ -273,7 +274,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         '''
 
         when:
-        def template = clazz.Create.With {
+        def template = clazz.Create.Template {
             another "template"
         }
 
@@ -286,4 +287,5 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         foo.another == "model"
         foo.value == "model"
     }
+
 }

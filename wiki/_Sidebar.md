@@ -4,6 +4,7 @@
   * [[Terms]]
   * [[Usage]]
   * [[Basics]]
+  * [[Model Phases]]
   * [[Static Models]]
 * Advanced Features
   * [[Convenience Factories]]

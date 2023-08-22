@@ -30,7 +30,6 @@ import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -97,26 +96,7 @@ public class KlumInstanceProxy {
 
     // TODO: private?
     public Object getInstanceProperty(String name){
-        Object value = makeReadOnly(getInstanceAttributeOrGetter(name));
-
-        if (DefaultTypeTransformation.castToBoolean(value))
-            return value;
-
-        Default defaultAnnotation = getField(name).getAnnotation(Default.class);
-        if (defaultAnnotation == null)
-            return value;
-
-        Class<?> fieldType = getField(name).getType();
-
-        if (!defaultAnnotation.field().isEmpty())
-            return castTo(getInstanceProperty(defaultAnnotation.field()), fieldType);
-
-        if (!defaultAnnotation.delegate().isEmpty()) {
-            Object delegationTarget = getInstanceProperty(defaultAnnotation.delegate());
-            return delegationTarget != null ? castTo(InvokerHelper.getProperty(delegationTarget, name), fieldType) : null;
-        }
-
-        return castTo(ClosureHelper.invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), instance), fieldType);
+        return makeReadOnly(getInstanceAttributeOrGetter(name));
     }
 
     private <T> T makeReadOnly(T value) {
@@ -396,11 +376,6 @@ public class KlumInstanceProxy {
         if (converterMethod == null)
             return (T) InvokerHelper.invokeConstructorOf(converterType, args);
         return (T) InvokerHelper.invokeMethod(converterType, converterMethod, args);
-    }
-
-    private void setInstanceAsOwnerFor(Object value) {
-        if (value != null && isDslType(value.getClass()))
-            getProxyFor(value).setOwners(instance);
     }
 
     private <T> T callSetterOrMethod(String fieldOrMethodName, T value) {

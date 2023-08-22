@@ -34,9 +34,9 @@ public enum KlumPhase {
     CREATE(0),
     /** Phase for automatic creation of missing objects, usually from annotations. */
     AUTO_CREATE(10),
-
     OWNER(15),
     AUTO_LINK(20),
+    DEFAULT(25),
     POST_TREE(30),
     VALIDATE(50),
     COMPLETE(100);

@@ -5,10 +5,11 @@
     - First steps for Layer3 models. (see [Layer3](https://github.com/klum-dsl/klum-ast/wiki/Layer3))    
     - Split model creation into distinct phases (see [#156](https://github.com/klum-dsl/klum-ast/issues/156), [#155](https://github.com/klum-dsl/klum-ast/issues/155),[#187](https://github.com/klum-dsl/klum-ast/issues/187) and [Model Phases](https://github.com/klum-dsl/klum-ast/wiki/Model-Phases))
     - New Phases:
-      - PostTree: is run after the model is completely realized
-      - AutoCreate: automatic creation of null fields
-      - Owner: Sets owners and calls owner methods
-      - AutoLink: Links fields to other fields in the model
+      - PostTree: is run after the model is completely realized ([#280](https://github.com/klum-dsl/klum-ast/issues/280)
+      - AutoCreate: automatic creation of null fields ([#275](https://github.com/klum-dsl/klum-ast/issues/275)
+      - Owner: Sets owners and calls owner methods ([#284](https://github.com/klum-dsl/klum-ast/issues/284))
+      - AutoLink: Links fields to other fields in the model ([#275](https://github.com/klum-dsl/klum-ast/issues/275)
+      - Defaults: sets default values ([#196](https://github.com/klum-dsl/klum-ast/issues/196)
       - Validate: Validation of the model
     - In addition to lifecycle methods, fields of type `Closure` can now be used to define model provided (instead of schema provided) lifecycle methods. These closures will be executed in their respective Lifecycle phases.
     - default implementation: by providing the attribute `defaultImpl` on either `@DSL` or `@Field`, one can allow the creation of non-polymorphic field methods even for interfaces and abstract types. (see [Default Implementations](https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations))
@@ -41,6 +42,8 @@
     - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
     - The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own validate methods is legal again.
     - Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.
+    - Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
+     `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 - Fixes
   - since rc.13
