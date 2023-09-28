@@ -23,6 +23,10 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.MustBeStatic;
+import com.blackbuild.klum.cast.checks.NeedsReturnType;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -41,6 +45,9 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
+@NeedsReturnType(Object.class)
+@MustBeStatic
 @Documented
 public @interface Converter {
 }

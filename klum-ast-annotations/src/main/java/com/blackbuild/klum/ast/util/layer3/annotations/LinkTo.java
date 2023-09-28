@@ -23,11 +23,13 @@
  */
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
+import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
-import com.blackbuild.klum.ast.validation.AllowedMembersForMethod;
-import com.blackbuild.klum.ast.validation.NeedsDslClass;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.AlsoNeeds;
+import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
+import com.blackbuild.klum.cast.checks.MutuallyExclusive;
 import groovy.lang.Closure;
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.*;
 
@@ -91,11 +93,11 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
-@NeedsDslClass
-@AllowedMembersForMethod({"owner", "ownerType", "strategy"})
+@KlumCastValidated
+@ClassNeedsAnnotation(DSL.class)
+@MutuallyExclusive({"owner", "ownerType"})
 @Inherited
 @Documented
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.LinkToAstValidator")
 public @interface LinkTo {
 
     /**
@@ -117,6 +119,7 @@ public @interface LinkTo {
     /** If set, the owner is determined by walking the owner hierarchy up until the given type is found. */
     Class<?> ownerType() default Object.class;
 
+    @AlsoNeeds({"owner", "ownerType"})
     Strategy strategy() default Strategy.AUTO;
 
     /**

@@ -174,11 +174,6 @@ public class CommonAstHelper {
             addCompileError(sourceUnit, "Lifecycle/Validate methods must be parameterless!", method);
     }
 
-    public static void assertMethodIsNotPrivate(MethodNode method, SourceUnit sourceUnit) {
-        if (method.isPrivate())
-            addCompileError(sourceUnit, "Lifecycle methods must not be private!", method);
-    }
-
     public static void replaceMethod(ClassNode target, MethodNode method) {
         MethodNode oldMethod = target.getDeclaredMethod(method.getName(), method.getParameters());
         if (oldMethod != null)

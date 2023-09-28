@@ -23,6 +23,9 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.NotTogetherWith;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -98,6 +101,8 @@ import java.lang.annotation.Target;
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
+@NotTogetherWith({Field.class, Owner.class})
 @Documented
 public @interface Key {
 }

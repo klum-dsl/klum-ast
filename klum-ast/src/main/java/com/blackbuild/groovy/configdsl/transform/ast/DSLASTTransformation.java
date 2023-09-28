@@ -126,7 +126,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
 
-        assertKeyFieldHasNoOtherAnnotations();
+        //assertKeyFieldHasNoOtherAnnotations();
 
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
@@ -291,6 +291,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
+    // TODO KlumCast
     private void validateDefaultAnnotation() {
         annotatedClass.getFields().stream()
                 .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, DEFAULT_ANNOTATION))
@@ -313,10 +314,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     }
 
+    // TODO KlumCast
     private void createValidateMethod() {
-        checkValidateAnnotationsOnMethods();
         checkValidateAnnotationsOnFields();
-        checkValidateAnnotationOnClass();
 
         // TODO: to proxy
         if (dslParent == null) {
@@ -403,21 +403,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         closure.setCode(assertStatement);
-    }
-
-    private void checkValidateAnnotationsOnMethods() {
-        annotatedClass.getMethods().forEach(this::checkValidateAnnotationOnSingleMethod);
-    }
-
-    private void checkValidateAnnotationOnClass() {
-        AnnotationNode validateAnnotation = getAnnotation(annotatedClass, VALIDATE_ANNOTATION);
-        if (validateAnnotation != null)
-            assertAnnotationHasNoValueOrMessage(validateAnnotation);
-    }
-
-    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
-        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError(sourceUnit, "@Validate annotation on method or class must not have parameters!", annotation);
     }
 
     private AssertStatement assertStmt(Expression check, String message) {
@@ -1222,14 +1207,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         } catch (Exception e) {
             return defaultValue;
         }
-    }
-
-    private void checkValidateAnnotationOnSingleMethod(MethodNode method) {
-        AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
-        if (validateAnnotation == null)
-            return;
-        assertMethodIsParameterless(method, sourceUnit);
-        assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
     public ClassNode getAnnotatedClass() {
