@@ -388,6 +388,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
     }
 
+    @Ignore("class is now a warning, not a failure")
     def "validation only allows GroovyTruth, Ignore or literal closure"() {
         when:
         createClass('''

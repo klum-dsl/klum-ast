@@ -290,9 +290,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
-    // TODO KlumCast
     private void createValidateMethod() {
-        checkValidateAnnotationsOnFields();
+        convertValidationClosures();
 
         // TODO: to proxy
         if (dslParent == null) {
@@ -306,36 +305,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).optional().forRemoval().addTo(annotatedClass);
     }
 
-    private void checkValidateAnnotationsOnFields() {
+    private void convertValidationClosures() {
         annotatedClass.getFields().stream()
                 .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, VALIDATE_ANNOTATION))
-                .forEach(this::checkValidateAnnotationOnSingleField);
+                .filter(fieldNode -> getAnnotation(fieldNode, VALIDATE_ANNOTATION).getMember("value") != null)
+                .forEach(this::convertValidationClosureOnSingleField);
     }
 
-    private void checkValidateAnnotationOnSingleField(FieldNode fieldNode) {
-        if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            addCompileError("Validation is not valid on 'boolean' fields, use 'Boolean' instead.", fieldNode);
-            return;
-        }
-
+    private void convertValidationClosureOnSingleField(FieldNode fieldNode) {
         AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
         String message = getMemberStringValue(validateAnnotation, "message");
         Expression validationExpression = validateAnnotation.getMember("value");
-
-        if (validationExpression == null)
-            return;
 
         if (validationExpression instanceof ClosureExpression) {
             ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
             convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-        }
-
-        if (validationExpression instanceof ClassExpression) {
-            ClassNode memberType = validationExpression.getType();
-            if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)) && !memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
+        } else {
+            addCompileWarning(sourceUnit, "Only closures are supported for validation, consider using a @Validate method instead", validateAnnotation);
         }
     }
 

@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
 import com.blackbuild.klum.cast.checks.NotOn;
 import com.blackbuild.klum.cast.checks.NumberOfParameters;
 import groovy.lang.Closure;
@@ -113,6 +114,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NumberOfParameters(0)
+@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean")
 @Documented
 public @interface Validate {
 
@@ -148,4 +150,5 @@ public @interface Validate {
             super(owner, thisObject);
         }
     }
+
 }
