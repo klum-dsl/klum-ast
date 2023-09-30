@@ -156,7 +156,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createFieldDSLMethods();
         createValidateMethod();
-        validateDefaultAnnotation();
         moveMutatorsToRWClass();
 
         validateOwnersMethods();
@@ -289,29 +288,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void makeClassSerializable() {
         annotatedClass.addInterface(make(Serializable.class));
-    }
-
-    // TODO KlumCast
-    private void validateDefaultAnnotation() {
-        annotatedClass.getFields().stream()
-                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, DEFAULT_ANNOTATION))
-                .forEach(this::checkDefaultAnnotationOnSingleField);
-    }
-
-    private void checkDefaultAnnotationOnSingleField(FieldNode fieldNode) {
-        AnnotationNode annotationNode = getAnnotation(fieldNode, DEFAULT_ANNOTATION);
-        int numberOfMembers = annotationNode.getMembers().size();
-
-        if (numberOfMembers == 0)
-            addError("You must define either delegate, code or field for @Default annotations", annotationNode);
-
-        if (numberOfMembers > 1)
-            addError("Only one member for @Default annotation is allowed!", annotationNode);
-
-        Expression codeMember = annotationNode.getMember("code");
-        if (codeMember != null && !(codeMember instanceof ClosureExpression))
-            addError("@Default.code() must be a closure", annotationNode);
-
     }
 
     // TODO KlumCast

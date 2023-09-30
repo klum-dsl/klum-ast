@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
 import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.groovy.configdsl.transform.NamedAnnotationMemberClosure;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.AlsoNeeds;
@@ -129,14 +130,9 @@ public @interface LinkTo {
     /**
      * Marker class for default value.
      */
-    class None extends Closure<Object> {
+    class None extends NamedAnnotationMemberClosure<Object> {
         public None(Object owner, Object thisObject) {
             super(owner, thisObject);
-        }
-
-        @SuppressWarnings("unused")
-        public Object doCall() {
-            return null;
         }
     }
 

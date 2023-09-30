@@ -23,13 +23,13 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import groovy.transform.Undefined;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
+import com.blackbuild.klum.cast.checks.NeedsOneOf;
+import com.blackbuild.klum.cast.checks.OnlyOn;
+import groovy.lang.Closure;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * <p>Designates a default value for the given field. This automatically sets the field to
@@ -84,6 +84,9 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
+@ClassNeedsAnnotation(DSL.class)
+@NeedsOneOf(whenOn = ElementType.FIELD, value = {"field", "delegate", "code"}, exclusive = true)
 @Documented
 public @interface Default {
 
@@ -94,7 +97,7 @@ public @interface Default {
      * <p>leads to</p>
      * <code>aValue ?: other</code>
      */
-    String field() default "";
+    @OnlyOn(ElementType.FIELD) String field() default "";
 
     /**
      * <p>Delegates to the given closure, if the annotated field is empty.</p>
@@ -103,7 +106,7 @@ public @interface Default {
      * <p>leads to</p>
      * <code>aValue ?: name.toLowerCase()</code>
      */
-    Class code() default Undefined.class;
+    @OnlyOn(ElementType.FIELD) Class<? extends Closure<Object>> code() default Undefined.class;
 
     /**
      * <p>Delegate to a field with the same name on the targeted field, if the annotated field is empty</p>
@@ -112,5 +115,5 @@ public @interface Default {
      * <p>leads to</p>
      * <code>aValue ?: parent.aValue</code>
      */
-    String delegate() default "";
+    @OnlyOn(ElementType.FIELD) String delegate() default "";
 }
