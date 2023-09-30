@@ -119,14 +119,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass = (ClassNode) nodes[1];
         dslAnnotation = (AnnotationNode) nodes[0];
-        validateDefaultImplementation();
+        // validateDefaultImplementation();
 
         if (annotatedClass.isInterface()) return;
 
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
-
-        //assertKeyFieldHasNoOtherAnnotations();
 
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
@@ -166,25 +164,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
-    }
-
-    private void assertKeyFieldHasNoOtherAnnotations() {
-        if (keyField == null) return;
-        if (DslAstHelper.hasAnnotation(keyField, OWNER_ANNOTATION))
-            addCompileError(sourceUnit, "Key field must not be an owner field!", keyField);
-        if (DslAstHelper.hasAnnotation(keyField, DSL_FIELD_ANNOTATION))
-            addCompileError(sourceUnit, "Key field must not have @Field annotation!", keyField);
-    }
-
-    private void validateDefaultImplementation() {
-        ClassNode defaultImpl = getMemberClassValue(dslAnnotation, "defaultImpl");
-        if (defaultImpl == null) return;
-        if (!isAssignableTo(defaultImpl, annotatedClass))
-            addCompileError(sourceUnit, "defaultImpl must be a subtype of the annotated class!", dslAnnotation);
-        if (!isDSLObject(defaultImpl))
-            addCompileError(sourceUnit, "defaultImpl must be a DSLObject!", dslAnnotation);
-        if (!isInstantiable(defaultImpl))
-            addCompileError(sourceUnit, "defaultImpl must be instantiable!", dslAnnotation);
     }
 
     private void createExplicitEmptyConstructor() {
