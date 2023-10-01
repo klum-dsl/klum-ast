@@ -88,11 +88,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
-
-    public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
-    public static final ClassNode MAP_ENTRY_TYPE = make(Map.Entry.class);
-
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String VALIDATE_METHOD = "validate";
@@ -119,7 +114,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass = (ClassNode) nodes[1];
         dslAnnotation = (AnnotationNode) nodes[0];
-        // validateDefaultImplementation();
 
         if (annotatedClass.isInterface()) return;
 
@@ -134,9 +128,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else
             createExplicitEmptyConstructor();
 
-
         checkFieldNames();
-
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
@@ -151,12 +143,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryMethods();
         createConvenienceFactories();
 
-
         createFieldDSLMethods();
         createValidateMethod();
         moveMutatorsToRWClass();
 
-        validateOwnersMethods();
         createOwnerClosureMethods();
 
         delegateRwToModel();
@@ -194,7 +184,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) != 0)
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
-
 
     private void moveMutatorsToRWClass() {
         new WriteAccessMethodsMover(annotatedClass, sourceUnit).invoke();
@@ -379,14 +368,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createTemplateMethods() {
         new TemplateMethods(this).invoke();
-    }
-
-    private void validateOwnersMethods() {
-        rwClass.getMethods()
-                .stream()
-                .filter(ownerMethod -> DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
-                .filter(ownerMethod -> ownerMethod.getParameters().length != 1)
-                .forEach(ownerMethod -> addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod));
     }
 
     private void createOwnerClosureMethods() {

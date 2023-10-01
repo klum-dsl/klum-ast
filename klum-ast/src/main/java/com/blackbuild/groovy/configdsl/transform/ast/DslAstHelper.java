@@ -292,7 +292,7 @@ public class DslAstHelper {
         return result;
     }
 
-    static boolean isInstantiable(ClassNode classNode) {
+    public static boolean isInstantiable(ClassNode classNode) {
         return !classNode.isInterface() && !isAbstract(classNode);
     }
 

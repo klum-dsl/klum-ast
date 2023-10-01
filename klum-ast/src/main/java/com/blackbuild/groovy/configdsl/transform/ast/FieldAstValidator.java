@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.cast.KlumCastValidator;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
@@ -33,8 +34,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.reflect.Modifier.isFinal;
 
-@Deprecated // replace with member annotation checks
-public class FieldAstValidator extends KlumCastCheck {
+public class FieldAstValidator extends KlumCastCheck<KlumCastValidator> {
 
     private AnnotationNode annotationToCheck;
 
@@ -50,7 +50,7 @@ public class FieldAstValidator extends KlumCastCheck {
 
     protected void extraValidateField(FieldNode fieldNode) {
         if (isCollectionOrMap(fieldNode.getType()))
-            validateFieldAnnotationOnCollection(fieldNode);
+            validateFieldAnnotationOnCollection();
         else
             validateFieldAnnotationOnSingleField(fieldNode);
         validateDefaultImpl(CommonAstHelper.getElementType(fieldNode));
@@ -100,7 +100,7 @@ public class FieldAstValidator extends KlumCastCheck {
             throw new IllegalStateException("@Field.key is only valid for keyed dsl fields");
     }
 
-    private void validateFieldAnnotationOnCollection(FieldNode fieldNode) {
+    private void validateFieldAnnotationOnCollection() {
         if (annotationToCheck.getMembers().containsKey("key"))
             throw new IllegalStateException("@Field.key is only allowed for non collection fields.");
     }
