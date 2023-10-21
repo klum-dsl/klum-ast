@@ -38,7 +38,7 @@ public class WriteAccessMethodCheck extends KlumCastCheck<WriteAccess> {
         if (method.isPrivate())
             throw new IllegalStateException("Lifecycle methods must not be private!");
 
-        if (validatorAnnotation.value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
+        if (controlAnnotation.value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
             throw new IllegalStateException(String.format(
                     "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
                     method.getDeclaringClass().getName(),

@@ -24,17 +24,18 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.cast.KlumCastValidator;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.annotation.Annotation;
+
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.reflect.Modifier.isFinal;
 
-public class FieldAstValidator extends KlumCastCheck<KlumCastValidator> {
+public class FieldAstValidator extends KlumCastCheck<Annotation> {
 
     private AnnotationNode annotationToCheck;
 

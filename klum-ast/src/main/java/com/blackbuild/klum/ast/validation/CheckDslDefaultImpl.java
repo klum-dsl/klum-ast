@@ -24,17 +24,18 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.klum.cast.KlumCastValidator;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 
+import java.lang.annotation.Annotation;
+
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
 import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
 
-public class CheckDslDefaultImpl extends KlumCastCheck<KlumCastValidator> {
+public class CheckDslDefaultImpl extends KlumCastCheck<Annotation> {
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
         ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);
