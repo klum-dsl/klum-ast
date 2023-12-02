@@ -88,11 +88,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
-
-    public static final ClassNode EXCEPTION_TYPE = make(Exception.class);
-    public static final ClassNode ASSERTION_ERROR_TYPE = make(AssertionError.class);
-    public static final ClassNode MAP_ENTRY_TYPE = make(Map.Entry.class);
-
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String VALIDATE_METHOD = "validate";
@@ -119,14 +114,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass = (ClassNode) nodes[1];
         dslAnnotation = (AnnotationNode) nodes[0];
-        validateDefaultImplementation();
 
         if (annotatedClass.isInterface()) return;
 
         keyField = getKeyField(annotatedClass);
         ownerFields = getOwnerFields(annotatedClass);
-
-        assertKeyFieldHasNoOtherAnnotations();
 
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
@@ -136,9 +128,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else
             createExplicitEmptyConstructor();
 
-
         checkFieldNames();
-
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
@@ -153,13 +143,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryMethods();
         createConvenienceFactories();
 
-
         createFieldDSLMethods();
         createValidateMethod();
-        validateDefaultAnnotation();
         moveMutatorsToRWClass();
 
-        validateOwnersMethods();
         createOwnerClosureMethods();
 
         delegateRwToModel();
@@ -167,25 +154,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
-    }
-
-    private void assertKeyFieldHasNoOtherAnnotations() {
-        if (keyField == null) return;
-        if (DslAstHelper.hasAnnotation(keyField, OWNER_ANNOTATION))
-            addCompileError(sourceUnit, "Key field must not be an owner field!", keyField);
-        if (DslAstHelper.hasAnnotation(keyField, DSL_FIELD_ANNOTATION))
-            addCompileError(sourceUnit, "Key field must not have @Field annotation!", keyField);
-    }
-
-    private void validateDefaultImplementation() {
-        ClassNode defaultImpl = getMemberClassValue(dslAnnotation, "defaultImpl");
-        if (defaultImpl == null) return;
-        if (!isAssignableTo(defaultImpl, annotatedClass))
-            addCompileError(sourceUnit, "defaultImpl must be a subtype of the annotated class!", dslAnnotation);
-        if (!isDSLObject(defaultImpl))
-            addCompileError(sourceUnit, "defaultImpl must be a DSLObject!", dslAnnotation);
-        if (!isInstantiable(defaultImpl))
-            addCompileError(sourceUnit, "defaultImpl must be instantiable!", dslAnnotation);
     }
 
     private void createExplicitEmptyConstructor() {
@@ -216,7 +184,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) != 0)
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
     }
-
 
     private void moveMutatorsToRWClass() {
         new WriteAccessMethodsMover(annotatedClass, sourceUnit).invoke();
@@ -291,32 +258,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         annotatedClass.addInterface(make(Serializable.class));
     }
 
-    private void validateDefaultAnnotation() {
-        annotatedClass.getFields().stream()
-                .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, DEFAULT_ANNOTATION))
-                .forEach(this::checkDefaultAnnotationOnSingleField);
-    }
-
-    private void checkDefaultAnnotationOnSingleField(FieldNode fieldNode) {
-        AnnotationNode annotationNode = getAnnotation(fieldNode, DEFAULT_ANNOTATION);
-        int numberOfMembers = annotationNode.getMembers().size();
-
-        if (numberOfMembers == 0)
-            addError("You must define either delegate, code or field for @Default annotations", annotationNode);
-
-        if (numberOfMembers > 1)
-            addError("Only one member for @Default annotation is allowed!", annotationNode);
-
-        Expression codeMember = annotationNode.getMember("code");
-        if (codeMember != null && !(codeMember instanceof ClosureExpression))
-            addError("@Default.code() must be a closure", annotationNode);
-
-    }
-
     private void createValidateMethod() {
-        checkValidateAnnotationsOnMethods();
-        checkValidateAnnotationsOnFields();
-        checkValidateAnnotationOnClass();
+        convertValidationClosures();
 
         // TODO: to proxy
         if (dslParent == null) {
@@ -330,36 +273,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).optional().forRemoval().addTo(annotatedClass);
     }
 
-    private void checkValidateAnnotationsOnFields() {
+    private void convertValidationClosures() {
         annotatedClass.getFields().stream()
                 .filter(fieldNode -> DslAstHelper.hasAnnotation(fieldNode, VALIDATE_ANNOTATION))
-                .forEach(this::checkValidateAnnotationOnSingleField);
+                .filter(fieldNode -> getAnnotation(fieldNode, VALIDATE_ANNOTATION).getMember("value") != null)
+                .forEach(this::convertValidationClosureOnSingleField);
     }
 
-    private void checkValidateAnnotationOnSingleField(FieldNode fieldNode) {
-        if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            addCompileError("Validation is not valid on 'boolean' fields, use 'Boolean' instead.", fieldNode);
-            return;
-        }
-
+    private void convertValidationClosureOnSingleField(FieldNode fieldNode) {
         AnnotationNode validateAnnotation = getAnnotation(fieldNode, VALIDATE_ANNOTATION);
         String message = getMemberStringValue(validateAnnotation, "message");
         Expression validationExpression = validateAnnotation.getMember("value");
-
-        if (validationExpression == null)
-            return;
 
         if (validationExpression instanceof ClosureExpression) {
             ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
             convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
-        }
-
-        if (validationExpression instanceof ClassExpression) {
-            ClassNode memberType = validationExpression.getType();
-            if (!memberType.equals(ClassHelper.make(Validate.GroovyTruth.class)) && !memberType.equals(ClassHelper.make(Validate.Ignore.class)))
-                addError("value of Validate must be either Validate.GroovyTruth, Validate.Ignore or a closure.", validateAnnotation);
+        } else {
+            addCompileWarning(sourceUnit, "Only closures are supported for validation, consider using a @Validate method instead", validateAnnotation);
         }
     }
 
@@ -405,21 +337,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         closure.setCode(assertStatement);
     }
 
-    private void checkValidateAnnotationsOnMethods() {
-        annotatedClass.getMethods().forEach(this::checkValidateAnnotationOnSingleMethod);
-    }
-
-    private void checkValidateAnnotationOnClass() {
-        AnnotationNode validateAnnotation = getAnnotation(annotatedClass, VALIDATE_ANNOTATION);
-        if (validateAnnotation != null)
-            assertAnnotationHasNoValueOrMessage(validateAnnotation);
-    }
-
-    private void assertAnnotationHasNoValueOrMessage(AnnotationNode annotation) {
-        if (annotation.getMember("value") != null || annotation.getMember("message") != null)
-            addCompileError(sourceUnit, "@Validate annotation on method or class must not have parameters!", annotation);
-    }
-
     private AssertStatement assertStmt(Expression check, String message) {
         if (message == null) return new AssertStatement(new BooleanExpression(check), ConstantExpression.NULL);
         else return new AssertStatement(new BooleanExpression(check), new ConstantExpression(message));
@@ -451,14 +368,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createTemplateMethods() {
         new TemplateMethods(this).invoke();
-    }
-
-    private void validateOwnersMethods() {
-        rwClass.getMethods()
-                .stream()
-                .filter(ownerMethod -> DslAstHelper.hasAnnotation(ownerMethod, OWNER_ANNOTATION))
-                .filter(ownerMethod -> ownerMethod.getParameters().length != 1)
-                .forEach(ownerMethod -> addCompileError(String.format("Owner methods must have exactly one parameter. %s has %d", ownerMethod, ownerMethod.getParameters().length), ownerMethod));
     }
 
     private void createOwnerClosureMethods() {
@@ -1222,14 +1131,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         } catch (Exception e) {
             return defaultValue;
         }
-    }
-
-    private void checkValidateAnnotationOnSingleMethod(MethodNode method) {
-        AnnotationNode validateAnnotation = getAnnotation(method, VALIDATE_ANNOTATION);
-        if (validateAnnotation == null)
-            return;
-        assertMethodIsParameterless(method, sourceUnit);
-        assertAnnotationHasNoValueOrMessage(validateAnnotation);
     }
 
     public ClassNode getAnnotatedClass() {

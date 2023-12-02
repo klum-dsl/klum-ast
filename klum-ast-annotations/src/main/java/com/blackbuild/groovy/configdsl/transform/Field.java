@@ -23,10 +23,11 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import com.blackbuild.klum.ast.validation.NeedsDslClass;
-import com.blackbuild.klum.ast.validation.NumberOfParameters;
+import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
+import com.blackbuild.klum.cast.checks.NumberOfParameters;
 import groovy.transform.Undefined;
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.*;
 
@@ -52,10 +53,11 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.MANUAL)
+@KlumCastValidated
 @NumberOfParameters(1)
-@NeedsDslClass
+@NeedsDSLClass
+@KlumCastValidator("com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator")
 @Documented
-@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator")
 public @interface Field {
 
     FieldType value() default FieldType.DEFAULT;

@@ -24,80 +24,86 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.ast.validation.AstValidator;
+import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.control.CompilePhase;
-import org.codehaus.groovy.transform.GroovyASTTransformation;
+import org.codehaus.groovy.ast.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.annotation.Annotation;
+
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
-import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.reflect.Modifier.isFinal;
 
-@GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
-public class FieldAstValidator extends AstValidator {
+public class FieldAstValidator extends KlumCastCheck<Annotation> {
+
+    private AnnotationNode annotationToCheck;
 
     @Override
-    protected void extraValidateField() {
-        FieldNode fieldNode = (FieldNode) target;
+    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
+        this.annotationToCheck = annotationToCheck;
+        // TODO move logic to klumCast
+        if (target instanceof FieldNode)
+            extraValidateField((FieldNode) target);
+        else if (target instanceof MethodNode)
+            extraValidateMethod((MethodNode) target);
+    }
+
+    protected void extraValidateField(FieldNode fieldNode) {
         if (isCollectionOrMap(fieldNode.getType()))
             validateFieldAnnotationOnCollection();
         else
-            validateFieldAnnotationOnSingleField();
-        validateDefaultImpl(CommonAstHelper.getElementType((FieldNode) target));
+            validateFieldAnnotationOnSingleField(fieldNode);
+        validateDefaultImpl(CommonAstHelper.getElementType(fieldNode));
     }
 
-    @Override
-    protected void extraValidateMethod() {
+    protected void extraValidateMethod(MethodNode target) {
         if (getFieldType(target) == FieldType.LINK)
-            addCompileError("Default Implementation is not allowed on LINK fields");
-        validateDefaultImpl(((MethodNode) target).getParameters()[0].getType());
+            throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
+        validateDefaultImpl(target.getParameters()[0].getType());
     }
 
     private void validateDefaultImpl(ClassNode fieldType) {
-        if (!members.containsKey("defaultImpl")) return;
+        if (annotationToCheck.getMember("defaultImpl") == null) return;
 
-        @NotNull ClassNode defaultImpl = getMemberClassValue(annotation, "defaultImpl");
+        @NotNull ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);
 
         if (isFinal(fieldType.getModifiers()))
-            addCompileError(
+            throw new IllegalStateException(String.format(
                    "annotated field %s is final and cannot be overridden.",
-                    ((FieldNode) target).getName()
+                    fieldType.getName())
             );
 
         if (!isDSLObject(defaultImpl))
-            addCompileError(
+            throw new IllegalStateException(
                     "Default Implementation must be an DSL-Object"
-            );
+            ) ;
 
-        if (defaultImpl != null && !isAssignableTo(defaultImpl, fieldType))
-            addCompileError(
+        if (!isAssignableTo(defaultImpl, fieldType))
+            throw new IllegalStateException(String.format(
                 "Annotated Default Implementation %s of %s is not a valid subtype of it.", defaultImpl.getName(), fieldType.getName()
-            );
+            ));
 
-        if (getFieldType(target) == FieldType.LINK)
-            addCompileError("Default Implementation is not allowed on LINK fields");
+        if (getFieldType(fieldType) == FieldType.LINK)
+            throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
 
         if (isDSLObject(fieldType) && isKeyed(defaultImpl) && !isKeyed(fieldType))
-            addCompileError("Default Implementation %s is keyed, but field %s is not.", defaultImpl.getName(), ((FieldNode) target).getName());
+            throw new IllegalStateException(
+                    String.format("Default Implementation %s is keyed, but field %s is not.",
+                            defaultImpl.getName(), fieldType.getName()));
     }
 
-    private void validateFieldAnnotationOnSingleField() {
-        FieldNode fieldNode = (FieldNode) target;
-        if (members.containsKey("members"))
-            addCompileError("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName());
+    private void validateFieldAnnotationOnSingleField(FieldNode fieldNode) {
+        if (annotationToCheck.getMembers().containsKey("members"))
+            throw new IllegalStateException(String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()));
 
-        if (members.containsKey("key") && !isKeyed(fieldNode.getType()))
-            addCompileError("@Field.key is only valid for keyed dsl fields");
+        if (annotationToCheck.getMembers().containsKey("key") && !isKeyed(fieldNode.getType()))
+            throw new IllegalStateException("@Field.key is only valid for keyed dsl fields");
     }
 
     private void validateFieldAnnotationOnCollection() {
-        if (members.containsKey("key"))
-            addCompileError("@Field.key is only allowed for non collection fields.");
+        if (annotationToCheck.getMembers().containsKey("key"))
+            throw new IllegalStateException("@Field.key is only allowed for non collection fields.");
     }
 
 }

@@ -23,11 +23,13 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
+import com.blackbuild.klum.cast.checks.NotOn;
+import com.blackbuild.klum.cast.checks.NumberOfParameters;
+import groovy.lang.Closure;
+
+import java.lang.annotation.*;
 
 /**
  * <p>Activates validation for the given field or marks the annotated method as validation method.</p>
@@ -110,6 +112,9 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
+@NumberOfParameters(0)
+@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean")
 @Documented
 public @interface Validate {
 
@@ -117,22 +122,33 @@ public @interface Validate {
      * A closure to be executed to validate the annotated field. If empty, Groovy Truth is used to validate the field.
      * Illegal when annotating a method.
      */
-    Class<?> value() default GroovyTruth.class;
+    @NotOn({ElementType.METHOD, ElementType.TYPE})
+    Class<? extends Closure> value() default GroovyTruth.class;
 
     /**
      * A message to be returned when validation fails.
      * Illegal when annotating a method.
      */
+    @NotOn({ElementType.METHOD, ElementType.TYPE})
     String message() default "";
 
     /**
      * Default value for {@link Validate#value()}. Designates the field to be validated against Groovy Truth.
      */
-    interface GroovyTruth {}
+    class GroovyTruth extends NamedAnnotationMemberClosure<Object> {
+        public GroovyTruth(Object owner, Object thisObject) {
+            super(owner, thisObject);
+        }
+    }
 
     /**
      * If used as value for {@link Validate#value()}, configures validation to ignore this field. Makes only sense
      * in combination with {@link Validation.Option#VALIDATE_UNMARKED}.
      */
-    interface Ignore {}
+    class Ignore extends NamedAnnotationMemberClosure<Object> {
+        public Ignore(Object owner, Object thisObject) {
+            super(owner, thisObject);
+        }
+    }
+
 }

@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.klum.cast.KlumCastValidated;
 import groovy.lang.Closure;
 
 import java.lang.annotation.*;
@@ -46,6 +47,7 @@ import java.util.Map;
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @Documented
 public @interface AutoCreate {

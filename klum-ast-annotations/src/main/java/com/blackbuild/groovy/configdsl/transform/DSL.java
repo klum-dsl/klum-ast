@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
@@ -384,6 +386,8 @@ import java.lang.annotation.Target;
         "com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerifierTransformation",
         "com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation",
 })
+@KlumCastValidated
+@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckDslDefaultImpl")
 @Documented
 public @interface DSL {
     /**

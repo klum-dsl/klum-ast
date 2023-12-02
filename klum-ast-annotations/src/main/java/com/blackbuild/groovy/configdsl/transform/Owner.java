@@ -23,6 +23,9 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.NumberOfParameters;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -103,7 +106,9 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidated
 @WriteAccess(WriteAccess.Type.MANUAL)
+@NumberOfParameters(1)
 @Documented
 public @interface Owner {
 }

@@ -21,15 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.groovy.configdsl.transform;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Target(ElementType.ANNOTATION_TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface NumberOfParameters {
-    int value();
+public class Undefined extends NamedAnnotationMemberClosure<Object> {
+    protected Undefined(Object owner, Object thisObject) {
+        super(owner, thisObject);
+    }
 }

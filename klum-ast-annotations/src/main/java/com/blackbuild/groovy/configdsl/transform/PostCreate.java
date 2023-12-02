@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -80,6 +82,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({FIELD, METHOD})
 @Retention(RUNTIME)
 @Inherited
+@KlumCastValidated
 @WriteAccess
 @Documented
 public @interface PostCreate {

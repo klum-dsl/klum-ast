@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.klum.cast.KlumCastValidator;
+
 import java.lang.annotation.*;
 
 
@@ -32,6 +34,7 @@ import java.lang.annotation.*;
  */
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@KlumCastValidator("com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck")
 @Documented
 public @interface WriteAccess {
 

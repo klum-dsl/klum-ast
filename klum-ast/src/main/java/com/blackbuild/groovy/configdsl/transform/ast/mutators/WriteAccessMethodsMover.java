@@ -35,8 +35,6 @@ import org.codehaus.groovy.control.SourceUnit;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsNotPrivate;
-import static com.blackbuild.klum.common.CommonAstHelper.assertMethodIsParameterless;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 
@@ -85,11 +83,9 @@ public class WriteAccessMethodsMover {
 
         if (!writeType.isPresent()) return;
 
-        assertMethodIsNotPrivate(method, sourceUnit);
-        if (writeType.get() == WriteAccess.Type.LIFECYCLE) {
-            assertMethodIsParameterless(method, sourceUnit);
+        if (writeType.get() == WriteAccess.Type.LIFECYCLE)
             downgradeToProtected(method);
-        }
+
         moveMethodFromModelToRWClass(method);
     }
 

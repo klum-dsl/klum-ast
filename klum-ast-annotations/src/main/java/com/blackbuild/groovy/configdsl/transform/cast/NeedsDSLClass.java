@@ -21,7 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.groovy.configdsl.transform.cast;
+
+import com.blackbuild.groovy.configdsl.transform.DSL;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -30,8 +34,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AllowedMembersForMethod {
-    String[] value();
-    boolean invert() default false;
-
+@KlumCastValidated
+@ClassNeedsAnnotation(DSL.class)
+public @interface NeedsDSLClass {
 }

@@ -21,17 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.MethodNode;
 
-@Target(ElementType.ANNOTATION_TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface AllowedMembersForField {
-    String[] value();
-    boolean invert() default false;
+public class WriteAccessMethodCheck extends KlumCastCheck<WriteAccess> {
+    @Override
+    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
+        if (!(target instanceof MethodNode)) return;
+        MethodNode method = (MethodNode) target;
 
+        if (method.isPrivate())
+            throw new IllegalStateException("Lifecycle methods must not be private!");
+
+        if (controlAnnotation.value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
+            throw new IllegalStateException(String.format(
+                    "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
+                    method.getDeclaringClass().getName(),
+                    method.getName()
+            ));
+    }
 }
