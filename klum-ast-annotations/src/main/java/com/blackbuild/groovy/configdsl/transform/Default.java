@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
 import com.blackbuild.klum.cast.checks.NeedsOneOf;
@@ -85,7 +86,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
-@ClassNeedsAnnotation(DSL.class)
+@NeedsDSLClass
 @NeedsOneOf(whenOn = ElementType.FIELD, value = {"field", "delegate", "code"}, exclusive = true)
 @Documented
 public @interface Default {

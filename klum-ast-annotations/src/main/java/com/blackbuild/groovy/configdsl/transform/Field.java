@@ -23,9 +23,9 @@
  */
 package com.blackbuild.groovy.configdsl.transform;
 
+import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.KlumCastValidator;
-import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
 import com.blackbuild.klum.cast.checks.NumberOfParameters;
 import groovy.transform.Undefined;
 
@@ -55,7 +55,7 @@ import java.lang.annotation.*;
 @WriteAccess(WriteAccess.Type.MANUAL)
 @KlumCastValidated
 @NumberOfParameters(1)
-@ClassNeedsAnnotation(DSL.class)
+@NeedsDSLClass
 @KlumCastValidator("com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator")
 @Documented
 public @interface Field {

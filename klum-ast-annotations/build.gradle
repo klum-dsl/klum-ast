@@ -3,5 +3,5 @@ apply plugin: 'java-library'
 description "Annontations for Klum AST"
 
 dependencies {
-    api "com.blackbuild.klum.cast:klum-cast-annotations:0.1.0-rc.5"
+    api "com.blackbuild.klum.cast:klum-cast-annotations:0.1.0-rc.6"
 }

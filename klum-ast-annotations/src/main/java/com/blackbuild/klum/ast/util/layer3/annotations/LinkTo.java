@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util.layer3.annotations;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.NamedAnnotationMemberClosure;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.AlsoNeeds;
 import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
@@ -95,7 +96,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @KlumCastValidated
-@ClassNeedsAnnotation(DSL.class)
+@NeedsDSLClass
 @MutuallyExclusive({"owner", "ownerType"})
 @Inherited
 @Documented
