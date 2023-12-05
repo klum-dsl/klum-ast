@@ -38,7 +38,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.util.DslHelper.*;
-import static groovyjarjarasm.asm.Opcodes.*;
 import static java.lang.String.format;
 
 /**
@@ -90,7 +89,7 @@ public class KlumInstanceProxy {
         return (T) InvokerHelper.getProperty(instance, attributeName);
     }
 
-    private void setInstanceAttribute(String name, Object value) {
+    void setInstanceAttribute(String name, Object value) {
         getCachedField(name).setProperty(instance, value);
     }
 
@@ -154,47 +153,13 @@ public class KlumInstanceProxy {
      * @param template The template to apply
      */
     public void copyFrom(Object template) {
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
+        new CopyHandler(instance).copyFrom(template);
     }
     public Object cloneInstance() {
         Object key = isKeyed(instance.getClass()) ? getKey() : null;
         Object result = FactoryHelper.createInstance(instance.getClass(), (String) key);
         getProxyFor(result).copyFrom(instance);
         return result;
-    }
-
-    private void copyFromLayer(Class<?> layer, Object template) {
-        if (layer.isInstance(template))
-            Arrays.stream(layer.getDeclaredFields())
-                    .filter(this::isNotIgnored)
-                    .forEach(field -> copyFromField(field, template));
-    }
-
-    private boolean isIgnored(Field field) {
-        if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
-        if (field.isAnnotationPresent(Key.class)) return true;
-        if (field.isAnnotationPresent(Owner.class)) return true;
-        if (field.getName().startsWith("$")) return true;
-        if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
-        return false;
-    }
-
-    private boolean isNotIgnored(Field field) {
-        return !isIgnored(field);
-    }
-
-    private void copyFromField(Field field, Object template) {
-        String fieldName = field.getName();
-        Object templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
-
-        if (templateValue == null) return;
-
-        if (templateValue instanceof Collection)
-            copyFromCollectionField((Collection<?>) templateValue, fieldName);
-        else if (templateValue instanceof Map)
-            copyFromMapField((Map<?,?>) templateValue, fieldName);
-        else
-            setInstanceAttribute(fieldName, getCopiedValue(templateValue));
     }
 
     @SuppressWarnings("unchecked")
@@ -219,21 +184,6 @@ public class KlumInstanceProxy {
         Map<String, T> result = (Map<String, T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
         templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
         return result;
-    }
-
-    private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
-    }
-
-    private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-
-        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
     }
 
     /**
