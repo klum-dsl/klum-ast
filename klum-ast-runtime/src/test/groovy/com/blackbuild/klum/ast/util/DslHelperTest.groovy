@@ -114,7 +114,7 @@ class DslHelperTest extends AbstractRuntimeTest {
 
         when:
         def dummy = getClass("Dummy")
-        def value = DslHelper.getElementType(dummy, "authorizationRoles")
+        def value = DslHelper.getElementTypeOfField(dummy, "authorizationRoles")
 
         then:
         noExceptionThrown()

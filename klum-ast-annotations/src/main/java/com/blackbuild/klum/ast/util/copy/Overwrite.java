@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2023 Stephan Pauxberger
+ * Copyright (c) 2015-2024 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,16 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.klum.ast.util.copy;
 
+import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
+import com.blackbuild.klum.cast.checks.NeedsOneOf;
+
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
+/**
+ * Handles how values are copied from one object to another.
+ */
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CopyStrategy {
-
-
-
-
-
+@KlumCastValidated
+@NeedsDSLClass
+@NeedsOneOf(value = {"single", "collection", "map"}, exclusive = true)
+@KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesCheck")
+public @interface Overwrite {
+    OverwriteStrategy.Single single() default OverwriteStrategy.Single.INHERIT;
+    OverwriteStrategy.Collection collection() default OverwriteStrategy.Collection.INHERIT;
+    OverwriteStrategy.Map map() default OverwriteStrategy.Map.INHERIT;
 }

@@ -34,7 +34,7 @@ import java.lang.annotation.*;
  */
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@KlumCastValidator("com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck")
+@KlumCastValidator(validForTargets = ElementType.METHOD, value = "com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck")
 @Documented
 public @interface WriteAccess {
 

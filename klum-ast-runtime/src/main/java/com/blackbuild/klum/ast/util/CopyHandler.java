@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2023 Stephan Pauxberger
+ * Copyright (c) 2015-2024 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,10 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.Role;
+import com.blackbuild.klum.ast.util.copy.Overwrite;
+import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
+import groovy.lang.GroovyObject;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -41,31 +45,36 @@ import static groovyjarjarasm.asm.Opcodes.*;
  */
 public class CopyHandler {
 
-    private final Object instance;
+    private final Object target;
     private final KlumInstanceProxy proxy;
+    private final Object template;
 
-    private CopyStrategy copyStrategy = new DefaultCopyStrategy();
-
-    public CopyHandler(Object instance) {
-        this.instance = instance;
-        proxy = getProxyFor(instance);
+    public static void copyFrom(GroovyObject instance, Object template) {
+        new CopyHandler(instance, template).doCopy();
     }
 
-    public void copyFrom(Object template) {
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
+    public CopyHandler(Object target, Object template) {
+        this.target = target;
+        proxy = getProxyFor(target);
+        this.template = template;
     }
 
-    private void copyFromLayer(Class<?> layer, Object template) {
+    public void doCopy() {
+        DslHelper.getDslHierarchyOf(target.getClass()).forEach(this::copyFromLayer);
+    }
+
+    private void copyFromLayer(Class<?> layer) {
         if (layer.isInstance(template))
             Arrays.stream(layer.getDeclaredFields())
                     .filter(this::isNotIgnored)
-                    .forEach(field -> copyFromField(field, template));
+                    .forEach(field -> copyFromField(field));
     }
 
     private boolean isIgnored(Field field) {
         if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
         if (field.isAnnotationPresent(Key.class)) return true;
         if (field.isAnnotationPresent(Owner.class)) return true;
+        if (field.isAnnotationPresent(Role.class)) return true;
         if (field.getName().startsWith("$")) return true;
         if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
         return false;
@@ -75,38 +84,207 @@ public class CopyHandler {
         return !isIgnored(field);
     }
 
-    private void copyFromField(Field field, Object template) {
-        String fieldName = field.getName();
-        Object oldValue = proxy.getInstanceAttribute(fieldName);
+    private void copyFromField(Field field) {
+        Class<?> fieldType = field.getType();
 
-        Object templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
-
-        if (templateValue == null) return;
-
-        if (templateValue instanceof Collection)
-            copyFromCollectionField((Collection) oldValue, (Collection) templateValue, fieldName);
-        else if (templateValue instanceof Map)
-            copyFromMapField((Map) oldValue, (Map) templateValue, fieldName);
+        if (Collection.class.isAssignableFrom(fieldType))
+            copyFromCollectionField(field);
+        else if (Map.class.isAssignableFrom(fieldType))
+            copyFromMapField(field);
         else
-            copyFromSingleField(fieldName, oldValue, templateValue);
+            copyFromSingleField(field);
     }
 
-    private void copyFromSingleField(String fieldName, Object oldValue, Object templateValue) {
-        proxy.setInstanceAttribute(fieldName, copyStrategy.getCopiedValue(oldValue, templateValue));
+    private void copyFromSingleField(Field field) {
+        String fieldName = field.getName();
+        Object currentValue = proxy.getInstanceAttribute(fieldName);
+        KlumInstanceProxy templateProxy = getProxyFor(template);
+        Object templateValue = templateProxy.getInstanceAttribute(fieldName);
+
+        OverwriteStrategy.Single strategy = getSingleStrategy(field);
+
+        switch (strategy) {
+            case REPLACE:
+                if (templateValue != null)
+                    replaceValue(fieldName, templateValue);
+                break;
+            case ALWAYS_REPLACE:
+                replaceValue(fieldName, templateValue);
+                break;
+            case SET_IF_NULL:
+                if (currentValue == null)
+                    replaceValue(fieldName, templateValue);
+                break;
+            case MERGE:
+                if (currentValue == null)
+                    replaceValue(fieldName, templateValue);
+                else
+                    getProxyFor(currentValue).copyFrom(templateValue);
+                break;
+            case INHERIT:
+            default:
+                throw new AssertionError("Unexpected strategy " + strategy + " encountered");
+        }
     }
 
-    private <K,V> void copyFromMapField(Map<K,V> oldValue, Map<K,V> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = proxy.getInstanceAttribute(fieldName);
-        instanceField.clear();
-        instanceField.putAll(copyStrategy.copyMap(oldValue, templateValue));
+    private void replaceValue(String fieldName, Object templateValue) {
+        if (DslHelper.isDslObject(templateValue)) {
+            KlumInstanceProxy templateProxy = getProxyFor(templateValue);
+            templateValue = templateProxy.cloneInstance();
+        }
+        proxy.setInstanceAttribute(fieldName, templateValue);
     }
 
-    private <T> void copyFromCollectionField(Collection<T> oldValue, Collection<T> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = proxy.getInstanceAttribute(fieldName);
-        instanceField.clear();
-        instanceField.addAll(copyStrategy.copyCollection(oldValue, templateValue));
+    private OverwriteStrategy.Single getSingleStrategy(Field field) {
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.single() != OverwriteStrategy.Single.INHERIT)
+                .map(Overwrite::single)
+                .orElse(getDefaultSingleStrategy(field));
     }
+
+    private OverwriteStrategy.Single getDefaultSingleStrategy(Field field) {
+        return DslHelper.isDslType(field.getType()) ? OverwriteStrategy.Single.MERGE : OverwriteStrategy.Single.REPLACE;
+    }
+
+    private void copyFromMapField(Field field) {
+        String fieldName = field.getName();
+        Map<Object,Object> currentValues = proxy.getInstanceAttribute(fieldName);
+        Map<Object,Object> templateValues = getProxyFor(template).getInstanceAttribute(fieldName);
+
+        OverwriteStrategy.Map strategy = getMapStrategy(field);
+
+        switch (strategy) {
+            case FULL_OVERWRITE:
+                if (templateValues != null && !templateValues.isEmpty()) {
+                    currentValues.clear();
+                    addMapValues(field, currentValues, templateValues);
+                }
+                break;
+            case ALWAYS_OVERWRITE:
+                currentValues.clear();
+                if (templateValues != null && !templateValues.isEmpty())
+                    addMapValues(field, currentValues, templateValues);
+                break;
+            case MERGE_KEYS:
+                if (templateValues != null && !templateValues.isEmpty())
+                    addMapValues(field, currentValues, templateValues);
+                break;
+            case MERGE_VALUES:
+                if (templateValues != null && !templateValues.isEmpty())
+                    mergeMapValues(field, currentValues, templateValues);
+                break;
+            case ADD_MISSING:
+                if (templateValues != null && !templateValues.isEmpty())
+                    addMissingMapValues(field, currentValues, templateValues);
+                break;
+            case INHERIT:
+            default:
+                throw new AssertionError("Unexpected strategy " + strategy + " encountered");
+        }
+    }
+
+    private void addMissingMapValues(Field field, Map<Object, Object> currentValues, Map<Object, Object> templateValues) {
+        if (templateValues == null || templateValues.isEmpty()) return;
+        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
+            Object key = entry.getKey();
+            Object value = entry.getValue();
+            assertCorrectType(field, value, valueType);
+            if (currentValues.containsKey(key))
+                currentValues.put(key, getProxyFor(value).cloneInstance());
+        }
+    }
+
+    private void mergeMapValues(Field field, Map<Object, Object> currentValues, Map<Object, Object> templateValues) {
+        if (templateValues == null || templateValues.isEmpty()) return;
+        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
+            Object key = entry.getKey();
+            Object value = entry.getValue();
+            assertCorrectType(field, value, valueType);
+            Object currentValue = currentValues.get(key);
+            if (currentValue == null)
+                currentValues.put(key, getProxyFor(value).cloneInstance());
+            else
+                getProxyFor(currentValue).copyFrom(value);
+        }
+    }
+
+    private void addMapValues(Field field, Map<Object,Object> currentValues, Map<Object,Object> templateValues) {
+        Class<?> valueType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        boolean isDslType = DslHelper.isDslType(valueType);
+        for (Map.Entry<Object,Object> entry : templateValues.entrySet()) {
+            Object key = entry.getKey();
+            Object value = entry.getValue();
+            assertCorrectType(field, value, valueType);
+            if (isDslType)
+                currentValues.put(key, getProxyFor(value).cloneInstance());
+            else
+                currentValues.put(key, value);
+        }
+    }
+
+
+    private OverwriteStrategy.Map getMapStrategy(Field field) {
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.map() != OverwriteStrategy.Map.INHERIT)
+                .map(Overwrite::map)
+                .orElse(getDefaultMapStrategy(field));
+    }
+
+    private OverwriteStrategy.Map getDefaultMapStrategy(Field field) {
+        return DslHelper.isDslType(DslHelper.getElementType(field)) ? OverwriteStrategy.Map.MERGE_VALUES : OverwriteStrategy.Map.MERGE_KEYS;
+    }
+
+    private <T> void copyFromCollectionField(Field field) {
+        String fieldName = field.getName();
+        Collection<Object> currentValue = proxy.getInstanceAttribute(fieldName);
+        Collection<Object> templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
+
+        OverwriteStrategy.Collection strategy = getCollectionStrategy(field);
+
+        switch (strategy) {
+            case ADD:
+                if (templateValue != null && !templateValue.isEmpty())
+                    addCollectionValues(field, currentValue, templateValue);
+                break;
+            case FULL_OVERWRITE:
+                if (templateValue != null && !templateValue.isEmpty()) {
+                    currentValue.clear();
+                    addCollectionValues(field, currentValue, templateValue);
+                }
+                break;
+            case ALWAYS_OVERWRITE:
+                currentValue.clear();
+                if (templateValue != null && !templateValue.isEmpty())
+                    addCollectionValues(field, currentValue, templateValue);
+                break;
+            case INHERIT:
+            default:
+                throw new AssertionError("Unexpected strategy " + strategy + " encountered");
+        }
+    }
+
+    private void addCollectionValues(Field field, Collection<Object> currentValue, Collection<Object> templateValue) {
+        Class<?> elementType = DslHelper.getClassFromType(DslHelper.getElementType(field));
+        boolean isDslType = DslHelper.isDslType(elementType);
+        for (Object value : templateValue) {
+            assertCorrectType(field, value, elementType);
+            if (isDslType)
+                currentValue.add(getProxyFor(value).cloneInstance());
+            else
+                currentValue.add(value);
+        }
+    }
+
+    private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
+        if (!elementType.isInstance(value))
+            throw new IllegalArgumentException("Element " + value + " in " + field + " is not of expected type " + elementType);
+    }
+
+    private OverwriteStrategy.Collection getCollectionStrategy(Field field) {
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collection() != OverwriteStrategy.Collection.INHERIT)
+                .map(Overwrite::collection)
+                .orElse(OverwriteStrategy.Collection.ADD);
+    }
+
 
 }

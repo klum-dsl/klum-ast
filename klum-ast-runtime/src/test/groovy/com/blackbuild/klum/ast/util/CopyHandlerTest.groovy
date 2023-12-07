@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2023 Stephan Pauxberger
+ * Copyright (c) 2015-2024 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,7 +59,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy).copyFrom(outer)
+        new CopyHandler(copy, template).copyFrom(outer)
 
         then:
         copy.name == "bli"
@@ -110,7 +110,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy).copyFrom(outer)
+        new CopyHandler(copy, template).copyFrom(outer)
 
         then:
         copy.name == "bli"
@@ -158,7 +158,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy).copyFrom(outer)
+        new CopyHandler(copy, template).copyFrom(outer)
 
         then:
         copy.name == "bli"
@@ -175,6 +175,88 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         copy.innerLists[0] == outer.innerLists[0]
         !copy.innerLists[0].is(outer.innerLists[0])
 
+    }
+
+    @Issue("309")
+    def "copy with default strategy set replaces lists and map"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+            }
+         ''')
+
+        def template = newInstanceOf("pk.AClass")
+        template.inners.put "a", "aFromTemplate"
+        template.inners.put "b", "bFromTemplate"
+        template.innerLists.add "aFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        receiver.inners.put "a", "aFromReceiver"
+        receiver.inners.put "c", "cFromReceiver"
+        receiver.innerLists.add "aFromReceiver"
+        receiver.innerLists.add "bFromReceiver"
+        new CopyHandler(receiver, template).copyFrom(template)
+
+        then:
+        receiver.inners.size() == 2
+        !receiver.inners.containsKey("c")
+        receiver.inners == [a: "aFromTemplate", b: "bFromTemplate"]
+
+        and:
+        receiver.innerLists.size() == 1
+        receiver.innerLists == ["aFromTemplate"]
+    }
+
+    @Issue("309")
+    def "copy with helm strategy set replaces lists and merges maps"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.copy.Overwrite
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            @Overwrite(Overwrite.Strategy.HELM)
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+            }
+         ''')
+
+        def template = newInstanceOf("pk.AClass")
+        template.inners.put "a", "aFromTemplate"
+        template.inners.put "b", "bFromTemplate"
+        template.innerLists.add "aFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        receiver.inners.put "a", "aFromReceiver"
+        receiver.inners.put "c", "cFromReceiver"
+        receiver.innerLists.add "aFromReceiver"
+        receiver.innerLists.add "bFromReceiver"
+        new CopyHandler(receiver, template).copyFrom(template)
+
+        then:
+        receiver.inners.size() == 3
+        receiver.inners.containsKey("c")
+        receiver.inners == [a: "aFromTemplate", b: "bFromTemplate", c: "cFromReceiver"]
+
+        and:
+        receiver.innerLists.size() == 1
+        receiver.innerLists == ["aFromTemplate"]
     }
 
 

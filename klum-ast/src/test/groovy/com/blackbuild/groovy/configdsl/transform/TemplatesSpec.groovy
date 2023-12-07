@@ -75,7 +75,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def template = clazz.Create.With {
+        def template = clazz.Create.Template {
             name "Welt"
             value null
         }
@@ -652,7 +652,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.names == ["default"]
 
         when:
-        def template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").Create.Template {
             names "parent"
         }
 
