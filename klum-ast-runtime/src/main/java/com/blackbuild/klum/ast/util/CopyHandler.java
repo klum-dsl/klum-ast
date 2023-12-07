@@ -26,14 +26,12 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
-import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
-import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor;
 import static groovyjarjarasm.asm.Opcodes.*;
 
@@ -45,6 +43,8 @@ public class CopyHandler {
 
     private final Object instance;
     private final KlumInstanceProxy proxy;
+
+    private CopyStrategy copyStrategy = new DefaultCopyStrategy();
 
     public CopyHandler(Object instance) {
         this.instance = instance;
@@ -77,55 +77,36 @@ public class CopyHandler {
 
     private void copyFromField(Field field, Object template) {
         String fieldName = field.getName();
+        Object oldValue = proxy.getInstanceAttribute(fieldName);
+
         Object templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
 
         if (templateValue == null) return;
 
         if (templateValue instanceof Collection)
-            copyFromCollectionField((Collection<?>) templateValue, fieldName);
+            copyFromCollectionField((Collection) oldValue, (Collection) templateValue, fieldName);
         else if (templateValue instanceof Map)
-            copyFromMapField((Map<?,?>) templateValue, fieldName);
+            copyFromMapField((Map) oldValue, (Map) templateValue, fieldName);
         else
-            proxy.setInstanceAttribute(fieldName, getCopiedValue(templateValue));
+            copyFromSingleField(fieldName, oldValue, templateValue);
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> T getCopiedValue(T templateValue) {
-        if (isDslType(templateValue.getClass()))
-            return (T) getProxyFor(templateValue).cloneInstance();
-        else if (templateValue instanceof Collection)
-            return (T) createCopyOfCollection((Collection) templateValue);
-        else if (templateValue instanceof Map)
-            return (T) createCopyOfMap((Map) templateValue);
-        else
-            return templateValue;
+    private void copyFromSingleField(String fieldName, Object oldValue, Object templateValue) {
+        proxy.setInstanceAttribute(fieldName, copyStrategy.getCopiedValue(oldValue, templateValue));
     }
 
-    private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
-        Collection<T> result = (Collection<T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
-        templateValue.stream().map(this::getCopiedValue).forEach(result::add);
-        return result;
-    }
-
-    private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
-        Map<String, T> result = (Map<String, T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
-        templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
-        return result;
-    }
-
-    private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
+    private <K,V> void copyFromMapField(Map<K,V> oldValue, Map<K,V> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
         Map<K,V> instanceField = proxy.getInstanceAttribute(fieldName);
         instanceField.clear();
-        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
+        instanceField.putAll(copyStrategy.copyMap(oldValue, templateValue));
     }
 
-    private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
+    private <T> void copyFromCollectionField(Collection<T> oldValue, Collection<T> templateValue, String fieldName) {
         if (templateValue.isEmpty()) return;
         Collection<T> instanceField = proxy.getInstanceAttribute(fieldName);
         instanceField.clear();
-
-        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
+        instanceField.addAll(copyStrategy.copyCollection(oldValue, templateValue));
     }
 
 }
