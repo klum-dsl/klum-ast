@@ -1,3 +1,8 @@
+pluginManagement {
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version '1.7.21'
+    }
+}
 rootProject.name = 'klum-ast-root'
 include 'klum-ast-annotations'
 include 'klum-ast'

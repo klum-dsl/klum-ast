@@ -33,12 +33,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -282,4 +277,31 @@ public class DslHelper {
 
         throw new MissingPropertyException(name, instance.getClass());
     }
+
+    public static <T extends Annotation> T getMostSpecificAnnotation(AnnotatedElement target, Class<T> annotationType) {
+        if (target instanceof Field || target instanceof Executable)
+            return getMostSpecificAnnotationFromMember(target, annotationType);
+        if (target instanceof Class)
+            return getMostSpecificAnnotationFromClass((Class<?>) target, annotationType);
+        throw new IllegalArgumentException(format("Cannot get annotation from %s", target));
+    }
+
+    private static <T extends Annotation> T getMostSpecificAnnotationFromMember(AnnotatedElement target, Class<T> annotationType) {
+        T result = target.getAnnotation(annotationType);
+        if (result != null) return result;
+
+        return getMostSpecificAnnotationFromClass(((Member) target).getDeclaringClass(), annotationType);
+    }
+    private static <T extends Annotation> T getMostSpecificAnnotationFromClass(Class<?> target, Class<T> annotationType) {
+        if (!isDslType(target)) return null;
+        T result = target.getAnnotation(annotationType);
+        if (result != null) return result;
+
+        result = target.getPackage().getAnnotation(annotationType);
+        if (result != null) return result;
+
+        return getMostSpecificAnnotationFromClass(target.getSuperclass(), annotationType);
+    }
+
+
 }

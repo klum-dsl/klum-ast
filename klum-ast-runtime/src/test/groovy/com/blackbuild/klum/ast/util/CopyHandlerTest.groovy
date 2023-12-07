@@ -177,5 +177,87 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
     }
 
+    @Issue("309")
+    def "copy with default strategy set replaces lists and map"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+            }
+         ''')
+
+        def template = newInstanceOf("pk.AClass")
+        template.inners.put "a", "aFromTemplate"
+        template.inners.put "b", "bFromTemplate"
+        template.innerLists.add "aFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        receiver.inners.put "a", "aFromReceiver"
+        receiver.inners.put "c", "cFromReceiver"
+        receiver.innerLists.add "aFromReceiver"
+        receiver.innerLists.add "bFromReceiver"
+        new CopyHandler(receiver).copyFrom(template)
+
+        then:
+        receiver.inners.size() == 2
+        !receiver.inners.containsKey("c")
+        receiver.inners == [a: "aFromTemplate", b: "bFromTemplate"]
+
+        and:
+        receiver.innerLists.size() == 1
+        receiver.innerLists == ["aFromTemplate"]
+    }
+
+    @Issue("309")
+    def "copy with helm strategy set replaces lists and merges maps"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Overwrite
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            @Overwrite(Overwrite.Strategy.HELM)
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+            }
+         ''')
+
+        def template = newInstanceOf("pk.AClass")
+        template.inners.put "a", "aFromTemplate"
+        template.inners.put "b", "bFromTemplate"
+        template.innerLists.add "aFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        receiver.inners.put "a", "aFromReceiver"
+        receiver.inners.put "c", "cFromReceiver"
+        receiver.innerLists.add "aFromReceiver"
+        receiver.innerLists.add "bFromReceiver"
+        new CopyHandler(receiver).copyFrom(template)
+
+        then:
+        receiver.inners.size() == 3
+        receiver.inners.containsKey("c")
+        receiver.inners == [a: "aFromTemplate", b: "bFromTemplate", c: "cFromReceiver"]
+
+        and:
+        receiver.innerLists.size() == 1
+        receiver.innerLists == ["aFromTemplate"]
+    }
+
 
 }

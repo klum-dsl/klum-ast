@@ -25,7 +25,11 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
+import com.blackbuild.groovy.configdsl.transform.Overwrite;
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.klum.ast.util.copy.CopyStrategy;
+import com.blackbuild.klum.ast.util.copy.DefaultCopyStrategy;
+import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -43,8 +47,6 @@ public class CopyHandler {
 
     private final Object instance;
     private final KlumInstanceProxy proxy;
-
-    private CopyStrategy copyStrategy = new DefaultCopyStrategy();
 
     public CopyHandler(Object instance) {
         this.instance = instance;
@@ -76,6 +78,7 @@ public class CopyHandler {
     }
 
     private void copyFromField(Field field, Object template) {
+        CopyStrategy copyStrategy = getCopyStrategy(field);
         String fieldName = field.getName();
         Object oldValue = proxy.getInstanceAttribute(fieldName);
 
@@ -84,29 +87,54 @@ public class CopyHandler {
         if (templateValue == null) return;
 
         if (templateValue instanceof Collection)
-            copyFromCollectionField((Collection) oldValue, (Collection) templateValue, fieldName);
+            copyFromCollectionField((Collection) oldValue, (Collection) templateValue, copyStrategy);
         else if (templateValue instanceof Map)
-            copyFromMapField((Map) oldValue, (Map) templateValue, fieldName);
+            copyFromMapField((Map) oldValue, (Map) templateValue, copyStrategy);
         else
-            copyFromSingleField(fieldName, oldValue, templateValue);
+            copyFromSingleField(fieldName, oldValue, templateValue, copyStrategy);
     }
 
-    private void copyFromSingleField(String fieldName, Object oldValue, Object templateValue) {
+    private CopyStrategy getCopyStrategy(Field field) {
+        Overwrite overwrite = DslHelper.getMostSpecificAnnotation(field, Overwrite.class);
+        if (overwrite == null)
+            return DefaultCopyStrategy.INSTANCE;
+
+        try {
+            Class<? extends CopyStrategy> strategyClass;
+            if (overwrite.value() != Overwrite.Strategy.DEFAULT)
+                strategyClass = Class.forName(overwrite.value().typeName).asSubclass(CopyStrategy.class);
+            else if (!overwrite.customType().isEmpty())
+                strategyClass = Class.forName(overwrite.customType()).asSubclass(CopyStrategy.class);
+            else
+                strategyClass = overwrite.custom();
+            return (CopyStrategy) InvokerHelper.invokeConstructorOf(strategyClass, null);
+
+        } catch (ReflectiveOperationException | ClassCastException e) {
+            throw new IllegalStateException("Could not instantiate copy strategy for " + field, e);
+        }
+    }
+
+    private void copyFromSingleField(String fieldName, Object oldValue, Object templateValue, CopyStrategy copyStrategy) {
         proxy.setInstanceAttribute(fieldName, copyStrategy.getCopiedValue(oldValue, templateValue));
     }
 
-    private <K,V> void copyFromMapField(Map<K,V> oldValue, Map<K,V> templateValue, String fieldName) {
+    private <K,V> void copyFromMapField(Map<K,V> oldValue, Map<K,V> templateValue, CopyStrategy copyStrategy) {
         if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = proxy.getInstanceAttribute(fieldName);
-        instanceField.clear();
-        instanceField.putAll(copyStrategy.copyMap(oldValue, templateValue));
+        Map<K, V> newValue = copyStrategy.getCopiedValue(oldValue, templateValue);
+
+        if (oldValue == newValue) return; // identity check is intended, copy map modifies the map in place
+        oldValue.clear();
+        oldValue.putAll(newValue);
     }
 
-    private <T> void copyFromCollectionField(Collection<T> oldValue, Collection<T> templateValue, String fieldName) {
+    private <T> void copyFromCollectionField(Collection<T> oldValue, Collection<T> templateValue, CopyStrategy copyStrategy) {
         if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = proxy.getInstanceAttribute(fieldName);
-        instanceField.clear();
-        instanceField.addAll(copyStrategy.copyCollection(oldValue, templateValue));
+        Collection<T> newValue = copyStrategy.getCopiedValue(oldValue, templateValue);
+
+        if (oldValue == newValue) return; // identity check is intended, copy map modifies the map in place
+
+        oldValue.clear();
+        oldValue.addAll(newValue);
     }
 
 }

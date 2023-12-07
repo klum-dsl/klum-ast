@@ -3,7 +3,7 @@ Transformations which are activated by annotation the model classes with the `@D
  is then automatically picked up and applied during compilation.
  
 So the only necessary step is to include KlumAST in the classpath during compilation. Since the modifications are
-done directly during the compilation, the KlumAST is does not need to be present during runtime, thus the dependency
+done directly during the compilation, the KlumAST does not need to be present during runtime, thus the dependency
 can either be marked as `optional` for Maven or be part of the `compileOnly` configuration for Gradle.
 
 Use the following snippet to include KlumAST in your project:
@@ -27,7 +27,7 @@ Use the following snippet to include KlumAST in your project:
 </dependencies>
 ```
 
-Of course you need to setup compilation for Groovy and the Groovy dependency as well (for example using the GMavenPlus
+Of course, you need to set up compilation for Groovy and the Groovy dependency as well (for example using the GMavenPlus
 plugin). See the example projects for a more detailed setup.
 
 

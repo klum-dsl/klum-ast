@@ -1,4 +1,5 @@
 apply plugin: 'java-library'
+apply plugin: 'kotlin'
 
 description "Runtime Library for KlumAST"
 
@@ -25,4 +26,27 @@ dependencies {
     gdsl 'com.github.adedayo.intellij.sdk:core-api:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:java-psi-impl:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+buildscript {
+    ext.kotlin_version = '1.7.21'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+repositories {
+    mavenCentral()
+}
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
