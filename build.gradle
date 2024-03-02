@@ -3,9 +3,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 buildscript {
     repositories {
         mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        gradlePluginPortal()
     }
 }
 
@@ -60,7 +58,7 @@ subprojects {
         mavenCentral()
     }
     jacoco {
-        toolVersion = "0.8.2"
+        toolVersion = "0.8.11"
     }
 
     dependencies {

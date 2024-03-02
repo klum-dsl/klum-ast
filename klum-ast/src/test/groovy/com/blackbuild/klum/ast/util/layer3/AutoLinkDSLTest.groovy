@@ -239,7 +239,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(owner = {container.producer}) User user
+                @LinkTo(provider = {container.producer}) User user
             }
         ''')
 
@@ -264,8 +264,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -288,7 +287,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(owner = {container.producer}) User user
+                @LinkTo(provider = {container.producer}) User user
             }
         ''')
 
@@ -313,8 +312,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -336,7 +334,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
                 User consumer
             }
             
-            @LinkTo(owner = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME)
+            @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME)
             @DSL class Consumer extends Service {
                 @LinkTo User user
             }
@@ -363,8 +361,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.groovy.configdsl.transform.Key
             import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -387,7 +384,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(owner = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME) User user
+                @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME) User user
             }
         ''')
 
@@ -436,7 +433,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(owner = {container.producer}, nameSuffix = "User") User user
+                @LinkTo(provider = {container.producer}, nameSuffix = "User") User user
             }
         ''')
 
@@ -482,7 +479,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             @DSL
             class Service {
                 @Owner Container container
-                @LinkTo(ownerType = Environment) User user
+                @LinkTo(providerType = Environment) User user
             }
         ''')
 
@@ -544,7 +541,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
         when:
         linkTo = withDefaults(GroovyStub(LinkTo) {
-            ownerType() >> getClass("tmp.Environment")
+            providerType() >> getClass("tmp.Environment")
         })
 
         then:
@@ -552,7 +549,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 
         when:
         linkTo = withDefaults(GroovyStub(LinkTo) {
-            owner() >> { container.service2 }.getClass()
+            provider() >> { container.service2 }.getClass()
         })
 
         then:
@@ -563,8 +560,8 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         with(stub) {
                 field() >> ""
                 fieldId() >> ""
-                owner() >> LinkTo.None
-                ownerType() >> Object
+                provider() >> LinkTo.None
+                providerType() >> Object
                 strategy() >> LinkTo.Strategy.AUTO
                 nameSuffix() >> ""
         }

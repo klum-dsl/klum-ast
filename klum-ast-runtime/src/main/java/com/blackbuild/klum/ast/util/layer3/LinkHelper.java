@@ -111,10 +111,10 @@ public class LinkHelper {
     }
 
     static Object determineOwnerObject(KlumInstanceProxy proxy, LinkTo linkTo) {
-        if (linkTo.owner() != LinkTo.None.class)
-            return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.owner(), proxy.getDSLInstance());
-        if (linkTo.ownerType() != Object.class)
-            return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.ownerType())
+        if (linkTo.provider() != LinkTo.None.class)
+            return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), proxy.getDSLInstance());
+        if (linkTo.providerType() != Object.class)
+            return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.providerType())
                     .orElse(null);
 
         return proxy.getSingleOwner();

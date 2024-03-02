@@ -23,13 +23,11 @@
  */
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
-import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.NamedAnnotationMemberClosure;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.AlsoNeeds;
-import com.blackbuild.klum.cast.checks.ClassNeedsAnnotation;
 import com.blackbuild.klum.cast.checks.MutuallyExclusive;
 import groovy.lang.Closure;
 
@@ -55,7 +53,7 @@ import java.lang.annotation.*;
  * }
  *
  * {@literal @}DSL class Consumer extends Service {
- *   {@literal @}LinkTo(owner={env.services.consumer}) User internal
+ *   {@literal @}LinkTo(provider={env.services.consumer}) User internal
  * }
  * </code></pre>
  *
@@ -67,29 +65,30 @@ import java.lang.annotation.*;
  * LinkTo is handled in the AutoLink phase, i.e. after owners have been set and auto-create objects have been created.
  * It will work on any annotated field that is not yet set.
  *
- * <h3>owner</h3>
+ * <h3>provider</h3>
  *
- * The link mechanism is centered around the owner object, i.e. the object that contains the field to be linked. This
+ * The link mechanism is centered around the provider object, i.e. the object that contains the field to be linked. This
  * is determined the following way:
  *
  * <ul>
- *     <li>owner: contains a code closure that is run relative to the annotated field's instance to access the owner (like in the example)</li>
- *     <li>ownerType: contains a type of owner. Finds the first element of the given type in the owner hierarchy</li>
- *     <li>otherwise, the single owner is used</li>
+ *     <li>provider: contains a code closure that is run relative to the annotated field's instance to access the owner (like in the example)</li>
+ *     <li>providerType: contains a type of owner. Finds the first element of the given type in the owner hierarchy</li>
+ *     <li>otherwise, the single owner field of the annotated field's class is used</li>
  * </ul>
  *
- * If the annotated field's instance has no owner or multiple owner fields, the owner must be specified explicitly using the owner member.
- * If the owner evaluates to null, the link is not set (no exception is thrown).
+ * If the annotated field's instance has no owner or multiple owner fields, the provider must be specified explicitly using the provider member.
+ * If the provider evaluates to null, the link is not set (no exception is thrown).
  *
  * <h3>target field</h3>
  *
- * Once the owner is determined, the field of the owner to be used as the provider of the link is determined. This is done the following way:
+ * Once the provider is determined, the field of the provider to be used as the provider of the link is determined. This is done the following way:
  * <ul>
  *     <li>If the field member is set, the field with the given name is used</li>
  *     <li>if the fieldId member is set, the field with the matching LinkSource annotation is taken. It is illegal
  *     to have field and fieldId set together</li>
  *     <li>if neither field nor fieldId is set, the field with the same name as the annotated field is used</li>
  *     <li>if no field with the given name exists and exactly one field not annotated with LinkSource and of the correct type exists, that one is used</li>
+ *     <li>if no matching field is found, an exception is thrown</li>
  * </ul>
  */
 @Target({ElementType.FIELD, ElementType.TYPE})
@@ -97,7 +96,7 @@ import java.lang.annotation.*;
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
 @KlumCastValidated
 @NeedsDSLClass
-@MutuallyExclusive({"owner", "ownerType"})
+@MutuallyExclusive({"provider", "providerType"})
 @Inherited
 @Documented
 public @interface LinkTo {
@@ -116,12 +115,12 @@ public @interface LinkTo {
     /**
      * The owner of the link. By default, the owner of the annotated field's instance is used.
      */
-    Class<? extends Closure<Object>> owner() default None.class;
+    Class<? extends Closure<Object>> provider() default None.class;
 
     /** If set, the owner is determined by walking the owner hierarchy up until the given type is found. */
-    Class<?> ownerType() default Object.class;
+    Class<?> providerType() default Object.class;
 
-    @AlsoNeeds({"owner", "ownerType"})
+    @AlsoNeeds({"provider", "providerType"})
     Strategy strategy() default Strategy.AUTO;
 
     /**

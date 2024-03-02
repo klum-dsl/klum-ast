@@ -32,6 +32,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Objects;
 
+/**
+ * Helper class to wrap the LinkTo annotation and provide a unified view on the annotation.
+ */
 @SuppressWarnings("ClassExplicitlyAnnotation")
 public class LinkToWrapper implements LinkTo {
 
@@ -59,16 +62,16 @@ public class LinkToWrapper implements LinkTo {
     }
 
     @Override
-    public Class<? extends Closure<Object>> owner() {
-        if (!fromField.owner().equals(None.class)) return fromField.owner();
-        if (fromClass != null) return fromClass.owner();
+    public Class<? extends Closure<Object>> provider() {
+        if (!fromField.provider().equals(None.class)) return fromField.provider();
+        if (fromClass != null) return fromClass.provider();
         return None.class;
     }
 
     @Override
-    public Class<?> ownerType() {
-        if (!fromField.ownerType().equals(Object.class)) return fromField.ownerType();
-        if (fromClass != null) return fromClass.ownerType();
+    public Class<?> providerType() {
+        if (!fromField.providerType().equals(Object.class)) return fromField.providerType();
+        if (fromClass != null) return fromClass.providerType();
         return Object.class;
     }
 
