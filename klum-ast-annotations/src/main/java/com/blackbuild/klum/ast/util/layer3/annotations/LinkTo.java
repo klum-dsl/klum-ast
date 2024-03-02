@@ -120,6 +120,14 @@ public @interface LinkTo {
     /** If set, the owner is determined by walking the owner hierarchy up until the given type is found. */
     Class<?> providerType() default Object.class;
 
+    /**
+     * If set, determines the strategy to determine which field of the provider is to be used as the link source.
+     * FIELD_NAME: use the field with the same name as the annotated field, i.e. if the annotated field is called
+     * 'admin', the field 'admin' of the provider is used.
+     * INSTANCE_NAME: use the field with the same name as the instance name of the annotated field's owner, i.e. the
+     * name of the field of the annotated field's classes owner pointing to the instance of the annotated field's container.
+     * Can only be set together with one of provider or providerType.
+     */
     @AlsoNeeds({"provider", "providerType"})
     Strategy strategy() default Strategy.AUTO;
 

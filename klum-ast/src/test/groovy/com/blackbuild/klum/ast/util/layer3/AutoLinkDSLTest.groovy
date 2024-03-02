@@ -31,7 +31,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 @SuppressWarnings('GrPackage')
 class AutoLinkDSLTest extends AbstractDSLSpec {
 
-    def "auto link default name and owner"() {
+    def "auto link default name and provider"() {
         given:
         createClass('''
             package tmp
@@ -76,7 +76,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         instance.services.s3.user.name == 'serviceUser'
     }
 
-    def "auto link with explicit field name and default owner"() {
+    def "auto link with explicit field name and default provider"() {
         given:
         createClass('''
             package tmp
@@ -120,7 +120,7 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         instance.services.s3.aUser.name == 'serviceUser'
     }
 
-    def "auto link with fieldId and default owner"() {
+    def "auto link with fieldId and default provider"() {
         given:
         createClass('''
             package tmp
@@ -165,7 +165,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.services.s3.aUser.name == 'serviceUser'
     }
 
-    def "auto link with no default name, single field and default owner"() {
+    def "auto link with no default name, single field and default provider"() {
         given:
         createClass('''
             package tmp
@@ -208,7 +208,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.services.s3.access.name == 'serviceUser'
     }
 
-    def "auto link default name and owner closure"() {
+    def "auto link default name and provider closure"() {
         given:
         createClass('''
             package tmp
@@ -256,7 +256,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.user)
 
     }
-    def "auto link implicit instance name strategy and owner closure"() {
+    def "auto link implicit instance name strategy and provider closure"() {
         given:
         createClass('''
             package tmp
@@ -304,7 +304,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.consumer)
     }
 
-    def "auto link explicit instance name strategy and owner closure"() {
+    def "auto link explicit instance name strategy and provider closure"() {
         given:
         createClass('''
             package tmp
@@ -353,7 +353,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.consumer)
     }
 
-    def "auto link explicit instance name strategy and owner closure on class"() {
+    def "auto link explicit instance name strategy and provider closure on class"() {
         given:
         createClass('''
             package tmp
@@ -401,7 +401,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.consumer)
     }
 
-    def "auto link implicit instance name strategy, nameSuffix and owner closure"() {
+    def "auto link implicit instance name strategy, nameSuffix and provider closure"() {
         given:
         createClass('''
             package tmp
@@ -450,7 +450,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.consumerUser)
     }
 
-    def "auto link with owner type"() {
+    def "auto link with provider type"() {
         given:
         createClass('''
             package tmp
@@ -496,7 +496,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.container.service.user.is(instance.user)
     }
 
-    def "determine owner scenarios"() {
+    def "determine provider scenarios"() {
         given:
         createClass('''
             package tmp
@@ -545,7 +545,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         })
 
         then:
-        LinkHelper.determineOwnerObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance
+        LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance
 
         when:
         linkTo = withDefaults(GroovyStub(LinkTo) {
@@ -553,7 +553,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         })
 
         then:
-        LinkHelper.determineOwnerObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
+        LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
     }
 
     LinkTo withDefaults(LinkTo stub) {

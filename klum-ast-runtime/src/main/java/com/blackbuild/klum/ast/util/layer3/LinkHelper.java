@@ -56,61 +56,61 @@ public class LinkHelper {
     }
 
     static Object determineLinkTarget(KlumInstanceProxy proxy, Field field, LinkTo linkTo) {
-        Object ownerObject = determineOwnerObject(proxy, linkTo);
-        if (ownerObject == null) return null;
+        Object providerObject = determineProviderObject(proxy, linkTo);
+        if (providerObject == null) return null;
 
-        if (!linkTo.field().equals(""))
-            return InvokerHelper.getProperty(ownerObject, linkTo.field());
+        if (!linkTo.field().isEmpty())
+            return InvokerHelper.getProperty(providerObject, linkTo.field());
 
-        if (!linkTo.fieldId().equals(""))
-            return ClusterModel.getSingleValueOrFail(ownerObject, field.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
+        if (!linkTo.fieldId().isEmpty())
+            return ClusterModel.getSingleValueOrFail(providerObject, field.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
 
-        MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, ownerObject, linkTo);
-        MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, ownerObject, linkTo);
+        MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, providerObject, linkTo);
+        MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, providerObject, linkTo);
 
         if (metaPropertyForInstanceName != null && metaPropertyForFieldName != null && !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName())) {
             switch (linkTo.strategy()) {
                 case INSTANCE_NAME:
-                    return metaPropertyForInstanceName.getProperty(ownerObject);
+                    return metaPropertyForInstanceName.getProperty(providerObject);
                 case FIELD_NAME:
-                    return metaPropertyForFieldName.getProperty(ownerObject);
+                    return metaPropertyForFieldName.getProperty(providerObject);
                 default:
                     throw new IllegalStateException(format("LinkTo annotation on %s#%s targeting %s would match both instance name (%s) and field name (%s). You need to explicitly set a strategy.",
-                            field.getDeclaringClass().getName(), field.getName(), ownerObject.getClass().getName(), metaPropertyForInstanceName.getName(), metaPropertyForFieldName.getName()));
+                            field.getDeclaringClass().getName(), field.getName(), providerObject.getClass().getName(), metaPropertyForInstanceName.getName(), metaPropertyForFieldName.getName()));
             }
         }
 
         if (metaPropertyForInstanceName != null)
-            return metaPropertyForInstanceName.getProperty(ownerObject);
+            return metaPropertyForInstanceName.getProperty(providerObject);
         else if (metaPropertyForFieldName != null)
-            return metaPropertyForFieldName.getProperty(ownerObject);
+            return metaPropertyForFieldName.getProperty(providerObject);
 
-        return ClusterModel.getSingleValueOrFail(ownerObject, field.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
+        return ClusterModel.getSingleValueOrFail(providerObject, field.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
     }
 
     private static boolean isLinkSourceWithId(AnnotatedElement field, String id) {
         return field.isAnnotationPresent(LinkSource.class) && field.getAnnotation(LinkSource.class).value().equals(id);
     }
 
-    static MetaProperty getFieldNameProperty(Field field, Object ownerObject, LinkTo linkTo) {
-        return InvokerHelper.getMetaClass(ownerObject).getMetaProperty(field.getName() + linkTo.nameSuffix());
+    static MetaProperty getFieldNameProperty(Field field, Object providerObject, LinkTo linkTo) {
+        return InvokerHelper.getMetaClass(providerObject).getMetaProperty(field.getName() + linkTo.nameSuffix());
     }
 
-    static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object ownerObject, LinkTo linkTo) {
+    static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object providerObject, LinkTo linkTo) {
         Set<Object> owners = proxy.getOwners();
         if (owners.size() != 1) return null;
 
         Object owner = owners.stream().findFirst().orElseThrow(AssertionError::new);
 
-        if (owner == ownerObject) return null;
+        if (owner == providerObject) return null;
 
         return StructureUtil.getPathOfSingleField(owner, proxy.getDSLInstance())
                 .map(it -> it + linkTo.nameSuffix())
-                .map(it -> InvokerHelper.getMetaClass(ownerObject).getMetaProperty(it))
+                .map(it -> InvokerHelper.getMetaClass(providerObject).getMetaProperty(it))
                 .orElse(null);
     }
 
-    static Object determineOwnerObject(KlumInstanceProxy proxy, LinkTo linkTo) {
+    static Object determineProviderObject(KlumInstanceProxy proxy, LinkTo linkTo) {
         if (linkTo.provider() != LinkTo.None.class)
             return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), proxy.getDSLInstance());
         if (linkTo.providerType() != Object.class)
