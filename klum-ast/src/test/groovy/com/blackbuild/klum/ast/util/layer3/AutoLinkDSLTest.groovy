@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util.layer3
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+import spock.lang.Issue
 
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 @SuppressWarnings('GrPackage')
@@ -256,6 +257,55 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         instance.consumer.user.is(instance.producer.user)
 
     }
+
+    @Issue("316")
+    def "auto link default name and provider closure pointing to map"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class User {
+                @Key String name
+                String password
+            }
+
+            @DSL class Container {
+                Producer producer
+                Consumer consumer
+            }
+
+            @DSL
+            abstract class Service {
+                @Owner Container container
+            }
+            
+            @DSL class Producer extends Service {
+                Map<String, User> users
+            }
+            
+            @DSL class Consumer extends Service {
+                @LinkTo(provider = {container.producer.users}) User accessUser
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            consumer()
+            producer() {
+                user('admin')
+                user('accessUser')
+            }
+        }
+
+        then:
+        instance.consumer.accessUser.is(instance.producer.users.accessUser)
+    }
+
     def "auto link implicit instance name strategy and provider closure"() {
         given:
         createClass('''

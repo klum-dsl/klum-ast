@@ -79,9 +79,13 @@ import java.lang.annotation.*;
  * If the annotated field's instance has no owner or multiple owner fields, the provider must be specified explicitly using the provider member.
  * If the provider evaluates to null, the link is not set (no exception is thrown).
  *
+ * <h4>Map provider</h4>
+ *
+ * If the provider is a map, the field name is used as the key to access the provider. If the key does not exist, the link is not set.
+ *
  * <h3>target field</h3>
  *
- * Once the provider is determined, the field of the provider to be used as the provider of the link is determined. This is done the following way:
+ * Once the provider is determined, the field of the provider to be used as the provider of the link is resolved. This is done the following way:
  * <ul>
  *     <li>If the field member is set, the field with the given name is used</li>
  *     <li>if the fieldId member is set, the field with the matching LinkSource annotation is taken. It is illegal

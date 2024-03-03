@@ -33,6 +33,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.Set;
 
 import static java.lang.String.format;
@@ -43,8 +44,7 @@ public class LinkHelper {
 
     static void autoLink(Object container, String fieldName) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(container);
-        @SuppressWarnings("OptionalGetWithoutIsPresent")
-        Field field = ClusterModel.getField(container.getClass(), fieldName).get();
+        Field field = ClusterModel.getField(container.getClass(), fieldName).orElseThrow(AssertionError::new);
         LinkTo linkTo = new LinkToWrapper(field);
         autoLink(proxy, field, linkTo);
     }
@@ -68,7 +68,7 @@ public class LinkHelper {
         MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, providerObject, linkTo);
         MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, providerObject, linkTo);
 
-        if (metaPropertyForInstanceName != null && metaPropertyForFieldName != null && !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName())) {
+        if (pointToDifferentProperties(metaPropertyForInstanceName, metaPropertyForFieldName)) {
             switch (linkTo.strategy()) {
                 case INSTANCE_NAME:
                     return metaPropertyForInstanceName.getProperty(providerObject);
@@ -88,12 +88,17 @@ public class LinkHelper {
         return ClusterModel.getSingleValueOrFail(providerObject, field.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
     }
 
+    private static boolean pointToDifferentProperties(MetaProperty metaPropertyForInstanceName, MetaProperty metaPropertyForFieldName) {
+        if (metaPropertyForInstanceName == null || metaPropertyForFieldName == null) return false;
+        return !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName());
+    }
+
     private static boolean isLinkSourceWithId(AnnotatedElement field, String id) {
         return field.isAnnotationPresent(LinkSource.class) && field.getAnnotation(LinkSource.class).value().equals(id);
     }
 
     static MetaProperty getFieldNameProperty(Field field, Object providerObject, LinkTo linkTo) {
-        return InvokerHelper.getMetaClass(providerObject).getMetaProperty(field.getName() + linkTo.nameSuffix());
+        return getMetaPropertyOrMapKey(providerObject, field.getName() + linkTo.nameSuffix());
     }
 
     static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object providerObject, LinkTo linkTo) {
@@ -106,8 +111,31 @@ public class LinkHelper {
 
         return StructureUtil.getPathOfSingleField(owner, proxy.getDSLInstance())
                 .map(it -> it + linkTo.nameSuffix())
-                .map(it -> InvokerHelper.getMetaClass(providerObject).getMetaProperty(it))
+                .map(it -> getMetaPropertyOrMapKey(providerObject, it))
                 .orElse(null);
+    }
+
+    static MetaProperty getMetaPropertyOrMapKey(Object providerObject, String name) {
+        MetaProperty result = InvokerHelper.getMetaClass(providerObject).getMetaProperty(name);
+        if (result != null) return result;
+        if (providerObject instanceof Map && ((Map<?, ?>) providerObject).containsKey(name)) return new MapKeyMetaProperty(name);
+        return null;
+    }
+
+    private static class MapKeyMetaProperty extends MetaProperty {
+        MapKeyMetaProperty(String name) {
+            super(name, Object.class);
+        }
+
+        @Override
+        public Object getProperty(Object object) {
+            return ((Map<String, Object>) object).get(name);
+        }
+
+        @Override
+        public void setProperty(Object object, Object newValue) {
+            ((Map<String, Object>) object).put(name,newValue);
+        }
     }
 
     static Object determineProviderObject(KlumInstanceProxy proxy, LinkTo linkTo) {
