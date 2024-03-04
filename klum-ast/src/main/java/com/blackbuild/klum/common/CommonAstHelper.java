@@ -193,7 +193,7 @@ public class CommonAstHelper {
 
     static void addPropertyAsFieldWithAccessors(ClassNode cNode, PropertyNode pNode) {
         final FieldNode fn = pNode.getField();
-        cNode.getFields().remove(fn);
+        cNode.removeField(fn.getName());
         cNode.addField(fn);
 
         Statement getterBlock = pNode.getGetterBlock();

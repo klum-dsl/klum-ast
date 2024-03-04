@@ -624,6 +624,11 @@ Fields marked as `PROTECTED` are not externally writable, all dsl methods as wel
 are created as protected. This essentially means that they cannot be changed directly by a user of
 the DSL. They can only be changed via custom mutator (or lifecycle) methods or other setters.
 
+## BUILDER
+'BUILDER' fields are not externally readable, but the dsl methods are created as public. This means
+that the field is not part of the visible model, but can bet use to set the actual fields in a 
+later phase. 
+
 ## TRANSIENT
 `TRANSIENT` fields are similar in that they don't get dsl methods either. However, in contrast
 to all other fields, the retain a public setter in the model, taking them effectively

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -33,7 +34,7 @@ import org.codehaus.groovy.ast.PropertyNode;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getGetterName;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -47,6 +48,7 @@ class PropertyAccessors {
     }
 
     public void invoke() {
+        getInstanceNonPropertyFields(dslastTransformation.annotatedClass).forEach(this::createPropertyForBuilderField);
         getInstanceProperties(dslastTransformation.annotatedClass).forEach(this::adjustPropertyAccessorsForSingleField);
 
         setAccessorsForOwnerFields();
@@ -57,9 +59,29 @@ class PropertyAccessors {
         replaceProperties(dslastTransformation.annotatedClass, propertiesToReplace);
     }
 
+    private void createPropertyForBuilderField(FieldNode fieldNode) {
+        if (getFieldType(fieldNode) != FieldType.BUILDER)
+            return;
+        PropertyNode pNode = new PropertyNode(fieldNode, fieldNode.getModifiers(), returnS(varX(fieldNode.getName())), null);
+        propertiesToReplace.add(pNode);
+    }
+
     private void adjustPropertyAccessorsForSingleField(PropertyNode pNode) {
         if (dslastTransformation.shouldFieldBeIgnored(pNode.getField()))
             return;
+
+        if (getFieldType(pNode.getField()) == FieldType.BUILDER) {
+            pNode.getField().setModifiers(pNode.getField().getModifiers() & Opcodes.ACC_PROTECTED & ~Opcodes.ACC_PUBLIC);
+            if (pNode.isPublic()) {
+                dslastTransformation.annotatedClass.getProperties().remove(pNode);
+                pNode = new PropertyNode(
+                        pNode.getField(),
+                        pNode.getModifiers() & ~Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED,
+                        pNode.getGetterBlock(),
+                        pNode.getSetterBlock()
+                );
+            }
+        }
 
         String fieldName = pNode.getName();
         ClassNode fieldType = pNode.getType();
@@ -76,7 +98,6 @@ class PropertyAccessors {
                 )
         ));
 
-        // TODO what about protected methods?
         createPublicMethod(getterName)
                 .returning(fieldType)
                 .doReturn(callX(

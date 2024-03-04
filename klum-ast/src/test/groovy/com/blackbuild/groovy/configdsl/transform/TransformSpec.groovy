@@ -2309,4 +2309,34 @@ import org.codehaus.groovy.control.CompilePhase
         closureParams.value() == FromString
         closureParams.options() as List == ["Map<String,Object>"]
     }
+
+    def "Builder fields get protected getters in model"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                @Field(FieldType.BUILDER)
+                String value
+                @Field(FieldType.BUILDER)
+                protected String value2
+            }
+        ''')
+
+        then:
+        rwClazz.getDeclaredMethod("value", String).getModifiers() & ACC_PUBLIC
+        clazz.getDeclaredMethod("getValue").getModifiers() & ACC_PROTECTED
+        rwClazz.getDeclaredMethod("value2", String).getModifiers() & ACC_PUBLIC
+        clazz.getDeclaredMethod("getValue2").getModifiers() & ACC_PROTECTED
+
+        when:
+        instance = clazz.Create.With {
+            value "hallo"
+            value2 "holla"
+        }
+
+        then:
+        instance.value == 'hallo'
+        instance.value2 == 'holla'
+    }
+
 }

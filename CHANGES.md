@@ -1,5 +1,6 @@
 ## 2.0.0 (unreleased)
 - New Features
+    - New Field Type: BUILDER: Getters are protected or private in model, but dsl methods are public
     - Compatibility with Groovy 3 and 4. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins). Tests are run with Groovy 3 and 4 as well.
     - Replace basic jackson transformation with a dedicated (beta) JacksonModule (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Migration))).
     - First steps for Layer3 models. (see [Layer3](https://github.com/klum-dsl/klum-ast/wiki/Layer3))    

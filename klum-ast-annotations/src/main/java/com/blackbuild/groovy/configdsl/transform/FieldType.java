@@ -58,6 +58,14 @@ public enum FieldType {
     IGNORED,
 
     /**
+     * Builder fields are the opposite of protected fields. They create public setter and dsl methods,
+     * but the field itself is protected. This is useful for helper fields that are not part of the
+     * public model, but are used in later phases to help construct the model (for example the
+     * {@link com.blackbuild.klum.ast.util.layer3.annotations.LinkTo} annotation).
+     */
+    BUILDER,
+
+    /**
      * <p>Designates this field as a link to an existing object. Link field are only valid for DSL fields or collections
      * and only create dsl methods for existing objects (i.e. using a instance as parameter), but no methods to
      * create new instances (Map and/or Closure parameters).</p>
