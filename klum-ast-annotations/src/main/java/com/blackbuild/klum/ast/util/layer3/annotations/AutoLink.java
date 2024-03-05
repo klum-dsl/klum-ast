@@ -25,13 +25,22 @@ package com.blackbuild.klum.ast.util.layer3.annotations;
 
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.NeedsType;
+import groovy.lang.Closure;
 
 import java.lang.annotation.*;
 
+/**
+ * Lifecycle method that is called during the auto link phase. Can either be placed on a method or a field of type closure.
+ * <p>
+ *     AutoLink method should only be used to link existing objects together. If you need to create objects, use {@link AutoCreate} instead.
+ * </p>
+ */
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @WriteAccess(WriteAccess.Type.LIFECYCLE)
+@NeedsType(Closure.class)
 @Documented
 public @interface AutoLink {
 }

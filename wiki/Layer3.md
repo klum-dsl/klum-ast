@@ -120,7 +120,7 @@ def deploy(Environment env) {
 Validations in our ShippingApplication can also be done specifically for that application:
 
 ```groovy
-@Validate void ifSslIsEnabledBackendMustDefineValidationServer() {
+@Validate void SslNeedsValidationServer() {
     if (frontend.ssl && backend.validationServer == null)
         error "Backend must define validation server if SSL is enabled"
 }
@@ -209,7 +209,7 @@ With ShipmentApplication being a class with domain knowledge, it can also contai
 
 Making these validation with a domain schema is trivial.
 
-### Automatic creation linking
+### Automatic creation and linking
 
 Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant, but also error-prone, since the monitoring service might be configured differently for each application.
 
