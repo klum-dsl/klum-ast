@@ -1121,7 +1121,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (member == null)
             return defaultValue;
 
-        if (!type.equals(member.getObjectExpression().getType().getTypeClass()))
+        if (!type.getName().equals(member.getObjectExpression().getType().getTypeClass().getName()))
             return defaultValue;
 
         try {

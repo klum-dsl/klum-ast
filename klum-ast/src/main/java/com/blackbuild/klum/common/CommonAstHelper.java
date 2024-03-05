@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.common;
 
+import org.codehaus.groovy.GroovyBugError;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -441,5 +442,13 @@ public class CommonAstHelper {
             }
         }
         return null;
+    }
+
+    public static Class<?> getClassFromClassLoader(ClassNode classNode) {
+        try {
+            return Thread.currentThread().getContextClassLoader().loadClass(classNode.getName());
+        } catch (ClassNotFoundException e) {
+            throw new GroovyBugError("Could not load class " + classNode.getName(), e);
+        }
     }
 }
