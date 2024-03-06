@@ -52,7 +52,7 @@ public class WriteAccessHelper {
 
         // We need to use the class explicitly, since we cannot access the members of metaAnnotations directly
         // This is safe, since annotations are in a different module and thus already compiled
-        Class<?> annotationClass = getClassFromClassLoader(annotation.getClassNode());
+        Class<?> annotationClass = getClassFromClassLoader(annotation.getClassNode(), WriteAccess.class);
         return annotationClass.getAnnotation(WriteAccess.class).value();
     }
 }

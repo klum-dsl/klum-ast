@@ -444,11 +444,15 @@ public class CommonAstHelper {
         return null;
     }
 
-    public static Class<?> getClassFromClassLoader(ClassNode classNode) {
+    public static Class<?> getClassFromClassLoader(ClassNode classNode, ClassLoader loader) {
         try {
-            return Thread.currentThread().getContextClassLoader().loadClass(classNode.getName());
+            return loader.loadClass(classNode.getName());
         } catch (ClassNotFoundException e) {
             throw new GroovyBugError("Could not load class " + classNode.getName(), e);
         }
+    }
+
+    public static Class<?> getClassFromClassLoader(ClassNode classNode, Class<?> loaderClass) {
+        return getClassFromClassLoader(classNode, loaderClass.getClassLoader());
     }
 }
