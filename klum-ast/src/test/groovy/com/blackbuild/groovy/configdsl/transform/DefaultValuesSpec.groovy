@@ -27,6 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
+import spock.lang.Issue
 
 class DefaultValuesSpec extends AbstractDSLSpec {
 
@@ -286,6 +287,34 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         then:
         foo.another == "model"
         foo.value == "model"
+    }
+
+    @Issue("318")
+    def "default methods should be lifecycle methods"() {
+        when:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                String value
+                @Default
+                void aDefaultMethod() {
+                    value = "default"
+                }
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+        hasNoMethod(clazz, "aDefaultMethod")
+        hasNoMethod(rwClazz, "aDefaultMethod")
+
+        when:
+        def foo = create("pk.Foo")
+
+        then:
+        foo.value == "default"
     }
 
 }
