@@ -38,7 +38,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
  * Factory to create DSL model objects.
  * @param <T> The type of the DSL model object.
  */
-@SuppressWarnings("java:S100")
+@SuppressWarnings({"java:S100", "unused"})
 public class KlumFactory<T> {
 
     protected final Class<T> type;
@@ -50,6 +50,7 @@ public class KlumFactory<T> {
     private Class<T> getTypeOrDefaultType(Class<T> type) {
         DSL annotation = type.getAnnotation(DSL.class);
         Class<?> defaultImpl = annotation.defaultImpl();
+        //noinspection unchecked - already verified via CheckDslDefaultImpl
         return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
     }
 

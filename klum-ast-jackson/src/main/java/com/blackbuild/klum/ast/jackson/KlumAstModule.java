@@ -67,7 +67,7 @@ public class KlumAstModule extends Module {
     public static class KlumValueInstantiators extends ValueInstantiators.Base {
         @Override
         public ValueInstantiator findValueInstantiator(DeserializationConfig config, BeanDescription beanDesc, ValueInstantiator defaultInstantiator) {
-            if (!DslHelper.getKeyField(beanDesc.getBeanClass()).isPresent())
+            if (DslHelper.getKeyField(beanDesc.getBeanClass()).isEmpty())
                 return defaultInstantiator;
 
             return new KlumValueInstantiator((BasicBeanDescription) beanDesc);
@@ -79,7 +79,7 @@ public class KlumAstModule extends Module {
         public BeanDeserializerBuilder updateBuilder(DeserializationConfig config, BeanDescription beanDesc, BeanDeserializerBuilder builder) {
 
             Optional<Field> key = DslHelper.getKeyField(beanDesc.getBeanClass());
-            if (!key.isPresent())
+            if (key.isEmpty())
                 return builder;
 
             Spliterator<SettableBeanProperty> spliterator = Spliterators.spliteratorUnknownSize(builder.getProperties(), Spliterator.ORDERED);

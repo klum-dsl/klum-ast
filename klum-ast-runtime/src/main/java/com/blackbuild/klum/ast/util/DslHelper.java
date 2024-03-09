@@ -72,18 +72,6 @@ public class DslHelper {
         return object != null && isDslType(object.getClass());
     }
 
-    public static Object requireDslObject(Object object) {
-        if (!isDslObject(object))
-            throw new IllegalArgumentException(format("Object %s is not a DSL object", object));
-        return object;
-    }
-
-    public static Class<?> getDslAncestor(Class<?> type) {
-        while (isDslType(type.getSuperclass()))
-            type = type.getSuperclass();
-        return type;
-    }
-
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
         List<Class<?>> result = new ArrayList<>();
         while (isDslType(type)) {

@@ -25,7 +25,10 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import groovy.lang.*;
+import groovy.lang.Closure;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -185,8 +188,9 @@ public class FactoryHelper {
 
     private static <T> T createAsSyntheticTemplate(Class<T> type) {
         try {
-            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").newInstance();
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            //noinspection unchecked
+            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
             throw new IllegalArgumentException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
         }
     }

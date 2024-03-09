@@ -33,7 +33,6 @@ import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.deser.ValueInstantiator;
 import com.fasterxml.jackson.databind.introspect.BasicBeanDescription;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Optional;
 
@@ -51,7 +50,7 @@ public class KlumValueInstantiator extends ValueInstantiator.Base {
     @Override
     public SettableBeanProperty[] getFromObjectArguments(DeserializationConfig config) {
         Optional<Field> field = DslHelper.getKeyField(getValueClass());
-        if (!field.isPresent())
+        if (field.isEmpty())
             throw new IllegalStateException("KlumValueInstantiator is only valid for keyed objects.");
         CreatorProperty prop = CreatorProperty.construct(
                 new PropertyName(field.get().getName()),
@@ -68,7 +67,7 @@ public class KlumValueInstantiator extends ValueInstantiator.Base {
     }
 
     @Override
-    public Object createFromObjectWith(DeserializationContext ctxt, Object[] args) throws IOException {
+    public Object createFromObjectWith(DeserializationContext ctxt, Object[] args) {
         return FactoryHelper.createAsStub(getValueClass(), (String) args[0]);
     }
 }

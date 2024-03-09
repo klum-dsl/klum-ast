@@ -35,6 +35,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.reflect.Modifier.isFinal;
 
+@SuppressWarnings("unused") // see Field
 public class FieldAstValidator extends KlumCastCheck<Annotation> {
 
     private AnnotationNode annotationToCheck;

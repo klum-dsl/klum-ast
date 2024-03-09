@@ -68,9 +68,11 @@ public class ClosureHelper {
         return invokeClosureWithDelegate(closureType, delegate, delegate);
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public static <T> T invokeClosureWithDelegateAsArgument(Closure<T> closure, Object delegate) {
         return invokeClosureWithDelegate(closure, delegate, delegate);
     }
+
     public static <T> T invokeClosureWithDelegate(Closure<T> closure, Object delegate, Object... arguments) {
         if (closure == null) return null;
         if (delegate != null) {

@@ -44,6 +44,7 @@ import static java.lang.String.format;
 /**
  * Implementations for generated instance methods.
  */
+@SuppressWarnings("unused") // called from generated code
 public class KlumInstanceProxy {
 
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
@@ -202,23 +203,28 @@ public class KlumInstanceProxy {
         if (isDslType(templateValue.getClass()))
             return (T) getProxyFor(templateValue).cloneInstance();
         else if (templateValue instanceof Collection)
-            return (T) createCopyOfCollection((Collection) templateValue);
+            return (T) createCopyOfCollection((Collection<?>) templateValue);
         else if (templateValue instanceof Map)
-            return (T) createCopyOfMap((Map) templateValue);
+            return (T) createCopyOfMap((Map<String, ?>) templateValue);
         else
             return templateValue;
     }
 
     private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
-        Collection<T> result = (Collection<T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        Collection<T> result = createNewEmptyCollectionOrMapFrom(templateValue);
         templateValue.stream().map(this::getCopiedValue).forEach(result::add);
         return result;
     }
 
     private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
-        Map<String, T> result = (Map<String, T>) InvokerHelper.invokeConstructorOf(templateValue.getClass(), null);
+        Map<String, T> result = createNewEmptyCollectionOrMapFrom(templateValue);
         templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T createNewEmptyCollectionOrMapFrom(T source) {
+        return (T) InvokerHelper.invokeConstructorOf(source.getClass(), null);
     }
 
     private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
@@ -491,13 +497,13 @@ public class KlumInstanceProxy {
     }
 
     private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
-        return (K) DslHelper.getOptionalFieldAnnotation(instance.getClass(), fieldName, FIELD_ANNOTATION)
+        //noinspection unchecked
+        return DslHelper.getOptionalFieldAnnotation(instance.getClass(), fieldName, FIELD_ANNOTATION)
                 .map(com.blackbuild.groovy.configdsl.transform.Field::keyMapping)
                 .filter(DslHelper::isClosure)
-                .map(value -> ClosureHelper.invokeClosure(value, element))
+                .map(value -> (K) ClosureHelper.invokeClosure(value, element))
                 .orElse(defaultValue);
     }
-
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
     @SafeVarargs
@@ -524,6 +530,7 @@ public class KlumInstanceProxy {
         return InvokerHelper.invokeMethod(instance, methodName, args);
     }
 
+    @SuppressWarnings("UnusedReturnValue") // called from generated code
     Object invokeRwMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(getRwInstance(), methodName, args);
     }
@@ -550,7 +557,8 @@ public class KlumInstanceProxy {
         if (keyMember == com.blackbuild.groovy.configdsl.transform.Field.FieldName.class)
             return Optional.of(name);
 
-        return Optional.of(ClosureHelper.invokeClosureWithDelegateAsArgument((Class<? extends Closure<String>>) keyMember, instance));
+        String result = ClosureHelper.invokeClosureWithDelegateAsArgument((Class<? extends Closure<String>>) keyMember, instance);
+        return Optional.of(result);
     }
 
 }

@@ -164,7 +164,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * the optional parameter.
      * @param target The class node to add to
      * already exists
-     * @return
+     * @return The created method node
      */
     @Override
     public MethodNode addTo(ClassNode target) {
