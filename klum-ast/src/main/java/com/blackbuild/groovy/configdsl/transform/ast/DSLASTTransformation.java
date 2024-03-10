@@ -652,8 +652,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
                     .addTo(rwClass);
-
         }
+
+        createProxyMethod(fieldName, "addElementsToCollection")
+                .optional()
+                .mod(visibility)
+                .linkToField(fieldNode)
+                .constantParam(fieldName)
+                .arrayParam(elementType, "values")
+                .addTo(rwClass);
+
+        createProxyMethod(fieldName, "addElementsToCollection")
+                .optional()
+                .mod(visibility)
+                .linkToField(fieldNode)
+                .constantParam(fieldName)
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
+                .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToCollection")
                 .optional()
@@ -810,6 +825,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
                     .addTo(rwClass);
         }
+
+        createProxyMethod(methodName, "addElementsToMap")
+                .optional()
+                .mod(visibility)
+                .linkToField(fieldNode)
+                .constantParam(methodName)
+                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(elementType)), "values")
+                .addTo(rwClass);
+        createProxyMethod(methodName, "addElementsToMap")
+                .optional()
+                .mod(visibility)
+                .linkToField(fieldNode)
+                .constantParam(methodName)
+                .arrayParam(elementType, "values")
+                .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToMap")
                 .optional()

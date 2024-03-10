@@ -568,7 +568,7 @@ class Other<E> {
         noExceptionThrown()
     }
 
-    @Issue("300")
+    @Issue(["300", "319"])
     def "methods of the factory are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -588,6 +588,9 @@ import java.time.Duration
         Bar WithAge(Duration age) {
             return With(birthday: new Date(System.currentTimeMillis() - age.toMillis())) 
         }
+        Collection<Bar> WithAges(Duration... ages) {
+            return ages.collect { Duration it -> WithAge(it) }
+        }
     }
 }
  '''
@@ -597,6 +600,7 @@ import java.time.Duration
         hasMethod(barsFactory, 'bar', getClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', Duration)
+        hasMethod(barsFactory, 'WithAges', Duration[])
         !barsFactory.methods.any {it.name == "template" }
 
         when:
@@ -609,6 +613,17 @@ import java.time.Duration
         then:
         noExceptionThrown()
         instance.bars.size() == 1
+
+        when:
+        instance = create("Foo") {
+            bars {
+                WithAges(Duration.ofDays(1), Duration.ofDays(2))
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.bars.size() == 2
     }
 
     @Issue("300")

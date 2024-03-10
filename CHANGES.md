@@ -19,6 +19,7 @@
     - Methods of creator classes (including custom creators) are included in collection factories (see [#300](https://github.com/klum-dsl/klum-ast/issues/300) and [Factory Classes](https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes#Creator-methods-and-collection-factories))
     - Switch annotation validation to [KlumCast](https://github.com/klum-dsl/klum-cast) Framework (see [#312](https://github.com/klum-dsl/klum-ast/issues/2312)))
 - Improvements
+  - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))
   - `boolean` fields are never validated (makes no sense), `Boolean` fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see [#223](https://github.com/klum-dsl/klum-ast/issues/223))
   - Provide `@Required` as an alternative to an empty `@Validate` annotation (see [#221](https://github.com/klum-dsl/klum-ast/issues/221))

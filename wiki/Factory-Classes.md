@@ -27,7 +27,7 @@ class MyClass {
             super(MyClass)
         }
         
-        public MyClass Baker(String name) {
+        MyClass Baker(String name) {
             return Create.With(name: name, job: "baker")
         }
     }
@@ -77,7 +77,7 @@ are available as well. This is a more powerful alternative to the regular
 }
 ```
 
-In this case, all the following call are allowed:
+In this case, all the following calls are allowed:
 
 ```groovy
 Foo.Create.With {
@@ -95,3 +95,36 @@ Foo.Create.With {
 ```
 
 Note that when in conflict, explicit factory methods take precedence over alternatives syntax methods.
+
+This also works for Factory methods returning a collection or map of the model class:
+
+```groovy
+@DSL class Foo {
+    List<Bar> bars
+}
+
+@DSL class Bar {
+    String name
+    String value
+
+    static class Factory extends KlumFactory.Unkeyed<Bar> {
+        protected Factory() { super(Bar) }
+
+        List<Bar> fromProperties(File propsFile) {
+            def props = new Properties()
+            propsFile.withInputStream { props.load(it) }
+            return props.values().collect { k, v -> Create.With(name: k, value: v) }
+        }
+    }
+}
+
+// usage
+
+Foo.Create.With {
+    bars {
+        fromProperties(new File("my.properties"))
+    }
+}
+```
+
+If the factory method returns map of the model class, only the values of that map are used.

@@ -271,7 +271,7 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model with the given key and then applying the given text a configuration.
+         * Creates a new instance of the model with the given key and then applying the given text as configuration.
          * @param key The key of the model to create.
          * @param configuration the configuration text to apply to the model.
          * @return The instantiated object.
@@ -281,7 +281,7 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model with the given key and then applying the given text a configuration.
+         * Creates a new instance of the model with the given key and then applying the given text as configuration.
          * @param key The key of the model to create.
          * @param configuration the configuration text to apply to the model.
          * @param loader The classloader used to compile the configuration text.
@@ -350,7 +350,7 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model and then applying the given text a configuration.
+         * Creates a new instance of the model and then applying the given text as configuration.
          * @param configuration the configuration text to apply to the model.
          * @return The instantiated object.
          */
@@ -359,7 +359,7 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model and then applying the given text a configuration.
+         * Creates a new instance of the model and then applying the given text as configuration.
          * @param configuration the configuration text to apply to the model.
          * @param loader The classloader used to compile the configuration text.
          * @return The instantiated object.

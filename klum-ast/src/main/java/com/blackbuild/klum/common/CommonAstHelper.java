@@ -77,6 +77,8 @@ public class CommonAstHelper {
     }
 
     public static boolean isAssignableTo(ClassNode subType, ClassNode baseType) {
+        if (subType == null || baseType == null)
+            return false;
         return subType.isDerivedFrom(baseType) || subType.implementsInterface(baseType);
     }
 

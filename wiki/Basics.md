@@ -139,9 +139,9 @@ for each simple collection, two/three methods are generated:
 -   two methods with the collection name and a Iterable/Vararg argument for Collections or a Map argument for maps. These methods
     *add* the given parameters to the collection 
 
--   an adder method named like the element name of the collection an containing a the element type 
+-   an adder method named like the element name of the collection and containing the element type 
 
-__Since 0.98, these methods are only usable inside of an `apply` or `create` block.__
+__Since 0.98, these methods are only usable inside an `apply` or `create` block.__
 
 ```groovy
 @DSL
@@ -288,7 +288,6 @@ but is not longer valid, although the IDE might report unknown methods.
 
 Current 1.2.0-rc versions include an experimental gdsl file that should solve this at least for
 IntelliJ idea.
-
 
 ##### Reuse syntax
 
@@ -451,6 +450,7 @@ Config.Create.With {
             name "another element"
         }
         element objectForReuse
+        elements anotherObjectForReuse, aThirdObject
     }
     keyedElements {
         anotherObjectForReuse = keyedElement ("klaus") {
