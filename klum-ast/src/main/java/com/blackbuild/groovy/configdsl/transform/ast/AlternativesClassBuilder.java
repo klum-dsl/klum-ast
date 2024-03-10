@@ -41,10 +41,11 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberStringValue;
 
 /**
@@ -62,6 +63,7 @@ class AlternativesClassBuilder {
     private final Map<ClassNode, String> alternatives;
 
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
+    private Map<String, ClassNode> genericsSpec;
 
     public AlternativesClassBuilder(DSLASTTransformation transformation, FieldNode fieldNode) {
         this.transformation = transformation;
@@ -149,9 +151,12 @@ class AlternativesClassBuilder {
 
     private void doCreateMethodsFromFactory() {
         ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
+        genericsSpec = new HashMap<>();
+
         while (factory != null && factory.isDerivedFrom(KLUM_FACTORY)) {
+            genericsSpec = createGenericsSpec(factory, genericsSpec);
             factory.getMethods().forEach(this::createDelegateFactoryMethod);
-            factory = factory.getSuperClass();
+            factory = factory.getUnresolvedSuperClass();
         }
     }
 
@@ -159,12 +164,48 @@ class AlternativesClassBuilder {
         if (methodNode.getName().startsWith("$")) return;
         if (!methodNode.isPublic()) return;
         if (methodNode.getName().equals("Template")) return;
-        MethodBuilder.createPublicMethod(methodNode.getName())
-                .returning(newClass(methodNode.getReturnType()))
-                .optional()
-                .cloneParamsFrom(methodNode)
-                .callThis(memberName, callX(propX(classX(elementType), "Create"), methodNode.getName(), args(cloneParams(methodNode.getParameters()))))
-                .addTo(collectionFactory);
+
+        methodNode = correctToGenericsSpec(genericsSpec, methodNode);
+
+        ClassNode returnType = methodNode.getReturnType();
+
+        if (isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(fieldNode.getName(),
+                                callX(
+                                        propX(classX(elementType), "Create"),
+                                        methodNode.getName(),
+                                        args(cloneParams(methodNode.getParameters()))
+                                )
+                    )
+                    .addTo(collectionFactory);
+        } else if (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(fieldNode.getName(),
+                        callX(
+                            callX(
+                                    propX(classX(elementType), "Create"),
+                                    methodNode.getName(),
+                                    args(cloneParams(methodNode.getParameters()))
+                            ),
+                            "values"
+                        )
+                    )
+                    .addTo(collectionFactory);
+        } else if (isAssignableTo(returnType, elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(memberName, callX(propX(classX(elementType), "Create"), methodNode.getName(), args(cloneParams(methodNode.getParameters()))))
+                    .addTo(collectionFactory);
+        }
     }
 
     private boolean fieldNodeIsNoLink() {
@@ -172,9 +213,10 @@ class AlternativesClassBuilder {
     }
 
     private void delegateDefaultCreationMethodsToOuterInstance() {
-        for (MethodNode methodNode : rwClass.getMethods(memberName)) {
+        for (MethodNode methodNode : rwClass.getMethods(memberName))
             createDelegateMethod(methodNode, collectionFactory, "rw");
-        }
+        for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
+            createDelegateMethod(methodNode, collectionFactory, "rw");
     }
 
     private void createClosureForOuterClass() {
