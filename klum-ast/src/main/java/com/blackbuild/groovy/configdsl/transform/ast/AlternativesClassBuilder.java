@@ -165,9 +165,7 @@ class AlternativesClassBuilder {
         if (!methodNode.isPublic()) return;
         if (methodNode.getName().equals("Template")) return;
 
-        methodNode = correctToGenericsSpec(genericsSpec, methodNode);
-
-        ClassNode returnType = methodNode.getReturnType();
+        ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
 
         if (isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType)) {
             MethodBuilder.createPublicMethod(methodNode.getName())
