@@ -44,13 +44,11 @@ public class OwnerPhase extends VisitingPhaseAction {
 
     private void setOwners(KlumInstanceProxy proxy, Object value) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
-                .stream()
                 .filter(field -> field.getType().isInstance(value))
                 .filter(field -> proxy.getInstanceAttribute(field.getName()) == null)
                 .forEach(field -> proxy.setInstanceAttribute(field.getName(), value));
 
         DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
-                .stream()
                 .filter(method -> method.getParameterTypes()[0].isInstance(value))
                 .map(Method::getName)
                 .distinct()

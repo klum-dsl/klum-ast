@@ -19,7 +19,6 @@ public class LifecycleHelper {
     public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         Object rw = proxy.getRwInstance();
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
-                .stream()
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
@@ -28,7 +27,6 @@ public class LifecycleHelper {
 
     public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), annotation)
-                .stream()
                 .filter(field -> field.getType().equals(Closure.class))
                 .map(Field::getName)
                 .forEach(name -> executeLifecycleClosure(proxy, name));

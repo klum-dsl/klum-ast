@@ -290,7 +290,7 @@ public class KlumInstanceProxy {
      * @return The set of owners
      */
     public Set<Object> getOwners() {
-        return getFieldsAnnotatedWith(instance.getClass(), Owner.class).stream()
+        return getFieldsAnnotatedWith(instance.getClass(), Owner.class)
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .filter(Objects::nonNull)

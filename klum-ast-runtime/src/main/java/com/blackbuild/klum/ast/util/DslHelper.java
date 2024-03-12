@@ -33,19 +33,10 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.WildcardType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -189,7 +180,7 @@ public class DslHelper {
     }
 
     public static Optional<Field> getKeyField(Class<?> type) {
-        return getFieldsAnnotatedWith(type, Key.class).stream().findFirst();
+        return getFieldsAnnotatedWith(type, Key.class).findFirst();
     }
 
     public static boolean isKeyed(Class<?> type) {
@@ -222,14 +213,13 @@ public class DslHelper {
         return !type.isInterface() && ((type.getModifiers() & Opcodes.ACC_ABSTRACT) == 0);
     }
 
-    public static List<Method> getMethodsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
+    public static Stream<Method> getMethodsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
 
         return getDslOrRwHierarchyOf(type)
                 .stream()
                 .map(Class::getDeclaredMethods)
                 .flatMap(array -> Arrays.stream(array).sorted(Comparator.comparing(Method::getName)))
-                .filter(method -> method.isAnnotationPresent(annotation))
-                .collect(Collectors.toList());
+                .filter(method -> method.isAnnotationPresent(annotation));
     }
 
     @NotNull
@@ -237,19 +227,17 @@ public class DslHelper {
         return type.isAnnotationPresent(DSL.class) ? getDslHierarchyOf(type) : getRwHierarchyOf(type);
     }
 
-    public static List<Field> getFieldsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
+    public static Stream<Field> getFieldsAnnotatedWith(Class<?> type, Class<? extends Annotation> annotation) {
 
         return getDslOrRwHierarchyOf(type)
                 .stream()
                 .map(Class::getDeclaredFields)
                 .flatMap(Arrays::stream)
-                .filter(field -> field.isAnnotationPresent(annotation))
-                .collect(Collectors.toList());
+                .filter(field -> field.isAnnotationPresent(annotation));
     }
 
     public static <T> Optional<Method> getVirtualSetter(Class<?> rwType, String methodName, Class<T> type) {
         List<Method> methods = getMethodsAnnotatedWith(rwType, FIELD_ANNOTATION)
-                .stream()
                 .filter(method -> method.getName().equals(methodName))
                 .filter(method -> method.getParameterTypes()[0].isAssignableFrom(type))
                 .collect(Collectors.toList());
