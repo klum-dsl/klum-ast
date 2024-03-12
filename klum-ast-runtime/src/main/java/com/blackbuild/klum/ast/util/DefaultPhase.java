@@ -47,7 +47,7 @@ public class DefaultPhase extends VisitingPhaseAction {
                 .stream()
                 .filter(entry -> !DefaultTypeTransformation.castToBoolean(entry.getValue()))
                 .forEach(entry -> applyDefaultValue(element, entry.getKey()));
-        KlumInstanceProxy.getProxyFor(element).executeLifecycleMethods(Default.class);
+        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), Default.class);
     }
 
     private void applyDefaultValue(Object element, String fieldName) {

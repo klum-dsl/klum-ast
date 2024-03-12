@@ -25,10 +25,7 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
-import com.blackbuild.klum.ast.util.ClosureHelper;
-import com.blackbuild.klum.ast.util.DslHelper;
-import com.blackbuild.klum.ast.util.FactoryHelper;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
 import groovy.lang.Closure;
 
@@ -52,7 +49,7 @@ public class AutoCreationPhase extends VisitingPhaseAction {
                 .filter(entry -> entry.getValue() == null)
                 .forEach(entry -> autoCreate(element, entry.getKey()));
 
-        KlumInstanceProxy.getProxyFor(element).executeLifecycleMethods(AutoCreate.class);
+        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
     }
 
     private void autoCreate(Object element, String fieldName) {

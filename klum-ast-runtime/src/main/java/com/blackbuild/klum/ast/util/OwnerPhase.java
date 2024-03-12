@@ -27,6 +27,8 @@ import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
+import java.lang.reflect.Method;
+
 public class OwnerPhase extends VisitingPhaseAction {
     public OwnerPhase() {
         super(KlumPhase.OWNER);
@@ -36,7 +38,22 @@ public class OwnerPhase extends VisitingPhaseAction {
     public void visit(String path, Object element, Object container) {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        proxy.setOwners(container);
-        proxy.executeLifecycleClosures(Owner.class);
+        setOwners(proxy, container);
+        LifecycleHelper.executeLifecycleClosures(proxy, Owner.class);
+    }
+
+    private void setOwners(KlumInstanceProxy proxy, Object value) {
+        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+                .stream()
+                .filter(field -> field.getType().isInstance(value))
+                .filter(field -> proxy.getInstanceAttribute(field.getName()) == null)
+                .forEach(field -> proxy.setInstanceAttribute(field.getName(), value));
+
+        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+                .stream()
+                .filter(method -> method.getParameterTypes()[0].isInstance(value))
+                .map(Method::getName)
+                .distinct()
+                .forEach(method -> proxy.getRwInstance().invokeMethod(method, value));
     }
 }

@@ -31,7 +31,6 @@ import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.*;
 import java.util.*;
@@ -91,7 +90,7 @@ public class KlumInstanceProxy {
         return (T) InvokerHelper.getProperty(instance, attributeName);
     }
 
-    private void setInstanceAttribute(String name, Object value) {
+    void setInstanceAttribute(String name, Object value) {
         getCachedField(name).setProperty(instance, value);
     }
 
@@ -128,7 +127,7 @@ public class KlumInstanceProxy {
      */
     public Object apply(Map<String, ?> values, Closure<?> body) {
         applyOnly(values, body);
-        postApply();
+        LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
         return instance;
     }
 
@@ -254,44 +253,6 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Runs the postcreate lifecycle methods for this instance
-     */
-    void postCreate() {
-        executeLifecycleMethods(PostCreate.class);
-    }
-
-    /**
-     * Runs the postapply lifecycle methods for this instance
-     */
-    void postApply() {
-        executeLifecycleMethods(PostApply.class);
-    }
-
-    public void executeLifecycleMethods(Class<? extends Annotation> annotation) {
-        Object rw = getRwInstance();
-        DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
-                .stream()
-                .map(Method::getName)
-                .distinct()
-                .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
-        executeLifecycleClosures(annotation);
-    }
-
-    public void executeLifecycleClosures(Class<? extends Annotation> annotation) {
-        DslHelper.getFieldsAnnotatedWith(instance.getClass(), annotation)
-                .stream()
-                .filter(field -> field.getType().equals(Closure.class))
-                .map(Field::getName)
-                .forEach(this::executeLifecycleClosure);
-    }
-
-    private void executeLifecycleClosure(String name) {
-        Closure<?> closure = getInstanceAttribute(name);
-        ClosureHelper.invokeClosureWithDelegateAsArgument(closure, getRwInstance());
-        setInstanceAttribute(name, null);
-    }
-
-    /**
      * Executes validation for this instance
      */
     public void validate() {
@@ -308,21 +269,6 @@ public class KlumInstanceProxy {
 
     void manualValidation(boolean value) {
         manualValidation = value;
-    }
-
-    void setOwners(Object value) {
-        DslHelper.getFieldsAnnotatedWith(instance.getClass(), Owner.class)
-                .stream()
-                .filter(field -> field.getType().isInstance(value))
-                .filter(field -> getInstanceAttribute(field.getName()) == null)
-                .forEach(field -> setInstanceAttribute(field.getName(), value));
-
-        DslHelper.getMethodsAnnotatedWith(getRwInstance().getClass(), Owner.class)
-                .stream()
-                .filter(method -> method.getParameterTypes()[0].isInstance(value))
-                .map(Method::getName)
-                .distinct()
-                .forEach(method -> getRwInstance().invokeMethod(method, value));
     }
 
     /**
@@ -420,7 +366,7 @@ public class KlumInstanceProxy {
         T created = FactoryHelper.createInstance(type, key);
         KlumInstanceProxy createdProxy = getProxyFor(created);
         createdProxy.copyFromTemplate();
-        createdProxy.postCreate();
+        LifecycleHelper.executeLifecycleMethods(createdProxy, PostCreate.class);
         createdProxy.apply(namedParams, body);
         return created;
     }

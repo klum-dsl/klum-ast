@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
@@ -86,7 +88,7 @@ public class FactoryHelper {
             PhaseDriver.enter(result);
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
             proxy.copyFromTemplate();
-            proxy.postCreate();
+            LifecycleHelper.executeLifecycleMethods(proxy, PostCreate.class);
 
             apply.accept(proxy);
 
@@ -127,7 +129,7 @@ public class FactoryHelper {
         Consumer<KlumInstanceProxy> apply = proxy -> {
             script.setDelegate(proxy.getRwInstance());
             script.run();
-            proxy.postApply();
+            LifecycleHelper.executeLifecycleMethods(proxy, PostApply.class);
         };
 
         if (DslHelper.isKeyed(type))
