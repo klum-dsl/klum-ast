@@ -626,6 +626,65 @@ import java.time.Duration
         instance.bars.size() == 2
     }
 
+    @Issue(["300", "319"])
+    def "methods of the factory are included in collection factories for maps"() {
+        when:
+        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+
+import java.time.Duration
+@DSL class Foo {
+    Map<String, Bar> bars
+}
+
+@DSL class Bar {
+    @Key String id
+    Date birthday
+    
+    static class Factory extends KlumFactory.Keyed<Bar> {
+        protected Factory() {
+            super(Bar)
+        }
+        Bar WithAge(String name, Duration age) {
+            return With(name, birthday: new Date(System.currentTimeMillis() - age.toMillis())) 
+        }
+        Collection<Bar> WithAges(Map<String, Duration> ages) {
+            return ages.collect { String name, Duration it -> WithAge(name, it) }
+        }
+    }
+}
+ '''
+        def barsFactory = getClass('Foo$_bars')
+
+        then:
+        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'From', Class)
+        hasMethod(barsFactory, 'WithAge', String, Duration)
+        hasMethod(barsFactory, 'WithAges', Map)
+        !barsFactory.methods.any {it.name == "template" }
+
+        when:
+        instance = create("Foo") {
+            bars {
+                WithAge("bla", Duration.ofDays(1))
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.bars.size() == 1
+
+        when:
+        instance = create("Foo") {
+            bars {
+                WithAges(a: Duration.ofDays(1), b: Duration.ofDays(2))
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.bars.size() == 2
+    }
+
     @Issue("300")
     def "methods of the factory of abstract classes are included in collection factories"() {
         when:

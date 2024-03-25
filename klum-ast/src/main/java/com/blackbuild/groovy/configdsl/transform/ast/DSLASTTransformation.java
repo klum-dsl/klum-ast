@@ -826,18 +826,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createProxyMethod(methodName, "addElementsToMap")
+        createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .constantParam(methodName)
+                .constantParam(fieldName)
                 .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(elementType)), "values")
                 .addTo(rwClass);
-        createProxyMethod(methodName, "addElementsToMap")
+        createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .constantParam(methodName)
+                .constantParam(fieldName)
                 .arrayParam(elementType, "values")
                 .addTo(rwClass);
 
