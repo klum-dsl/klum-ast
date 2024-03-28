@@ -24,9 +24,13 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
 
 class TemplatesSpec extends AbstractDSLSpec {
+
+    @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
     def "copyFrom method is created"() {
         when:
@@ -1159,4 +1163,141 @@ class TemplatesSpec extends AbstractDSLSpec {
             notThrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("322")
+    def "allow creating a template from a script text"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String value
+            }
+        '''
+        def scriptFile = temporaryFolder.newFile("template.groovy")
+
+        when:
+        scriptFile.text = '''
+            name "Default"
+            value "DefaultValue"
+        '''
+        def template = clazz.Create.TemplateFrom(scriptFile)
+
+        then:
+        template.name == "Default"
+        template.value == "DefaultValue"
+
+        when:
+        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+
+        then:
+        template.name == "Default"
+        template.value == "DefaultValue"
+    }
+
+    @Issue("322")
+    def "allow creating a template from a script text for keyed class"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String key
+                String name
+                String value
+            }
+        '''
+        def scriptFile = temporaryFolder.newFile("template.groovy")
+
+        when:
+        scriptFile.text = '''
+            name "Default"
+            value "DefaultValue"
+        '''
+        def template = clazz.Create.TemplateFrom(scriptFile)
+
+        then:
+        template.key == null
+        template.name == "Default"
+        template.value == "DefaultValue"
+
+        when:
+        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+
+        then:
+        template.key == null
+        template.name == "Default"
+        template.value == "DefaultValue"
+    }
+
+    @Issue("322")
+    def "allow creating a template from a script text for abstract class"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                String value
+            }
+        '''
+        def scriptFile = temporaryFolder.newFile("template.groovy")
+
+        when:
+        scriptFile.text = '''
+            name "Default"
+            value "DefaultValue"
+        '''
+        def template = clazz.Create.TemplateFrom(scriptFile)
+
+        then:
+        template.name == "Default"
+        template.value == "DefaultValue"
+
+        when:
+        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+
+        then:
+        template.name == "Default"
+        template.value == "DefaultValue"
+    }
+
+    @Issue("322")
+    def "allow creating a template from a script text for abstract keyed class"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                @Key String key
+                String name
+                String value
+            }
+        '''
+        def scriptFile = temporaryFolder.newFile("template.groovy")
+
+        when:
+        scriptFile.text = '''
+            name "Default"
+            value "DefaultValue"
+        '''
+        def template = clazz.Create.TemplateFrom(scriptFile)
+
+        then:
+        template.key == null
+        template.name == "Default"
+        template.value == "DefaultValue"
+
+        when:
+        template = clazz.Create.TemplateFrom(scriptFile.toURI().toURL())
+
+        then:
+        template.key == null
+        template.name == "Default"
+        template.value == "DefaultValue"
+    }
 }
