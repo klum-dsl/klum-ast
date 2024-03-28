@@ -35,6 +35,7 @@ import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -139,10 +140,7 @@ public class FactoryHelper {
     }
 
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
-        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
-        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
-        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
-        GroovyShell shell = new GroovyShell(gLoader, compilerConfiguration);
+        GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
         return createFromDelegatingScript(type, (DelegatingScript) parse);
     }
@@ -164,19 +162,57 @@ public class FactoryHelper {
         }
     }
 
+    public static <T> T createAsTemplate(Class<T> type, File scriptFile, ClassLoader loader) {
+        try {
+            return createAsTemplate(type, ResourceGroovyMethods.getText(scriptFile), loader);
+        } catch (IOException e) {
+            throw new KlumException(e);
+        }
+    }
+
+    public static <T> T createAsTemplate(Class<T> type, URL script, ClassLoader loader) {
+        try {
+            return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
+        } catch (IOException e) {
+            throw new KlumException(e);
+        }
+    }
+
+    static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
+        T result = createAsTemplate(type);
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+
+        DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
+        script.setDelegate(proxy.getRwInstance());
+        script.run();
+        return result;
+    }
+
+    @NotNull
+    private static GroovyShell createGroovyShell(ClassLoader loader) {
+        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
+        return new GroovyShell(gLoader, compilerConfiguration);
+    }
+
     public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
-        T result;
-        if (!DslHelper.isInstantiable(type))
-            result = createAsSyntheticTemplate(type);
-        else if (DslHelper.isKeyed(type))
-            result = createInstanceWithNullArg(type);
-        else
-            result = createInstanceWithArgs(type);
+        T result = createAsTemplate(type);
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
         proxy.applyOnly(values, closure);
         return result;
+    }
+
+    private static <T> T createAsTemplate(Class<T> type) {
+        if (!DslHelper.isInstantiable(type))
+            return createAsSyntheticTemplate(type);
+        else if (DslHelper.isKeyed(type))
+            return createInstanceWithNullArg(type);
+        else
+            return createInstanceWithArgs(type);
     }
 
     public static <T> T createAsStub(Class<T> type, String key) {

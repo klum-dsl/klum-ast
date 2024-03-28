@@ -209,6 +209,82 @@ public class KlumFactory<T> {
     }
 
     /**
+     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     * @param scriptFile The script to configure the template
+     * @return a template instance of the model type.
+     */
+    public T TemplateFrom(File scriptFile) {
+        return TemplateFrom(scriptFile, null);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptFile The script to configure the template
+     * @param loader The classloader to use for compiling the configuration script.
+     * @return a template instance of the model type.
+     */
+    public T TemplateFrom(File scriptFile, ClassLoader loader) {
+        return FactoryHelper.createAsTemplate(type, scriptFile, loader);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     * @param scriptUrl The script to configure the template
+     * @return a template instance of the model type.
+     */
+    public T TemplateFrom(URL scriptUrl) {
+        return TemplateFrom(scriptUrl, null);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     *
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptUrl The script to configure the template
+     * @param loader The classloader to use for compiling the configuration script.
+     * @return a template instance of the model type.
+     */
+    public T TemplateFrom(URL scriptUrl, ClassLoader loader) {
+        return FactoryHelper.createAsTemplate(type, scriptUrl, loader);
+    }
+
+    /**
      * Factory for keyed models.
      * @param <T> The type of the model.
      */
