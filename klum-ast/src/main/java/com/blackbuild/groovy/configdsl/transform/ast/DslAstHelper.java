@@ -390,14 +390,12 @@ public class DslAstHelper {
     }
 
     static AnnotationNode createGeneratedAnnotation(Class<?> generatorType) {
-        return createGeneratedAnnotation(generatorType, null, null);
+        return createGeneratedAnnotation(generatorType, null);
     }
 
-    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType, String documentation, Collection<String> tags) {
+    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType, Collection<String> tags) {
         AnnotationNode result = new AnnotationNode(KLUM_GENERATED_CLASSNODE);
         result.addMember("generator", constX(generatorType.getName()));
-        if (documentation != null)
-            result.addMember("documentation", constX(documentation));
         if (tags != null && !tags.isEmpty())
             result.addMember(
                     "tags",

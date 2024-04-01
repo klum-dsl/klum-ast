@@ -23,6 +23,9 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
+import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.DelegatesTo;
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -59,7 +63,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     protected DeprecationType deprecationType;
     protected boolean optional;
     protected ASTNode sourceLinkTo;
-    protected String documentation;
+    protected DocBuilder documentation = new JavadocDocBuilder();
     protected GenericsType[] genericsTypes;
 
     protected AbstractMethodBuilder(String name) {
@@ -87,8 +91,18 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T documentation(String documentation) {
-        this.documentation = documentation;
+    public T documentationTitle(String text) {
+        documentation.title(text);
+        return (T) this;
+    }
+
+    public T documentationParagraph(String text) {
+        documentation.p(text);
+        return (T) this;
+    }
+
+    public T withDocumentation(Consumer<DocBuilder> action) {
+        action.accept(documentation);
         return (T) this;
     }
 
@@ -161,7 +175,8 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
 
-        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
+        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
+        AnnoDocUtil.addDocumentation(method, documentation);
         return method;
     }
 
