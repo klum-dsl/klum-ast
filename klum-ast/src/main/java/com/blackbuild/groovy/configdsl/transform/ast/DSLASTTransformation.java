@@ -267,7 +267,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             createProxyMethod("manualValidation")
                     .mod(ACC_PUBLIC)
                     .param(Boolean_TYPE, "validation", constX(true))
-                    .documentation("Prevent automatic validation of this instance during Validation phase.")
+                    .documentationTitle("Prevent automatic validation of this instance during Validation phase.")
                     .addTo(rwClass);
         }
 

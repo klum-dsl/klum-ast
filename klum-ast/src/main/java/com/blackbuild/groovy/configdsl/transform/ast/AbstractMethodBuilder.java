@@ -45,11 +45,10 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
 @SuppressWarnings("unchecked")
 public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> {
 
-
-    protected static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
-    protected static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
-    protected static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
-    protected static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
+    protected static final ClassNode CLASSLOADER_TYPE = make(ClassLoader.class);
+    protected static final ClassNode THREAD_TYPE = make(Thread.class);
+    protected static final ClassNode PARAMETER_ANNOTATION_TYPE = make(ParameterAnnotation.class);
+    protected static final ClassNode DEPRECATED_NODE = make(Deprecated.class);
     protected static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     protected static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     protected static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
@@ -71,7 +70,12 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     }
 
     public T returning(ClassNode returnType) {
+        return returning(returnType, null);
+    }
+
+    public T returning(ClassNode returnType, String documentation) {
         this.returnType = returnType;
+        this.documentation.returnType(documentation);
         return (T) this;
     }
 
@@ -127,14 +131,26 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T deprecated() {
-        deprecationType = DeprecationType.DEPRECATED;
+    protected T deprecated(DeprecationType type,  String reason) {
+        deprecationType = type;
+        documentation.deprecated(reason);
         return (T) this;
     }
 
+    public T deprecated() {
+        return deprecated(DeprecationType.DEPRECATED, null);
+    }
+
+    public T deprecated(String reason) {
+        return deprecated(DeprecationType.DEPRECATED, reason);
+    }
+
     public T forRemoval() {
-        deprecationType = DeprecationType.FOR_REMOVAL;
-        return (T) this;
+        return deprecated(DeprecationType.FOR_REMOVAL, null);
+    }
+
+    public T forRemoval(String reason) {
+        return deprecated(DeprecationType.FOR_REMOVAL, reason);
     }
 
     public T setGenericsTypes(GenericsType[] genericsTypes) {
