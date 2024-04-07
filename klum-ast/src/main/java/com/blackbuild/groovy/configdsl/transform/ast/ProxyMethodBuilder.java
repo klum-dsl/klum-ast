@@ -28,18 +28,8 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.expr.AnnotationConstantExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.MapExpression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 
@@ -54,17 +44,8 @@ import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.stmt;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.buildWildcardType;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.makeClassSafeWithGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.nonGeneric;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodBuilder> {
 
@@ -114,14 +95,14 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             return stmt(callExpression);
     }
 
-    public ProxyMethodBuilder decoratedParam(FieldNode field, String name) {
+    public ProxyMethodBuilder decoratedParam(FieldNode field, String name, String doc) {
         List<AnnotationNode> annotations = field.getAnnotations()
                 .stream()
                 .filter(annotation -> hasAnnotation(annotation.getClassNode(), PARAMETER_ANNOTATION_TYPE))
                 .flatMap(this::getAnnotationsFromMembers)
                 .collect(toList());
 
-        params.add(new ProxiedArgument(name, field.getType(), annotations));
+        params.add(new ProxiedArgument(name, field.getType(), annotations, doc));
         return this;
     }
 
@@ -132,12 +113,13 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .filter(annotationNode -> annotationNode.isTargetAllowed(AnnotationNode.PARAMETER_TARGET));
     }
 
-    public ProxyMethodBuilder optionalClassLoaderParam() {
+    public ProxyMethodBuilder optionalClassLoaderParam(String doc) {
         params.add(new ProxiedArgument(
                 "loader",
                 CLASSLOADER_TYPE,
                 null,
-                callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader")
+                callX(callX(THREAD_TYPE, "currentThread"), "getContextClassLoader"),
+                doc
         ));
         return this;
     }
@@ -156,6 +138,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(toList());
+    }
+
+    private void addParameterJavaDocs() {
+         params.stream()
+                .filter(p -> p.asParameterJavaDoc().isPresent())
+                .forEach(p -> documentation.param(p.name, p.asParameterJavaDoc().get()));
     }
 
     /**
@@ -185,29 +173,29 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     /**
      * Adds a map entry to the method signature.
      */
-    public ProxyMethodBuilder namedParams(String name) {
+    public ProxyMethodBuilder namedParams(String name, String doc) {
         if (namedParameterIndex == -1)
             namedParameterIndex = params.size();
-        return nonOptionalNamedParams(name);
+        return nonOptionalNamedParams(name, doc);
     }
 
-    public ProxyMethodBuilder nonOptionalNamedParams(String name) {
-        params.add(new NamedParamsArgument(name));
+    public ProxyMethodBuilder nonOptionalNamedParams(String name, String doc) {
+        params.add(new NamedParamsArgument(name, doc));
         return this;
     }
 
     /**
      * Adds a parameter of type closure.
      */
-    public ProxyMethodBuilder closureParam(String name) {
-        return closureParam(name, ConstantExpression.NULL);
+    public ProxyMethodBuilder closureParam(String name, String doc) {
+        return closureParam(name, ConstantExpression.NULL, doc);
     }
 
     /**
      * Adds a parameter of type closure.
      */
-    public ProxyMethodBuilder closureParam(String name, ConstantExpression defaultValue) {
-        params.add(new ProxiedArgument(name, nonGeneric(ClassHelper.CLOSURE_TYPE), null, defaultValue));
+    public ProxyMethodBuilder closureParam(String name, ConstantExpression defaultValue, String doc) {
+        params.add(new ProxiedArgument(name, nonGeneric(ClassHelper.CLOSURE_TYPE), null, defaultValue, doc));
         return this;
     }
 
@@ -216,11 +204,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param name Name of the parameter
      * @param upperBound The base class for the class parameter
      */
-    public ProxyMethodBuilder delegationTargetClassParam(String name, ClassNode upperBound) {
+    public ProxyMethodBuilder delegationTargetClassParam(String name, ClassNode upperBound, String doc) {
         params.add(new ProxiedArgument(
                 name,
                 makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)),
-                singletonList(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION))
+                singletonList(new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION)),
+                doc
         ));
         return this;
     }
@@ -230,16 +219,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param name The name of the parameter
      * @param upperBound The base class for the class parameter
      */
-    public ProxyMethodBuilder simpleClassParam(String name, ClassNode upperBound) {
-        return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name);
+    public ProxyMethodBuilder simpleClassParam(String name, ClassNode upperBound, String doc) {
+        return param(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(upperBound)), name, doc);
     }
 
     /**
      * Adds a string paramter with the given name.
      * @param name The name of the string parameter.
      */
-    public ProxyMethodBuilder stringParam(String name) {
-        return param(ClassHelper.STRING_TYPE, name);
+    public ProxyMethodBuilder stringParam(String name, String doc) {
+        return param(ClassHelper.STRING_TYPE, name, doc);
     }
 
     /**
@@ -247,19 +236,19 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param name The name of the parameter.
      * @param doAdd If this parameter is null, the method does nothing
      */
-    public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd) {
-        params.add(new OptionalArgument(name, ClassHelper.STRING_TYPE, doAdd));
+    public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd, String doc) {
+        params.add(new OptionalArgument(name, ClassHelper.STRING_TYPE, doAdd, doc));
         return this;
     }
 
-    public ProxyMethodBuilder optionalParam(ClassNode type, String name, boolean doAdd) {
-        params.add(new OptionalArgument(name, type, doAdd));
+    public ProxyMethodBuilder optionalParam(ClassNode type, String name, boolean doAdd, String doc) {
+        params.add(new OptionalArgument(name, type, doAdd, doc));
         return this;
     }
 
-    public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd) {
+    public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd, String doc) {
         if (doAdd)
-            return param(type, name);
+            return param(type, name, doc);
         return this;
     }
 
@@ -267,8 +256,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * Add a generic object parameter.
      * @param name The name of the parameter
      */
-    public ProxyMethodBuilder objectParam(String name) {
-        return param(ClassHelper.OBJECT_TYPE, name);
+    public ProxyMethodBuilder objectParam(String name, String doc) {
+        return param(ClassHelper.OBJECT_TYPE, name, doc);
     }
 
     /**
@@ -276,8 +265,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param type The type of the parameter
      * @param name The name of the parameter
      */
-    public ProxyMethodBuilder param(ClassNode type, String name) {
-        params.add(new ProxiedArgument(name, type));
+    public ProxyMethodBuilder param(ClassNode type, String name, String doc) {
+        params.add(new ProxiedArgument(name, type, doc));
         return this;
     }
 
@@ -287,8 +276,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param name The name of the parameter
      * @param defaultValue An expression to use for the default value for the parameter. Can be null.
      */
-    public ProxyMethodBuilder param(ClassNode type, String name, Expression defaultValue) {
-        params.add(new ProxiedArgument(name, type, null, defaultValue));
+    public ProxyMethodBuilder param(ClassNode type, String name, Expression defaultValue, String doc) {
+        params.add(new ProxiedArgument(name, type, null, defaultValue, doc));
         return this;
     }
 
@@ -297,25 +286,30 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      * @param type The type of the array elements
      * @param name The name of the parameter
      */
-    public ProxyMethodBuilder arrayParam(ClassNode type, String name) {
-        params.add(new ProxiedArgument(name, type.makeArray()));
+    public ProxyMethodBuilder arrayParam(ClassNode type, String name, String doc) {
+        params.add(new ProxiedArgument(name, type.makeArray(), doc));
         return this;
     }
 
-    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
-        return delegatingClosureParam(delegationTarget, ConstantExpression.NULL);
+    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget, String doc) {
+        return delegatingClosureParam(delegationTarget, ConstantExpression.NULL, doc);
     }
 
-    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget, Expression defaultValue) {
-        params.add(new ProxiedArgument("closure", nonGeneric(ClassHelper.CLOSURE_TYPE), singletonList(createDelegatesToAnnotation(delegationTarget)), defaultValue));
+    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget, Expression defaultValue, String doc) {
+        params.add(new ProxiedArgument(
+                "closure",
+                nonGeneric(ClassHelper.CLOSURE_TYPE),
+                singletonList(createDelegatesToAnnotation(delegationTarget)),
+                defaultValue,
+                doc));
         return this;
     }
 
     /**
      * Creates a delegating closure parameter that delegates to the type parameter of an existing class parameter.
      */
-    public ProxyMethodBuilder delegatingClosureParam() {
-        return delegatingClosureParam(null);
+    public ProxyMethodBuilder delegatingClosureParam(String doc) {
+        return delegatingClosureParam(null, doc);
     }
 
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
@@ -345,15 +339,21 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private abstract static class ProxyMethodArgument {
         protected final String name;
+        protected final String javaDoc;
 
-        public ProxyMethodArgument(String name) {
+        public ProxyMethodArgument(String name, String javaDoc) {
             this.name = name;
+            this.javaDoc = javaDoc;
         }
 
         abstract Optional<Parameter> asProxyMethodParameter();
 
         Optional<Expression> asInstanceProxyArgument() {
             return Optional.of(varX(name));
+        }
+
+        Optional<String> asParameterJavaDoc() {
+            return Optional.of(javaDoc);
         }
     }
 
@@ -362,16 +362,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         private final List<AnnotationNode> annotations;
         private final Expression defaultValue;
 
-        public ProxiedArgument(String name, ClassNode type) {
-            this(name, type, null, null);
+        public ProxiedArgument(String name, ClassNode type, String documentation) {
+            this(name, type, null, null, null);
         }
 
-        public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations) {
-            this(name, type, annotations, null);
+        public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, String documentation) {
+            this(name, type, annotations, null, null);
         }
 
-        public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, Expression defaultValue) {
-            super(name);
+        public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, Expression defaultValue, String documentation) {
+            super(name, documentation);
             this.type = type;
             this.annotations = annotations;
             this.defaultValue = defaultValue;
@@ -390,7 +390,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         Object constant;
 
         public ConstantArgument(Object constant) {
-            super(null);
+            super(null, null);
             this.constant = constant;
         }
 
@@ -413,7 +413,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         }
 
         public FixedExpressionArgument(Expression expression) {
-            super(null);
+            super(null, null);
             this.expression = expression;
         }
 
@@ -432,8 +432,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         private final ClassNode type;
         private final boolean doAdd;
 
-        public OptionalArgument(String name, ClassNode type, boolean doAdd) {
-            super(name);
+        public OptionalArgument(String name, ClassNode type, boolean doAdd, String documentation) {
+            super(name, documentation);
             this.type = type;
             this.doAdd = doAdd;
         }
@@ -447,6 +447,14 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         }
 
         @Override
+        Optional<String> asParameterJavaDoc() {
+            if (doAdd)
+                return super.asParameterJavaDoc();
+            else
+                return Optional.empty();
+        }
+
+        @Override
         Optional<Expression> asInstanceProxyArgument() {
             return Optional.of(doAdd ? varX(name) : ConstantExpression.NULL);
         }
@@ -455,8 +463,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private static class NamedParamsArgument extends ProxyMethodArgument {
 
-        public NamedParamsArgument(String name) {
-            super(name);
+        public NamedParamsArgument(String name, String documentation) {
+            super(name, documentation);
         }
 
         @Override
