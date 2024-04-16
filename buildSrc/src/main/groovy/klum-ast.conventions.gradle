@@ -32,49 +32,54 @@ dependencies {
     testRuntimeOnly libs.jpl
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            suppressPomMetadataWarningsFor('testFixturesApiElements')
-            suppressPomMetadataWarningsFor('testFixturesRuntimeElements')
-            from(components.java)
-            pom { pom ->
-                pom.name = project.name
-                pom.description = project.description
+afterEvaluate {
+    publishing {
+        publications {
+            mavenJava(MavenPublication) {
+                suppressPomMetadataWarningsFor('testFixturesApiElements')
+                suppressPomMetadataWarningsFor('testFixturesRuntimeElements')
+                from(components.java)
+                pom { pom ->
+                    project.getName()
+                    pom.name = project.name
+                    pom.description = project.description
 
-                pom.url = 'https://github.com/klum-dsl/klum-ast.git'
+                    pom.url = 'https://github.com/klum-dsl/klum-ast.git'
 
-                pom.scm {
-                    url = 'https://github.com/klum-dsl/klum-ast.git'
-                    connection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
-                    developerConnection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
-                }
-
-                pom.licenses {
-                    license {
-                        name = 'MIT License (MIT)'
-                        url = 'https://opensource.org/licenses/MIT'
-                        distribution = 'repo'
+                    pom.scm {
+                        url = 'https://github.com/klum-dsl/klum-ast.git'
+                        connection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
+                        developerConnection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
                     }
-                }
 
-                pom.developers {
-                    developer {
-                        id = 'pauxus'
-                        name = 'Stephan Pauxberger'
-                        email = 'stephan@blackbuild.com'
-                        url = 'https://github.com/pauxus'
+                    pom.licenses {
+                        license {
+                            name = 'MIT License (MIT)'
+                            url = 'https://opensource.org/licenses/MIT'
+                            distribution = 'repo'
+                        }
+                    }
+
+                    pom.developers {
+                        developer {
+                            id = 'pauxus'
+                            name = 'Stephan Pauxberger'
+                            email = 'stephan@blackbuild.com'
+                            url = 'https://github.com/pauxus'
+                        }
                     }
                 }
             }
         }
     }
+
+    signing {
+        required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        sign publishing.publications.mavenJava
+    }
+
 }
 
-signing {
-    required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
-    sign publishing.publications.mavenJava
-}
 
 license {
     header = rootProject.file("LICENSE")
