@@ -1,25 +1,22 @@
-apply plugin: 'java-library'
-apply plugin: "java-test-fixtures"
+plugins {
+    id "klum-ast.conventions"
+    id "java-test-fixtures"
+}
 
 description "compileOnly part of KlumAST"
 
 test {
     inputs.dir file("src/test/scenarios")
-    outputs.dir file("$buildDir/test-classes")
+    outputs.dir layout.buildDirectory.dir("test-classes")
 }
 
 dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     api project(':klum-ast-annotations')
     api project(':klum-ast-runtime')
-    api "com.blackbuild.klum.cast:klum-cast-compile:0.1.0-rc.6"
+    api libs.klum.cast.compile
 
-    if (rootProject.ext.groovyVersion.startsWith("2.")) {
-        testFixturesImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
-    } else {
-        testFixturesImplementation("org.spockframework:spock-core:2.1-groovy-3.0")
-        testFixturesImplementation("org.spockframework:spock-junit4:2.1-groovy-3.0")
-    }
-    testFixturesImplementation "org.jetbrains:annotations:16.0.2"
+    testFixturesImplementation libs.bundles.spock.groovy."$rootProject.ext.groovyVersion"
+    testFixturesImplementation libs.jb.anno
 }
 

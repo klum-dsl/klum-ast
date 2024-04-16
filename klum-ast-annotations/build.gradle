@@ -1,7 +1,9 @@
-apply plugin: 'java-library'
+plugins {
+    id "klum-ast.conventions"
+}
 
 description "Annontations for Klum AST"
 
 dependencies {
-    api "com.blackbuild.klum.cast:klum-cast-annotations:0.1.0-rc.6"
+    api libs.klum.cast.annotations
 }
