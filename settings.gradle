@@ -1,3 +1,24 @@
+pluginManagement {
+    plugins {
+        id 'nebula.release' version '19.0.6'
+        id "com.github.hierynomus.license" version "0.16.1"
+        id "com.github.ben-manes.versions" version "0.51.0"
+        id "io.github.gradle-nexus.publish-plugin" version "1.3.0"
+        id 'com.gradle.plugin-publish' version '1.2.1'
+        id 'org.ajoberstar.git-publish' version '3.0.1'
+    }
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'klum-ast-root'
 include 'klum-ast-annotations'
 include 'klum-ast'

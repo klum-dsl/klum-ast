@@ -8,19 +8,13 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.release' version '15.2.0'
+    id 'nebula.release'
     id 'base'
 
-    id 'nebula.maven-publish' version '17.3.2' apply false
-    id 'nebula.javadoc-jar' version '17.3.2' apply false
-    id 'nebula.source-jar' version '17.3.2' apply false
-    id 'nebula.contacts' version '5.1.0' apply false
-    //id 'nebula.info' version '9.1.2' apply false
-    id "com.github.hierynomus.license" version "0.15.0"
-    id 'org.ajoberstar.git-publish' version '3.0.1'
-    id 'org.ajoberstar.grgit' version '4.1.1'
-    id "com.github.ben-manes.versions" version "0.36.0"
-    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
+    id "com.github.hierynomus.license"
+    id 'org.ajoberstar.git-publish'
+    id "com.github.ben-manes.versions"
+    id "io.github.gradle-nexus.publish-plugin"
 }
 
 ext {
@@ -38,25 +32,23 @@ nexusPublishing {
 }
 
 subprojects {
-    apply plugin: 'nebula.maven-publish'
-    apply plugin: 'nebula.javadoc-jar'
-    apply plugin: 'nebula.source-jar'
-    apply plugin: 'nebula.release'
-    apply plugin: 'nebula.contacts'
-    // apply plugin: 'nebula.info'
+    apply plugin: "java-library"
     apply plugin: 'groovy'
     apply plugin: 'jacoco'
     apply plugin: 'signing'
+    apply plugin: 'maven-publish'
     apply plugin: 'com.github.hierynomus.license'
 
-    group 'com.blackbuild.klum.ast'
+    group rootProject.group
 
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-
-    repositories {
-        mavenCentral()
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(11)
+        }
+        withJavadocJar()
+        withSourcesJar()
     }
+
     jacoco {
         toolVersion = "0.8.11"
     }
@@ -87,31 +79,14 @@ subprojects {
         testRuntimeOnly "org.objenesis:objenesis:2.6"
     }
 
-    contacts {
-        'stephan@blackbuild.com' {
-            moniker 'Stephan Pauxberger'
-            github 'pauxus'
-        }
-    }
-
     publishing {
         publications {
-            nebula(MavenPublication) {
+            mavenJava(MavenPublication) {
                 suppressPomMetadataWarningsFor('testFixturesApiElements')
                 suppressPomMetadataWarningsFor('testFixturesRuntimeElements')
-                pom {
-                    url = "https://github.com/klum-dsl/klum-ast"
-                    licenses {
-                        license {
-                            name = 'The MIT License (MIT)'
-                            url = 'http://opensource.org/licenses/MIT'
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
-                        developerConnection = 'scm:git:git@github.com:klum-dsl/klum-ast.git'
-                        url = 'https://github.com/klum-dsl/klum-ast'
-                    }
+                from(components.java)
+                pom { pom ->
+                    rootProject.configurePom(pom, project)
                 }
             }
         }
@@ -119,7 +94,7 @@ subprojects {
 
     signing {
         required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
-        sign publishing.publications.nebula
+        sign publishing.publications.mavenJava
     }
 
     license {
@@ -173,3 +148,33 @@ evaluationDependsOnChildren()
 
 tasks.candidate.finalizedBy tasks.gitPublishPush
 tasks.final.finalizedBy tasks.gitPublishPush
+
+def configurePom(pom, Project module) {
+    pom.name = module.name
+    pom.description = module.description
+
+    pom.url = 'https://github.com/klum-dsl/klum-ast.git'
+
+    pom.scm {
+        url = 'https://github.com/klum-dsl/klum-ast.git'
+        connection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
+        developerConnection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
+    }
+
+    pom.licenses {
+        license {
+            name = 'MIT License (MIT)'
+            url = 'https://opensource.org/licenses/MIT'
+            distribution = 'repo'
+        }
+    }
+
+    pom.developers {
+        developer {
+            id = 'pauxus'
+            name = 'Stephan Pauxberger'
+            email = 'stephan@blackbuild.com'
+            url = 'https://github.com/pauxus'
+        }
+    }
+}
