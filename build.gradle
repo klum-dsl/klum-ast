@@ -18,8 +18,9 @@ plugins {
 }
 
 ext {
-    groovyVersion = project.findProperty("groovyVersion") ?: '2.4.21'
-    // groovyVersion = '4.0.12'
+    groovyVersion = project.findProperty("groovyVersion") ?: 'v2'
+    if (!(groovyVersion in ['v2', 'v3', 'v4']))
+        throw new GradleException("Unsupported Groovy version $groovyVersion")
 }
 
 group 'com.blackbuild.klum.ast'
@@ -46,7 +47,7 @@ gitPublish {
         }
     }
 
-    repoDir = file("$buildDir/gitPublish")
+    repoDir = layout.buildDirectory.dir("gitPublish")
     
     commitMessage = "updated wiki for $version"
 }
@@ -55,10 +56,7 @@ releaseCheck.doLast {
     if (!gradle.includedBuilds.isEmpty())
         throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
 
-    if (JavaVersion.current() != JavaVersion.VERSION_11)
-        throw new GradleException("Releasing must be done with JDK 11")
-
-    if (!rootProject.ext.groovyVersion.startsWith("2."))
+    if (rootProject.ext.groovyVersion != "v2")
         throw new GradleException("Releasing must be done with Groovy 2.4")
 }
 
@@ -67,32 +65,3 @@ evaluationDependsOnChildren()
 tasks.candidate.finalizedBy tasks.gitPublishPush
 tasks.final.finalizedBy tasks.gitPublishPush
 
-def configurePom(pom, Project module) {
-    pom.name = module.name
-    pom.description = module.description
-
-    pom.url = 'https://github.com/klum-dsl/klum-ast.git'
-
-    pom.scm {
-        url = 'https://github.com/klum-dsl/klum-ast.git'
-        connection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
-        developerConnection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
-    }
-
-    pom.licenses {
-        license {
-            name = 'MIT License (MIT)'
-            url = 'https://opensource.org/licenses/MIT'
-            distribution = 'repo'
-        }
-    }
-
-    pom.developers {
-        developer {
-            id = 'pauxus'
-            name = 'Stephan Pauxberger'
-            email = 'stephan@blackbuild.com'
-            url = 'https://github.com/pauxus'
-        }
-    }
-}

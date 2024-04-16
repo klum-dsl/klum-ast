@@ -25,4 +25,4 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: build -PgroovyVersion=4.0.12
+          arguments: build -PgroovyVersion=v4
