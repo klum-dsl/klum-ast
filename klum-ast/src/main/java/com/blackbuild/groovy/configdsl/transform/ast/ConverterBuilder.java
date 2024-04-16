@@ -39,10 +39,7 @@ import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -113,7 +110,7 @@ class ConverterBuilder {
 
         includes = getMemberStringList(convertersAnnotation, "includeMethods");
         if (includes == null)
-            includes = Collections.emptyList();
+            includes = new ArrayList<>();
 
         if (transformation.memberHasValue(convertersAnnotation, "excludeDefaultPrefixes", true))
             includes.addAll(DEFAULT_PREFIXES);
@@ -238,6 +235,7 @@ class ConverterBuilder {
         ProxyMethodBuilder method = createProxyMethod(methodName, getProxyMethodName())
                 .mod(ACC_PUBLIC)
                 .optional()
+                .copyDocFrom(sourceMethod)
                 .returning(elementType)
                 .sourceLinkTo(sourceMethod)
                 .constantParam(fieldNode.getName())
@@ -245,15 +243,16 @@ class ConverterBuilder {
                 .constantParam(converterMethod);
 
         if (withKey)
-            method.param(STRING_TYPE, "$key");
+            method.param(STRING_TYPE, "$key", "the key for the new object");
         else if (isDslMap(fieldNode))
             method.constantParam(null);
 
         stream(sourceParameters).forEach( parameter -> method.param(
-                        correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()),
-                        parameter.getName(),
-                        parameter.getInitialExpression()
-                ));
+                correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()),
+                parameter.getName(),
+                parameter.getInitialExpression(),
+                null
+        ));
         method.addTo(rwClass);
     }
 

@@ -5,6 +5,6 @@ plugins {
 description "Annontations for Klum AST"
 
 dependencies {
-    api "com.blackbuild.annodocimal:anno-docimal-annotations:0.1.0-rc.10"
+    api libs.annodocimal.annotations
     api libs.klum.cast.annotations
 }

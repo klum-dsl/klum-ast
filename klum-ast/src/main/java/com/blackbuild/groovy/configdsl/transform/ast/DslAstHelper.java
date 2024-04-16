@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -137,7 +138,13 @@ public class DslAstHelper {
     }
 
 
-    static String getElementNameForCollectionField(FieldNode fieldNode) {
+    /**
+     * Returns the name of a single element for a collection or map field. This is either taken from the {@link Field#members()}
+     * annotation member or derived from the field name (i.e. removing a trailing 's').
+     * @param fieldNode the field to get the element name for
+     * @return the element name
+     */
+    public static String getElementNameForCollectionField(FieldNode fieldNode) {
         String result = fieldNode.getNodeMetaData(ELEMENT_NAME_METADATA_KEY);
         if (result != null)
             return result;

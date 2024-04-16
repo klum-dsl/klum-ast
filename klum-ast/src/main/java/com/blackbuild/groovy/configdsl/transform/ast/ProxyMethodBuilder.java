@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
@@ -39,22 +40,30 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static com.blackbuild.klum.cast.validation.AstSupport.isAssignable;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodBuilder> {
 
+    private static final ClassNode FACTORY_HELPER_TYPE = make(FactoryHelper.class);
+    private static final ClassNode TEMPLATE_MANAGER_TYPE = make(TemplateManager.class);
+    private static final ClassNode KLUM_INSTANCE_PROXY_TYPE = make(KlumInstanceProxy.class);
+
     private final String proxyMethodName;
     private final Expression proxyTarget;
+    private ClassNode targetType;
 
     private final List<ProxyMethodArgument> params = new ArrayList<>();
 
     private int namedParameterIndex = -1;
+    private boolean copyDocFromTargetMethod = false;
 
     public ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
         super(name);
@@ -63,23 +72,29 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name, String proxyMethodName) {
-        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, proxyMethodName);
+        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, proxyMethodName)
+                .targetType(KLUM_INSTANCE_PROXY_TYPE);
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name) {
-        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, name);
+        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, name)
+                .targetType(KLUM_INSTANCE_PROXY_TYPE);
     }
 
     public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {
-        return new ProxyMethodBuilder(classX(FactoryHelper.class), name, name)
+        return new ProxyMethodBuilder(classX(FACTORY_HELPER_TYPE), name, name)
+                .targetType(FACTORY_HELPER_TYPE)
+                .copyDocFromTargetMethod()
                 .mod(ACC_STATIC | ACC_PUBLIC)
-                .returning(newClass(factoryType))
+                .returning(newClass(factoryType), "The new instance")
                 .constantClassParam(factoryType);
     }
 
     public static ProxyMethodBuilder createTemplateMethod(String name) {
-        return new ProxyMethodBuilder(classX(TemplateManager.class), name, name)
+        return new ProxyMethodBuilder(classX(TEMPLATE_MANAGER_TYPE), name, name)
+                .targetType(TEMPLATE_MANAGER_TYPE)
                 .mod(ACC_STATIC | ACC_PUBLIC)
+                .copyDocFromTargetMethod()
                 .returning(ClassHelper.DYNAMIC_TYPE);
     }
 
@@ -93,6 +108,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             return returnS(callExpression);
         else
             return stmt(callExpression);
+    }
+
+    public ProxyMethodBuilder targetType(ClassNode targetType) {
+        this.targetType = targetType;
+        return this;
     }
 
     public ProxyMethodBuilder decoratedParam(FieldNode field, String name, String doc) {
@@ -111,6 +131,10 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .filter(AnnotationConstantExpression.class::isInstance)
                 .map(annotationMember -> (AnnotationNode) ((AnnotationConstantExpression) annotationMember).getValue())
                 .filter(annotationNode -> annotationNode.isTargetAllowed(AnnotationNode.PARAMETER_TARGET));
+    }
+
+    public ProxyMethodBuilder optionalClassLoaderParam() {
+        return optionalClassLoaderParam("The classloader to use. Defaults to the current thread's context classloader.");
     }
 
     public ProxyMethodBuilder optionalClassLoaderParam(String doc) {
@@ -140,10 +164,52 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .collect(toList());
     }
 
-    private void addParameterJavaDocs() {
+    private List<ClassNode> getProxyArgumentTypes() {
+        return params.stream()
+                .map(ProxyMethodArgument::asInstanceProxyArgumentType)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(toList());
+    }
+
+    public ProxyMethodBuilder copyDocFromTargetMethod() {
+        copyDocFromTargetMethod = true;
+        return this;
+    }
+
+    @Override
+    protected void addDocumentation(MethodNode method) {
+        if (copyDocFromTargetMethod && documentation.isEmpty() && targetType != null) {
+            List<ClassNode> args = getProxyArgumentTypes();
+            MethodNode targetMethod = targetType
+                    .redirect()
+                    .getMethods(proxyMethodName)
+                    .stream()
+                    .filter(m -> methodMatches(m, args))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Cannot copy documentation from target method if target method does not exist"));
+            copyDocFrom(targetMethod);
+        } else {
+            addParameterJavaDocs(documentation.getCopy());
+        }
+        super.addDocumentation(method);
+    }
+
+    private boolean methodMatches(MethodNode method, List<ClassNode> argTypes) {
+        Parameter[] parameters = method.getParameters();
+        if (parameters.length != argTypes.size())
+            return false;
+        for (int i = 0; i < parameters.length; i++) {
+            if (!isAssignable(argTypes.get(i), parameters[i].getType()))
+                return false;
+        }
+        return true;
+    }
+
+    private void addParameterJavaDocs(DocBuilder doc) {
          params.stream()
                 .filter(p -> p.asParameterJavaDoc().isPresent())
-                .forEach(p -> documentation.param(p.name, p.asParameterJavaDoc().get()));
+                .forEach(p -> doc.param(p.name, p.asParameterJavaDoc().get()));
     }
 
     /**
@@ -353,8 +419,10 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         }
 
         Optional<String> asParameterJavaDoc() {
-            return Optional.of(javaDoc);
+            return Optional.ofNullable(javaDoc);
         }
+
+        abstract Optional<ClassNode> asInstanceProxyArgumentType();
     }
 
     private static class ProxiedArgument extends ProxyMethodArgument {
@@ -384,6 +452,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 annotations.forEach(param::addAnnotation);
             return Optional.of(param);
         }
+
+        @Override
+        Optional<ClassNode> asInstanceProxyArgumentType() {
+            return Optional.of(type);
+        }
     }
 
     private static class ConstantArgument extends ProxyMethodArgument {
@@ -402,6 +475,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         @Override
         Optional<Expression> asInstanceProxyArgument() {
             return Optional.of(constX(constant));
+        }
+
+        @Override
+        Optional<ClassNode> asInstanceProxyArgumentType() {
+            return Optional.of(ClassHelper.make(constant.getClass()));
         }
     }
 
@@ -425,6 +503,13 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         @Override
         Optional<Expression> asInstanceProxyArgument() {
             return Optional.of(expression);
+        }
+
+        @Override
+        Optional<ClassNode> asInstanceProxyArgumentType() {
+            if (expression instanceof ClassExpression)
+                return Optional.of(CLASS_Type);
+            return Optional.of(expression.getType());
         }
     }
 
@@ -459,6 +544,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             return Optional.of(doAdd ? varX(name) : ConstantExpression.NULL);
         }
 
+        @Override
+        Optional<ClassNode> asInstanceProxyArgumentType() {
+            return Optional.of(type);
+        }
+
     }
 
     private static class NamedParamsArgument extends ProxyMethodArgument {
@@ -472,6 +562,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE);
             wildcard.setWildcard(true);
             return Optional.of(new Parameter(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), wildcard), name));
+        }
+
+        @Override
+        Optional<ClassNode> asInstanceProxyArgumentType() {
+            return Optional.of(makeClassSafeWithGenerics(ClassHelper.MAP_TYPE, new GenericsType(ClassHelper.STRING_TYPE), new GenericsType(ClassHelper.OBJECT_TYPE)));
         }
     }
 }

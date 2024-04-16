@@ -14,7 +14,7 @@ dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     api project(':klum-ast-annotations')
     api project(':klum-ast-runtime')
-    api "com.blackbuild.annodocimal:anno-docimal-global-ast:0.1.0-rc.10"
+    api libs.annodocimal.global.ast
     api libs.klum.cast.compile
 
     testFixturesImplementation libs.bundles.spock.groovy."$rootProject.ext.groovyVersion"

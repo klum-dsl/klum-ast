@@ -75,7 +75,8 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
 
     public T returning(ClassNode returnType, String documentation) {
         this.returnType = returnType;
-        this.documentation.returnType(documentation);
+        if (documentation != null)
+            this.documentation.returnType(documentation);
         return (T) this;
     }
 
@@ -192,12 +193,24 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
             method.setSourcePosition(sourceLinkTo);
 
         method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
-        AnnoDocUtil.addDocumentation(method, documentation);
+        addDocumentation(method);
         return method;
+    }
+
+    protected void addDocumentation(MethodNode method) {
+        AnnoDocUtil.addDocumentation(method, documentation);
     }
 
     protected abstract Parameter[] getMethodParameters();
 
 
     protected abstract Statement getMethodBody();
+
+    /**
+     * Copies the documentation from the given.
+     */
+    public T copyDocFrom(AnnotatedNode source) {
+        documentation.fromDocText(AnnoDocUtil.getDocText(source, null));
+        return (T) this;
+    }
 }

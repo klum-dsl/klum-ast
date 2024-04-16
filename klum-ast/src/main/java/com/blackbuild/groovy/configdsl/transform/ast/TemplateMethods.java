@@ -89,7 +89,7 @@ class TemplateMethods {
     private void withTemplateMethod() {
         createTemplateMethod(WITH_TEMPLATE)
                 .constantClassParam(annotatedClass)
-                .param(newClass(dslAncestor), "template")
+                .param(newClass(dslAncestor), "template", null)
                 .closureParam("closure", null)
                 .addTo(annotatedClass);
     }
@@ -97,7 +97,7 @@ class TemplateMethods {
     private void withTemplateConvenienceMethod() {
         createTemplateMethod(WITH_TEMPLATE)
                 .constantClassParam(annotatedClass)
-                .nonOptionalNamedParams("templateMap")
+                .nonOptionalNamedParams("templateMap", null)
                 .closureParam("closure", null)
                 .addTo(annotatedClass);
     }
@@ -119,7 +119,7 @@ class TemplateMethods {
     private void withTemplatesListMethod() {
         createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
-                .deprecated()
+                .deprecated("use #withTemplates(List, Closure)")
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates")
                 .closureParam("closure")
@@ -137,15 +137,15 @@ class TemplateMethods {
     private void copyFromMethod() {
         createProxyMethod("copyFrom")
                 .mod(ACC_PUBLIC)
-                .param(newClass(dslAncestor), "template")
+                .param(newClass(dslAncestor), "template", null)
                 .addTo(rwClass);
      }
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
                 .forRemoval()
-                .namedParams("values")
-                .delegatingClosureParam(rwClass)
+                .namedParams("values", null)
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
     }
 
