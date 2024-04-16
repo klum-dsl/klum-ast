@@ -1,5 +1,7 @@
-apply plugin: 'java-library'
-apply plugin: "java-test-fixtures"
+plugins {
+    id "klum-ast.conventions"
+    id "java-test-fixtures"
+}
 
 description "compileOnly part of KlumAST"
 
