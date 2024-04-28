@@ -56,7 +56,7 @@ dependencyResolutionManagement {
 
             bundle "spockRuntime", ["bytebuddy", "objenesis"]
 
-            version("annodocimal", "0.1.0-rc.14")
+            version("annodocimal", "0.1.0-rc.15")
             library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
             library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
         }
