@@ -1,3 +1,4 @@
+//file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform.ast
 
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil
@@ -39,6 +40,48 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         then:
         AnnoDocUtil.getDocumentation(clazz) == '''This is a class'''
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply")) == """Configures this instance with the given values and closure.
+<p>
+The optional value map is converted to single parameter calls.
+</p>
+<p>
+Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+</p>
+@param closure the closure to configure this instance
+@return the configured instance
+"""
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Closure)) == """Configures this instance with the given values and closure.
+<p>
+The optional value map is converted to single parameter calls.
+</p>
+<p>
+Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+</p>
+@param closure the closure to configure this instance
+@return the configured instance
+"""
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map)) == """Configures this instance with the given values and closure.
+<p>
+The optional value map is converted to single parameter calls.
+</p>
+<p>
+Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+</p>
+@param values map of values to apply
+@param closure the closure to configure this instance
+@return the configured instance
+"""
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map, Closure)) == """Configures this instance with the given values and closure.
+<p>
+The optional value map is converted to single parameter calls.
+</p>
+<p>
+Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+</p>
+@param values map of values to apply
+@param closure the closure to configure this instance
+@return the configured instance
+"""
     }
 
 }

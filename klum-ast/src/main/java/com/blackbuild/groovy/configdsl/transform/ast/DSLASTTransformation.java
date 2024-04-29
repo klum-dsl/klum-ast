@@ -1083,6 +1083,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
 
         AnnoDocUtil.addDocumentation(factoryField, "The factory for creating instances of " + annotatedClass.getName());
+        factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
 
         annotatedClass.addField(factoryField);
     }

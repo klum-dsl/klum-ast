@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
@@ -189,10 +190,10 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("Cannot copy documentation from target method if target method does not exist"));
             copyDocFrom(targetMethod);
+            AnnoDocUtil.addDocumentation(method, documentation);
         } else {
-            addParameterJavaDocs(documentation.getCopy());
+            AnnoDocUtil.addDocumentation(method, addParameterJavaDocs(documentation.getCopy()));
         }
-        super.addDocumentation(method);
     }
 
     private boolean methodMatches(MethodNode method, List<ClassNode> argTypes) {
@@ -206,10 +207,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return true;
     }
 
-    private void addParameterJavaDocs(DocBuilder doc) {
+    private DocBuilder addParameterJavaDocs(DocBuilder doc) {
          params.stream()
                 .filter(p -> p.asParameterJavaDoc().isPresent())
                 .forEach(p -> doc.param(p.name, p.asParameterJavaDoc().get()));
+         return doc;
     }
 
     /**
