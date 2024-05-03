@@ -1042,14 +1042,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createApplyMethods() {
         createProxyMethod("apply")
                 .mod(ACC_PUBLIC)
-                .withDocumentation(doc ->
-                        doc.title("Configures this instance with the given values and closure.")
-                        .p("The optional value map is converted to single parameter calls.")
-                        .p("Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.")
-                )
-                .returning(newClass(annotatedClass), "the configured instance")
-                .namedParams("values", "map of values to apply")
-                .delegatingClosureParam(rwClass, "the closure to configure this instance")
+                .copyDocFromTargetMethod()
+                .returning(newClass(annotatedClass), null)
+                .namedParams("values", null)
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
     }
 

@@ -108,7 +108,7 @@ class TemplateMethods {
         String closureParamName = "closure";
         createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
-                .deprecated()
+                .deprecated("use #withTemplates(List, Closure)")
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(MAP_TYPE), templatesVarName)
                 .closureParam(closureParamName)
@@ -119,7 +119,6 @@ class TemplateMethods {
     private void withTemplatesListMethod() {
         createPublicMethod(WITH_MULTIPLE_TEMPLATES)
                 .mod(ACC_STATIC)
-                .deprecated("use #withTemplates(List, Closure)")
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates")
                 .closureParam("closure")
@@ -143,7 +142,7 @@ class TemplateMethods {
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
-                .forRemoval()
+                .forRemoval("Use Create.Template() instead")
                 .namedParams("values", null)
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);

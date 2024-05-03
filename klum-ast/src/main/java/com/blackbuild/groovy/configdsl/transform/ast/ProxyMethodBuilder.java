@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
+import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
@@ -35,9 +36,7 @@ import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GeneralUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
@@ -177,6 +176,58 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         copyDocFromTargetMethod = true;
         return this;
     }
+
+    /**
+     * Copies the documentation from the given.
+     */
+    @Override
+    public ProxyMethodBuilder copyDocFrom(AnnotatedNode source) {
+        DocText docTextOfProxyTarget = AnnoDocUtil.getDocText(source, null);
+
+        if (source instanceof MethodNode) {
+            Map<String, String> mappings = getParameternameMappings(docTextOfProxyTarget);
+            if (!mappings.isEmpty()) {
+                String rawText = docTextOfProxyTarget.getRawText();
+                for (Map.Entry<String, String> stringStringEntry : mappings.entrySet()) {
+                    rawText = rawText.replace(stringStringEntry.getKey(), stringStringEntry.getValue());
+                }
+                docTextOfProxyTarget = DocText.fromRawText(rawText);
+            }
+        }
+
+        documentation.fromDocText(docTextOfProxyTarget);
+        return this;
+    }
+
+    private Map<String, String> getParameternameMappings(DocText docTextOfProxyTarget) {
+        Map<String, String> mappings = new HashMap<>();
+
+        List<ProxyMethodArgument> targetMethodsArguments = params.stream().filter(p -> p.asInstanceProxyArgument().isPresent()).collect(toList());
+
+        // since the methodNode does not contain the parameter names, we need to take the names from the docText
+        // We could instead determine the method object from the target class
+        List<String> docTextParamTags = docTextOfProxyTarget
+                .getTags()
+                .getOrDefault("param", Collections.emptyList())
+                .stream()
+                .map(tag -> tag.split(" ")[0].trim())
+                .collect(toList());
+
+        if (docTextParamTags.size() != targetMethodsArguments.size()) {
+            return mappings;
+        }
+
+        for (int i = 0; i < targetMethodsArguments.size(); i++) {
+            String targetedMethodParameterName = docTextParamTags.get(i);
+            String newMethodParameterName = targetMethodsArguments.get(i).name;
+            if (!targetedMethodParameterName.equals(newMethodParameterName)) {
+                mappings.put(targetedMethodParameterName, newMethodParameterName);
+            }
+        }
+
+        return mappings;
+    }
+
 
     @Override
     protected void addDocumentation(MethodNode method) {

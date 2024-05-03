@@ -40,47 +40,51 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         then:
         AnnoDocUtil.getDocumentation(clazz) == '''This is a class'''
-        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply")) == """Configures this instance with the given values and closure.
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply")) == """Applies the given named params and the closure to this proxy's object.
 <p>
-The optional value map is converted to single parameter calls.
+Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
+The closure will be executed against the instance's RW object.
 </p>
 <p>
-Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
-@param closure the closure to configure this instance
-@return the configured instance
+@param closure Closure to be executed against the instance.
+@return the object itself
 """
-        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Closure)) == """Configures this instance with the given values and closure.
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Closure)) == """Applies the given named params and the closure to this proxy's object.
 <p>
-The optional value map is converted to single parameter calls.
+Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
+The closure will be executed against the instance's RW object.
 </p>
 <p>
-Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
-@param closure the closure to configure this instance
-@return the configured instance
+@param closure Closure to be executed against the instance.
+@return the object itself
 """
-        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map)) == """Configures this instance with the given values and closure.
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map)) == """Applies the given named params and the closure to this proxy's object.
 <p>
-The optional value map is converted to single parameter calls.
+Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
+The closure will be executed against the instance's RW object.
 </p>
 <p>
-Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
-@param values map of values to apply
-@param closure the closure to configure this instance
-@return the configured instance
+@param values Map of String to Object which will be translated into Method calls
+@param closure Closure to be executed against the instance.
+@return the object itself
 """
-        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map, Closure)) == """Configures this instance with the given values and closure.
+        AnnoDocUtil.getDocumentation(clazz.getDeclaredMethod("apply", Map, Closure)) == """Applies the given named params and the closure to this proxy's object.
 <p>
-The optional value map is converted to single parameter calls.
+Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
+The closure will be executed against the instance's RW object.
 </p>
 <p>
-Note that explicit calls to apply() are usually not necessary, as apply is usually part of the creation of an object.
+Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
-@param values map of values to apply
-@param closure the closure to configure this instance
-@return the configured instance
+@param values Map of String to Object which will be translated into Method calls
+@param closure Closure to be executed against the instance.
+@return the object itself
 """
     }
 
