@@ -273,7 +273,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).optional().forRemoval().addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD)
+                .mod(ACC_PUBLIC)
+                .optional()
+                .forRemoval("Use ")
+                .addTo(annotatedClass);
     }
 
     private void convertValidationClosures() {
@@ -1042,7 +1046,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createApplyMethods() {
         createProxyMethod("apply")
                 .mod(ACC_PUBLIC)
-                .copyDocFromTargetMethod()
                 .returning(newClass(annotatedClass), null)
                 .namedParams("values", null)
                 .delegatingClosureParam(rwClass, null)
@@ -1160,14 +1163,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
                 .forRemoval("Use Create.With() instead")
-                .withDocumentation(d ->
-                        d.title("Creates a new instance of " + annotatedClass.getName())
-                                .p("The optional value map is converted to single parameter calls.")
-                                .seeAlso(keyField != null ? "KlumFactory.Keyed#With()" : "KlumFactory.Unkeyed#With()")
-                )
-                .namedParams("values", "map of values for the new instance")
-                .optionalStringParam("name", keyField != null, "The key to use for the new instance")
-                .delegatingClosureParam(rwClass, "the closure to configure the new instance")
+                .namedParams("values", null)
+                .optionalStringParam("name", keyField != null, null)
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
     }
 
@@ -1206,7 +1204,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "java:S1872"})
     public <T extends Enum<?>> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
         if (node == null) return defaultValue;
 

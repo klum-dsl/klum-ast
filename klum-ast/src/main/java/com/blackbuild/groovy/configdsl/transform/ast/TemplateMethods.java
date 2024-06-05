@@ -23,39 +23,18 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.InnerClassNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createTemplateMethod;
-import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
-import static groovyjarjarasm.asm.Opcodes.ACC_FINAL;
-import static groovyjarjarasm.asm.Opcodes.ACC_PRIVATE;
-import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static groovyjarjarasm.asm.Opcodes.ACC_SYNTHETIC;
+import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.*;
+import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.block;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorSuperS;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.ctorX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
 class TemplateMethods {
@@ -106,23 +85,18 @@ class TemplateMethods {
     private void withTemplatesMapMethod() {
         String templatesVarName = "templates";
         String closureParamName = "closure";
-        createPublicMethod(WITH_MULTIPLE_TEMPLATES)
-                .mod(ACC_STATIC)
-                .deprecated("use #withTemplates(List, Closure)")
+        createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
                 .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(MAP_TYPE), templatesVarName)
-                .closureParam(closureParamName)
-                .doReturn(callX(classX(TemplateManager.class), WITH_MULTIPLE_TEMPLATES, args(templatesVarName, closureParamName)))
+                .param(newClass(MAP_TYPE), templatesVarName, null)
+                .closureParam(closureParamName, null)
                 .addTo(annotatedClass);
     }
 
     private void withTemplatesListMethod() {
-        createPublicMethod(WITH_MULTIPLE_TEMPLATES)
-                .mod(ACC_STATIC)
+        createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
                 .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(LIST_TYPE), "templates")
-                .closureParam("closure")
-                .doReturn(callX(classX(TemplateManager.class), WITH_MULTIPLE_TEMPLATES, args("templates", "closure")))
+                .param(newClass(LIST_TYPE), "templates", null)
+                .closureParam("closure", null)
                 .addTo(annotatedClass);
     }
 

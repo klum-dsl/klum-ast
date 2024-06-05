@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.annodocimal.ast.formatting.DocText;
@@ -40,7 +41,6 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
-import static com.blackbuild.klum.cast.validation.AstSupport.isAssignable;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;
@@ -59,11 +59,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private final String proxyMethodName;
     private final Expression proxyTarget;
     private ClassNode targetType;
+    private MethodNode targetMethod;
 
     private final List<ProxyMethodArgument> params = new ArrayList<>();
 
     private int namedParameterIndex = -1;
-    private boolean copyDocFromTargetMethod = false;
 
     public ProxyMethodBuilder(Expression proxyTarget, String name, String proxyMethodName) {
         super(name);
@@ -84,7 +84,6 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {
         return new ProxyMethodBuilder(classX(FACTORY_HELPER_TYPE), name, name)
                 .targetType(FACTORY_HELPER_TYPE)
-                .copyDocFromTargetMethod()
                 .mod(ACC_STATIC | ACC_PUBLIC)
                 .returning(newClass(factoryType), "The new instance")
                 .constantClassParam(factoryType);
@@ -94,7 +93,6 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return new ProxyMethodBuilder(classX(TEMPLATE_MANAGER_TYPE), name, name)
                 .targetType(TEMPLATE_MANAGER_TYPE)
                 .mod(ACC_STATIC | ACC_PUBLIC)
-                .copyDocFromTargetMethod()
                 .returning(ClassHelper.DYNAMIC_TYPE);
     }
 
@@ -172,24 +170,21 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .collect(toList());
     }
 
-    public ProxyMethodBuilder copyDocFromTargetMethod() {
-        copyDocFromTargetMethod = true;
-        return this;
-    }
-
     /**
-     * Copies the documentation from the given.
+     * @inheritDoc
      */
     @Override
     public ProxyMethodBuilder copyDocFrom(AnnotatedNode source) {
-        DocText docTextOfProxyTarget = AnnoDocUtil.getDocText(source, null);
+        DocText docTextOfProxyTarget = DocText.fromRawText(ASTExtractor.extractDocumentation(source, null));
 
         if (source instanceof MethodNode) {
             Map<String, String> mappings = getParameternameMappings(docTextOfProxyTarget);
             if (!mappings.isEmpty()) {
                 String rawText = docTextOfProxyTarget.getRawText();
                 for (Map.Entry<String, String> stringStringEntry : mappings.entrySet()) {
-                    rawText = rawText.replace(stringStringEntry.getKey(), stringStringEntry.getValue());
+                    rawText = rawText.replace(
+                            "@param " + stringStringEntry.getKey() + " ",
+                            "@param " + stringStringEntry.getValue() + " ");
                 }
                 docTextOfProxyTarget = DocText.fromRawText(rawText);
             }
@@ -202,7 +197,9 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private Map<String, String> getParameternameMappings(DocText docTextOfProxyTarget) {
         Map<String, String> mappings = new HashMap<>();
 
-        List<ProxyMethodArgument> targetMethodsArguments = params.stream().filter(p -> p.asInstanceProxyArgument().isPresent()).collect(toList());
+        List<ProxyMethodArgument> targetMethodsArguments = params.stream()
+                .filter(p -> p.asInstanceProxyArgument().isPresent())
+                .collect(toList());
 
         // since the methodNode does not contain the parameter names, we need to take the names from the docText
         // We could instead determine the method object from the target class
@@ -210,7 +207,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .getTags()
                 .getOrDefault("param", Collections.emptyList())
                 .stream()
-                .map(tag -> tag.split(" ")[0].trim())
+                .filter(param -> !param.startsWith("<"))
+                .map(param -> param.split(" ")[0].trim())
                 .collect(toList());
 
         if (docTextParamTags.size() != targetMethodsArguments.size()) {
@@ -230,32 +228,23 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
 
     @Override
-    protected void addDocumentation(MethodNode method) {
-        if (copyDocFromTargetMethod && documentation.isEmpty() && targetType != null) {
-            List<ClassNode> args = getProxyArgumentTypes();
-            MethodNode targetMethod = targetType
-                    .redirect()
-                    .getMethods(proxyMethodName)
-                    .stream()
-                    .filter(m -> methodMatches(m, args))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("Cannot copy documentation from target method if target method does not exist"));
+    protected void postProcessMethod(MethodNode method) {
+        List<ClassNode> args = getProxyArgumentTypes();
+        targetMethod = MethodAstHelper.findMatchingMethod(targetType, proxyMethodName, args);
+
+        if (targetMethod != null) {
+            method.setSourcePosition(targetMethod);
+
+            if (deprecationType == null) {
+                List<AnnotationNode> deprecatedAnnotations = targetMethod.getAnnotations(DEPRECATED_NODE);
+                if (!deprecatedAnnotations.isEmpty())
+                    method.addAnnotation(deprecatedAnnotations.get(0));
+            }
             copyDocFrom(targetMethod);
             AnnoDocUtil.addDocumentation(method, documentation);
         } else {
             AnnoDocUtil.addDocumentation(method, addParameterJavaDocs(documentation.getCopy()));
         }
-    }
-
-    private boolean methodMatches(MethodNode method, List<ClassNode> argTypes) {
-        Parameter[] parameters = method.getParameters();
-        if (parameters.length != argTypes.size())
-            return false;
-        for (int i = 0; i < parameters.length; i++) {
-            if (!isAssignable(argTypes.get(i), parameters[i].getType()))
-                return false;
-        }
-        return true;
     }
 
     private DocBuilder addParameterJavaDocs(DocBuilder doc) {
@@ -532,6 +521,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
         @Override
         Optional<ClassNode> asInstanceProxyArgumentType() {
+            if (constant == null) return Optional.of(ClassHelper.VOID_TYPE);
             return Optional.of(ClassHelper.make(constant.getClass()));
         }
     }
@@ -544,7 +534,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         }
 
         public FixedExpressionArgument(Expression expression) {
-            super(null, null);
+            super("none", null);
             this.expression = expression;
         }
 

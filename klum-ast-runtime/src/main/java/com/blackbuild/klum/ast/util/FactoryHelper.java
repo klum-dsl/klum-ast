@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
@@ -51,6 +52,7 @@ import java.util.function.Supplier;
  * Helper methods fro use in convenience factories. This will eventually take a lot of code from
  * the AST generated methods.
  */
+@InlineJavadocs
 public class FactoryHelper {
 
     public static final String MODEL_CLASS_KEY = "model-class";
@@ -59,10 +61,32 @@ public class FactoryHelper {
         // static only
     }
 
+    /**
+     * Creates an instance of the given class by reading the model script class from the classpath.
+     * <p>
+     * The model script is determined by reading the properties file META-INF/klum-model/&lt;type&gt;.properties,
+     * which must contain the key 'model-class' with the fully qualified class name of the model script.
+     * </p>
+     * @param type The type to create
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFromClasspath(Class<T> type) {
         return createFromClasspath(type, Thread.currentThread().getContextClassLoader());
     }
 
+    /**
+     * Creates an instance of the given class by reading the model script class from the classpath.
+     * <p>
+     * The model script is determined by reading the properties file META-INF/klum-model/&lt;type&gt;.properties,
+     * which must contain the key 'model-class' with the fully qualified class name of the model script.
+     * The properties and the script class is loaded using the given class loader.
+ *     </p>
+     * @param type The type to create
+     * @param loader The class loader to load the script name and class from
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFromClasspath(Class<T> type, ClassLoader loader) {
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
 
@@ -78,6 +102,20 @@ public class FactoryHelper {
         }
     }
 
+    /**
+     * Creates a new instance of the given type using the provided values, key and config closure.
+     * <p>
+     * First the class is instantiated using the key as constructor argument if keyed. Then the values are applied
+     * by using the keys as method names of the RW instance and the values as the single argument of that method.
+     * Finally the config closure is applied to the RW instance.
+     * </p>
+     * @param type The type to create
+     * @param values The value map to apply
+     * @param key The key to use for instantiation, ignored if the type is not keyed
+     * @param body The config closure to apply
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
         return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
@@ -116,6 +154,25 @@ public class FactoryHelper {
         return (T) InvokerHelper.invokeConstructorOf(type, args);
     }
 
+    /**
+     * Creates an instance of the given type by running the given script.
+     * <p>
+     * The script can either be a regular script or a delegating script. A regular script will be instantiated
+     * and executed, the result will be returned. If the script returns the wrong type, an error will be thrown.
+     * For a delegating script, a new instance of the given type will be created and the script run as a closure
+     * on the RW instance.
+     * </p>
+     * <p>
+     * Basically, a regular script must start with {@code Type.Create...}, while a delegating script should only
+     * contain the body of the configuration closure.
+     * </p>
+     * <p>For a keyed type with a delegating script, the simple name of the script is used as the key, for a
+     * regular script, the script itself is responsible to provide the key.</p>
+     * @param type The type to create
+     * @param scriptType The script to run
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
         if (DelegatingScript.class.isAssignableFrom(scriptType))
             return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
@@ -139,12 +196,30 @@ public class FactoryHelper {
             return doCreate(type, null, () -> createInstance(type, null), apply);
     }
 
+    /**
+     * Creates an instance of the given type by compiling the given text into a delegating script
+     * and applying it to a newly created instance.
+     *
+     * @param type The type to create
+     * @param name The name of the script, only relevant for keyed types
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
         GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
         return createFromDelegatingScript(type, (DelegatingScript) parse);
     }
 
+    /**
+     * Creates an instance of the given type by reading the given URL, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     *
+     * @param type The type to create
+     * @param src The URL to read
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
         try {
             String path = Paths.get(src.getPath()).getFileName().toString();
@@ -154,6 +229,15 @@ public class FactoryHelper {
         }
     }
 
+    /**
+     * Creates an instance of the given type by reading the given file, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     *
+     * @param type The type to create
+     * @param file The file to read
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createFrom(Class<T> type, File file, ClassLoader loader) {
         try {
             return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
@@ -162,6 +246,18 @@ public class FactoryHelper {
         }
     }
 
+    /**
+     * Creates a template of the given type by reading the given resource, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     * <p>
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     *
+     * @param type The type to create
+     * @param scriptFile The resource to read
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createAsTemplate(Class<T> type, File scriptFile, ClassLoader loader) {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(scriptFile), loader);
@@ -170,6 +266,18 @@ public class FactoryHelper {
         }
     }
 
+    /**
+     * Creates a template of the given type by reading the given resource, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     * <p>
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     *
+     * @param type The type to create
+     * @param script The resource to read
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createAsTemplate(Class<T> type, URL script, ClassLoader loader) {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
@@ -178,7 +286,19 @@ public class FactoryHelper {
         }
     }
 
-    static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
+    /**
+     * Creates a template of the given type by reading the given resource, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     * <p>
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     *
+     * @param type The type to create
+     * @param text The script text
+     * @return The created instance
+     * @param <T> The type to create
+     */
+    public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
         T result = createAsTemplate(type);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
@@ -197,6 +317,19 @@ public class FactoryHelper {
         return new GroovyShell(gLoader, compilerConfiguration);
     }
 
+    /**
+     * Creates a new template instance of the given type using the provided values and config closure.
+     * <p>
+     * The values are applied by using the keys as method names of the RW instance and the values as the single argument
+     * of that method. Finally the config closure is applied to the RW instance.
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     * @param type The type to create
+     * @param values The value map to apply
+     * @param closure The config closure to apply
+     * @return The created instance
+     * @param <T> The type to create
+     */
     public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
         T result = createAsTemplate(type);
 

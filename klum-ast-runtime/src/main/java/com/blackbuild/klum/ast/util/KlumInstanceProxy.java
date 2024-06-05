@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.annodocimal.annotations.AnnoDoc;
+import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import groovy.lang.*;
@@ -45,6 +45,7 @@ import static java.lang.String.format;
  * Implementations for generated instance methods.
  */
 @SuppressWarnings("unused") // called from generated code
+@InlineJavadocs
 public class KlumInstanceProxy {
 
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
@@ -119,20 +120,14 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Applies the given named params and the closure to this proxy's object. Both params are optional.
-     * The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
+     * Applies the given named params and the closure to this proxy's object.
+     * Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
      * The closure will be executed against the instance's RW object.
      * <p>Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.</p>
      * @param values Map of String to Object which will be translated into Method calls
      * @param body Closure to be executed against the instance.
      * @return the object itself
      */
-    @AnnoDoc("Applies the given named params and the closure to this proxy's object. Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.\n" +
-            "The closure will be executed against the instance's RW object.\n" +
-            "<p>Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.</p>\n" +
-            "@param values Map of String to Object which will be translated into Method calls\n" +
-            "@param body Closure to be executed against the instance.\n" +
-            "@return the object itself")
     public Object apply(Map<String, ?> values, Closure<?> body) {
         applyOnly(values, body);
         LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
@@ -164,6 +159,7 @@ public class KlumInstanceProxy {
     public void copyFrom(Object template) {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
     }
+
     public Object cloneInstance() {
         Object key = isKeyed(instance.getClass()) ? getKey() : null;
         Object result = FactoryHelper.createInstance(instance.getClass(), (String) key);
@@ -262,9 +258,12 @@ public class KlumInstanceProxy {
 
     /**
      * Executes validation for this instance
+     *
+     * @deprecated use {@link Validator#validate(Object)} instead
      */
+    @Deprecated(forRemoval = true)
     public void validate() {
-        new Validator(instance).execute();
+        Validator.validate(instance);
     }
 
     boolean getManualValidation() {

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
@@ -183,34 +184,33 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
                 getMethodBody()
         );
 
-        if (deprecationType != null)
-            method.addAnnotation(deprecationType.toNode());
-
         if (genericsTypes != null)
             method.setGenericsTypes(genericsTypes);
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
 
+        if (deprecationType != null)
+            method.addAnnotation(deprecationType.toNode());
+
         method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
-        addDocumentation(method);
+        postProcessMethod(method);
         return method;
     }
 
-    protected void addDocumentation(MethodNode method) {
+    protected void postProcessMethod(MethodNode method) {
         AnnoDocUtil.addDocumentation(method, documentation);
     }
 
     protected abstract Parameter[] getMethodParameters();
 
-
     protected abstract Statement getMethodBody();
 
     /**
-     * Copies the documentation from the given.
+     * Copies the documentation from the given source element.
      */
     public T copyDocFrom(AnnotatedNode source) {
-        documentation.fromDocText(AnnoDocUtil.getDocText(source, null));
+        documentation.fromRawText(ASTExtractor.extractDocumentation(source, null));
         return (T) this;
     }
 }

@@ -23,7 +23,8 @@
  */
 package com.blackbuild.klum.ast.doc;
 
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
+import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.FieldNode;
 
@@ -54,7 +55,7 @@ public class DocUtil {
      * @return the display name
      */
     public static String getDisplayNameOf(FieldNode field) {
-        String sentence = AnnoDocUtil.getDocText(field, field.getName()).getTitle();
+        String sentence = DocText.fromRawText(ASTExtractor.extractDocumentation(field, field.getName())).getTitle();
         // TODO other punctuation?
         if (sentence.charAt(sentence.length() - 1) == '.')
             return sentence.substring(0, sentence.length() - 1);

@@ -41,7 +41,11 @@ public class Validator {
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
 
-    public Validator(Object instance) {
+    public static void validate(Object instance) {
+        new Validator(instance).execute();
+    }
+
+    protected Validator(Object instance) {
         this.instance = instance;
     }
 
