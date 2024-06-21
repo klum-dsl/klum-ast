@@ -28,7 +28,6 @@ import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,13 +35,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.getAllMethods;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.addMethodGenerics;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.createGenericsSpec;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.extractSuperClassGenerics;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 // Heavily copied from DelegateASTTransformation
 class DelegateFromRwToModel {
@@ -88,16 +82,20 @@ class DelegateFromRwToModel {
             newParams[i] = newParam;
         }
 
-        createMethod(candidate.getName())
+        // TODO: Proxy Method Builder
+        MethodNode newMethod = createMethod(candidate.getName())
                 .optional()
                 .setGenericsTypes(candidate.getGenericsTypes())
                 .mod(candidate.getModifiers() & ~Opcodes.ACC_ABSTRACT & ~Opcodes.ACC_NATIVE)
                 .returning(correctToGenericsSpecRecurse(genericsSpec, candidate.getReturnType(), currentMethodGenPlaceholders))
                 .params(newParams)
-                .callMethod(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS, GenericsUtils.correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
+                .callMethod(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
                         candidate.getName(),
                         args(newParams))
                 .addTo(rwClass);
+        if (newMethod != null) {
+            DslAstHelper.copyAnnotationsFromSourceToTarget(candidate, newMethod);
+        }
     }
 
     private boolean matchingMethodAlreadyExists(MethodNode candidate) {

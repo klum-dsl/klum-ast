@@ -232,7 +232,7 @@ class ConverterSpec extends AbstractDSLSpec {
                 Date birthday
                 
                 static Bar fromLong(long value) {
-                    return create(birthday: new Date(value))
+                    return Bar.Create.With(birthday: new Date(value))
                 }
             }
             '''

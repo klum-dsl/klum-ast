@@ -229,31 +229,60 @@ class AlternativesClassBuilder {
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
                 .callMethod(closureVarName, "call")
-                .addTo(rwClass);
+                .withDocumentation( doc -> doc
+                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field.")
+                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
+                                " this method provides additional features like alternative syntaxes or custom factory methods.")
+                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
 
-        createOptionalPublicMethod(factoryMethod)
-                .linkToField(fieldNode)
-                .param(newClass(MAP_TYPE), "templateMap")
-                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
-                .statement(
-                        callX(
-                                elementType,
-                                TemplateMethods.WITH_TEMPLATE,
-                                args(varX("templateMap"), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
-                        )
                 )
                 .addTo(rwClass);
 
+        String templateMapVarName = "templateMap";
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
-                .param(elementType, "template")
+                .param(newClass(MAP_TYPE), templateMapVarName)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
                                 elementType,
                                 TemplateMethods.WITH_TEMPLATE,
-                                args(varX("template"), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
+                                args(varX(templateMapVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
+                )
+                .withDocumentation( doc -> doc
+                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
+                        .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
+                                "applies it for the closure.")
+                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
+                                " this method provides additional features like alternative syntaxes or custom factory methods.")
+                        .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Map,Closure)")
+                        .param(templateMapVarName, "The anonymous template to use for the creation/setting of the instances.")
+                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                )
+                .addTo(rwClass);
+
+        String templateVarName = "template";
+        createOptionalPublicMethod(factoryMethod)
+                .linkToField(fieldNode)
+                .param(elementType, templateVarName)
+                .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
+                .statement(
+                        callX(
+                                elementType,
+                                TemplateMethods.WITH_TEMPLATE,
+                                args(varX(templateVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
+                        )
+                )
+                .withDocumentation( doc -> doc
+                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
+                        .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
+                                "applies it for the closure.")
+                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
+                                " this method provides additional features like alternative syntaxes or custom factory methods.")
+                        .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Object,Closure)")
+                        .param(templateVarName, "The anonymous template to use for the creation/setting of the instances.")
+                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
                 )
                 .addTo(rwClass);
     }
@@ -279,13 +308,21 @@ class AlternativesClassBuilder {
         createPublicMethod(methodName)
                 .linkToField(fieldNode)
                 .returning(elementType)
-                .namedParams(valuesVarName).optionalStringParam("key", keyType != null)
+                .namedParams(valuesVarName)
+                .optionalStringParam("key", keyType != null)
                 .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
                 .doReturn(callX(varX("rw"), memberName,
                         keyType != null
                                 ? args(varX(valuesVarName), classX(subclass), varX("key"), varX(closureVarName))
                                 : args(varX(valuesVarName), classX(subclass), varX(closureVarName))
                 ))
+                .withDocumentation(docBuilder -> docBuilder
+                        .title("Creates a new instance of the " + subclass.getName() + " class and adds it to " + fieldNode.getName() + ".")
+                        .p("The instance is created using the given values and the closure.")
+                        .param(valuesVarName, "The values to use for the creation of the instance.")
+                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                        .optionalParam("key", keyType != null, "The key to use for the creation of the instance.")
+                        .returnType("The created instance."))
                 .addTo(collectionFactory);
 
         createPublicMethod(methodName)
@@ -297,6 +334,12 @@ class AlternativesClassBuilder {
                                 ? args(classX(subclass), varX("key"), varX(closureVarName))
                                 : args(classX(subclass), varX(closureVarName))
                 ))
+                .withDocumentation(docBuilder -> docBuilder
+                        .title("Creates a new instance of the " + subclass.getName() + " class and adds it to " + fieldNode.getName() + ".")
+                        .p("The instance is created using the given closure.")
+                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                        .optionalParam("key", keyType != null, "The key to use for the creation of the instance.")
+                        .returnType("The created instance."))
                 .addTo(collectionFactory);
 
         new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);

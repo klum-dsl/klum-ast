@@ -430,6 +430,7 @@ public class DslAstHelper {
     static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
         for (AnnotationNode annotation : source.getAnnotations()) {
             if (annotation.isBuiltIn()) continue;
+            if (annotation.getClassNode().equals(KLUM_GENERATED_CLASSNODE)) continue;
             target.addAnnotation(annotation);
         }
     }

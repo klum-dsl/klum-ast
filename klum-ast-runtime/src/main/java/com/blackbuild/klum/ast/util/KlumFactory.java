@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import groovy.lang.*;
 import groovy.transform.Undefined;
@@ -39,6 +40,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings({"java:S100", "unused"})
+@InlineJavadocs
 public class KlumFactory<T> {
 
     protected final Class<T> type;

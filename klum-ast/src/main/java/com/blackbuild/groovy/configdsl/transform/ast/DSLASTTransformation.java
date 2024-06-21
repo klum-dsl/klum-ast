@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
@@ -1088,13 +1089,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
-        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factoryBase");
+        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factory");
         if (factoryBase == null) factoryBase = getInnerClass(annotatedClass, "Factory");
 
         if (!isInstantiable(defaultImpl)) {
             if (factoryBase == null) return KLUM_FACTORY;
             if (!isAssignableTo(factoryBase, KLUM_FACTORY))
-                addError("factoryBase must be a KlumFactory", dslAnnotation);
+                addError("factory must be a KlumFactory", dslAnnotation);
             return factoryBase;
         }
 
@@ -1153,8 +1154,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 methodNode.getExceptions(),
                 returnS(callSuperX(methodNode.getName(), args(parameters)))
         );
-        newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
-        factoryClass.addMethod(newMethod);
+        String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
+        AnnoDocUtil.addDocumentation(newMethod, originalDocumentation);
+        MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
+        if (existing == null)
+            factoryClass.addMethod(newMethod);
     }
 
     private void createFactoryMethods() {

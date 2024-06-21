@@ -1,8 +1,13 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform.ast
 
-import com.blackbuild.annodocimal.ast.extractor.ClassDocExtractor
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.ast.MethodNode
+import org.codehaus.groovy.ast.Parameter
+import org.codehaus.groovy.ast.tools.GeneralUtils
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
 
@@ -10,6 +15,10 @@ import spock.lang.Issue
 class AnnoDocTest extends AbstractDSLSpec {
 
     File srcDir
+    ClassNode classNode
+    ClassNode rwClassNode
+    Class<?> factoryClazz
+    ClassNode factoryClassNode
 
     def setup() {
         srcDir = new File("build/test-sources/${getClass().simpleName}/$safeFilename")
@@ -23,22 +32,35 @@ class AnnoDocTest extends AbstractDSLSpec {
         file.text = code
         clazz = loader.parseClass(file)
         rwClazz = getRwClass(clazz.name)
+        factoryClazz = getClass(clazz.name + '$_Factory')
+        classNode = ClassHelper.make(clazz)
+        rwClassNode = ClassHelper.make(rwClazz)
+        factoryClassNode = ClassHelper.make(factoryClazz)
     }
 
     String methodDoc(String methodName, Class... params) {
-        return ClassDocExtractor.extractDocumentation(clazz.getDeclaredMethod(methodName, params))
+        return ASTExtractor.extractDocumentation(getMethod(classNode, methodName, params))
     }
 
     String rwMethodDoc(String methodName, Class... params) {
-        return ClassDocExtractor.extractDocumentation(rwClazz.getDeclaredMethod(methodName, params))
+        return ASTExtractor.extractDocumentation(getMethod(rwClassNode, methodName, params))
+    }
+
+    String creatorDoc(String methodName, Class... params) {
+        return ASTExtractor.extractDocumentation(getMethod(factoryClassNode, methodName, params))
+    }
+
+    MethodNode getMethod(ClassNode node, String methodName, Class... paramTypes) {
+        Parameter[] params = paramTypes.collect { GeneralUtils.param(ClassHelper.make(it), "_") }.toArray(new Parameter[0])
+        methodName == "<init>" ? node.getDeclaredConstructor(params) : node.getDeclaredMethod(methodName, params)
     }
 
     String fieldDoc(String fieldName) {
-        return ClassDocExtractor.extractDocumentation(clazz.getDeclaredField(fieldName))
+        return ASTExtractor.extractDocumentation(classNode.getDeclaredField(fieldName),)
     }
 
     String classDoc() {
-        return ClassDocExtractor.extractDocumentation(clazz)
+        return ASTExtractor.extractDocumentation(classNode)
     }
 
     def "javadoc for class taken from proxied methods"() {
@@ -102,6 +124,10 @@ Note that explicit calls to apply() are usually not necessary, as apply is part 
 @param closure Closure to be executed against the instance.
 @return the object itself
 """
+        methodDoc("apply", Map) == rwMethodDoc("apply", Map)
+        methodDoc("apply", Closure) == rwMethodDoc("apply", Closure)
+        methodDoc("apply", Map, Closure) == rwMethodDoc("apply", Map, Closure)
+
         methodDoc("withTemplate", clazz, Closure) == """Executes the given closure with the given template as the template for the given type.
 <p>
 This means that all objects of the given type created in the scope of the closure will use the given template,
@@ -153,5 +179,91 @@ to their respective classes.
 
     }
 
+    def "javadoc for auto overridden creator"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+package dummy 
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+
+/**
+ * This is a class
+ */
+@DSL class Foo {}
+''')
+
+        then:
+        creatorDoc("With", Closure) == """Creates a new instance of the model applying the given configuration closure.
+@param configuration The configuration closure to apply to the model.
+@return The instantiated object."""
+    }
+
+    def "javadoc for manually overridden creator and own creator methods"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+package dummy 
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.DelegatesToRW
+import com.blackbuild.klum.ast.util.KlumFactory
+
+/**
+ * This is a class
+ */
+@DSL(factory = MyFactory) 
+class Foo {}
+
+/**
+ * Factory for Foo
+ */
+class MyFactory extends KlumFactory.Unkeyed<Foo> {
+
+    protected MyFactory(Class<dummy.Foo> type) {
+        super(type)
+    }
+    
+    /**
+     * New text.
+     * @param configuration The configuration closure to apply to the model.
+     * @return The instantiated object.
+     */
+     Foo WithIt(Closure configuration) {
+        With(configuration)
+     }
+}''')
+
+        then:
+        creatorDoc("WithIt", Closure) == """New text.
+@param configuration The configuration closure to apply to the model.
+@return The instantiated object."""
+    }
+
+    def "converter factory for dsl field"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+            package dummy
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                Date birthday
+                
+                /**
+                * Creates a new instance of Bar with the given birthday.
+                * @param value the birthday as long
+                * @return the instantiated object
+                */
+                static Bar fromLong(long value) {
+                    return Bar.Create.With(birthday: new Date(value))
+                }
+            }''')
+
+        then:
+        rwMethodDoc("bar", long) == """Creates a new instance of Bar with the given birthday.
+@param value the birthday as long
+@return the instantiated object
+"""
+    }
 
 }
