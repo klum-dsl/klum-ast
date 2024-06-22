@@ -40,7 +40,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -300,46 +299,19 @@ class AlternativesClassBuilder {
             return;
 
         String methodName = getShortNameFor(subclass);
-
         ClassNode subRwClass = getRwClassOf(subclass);
+        ClassNode subClassSafe = newClass(subclass);
 
-        String valuesVarName = "values";
-        String closureVarName = "closure";
-        createPublicMethod(methodName)
+        new ProxyMethodBuilder(varX("rw"), methodName, memberName)
+                .targetType(rwClass)
                 .linkToField(fieldNode)
-                .returning(elementType)
-                .namedParams(valuesVarName)
-                .optionalStringParam("key", keyType != null)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(varX("rw"), memberName,
-                        keyType != null
-                                ? args(varX(valuesVarName), classX(subclass), varX("key"), varX(closureVarName))
-                                : args(varX(valuesVarName), classX(subclass), varX(closureVarName))
-                ))
-                .withDocumentation(docBuilder -> docBuilder
-                        .title("Creates a new instance of the " + subclass.getName() + " class and adds it to " + fieldNode.getName() + ".")
-                        .p("The instance is created using the given values and the closure.")
-                        .param(valuesVarName, "The values to use for the creation of the instance.")
-                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
-                        .optionalParam("key", keyType != null, "The key to use for the creation of the instance.")
-                        .returnType("The created instance."))
-                .addTo(collectionFactory);
-
-        createPublicMethod(methodName)
-                .linkToField(fieldNode)
-                .returning(elementType).optionalStringParam("key", keyType != null)
-                .delegatingClosureParam(subRwClass, MethodBuilder.ClosureDefaultValue.EMPTY_CLOSURE)
-                .doReturn(callX(varX("rw"), memberName,
-                        keyType != null
-                                ? args(classX(subclass), varX("key"), varX(closureVarName))
-                                : args(classX(subclass), varX(closureVarName))
-                ))
-                .withDocumentation(docBuilder -> docBuilder
-                        .title("Creates a new instance of the " + subclass.getName() + " class and adds it to " + fieldNode.getName() + ".")
-                        .p("The instance is created using the given closure.")
-                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
-                        .optionalParam("key", keyType != null, "The key to use for the creation of the instance.")
-                        .returnType("The created instance."))
+                .mod(ACC_PUBLIC)
+                .returning(subClassSafe)
+                .namedParams("values", null)
+                .constantClassParam(subClassSafe)
+                .conditionalParam(STRING_TYPE, "key", keyType != null, null)
+                .delegatingClosureParam(subRwClass, null)
+                .documentationTitle("Creates a new instance of " + subclass.getName() + " and adds it to " + fieldNode.getName() + ".")
                 .addTo(collectionFactory);
 
         new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);

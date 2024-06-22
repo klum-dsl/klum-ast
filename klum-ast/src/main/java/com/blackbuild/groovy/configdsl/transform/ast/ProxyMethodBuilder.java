@@ -240,6 +240,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 if (!deprecatedAnnotations.isEmpty())
                     method.addAnnotation(deprecatedAnnotations.get(0));
             }
+            addParameterJavaDocs(documentation);
             copyDocFrom(targetMethod);
             AnnoDocUtil.addDocumentation(method, documentation);
         } else {
