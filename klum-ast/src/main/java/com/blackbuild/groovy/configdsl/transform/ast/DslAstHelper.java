@@ -34,7 +34,6 @@ import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.ArrayExpression;
@@ -55,7 +54,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
@@ -279,15 +277,6 @@ public class DslAstHelper {
         }
 
         return result;
-    }
-
-    // TODO: Proxy Method Builder
-    static void createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
-        createOptionalPublicMethod(targetMethod.getName())
-                .returning(targetMethod.getReturnType())
-                .params(cloneParamsWithDefaultValues(targetMethod.getParameters()))
-        .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))
-        .addTo(receiver);
     }
 
     static Parameter[] cloneParamsWithDefaultValues(Parameter[] source) {

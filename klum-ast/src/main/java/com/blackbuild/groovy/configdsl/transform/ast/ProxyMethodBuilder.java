@@ -59,7 +59,6 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private final String proxyMethodName;
     private final Expression proxyTarget;
     private ClassNode targetType;
-    private MethodNode targetMethod;
 
     private final List<ProxyMethodArgument> params = new ArrayList<>();
 
@@ -230,7 +229,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     @Override
     protected void postProcessMethod(MethodNode method) {
         List<ClassNode> args = getProxyArgumentTypes();
-        targetMethod = MethodAstHelper.findMatchingMethod(targetType, proxyMethodName, args);
+        MethodNode targetMethod = MethodAstHelper.findMatchingMethod(targetType, proxyMethodName, args);
 
         if (targetMethod != null) {
             method.setSourcePosition(targetMethod);
@@ -390,6 +389,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return this;
     }
 
+    public ProxyMethodBuilder param(Parameter parameter) {
+        params.add(new ProxiedArgument(parameter.getName(), parameter.getOriginType(), parameter.getAnnotations(), parameter.getInitialExpression(), null));
+        return this;
+    }
+
     /**
      * Adds an array parameter with the given type.
      * @param type The type of the array elements
@@ -446,6 +450,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return this;
     }
 
+    public ProxyMethodBuilder paramsFrom(MethodNode targetMethod) {
+        Parameter[] source = targetMethod.getParameters();
+        for (Parameter parameter : source) param(parameter);
+        return this;
+    }
+
     private abstract static class ProxyMethodArgument {
         protected final String name;
         protected final String javaDoc;
@@ -474,11 +484,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         private final Expression defaultValue;
 
         public ProxiedArgument(String name, ClassNode type, String documentation) {
-            this(name, type, null, null, null);
+            this(name, type, null, null, documentation);
         }
 
         public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, String documentation) {
-            this(name, type, annotations, null, null);
+            this(name, type, annotations, null, documentation);
         }
 
         public ProxiedArgument(String name, ClassNode type, List<AnnotationNode> annotations, Expression defaultValue, String documentation) {

@@ -178,6 +178,7 @@ class AlternativesClassBuilder {
                                         args(cloneParams(methodNode.getParameters()))
                                 )
                     )
+                    .copyDocFrom(methodNode)
                     .addTo(collectionFactory);
         } else if (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType)) {
             MethodBuilder.createPublicMethod(methodNode.getName())
@@ -194,6 +195,7 @@ class AlternativesClassBuilder {
                             "values"
                         )
                     )
+                    .copyDocFrom(methodNode)
                     .addTo(collectionFactory);
         } else if (isAssignableTo(returnType, elementType)) {
             MethodBuilder.createPublicMethod(methodNode.getName())
@@ -201,6 +203,7 @@ class AlternativesClassBuilder {
                     .optional()
                     .cloneParamsFrom(methodNode)
                     .callThis(memberName, callX(propX(classX(elementType), "Create"), methodNode.getName(), args(cloneParams(methodNode.getParameters()))))
+                    .copyDocFrom(methodNode)
                     .addTo(collectionFactory);
         }
     }
@@ -211,9 +214,20 @@ class AlternativesClassBuilder {
 
     private void delegateDefaultCreationMethodsToOuterInstance() {
         for (MethodNode methodNode : rwClass.getMethods(memberName))
-            createDelegateMethod(methodNode, collectionFactory, "rw");
+            createDelegateMethod(methodNode);
         for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
-            createDelegateMethod(methodNode, collectionFactory, "rw");
+            createDelegateMethod(methodNode);
+    }
+
+    void createDelegateMethod(MethodNode targetMethod) {
+        new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
+                .targetType(rwClass)
+                .linkToField(targetMethod)
+                .optional()
+                .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
+                .returning(targetMethod.getReturnType())
+                .paramsFrom(targetMethod)
+                .addTo(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
