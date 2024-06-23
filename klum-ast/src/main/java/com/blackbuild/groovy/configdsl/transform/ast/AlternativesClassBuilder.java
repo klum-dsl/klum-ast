@@ -222,7 +222,7 @@ class AlternativesClassBuilder {
     void createDelegateMethod(MethodNode targetMethod) {
         new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
                 .targetType(rwClass)
-                .linkToField(targetMethod)
+                .linkToMethod(targetMethod)
                 .optional()
                 .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
                 .returning(targetMethod.getReturnType())

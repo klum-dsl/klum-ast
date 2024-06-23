@@ -287,6 +287,10 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return nonOptionalNamedParams(name, doc);
     }
 
+    public ProxyMethodBuilder namedParams(String name) {
+        return namedParams(name, null);
+    }
+
     public ProxyMethodBuilder nonOptionalNamedParams(String name, String doc) {
         params.add(new NamedParamsArgument(name, doc));
         return this;
@@ -394,6 +398,11 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return this;
     }
 
+    public ProxyMethodBuilder params(Parameter[] parameter) {
+        for (Parameter param : parameter) param(param);
+        return this;
+    }
+
     /**
      * Adds an array parameter with the given type.
      * @param type The type of the array elements
@@ -451,9 +460,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     public ProxyMethodBuilder paramsFrom(MethodNode targetMethod) {
-        Parameter[] source = targetMethod.getParameters();
-        for (Parameter parameter : source) param(parameter);
-        return this;
+        return params(targetMethod.getParameters());
     }
 
     private abstract static class ProxyMethodArgument {

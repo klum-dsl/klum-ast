@@ -266,4 +266,40 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 """
     }
 
+    def "annodoc for collection methods"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+            package dummy
+            @DSL class Foo {
+                List<Bar> bars
+            }
+            
+            @DSL class Bar {
+                String value
+            }''')
+
+        then:
+        rwMethodDoc("bar", Closure) == """Creates a new 'bar' and adds it to the collection.
+<p>
+The newly created element will be configured by the optional parameters values and closure.
+</p>
+@param closure the closure to configure the new element
+@return The newly created element
+"""
+        rwMethodDoc("bar", Map) == """Creates a new 'bar' and adds it to the collection.
+<p>
+The newly created element will be configured by the optional parameters values and closure.
+</p>
+@param values map of values for the newly created element
+@param closure the closure to configure the new element
+@return The newly created element
+"""
+        rwMethodDoc("bars", getArrayClass("dummy.Bar")) == """bla"""
+
+    }
+
+    Class<?> getArrayClass(String className) {
+        return loader.loadClass("[L$className;")
+    }
+
 }

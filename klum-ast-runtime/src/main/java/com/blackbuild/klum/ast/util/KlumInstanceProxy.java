@@ -359,6 +359,17 @@ public class KlumInstanceProxy {
 
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
 
+    /**
+     * Creates a new '{{singleElementName}}' with the given type and adds it to the '{{fieldName}}' collection.
+     * The newly created element will be configured by the optional parameters values and closure.
+     * @param namedParams the optional parameters
+     * @param collectionName the name of the collection to add the new element to
+     * @param type the type of the new element
+     * @param key the key to use for the new element
+     * @param body the closure to configure the new element
+     * @return the newly created element
+     * @param <T> the type of the newly created element
+     */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
         try {
             BreadcrumbCollector.getInstance().enter(collectionName, key);
@@ -459,6 +470,13 @@ public class KlumInstanceProxy {
     }
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
+
+    /**
+     *  Adds one or more '{{fieldName}}' created by the given scripts.
+     *  Each scripts must return a single {{singleElementName}}.
+     * @param fieldName the name of the collection to add the new elements to
+     * @param scripts the scripts to create the new elements from
+     */
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);

@@ -28,6 +28,7 @@ import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
@@ -81,8 +82,15 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T linkToField(AnnotatedNode annotatedNode) {
-        return (T) inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
+    public T linkToField(FieldNode annotatedNode) {
+        return (T) inheritDeprecationFrom(annotatedNode)
+                .sourceLinkTo(annotatedNode)
+                .withDocumentation(doc -> doc.templates(DocUtil.getTemplatesFor(annotatedNode)));
+    }
+
+    public T linkToMethod(MethodNode annotatedNode) {
+        return (T) inheritDeprecationFrom(annotatedNode)
+                .sourceLinkTo(annotatedNode);
     }
 
     public T inheritDeprecationFrom(AnnotatedNode annotatedNode) {
@@ -210,7 +218,12 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
      * Copies the documentation from the given source element.
      */
     public T copyDocFrom(AnnotatedNode source) {
-        documentation.fromRawText(ASTExtractor.extractDocumentation(source, null));
+        documentation.fromRawText(ASTExtractor.extractDocumentation(source));
+        return (T) this;
+    }
+
+    public T copyDocTemplatesFrom(AnnotatedNode source) {
+        documentation.templatesFrom(ASTExtractor.extractDocText(source));
         return (T) this;
     }
 }

@@ -634,14 +634,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .documentationTitle("Creates a new '" + DocUtil.getSingleElementDisplayNameOf(fieldNode) + "' and adds it to the collection.")
-                        .withDocumentation(docBuilder -> docBuilder.p("The newly created element will be configured by the optional parameters values and closure."))
-                        .returning(elementType, "The newly created element")
-                        .namedParams("values", "map of values for the newly created element")
+                        .withDocumentation(doc -> doc.templates(DocUtil.getTemplatesFor(fieldNode)))
+                        .returning(elementType)
+                        .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
-                        .optionalStringParam(fieldKeyName, fieldKey != null, "The key to use for the new element")
-                        .delegatingClosureParam(elementRwType, "the closure to configure the new element")
+                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
+                        .delegatingClosureParam(elementRwType, null)
                         .addTo(rwClass);
             }
 
@@ -650,14 +649,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .documentationTitle("Creates a new '" + DocUtil.getSingleElementDisplayNameOf(fieldNode) + "' with the given type and adds it to the collection.")
-                        .withDocumentation(docBuilder -> docBuilder.p("The newly created element will be configured by the optional parameters values and closure."))
-                        .returning(elementType, "The newly created element")
-                        .namedParams("values", "map of values for the newly created element")
+                        .returning(elementType)
+                        .namedParams("values")
                         .constantParam(fieldName)
-                        .delegationTargetClassParam("typeToCreate", dslBaseType, "The type of the new element")
-                        .optionalStringParam(fieldKeyName, fieldKey != null, "The key to use for the new element")
-                        .delegatingClosureParam("the closure to configure the new element")
+                        .delegationTargetClassParam("typeToCreate", dslBaseType, null)
+                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
+                        .delegatingClosureParam(null)
                         .addTo(rwClass);
             }
 
@@ -665,8 +662,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .documentationTitle("Adds one or more '" + DocUtil.getDisplayNameOf(fieldNode) + "' created by the given scripts.")
-                    .withDocumentation(docBuilder -> docBuilder.p("Each scripts must return a single instanceof " + elementType.getName() + "."))
                     .constantParam(fieldName)
                     .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts", "The scripts to create the elements")
                     .addTo(rwClass);

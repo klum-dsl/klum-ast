@@ -421,7 +421,8 @@ public class DslAstHelper {
         for (AnnotationNode annotation : source.getAnnotations()) {
             if (annotation.isBuiltIn()) continue;
             if (annotation.getClassNode().equals(KLUM_GENERATED_CLASSNODE)) continue;
-            target.addAnnotation(annotation);
+            if (target.getAnnotations(annotation.getClassNode()).isEmpty())
+                target.addAnnotation(annotation);
         }
     }
 

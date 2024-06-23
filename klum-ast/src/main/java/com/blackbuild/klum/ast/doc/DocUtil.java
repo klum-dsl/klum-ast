@@ -24,9 +24,10 @@
 package com.blackbuild.klum.ast.doc;
 
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.FieldNode;
+
+import java.util.Map;
 
 /**
  * Utility class for extracting and generation doc comments for generated methods.
@@ -55,11 +56,19 @@ public class DocUtil {
      * @return the display name
      */
     public static String getDisplayNameOf(FieldNode field) {
-        String sentence = DocText.fromRawText(ASTExtractor.extractDocumentation(field, field.getName())).getTitle();
+        String sentence = ASTExtractor.extractDocText(field, field.getName()).getTitle();
         // TODO other punctuation?
         if (sentence.charAt(sentence.length() - 1) == '.')
             return sentence.substring(0, sentence.length() - 1);
         return sentence;
+    }
+
+    public static Map<String, String> getTemplatesFor(FieldNode field) {
+        Map<String, String> result = ASTExtractor.extractDocText(field).getNamedTags("template");
+        result.putIfAbsent("singleElementName", getSingleElementDisplayNameOf(field));
+        result.putIfAbsent("fieldDisplayName", getDisplayNameOf(field));
+        result.putIfAbsent("fieldName", field.getName());
+        return result;
     }
 
     /**
