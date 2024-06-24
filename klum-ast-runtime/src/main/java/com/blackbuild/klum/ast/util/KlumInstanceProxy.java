@@ -334,10 +334,27 @@ public class KlumInstanceProxy {
         }
     }
 
+    /**
+     * Sets the value of '{{fieldName}}'. This can call a setter like method.
+     * @param fieldOrMethodName the name of the field or method to set
+     * @param value the value to set
+     * @param <T> the type of the value
+     * @return the value
+     */
     public <T> T setSingleField(String fieldOrMethodName, T value) {
         return callSetterOrMethod(fieldOrMethodName, value);
     }
 
+    /**
+     * Sets the value of the given field by using a converter method.
+     * The converter is either a constructor or a static method of the given type.
+     * @param fieldOrMethodName the name of the field or method to set
+     * @param converterType the class containing the converter
+     * @param converterMethod the name of the converter method, if null a constructor is used
+     * @param args the arguments to pass to the converter
+     * @return the created value
+     * @param <T> the type of the value
+     */
     public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
         return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
@@ -371,6 +388,15 @@ public class KlumInstanceProxy {
         return element;
     }
 
+    /**
+     * Adds new instance of the target type to a collection via a converter method.
+     * @param fieldOrMethodName the name of the collection to add the new element to
+     * @param converterType the class containing the converter
+     * @param converterMethod the name of the converter method. If null, a constructor is used.
+     * @param args the arguments to pass to the converter
+     * @return the created value
+     * @param <T> the type of the value
+     */
     public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
         return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
@@ -425,18 +451,50 @@ public class KlumInstanceProxy {
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' to the '{{fieldName}}' map.
+     * @param fieldName the name of the collection to add the new elements to
+     * @param values map of values to add
+     */
     public <K,V> void addElementsToMap(String fieldName, Map<K, V> values) {
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' to the '{{fieldName}}' map. The
+     * key is determined by the keyMapping closure of the target field's
+     * {@link com.blackbuild.groovy.configdsl.transform.Field} annotation or the natural key field
+     * if the type is a keyed dsl class.
+     * @param fieldName the name of the map to add the new elements to
+     * @param values the values to add
+     */
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
         values.forEach(value -> addElementToMap(fieldName, null, value));
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' to the '{{fieldName}}' map. The
+     * key is determined by the keyMapping closure of the target field's
+     * {@link com.blackbuild.groovy.configdsl.transform.Field} annotation or the natural key field
+     * if the type is a keyed dsl class.
+     * @param fieldName the name of the map to add the new elements to
+     * @param values the values to add
+     */
     public void addElementsToMap(String fieldName, Object... values) {
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
     }
 
+    /**
+     * Creates a new '{{singleElementName}}' {{param:type?with the given type}} and adds it to the '{{fieldName}}' collection.
+     * The newly created element will be configured by the optional parameters values and closure.
+     * @param namedParams the optional parameters
+     * @param mapName the name of the collection to add the new element to
+     * @param type the type of the new element
+     * @param key the key to use for the new element
+     * @param body the closure to configure the new element
+     * @param <T> the type of the newly created element
+     * @return the newly created element
+     */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
         try {
             BreadcrumbCollector.getInstance().enter(mapName, key);
@@ -447,10 +505,25 @@ public class KlumInstanceProxy {
         }
     }
 
+    /**
+     * Adds a single existing '{{singleElementName}}' to the '{{fieldName}}' map.
+     * @param fieldName the name of the map to add the new elements to
+     * @param key the key to use for the new element
+     * @param value the value to add
+     * @return the added value
+     */
     public <K,V> V addElementToMap(String fieldName, K key, V value) {
         return doAddElementToMap(fieldName, key, value);
     }
 
+    /**
+     * Adds new instance of the target type to a map via a converter method.
+     * @param fieldOrMethodName the name of the map to add the new element to
+     * @param converterType the class containing the converter
+     * @param converterMethod the name of the converter method. If null, a constructor is used.
+     * @param args the arguments to pass to the converter
+     * @return the created value
+     */
     public <K,V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
         return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
     }
@@ -462,6 +535,8 @@ public class KlumInstanceProxy {
             key = (K) getProxyFor(value).getKey();
         Map<K, V> target = getInstanceAttribute(fieldName);
         value = forceCastClosure(value, elementType);
+        if (key == null)
+            throw new IllegalArgumentException("Key is null");
         target.put(key, value);
         return value;
     }
@@ -500,8 +575,8 @@ public class KlumInstanceProxy {
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
 
     /**
-     *  Adds one or more '{{fieldName}}' created by the given scripts.
-     *  Each scripts must return a single {{singleElementName}}.
+     * Adds one or more '{{fieldName}}' created by the given scripts.
+     * Each scripts must return a single {{singleElementName}}.
      * @param fieldName the name of the collection to add the new elements to
      * @param scripts the scripts to create the new elements from
      */
@@ -515,6 +590,13 @@ public class KlumInstanceProxy {
     }
 
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP = "addElementsFromScriptsToMap";
+
+    /**
+     * Adds one or more '{{fieldName}}' created by the given scripts.
+     * Each scripts must return a single {{singleElementName}}.
+     * @param fieldName the name of the collection to add the new elements to
+     * @param scripts the scripts to create the new elements from
+     */
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);

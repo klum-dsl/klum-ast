@@ -316,6 +316,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     /**
      * Adds a class parameter which is also used as the target for the {@link DelegatesTo} annotation of a delegating closure parameter
+     *
+     * @param name       Name of the parameter
+     * @param upperBound The base class for the class parameter
+     */
+    public ProxyMethodBuilder delegationTargetClassParam(String name, ClassNode upperBound) {
+        return delegationTargetClassParam(name, upperBound, null);
+    }
+
+    /**
+     * Adds a class parameter which is also used as the target for the {@link DelegatesTo} annotation of a delegating closure parameter
      * @param name Name of the parameter
      * @param upperBound The base class for the class parameter
      */
@@ -348,6 +358,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     /**
      * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
+     *
+     * @param name  The name of the parameter.
+     * @param doAdd If this parameter is null, the method does nothing
+     */
+    public ProxyMethodBuilder optionalStringParam(String name, boolean doAdd) {
+        return optionalStringParam(name, doAdd, null);
+    }
+
+    /**
+     * Convenience method to optionally add a string parameter. The parameter is only added, if 'addIfNotNull' is not null.
      * @param name The name of the parameter.
      * @param doAdd If this parameter is null, the method does nothing
      */
@@ -356,9 +376,17 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return this;
     }
 
+    public ProxyMethodBuilder optionalParam(ClassNode type, String name, boolean doAdd) {
+        return optionalParam(type, name, doAdd, null);
+    }
+
     public ProxyMethodBuilder optionalParam(ClassNode type, String name, boolean doAdd, String doc) {
         params.add(new OptionalArgument(name, type, doAdd, doc));
         return this;
+    }
+
+    public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd) {
+        return conditionalParam(type, name, doAdd, null);
     }
 
     public ProxyMethodBuilder conditionalParam(ClassNode type, String name, boolean doAdd, String doc) {
@@ -373,6 +401,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      */
     public ProxyMethodBuilder objectParam(String name, String doc) {
         return param(ClassHelper.OBJECT_TYPE, name, doc);
+    }
+
+    /**
+     * Add a parameter to the method signature.
+     *
+     * @param type The type of the parameter
+     * @param name The name of the parameter
+     */
+    public ProxyMethodBuilder param(ClassNode type, String name) {
+        return param(type, name, null);
     }
 
     /**
@@ -408,12 +446,26 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     /**
      * Adds an array parameter with the given type.
+     *
+     * @param type The type of the array elements
+     * @param name The name of the parameter
+     */
+    public ProxyMethodBuilder arrayParam(ClassNode type, String name) {
+        return arrayParam(type, name, null);
+    }
+
+    /**
+     * Adds an array parameter with the given type.
      * @param type The type of the array elements
      * @param name The name of the parameter
      */
     public ProxyMethodBuilder arrayParam(ClassNode type, String name, String doc) {
         params.add(new ProxiedArgument(name, type.makeArray(), doc));
         return this;
+    }
+
+    public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget) {
+        return delegatingClosureParam(delegationTarget, null);
     }
 
     public ProxyMethodBuilder delegatingClosureParam(ClassNode delegationTarget, String doc) {
@@ -433,8 +485,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     /**
      * Creates a delegating closure parameter that delegates to the type parameter of an existing class parameter.
      */
-    public ProxyMethodBuilder delegatingClosureParam(String doc) {
-        return delegatingClosureParam(null, doc);
+    public ProxyMethodBuilder delegatingClosureParam() {
+        return delegatingClosureParam(null, null);
     }
 
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {
@@ -543,7 +595,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         @Override
         Optional<ClassNode> asInstanceProxyArgumentType() {
             if (constant == null) return Optional.of(ClassHelper.VOID_TYPE);
-            return Optional.of(ClassHelper.make(constant.getClass()));
+            return Optional.of(make(constant.getClass()));
         }
     }
 

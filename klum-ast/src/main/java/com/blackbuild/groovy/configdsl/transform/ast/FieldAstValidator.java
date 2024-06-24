@@ -100,6 +100,9 @@ public class FieldAstValidator extends KlumCastCheck<Annotation> {
 
         if (annotationToCheck.getMembers().containsKey("key") && !isKeyed(fieldNode.getType()))
             throw new IllegalStateException("@Field.key is only valid for keyed dsl fields");
+
+        if (annotationToCheck.getMembers().containsKey("keyMapping") && !isMap(fieldNode.getType()))
+            throw new IllegalStateException("@Field.keyMapping is only valid for Map fields");
     }
 
     private void validateFieldAnnotationOnCollection() {

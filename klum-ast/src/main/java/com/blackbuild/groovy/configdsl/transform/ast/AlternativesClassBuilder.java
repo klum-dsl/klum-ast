@@ -381,6 +381,7 @@ class AlternativesClassBuilder {
                 .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
                 .addTo(collectionFactory);
 
+        collectionFactory.addAnnotation(createGeneratedAnnotation(AlternativesClassBuilder.class));
         annotatedClass.getModule().addClass(collectionFactory);
     }
 }

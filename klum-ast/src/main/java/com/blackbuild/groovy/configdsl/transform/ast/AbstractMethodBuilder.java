@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 @SuppressWarnings("unchecked")
@@ -201,7 +201,8 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         if (deprecationType != null)
             method.addAnnotation(deprecationType.toNode());
 
-        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
+        if (!hasAnnotation(target, KLUM_GENERATED_CLASSNODE))
+            method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
         postProcessMethod(method);
         return method;
     }

@@ -30,6 +30,7 @@ import org.codehaus.groovy.runtime.StringGroovyMethods;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
@@ -147,6 +148,7 @@ class TemplateMethods {
         if (abstractMethods != null)
             abstractMethods.forEach(this::implementAbstractMethod);
 
+        templateClass.addAnnotation(createGeneratedAnnotation(TemplateMethods.class));
         annotatedClass.getModule().addClass(templateClass);
     }
 

@@ -67,7 +67,7 @@ public class DslAstHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
     private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
-    private static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
+    public static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
 

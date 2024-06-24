@@ -44,10 +44,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
@@ -145,6 +142,7 @@ class ConverterBuilder {
 
         closures.forEach(closureExpression -> closureToStaticConverterMethod(converterClass, closureExpression));
 
+        converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));
         transformation.annotatedClass.getModule().addClass(converterClass);
     }
 

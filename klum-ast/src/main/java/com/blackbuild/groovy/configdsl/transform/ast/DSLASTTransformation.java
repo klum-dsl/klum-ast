@@ -237,6 +237,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else
             parentProxy.setRedirect(rwClass);
 
+        rwClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+
         createCoercionMethod();
     }
 
@@ -651,9 +653,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .returning(elementType)
                         .namedParams("values")
                         .constantParam(fieldName)
-                        .delegationTargetClassParam("typeToCreate", dslBaseType, null)
-                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
-                        .delegatingClosureParam(null)
+                        .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .optionalStringParam(fieldKeyName, fieldKey != null)
+                        .delegatingClosureParam()
                         .addTo(rwClass);
             }
 
@@ -671,7 +673,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values", null)
+                .arrayParam(elementType, "values")
                 .addTo(rwClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
@@ -679,7 +681,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .constantParam(fieldName)
-                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", null)
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
                 .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToCollection")
@@ -688,7 +690,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .returning(elementType)
                 .constantParam(fieldName)
-                .param(elementType, "value", null)
+                .param(elementType, "value")
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -740,49 +742,34 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .documentationTitle("Adds the given values to " + DocUtil.getDisplayNameOf(fieldNode) + ".")
                     .constantParam(methodName)
-                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values", "The values to add")
+                    .param(makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(keyType), new GenericsType(valueType)), "values")
                     .addTo(rwClass);
         } else {
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .withDocumentation(d ->
-                            d.title("Adds the given values to " + DocUtil.getDisplayNameOf(fieldNode) + ".")
-                                    .p("The {@link Field#keyMapping()} closure on {@link #" + fieldNode.getName() + "} will be used to determine the key for each value.")
-                    )
                     .constantParam(methodName)
-                    .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(valueType)), "values", "The values to add")
+                    .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(valueType)), "values")
                     .addTo(rwClass);
             createProxyMethod(methodName, "addElementsToMap")
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .withDocumentation(d ->
-                            d.title("Adds the given values to " + DocUtil.getDisplayNameOf(fieldNode) + ".")
-                                    .p("The {@link Field#keyMapping()} closure on {@link #" + fieldNode.getName() + "} will be used to determine the key for each value.")
-                    )
                     .constantParam(methodName)
-                    .arrayParam(valueType, "values", "The values to add")
+                    .arrayParam(valueType, "values")
                     .addTo(rwClass);
         }
 
         createProxyMethod(singleElementMethod, "addElementToMap")
                 .optional()
                 .mod(visibility)
-                .returning(valueType, "the added value")
+                .returning(valueType)
                 .linkToField(fieldNode)
-                .withDocumentation(d -> {
-                    d.title("Adds the given value to " + DocUtil.getDisplayNameOf(fieldNode) + ".");
-                    if (keyMappingClosure != null)
-                        d.p("The {@link Field#keyMapping()} closure on {@link #" + fieldNode.getName() + "} will be used to determine the key for the value.");
-                })
-
                 .constantParam(methodName)
-                .optionalParam(keyType, "key", keyMappingClosure == null, "the key to use")
-                .param(valueType, "value", "the value to add")
+                .optionalParam(keyType, "key", keyMappingClosure == null)
+                .param(valueType, "value")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, singleElementMethod, true);
@@ -817,15 +804,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .withDocumentation(d ->
-                                d.title("Creates a new " + DocUtil.getSingleElementDisplayNameOf(fieldNode) + " and adds it to the map.")
-                                .p("The newly created element will be configured by the optional parameters values and closure."))
-                        .returning(elementType, "The newly created element")
-                        .namedParams("values", "map of values for the newly created element")
+                        .returning(elementType)
+                        .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
-                        .optionalStringParam("key", elementKeyField != null, "The key to use for the new element")
-                        .delegatingClosureParam(elementRwType, "the closure to configure the new element")
+                        .optionalStringParam("key", elementKeyField != null)
+                        .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
             }
 
@@ -834,16 +818,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .withDocumentation(d ->
-                                d.title("Creates a new " + DocUtil.getSingleElementDisplayNameOf(fieldNode) + " with the given type and adds it to the map.")
-                                .p("The newly created element will be configured by the optional parameters values and closure.")
-                        )
-                        .returning(elementType, "The newly created element")
-                        .namedParams("values", "map of values for the newly created element")
+                        .returning(elementType)
+                        .namedParams("values")
                         .constantParam(fieldName)
-                        .delegationTargetClassParam("typeToCreate", dslBaseType, "The type of the new element")
-                        .optionalStringParam("key", elementKeyField != null, "The key to use for the new element")
-                        .delegatingClosureParam("the closure to configure the new element")
+                        .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .optionalStringParam("key", elementKeyField != null)
+                        .delegatingClosureParam()
                         .addTo(rwClass);
             }
 
@@ -851,11 +831,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .withDocumentation(d ->
-                            d.title("Adds one or more " + DocUtil.getDisplayNameOf(fieldNode) + " created by the given scripts.")
-                            .p("Each scripts must return a single instanceof " + elementType.getName() + "."))
                     .constantParam(fieldName)
-                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts", "The scripts to create the elements")
+                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
                     .addTo(rwClass);
         }
 
@@ -863,30 +840,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .withDocumentation(d ->
-                        d.title("Adds one or more existing " + DocUtil.getDisplayNameOf(fieldNode) + "."))
                 .constantParam(fieldName)
-                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(elementType)), "values", "The values to add")
+                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(elementType)), "values")
                 .addTo(rwClass);
         createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .withDocumentation(d ->
-                        d.title("Adds one or more existing " + DocUtil.getDisplayNameOf(fieldNode) + "."))
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values", "The values to add")
+                .arrayParam(elementType, "values")
                 .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToMap")
                 .optional()
                 .mod(visibility)
-                .returning(elementType, "the added value")
+                .returning(elementType)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds an existing " + DocUtil.getSingleElementDisplayNameOf(fieldNode) + ".")
                 .constantParam(fieldName)
                 .constantParam(null)
-                .param(elementType, elementToAddVarName, "the value to add")
+                .param(elementType, elementToAddVarName)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -933,16 +905,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .withDocumentation(doc ->
-                            doc.title("Creates a new instance of " + dslBaseType.getName() + " and sets it to the field.")
-                                    .p("The newly created element will be configured by the optional parameters values and closure.")
-                    )
-                    .returning(targetFieldType, "The newly created element")
-                    .namedParams("values", "map of values for the newly created element")
+                    .returning(targetFieldType)
+                    .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter, "The key to use for the new element")
-                    .delegatingClosureParam(targetRwType, "the closure to configure the new element")
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
         }
 
@@ -951,16 +919,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .withDocumentation(doc ->
-                            doc.title("Creates a new instance of the given type and sets it to the field.")
-                                    .p("The newly created element will be configured by the optional parameters values and closure.")
-                    )
-                    .returning(targetFieldType, "The newly created element")
-                    .namedParams("values", "map of values for the newly created element")
+                    .returning(targetFieldType)
+                    .namedParams("values")
                     .constantParam(fieldName)
-                    .delegationTargetClassParam("typeToCreate", dslBaseType, "The type of the new element")
-                    .optionalStringParam(targetKeyFieldName, needKeyParameter, "The key to use for the new element")
-                    .delegatingClosureParam("the closure to configure the new element")
+                    .delegationTargetClassParam("typeToCreate", dslBaseType)
+                    .optionalStringParam(targetKeyFieldName, needKeyParameter)
+                    .delegatingClosureParam()
                     .addTo(rwClass);
         }
     }
@@ -1075,7 +1039,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         AnnoDocUtil.addDocumentation(factoryField, "The factory for creating instances of " + annotatedClass.getName());
         factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
-
+        factoryClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         annotatedClass.addField(factoryField);
     }
 
@@ -1158,12 +1122,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
                 .forRemoval("Use Create.With() instead")
-                .namedParams("values", null)
-                .optionalStringParam("name", keyField != null, null)
-                .delegatingClosureParam(rwClass, null)
+                .namedParams("values")
+                .optionalStringParam("name", keyField != null)
+                .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
     }
 
+    @Deprecated
     private void createConvenienceFactories() {
         createFactoryMethod(CREATE_FROM, annotatedClass)
                 .forRemoval("Use Create.From() instead")
