@@ -30,6 +30,7 @@ import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
+import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
@@ -59,6 +60,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private final String proxyMethodName;
     private final Expression proxyTarget;
     private ClassNode targetType;
+    private boolean docAlreadyCopied;
 
     private final List<ProxyMethodArgument> params = new ArrayList<>();
 
@@ -169,62 +171,61 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 .collect(toList());
     }
 
-    /**
-     * @inheritDoc
-     */
     @Override
     public ProxyMethodBuilder copyDocFrom(AnnotatedNode source) {
-        DocText docTextOfProxyTarget = DocText.fromRawText(ASTExtractor.extractDocumentation(source, null));
-
-        if (source instanceof MethodNode) {
-            Map<String, String> mappings = getParameternameMappings(docTextOfProxyTarget);
-            if (!mappings.isEmpty()) {
-                String rawText = docTextOfProxyTarget.getRawText();
-                for (Map.Entry<String, String> stringStringEntry : mappings.entrySet()) {
-                    rawText = rawText.replace(
-                            "@param " + stringStringEntry.getKey() + " ",
-                            "@param " + stringStringEntry.getValue() + " ");
-                }
-                docTextOfProxyTarget = DocText.fromRawText(rawText);
-            }
-        }
-
-        documentation.fromDocText(docTextOfProxyTarget);
+        if (docAlreadyCopied) return this;
+        super.copyDocFrom(source);
+        docAlreadyCopied = true;
         return this;
     }
 
-    private Map<String, String> getParameternameMappings(DocText docTextOfProxyTarget) {
-        Map<String, String> mappings = new HashMap<>();
+    public ProxyMethodBuilder copyDocWithReMappingFrom(AnnotatedNode source) {
+        if (docAlreadyCopied) return this;
+        DocText docTextOfProxyTarget = DocText.fromRawText(ASTExtractor.extractDocumentation(source, null));
+        if (docTextOfProxyTarget.isEmpty()) return this;
 
-        List<ProxyMethodArgument> targetMethodsArguments = params.stream()
-                .filter(p -> p.asInstanceProxyArgument().isPresent())
-                .collect(toList());
+        if (source instanceof MethodNode) {
+            Map<String, String> mappings = getParameternameMappings((MethodNode) source);
+            List<String> newParamTags = new ArrayList<>();
 
-        // since the methodNode does not contain the parameter names, we need to take the names from the docText
-        // We could instead determine the method object from the target class
-        List<String> docTextParamTags = docTextOfProxyTarget
-                .getTags()
-                .getOrDefault("param", Collections.emptyList())
-                .stream()
-                .filter(param -> !param.startsWith("<"))
-                .map(param -> param.split(" ")[0].trim())
-                .collect(toList());
-
-        if (docTextParamTags.size() != targetMethodsArguments.size()) {
-            return mappings;
+            for (Map.Entry<String, String> targetParam : docTextOfProxyTarget.getNamedTags("param").entrySet()) {
+                String targetParamName = targetParam.getKey();
+                String targetParamDoc = targetParam.getValue();
+                if (mappings.containsKey(targetParamName)) {
+                    String newParamName = mappings.get(targetParamName);
+                    if (newParamName != null) {
+                        newParamTags.add(newParamName + " " + targetParamDoc);
+                    }
+                } else {
+                    newParamTags.add(targetParamName + " " + targetParamDoc);
+                }
+            }
+            docTextOfProxyTarget = DocText.copyAndReplaceTags(docTextOfProxyTarget, "param", newParamTags);
         }
 
-        for (int i = 0; i < targetMethodsArguments.size(); i++) {
-            String targetedMethodParameterName = docTextParamTags.get(i);
-            String newMethodParameterName = targetMethodsArguments.get(i).name;
-            if (!targetedMethodParameterName.equals(newMethodParameterName)) {
-                mappings.put(targetedMethodParameterName, newMethodParameterName);
-            }
+        documentation.fromDocText(docTextOfProxyTarget);
+        docAlreadyCopied = true;
+        return this;
+    }
+
+    private Map<String, String> getParameternameMappings(MethodNode method) {
+        List<String> targetParameterNames = AstReflectionBridge.parameterNames(method);
+
+        if (params.size() != targetParameterNames.size())
+            throw new IllegalStateException("Number of parameters of " + method + " does not match params of proxy method " + name + ".");
+
+        Map<String, String> mappings = new LinkedHashMap<>();
+        for (int i = 0; i < params.size(); i++) {
+            String targetParam = targetParameterNames.get(i);
+            ProxyMethodArgument methodArgument = params.get(i);
+            if (methodArgument.asProxyMethodParameter().isEmpty())
+                mappings.put(targetParam, null); // constant argument
+            else if (!methodArgument.name.equals(targetParam))
+                mappings.put(targetParam, methodArgument.name);
         }
 
         return mappings;
     }
-
 
     @Override
     protected void postProcessMethod(MethodNode method) {
@@ -240,7 +241,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                     method.addAnnotation(deprecatedAnnotations.get(0));
             }
             addParameterJavaDocs(documentation);
-            copyDocFrom(targetMethod);
+            copyDocWithReMappingFrom(targetMethod);
             AnnoDocUtil.addDocumentation(method, documentation);
         } else {
             AnnoDocUtil.addDocumentation(method, addParameterJavaDocs(documentation.getCopy()));
@@ -248,10 +249,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     private DocBuilder addParameterJavaDocs(DocBuilder doc) {
-         params.stream()
-                .filter(p -> p.asParameterJavaDoc().isPresent())
-                .forEach(p -> doc.param(p.name, p.asParameterJavaDoc().get()));
-         return doc;
+        for (ProxyMethodArgument p : params) {
+            if (p.asParameterJavaDoc().isPresent()) {
+                doc.param(p.name, p.asParameterJavaDoc().get());
+            }
+        }
+        return doc;
     }
 
     /**

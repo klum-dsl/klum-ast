@@ -304,6 +304,17 @@ public class KlumInstanceProxy {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Creates a new '{{singleElementName}}' {{param:type?with the given type}} and adds it to the '{{fieldName}}' collection.
+     * The newly created element will be configured by the optional parameters values and closure.
+     * @param namedParams the optional parameters
+     * @param fieldOrMethodName the name of the collection to add the new element to
+     * @param type the type of the new element
+     * @param key the key to use for the new element
+     * @param body the closure to configure the new element
+     * @param <T> the type of the newly created element
+     * @return the newly created element
+     */
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
         try {
             BreadcrumbCollector.getInstance().enter(fieldOrMethodName, key);
@@ -345,6 +356,13 @@ public class KlumInstanceProxy {
         return value;
     }
 
+    /**
+     * Adds an existing '{{singleElementName}}' to the '{{fieldName}}' collection.
+     * @param fieldName the name of the collection to add the new element to
+     * @param element the element to add
+     * @param <T> the type of the element
+     * @return the added element
+     */
     public <T> T addElementToCollection(String fieldName, T element) {
         Type elementType = DslHelper.getElementType(instance.getClass(), fieldName);
         element = forceCastClosure(element, elementType);
@@ -360,15 +378,15 @@ public class KlumInstanceProxy {
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
 
     /**
-     * Creates a new '{{singleElementName}}' with the given type and adds it to the '{{fieldName}}' collection.
+     * Creates a new '{{singleElementName}}' {{param:type?with the given type}} and adds it to the '{{fieldName}}' collection.
      * The newly created element will be configured by the optional parameters values and closure.
      * @param namedParams the optional parameters
      * @param collectionName the name of the collection to add the new element to
      * @param type the type of the new element
      * @param key the key to use for the new element
      * @param body the closure to configure the new element
-     * @return the newly created element
      * @param <T> the type of the newly created element
+     * @return the newly created element
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
         try {
@@ -389,10 +407,20 @@ public class KlumInstanceProxy {
         return created;
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' to the '{{fieldName}}' collection.
+     * @param fieldName the name of the collection to add the new elements to
+     * @param elements the elements to add
+     */
     public void addElementsToCollection(String fieldName, Object... elements) {
         Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' to the '{{fieldName}}' collection.
+     * @param fieldName the name of the collection to add the new elements to
+     * @param elements the elements to add
+     */
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }

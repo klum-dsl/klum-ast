@@ -21,34 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast
+package com.blackbuild.klum.ast.util.reflect
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import org.codehaus.groovy.ast.ClassHelper
-import org.codehaus.groovy.ast.ClassNode
+import org.codehaus.groovy.ast.MethodNode
 import spock.lang.Specification
 
-class MethodAstHelperTest extends Specification {
+class AstReflectionBridgeTest extends Specification {
 
-    def "check class distance"(Object arg, Object parent, int distance) {
-        expect:
-        MethodAstHelper.classDistance(cn(arg), cn(parent), 0) == distance
+    def "correct parameter names are extracted"() {
+        given:
+        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
 
-        where:
-        arg         | parent    || distance
-        Object      | Object    || 0
-        String      | Object    || 1
-        Properties  | Map       || 2
-        String[]    | Object    || 1
-        String[]    | String[]  || 0
+        when:
+        def parameterNames = AstReflectionBridge.getNameAdjustedParameters(methodNode)*.name
+
+        then:
+        parameterNames == ["namedParams", "collectionName", "type", "key", "body"]
     }
-
-    protected ClassNode cn(Object type) {
-        if (type instanceof ClassNode)
-            return type
-        if (type instanceof Class)
-            return ClassHelper.make(type)
-        throw new IllegalArgumentException("Unsupported type: $type")
-    }
-
-
 }

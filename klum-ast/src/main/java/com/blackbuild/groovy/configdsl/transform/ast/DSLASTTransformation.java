@@ -634,7 +634,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .withDocumentation(doc -> doc.templates(DocUtil.getTemplatesFor(fieldNode)))
                         .returning(elementType)
                         .namedParams("values")
                         .constantParam(fieldName)
@@ -671,28 +670,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more existing " + DocUtil.getDisplayNameOf(fieldNode) + ".")
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values", "The values to add")
+                .arrayParam(elementType, "values", null)
                 .addTo(rwClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more existing " + DocUtil.getDisplayNameOf(fieldNode) + ".")
                 .constantParam(fieldName)
-                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", "The values to add")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", null)
                 .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds an existing " + DocUtil.getSingleElementDisplayNameOf(fieldNode) + ".")
-                .returning(elementType, "The added element")
+                .returning(elementType)
                 .constantParam(fieldName)
-                .param(elementType, "value", "The value to add")
+                .param(elementType, "value", null)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);

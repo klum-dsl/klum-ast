@@ -38,6 +38,6 @@ public class ValidationPhase extends VisitingPhaseAction {
     public void visit(String path, Object element, Object container) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         if (!proxy.getManualValidation())
-            proxy.validate();
+            Validator.validate(element);
     }
 }

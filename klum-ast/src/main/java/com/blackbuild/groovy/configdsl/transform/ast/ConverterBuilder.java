@@ -235,7 +235,6 @@ class ConverterBuilder {
         ProxyMethodBuilder method = createProxyMethod(methodName, getProxyMethodName())
                 .mod(ACC_PUBLIC)
                 .optional()
-                .copyDocFrom(sourceMethod)
                 .returning(elementType)
                 .sourceLinkTo(sourceMethod)
                 .constantParam(fieldNode.getName())
@@ -253,6 +252,8 @@ class ConverterBuilder {
                 parameter.getInitialExpression(),
                 null
         ));
+
+        method.copyDocFrom(sourceMethod);
         method.addTo(rwClass);
     }
 

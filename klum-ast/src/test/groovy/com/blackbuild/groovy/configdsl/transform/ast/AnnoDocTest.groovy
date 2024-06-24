@@ -1,3 +1,26 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2024 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform.ast
 
@@ -10,6 +33,8 @@ import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.ast.tools.GeneralUtils
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
+
+import java.lang.reflect.Array
 
 @Issue("197")
 class AnnoDocTest extends AbstractDSLSpec {
@@ -39,15 +64,18 @@ class AnnoDocTest extends AbstractDSLSpec {
     }
 
     String methodDoc(String methodName, Class... params) {
-        return ASTExtractor.extractDocumentation(getMethod(classNode, methodName, params))
+        def methodNode = getMethod(classNode, methodName, params)
+        return ASTExtractor.extractDocumentation(methodNode)
     }
 
     String rwMethodDoc(String methodName, Class... params) {
-        return ASTExtractor.extractDocumentation(getMethod(rwClassNode, methodName, params))
+        def methodNode = getMethod(rwClassNode, methodName, params)
+        return ASTExtractor.extractDocumentation(methodNode)
     }
 
     String creatorDoc(String methodName, Class... params) {
-        return ASTExtractor.extractDocumentation(getMethod(factoryClassNode, methodName, params))
+        def methodNode = getMethod(factoryClassNode, methodName, params)
+        return ASTExtractor.extractDocumentation(methodNode)
     }
 
     MethodNode getMethod(ClassNode node, String methodName, Class... paramTypes) {
@@ -87,8 +115,8 @@ The closure will be executed against the instance's RW object.
 Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
 @param closure Closure to be executed against the instance.
-@return the object itself
-"""
+@return the object itself"""
+
         methodDoc("apply", Closure) == """Applies the given named params and the closure to this proxy's object.
 <p>
 Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
@@ -98,8 +126,8 @@ The closure will be executed against the instance's RW object.
 Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
 </p>
 @param closure Closure to be executed against the instance.
-@return the object itself
-"""
+@return the object itself"""
+
         methodDoc("apply", Map) == """Applies the given named params and the closure to this proxy's object.
 <p>
 Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
@@ -110,8 +138,8 @@ Note that explicit calls to apply() are usually not necessary, as apply is part 
 </p>
 @param values Map of String to Object which will be translated into Method calls
 @param closure Closure to be executed against the instance.
-@return the object itself
-"""
+@return the object itself"""
+
         methodDoc("apply", Map, Closure) == """Applies the given named params and the closure to this proxy's object.
 <p>
 Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
@@ -122,8 +150,8 @@ Note that explicit calls to apply() are usually not necessary, as apply is part 
 </p>
 @param values Map of String to Object which will be translated into Method calls
 @param closure Closure to be executed against the instance.
-@return the object itself
-"""
+@return the object itself"""
+
         methodDoc("apply", Map) == rwMethodDoc("apply", Map)
         methodDoc("apply", Closure) == rwMethodDoc("apply", Closure)
         methodDoc("apply", Map, Closure) == rwMethodDoc("apply", Map, Closure)
@@ -136,8 +164,7 @@ The old template is restored after the closure has been executed.
 </p>
 @param template the template
 @param closure the closure to execute
-@return the result of the closure
-"""
+@return the result of the closure"""
         methodDoc("withTemplate", Map, Closure) == """Executes the given closure with an anonymous template for the given type.
 <p>
 This means that all objects of the given type created in the scope of the closure will use the given template,
@@ -147,8 +174,7 @@ The old template is restored after the closure has been executed.
 </p>
 @param templateMap the Map to construct the template from
 @param closure the closure to execute
-@return the result of the closure
-"""
+@return the result of the closure"""
         methodDoc("withTemplates", List, Closure) == """Executes the given closure with the given templates.
 <p>
 This means that all objects of the given types created in the scope of the closure will use the given template,
@@ -157,8 +183,7 @@ The old templates are restored after the closure has been executed.
 </p>
 @param templates the templates to apply
 @param closure the closure to execute
-@return the result of the closure
-"""
+@return the result of the closure"""
 
         methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given templates.
 <p>
@@ -171,11 +196,9 @@ to their respective classes.
 @param templates the templates to apply, Mapping classes to their respective templates
 @param closure the closure to execute
 @return the result of the closure
-@deprecated use #withTemplates(List, Closure)
-"""
+@deprecated use #withTemplates(List, Closure)"""
         rwMethodDoc("copyFrom", clazz) == """Copies all non null / non empty elements from target to this.
-@param template The template to apply
-"""
+@param template The template to apply"""
 
     }
 
@@ -238,34 +261,6 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 @return The instantiated object."""
     }
 
-    def "converter factory for dsl field"() {
-        when:
-        createClass("dummy/Foo.groovy", '''
-            package dummy
-            @DSL class Foo {
-                Bar bar
-            }
-            
-            @DSL class Bar {
-                Date birthday
-                
-                /**
-                * Creates a new instance of Bar with the given birthday.
-                * @param value the birthday as long
-                * @return the instantiated object
-                */
-                static Bar fromLong(long value) {
-                    return Bar.Create.With(birthday: new Date(value))
-                }
-            }''')
-
-        then:
-        rwMethodDoc("bar", long) == """Creates a new instance of Bar with the given birthday.
-@param value the birthday as long
-@return the instantiated object
-"""
-    }
-
     def "annodoc for collection methods"() {
         when:
         createClass("dummy/Foo.groovy", '''
@@ -279,27 +274,56 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             }''')
 
         then:
-        rwMethodDoc("bar", Closure) == """Creates a new 'bar' and adds it to the collection.
+        rwMethodDoc("bar", Closure) == """Creates a new 'bar' and adds it to the 'bars' collection.
 <p>
 The newly created element will be configured by the optional parameters values and closure.
 </p>
 @param closure the closure to configure the new element
-@return The newly created element
-"""
-        rwMethodDoc("bar", Map) == """Creates a new 'bar' and adds it to the collection.
+@return the newly created element"""
+        rwMethodDoc("bar", Map) == """Creates a new 'bar' and adds it to the 'bars' collection.
 <p>
 The newly created element will be configured by the optional parameters values and closure.
 </p>
-@param values map of values for the newly created element
+@param values the optional parameters
 @param closure the closure to configure the new element
-@return The newly created element
-"""
-        rwMethodDoc("bars", getArrayClass("dummy.Bar")) == """bla"""
+@return the newly created element""" // closures has a default value, so during ast it is a single method
+        rwMethodDoc("bars", getArrayClass("dummy.Bar")) == """Adds one or more existing 'bar' to the 'bars' collection.
+@param values the elements to add"""
+        rwMethodDoc("bars", Iterable) == """Adds one or more existing 'bar' to the 'bars' collection.
+@param values the elements to add"""
 
     }
 
+    def "converter factory for dsl field"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+            @DSL class Foo {
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                Date birthday
+                
+                /**
+                * Creates a new instance of Bar with the given birthday as timestamp.
+                * @param value the timestamp
+                * @return the newly created instance 
+                */
+                static Bar fromLong(long value) {
+                    return Bar.Create.With(birthday: new Date(value))
+                }
+            }
+            ''')
+
+        then:
+        rwMethodDoc("bar", long) == """Creates a new instance of Bar with the given birthday as timestamp.
+@param value the timestamp
+@return the newly created instance"""
+    }
+
+
     Class<?> getArrayClass(String className) {
-        return loader.loadClass("[L$className;")
+        return Array.newInstance(getClass(className), 0).getClass()
     }
 
 }
