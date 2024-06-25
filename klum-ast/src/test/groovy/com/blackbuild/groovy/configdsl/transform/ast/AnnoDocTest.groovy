@@ -318,9 +318,58 @@ The newly created element will be configured by the optional parameters values a
         then:
         rwMethodDoc("bar", long) == """Creates a new instance of Bar with the given birthday as timestamp.
 @param value the timestamp
-@return the newly created instance"""
+@return the newly created instance
+@see Bar#fromLong(long)"""
     }
 
+    def "documentation with custom member name"() {
+        when:
+        createClass("dummy/Foo.groovy", '''import com.blackbuild.groovy.configdsl.transform.Field
+            @DSL class Foo {
+                @Field(members = "berry")
+                List<Berry> berries
+            }
+            
+            @DSL class Berry {
+                String color
+            }
+            ''')
+
+        then:
+        rwMethodDoc("berry", Closure) == """Creates a new 'berry' and adds it to the 'berries' collection.
+<p>
+The newly created element will be configured by the optional parameters values and closure.
+</p>
+@param closure the closure to configure the new element
+@return the newly created element"""
+    }
+
+    def "documentation with template tags"() {
+        when:
+        createClass("dummy/Foo.groovy", '''import com.blackbuild.groovy.configdsl.transform.Field
+            @DSL class Foo {
+                /**
+                * The berries in the bag. 
+                * @template singleElementName Yummy Berry
+                * @template fieldName Yummy Berries
+                */
+                @Field(members = "berry")
+                List<Berry> berries
+            }
+            
+            @DSL class Berry {
+                String color
+            }
+            ''')
+
+        then:
+        rwMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' and adds it to the 'Yummy Berries' collection.
+<p>
+The newly created element will be configured by the optional parameters values and closure.
+</p>
+@param closure the closure to configure the new element
+@return the newly created element"""
+    }
 
     Class<?> getArrayClass(String className) {
         return Array.newInstance(getClass(className), 0).getClass()

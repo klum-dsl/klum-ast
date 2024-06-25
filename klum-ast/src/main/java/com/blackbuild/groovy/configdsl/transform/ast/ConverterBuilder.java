@@ -26,16 +26,9 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.ConstructorNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.InnerClassNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
@@ -49,8 +42,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.c
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static java.util.Arrays.asList;
-import static java.util.Arrays.stream;
+import static java.util.Arrays.*;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
@@ -139,10 +131,10 @@ class ConverterBuilder {
                 transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
                 ACC_PUBLIC | ACC_STATIC,
                 ClassHelper.OBJECT_TYPE);
+        converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));
 
         closures.forEach(closureExpression -> closureToStaticConverterMethod(converterClass, closureExpression));
 
-        converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));
         transformation.annotatedClass.getModule().addClass(converterClass);
     }
 
@@ -159,6 +151,12 @@ class ConverterBuilder {
                 .params(parameters)
                 .sourceLinkTo(converter)
                 .statement(converter.getCode())
+                .withDocumentation(doc -> doc
+                                .title("Converter method for " + elementType.getName() + " created from closure in " + fieldNode.getName())
+                                .p("Since this is derived from a closure, no detailed javadoc can be provided.")
+                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + "}.")
+                        .seeAlso(elementType.getName() + "#" + fieldNode.getName())
+                )
                 .addTo(converterClass);
 
         createConverterFactoryCall(method);
@@ -252,6 +250,16 @@ class ConverterBuilder {
         ));
 
         method.copyDocFrom(sourceMethod);
+
+        method.withDocumentation(docBuilder -> {
+            if (!docBuilder.isEmpty()) {
+                String paramString = stream(sourceParameters).map(Parameter::getType).map(ClassNode::getName).collect(Collectors.joining(", "));
+                if (converterMethod != null)
+                    docBuilder.seeAlso(converterType.getName() + "#" + converterMethod + "(" + paramString + ")");
+                else
+                    docBuilder.seeAlso(converterType.getName() + "(" + paramString + ")");
+            }
+        });
         method.addTo(rwClass);
     }
 
