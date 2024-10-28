@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
@@ -40,13 +41,14 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
-import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
 
 /**
  * Created by steph on 29.04.2017.
@@ -253,11 +255,7 @@ class ConverterBuilder {
 
         method.withDocumentation(docBuilder -> {
             if (!docBuilder.isEmpty()) {
-                String paramString = stream(sourceParameters).map(Parameter::getType).map(ClassNode::getName).collect(Collectors.joining(", "));
-                if (converterMethod != null)
-                    docBuilder.seeAlso(converterType.getName() + "#" + converterMethod + "(" + paramString + ")");
-                else
-                    docBuilder.seeAlso(converterType.getName() + "(" + paramString + ")");
+                docBuilder.seeAlso(JavaDocUtil.toLinkString(sourceMethod));
             }
         });
         method.addTo(rwClass);

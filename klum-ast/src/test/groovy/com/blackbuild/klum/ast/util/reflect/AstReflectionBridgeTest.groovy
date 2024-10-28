@@ -35,7 +35,7 @@ class AstReflectionBridgeTest extends Specification {
         MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
 
         when:
-        def parameterNames = AstReflectionBridge.getNameAdjustedParameters(methodNode)*.name
+        def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
 
         then:
         parameterNames == ["namedParams", "collectionName", "type", "key", "body"]

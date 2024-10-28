@@ -29,9 +29,9 @@ import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.cloneParamsWithDefaultValues;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.*;
+import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
@@ -159,7 +159,7 @@ class TemplateMethods {
                 abstractMethod.getName(),
                 abstractMethod.getModifiers() ^ ACC_ABSTRACT,
                 abstractMethod.getReturnType(),
-                cloneParamsWithDefaultValues(abstractMethod.getParameters()),
+                cloneParamsWithAdjustedNames(abstractMethod),
                 abstractMethod.getExceptions(),
                 block()
         );

@@ -54,7 +54,7 @@ class PropertyAccessors {
         setAccessorsForOwnerFields();
 
         if (dslastTransformation.keyField != null)
-            setAccessorsForKeyField();
+            setAccessorsForSpecialField(dslastTransformation.keyField);
 
         replaceProperties(dslastTransformation.annotatedClass, propertiesToReplace);
     }
@@ -127,30 +127,25 @@ class PropertyAccessors {
     }
 
     private void setAccessorsForOwnerFields() {
-        dslastTransformation.ownerFields.forEach(this::setAccessorsForOwnerField);
+        dslastTransformation.ownerFields.forEach(this::setAccessorsForSpecialField);
     }
 
-    private void setAccessorsForKeyField() {
-        String keyGetter = getGetterName(dslastTransformation.keyField.getName());
-        createPublicMethod(keyGetter)
-                .returning(dslastTransformation.keyField.getType())
-                .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), keyGetter))
-                .addTo(dslastTransformation.rwClass);
-    }
+    private void setAccessorsForSpecialField(FieldNode fieldNode) {
+        String fieldName = fieldNode.getName();
+        PropertyNode property = dslastTransformation.annotatedClass.getProperty(fieldName);
 
-    private void setAccessorsForOwnerField(FieldNode ownerField) {
-        String ownerFieldName = ownerField.getName();
-        PropertyNode ownerProperty = dslastTransformation.annotatedClass.getProperty(ownerFieldName);
-        ownerProperty.setSetterBlock(null);
-        ownerProperty.setGetterBlock(stmt(attrX(varX("this"), constX(ownerFieldName))));
+        if (property != null) {
+            property.setSetterBlock(null);
+            property.setGetterBlock(stmt(attrX(varX("this"), constX(fieldName))));
+            propertiesToReplace.add(property);
+        }
 
-        String ownerGetter = getGetterName(ownerFieldName);
+        String ownerGetter = getGetterName(fieldName);
         createPublicMethod(ownerGetter)
-                .returning(ownerField.getType())
+                .returning(fieldNode.getType())
                 .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
                 .addTo(dslastTransformation.rwClass);
 
-        propertiesToReplace.add(ownerProperty);
     }
 
 }

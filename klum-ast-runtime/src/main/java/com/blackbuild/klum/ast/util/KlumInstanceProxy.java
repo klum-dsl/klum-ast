@@ -259,7 +259,7 @@ public class KlumInstanceProxy {
     /**
      * Executes validation for this instance
      *
-     * @deprecated use {@link Validator#validate(Object)} instead
+     * @deprecated use {@link com.blackbuild.klum.ast.util.Validator#validate(Object)} instead
      */
     @Deprecated(forRemoval = true)
     public void validate() {

@@ -27,7 +27,7 @@ Use the following snippet to include KlumAST in your project:
 </dependencies>
 ```
 
-Of course you need to setup compilation for Groovy and the Groovy dependency as well (for example using the GMavenPlus
+Of course, you need to set up compilation for Groovy and the Groovy dependency as well (for example using the GMavenPlus
 plugin). See the example projects for a more detailed setup.
 
 
@@ -61,7 +61,7 @@ It is possible to split the schema into multiple projects, but in order for some
 dependencies on other schemas should be on the source level, i.e. if MainModel depends on classes from AuxModel, MainModel 
 should _not_ use the MainModel.jar, but instead use MainModel-sources.jar and recompile all classes together.
 
-One goal of the Klum project is to eventually create Gradle / Maven projects to make that more convenient.
+One goal of the Klum project is to eventually create Gradle / Maven plugins to make that more convenient.
 
 
 ### Model
@@ -92,7 +92,7 @@ A document generation project itself consists of a model (the configuration file
 
 ## All-in-One
 
-In the all in one scenario, all parts of the system are in one project. While this is useful for kickstart scenarios,
+In the all-in-one scenario, all parts of the system are in one project. While this is useful for kickstart scenarios,
 the main disadvantage is missing IDE support, which currently does not work (due to a bug in IntelliJ : see 
  [IDEA-162019](https://youtrack.jetbrains.com/issue/IDEA-162019), [IDEA-171012](https://youtrack.jetbrains.com/issue/IDEA-171012)
  and [IDEA-171017](https://youtrack.jetbrains.com/issue/IDEA-171017), and an open task for eclipse: 

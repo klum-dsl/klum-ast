@@ -6,6 +6,7 @@
   * [[Basics]]
   * [[Model Phases]]
   * [[Static Models]]
+  * [[Javadoc]]
 * Advanced Features
   * [[Convenience Factories]]
   * [[Factory Classes]]

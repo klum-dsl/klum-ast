@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
@@ -288,7 +289,7 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
      * @param sourceMethod The source of the parameter list
      */
     public MethodBuilder cloneParamsFrom(MethodNode sourceMethod) {
-        Parameter[] clonedParams = GeneralUtils.cloneParams(sourceMethod.getParameters());
+        Parameter[] clonedParams = AstReflectionBridge.cloneParamsWithAdjustedNames(sourceMethod);
         for (int i = 0; i < clonedParams.length; i++) {
             Parameter parameter = clonedParams[i];
             copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[i], parameter);

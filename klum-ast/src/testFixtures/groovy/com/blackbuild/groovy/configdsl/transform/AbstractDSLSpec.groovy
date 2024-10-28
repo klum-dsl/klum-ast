@@ -58,6 +58,7 @@ class AbstractDSLSpec extends Specification {
         outputDirectory.deleteDir()
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
+        compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
     }
 
     def getSafeFilename() {

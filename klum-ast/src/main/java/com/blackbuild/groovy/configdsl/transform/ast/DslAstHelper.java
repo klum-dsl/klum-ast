@@ -28,36 +28,16 @@ import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
-import org.codehaus.groovy.ast.expr.ArrayExpression;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.ListExpression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.common.CommonAstHelper.*;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -279,16 +259,6 @@ public class DslAstHelper {
         return result;
     }
 
-    static Parameter[] cloneParamsWithDefaultValues(Parameter[] source) {
-        Parameter[] result = new Parameter[source.length];
-        for (int i = 0; i < source.length; i++) {
-            Parameter srcParam = source[i];
-            Parameter dstParam = new Parameter(srcParam.getOriginType(), srcParam.getName(), srcParam.getInitialExpression());
-            result[i] = dstParam;
-        }
-        return result;
-    }
-
     public static boolean isInstantiable(ClassNode classNode) {
         return !classNode.isInterface() && !isAbstract(classNode);
     }
@@ -417,7 +387,7 @@ public class DslAstHelper {
         classNode.redirect().removeNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
     }
 
-    static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
+    public static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
         for (AnnotationNode annotation : source.getAnnotations()) {
             if (annotation.isBuiltIn()) continue;
             if (annotation.getClassNode().equals(KLUM_GENERATED_CLASSNODE)) continue;

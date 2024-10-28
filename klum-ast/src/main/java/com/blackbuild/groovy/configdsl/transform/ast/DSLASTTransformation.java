@@ -31,6 +31,7 @@ import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
@@ -206,6 +207,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
+        AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
 
         rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
@@ -512,12 +514,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     @SuppressWarnings("RedundantIfStatement")
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if ((fieldNode.getModifiers() & ACC_SYNTHETIC) != 0) return true;
-        if (isKeyField(fieldNode)) return true;
-        if (isOwnerField(fieldNode)) return true;
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         if (getFieldType(fieldNode) == FieldType.TRANSIENT) return true;
+        if (isKeyField(fieldNode)) return true;
+        if (isOwnerField(fieldNode)) return true;
         return false;
     }
 
@@ -664,7 +666,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .constantParam(fieldName)
-                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts", "The scripts to create the elements")
+                    .arrayParam(makeClassSafeWithGenerics(CLASS_Type, buildWildcardType(ClassHelper.SCRIPT_TYPE)), "scripts")
                     .addTo(rwClass);
         }
 
@@ -1020,6 +1022,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
+        AnnoDocUtil.addDocumentation(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
 
         if (factoryIsGeneric)
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
@@ -1093,7 +1096,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        Parameter[] parameters = cloneParams(methodNode.getParameters());
+        Parameter[] parameters = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode);
         Parameter closureParam = parameters[parameters.length - 1];
 
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
@@ -1130,36 +1133,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     @Deprecated
     private void createConvenienceFactories() {
+        String deprecationMessage = "Use Create.From(...) instead";
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval("Use Create.From() instead")
-                .withDocumentation(d ->
-                        d.title("Creates a new instance of " + annotatedClass.getName() + " using the provided script to configure it.")
-                                .seeAlso("KlumFactory#From()")
-                )
+                .forRemoval(deprecationMessage)
                 .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE, "The script to create the instance from")
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval("Use Create.From() instead")
+                .forRemoval(deprecationMessage)
                 .optionalStringParam("name", keyField != null, "The key to use for the new instance")
                 .stringParam("text", "The text to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval("Use Create.From() instead")
+                .forRemoval(deprecationMessage)
                 .param(make(File.class), "src", "The file to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval("Use Create.From() instead")
+                .forRemoval(deprecationMessage)
                 .param(make(URL.class), "src", "The URL to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
-                .forRemoval("Use Create.From() instead")
+                .forRemoval(deprecationMessage)
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }

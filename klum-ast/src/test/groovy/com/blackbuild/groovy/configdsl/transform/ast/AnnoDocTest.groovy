@@ -241,8 +241,8 @@ class Foo {}
  */
 class MyFactory extends KlumFactory.Unkeyed<Foo> {
 
-    protected MyFactory(Class<dummy.Foo> type) {
-        super(type)
+    protected MyFactory() {
+        super(Foo)
     }
     
     /**

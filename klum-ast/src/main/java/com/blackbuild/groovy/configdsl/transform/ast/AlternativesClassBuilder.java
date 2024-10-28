@@ -40,6 +40,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -162,7 +163,7 @@ class AlternativesClassBuilder {
     private void createDelegateFactoryMethod(MethodNode methodNode) {
         if (methodNode.getName().startsWith("$")) return;
         if (!methodNode.isPublic()) return;
-        if (methodNode.getName().equals("Template")) return;
+        if (methodNode.getName().startsWith("Template")) return;
 
         ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
 
@@ -175,7 +176,7 @@ class AlternativesClassBuilder {
                                 callX(
                                         propX(classX(elementType), "Create"),
                                         methodNode.getName(),
-                                        args(cloneParams(methodNode.getParameters()))
+                                        args(cloneParamsWithAdjustedNames(methodNode))
                                 )
                     )
                     .copyDocFrom(methodNode)
@@ -190,7 +191,7 @@ class AlternativesClassBuilder {
                             callX(
                                     propX(classX(elementType), "Create"),
                                     methodNode.getName(),
-                                    args(cloneParams(methodNode.getParameters()))
+                                    args(cloneParamsWithAdjustedNames(methodNode))
                             ),
                             "values"
                         )
@@ -202,7 +203,14 @@ class AlternativesClassBuilder {
                     .returning(newClass(returnType))
                     .optional()
                     .cloneParamsFrom(methodNode)
-                    .callThis(memberName, callX(propX(classX(elementType), "Create"), methodNode.getName(), args(cloneParams(methodNode.getParameters()))))
+                    .callThis(
+                            memberName,
+                            callX(
+                                    propX(classX(elementType), "Create"),
+                                    methodNode.getName(),
+                                    args(cloneParamsWithAdjustedNames(methodNode))
+                            )
+                    )
                     .copyDocFrom(methodNode)
                     .addTo(collectionFactory);
         }

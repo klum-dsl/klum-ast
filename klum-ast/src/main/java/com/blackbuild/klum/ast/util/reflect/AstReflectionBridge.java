@@ -54,23 +54,23 @@ public class AstReflectionBridge {
         }
     }
 
-    public static Parameter[] getNameAdjustedParameters(MethodNode methodNode) {
+    public static Parameter[] cloneParamsWithAdjustedNames(MethodNode methodNode) {
         Method method = getMatchingMethod(methodNode);
         Parameter[] parameters = methodNode.getParameters();
-        if (method == null)
-            return parameters;
-
         Parameter[] adjustedParameters = new Parameter[parameters.length];
 
         for (int i = 0; i < parameters.length; i++) {
-            adjustedParameters[i] = new Parameter(parameters[i].getType(), method.getParameters()[i].getName(), parameters[i].getInitialExpression());
+            adjustedParameters[i] = new Parameter(
+                    parameters[i].getType(),
+                    method != null ? method.getParameters()[i].getName() : parameters[i].getName(),
+                    parameters[i].getInitialExpression());
         }
 
         return adjustedParameters;
     }
 
     public static List<String> parameterNames(MethodNode methodNode) {
-        return Arrays.stream(getNameAdjustedParameters(methodNode))
+        return Arrays.stream(cloneParamsWithAdjustedNames(methodNode))
                 .map(Parameter::getName)
                 .collect(Collectors.toList());
     }
