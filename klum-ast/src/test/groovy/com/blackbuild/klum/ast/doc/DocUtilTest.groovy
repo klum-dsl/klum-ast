@@ -21,23 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.doc
 
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.annodocimal.annotations.AnnoDoc
+import org.codehaus.groovy.ast.AnnotatedNode
+import org.codehaus.groovy.ast.AnnotationNode
+import org.codehaus.groovy.ast.ClassHelper
+import spock.lang.Specification
 
-/**
- * Phase Action that validates the model.
- */
-public class ValidationPhase extends VisitingPhaseAction {
-    public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
-    }
+import static org.codehaus.groovy.ast.tools.GeneralUtils.constX
 
-    @Override
-    public void visit(String path, Object element, Object container) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            Validator.validate(element);
+class DocUtilTest extends Specification {
+
+    AnnotatedNode node
+
+    AnnotatedNode withJavaDoc(String text) {
+        AnnotatedNode node = new AnnotatedNode()
+        def annotation = new AnnotationNode(ClassHelper.make(AnnoDoc.class))
+        node.addAnnotation(annotation)
+        annotation.addMember("value", constX(text))
+        return node
     }
 }

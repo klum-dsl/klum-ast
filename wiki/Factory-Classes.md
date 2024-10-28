@@ -14,7 +14,7 @@ Note that the implementation of these factories only differ from their base clas
 
 Instead of the default base classes one can provide an own creator class extending the base class and thus adding new creator methods. This class can either be generic as well, in that case it must have a constructor with a single class parameter, or it can explicitly assign the type parameter of the base class. In that case it must have a constructor without parameters.
 
-The creator class is either implicitly taken from a static inner class named `Factory` or explicitly set via the `factoryBase` member of the `@DSL` annotation.
+The creator class is either implicitly taken from a static inner class named `Factory` or explicitly set via the `factory` member of the `@DSL` annotation.
 
 ```groovy
 @DSL

@@ -91,7 +91,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.klum.ast.util.KlumFactory
 
-@DSL(factoryBase = MyClassFactory)
+@DSL(factory = MyClassFactory)
 class MyClass {
     String name
     String job
@@ -124,7 +124,7 @@ class MyClassFactory extends KlumFactory.Unkeyed<MyClass> {
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.klum.ast.util.KlumFactory
 
-@DSL(factoryBase = MyClassFactory)
+@DSL(factory = MyClassFactory)
 class MyClass {
     String name
     String job

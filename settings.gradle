@@ -29,7 +29,7 @@ dependencyResolutionManagement {
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
-            version("klum-cast", "0.1.0-rc.6")
+            version("klum-cast", "0.1.0")
             library("klum-cast-compile", "com.blackbuild.klum.cast", "klum-cast-compile").versionRef("klum-cast")
             library("klum-cast-annotations", "com.blackbuild.klum.cast", "klum-cast-annotations").versionRef("klum-cast")
 
@@ -56,11 +56,12 @@ dependencyResolutionManagement {
 
             bundle "spockRuntime", ["bytebuddy", "objenesis"]
 
-
+            version("annodocimal", "0.6.0")
+            library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
+            library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
+            library("annodocimal-apt", "com.blackbuild.annodocimal", "anno-docimal-apt").versionRef("annodocimal")
         }
-
     }
-
 }
 
 rootProject.name = 'klum-ast-root'
@@ -68,4 +69,6 @@ include 'klum-ast-annotations'
 include 'klum-ast'
 include 'klum-ast-runtime'
 include 'klum-ast-jackson'
+
+// includeBuild "../anno-docimal"
 

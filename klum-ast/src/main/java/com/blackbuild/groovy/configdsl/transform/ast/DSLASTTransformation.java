@@ -23,11 +23,15 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
+import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
@@ -203,6 +207,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
+        AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
 
         rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
@@ -233,6 +238,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             annotatedClass.setNodeMetaData(RWCLASS_METADATA_KEY, rwClass);
         else
             parentProxy.setRedirect(rwClass);
+
+        rwClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
 
         createCoercionMethod();
     }
@@ -266,11 +273,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             // add manual validation only to root of hierarchy
             createProxyMethod("manualValidation")
                     .mod(ACC_PUBLIC)
-                    .param(Boolean_TYPE, "validation", constX(true))
+                    .param(Boolean_TYPE, "validation", constX(true), "true to enable manual validation, false to disable")
+                    .documentationTitle("Prevent automatic validation of this instance during Validation phase.")
                     .addTo(rwClass);
         }
 
-        createProxyMethod(VALIDATE_METHOD).mod(ACC_PUBLIC).optional().forRemoval().addTo(annotatedClass);
+        createProxyMethod(VALIDATE_METHOD)
+                .mod(ACC_PUBLIC)
+                .optional()
+                .forRemoval("Use ")
+                .addTo(annotatedClass);
     }
 
     private void convertValidationClosures() {
@@ -502,12 +514,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     @SuppressWarnings("RedundantIfStatement")
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if ((fieldNode.getModifiers() & ACC_SYNTHETIC) != 0) return true;
-        if (isKeyField(fieldNode)) return true;
-        if (isOwnerField(fieldNode)) return true;
         if (fieldNode.isFinal()) return true;
         if (fieldNode.getName().startsWith("$")) return true;
         if ((fieldNode.getModifiers() & ACC_TRANSIENT) != 0) return true;
         if (getFieldType(fieldNode) == FieldType.TRANSIENT) return true;
+        if (isKeyField(fieldNode)) return true;
+        if (isOwnerField(fieldNode)) return true;
         return false;
     }
 
@@ -525,19 +537,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createProxyMethod(fieldName, "setSingleField")
                 .optional()
-                .returning(fieldNode.getType())
+                .returning(fieldNode.getType(), "The set value")
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle(DocUtil.getSetterText(fieldNode))
                 .constantParam(fieldName)
-                .decoratedParam(fieldNode, "value")
+                .decoratedParam(fieldNode, "value", "the value to set")
                 .addTo(rwClass);
 
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
             createProxyMethod(fieldName, "setSingleField")
                     .optional()
-                    .returning(Boolean_TYPE)
+                    .returning(Boolean_TYPE, "always true")
                     .mod(visibility)
                     .linkToField(fieldNode)
+                    .documentationTitle(DocUtil.getFlagSetterText(fieldNode))
                     .constantParam(fieldName)
                     .constantParam(true)
                     .addTo(rwClass);
@@ -576,16 +590,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle(DocUtil.getCollectionMultiAdderText(fieldNode))
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values")
+                .arrayParam(elementType, "values", "The values to add")
                 .addTo(rwClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle(DocUtil.getCollectionMultiAdderText(fieldNode))
                 .constantParam(fieldName)
-                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", "The values to add")
                 .addTo(rwClass);
 
         createProxyMethod(elementName, "addElementToCollection")
@@ -593,8 +609,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .returning(elementType)
                 .linkToField(fieldNode)
+                .documentationTitle(DocUtil.getCollectionAdderText(fieldNode))
                 .constantParam(fieldName)
-                .param(elementType, "value")
+                .param(elementType, "value", "The value to add")
                 .addTo(rwClass);
 
         createConverterMethods(fieldNode, elementName, false);
@@ -605,7 +622,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
-
 
         FieldNode fieldKey = getKeyField(dslBaseType);
 
@@ -626,8 +642,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
-                        .optionalStringParam(fieldKeyName, fieldKey != null)
-                        .delegatingClosureParam(elementRwType)
+                        .optionalStringParam(fieldKeyName, fieldKey != null, null)
+                        .delegatingClosureParam(elementRwType, null)
                         .addTo(rwClass);
             }
 
@@ -673,8 +689,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(methodName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
-                .returning(elementType)
                 .linkToField(fieldNode)
+                .returning(elementType)
                 .constantParam(fieldName)
                 .param(elementType, "value")
                 .addTo(rwClass);
@@ -778,17 +794,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         String elementToAddVarName = "elementToAdd";
-
         String methodName = getElementNameForCollectionField(fieldNode);
-
         String fieldName = fieldNode.getName();
-
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (getFieldType(fieldNode) != FieldType.LINK) {
-
             if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
@@ -992,9 +1004,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createApplyMethods() {
         createProxyMethod("apply")
                 .mod(ACC_PUBLIC)
-                .returning(newClass(annotatedClass))
-                .namedParams("values")
-                .delegatingClosureParam(rwClass)
+                .returning(newClass(annotatedClass), null)
+                .namedParams("values", null)
+                .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
     }
 
@@ -1010,6 +1022,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
+        AnnoDocUtil.addDocumentation(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
 
         if (factoryIsGeneric)
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
@@ -1027,17 +1040,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ctorX(factoryClass)
         );
 
+        AnnoDocUtil.addDocumentation(factoryField, "The factory for creating instances of " + annotatedClass.getName());
+        factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        factoryClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         annotatedClass.addField(factoryField);
     }
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
-        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factoryBase");
+        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factory");
         if (factoryBase == null) factoryBase = getInnerClass(annotatedClass, "Factory");
 
         if (!isInstantiable(defaultImpl)) {
             if (factoryBase == null) return KLUM_FACTORY;
             if (!isAssignableTo(factoryBase, KLUM_FACTORY))
-                addError("factoryBase must be a KlumFactory", dslAnnotation);
+                addError("factory must be a KlumFactory", dslAnnotation);
             return factoryBase;
         }
 
@@ -1080,7 +1096,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        Parameter[] parameters = cloneParams(methodNode.getParameters());
+        Parameter[] parameters = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode);
         Parameter closureParam = parameters[parameters.length - 1];
 
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
@@ -1096,8 +1112,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 methodNode.getExceptions(),
                 returnS(callSuperX(methodNode.getName(), args(parameters)))
         );
-        newMethod.addAnnotation(new AnnotationNode(OVERRIDE));
-        factoryClass.addMethod(newMethod);
+        String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
+        AnnoDocUtil.addDocumentation(newMethod, originalDocumentation);
+        MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
+        if (existing == null)
+            factoryClass.addMethod(newMethod);
     }
 
     private void createFactoryMethods() {
@@ -1105,45 +1124,47 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
 
         createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
-                .forRemoval()
+                .forRemoval("Use Create.With() instead")
                 .namedParams("values")
                 .optionalStringParam("name", keyField != null)
                 .delegatingClosureParam(rwClass)
                 .addTo(annotatedClass);
     }
 
+    @Deprecated
     private void createConvenienceFactories() {
+        String deprecationMessage = "Use Create.From(...) instead";
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval()
-                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE)
+                .forRemoval(deprecationMessage)
+                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE, "The script to create the instance from")
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval()
-                .optionalStringParam("name", keyField != null)
-                .stringParam("text")
+                .forRemoval(deprecationMessage)
+                .optionalStringParam("name", keyField != null, "The key to use for the new instance")
+                .stringParam("text", "The text to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval()
-                .param(make(File.class), "src")
+                .forRemoval(deprecationMessage)
+                .param(make(File.class), "src", "The file to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval()
-                .param(make(URL.class), "src")
+                .forRemoval(deprecationMessage)
+                .param(make(URL.class), "src", "The URL to create the instance from")
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
 
         createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
-                .forRemoval()
+                .forRemoval(deprecationMessage)
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "java:S1872"})
     public <T extends Enum<?>> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {
         if (node == null) return defaultValue;
 

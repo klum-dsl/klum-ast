@@ -18,7 +18,8 @@
     - Custom creator classes can be provided (see [Factory Classes](https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes))
     - Methods of creator classes (including custom creators) are included in collection factories (see [#300](https://github.com/klum-dsl/klum-ast/issues/300) and [Factory Classes](https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes#Creator-methods-and-collection-factories))
     - Creator class also supports creating templates from scripts (files or URLS) (see [Templates](https://github.com/klum-dsl/klum-ast/wiki/Templates) and [#322](https://github.com/klum-dsl/klum-ast/issues/322))
-    - Switch annotation validation to [KlumCast](https://github.com/klum-dsl/klum-cast) Framework (see [#312](https://github.com/klum-dsl/klum-ast/issues/2312)))
+    - Switch annotation validation to [KlumCast](https://github.com/klum-dsl/klum-cast) Framework (see [#312](https://github.com/klum-dsl/klum-ast/issues/312)))
+    - Generate Documentation for almost all generated methods via [AnnoDocimal](https://github.com/blackbuild/anno-docimal) (see [#197](https://github.com/klum-dsl/klum-ast/issues/197)))
 - Improvements
   - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
   - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))

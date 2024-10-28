@@ -422,7 +422,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(AssertionError)
 
         when:
-        KlumInstanceProxy.getProxyFor(instance).validate()
+        Validator.validate(instance)
 
         then:
         thrown(AssertionError)
@@ -431,7 +431,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance.apply {
             validated "bla"
         }
-        KlumInstanceProxy.getProxyFor(instance).validate()
+        Validator.validate(instance)
 
         then:
         notThrown(AssertionError)

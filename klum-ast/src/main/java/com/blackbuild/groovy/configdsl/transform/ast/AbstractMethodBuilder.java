@@ -23,7 +23,12 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
+import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
@@ -34,18 +39,18 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 @SuppressWarnings("unchecked")
 public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> {
 
-
-    protected static final ClassNode CLASSLOADER_TYPE = ClassHelper.make(ClassLoader.class);
-    protected static final ClassNode THREAD_TYPE = ClassHelper.make(Thread.class);
-    protected static final ClassNode PARAMETER_ANNOTATION_TYPE = ClassHelper.make(ParameterAnnotation.class);
-    protected static final ClassNode DEPRECATED_NODE = ClassHelper.make(Deprecated.class);
+    protected static final ClassNode CLASSLOADER_TYPE = make(ClassLoader.class);
+    protected static final ClassNode THREAD_TYPE = make(Thread.class);
+    protected static final ClassNode PARAMETER_ANNOTATION_TYPE = make(ParameterAnnotation.class);
+    protected static final ClassNode DEPRECATED_NODE = make(Deprecated.class);
     protected static final ClassNode[] EMPTY_EXCEPTIONS = new ClassNode[0];
     protected static final Parameter[] EMPTY_PARAMETERS = new Parameter[0];
     protected static final ClassNode DELEGATES_TO_ANNOTATION = make(DelegatesTo.class);
@@ -59,7 +64,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     protected DeprecationType deprecationType;
     protected boolean optional;
     protected ASTNode sourceLinkTo;
-    protected String documentation;
+    protected DocBuilder documentation = new JavadocDocBuilder();
     protected GenericsType[] genericsTypes;
 
     protected AbstractMethodBuilder(String name) {
@@ -67,12 +72,25 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     }
 
     public T returning(ClassNode returnType) {
+        return returning(returnType, null);
+    }
+
+    public T returning(ClassNode returnType, String documentation) {
         this.returnType = returnType;
+        if (documentation != null)
+            this.documentation.returnType(documentation);
         return (T) this;
     }
 
-    public T linkToField(AnnotatedNode annotatedNode) {
-        return (T) inheritDeprecationFrom(annotatedNode).sourceLinkTo(annotatedNode);
+    public T linkToField(FieldNode annotatedNode) {
+        return (T) inheritDeprecationFrom(annotatedNode)
+                .sourceLinkTo(annotatedNode)
+                .withDocumentation(doc -> doc.templates(DocUtil.getTemplatesFor(annotatedNode)));
+    }
+
+    public T linkToMethod(MethodNode annotatedNode) {
+        return (T) inheritDeprecationFrom(annotatedNode)
+                .sourceLinkTo(annotatedNode);
     }
 
     public T inheritDeprecationFrom(AnnotatedNode annotatedNode) {
@@ -87,8 +105,18 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T documentation(String documentation) {
-        this.documentation = documentation;
+    public T documentationTitle(String text) {
+        documentation.title(text);
+        return (T) this;
+    }
+
+    public T documentationParagraph(String text) {
+        documentation.p(text);
+        return (T) this;
+    }
+
+    public T withDocumentation(Consumer<DocBuilder> action) {
+        action.accept(documentation);
         return (T) this;
     }
 
@@ -113,14 +141,26 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T deprecated() {
-        deprecationType = DeprecationType.DEPRECATED;
+    protected T deprecated(DeprecationType type,  String reason) {
+        deprecationType = type;
+        documentation.deprecated(reason);
         return (T) this;
     }
 
+    public T deprecated() {
+        return deprecated(DeprecationType.DEPRECATED, null);
+    }
+
+    public T deprecated(String reason) {
+        return deprecated(DeprecationType.DEPRECATED, reason);
+    }
+
     public T forRemoval() {
-        deprecationType = DeprecationType.FOR_REMOVAL;
-        return (T) this;
+        return deprecated(DeprecationType.FOR_REMOVAL, null);
+    }
+
+    public T forRemoval(String reason) {
+        return deprecated(DeprecationType.FOR_REMOVAL, reason);
     }
 
     public T setGenericsTypes(GenericsType[] genericsTypes) {
@@ -152,21 +192,39 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
                 getMethodBody()
         );
 
-        if (deprecationType != null)
-            method.addAnnotation(deprecationType.toNode());
-
         if (genericsTypes != null)
             method.setGenericsTypes(genericsTypes);
 
         if (sourceLinkTo != null)
             method.setSourcePosition(sourceLinkTo);
 
-        method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, documentation, tags));
+        if (deprecationType != null)
+            method.addAnnotation(deprecationType.toNode());
+
+        if (!hasAnnotation(target, KLUM_GENERATED_CLASSNODE))
+            method.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class, tags));
+        postProcessMethod(method);
         return method;
+    }
+
+    protected void postProcessMethod(MethodNode method) {
+        AnnoDocUtil.addDocumentation(method, documentation);
     }
 
     protected abstract Parameter[] getMethodParameters();
 
-
     protected abstract Statement getMethodBody();
+
+    /**
+     * Copies the documentation from the given source element.
+     */
+    public T copyDocFrom(AnnotatedNode source) {
+        documentation.fromRawText(ASTExtractor.extractDocumentation(source));
+        return (T) this;
+    }
+
+    public T copyDocTemplatesFrom(AnnotatedNode source) {
+        documentation.templatesFrom(ASTExtractor.extractDocText(source));
+        return (T) this;
+    }
 }

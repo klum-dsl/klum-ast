@@ -457,4 +457,18 @@ public class CommonAstHelper {
     public static Class<?> getClassFromClassLoader(ClassNode classNode, Class<?> loaderClass) {
         return getClassFromClassLoader(classNode, loaderClass.getClassLoader());
     }
+
+    public static String getFullClosureText(ClosureExpression closure) {
+        String paramText = AstToTextHelper.getParametersText(closure.getParameters());
+        String closureBodyText = closure.getCode().getText();
+        if (closureBodyText.startsWith("{"))
+            closureBodyText = closureBodyText.substring(1, closureBodyText.length() - 1);
+        if (closureBodyText.endsWith("}"))
+            closureBodyText = closureBodyText.substring(0, closureBodyText.length() - 1);
+        closureBodyText = closureBodyText.trim();
+
+        return paramText.isEmpty() ? "{ -> " + closureBodyText + " }" : "{ " + paramText + " -> " + closureBodyText + " }";
+    }
+
+
 }

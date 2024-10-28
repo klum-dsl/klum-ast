@@ -23,42 +23,21 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ASTNode;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
-import org.codehaus.groovy.ast.expr.ArgumentListExpression;
-import org.codehaus.groovy.ast.expr.ArrayExpression;
-import org.codehaus.groovy.ast.expr.ClosureExpression;
-import org.codehaus.groovy.ast.expr.ConstantExpression;
-import org.codehaus.groovy.ast.expr.Expression;
-import org.codehaus.groovy.ast.expr.ListExpression;
-import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.callThisX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 /**
  * Created by stephan on 05.12.2016.
@@ -68,7 +47,7 @@ public class DslAstHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
     private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
-    private static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
+    public static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
 
@@ -137,7 +116,13 @@ public class DslAstHelper {
     }
 
 
-    static String getElementNameForCollectionField(FieldNode fieldNode) {
+    /**
+     * Returns the name of a single element for a collection or map field. This is either taken from the {@link Field#members()}
+     * annotation member or derived from the field name (i.e. removing a trailing 's').
+     * @param fieldNode the field to get the element name for
+     * @return the element name
+     */
+    public static String getElementNameForCollectionField(FieldNode fieldNode) {
         String result = fieldNode.getNodeMetaData(ELEMENT_NAME_METADATA_KEY);
         if (result != null)
             return result;
@@ -274,24 +259,6 @@ public class DslAstHelper {
         return result;
     }
 
-    static void createDelegateMethod(MethodNode targetMethod, ClassNode receiver, String field) {
-        createOptionalPublicMethod(targetMethod.getName())
-                .returning(targetMethod.getReturnType())
-                .params(cloneParamsWithDefaultValues(targetMethod.getParameters()))
-        .callMethod(field, targetMethod.getName(), args(targetMethod.getParameters()))
-        .addTo(receiver);
-    }
-
-    static Parameter[] cloneParamsWithDefaultValues(Parameter[] source) {
-        Parameter[] result = new Parameter[source.length];
-        for (int i = 0; i < source.length; i++) {
-            Parameter srcParam = source[i];
-            Parameter dstParam = new Parameter(srcParam.getOriginType(), srcParam.getName(), srcParam.getInitialExpression());
-            result[i] = dstParam;
-        }
-        return result;
-    }
-
     public static boolean isInstantiable(ClassNode classNode) {
         return !classNode.isInterface() && !isAbstract(classNode);
     }
@@ -390,14 +357,12 @@ public class DslAstHelper {
     }
 
     static AnnotationNode createGeneratedAnnotation(Class<?> generatorType) {
-        return createGeneratedAnnotation(generatorType, null, null);
+        return createGeneratedAnnotation(generatorType, null);
     }
 
-    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType, String documentation, Collection<String> tags) {
+    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType, Collection<String> tags) {
         AnnotationNode result = new AnnotationNode(KLUM_GENERATED_CLASSNODE);
         result.addMember("generator", constX(generatorType.getName()));
-        if (documentation != null)
-            result.addMember("documentation", constX(documentation));
         if (tags != null && !tags.isEmpty())
             result.addMember(
                     "tags",
@@ -422,10 +387,12 @@ public class DslAstHelper {
         classNode.redirect().removeNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
     }
 
-    static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
+    public static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
         for (AnnotationNode annotation : source.getAnnotations()) {
             if (annotation.isBuiltIn()) continue;
-            target.addAnnotation(annotation);
+            if (annotation.getClassNode().equals(KLUM_GENERATED_CLASSNODE)) continue;
+            if (target.getAnnotations(annotation.getClassNode()).isEmpty())
+                target.addAnnotation(annotation);
         }
     }
 

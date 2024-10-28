@@ -21,23 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.util.reflect
 
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.MethodNode
+import spock.lang.Specification
 
-/**
- * Phase Action that validates the model.
- */
-public class ValidationPhase extends VisitingPhaseAction {
-    public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
-    }
+class AstReflectionBridgeTest extends Specification {
 
-    @Override
-    public void visit(String path, Object element, Object container) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            Validator.validate(element);
+    def "correct parameter names are extracted"() {
+        given:
+        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
+
+        when:
+        def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
+
+        then:
+        parameterNames == ["namedParams", "collectionName", "type", "key", "body"]
     }
 }

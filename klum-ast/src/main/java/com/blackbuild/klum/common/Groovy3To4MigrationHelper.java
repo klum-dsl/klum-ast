@@ -36,6 +36,10 @@ import static groovy.transform.Undefined.isUndefined;
 
 public class Groovy3To4MigrationHelper {
 
+    private Groovy3To4MigrationHelper() {
+        // Utility class
+    }
+
     // copy of method from AbstractASTTransformation, but this method has been renamed between 3 and 4, so we copy it out
     public static List<String> getMemberStringList(AnnotationNode anno, String name) {
         Expression expr = anno.getMember(name);

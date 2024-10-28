@@ -23,36 +23,25 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
-import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.ConstructorNode;
-import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.InnerClassNode;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getClosureMemberList;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDslMap;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Arrays.asList;
@@ -60,7 +49,6 @@ import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
-import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
 
 /**
  * Created by steph on 29.04.2017.
@@ -113,7 +101,7 @@ class ConverterBuilder {
 
         includes = getMemberStringList(convertersAnnotation, "includeMethods");
         if (includes == null)
-            includes = Collections.emptyList();
+            includes = new ArrayList<>();
 
         if (transformation.memberHasValue(convertersAnnotation, "excludeDefaultPrefixes", true))
             includes.addAll(DEFAULT_PREFIXES);
@@ -145,6 +133,7 @@ class ConverterBuilder {
                 transformation.annotatedClass.getName() + "$_" + fieldNode.getName() + "_converterClosures",
                 ACC_PUBLIC | ACC_STATIC,
                 ClassHelper.OBJECT_TYPE);
+        converterClass.addAnnotation(createGeneratedAnnotation(ConverterBuilder.class));
 
         closures.forEach(closureExpression -> closureToStaticConverterMethod(converterClass, closureExpression));
 
@@ -164,6 +153,12 @@ class ConverterBuilder {
                 .params(parameters)
                 .sourceLinkTo(converter)
                 .statement(converter.getCode())
+                .withDocumentation(doc -> doc
+                                .title("Converter method for " + elementType.getName() + " created from closure in " + fieldNode.getName())
+                                .p("Since this is derived from a closure, no detailed javadoc can be provided.")
+                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + "}.")
+                        .seeAlso(elementType.getName() + "#" + fieldNode.getName())
+                )
                 .addTo(converterClass);
 
         createConverterFactoryCall(method);
@@ -245,15 +240,24 @@ class ConverterBuilder {
                 .constantParam(converterMethod);
 
         if (withKey)
-            method.param(STRING_TYPE, "$key");
+            method.param(STRING_TYPE, "$key", "the key for the new object");
         else if (isDslMap(fieldNode))
             method.constantParam(null);
 
         stream(sourceParameters).forEach( parameter -> method.param(
-                        correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()),
-                        parameter.getName(),
-                        parameter.getInitialExpression()
-                ));
+                correctToGenericsSpecRecurse(genericsSpec, parameter.getOriginType()),
+                parameter.getName(),
+                parameter.getInitialExpression(),
+                null
+        ));
+
+        method.copyDocFrom(sourceMethod);
+
+        method.withDocumentation(docBuilder -> {
+            if (!docBuilder.isEmpty()) {
+                docBuilder.seeAlso(JavaDocUtil.toLinkString(sourceMethod));
+            }
+        });
         method.addTo(rwClass);
     }
 

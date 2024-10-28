@@ -80,7 +80,7 @@ import java.lang.annotation.Target;
  <p><b>Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods
  are now deprecated in will be removed in a future version.</b></p>
 
- <p>If the class contains an static inner class named Factory of the appropriate type or the member factoryBase points
+ <p>If the class contains an static inner class named Factory of the appropriate type or the member factory points
  to such a class, this class is used as a base
  for the generated factory instead. This allows adding additional methods to the factory.</p>
 
@@ -412,5 +412,5 @@ public @interface DSL {
      * KlumFactory.Keyed/Unkeyed will be used as a base for the generated factory class. Note that if the annotated class
      * contains a static inner class named "Factory", this class will be used by default.
      */
-    Class<?> factoryBase() default Undefined.class;
+    Class<?> factory() default Undefined.class;
 }

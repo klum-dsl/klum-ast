@@ -165,7 +165,7 @@ There are various major benefits of using a Layer3 model vs. a generic schema/mo
 
 ### Editing and code completion
 
-With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above bein modelled using a generic schema/model approach:
+With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above being modelled using a generic schema/model approach:
 
 ```groovy
 environment("dev") {
@@ -226,8 +226,6 @@ Now, our monitoring service needs access to a database, but we want to reuse the
 the database field of the monitoring service to the database of its owner:
 
 ```groovy
-import java.security.acl.Owner
-
 class MonitoringService extends Microservice {
   @Owner MonitoresApplication application
   @LinkTo Database database

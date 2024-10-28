@@ -17,6 +17,10 @@ java {
     withSourcesJar()
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-parameters'
+}
+
 jacoco {
     toolVersion = "0.8.11"
 }

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import groovy.lang.*;
 import groovy.transform.Undefined;
@@ -39,6 +40,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings({"java:S100", "unused"})
+@InlineJavadocs
 public class KlumFactory<T> {
 
     protected final Class<T> type;
@@ -138,8 +140,10 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
-     *
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -155,8 +159,10 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
-     *
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -173,8 +179,10 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
-     *
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -191,8 +199,10 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type. Templates differ from regular instances in the following way:
-     *
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -209,10 +219,12 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link #From(File)},
      * the file is converted into a DelegatingScript which is then executed to create the model instance.
      * Templates differ from regular instances in the following way:
-     *
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -227,10 +239,12 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link #From(File)},
      * the file is converted into a DelegatingScript which is then executed to create the model instance.
      * Templates differ from regular instances in the following way:
-     *
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -247,10 +261,12 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link #From(File)},
      * the file is converted into a DelegatingScript which is then executed to create the model instance.
      * Templates differ from regular instances in the following way:
-     *
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -265,10 +281,12 @@ public class KlumFactory<T> {
     }
 
     /**
-     * Creates a template instance of the model type by applying the given text as configuration. As with {@link #From(File)},
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link #From(File)},
      * the file is converted into a DelegatingScript which is then executed to create the model instance.
      * Templates differ from regular instances in the following way:
-     *
+     * </p>
      * <ul>
      *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
      *     <li>the key of a template model is always null</li>
@@ -308,6 +326,8 @@ public class KlumFactory<T> {
         /**
          * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
          * checking for arguments. This means that empty create calls like 'X.create("bla")' will correctly work afterward.
+         * @param key The key to use for the model
+         * @return The instantiated object.
          * @deprecated Use {@link #One(String)} instead.
          */
         @Deprecated

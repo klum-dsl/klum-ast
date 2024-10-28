@@ -21,23 +21,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.groovy.configdsl.transform.ast
 
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import org.codehaus.groovy.ast.ClassHelper
+import org.codehaus.groovy.ast.ClassNode
+import spock.lang.Specification
 
-/**
- * Phase Action that validates the model.
- */
-public class ValidationPhase extends VisitingPhaseAction {
-    public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
+class MethodAstHelperTest extends Specification {
+
+    def "check class distance"(Object arg, Object parent, int distance) {
+        expect:
+        MethodAstHelper.classDistance(cn(arg), cn(parent), 0) == distance
+
+        where:
+        arg         | parent    || distance
+        Object      | Object    || 0
+        String      | Object    || 1
+        Properties  | Map       || 2
+        String[]    | Object    || 1
+        String[]    | String[]  || 0
     }
 
-    @Override
-    public void visit(String path, Object element, Object container) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            Validator.validate(element);
+    protected ClassNode cn(Object type) {
+        if (type instanceof ClassNode)
+            return type
+        if (type instanceof Class)
+            return ClassHelper.make(type)
+        throw new IllegalArgumentException("Unsupported type: $type")
     }
+
+
 }

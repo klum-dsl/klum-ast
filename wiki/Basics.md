@@ -49,7 +49,7 @@ The optional closure to the `With` method is used to set values on the created o
 __Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods 
 are now deprecated in will be removed in a future version.__
 
-If the class contains an static inner class named 'Factory' of the appropriate type or the member factoryBase points
+If the class contains an static inner class named 'Factory' of the appropriate type or the member `factory` points
 to such a class, this class is used as a base
 for the generated factory instead. This allows adding additional methods to the factory.
 

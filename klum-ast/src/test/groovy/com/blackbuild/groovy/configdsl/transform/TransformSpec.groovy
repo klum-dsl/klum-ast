@@ -280,6 +280,23 @@ class TransformSpec extends AbstractDSLSpec {
         instance.$key == "Klaus"
     }
 
+    def 'Key and owner should not have setters'() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Key String name
+                @Owner Foo myOwner
+            }
+        ''')
+
+        then:
+        hasNoMethod(clazz, "setName", String)
+        hasNoMethod(clazz, "setMyOwner", clazz)
+    }
+
     def "key field must be of type String"() {
         when:
         createClass('''
