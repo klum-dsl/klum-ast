@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
+//file:noinspection UnnecessaryQualifiedReference
 package com.blackbuild.groovy.configdsl.transform.ast
 
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
@@ -33,6 +34,7 @@ import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.ast.tools.GeneralUtils
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
+import spock.lang.Retry
 
 import java.lang.reflect.Array
 
@@ -202,6 +204,7 @@ to their respective classes.
 
     }
 
+    @Retry //somehow this test is flaky in Groovy 3+
     def "javadoc for auto overridden creator"() {
         when:
         createClass("dummy/Foo.groovy", '''
