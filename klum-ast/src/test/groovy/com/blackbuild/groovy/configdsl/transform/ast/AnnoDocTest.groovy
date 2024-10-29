@@ -25,6 +25,7 @@
 //file:noinspection UnnecessaryQualifiedReference
 package com.blackbuild.groovy.configdsl.transform.ast
 
+import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import org.codehaus.groovy.ast.ClassHelper
@@ -34,7 +35,6 @@ import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.ast.tools.GeneralUtils
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
-import spock.lang.Retry
 
 import java.lang.reflect.Array
 
@@ -78,6 +78,11 @@ class AnnoDocTest extends AbstractDSLSpec {
     String creatorDoc(String methodName, Class... params) {
         def methodNode = getMethod(factoryClassNode, methodName, params)
         return ASTExtractor.extractDocumentation(methodNode)
+    }
+
+    String altCreatorDoc(String methodName, Class... params) {
+        def method = factoryClazz.getMethod(methodName, params)
+        return method.getAnnotation(AnnoDoc)?.value()
     }
 
     MethodNode getMethod(ClassNode node, String methodName, Class... paramTypes) {
@@ -204,7 +209,6 @@ to their respective classes.
 
     }
 
-    @Retry //somehow this test is flaky in Groovy 3+
     def "javadoc for auto overridden creator"() {
         when:
         createClass("dummy/Foo.groovy", '''
@@ -219,7 +223,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 ''')
 
         then:
-        creatorDoc("With", Closure) == """Creates a new instance of the model applying the given configuration closure.
+        altCreatorDoc("With", Closure) == """Creates a new instance of the model applying the given configuration closure.
 @param configuration The configuration closure to apply to the model.
 @return The instantiated object."""
     }
