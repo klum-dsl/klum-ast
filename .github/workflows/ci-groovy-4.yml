@@ -35,3 +35,10 @@ jobs:
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
           check_name: 'JUnit Test Report G4'
+      - name: Archive test classes
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test classes
+          path: |
+            **/build/test-classes/**/*.class
