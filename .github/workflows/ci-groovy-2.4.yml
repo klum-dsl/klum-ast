@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
   build:
@@ -26,9 +28,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Build with Gradle
         run:
-          ./gradlew build
+          ./gradlew build --scan
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v4
-        if: failure()
+        if: success() || failure()
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
+          check_name: 'JUnit Test Report G2'
+      - name: Archive test classes
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test classes
+          path: |
+            **/build/test-classes/**/*.class
