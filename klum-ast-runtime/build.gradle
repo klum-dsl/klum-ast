@@ -1,5 +1,5 @@
 plugins {
-    id "klum-ast.conventions"
+    id "klum-ast.multigroovy-conventions"
 }
 
 description "Runtime Library for KlumAST"

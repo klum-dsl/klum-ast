@@ -17,12 +17,6 @@ plugins {
     id "io.github.gradle-nexus.publish-plugin"
 }
 
-ext {
-    groovyVersion = project.findProperty("groovyVersion") ?: 'v2'
-    if (!(groovyVersion in ['v2', 'v3', 'v4']))
-        throw new GradleException("Unsupported Groovy version $groovyVersion")
-}
-
 group 'com.blackbuild.klum.ast'
 description 'A transformation for creating convenient configuration model DSLs.'
 
@@ -55,9 +49,6 @@ gitPublish {
 releaseCheck.doLast {
     if (!gradle.includedBuilds.isEmpty())
         throw new GradleException("Releasing is not allowed with composite builds. Please release $gradle.includedBuilds separately")
-
-    if (rootProject.ext.groovyVersion != "v2")
-        throw new GradleException("Releasing must be done with Groovy 2.4")
 }
 
 evaluationDependsOnChildren()

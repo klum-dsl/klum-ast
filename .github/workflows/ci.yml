@@ -1,4 +1,4 @@
-name: CI Groovy 2.4
+name: CI
 
 on:
   push:
@@ -34,7 +34,7 @@ jobs:
         if: success() || failure()
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
-          check_name: 'JUnit Test Report G2'
+          check_name: 'JUnit Test Report'
       - name: Archive test classes
         uses: actions/upload-artifact@v4
         if: failure()

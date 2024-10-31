@@ -1,5 +1,5 @@
 plugins {
-    id "klum-ast.conventions"
+    id "klum-ast.multigroovy-conventions"
 }
 
 description "Jackson enhancements for KlumAST"
@@ -12,7 +12,8 @@ dependencies {
 
     api 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
 
-    testImplementation project(':klum-ast')
-    testImplementation(testFixtures(project(":klum-ast")))
+    sharedTests project(':klum-ast')
+    // just to make intellij happy, base classes are actually included as sources
+    testCompileOnly(testFixtures(project(':klum-ast')))
 }
 
