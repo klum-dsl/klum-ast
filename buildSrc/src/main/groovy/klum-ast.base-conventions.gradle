@@ -1,0 +1,106 @@
+plugins {
+    id "java-library"
+    id 'groovy'
+    id 'jacoco'
+    id 'signing'
+    id 'maven-publish'
+    id 'com.github.hierynomus.license'
+}
+
+group rootProject.group
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
+    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-parameters'
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    executionData(tasks.withType(Test))
+    reports {
+        xml.required = true
+    }
+}
+
+dependencies {
+    compileOnly libs.jb.anno
+    compileOnly libs.groovy.v2
+
+    testImplementation libs.jb.anno
+
+    testRuntimeOnly libs.bundles.spockRuntime
+    testRuntimeOnly libs.jpl
+}
+
+publishing.publications.configureEach {
+    suppressPomMetadataWarningsFor('testFixturesApiElements')
+    suppressPomMetadataWarningsFor('testFixturesRuntimeElements')
+    pom { pom ->
+        project.getName()
+        pom.name = project.name
+        pom.description = project.description
+
+        pom.url = 'https://github.com/klum-dsl/klum-ast.git'
+
+        pom.scm {
+            url = 'https://github.com/klum-dsl/klum-ast.git'
+            connection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
+            developerConnection = 'scm:git:https://github.com/klum-dsl/klum-ast.git'
+        }
+
+        pom.licenses {
+            license {
+                name = 'MIT License (MIT)'
+                url = 'https://opensource.org/licenses/MIT'
+                distribution = 'repo'
+            }
+        }
+
+        pom.developers {
+            developer {
+                id = 'pauxus'
+                name = 'Stephan Pauxberger'
+                email = 'stephan@blackbuild.com'
+                url = 'https://github.com/pauxus'
+            }
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+
+afterEvaluate {
+    signing {
+        required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        publishing.publications.configureEach {
+            sign it
+        }
+    }
+}
+
+
+license {
+    header = rootProject.file("LICENSE")
+    mapping("java", "SLASHSTAR_STYLE")
+    mapping("groovy", "SLASHSTAR_STYLE")
+    mapping("gdsl", "SLASHSTAR_STYLE")
+    exclude("mockup/**")
+    strictCheck(true)
+}
+

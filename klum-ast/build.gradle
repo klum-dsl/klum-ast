@@ -1,5 +1,5 @@
 plugins {
-    id "klum-ast.conventions"
+    id "klum-ast.multigroovy-conventions"
     id "java-test-fixtures"
 }
 
@@ -17,7 +17,6 @@ dependencies {
     api libs.annodocimal.global.ast
     api libs.klum.cast.compile
 
-    testFixturesImplementation libs.bundles.spock.groovy."$rootProject.ext.groovyVersion"
-    testFixturesImplementation libs.jb.anno
+    testFixturesCompileOnly libs.bundles.spock.groovy.v3
+    testFixturesCompileOnly libs.jb.anno
 }
-

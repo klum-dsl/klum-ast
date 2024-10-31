@@ -1,0 +1,61 @@
+plugins {
+    id "klum-ast.base-conventions"
+    id 'jvm-test-suite'
+}
+
+dependencies {
+    testImplementation libs.bundles.spock.groovy.v2
+}
+
+configurations {
+    sharedTests
+}
+
+configurations.matching { it.name in ["testImplementation", "groovy3TestsImplementation", "groovy4TestsImplementation"]}.configureEach {
+    extendsFrom(configurations.sharedTests)
+}
+
+testing {
+    suites {
+        test {
+            useJUnit()
+        }
+
+        withType(JvmTestSuite).matching { it.name.startsWith("groovy") }.configureEach {
+            def groovyVersion = it.name.charAt(6)
+            useSpock(libs.versions.spock."g$groovyVersion")
+
+            sources {
+                groovy {
+                    srcDirs = ['src/test/groovy']
+                    destinationDirectory = file("build/classes/groovy/test-g$groovyVersion")
+                }
+            }
+
+            dependencies {
+                implementation project()
+                implementation libs.jb.anno
+                implementation libs.spock.junit4."g$groovyVersion"
+                implementation libs.groovy."v$groovyVersion"
+                implementation sourceSets.test.output
+                runtimeOnly libs.bytebuddy
+                runtimeOnly libs.objenesis
+                runtimeOnly libs.jpl
+
+            }
+        }
+        groovy3Tests(JvmTestSuite)
+        groovy4Tests(JvmTestSuite)
+    }
+}
+
+// Need to add test fixtures as source, since we compile with different spock versions
+tasks.withType(GroovyCompile).configureEach {
+    if (!name.contains("Test") || name.contains("Fixtures")) return
+    it.source(project(':klum-ast').sourceSets.testFixtures.groovy.srcDirs)
+}
+
+tasks.named('check') {
+    dependsOn(testing.suites.groovy3Tests)
+    dependsOn(testing.suites.groovy4Tests)
+}

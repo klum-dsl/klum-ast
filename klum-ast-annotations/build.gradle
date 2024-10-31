@@ -1,5 +1,5 @@
 plugins {
-    id "klum-ast.conventions"
+    id "klum-ast.base-conventions"
 }
 
 description "Annontations for Klum AST"
