@@ -59,6 +59,7 @@ dependencyResolutionManagement {
             version("annodocimal", "0.6.2")
             library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
             library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
+            library("annodocimal-gradle-plugin", "com.blackbuild.annodocimal", "anno-docimal-gradle-plugin").versionRef("annodocimal")
             library("annodocimal-apt", "com.blackbuild.annodocimal", "anno-docimal-apt").versionRef("annodocimal")
         }
     }
@@ -69,6 +70,7 @@ include 'klum-ast-annotations'
 include 'klum-ast'
 include 'klum-ast-runtime'
 include 'klum-ast-jackson'
+include 'klum-ast-gradle-plugin'
 
 // includeBuild "../anno-docimal"
 

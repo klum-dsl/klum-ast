@@ -1,0 +1,46 @@
+plugins {
+    id "klum-ast.base-conventions"
+    id 'com.gradle.plugin-publish'
+    id 'java-gradle-plugin'
+}
+
+description "KlumAST Gradle Plugins"
+
+gradlePlugin {
+    plugins {
+        klumAstSchmemaPlugin {
+            id = 'com.blackbuild.klum-ast-schema'
+            displayName = 'Plugin for KlumAST schema projects'
+            description = 'preconfigures a project to produce a KlumAST schema'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstSchemaPlugin'
+            tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
+        }
+    }
+
+    website = 'https://github.com/klum-dsl/klum-ast'
+    vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
+    description = project.description
+}
+
+dependencies {
+    api libs.annodocimal.gradle.plugin
+    // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
+    testImplementation libs.spock.g3
+}
+
+tasks.named("jar").configure {
+    manifest {
+        attributes 'Implementation-Version': project.version
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        pluginMaven(MavenPublication)
+    }
+}
+
