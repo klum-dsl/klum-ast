@@ -25,55 +25,17 @@ package com.blackbuild.klum.ast.gradle;
 
 import com.blackbuild.annodocimal.plugin.AnnoDocimalPlugin;
 import org.gradle.api.NonNullApi;
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.plugins.GroovyPlugin;
-import org.gradle.api.plugins.JavaLibraryPlugin;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
-import org.gradle.api.publish.PublishingExtension;
-import org.gradle.api.publish.maven.MavenPublication;
-import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
 
 @NonNullApi
-public abstract class KlumAstSchemaPlugin implements Plugin<Project> {
+public abstract class KlumAstSchemaPlugin extends AbstractKlumPlugin {
 
-    private Project project;
-    private String version;
-
-    @Override
-    public void apply(Project project) {
-        this.project = project;
-        version = PluginHelper.determineOwnVersion();
-
-        addDependentPlugins();
-        activateSourcesAndJavadocs();
-        addDependencies();
-        configurePublishing();
-    }
-
-    private void configurePublishing() {
-        project.getPlugins().withType(MavenPublishPlugin.class, mavenPublishPlugin ->
-                project.getExtensions().configure(PublishingExtension.class, publishingExtension ->
-                        publishingExtension.getPublications().create("mavenJava", MavenPublication.class, configuration ->
-                                configuration.from(project.getComponents().findByName("java")))));
-    }
-
-    private void addDependentPlugins() {
+    protected void addDependentPlugins() {
         PluginManager pluginManager = project.getPluginManager();
-        pluginManager.apply(JavaLibraryPlugin.class);
-        pluginManager.apply(GroovyPlugin.class);
         pluginManager.apply(AnnoDocimalPlugin.class);
-        pluginManager.apply(KlumAstSchemaPlugin.class);
     }
 
-    private void activateSourcesAndJavadocs() {
-        JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
-        java.withSourcesJar();
-        java.withJavadocJar();
-    }
-
-    private void addDependencies() {
+    protected void addDependencies() {
         project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast:" + version);
         project.getDependencies().add("implementation", "com.blackbuild.klum.ast:klum-ast-runtime:" + version);
     }

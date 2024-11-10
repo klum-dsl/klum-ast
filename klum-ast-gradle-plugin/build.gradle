@@ -15,6 +15,13 @@ gradlePlugin {
             implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstSchemaPlugin'
             tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
         }
+        klumAstModelPlugin {
+            id = 'com.blackbuild.klum-ast-model'
+            displayName = 'Plugin for KlumAST model projects'
+            description = 'preconfigures a project to produce a KlumAST model'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstModelPlugin'
+            tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
+        }
     }
 
     website = 'https://github.com/klum-dsl/klum-ast'
