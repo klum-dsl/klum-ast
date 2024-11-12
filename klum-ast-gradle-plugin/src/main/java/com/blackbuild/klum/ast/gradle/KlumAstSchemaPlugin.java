@@ -28,7 +28,12 @@ import org.gradle.api.NonNullApi;
 import org.gradle.api.plugins.PluginManager;
 
 @NonNullApi
-public abstract class KlumAstSchemaPlugin extends AbstractKlumPlugin {
+public class KlumAstSchemaPlugin extends AbstractKlumPlugin {
+
+    @Override
+    protected void registerExtension() {
+        // do nothing for now
+    }
 
     protected void addDependentPlugins() {
         PluginManager pluginManager = project.getPluginManager();
@@ -40,4 +45,8 @@ public abstract class KlumAstSchemaPlugin extends AbstractKlumPlugin {
         project.getDependencies().add("implementation", "com.blackbuild.klum.ast:klum-ast-runtime:" + version);
     }
 
+    @Override
+    protected void doApply() {
+
+    }
 }

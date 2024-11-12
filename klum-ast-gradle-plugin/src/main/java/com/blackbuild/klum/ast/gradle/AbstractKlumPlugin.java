@@ -21,22 +21,17 @@ public abstract class AbstractKlumPlugin implements Plugin<Project> {
     public final void apply(Project project) {
         this.project = project;
         version = PluginHelper.determineOwnVersion();
+        registerExtension();
         configureGroovyAndJava();
         addDependentPlugins();
         addDependencies();
         configurePublishing();
+        doApply();
     }
 
-    protected abstract void addDependencies();
+    protected abstract void doApply();
 
-    protected abstract void addDependentPlugins();
-
-    private void configurePublishing() {
-        project.getPlugins().withType(MavenPublishPlugin.class, mavenPublishPlugin ->
-                project.getExtensions().configure(PublishingExtension.class, publishingExtension ->
-                        publishingExtension.getPublications().create("mavenJava", MavenPublication.class, configuration ->
-                                configuration.from(project.getComponents().findByName("java")))));
-    }
+    protected abstract void registerExtension();
 
     private void configureGroovyAndJava() {
         PluginManager pluginManager = project.getPluginManager();
@@ -45,5 +40,16 @@ public abstract class AbstractKlumPlugin implements Plugin<Project> {
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         java.withJavadocJar();
+    }
+
+    protected abstract void addDependentPlugins();
+
+    protected abstract void addDependencies();
+
+    private void configurePublishing() {
+        project.getPlugins().withType(MavenPublishPlugin.class, mavenPublishPlugin ->
+                project.getExtensions().configure(PublishingExtension.class, publishingExtension ->
+                        publishingExtension.getPublications().create("mavenJava", MavenPublication.class, configuration ->
+                                configuration.from(project.getComponents().findByName("java")))));
     }
 }
