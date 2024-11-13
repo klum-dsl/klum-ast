@@ -3,6 +3,7 @@ package com.blackbuild.klum.ast.gradle;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
 
 @NonNullApi
@@ -21,20 +22,18 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin {
     protected void doApply() {
         project.getConfigurations().getByName("api").extendsFrom(project.getConfigurations().getByName("schemas"));
         Provider<Directory> descriptorDir = project.getLayout().getBuildDirectory().dir("modelDescriptors");
-        project.getTasks().register("createModelDescriptors", CreateModelProperties.class, task -> {
+        TaskProvider<CreateModelProperties> createModelDescriptors = project.getTasks().register("createModelDescriptors", CreateModelProperties.class, task -> {
             task.getOutputDirectory().convention(descriptorDir);
             task.getModelProperties().convention(extension.getTopLevelScripts());
         });
-        project.getTasks().withType(ProcessResources.class, task -> {
-            if (!task.getName().equals("processResources")) return;
-            task.dependsOn("createModelDescriptors");
-            task.from(descriptorDir, copySpec -> copySpec.into("META-INF/klum-model"));
+        project.getTasks().named("processResources", ProcessResources.class, task -> {
+            task.from(createModelDescriptors, copySpec -> copySpec.into("META-INF/klum-model"));
         });
     }
 
     @Override
     protected void addDependencies() {
-        // nothing, all depenencies are transitive for now
+        // nothing, all dependencies are transitive for now
     }
 
     protected void addDependentPlugins() {
