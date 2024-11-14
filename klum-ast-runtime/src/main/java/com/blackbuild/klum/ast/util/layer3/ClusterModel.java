@@ -265,6 +265,12 @@ public class ClusterModel {
     }
 
     @NotNull
+    static Stream<PropertyValue> getFieldPropertiesStream(Object container) {
+        return getAllPropertiesStream(container)
+                .filter(it -> hasField(container.getClass(), it.getName()));
+    }
+
+    @NotNull
     public static Stream<PropertyValue> getAllPropertiesStream(Object container) {
         return getMetaPropertyValues(container).stream()
                 .filter(ClusterModel::isNoInternalProperty);

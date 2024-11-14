@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 class StructureUtilDSLTest extends AbstractDSLSpec {
 
@@ -65,6 +64,10 @@ import com.blackbuild.groovy.configdsl.transform.Owner
                 List<String> goals
                 List<String> profiles
                 List<String> cliOptions
+                
+                String getNameAndProfile() { // #330
+                    return "${project.name}:${profiles.join(",")}"
+                }
             }
         ''')
 
@@ -173,5 +176,7 @@ import com.blackbuild.groovy.configdsl.transform.Owner
                 "<root>.projects.'demo-2'.mvn" : instance.projects.'demo-2'.mvn,
         ]
 
+        and: "getter like methods are not visited"
+        !result.keySet().contains("<root>.projects.demo.nameAndProfile")
     }
 }

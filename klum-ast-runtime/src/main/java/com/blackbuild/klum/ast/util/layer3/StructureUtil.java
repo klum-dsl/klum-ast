@@ -95,7 +95,7 @@ public class StructureUtil {
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
         visitor.visit(path, element, container);
         alreadyVisited.add(element);
-        ClusterModel.getAllPropertiesStream(element)
+        ClusterModel.getFieldPropertiesStream(element)
                 .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element));
     }
 
