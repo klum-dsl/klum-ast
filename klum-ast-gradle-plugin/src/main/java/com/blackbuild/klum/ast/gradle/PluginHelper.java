@@ -23,12 +23,24 @@
  */
 package com.blackbuild.klum.ast.gradle;
 
+import org.gradle.api.GradleException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 public class PluginHelper {
 
     private PluginHelper() {}
 
     public static String determineOwnVersion() {
-        return PluginHelper.class.getPackage().getImplementationVersion();
+        Properties props = new Properties();
+        try (InputStream is = PluginHelper.class.getClassLoader().getResourceAsStream("META-INF/versions/com.blackbuild.klum.ast.gradle.AbstractKlumPlugin")) {
+            props.load(is);
+        } catch (IOException e) {
+            throw new GradleException("Could not determine version of plugin.", e);
+        }
+        return props.getProperty("version");
     }
 
 }

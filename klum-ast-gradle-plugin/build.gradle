@@ -35,9 +35,15 @@ dependencies {
     testImplementation libs.spock.g3
 }
 
-tasks.named("jar").configure {
-    manifest {
-        attributes 'Implementation-Version': project.version
+tasks.register('generatePluginVersionMarker', WriteProperties) {
+    destinationFile = layout.buildDirectory.file("versionMarker/com.blackbuild.klum.ast.gradle.AbstractKlumPlugin")
+    comment = "current plugin version"
+    property("version", project.version)
+}
+
+processResources {
+    from(files(tasks.generatePluginVersionMarker)) {
+        into("META-INF/versions")
     }
 }
 
