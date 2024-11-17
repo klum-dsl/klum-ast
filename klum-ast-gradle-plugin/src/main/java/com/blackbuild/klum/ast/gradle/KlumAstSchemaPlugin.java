@@ -28,11 +28,11 @@ import org.gradle.api.NonNullApi;
 import org.gradle.api.plugins.PluginManager;
 
 @NonNullApi
-public class KlumAstSchemaPlugin extends AbstractKlumPlugin {
+public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
     @Override
     protected void registerExtension() {
-        // do nothing for now
+        extension = project.getExtensions().create("klumSchema", KlumExtension.class);
     }
 
     protected void addDependentPlugins() {
@@ -42,11 +42,11 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin {
 
     protected void addDependencies() {
         project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast:" + version);
-        project.getDependencies().add("implementation", "com.blackbuild.klum.ast:klum-ast-runtime:" + version);
+        project.getDependencies().add("api", "com.blackbuild.klum.ast:klum-ast-runtime:" + version);
     }
 
     @Override
-    protected void doApply() {
-
+    protected void additionalConfig() {
+        // empty for now
     }
 }

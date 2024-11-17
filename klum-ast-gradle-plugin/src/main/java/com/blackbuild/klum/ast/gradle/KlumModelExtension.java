@@ -27,7 +27,7 @@ import org.gradle.api.Action;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.tasks.Nested;
 
-public abstract class KlumModelExtension {
+public abstract class KlumModelExtension extends KlumExtension {
 
     @Nested
     public abstract SchemaDependencies getSchemas();

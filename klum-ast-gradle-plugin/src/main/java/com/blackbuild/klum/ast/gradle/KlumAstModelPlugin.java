@@ -30,9 +30,7 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
 
 @NonNullApi
-public class KlumAstModelPlugin extends AbstractKlumPlugin {
-
-    private KlumModelExtension extension;
+public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
 
     @Override
     protected void registerExtension() {
@@ -42,7 +40,7 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin {
     }
 
     @Override
-    protected void doApply() {
+    protected void additionalConfig() {
         project.getConfigurations().getByName("api").extendsFrom(project.getConfigurations().getByName("schemas"));
         Provider<Directory> descriptorDir = project.getLayout().getBuildDirectory().dir("modelDescriptors");
         TaskProvider<CreateModelProperties> createModelDescriptors = project.getTasks().register("createModelDescriptors", CreateModelProperties.class, task -> {

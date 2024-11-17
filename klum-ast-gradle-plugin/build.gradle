@@ -22,6 +22,13 @@ gradlePlugin {
             implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstModelPlugin'
             tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
         }
+        groovyDependenciesPlugin {
+            id = 'com.blackbuild.convention.groovy'
+            displayName = 'Groovy dependencies'
+            description = 'Adds Groovy and Spock dependencies to the project'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesPlugin'
+            tags.addAll  'groovy', 'spock'
+        }
     }
 
     website = 'https://github.com/klum-dsl/klum-ast'

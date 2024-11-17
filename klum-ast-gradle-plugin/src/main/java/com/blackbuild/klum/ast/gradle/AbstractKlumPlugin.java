@@ -23,6 +23,9 @@
  */
 package com.blackbuild.klum.ast.gradle;
 
+import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesExtension;
+import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesPlugin;
+import com.blackbuild.klum.ast.gradle.convention.GroovyVersion;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -35,24 +38,26 @@ import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin;
 
 @NonNullApi
-public abstract class AbstractKlumPlugin implements Plugin<Project> {
+public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plugin<Project> {
 
     protected Project project;
     protected String version;
+    protected T extension;
 
     @Override
     public final void apply(Project project) {
         this.project = project;
         version = PluginHelper.determineOwnVersion();
         registerExtension();
+        extension.getGroovyVersion().convention(GroovyVersion.GROOVY_3);
         configureGroovyAndJava();
         addDependentPlugins();
         addDependencies();
         configurePublishing();
-        doApply();
+        additionalConfig();
     }
 
-    protected abstract void doApply();
+    protected abstract void additionalConfig();
 
     protected abstract void registerExtension();
 
@@ -63,6 +68,12 @@ public abstract class AbstractKlumPlugin implements Plugin<Project> {
         JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
         java.withSourcesJar();
         java.withJavadocJar();
+        pluginManager.apply(GroovyDependenciesPlugin.class);
+        Project rootProject = project.getRootProject();
+        if (rootProject == project || !rootProject.getPlugins().hasPlugin(GroovyDependenciesPlugin.class)) {
+            GroovyDependenciesExtension dependenciesExtension = project.getExtensions().getByType(GroovyDependenciesExtension.class);
+            dependenciesExtension.getGroovyVersion().convention(extension.getGroovyVersion());
+        }
     }
 
     protected abstract void addDependentPlugins();
