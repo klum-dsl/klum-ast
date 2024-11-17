@@ -1,0 +1,66 @@
+plugins {
+    id "klum-ast.base-conventions"
+    id 'com.gradle.plugin-publish'
+    id 'java-gradle-plugin'
+}
+
+description "KlumAST Gradle Plugins"
+
+gradlePlugin {
+    plugins {
+        klumAstSchmemaPlugin {
+            id = 'com.blackbuild.klum-ast-schema'
+            displayName = 'Plugin for KlumAST schema projects'
+            description = 'preconfigures a project to produce a KlumAST schema'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstSchemaPlugin'
+            tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
+        }
+        klumAstModelPlugin {
+            id = 'com.blackbuild.klum-ast-model'
+            displayName = 'Plugin for KlumAST model projects'
+            description = 'preconfigures a project to produce a KlumAST model'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.KlumAstModelPlugin'
+            tags.addAll  'groovy', 'model', 'dsl', "klum", "ast"
+        }
+        groovyDependenciesPlugin {
+            id = 'com.blackbuild.convention.groovy'
+            displayName = 'Groovy dependencies'
+            description = 'Adds Groovy and Spock dependencies to the project'
+            implementationClass = 'com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesPlugin'
+            tags.addAll  'groovy', 'spock'
+        }
+    }
+
+    website = 'https://github.com/klum-dsl/klum-ast'
+    vcsUrl = 'https://github.com/klum-dsl/klum-ast.git'
+    description = project.description
+}
+
+dependencies {
+    api libs.annodocimal.gradle.plugin
+    // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
+    testImplementation libs.spock.g3
+}
+
+tasks.register('generatePluginVersionMarker', WriteProperties) {
+    destinationFile = layout.buildDirectory.file("versionMarker/com.blackbuild.klum.ast.gradle.AbstractKlumPlugin")
+    comment = "current plugin version"
+    property("version", project.version)
+}
+
+processResources {
+    from(files(tasks.generatePluginVersionMarker)) {
+        into("META-INF/versions")
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        pluginMaven(MavenPublication)
+    }
+}
+
