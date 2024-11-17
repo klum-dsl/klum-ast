@@ -20,3 +20,12 @@ dependencies {
     testFixturesCompileOnly libs.bundles.spock.groovy.v3
     testFixturesCompileOnly libs.jb.anno
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
+

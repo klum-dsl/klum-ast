@@ -17,3 +17,10 @@ dependencies {
     testCompileOnly(testFixtures(project(':klum-ast')))
 }
 
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}

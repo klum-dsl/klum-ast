@@ -77,14 +77,6 @@ publishing.publications.configureEach {
     }
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from(components.java)
-        }
-    }
-}
-
 afterEvaluate {
     signing {
         required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
