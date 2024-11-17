@@ -54,7 +54,7 @@ class KlumAstModelPluginTest extends Specification {
 
         and:
         project.configurations.sourcesElements
-        project.configurations.javadocElements
+        !project.configurations.findByName("javadocElements")
     }
 
     def "schema is translated to dependencies"() {
