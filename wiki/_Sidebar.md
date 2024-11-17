@@ -3,6 +3,7 @@
 * Overview
   * [[Terms]]
   * [[Usage]]
+  * [[Gradle Plugins]]
   * [[Basics]]
   * [[Model Phases]]
   * [[Static Models]]

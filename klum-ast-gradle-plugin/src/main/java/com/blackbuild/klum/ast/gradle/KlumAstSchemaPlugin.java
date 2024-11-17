@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.gradle;
 
 import com.blackbuild.annodocimal.plugin.AnnoDocimalPlugin;
 import org.gradle.api.NonNullApi;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
 
 @NonNullApi
@@ -47,6 +48,8 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
     @Override
     protected void additionalConfig() {
-        // empty for now
+        JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
+        java.withSourcesJar();
+        java.withJavadocJar();
     }
 }

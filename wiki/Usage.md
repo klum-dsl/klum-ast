@@ -42,6 +42,7 @@ dependencies {
   ...
 }
 ```
+Note that in most cases, the setup can be made a lot easier with the help of the Klum Gradle Plugins, see [[Gradle Plugins]].
 
 # Project setup
 

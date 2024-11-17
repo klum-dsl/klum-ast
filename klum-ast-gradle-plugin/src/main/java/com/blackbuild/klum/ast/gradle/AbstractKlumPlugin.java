@@ -31,7 +31,6 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.GroovyPlugin;
 import org.gradle.api.plugins.JavaLibraryPlugin;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
@@ -65,9 +64,6 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
         PluginManager pluginManager = project.getPluginManager();
         pluginManager.apply(JavaLibraryPlugin.class);
         pluginManager.apply(GroovyPlugin.class);
-        JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
-        java.withSourcesJar();
-        java.withJavadocJar();
         pluginManager.apply(GroovyDependenciesPlugin.class);
         Project rootProject = project.getRootProject();
         if (rootProject == project || !rootProject.getPlugins().hasPlugin(GroovyDependenciesPlugin.class)) {

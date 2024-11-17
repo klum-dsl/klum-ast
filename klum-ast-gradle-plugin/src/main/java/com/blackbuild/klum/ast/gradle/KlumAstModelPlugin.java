@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.gradle;
 
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.language.jvm.tasks.ProcessResources;
@@ -49,6 +50,10 @@ public class KlumAstModelPlugin extends AbstractKlumPlugin<KlumModelExtension> {
         });
         project.getTasks().named("processResources", ProcessResources.class, task ->
                 task.from(createModelDescriptors, copySpec -> copySpec.into("META-INF/klum-model")));
+
+        JavaPluginExtension java = project.getExtensions().getByType(JavaPluginExtension.class);
+        java.withSourcesJar();
+        // no javadoc, script only library
     }
 
     @Override
