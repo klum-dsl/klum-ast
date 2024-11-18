@@ -24,10 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import groovyjarjarasm.asm.Opcodes;
-import org.codehaus.groovy.ast.ClassNode;
-import org.codehaus.groovy.ast.GenericsType;
-import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +41,10 @@ class DelegateFromRwToModel {
     private static final List<String> IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION =
             Arrays.asList("canEqual", "methodMissing", "propertyMissing");
 
+    private static final List<ClassNode> IGNORED_ANNOTATIONS_FOR_RW_TO_MODEL_DELEGATION =
+            List.of(
+                    ClassHelper.make(Override.class),
+                    DslAstHelper.KLUM_GENERATED_CLASSNODE);
 
     private final ClassNode annotatedClass;
     private final ClassNode rwClass;
@@ -96,7 +97,7 @@ class DelegateFromRwToModel {
                 .addTo(rwClass);
 
         if (newMethod != null) {
-            DslAstHelper.copyAnnotationsFromSourceToTarget(candidate, newMethod);
+            DslAstHelper.copyAnnotationsFromSourceToTarget(candidate, newMethod, IGNORED_ANNOTATIONS_FOR_RW_TO_MODEL_DELEGATION);
         }
     }
 

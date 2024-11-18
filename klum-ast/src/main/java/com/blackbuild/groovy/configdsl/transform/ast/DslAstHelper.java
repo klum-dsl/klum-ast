@@ -34,6 +34,7 @@ import org.codehaus.groovy.classgen.Verifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.common.CommonAstHelper.*;
@@ -387,13 +388,12 @@ public class DslAstHelper {
         classNode.redirect().removeNodeMetaData(DELAYED_ACTIONS_METADATA_KEY);
     }
 
-    public static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target) {
-        for (AnnotationNode annotation : source.getAnnotations()) {
-            if (annotation.isBuiltIn()) continue;
-            if (annotation.getClassNode().equals(KLUM_GENERATED_CLASSNODE)) continue;
-            if (target.getAnnotations(annotation.getClassNode()).isEmpty())
-                target.addAnnotation(annotation);
-        }
+    public static void copyAnnotationsFromSourceToTarget(AnnotatedNode source, AnnotatedNode target, Collection<ClassNode> filteredTypes) {
+        source.getAnnotations().stream()
+                .filter(Predicate.not(AnnotationNode::isBuiltIn))
+                .filter(annotation -> filteredTypes.stream().noneMatch(type -> type.equals(annotation.getClassNode())))
+                .filter(annotation -> target.getAnnotations(annotation.getClassNode()).isEmpty())
+                .forEach(target::addAnnotation);
     }
 
 }

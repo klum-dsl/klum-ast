@@ -70,7 +70,7 @@ class ImagePushSpecification {
         when:
         instance = clazz.Create.With {
             name "Klaus"
-            descriptionProviders([{ "$name" }, {"2$name"}])
+            descriptionProviders([{ "$name" }, { "2$name" }])
         }
 
         then:
@@ -103,7 +103,7 @@ class ImagePushSpecification {
         when:
         instance = clazz.Create.With {
             name "Klaus"
-            descriptionProviders(a: { "$name" }, b: {"2$name"})
+            descriptionProviders(a: { "$name" }, b: { "2$name" })
         }
 
         then:
@@ -156,6 +156,7 @@ class Outer {
         then:
         noExceptionThrown()
     }
+
     def "BUG: naming clash if instance methods is the same as the key field (list)"() {
         given:
         createClass '''
@@ -198,7 +199,7 @@ class Outer {
         noExceptionThrown()
     }
 
-    @Issue(["243","248"])
+    @Issue(["243", "248"])
     def "BUG: Generics in Generics leads to compile error"() {
         given:
         createClass '''
@@ -243,6 +244,22 @@ class Outer {
         instance.name == "bla"
     }
 
+    @Issue("340")
+    def "BUG: Overrides annotation should not be copied to rw class delegate methods"() {
+        when:
+        createClass '''import org.jetbrains.annotations.NotNull
 
+@DSL class MyClass implements Comparable<MyClass> {
+    String name
+    
+    @Override
+    int compareTo(MyClass o) {
+        return name <=> o?.name
+    }
+}
+'''
+        then:
+        noExceptionThrown()
+    }
 
 }
