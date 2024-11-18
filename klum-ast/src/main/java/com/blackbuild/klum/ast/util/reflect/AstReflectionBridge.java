@@ -38,31 +38,40 @@ public class AstReflectionBridge {
         // Utility class
     }
 
-    public static Method getMatchingMethod(MethodNode methodNode) {
+    private static Method getMatchingMethod(MethodNode methodNode) {
         if (!methodNode.getDeclaringClass().isResolved())
             return null;
 
-        Class<?>[] parameterTypes = Arrays.stream(methodNode.getParameters())
+        String[] parameterTypes = Arrays.stream(methodNode.getParameters())
                 .map(Parameter::getType)
-                .map(ClassNode::getTypeClass)
-                .toArray(Class[]::new);
-        try {
-            Class<?> declaringClass = methodNode.getDeclaringClass().getTypeClass();
-            return declaringClass.getDeclaredMethod(methodNode.getName(), parameterTypes);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException("Method not found: " + methodNode.getName(), e);
-        }
+                .map(ClassNode::getName)
+                .toArray(String[]::new);
+        Class<?> declaringClass = methodNode.getDeclaringClass().getTypeClass();
+
+        return Arrays.stream(declaringClass.getDeclaredMethods())
+                .filter(m -> m.getName().equals(methodNode.getName()))
+                .filter(m -> Arrays.equals(Arrays.stream(m.getParameterTypes())
+                        .map(Class::getName)
+                        .toArray(String[]::new), parameterTypes))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Method not found: " + methodNode.getName()));
+    }
+
+    private static String[] getParameterNames(Method method) {
+        return method != null ? Arrays.stream(method.getParameters())
+                .map(java.lang.reflect.Parameter::getName)
+                .toArray(String[]::new) : null;
     }
 
     public static Parameter[] cloneParamsWithAdjustedNames(MethodNode methodNode) {
-        Method method = getMatchingMethod(methodNode);
+        String[] reflectionParameterNames = getParameterNames(getMatchingMethod(methodNode));
         Parameter[] parameters = methodNode.getParameters();
         Parameter[] adjustedParameters = new Parameter[parameters.length];
 
         for (int i = 0; i < parameters.length; i++) {
             adjustedParameters[i] = new Parameter(
                     parameters[i].getType(),
-                    method != null ? method.getParameters()[i].getName() : parameters[i].getName(),
+                    reflectionParameterNames != null ? reflectionParameterNames[i] : parameters[i].getName(),
                     parameters[i].getInitialExpression());
         }
 
