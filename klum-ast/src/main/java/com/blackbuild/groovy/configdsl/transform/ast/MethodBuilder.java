@@ -40,6 +40,7 @@ import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
@@ -292,7 +293,7 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
         Parameter[] clonedParams = AstReflectionBridge.cloneParamsWithAdjustedNames(sourceMethod);
         for (int i = 0; i < clonedParams.length; i++) {
             Parameter parameter = clonedParams[i];
-            copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[i], parameter);
+            copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[i], parameter, Collections.emptyList());
             param(parameter);
         }
         return this;

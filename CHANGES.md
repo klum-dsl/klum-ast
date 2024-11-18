@@ -54,6 +54,8 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.31
+  - Don't copy Overrides annotation to RW delegation methods (see [#40](https://github.com/klum-dsl/klum-ast/issues/340))
 - since rc.13
   - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
   - Converter methods should honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268))
