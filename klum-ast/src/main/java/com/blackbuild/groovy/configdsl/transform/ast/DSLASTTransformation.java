@@ -203,7 +203,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
-                ACC_PROTECTED | ACC_STATIC,
+                ACC_PUBLIC | ACC_STATIC,
                 parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);

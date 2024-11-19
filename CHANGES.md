@@ -54,6 +54,8 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.33
+  - Make RW classes public, not protected. Otherwise, static type checking can fail if owner and child are in different packages 
 - since rc.32
   - new AnnoDocimal version ([Fix for inner enum final modifier](https://github.com/blackbuild/anno-docimal/issues/31))
 - since rc.31
