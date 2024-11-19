@@ -54,6 +54,8 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.32
+  - new AnnoDocimal version ([Fix for inner enum final modifier](https://github.com/blackbuild/anno-docimal/issues/31))
 - since rc.31
   - Don't copy Overrides annotation to RW delegation methods (see [#40](https://github.com/klum-dsl/klum-ast/issues/340))
 - since rc.13
