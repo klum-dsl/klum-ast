@@ -26,7 +26,9 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public class OwnerPhase extends VisitingPhaseAction {
@@ -38,20 +40,45 @@ public class OwnerPhase extends VisitingPhaseAction {
     public void visit(String path, Object element, Object container) {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        setOwners(proxy, container);
+        setDirectOwners(proxy, container);
+        setTransitiveOwners(proxy);
         LifecycleHelper.executeLifecycleClosures(proxy, Owner.class);
     }
 
-    private void setOwners(KlumInstanceProxy proxy, Object value) {
+    private void setDirectOwners(KlumInstanceProxy proxy, Object value) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
                 .filter(field -> field.getType().isInstance(value))
-                .filter(field -> proxy.getInstanceAttribute(field.getName()) == null)
-                .forEach(field -> proxy.setInstanceAttribute(field.getName(), value));
+                .map(Field::getName)
+                .filter(fieldName -> proxy.getInstanceAttribute(fieldName) == null)
+                .forEach(fieldName -> proxy.setInstanceAttribute(fieldName, value));
 
         DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
                 .filter(method -> method.getParameterTypes()[0].isInstance(value))
                 .map(Method::getName)
                 .distinct()
                 .forEach(method -> proxy.getRwInstance().invokeMethod(method, value));
+    }
+
+    private void setTransitiveOwners(KlumInstanceProxy proxy) {
+        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).transitive())
+                .filter(field -> proxy.getInstanceAttribute(field.getName()) == null)
+                .forEach(field -> setSingleTransitiveOwner(proxy, field));
+
+        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).transitive())
+                .forEach(method -> callTransitiveOwnerMethod(proxy, method));
+    }
+
+    private void setSingleTransitiveOwner(KlumInstanceProxy proxy, Field field) {
+        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), field.getType())
+                .ifPresent(value -> proxy.setInstanceAttribute(field.getName(), value));
+    }
+
+    private void callTransitiveOwnerMethod(KlumInstanceProxy proxy, Method method) {
+        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), method.getParameterTypes()[0])
+                .ifPresent(value -> proxy.getRwInstance().invokeMethod(method.getName(), value));
     }
 }

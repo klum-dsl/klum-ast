@@ -141,7 +141,6 @@ for each simple collection, two/three methods are generated:
 
 -   an adder method named like the element name of the collection and containing the element type 
 
-__Since 0.98, these methods are only usable inside an `apply` or `create` block.__
 
 ```groovy
 @DSL
@@ -405,8 +404,6 @@ Collections of DSL-Objects are created using a nested closure. The name of the (
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical.
 
-__Since 0.98, these methods are only usable inside of an `apply` or `create` block.__
-
 The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
 In that case, **owner fields of the added object are only set, when they have not yet been set**.
  
@@ -614,6 +611,41 @@ mutator methods and thus moved into the RW class.
 __Overriding owner methods might lead to unexpected behaviour, as currently, both methods
 would be called__
 
+## Transitive owners
+
+With the field `transitive` of the `@Owner` annotation, the annotated field will be set to the first matching instance
+in the owner chain (for owner fields and owner methods). 
+
+```groovy
+@DSL class Parent {
+    Child child
+    String name
+}
+
+@DSL class Child {
+    @Owner Parent parent
+    GrandChild child
+    String name
+}
+
+@DSL class GrandChild {
+    @Owner Child parent
+    @Owner(transitive = true) Parent grandParent
+    String name
+}
+
+instance = Parent.Create.With {
+    name "Klaus"
+    child {
+        name "Child Level 1"
+        child {
+            name "Child Level 2"
+        }
+    }
+}
+
+assert instance.child.child.grandParent.is(instance)
+```
 
 # Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field

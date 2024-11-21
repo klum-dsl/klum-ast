@@ -789,4 +789,97 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         noExceptionThrown()
         closurePhase == KlumPhase.OWNER.number
     }
+
+    @Issue("49")
+    def "Transitive owners are set after normal owners"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                @Owner(transitive = true) Parent grandParent
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.parent.is(instance)
+        instance.child.child.parent.is(instance.child)
+        instance.child.child.grandParent.is(instance)
+    }
+
+    @Issue("49")
+    def "Transitive owners methods are called after normal owners"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                String name
+                String grandParentName
+                
+                @Owner(transitive = true) 
+                void grandParent(Parent grandParent) {
+                    grandParentName = grandParent.name
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParentName == "Klaus"
+    }
 }
