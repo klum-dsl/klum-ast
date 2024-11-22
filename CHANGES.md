@@ -21,7 +21,10 @@
 - Switch annotation validation to [KlumCast](https://github.com/klum-dsl/klum-cast) Framework (see [#312](https://github.com/klum-dsl/klum-ast/issues/312)))
 - Generate Documentation for almost all generated methods via [AnnoDocimal](https://github.com/blackbuild/anno-docimal) (see [#197](https://github.com/klum-dsl/klum-ast/issues/197)))
 - [Gradle Plugin](https://github.com/klum-dsl/klum-ast/wiki/Gradle-Plugins) for easier project setup
-
+- Various owner improvement:
+  - Owner targets now can be transitive, i.e. be filled with the value of an ancestor of the specified type (instead of the direct owner) (see [Transitive Owners](https://github.com/klum-dsl/klum-ast/wiki/Basics#transitive-owners) and [#49](https://github.com/klum-dsl/klum-ast/issues/49))
+  - Owner objects can be converted before handing them to owner fields or methods (see [Owner Converters](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters) and [#189](https://github.com/klum-dsl/klum-ast/issues/189))
+  - New `@Role` annotation to infer the name of the owner field containing an object (see [Role fields](https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields) and [#86](https://github.com/klum-dsl/klum-ast/issues/86))
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
 - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))

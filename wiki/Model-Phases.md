@@ -46,6 +46,8 @@ The Owner phase is a special variant of the AutoLink phase in that it links obje
 annotated with the `@Owner` annotation. This is done before the AutoLink phase since AutoLink makes usually makes
 heavy use of the owner field.
 
+Also resolves `@Role` fields and methods, which are technically special case `@Owner` elements.
+
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done

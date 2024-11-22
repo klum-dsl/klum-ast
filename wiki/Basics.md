@@ -644,8 +644,34 @@ instance = Parent.Create.With {
 
 assert instance.child.child.grandParent.is(instance)
 ```
+Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
 
-Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects. 
+A common use case for transitive owners is to give various objects access to the root object of the model. This can most conveniently be done using a common baseclass for interested objects:
+
+```groovy
+@DSL
+abstract class ModelElement {
+    @Owner(transitive = true)
+    MyModel root
+}
+
+@DSL
+class MyModel {
+    ...
+}
+
+@DSL
+class SomeElement extends ModelElement {
+    @Owner SomeParent parent 
+    ...
+}
+
+@DSL
+class AnotherElement extends ModelElement {
+    @Owner AnotherParent parent
+    ...
+}
+```
 
 ## Owner converters
 
