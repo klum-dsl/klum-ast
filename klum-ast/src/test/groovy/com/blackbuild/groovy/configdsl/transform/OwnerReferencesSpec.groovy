@@ -882,4 +882,97 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         noExceptionThrown()
         instance.child.child.grandParentName == "Klaus"
     }
+
+    @Issue("189")
+    def "Owner converters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                @Owner(converter = { Parent parent -> parent.name }) String parentName
+                String name
+                String upperCaseParentName
+                
+                @Owner(converter = { Parent parent -> parent.name.toUpperCase() })
+                void setUCParentName(String name) {
+                    upperCaseParentName = name.toUpperCase()
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.parent.is(instance)
+        instance.child.parentName == "Klaus"
+        instance.child.upperCaseParentName == "KLAUS"
+    }
+
+    @Issue("189")
+    def "Combine Transitive owners and converters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                @Owner(transitive = true, converter = { Parent parent -> parent.name }) String grandParentName
+                String name
+                String upperCaseGrandParentName
+                
+                @Owner(transitive = true, converter = { Parent parent -> parent.name.toUpperCase() })
+                void setUCGrandParentName(String name) {
+                    upperCaseGrandParentName = name.toUpperCase()
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParentName == "Klaus"
+        instance.child.child.upperCaseGrandParentName == "KLAUS"
+    }
+
+
 }

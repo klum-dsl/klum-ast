@@ -24,10 +24,12 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -47,38 +49,72 @@ public class OwnerPhase extends VisitingPhaseAction {
 
     private void setDirectOwners(KlumInstanceProxy proxy, Object value) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
-                .filter(field -> !field.getAnnotation(Owner.class).transitive())
-                .filter(field -> field.getType().isInstance(value))
-                .map(Field::getName)
-                .filter(fieldName -> proxy.getInstanceAttribute(fieldName) == null)
-                .forEach(fieldName -> proxy.setInstanceAttribute(fieldName, value));
+                .filter(this::isNotTransitive)
+                .filter(field -> getOwnerType(field).isInstance(value))
+                .filter(field -> isUnset(proxy, field))
+                .forEach(field -> setOwnerFieldValue(proxy, value, field));
 
         DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
-                .filter(field -> !field.getAnnotation(Owner.class).transitive())
-                .filter(method -> method.getParameterTypes()[0].isInstance(value))
-                .map(Method::getName)
-                .distinct()
-                .forEach(method -> proxy.getRwInstance().invokeMethod(method, value));
+                .filter(this::isNotTransitive)
+                .filter(method -> getOwnerType(method).isInstance(value))
+                .forEach(method -> callOwnerMethod(proxy, value, method));
+    }
+
+    private static boolean isUnset(KlumInstanceProxy proxy, Field field) {
+        return proxy.getInstanceAttribute(field.getName()) == null;
+    }
+
+    private static void callOwnerMethod(KlumInstanceProxy proxy, Object value, Method method) {
+        proxy.getRwInstance().invokeMethod(method.getName(), convertValue(method.getAnnotation(Owner.class), value));
+    }
+
+    private static void setOwnerFieldValue(KlumInstanceProxy proxy, Object value, Field field) {
+        proxy.setInstanceAttribute(field.getName(), convertValue(field.getAnnotation(Owner.class), value));
+    }
+
+    private static Object convertValue(Owner owner, Object originalValue) {
+        if (owner.converter() != NoClosure.class)
+            return ClosureHelper.invokeClosure(owner.converter(), originalValue);
+        return originalValue;
     }
 
     private void setTransitiveOwners(KlumInstanceProxy proxy) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
-                .filter(field -> field.getAnnotation(Owner.class).transitive())
-                .filter(field -> proxy.getInstanceAttribute(field.getName()) == null)
+                .filter(this::isTransitive)
+                .filter(field -> isUnset(proxy, field))
                 .forEach(field -> setSingleTransitiveOwner(proxy, field));
 
         DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
-                .filter(field -> field.getAnnotation(Owner.class).transitive())
+                .filter(this::isTransitive)
                 .forEach(method -> callTransitiveOwnerMethod(proxy, method));
     }
 
     private void setSingleTransitiveOwner(KlumInstanceProxy proxy, Field field) {
-        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), field.getType())
-                .ifPresent(value -> proxy.setInstanceAttribute(field.getName(), value));
+        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), getOwnerType(field))
+                .ifPresent(value -> setOwnerFieldValue(proxy, value, field));
     }
 
     private void callTransitiveOwnerMethod(KlumInstanceProxy proxy, Method method) {
-        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), method.getParameterTypes()[0])
-                .ifPresent(value -> proxy.getRwInstance().invokeMethod(method.getName(), value));
+        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), getOwnerType(method))
+                .ifPresent(value -> callOwnerMethod(proxy, value, method));
+    }
+
+    private boolean isTransitive(AnnotatedElement target) {
+        return target.getAnnotation(Owner.class).transitive();
+    }
+
+    private boolean isNotTransitive(AnnotatedElement target) {
+        return !isTransitive(target);
+    }
+
+    private Class<?> getOwnerType(AnnotatedElement target) {
+        Owner annotation = target.getAnnotation(Owner.class);
+        if (annotation.converter() != NoClosure.class)
+            return ClosureHelper.getFirstParameterType(annotation.converter());
+
+        if (target instanceof Field)
+            return ((Field) target).getType();
+        else
+            return ((Method) target).getParameterTypes()[0];
     }
 }

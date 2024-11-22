@@ -81,4 +81,8 @@ public class ClosureHelper {
         }
         return closure.call(arguments);
     }
+
+    public static <T> Class<?> getFirstParameterType(Class<? extends Closure<T>> closure) {
+        return createClosureInstance(closure).getParameterTypes()[0];
+    }
 }

@@ -107,7 +107,7 @@ public @interface Default {
      * <p>leads to</p>
      * <code>aValue ?: name.toLowerCase()</code>
      */
-    @OnlyOn(ElementType.FIELD) Class<? extends Closure<Object>> code() default Undefined.class;
+    @OnlyOn(ElementType.FIELD) Class<? extends Closure<Object>> code() default NoClosure.class;
 
     /**
      * <p>Delegate to a field with the same name on the targeted field, if the annotated field is empty</p>

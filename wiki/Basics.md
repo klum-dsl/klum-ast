@@ -608,8 +608,6 @@ all matching Owner methods are called if the object is added to another DSL obje
 the Container object ist assignable to the method parameter type). Owner methods are
 mutator methods and thus moved into the RW class.
 
-__Overriding owner methods might lead to unexpected behaviour, as currently, both methods
-would be called__
 
 ## Transitive owners
 
@@ -646,6 +644,53 @@ instance = Parent.Create.With {
 
 assert instance.child.child.grandParent.is(instance)
 ```
+
+Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects. 
+
+## Owner converters
+
+Owner converter can be used to convert the owner object to another type before setting the field. In that case, the parameter of the converter closure is used whe determining whether the potential owner object matches (instead of the field type or the method parameter).
+
+```groovy
+package pk
+
+@DSL
+class Parent {
+    Child child
+    String name
+}
+
+@DSL
+class Child {
+    @Owner Parent parent
+    @Owner(converter = { Parent parent -> parent.name }) 
+    String parentName
+    
+    String name
+    String upperCaseParentName
+    
+    @Owner(converter = { Parent parent -> parent.name.toUpperCase() })
+    void setUCParentName(String name) {
+        upperCaseParentName = name.toUpperCase()
+    }
+}
+
+when:
+instance = clazz.Create.With {
+    name "Klaus"
+    child {
+        name "Child"
+    }
+}
+
+then:
+instance.child.parent.is(instance)
+instance.child.parentName == "Klaus"
+instance.child.upperCaseParentName == "KLAUS"
+```
+
+Converting owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
+
 
 # Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field
