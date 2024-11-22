@@ -974,5 +974,107 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.child.child.upperCaseGrandParentName == "KLAUS"
     }
 
+    @Issue("86")
+    def "Role fields are set during Owner phase"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Database {
+                DatabaseUser resourceUser
+                DatabaseUser connectUser
+                DatabaseUser monitoringUser
+            }
+
+            @DSL
+            class DatabaseUser {
+                @Owner Database database
+                @Role String role
+                
+                String name
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            resourceUser {
+                name "user1"
+            }
+            connectUser {
+                name "user2"
+            }
+            monitoringUser {
+                name "user3"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.resourceUser.role == "resourceUser"
+        instance.connectUser.role == "connectUser"
+        instance.monitoringUser.role == "monitoringUser"
+    }
+
+    @Issue("86")
+    def "Role fields ca be filtered by type"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Database {
+                User ddl
+                User dml
+            }
+
+            @DSL
+            class Service {
+                User admin
+                User access
+            }
+
+            @DSL
+            class User {
+                @Owner Owner container
+                @Role(Database) String dbRole
+                @Role(Service) String serviceRole
+                
+                String name
+            }
+        '''
+
+        when:
+        instance = create("pk.Database") {
+            ddl {
+                name "ddl"
+            }
+            dml {
+                name "dml"
+            }
+        }
+
+        then:
+        instance.ddl.dbRole == "ddl"
+        instance.ddl.serviceRole == null
+        instance.dml.dbRole == "dml"
+        instance.dml.serviceRole == null
+
+        when:
+        instance = create("pk.Service") {
+            admin {
+                name "admin"
+            }
+            access {
+                name "access"
+            }
+        }
+
+        then:
+        instance.admin.dbRole == null
+        instance.admin.serviceRole == "admin"
+        instance.access.dbRole == null
+        instance.access.serviceRole == "access"
+    }
 
 }

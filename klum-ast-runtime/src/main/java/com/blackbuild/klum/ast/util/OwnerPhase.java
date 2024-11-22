@@ -25,13 +25,16 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
+import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.function.Consumer;
 
 public class OwnerPhase extends VisitingPhaseAction {
     public OwnerPhase() {
@@ -44,6 +47,7 @@ public class OwnerPhase extends VisitingPhaseAction {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         setDirectOwners(proxy, container);
         setTransitiveOwners(proxy);
+        setRoles(proxy, container);
         LifecycleHelper.executeLifecycleClosures(proxy, Owner.class);
     }
 
@@ -58,6 +62,40 @@ public class OwnerPhase extends VisitingPhaseAction {
                 .filter(this::isNotTransitive)
                 .filter(method -> getOwnerType(method).isInstance(value))
                 .forEach(method -> callOwnerMethod(proxy, value, method));
+    }
+
+    private void setRoles(KlumInstanceProxy proxy, Object container) {
+        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Role.class)
+                .filter(field -> isUnset(proxy, field))
+                .filter(field -> field.getAnnotation(Role.class).value().isInstance(container))
+                .forEach(field -> setRole(
+                        proxy,
+                        container,
+                        path -> proxy.setInstanceAttribute(field.getName(), path))
+                );
+
+        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Role.class)
+                .filter(method -> method.getAnnotation(Role.class).value().isInstance(container))
+                .forEach(method -> setRole(
+                        proxy,
+                        container,
+                        path -> proxy.getRwInstance().invokeMethod(method.getName(), path))
+                );
+    }
+
+    private void setRole(KlumInstanceProxy proxy, Object container, Consumer<@NotNull String> action) {
+        StructureUtil.getPathOfFieldContaining(container, proxy.getDSLInstance()).ifPresent(action);
+    }
+
+    private void setTransitiveOwners(KlumInstanceProxy proxy) {
+        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+                .filter(this::isTransitive)
+                .filter(field -> isUnset(proxy, field))
+                .forEach(field -> setSingleTransitiveOwner(proxy, field));
+
+        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+                .filter(this::isTransitive)
+                .forEach(method -> callTransitiveOwnerMethod(proxy, method));
     }
 
     private static boolean isUnset(KlumInstanceProxy proxy, Field field) {
@@ -76,17 +114,6 @@ public class OwnerPhase extends VisitingPhaseAction {
         if (owner.converter() != NoClosure.class)
             return ClosureHelper.invokeClosure(owner.converter(), originalValue);
         return originalValue;
-    }
-
-    private void setTransitiveOwners(KlumInstanceProxy proxy) {
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
-                .filter(this::isTransitive)
-                .filter(field -> isUnset(proxy, field))
-                .forEach(field -> setSingleTransitiveOwner(proxy, field));
-
-        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
-                .filter(this::isTransitive)
-                .forEach(method -> callTransitiveOwnerMethod(proxy, method));
     }
 
     private void setSingleTransitiveOwner(KlumInstanceProxy proxy, Field field) {
