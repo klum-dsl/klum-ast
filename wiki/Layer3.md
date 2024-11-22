@@ -233,3 +233,53 @@ class MonitoringService extends Microservice {
 ```
 During the instantiation of the model, the database field will bea automatically filled, but can still be overwritten 
 on instance level. See JavaDoc for `LinkTo` for more details.
+
+### Role fields
+
+Fields can be annotated with `@Role` to indicate that they are used for a specific role as seen from their owner. 
+Consider a Database class that has various users. Each user object has access to its owning database object, but it
+might be necessary fo the User object to know how it is used in their database. Rather then forcing the modeller to 
+set the role manually, it can simply be inferred from the field name of the Database that points to the user:
+
+```groovy
+@DSL
+class MyDatabase extends Database {
+  String url
+
+  DbUser ddl
+  DbUser dml
+  DbUser monitoring
+}
+
+@DSL
+class DbUser {
+  @Owner Database database
+  @Role String role
+  @Key String id
+}
+
+def db = MyDatabase.Create.With {
+  url "jdbc:..."
+  ddl("user1")
+  dml("user2")
+  monitoring("user3")
+}
+
+assert db.ddl.role == "ddl"
+assert db.dml.role == "dml"
+assert db.monitoring.role == "monitoring"
+```
+
+That way some kind of environment checker can for example validate that all non ddl user habe the correct privileges:
+
+```groovy
+StructureUtil.deepFind(model, DbUser).each { path, user ->
+    if (user.role != "ddl")
+      assertNoDdlPrivileges(user, path)
+
+}
+```
+
+Note that this check should not be standard model validation, because it requires access to the actual database.
+
+

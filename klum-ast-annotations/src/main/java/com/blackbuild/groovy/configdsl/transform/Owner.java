@@ -25,12 +25,9 @@ package com.blackbuild.groovy.configdsl.transform;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.NumberOfParameters;
+import groovy.lang.Closure;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * <p>Designates a field or method as owner field or method.</p>
@@ -103,6 +100,15 @@ import java.lang.annotation.Target;
  * instance.bar.containerName == "bla"
  * </code></pre>
  *
+ * <h2>Transitive Owners</h2>
+ * <p>If the attribute {@code transitive} is set, not only the direct container is considered as ancestor, but instead
+ * the closest ancestor of the given type (i.e. a grandparent instead of a direct parent). This works for fields as well as
+ * methods.</p>
+ *
+ * <h2>Converter</h2>
+ * <p>If the attribute {@code converter} is set, the converter is executed against the owner object and the result of the
+ * closure is assigned to the field or method. In that case, the single parameter of the closure is used as the owner
+ * type to match.</p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -111,4 +117,12 @@ import java.lang.annotation.Target;
 @NumberOfParameters(1)
 @Documented
 public @interface Owner {
+    /** If set to true, the owner is set to the first ancestor of the given type. */
+    boolean transitive() default false;
+
+    /**
+     * if set, the field or method matches the closure parameter.
+     * When set the converter is executed against owner object and the result of the closure is assigned to the field or method.
+     */
+    Class<? extends Closure<Object>> converter() default NoClosure.class;
 }

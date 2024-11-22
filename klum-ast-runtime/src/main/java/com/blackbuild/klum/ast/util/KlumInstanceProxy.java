@@ -294,10 +294,13 @@ public class KlumInstanceProxy {
     /**
      * Returns the unique values of all fields annotated with {@link Owner} that are not null, i.e.
      * if multiple owner fields point to the same object, it is included only once in the result.
+     * Owner fields with {@link Owner#converter()} or {@link Owner#transitive()} set are ignored.
      * @return The set of owners
      */
     public Set<Object> getOwners() {
         return getFieldsAnnotatedWith(instance.getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .filter(Objects::nonNull)

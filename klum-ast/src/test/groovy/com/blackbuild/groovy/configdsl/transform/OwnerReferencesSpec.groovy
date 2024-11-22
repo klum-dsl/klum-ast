@@ -789,4 +789,292 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         noExceptionThrown()
         closurePhase == KlumPhase.OWNER.number
     }
+
+    @Issue("49")
+    def "Transitive owners are set after normal owners"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                @Owner(transitive = true) Parent grandParent
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.parent.is(instance)
+        instance.child.child.parent.is(instance.child)
+        instance.child.child.grandParent.is(instance)
+    }
+
+    @Issue("49")
+    def "Transitive owners methods are called after normal owners"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                String name
+                String grandParentName
+                
+                @Owner(transitive = true) 
+                void grandParent(Parent grandParent) {
+                    grandParentName = grandParent.name
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParentName == "Klaus"
+    }
+
+    @Issue("189")
+    def "Owner converters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                @Owner(converter = { Parent parent -> parent.name }) String parentName
+                String name
+                String upperCaseParentName
+                
+                @Owner(converter = { Parent parent -> parent.name.toUpperCase() })
+                void setUCParentName(String name) {
+                    upperCaseParentName = name.toUpperCase()
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.parent.is(instance)
+        instance.child.parentName == "Klaus"
+        instance.child.upperCaseParentName == "KLAUS"
+    }
+
+    @Issue("189")
+    def "Combine Transitive owners and converters"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner Child parent
+                @Owner(transitive = true, converter = { Parent parent -> parent.name }) String grandParentName
+                String name
+                String upperCaseGrandParentName
+                
+                @Owner(transitive = true, converter = { Parent parent -> parent.name.toUpperCase() })
+                void setUCGrandParentName(String name) {
+                    upperCaseGrandParentName = name.toUpperCase()
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParentName == "Klaus"
+        instance.child.child.upperCaseGrandParentName == "KLAUS"
+    }
+
+    @Issue("86")
+    def "Role fields are set during Owner phase"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Database {
+                DatabaseUser resourceUser
+                DatabaseUser connectUser
+                DatabaseUser monitoringUser
+            }
+
+            @DSL
+            class DatabaseUser {
+                @Owner Database database
+                @Role String role
+                
+                String name
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            resourceUser {
+                name "user1"
+            }
+            connectUser {
+                name "user2"
+            }
+            monitoringUser {
+                name "user3"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.resourceUser.role == "resourceUser"
+        instance.connectUser.role == "connectUser"
+        instance.monitoringUser.role == "monitoringUser"
+    }
+
+    @Issue("86")
+    def "Role fields ca be filtered by type"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Database {
+                User ddl
+                User dml
+            }
+
+            @DSL
+            class Service {
+                User admin
+                User access
+            }
+
+            @DSL
+            class User {
+                @Owner Owner container
+                @Role(Database) String dbRole
+                @Role(Service) String serviceRole
+                
+                String name
+            }
+        '''
+
+        when:
+        instance = create("pk.Database") {
+            ddl {
+                name "ddl"
+            }
+            dml {
+                name "dml"
+            }
+        }
+
+        then:
+        instance.ddl.dbRole == "ddl"
+        instance.ddl.serviceRole == null
+        instance.dml.dbRole == "dml"
+        instance.dml.serviceRole == null
+
+        when:
+        instance = create("pk.Service") {
+            admin {
+                name "admin"
+            }
+            access {
+                name "access"
+            }
+        }
+
+        then:
+        instance.admin.dbRole == null
+        instance.admin.serviceRole == "admin"
+        instance.access.dbRole == null
+        instance.access.serviceRole == "access"
+    }
+
 }

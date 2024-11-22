@@ -141,7 +141,6 @@ for each simple collection, two/three methods are generated:
 
 -   an adder method named like the element name of the collection and containing the element type 
 
-__Since 0.98, these methods are only usable inside an `apply` or `create` block.__
 
 ```groovy
 @DSL
@@ -405,8 +404,6 @@ Collections of DSL-Objects are created using a nested closure. The name of the (
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical.
 
-__Since 0.98, these methods are only usable inside of an `apply` or `create` block.__
-
 The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
 In that case, **owner fields of the added object are only set, when they have not yet been set**.
  
@@ -611,8 +608,114 @@ all matching Owner methods are called if the object is added to another DSL obje
 the Container object ist assignable to the method parameter type). Owner methods are
 mutator methods and thus moved into the RW class.
 
-__Overriding owner methods might lead to unexpected behaviour, as currently, both methods
-would be called__
+
+## Transitive owners
+
+With the field `transitive` of the `@Owner` annotation, the annotated field will be set to the first matching instance
+in the owner chain (for owner fields and owner methods). 
+
+```groovy
+@DSL class Parent {
+    Child child
+    String name
+}
+
+@DSL class Child {
+    @Owner Parent parent
+    GrandChild child
+    String name
+}
+
+@DSL class GrandChild {
+    @Owner Child parent
+    @Owner(transitive = true) Parent grandParent
+    String name
+}
+
+instance = Parent.Create.With {
+    name "Klaus"
+    child {
+        name "Child Level 1"
+        child {
+            name "Child Level 2"
+        }
+    }
+}
+
+assert instance.child.child.grandParent.is(instance)
+```
+Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
+
+A common use case for transitive owners is to give various objects access to the root object of the model. This can most conveniently be done using a common baseclass for interested objects:
+
+```groovy
+@DSL
+abstract class ModelElement {
+    @Owner(transitive = true)
+    MyModel root
+}
+
+@DSL
+class MyModel {
+    ...
+}
+
+@DSL
+class SomeElement extends ModelElement {
+    @Owner SomeParent parent 
+    ...
+}
+
+@DSL
+class AnotherElement extends ModelElement {
+    @Owner AnotherParent parent
+    ...
+}
+```
+
+## Owner converters
+
+Owner converter can be used to convert the owner object to another type before setting the field. In that case, the parameter of the converter closure is used whe determining whether the potential owner object matches (instead of the field type or the method parameter).
+
+```groovy
+package pk
+
+@DSL
+class Parent {
+    Child child
+    String name
+}
+
+@DSL
+class Child {
+    @Owner Parent parent
+    @Owner(converter = { Parent parent -> parent.name }) 
+    String parentName
+    
+    String name
+    String upperCaseParentName
+    
+    @Owner(converter = { Parent parent -> parent.name.toUpperCase() })
+    void setUCParentName(String name) {
+        upperCaseParentName = name.toUpperCase()
+    }
+}
+
+when:
+instance = clazz.Create.With {
+    name "Klaus"
+    child {
+        name "Child"
+    }
+}
+
+then:
+instance.child.parent.is(instance)
+instance.child.parentName == "Klaus"
+instance.child.upperCaseParentName == "KLAUS"
+```
+
+Converting owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
 
 
 # Field Types
