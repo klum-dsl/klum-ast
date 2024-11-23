@@ -34,6 +34,8 @@
 - Converter methods are now honored for Alternatives methods as well. (see [#270](https://github.com/klum-dsl/klum-ast/issues/270))
 - `@Validate` now can be placed on classes. This effectively replaces `@Validate(option=Validation.Option.VALIDATE_UNMARKED)`, which is internally converted to the new format (see [#276](https://github.com/klum-dsl/klum-ast/issues/276)). The `@Validation` annotation is deprecated.
 - Sanity check: Key Fields must not have `@Owner` or `@Field` annotations.
+- Selector members for `@LinkTo` annotations allows to determine the link source from the provider based on the value of another field (see [#302](https://github.com/klum-dsl/klum-ast/issues/302))
+- @LinkTo now correctly handles empty collections/maps as target
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.

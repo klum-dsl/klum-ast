@@ -63,6 +63,11 @@ public class LinkToWrapper implements LinkTo {
     }
 
     @Override
+    public String selector() {
+        return fromField.selector();
+    }
+
+    @Override
     public Class<? extends Closure<Object>> provider() {
         if (fromField.provider() != NoClosure.class) return fromField.provider();
         if (fromClass != null) return fromClass.provider();

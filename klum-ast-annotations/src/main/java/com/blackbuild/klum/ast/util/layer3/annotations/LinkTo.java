@@ -29,6 +29,7 @@ import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.AlsoNeeds;
 import com.blackbuild.klum.cast.checks.MutuallyExclusive;
+import com.blackbuild.klum.cast.checks.NotOn;
 import groovy.lang.Closure;
 
 import java.lang.annotation.*;
@@ -83,14 +84,15 @@ import java.lang.annotation.*;
  *
  * If the provider is a map, the field name is used as the key to access the provider. If the key does not exist, the link is not set.
  *
- * <h3>target field</h3>
+ * <h3>Target field</h3>
  *
  * Once the provider is determined, the field of the provider to be used as the provider of the link is resolved. This is done the following way:
  * <ul>
  *     <li>If the field member is set, the field with the given name is used</li>
- *     <li>if the fieldId member is set, the field with the matching LinkSource annotation is taken. It is illegal
- *     to have field and fieldId set together</li>
- *     <li>if neither field nor fieldId is set, the field with the same name as the annotated field is used</li>
+ *     <li>if the fieldId member is set, the field with the matching LinkSource annotation is taken</li>
+ *     <li>if the selector member is set, the field of the provider is determined by the value of the selector field of the annotated field's instance</li>
+ *     <li>It is illegal to have more than one of field, fieldId and selector set together</li>
+ *     <li>if neither field, fieldId nor selector is set, the field with the same name as the annotated field is used</li>
  *     <li>if no field with the given name exists and exactly one field not annotated with LinkSource and of the correct type exists, that one is used</li>
  *     <li>if no matching field is found, an exception is thrown</li>
  * </ul>
@@ -101,7 +103,7 @@ import java.lang.annotation.*;
 @KlumCastValidated
 @NeedsDSLClass
 @MutuallyExclusive({"provider", "providerType"})
-@MutuallyExclusive({"field", "fieldId"})
+@MutuallyExclusive({"field", "fieldId", "selector"})
 @Inherited
 @Documented
 public @interface LinkTo {
@@ -109,13 +111,19 @@ public @interface LinkTo {
     /**
      * The field of the target owner object to be used as the target for the link.
      */
-    String field() default "";
+    @NotOn(ElementType.TYPE) String field() default "";
 
     /**
      * If set use the field of the owner with a matching LinkSource annotation with the same id. Only one
      * of field and targetId can be used at most.
      */
-    String fieldId() default "";
+    @NotOn(ElementType.TYPE) String fieldId() default "";
+
+    /**
+     * If set, the field of the provider is determined by the given selector. The selector is the name of a field
+     * of the receiver. If the selector field is empty or null, the link is not set.
+     */
+    @NotOn(ElementType.TYPE) String selector() default "";
 
     /**
      * The owner of the link. By default, the owner of the annotated field's instance is used.
@@ -129,7 +137,7 @@ public @interface LinkTo {
      * If set, determines the strategy to determine which field of the provider is to be used as the link source.
      * FIELD_NAME: use the field with the same name as the annotated field, i.e. if the annotated field is called
      * 'admin', the field 'admin' of the provider is used.
-     * INSTANCE_NAME: use the field with the same name as the instance name of the annotated field's owner, i.e. the
+     * OWNER_PATH: use the field with the same name as the instance name of the annotated field's owner, i.e. the
      * name of the field of the annotated field's classes owner pointing to the instance of the annotated field's container.
      * Can only be set together with one of provider or providerType.
      */
@@ -137,13 +145,16 @@ public @interface LinkTo {
     Strategy strategy() default Strategy.AUTO;
 
     /**
-     * If set, is added to automatically determined names (i.e. FIELD_NAME or INSTANCE_NAME).
+     * If set, is added to automatically determined names (i.e. FIELD_NAME or OWNER_PATH).
      */
     String nameSuffix() default "";
 
     enum Strategy {
+        /** Choose the single match between FIELD_NAME or OWNER_PATH depending on the context. */
         AUTO,
+        /** Use the field of the provider with the same name as the annotated field. */
         FIELD_NAME,
-        INSTANCE_NAME
+        /** Use the field of the provider with the same name as the field in the owner pointing to the annotated field's object. */
+        OWNER_PATH
     }
 }

@@ -385,7 +385,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
                 User consumer
             }
             
-            @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME)
+            @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.OWNER_PATH)
             @DSL class Consumer extends Service {
                 @LinkTo User user
             }
@@ -435,7 +435,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME) User user
+                @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.OWNER_PATH) User user
             }
         ''')
 
@@ -647,6 +647,86 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         and: "different List instances"
         !instance.services.s1.users.is(instance.users)
         !instance.services.s2.users.is(instance.users)
+    }
+
+    @Issue("302")
+    def "auto link with selector"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+
+            @DSL class House {
+              Map<String, Room> rooms
+            }
+            
+            @DSL class Room {
+              @Key String name
+              @Owner House house
+            
+              String adjacentRoomName
+            
+              @LinkTo(provider = {house.rooms}, selector = 'adjacentRoomName')
+              Room adjacentRoom
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            room("LivingRoom")  {
+                adjacentRoomName "Kitchen"
+            }
+            room("DiningRoom")
+            room("Kitchen")
+            room("Bedroom")
+        }
+
+        then:
+        instance.rooms.LivingRoom.adjacentRoom.is(instance.rooms.Kitchen)
+    }
+
+    @Issue("302")
+    def "auto link with selector list"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+
+            @DSL class House {
+              Map<String, Room> rooms
+            }
+            
+            @DSL class Room {
+              @Key String name
+              @Owner House house
+            
+              List<String> adjacentRoomNames
+            
+              @LinkTo(provider = {house.rooms}, selector = 'adjacentRoomNames')
+              List<Room> adjacentRooms
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            room("LivingRoom")  {
+                adjacentRoomNames("Kitchen", "DiningRoom")
+            }
+            room("DiningRoom")
+            room("Kitchen")
+            room("Bedroom")
+        }
+
+        then:
+        instance.rooms.LivingRoom.adjacentRooms == [instance.rooms.Kitchen, instance.rooms.DiningRoom]
     }
 
     LinkTo withDefaults(LinkTo stub) {

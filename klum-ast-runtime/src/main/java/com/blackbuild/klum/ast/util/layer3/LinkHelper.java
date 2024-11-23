@@ -31,17 +31,22 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkToWrapper;
 import groovy.lang.MetaProperty;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static java.lang.String.format;
 
 public class LinkHelper {
 
-    private LinkHelper() {}
+    private LinkHelper() {
+    }
 
     static void autoLink(Object container, String fieldName) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(container);
@@ -52,11 +57,21 @@ public class LinkHelper {
 
     static void autoLink(KlumInstanceProxy proxy, Field field, LinkTo linkTo) {
         Object value = determineLinkTarget(proxy, field, linkTo);
-        if (value != null)
+        if (value == null) return;
+
+        if (!field.getType().isAssignableFrom(value.getClass()))
+            throw new IllegalArgumentException(String.format("LinkTo annotation on %s#%s targets %s, which is not compatible with the field type %s",
+                    field.getDeclaringClass().getName(), field.getName(), value.getClass().getName(), field.getType().getName()));
+
+        if (value instanceof Collection)
+            proxy.addElementsToCollection(field.getName(), (Collection<?>) value);
+        else if (value instanceof Map)
+            proxy.addElementsToMap(field.getName(), (Map<?, ?>) value);
+        else
             proxy.setSingleField(field.getName(), value);
     }
 
-    static Object determineLinkTarget(KlumInstanceProxy proxy, Field field, LinkTo linkTo) {
+    static Object determineLinkTarget(KlumInstanceProxy proxy, Field fieldToFill, LinkTo linkTo) {
         Object providerObject = determineProviderObject(proxy, linkTo);
         if (providerObject == null) return null;
 
@@ -64,34 +79,54 @@ public class LinkHelper {
             return InvokerHelper.getProperty(providerObject, linkTo.field());
 
         if (!linkTo.fieldId().isEmpty())
-            return ClusterModel.getSingleValueOrFail(providerObject, field.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
+            return ClusterModel.getSingleValueOrFail(providerObject, fieldToFill.getType(), it -> isLinkSourceWithId(it, linkTo.fieldId()));
 
-        MetaProperty metaPropertyForFieldName = getFieldNameProperty(field, providerObject, linkTo);
-        MetaProperty metaPropertyForInstanceName = getInstanceNameProperty(proxy, providerObject, linkTo);
+        String selector = linkTo.selector();
+        if (!selector.isEmpty()) {
+            Object selectorValue = proxy.getInstanceProperty(selector);
+            if (selectorValue == null) return null;
 
-        if (pointToDifferentProperties(metaPropertyForInstanceName, metaPropertyForFieldName)) {
-            switch (linkTo.strategy()) {
-                case INSTANCE_NAME:
-                    return metaPropertyForInstanceName.getProperty(providerObject);
-                case FIELD_NAME:
-                    return metaPropertyForFieldName.getProperty(providerObject);
-                default:
-                    throw new IllegalStateException(format("LinkTo annotation on %s#%s targeting %s would match both instance name (%s) and field name (%s). You need to explicitly set a strategy.",
-                            field.getDeclaringClass().getName(), field.getName(), providerObject.getClass().getName(), metaPropertyForInstanceName.getName(), metaPropertyForFieldName.getName()));
-            }
+            if (selectorValue instanceof String)
+                return InvokerHelper.getProperty(providerObject, (String) selectorValue);
+            if (selectorValue instanceof Iterable)
+                return StreamSupport.stream(((Iterable<?>) selectorValue).spliterator(), false)
+                        .map(it -> InvokerHelper.getProperty(providerObject, it.toString()))
+                        .collect(Collectors.toList());
+            throw new IllegalArgumentException("Selector value must be a String or Iterable, but is " + selectorValue.getClass().getName());
         }
 
-        if (metaPropertyForInstanceName != null)
-            return metaPropertyForInstanceName.getProperty(providerObject);
+        return inferLinkTarget(proxy, fieldToFill, linkTo, providerObject);
+    }
+
+    private static @Nullable Object inferLinkTarget(KlumInstanceProxy proxy, Field fieldToFill, LinkTo linkTo, Object providerObject) {
+        MetaProperty metaPropertyForFieldName = getFieldNameProperty(fieldToFill, providerObject, linkTo);
+        if (linkTo.strategy() == LinkTo.Strategy.FIELD_NAME)
+            return metaPropertyForFieldName != null ? metaPropertyForFieldName.getProperty(providerObject) : null;
+
+        MetaProperty metaPropertyForOwnerPath = getOwnerPathProperty(proxy, providerObject, linkTo);
+        if (linkTo.strategy() == LinkTo.Strategy.OWNER_PATH)
+            return metaPropertyForOwnerPath != null ? metaPropertyForOwnerPath.getProperty(providerObject) : null;
+
+        if (pointToDifferentProperties(metaPropertyForOwnerPath, metaPropertyForFieldName))
+            throw new IllegalStateException(format("LinkTo annotation on %s#%s targeting %s would match both instance name (%s) and field name (%s). You need to explicitly set a strategy.",
+                    fieldToFill.getDeclaringClass().getName(), fieldToFill.getName(), providerObject.getClass().getName(), metaPropertyForOwnerPath.getName(), metaPropertyForFieldName.getName()));
+
+        if (metaPropertyForOwnerPath != null)
+            return metaPropertyForOwnerPath.getProperty(providerObject);
         else if (metaPropertyForFieldName != null)
             return metaPropertyForFieldName.getProperty(providerObject);
 
-        return ClusterModel.getSingleValueOrFail(providerObject, field.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
+        return ClusterModel.getSingleValueOrFail(providerObject, fieldToFill.getType(), it -> !it.isAnnotationPresent(LinkSource.class));
     }
 
-    private static boolean pointToDifferentProperties(MetaProperty metaPropertyForInstanceName, MetaProperty metaPropertyForFieldName) {
-        if (metaPropertyForInstanceName == null || metaPropertyForFieldName == null) return false;
-        return !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName());
+    static Object determineProviderObject(KlumInstanceProxy proxy, LinkTo linkTo) {
+        if (linkTo.provider() != NoClosure.class)
+            return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), proxy.getDSLInstance());
+        if (linkTo.providerType() != Object.class)
+            return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.providerType())
+                    .orElse(null);
+
+        return proxy.getSingleOwner();
     }
 
     private static boolean isLinkSourceWithId(AnnotatedElement field, String id) {
@@ -102,7 +137,7 @@ public class LinkHelper {
         return getMetaPropertyOrMapKey(providerObject, field.getName() + linkTo.nameSuffix());
     }
 
-    static MetaProperty getInstanceNameProperty(KlumInstanceProxy proxy, Object providerObject, LinkTo linkTo) {
+    static MetaProperty getOwnerPathProperty(KlumInstanceProxy proxy, Object providerObject, LinkTo linkTo) {
         Set<Object> owners = proxy.getOwners();
         if (owners.size() != 1) return null;
 
@@ -116,10 +151,16 @@ public class LinkHelper {
                 .orElse(null);
     }
 
+    private static boolean pointToDifferentProperties(MetaProperty metaPropertyForInstanceName, MetaProperty metaPropertyForFieldName) {
+        if (metaPropertyForInstanceName == null || metaPropertyForFieldName == null) return false;
+        return !metaPropertyForInstanceName.getName().equals(metaPropertyForFieldName.getName());
+    }
+
     static MetaProperty getMetaPropertyOrMapKey(Object providerObject, String name) {
         MetaProperty result = InvokerHelper.getMetaClass(providerObject).getMetaProperty(name);
         if (result != null) return result;
-        if (providerObject instanceof Map && ((Map<?, ?>) providerObject).containsKey(name)) return new MapKeyMetaProperty(name);
+        if (providerObject instanceof Map && ((Map<?, ?>) providerObject).containsKey(name))
+            return new MapKeyMetaProperty(name);
         return null;
     }
 
@@ -135,17 +176,7 @@ public class LinkHelper {
 
         @Override
         public void setProperty(Object object, Object newValue) {
-            ((Map<String, Object>) object).put(name,newValue);
+            ((Map<String, Object>) object).put(name, newValue);
         }
-    }
-
-    static Object determineProviderObject(KlumInstanceProxy proxy, LinkTo linkTo) {
-        if (linkTo.provider() != NoClosure.class)
-            return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), proxy.getDSLInstance());
-        if (linkTo.providerType() != Object.class)
-            return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.providerType())
-                    .orElse(null);
-
-        return proxy.getSingleOwner();
     }
 }
