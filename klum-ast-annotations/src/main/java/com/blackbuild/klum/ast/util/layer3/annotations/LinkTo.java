@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
-import com.blackbuild.groovy.configdsl.transform.NamedAnnotationMemberClosure;
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
@@ -101,6 +101,7 @@ import java.lang.annotation.*;
 @KlumCastValidated
 @NeedsDSLClass
 @MutuallyExclusive({"provider", "providerType"})
+@MutuallyExclusive({"field", "fieldId"})
 @Inherited
 @Documented
 public @interface LinkTo {
@@ -119,7 +120,7 @@ public @interface LinkTo {
     /**
      * The owner of the link. By default, the owner of the annotated field's instance is used.
      */
-    Class<? extends Closure<Object>> provider() default None.class;
+    Class<? extends Closure<Object>> provider() default NoClosure.class;
 
     /** If set, the owner is determined by walking the owner hierarchy up until the given type is found. */
     Class<?> providerType() default Object.class;
@@ -139,14 +140,6 @@ public @interface LinkTo {
      * If set, is added to automatically determined names (i.e. FIELD_NAME or INSTANCE_NAME).
      */
     String nameSuffix() default "";
-    /**
-     * Marker class for default value.
-     */
-    class None extends NamedAnnotationMemberClosure<Object> {
-        public None(Object owner, Object thisObject) {
-            super(owner, thisObject);
-        }
-    }
 
     enum Strategy {
         AUTO,

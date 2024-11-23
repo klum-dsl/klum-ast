@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.groovy.configdsl.transform.NoClosure
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 import spock.lang.Issue
@@ -610,7 +611,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         with(stub) {
                 field() >> ""
                 fieldId() >> ""
-                provider() >> LinkTo.None
+                provider() >> NoClosure
                 providerType() >> Object
                 strategy() >> LinkTo.Strategy.AUTO
                 nameSuffix() >> ""

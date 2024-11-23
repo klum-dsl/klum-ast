@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.klum.ast.util.ClosureHelper;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource;
@@ -139,7 +140,7 @@ public class LinkHelper {
     }
 
     static Object determineProviderObject(KlumInstanceProxy proxy, LinkTo linkTo) {
-        if (linkTo.provider() != LinkTo.None.class)
+        if (linkTo.provider() != NoClosure.class)
             return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), proxy.getDSLInstance());
         if (linkTo.providerType() != Object.class)
             return StructureUtil.getAncestorOfType(proxy.getDSLInstance(), linkTo.providerType())

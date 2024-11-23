@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
 
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,9 +64,9 @@ public class LinkToWrapper implements LinkTo {
 
     @Override
     public Class<? extends Closure<Object>> provider() {
-        if (!fromField.provider().equals(None.class)) return fromField.provider();
+        if (fromField.provider() != NoClosure.class) return fromField.provider();
         if (fromClass != null) return fromClass.provider();
-        return None.class;
+        return NoClosure.class;
     }
 
     @Override
