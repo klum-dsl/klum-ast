@@ -33,8 +33,8 @@ import java.lang.annotation.*;
 
 /**
  * <p>Designates a default value for the given field. This automatically sets the field to
- * that default value when the value of the annotated field is empty (as defined by Groovy Truth) during
- * the default lifecycle phase..</p>
+ * that default value when the value of the annotated field is empty (null or empty collection/map) during
+ * the default lifecycle phase.</p>
  *
  * <p>The default target as decided by the members must be exactly one of:</p>
  * <ul>

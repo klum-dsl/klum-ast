@@ -28,7 +28,6 @@ import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.lang.reflect.Field;
 
@@ -45,7 +44,7 @@ public class DefaultPhase extends VisitingPhaseAction {
         ClusterModel.getFieldsAnnotatedWith(element, Default.class)
                 .entrySet()
                 .stream()
-                .filter(entry -> !DefaultTypeTransformation.castToBoolean(entry.getValue()))
+                .filter(this::isUnset)
                 .forEach(entry -> applyDefaultValue(element, entry.getKey()));
         LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), Default.class);
     }

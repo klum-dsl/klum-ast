@@ -23,6 +23,9 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import java.util.Collection;
+import java.util.Map;
+
 /**
  * Represents an action that is executed in a phase. The action is executed for each element in the model.
  */
@@ -52,5 +55,15 @@ public abstract class AbstractPhaseAction implements PhaseAction {
     @Override
     public String getPhaseName() {
         return phaseName;
+    }
+
+    protected boolean isUnset(Map.Entry<String, Object> entry) {
+        Object value = entry.getValue();
+        if (value == null) return true;
+        if (value instanceof Collection)
+            return ((Collection<?>) value).isEmpty();
+        if (value instanceof Map)
+            return ((Map<?, ?>) value).isEmpty();
+        return false;
     }
 }

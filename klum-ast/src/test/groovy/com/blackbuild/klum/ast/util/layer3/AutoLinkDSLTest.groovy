@@ -607,6 +607,48 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
     }
 
+    def "auto link collection"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class Container {
+                Map<String, Service> services
+                List<String> users 
+            }
+
+            @DSL
+            class Service {
+                @Key String name
+                @Owner Container container
+                @LinkTo List<String> users
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            service('s1')
+            service('s2')
+            service('s3') {
+                users('explicitUser')
+            }
+            users("defaultUser", "defaultUser2")
+        }
+
+        then:
+        instance.services.s1.users == ["defaultUser", "defaultUser2"]
+        instance.services.s2.users == ["defaultUser", "defaultUser2"]
+        instance.services.s3.users == ["explicitUser"]
+
+        and: "different List instances"
+        !instance.services.s1.users.is(instance.users)
+        !instance.services.s2.users.is(instance.users)
+    }
+
     LinkTo withDefaults(LinkTo stub) {
         with(stub) {
                 field() >> ""

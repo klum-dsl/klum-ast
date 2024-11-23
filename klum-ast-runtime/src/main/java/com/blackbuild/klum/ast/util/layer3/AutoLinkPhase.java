@@ -41,7 +41,7 @@ public class AutoLinkPhase extends VisitingPhaseAction {
         ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
                 .entrySet()
                 .stream()
-                .filter(entry -> entry.getValue() == null)
+                .filter(this::isUnset)
                 .forEach(entry -> LinkHelper.autoLink(element, entry.getKey()));
 
         LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoLink.class);
