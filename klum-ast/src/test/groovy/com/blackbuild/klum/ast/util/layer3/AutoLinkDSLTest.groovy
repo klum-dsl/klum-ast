@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.groovy.configdsl.transform.NoClosure
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 import spock.lang.Issue
@@ -384,7 +385,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
                 User consumer
             }
             
-            @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME)
+            @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.OWNER_PATH)
             @DSL class Consumer extends Service {
                 @LinkTo User user
             }
@@ -434,7 +435,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             }
             
             @DSL class Consumer extends Service {
-                @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.INSTANCE_NAME) User user
+                @LinkTo(provider = {container.producer}, strategy = LinkTo.Strategy.OWNER_PATH) User user
             }
         ''')
 
@@ -606,11 +607,133 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
     }
 
+    def "auto link collection"() {
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+            @DSL class Container {
+                Map<String, Service> services
+                List<String> users 
+            }
+
+            @DSL
+            class Service {
+                @Key String name
+                @Owner Container container
+                @LinkTo List<String> users
+            }
+        ''')
+
+        when:
+        instance = create("tmp.Container") {
+            service('s1')
+            service('s2')
+            service('s3') {
+                users('explicitUser')
+            }
+            users("defaultUser", "defaultUser2")
+        }
+
+        then:
+        instance.services.s1.users == ["defaultUser", "defaultUser2"]
+        instance.services.s2.users == ["defaultUser", "defaultUser2"]
+        instance.services.s3.users == ["explicitUser"]
+
+        and: "different List instances"
+        !instance.services.s1.users.is(instance.users)
+        !instance.services.s2.users.is(instance.users)
+    }
+
+    @Issue("302")
+    def "auto link with selector"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+
+            @DSL class House {
+              Map<String, Room> rooms
+            }
+            
+            @DSL class Room {
+              @Key String name
+              @Owner House house
+            
+              String adjacentRoomName
+            
+              @LinkTo(provider = {house.rooms}, selector = 'adjacentRoomName')
+              Room adjacentRoom
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            room("LivingRoom")  {
+                adjacentRoomName "Kitchen"
+            }
+            room("DiningRoom")
+            room("Kitchen")
+            room("Bedroom")
+        }
+
+        then:
+        instance.rooms.LivingRoom.adjacentRoom.is(instance.rooms.Kitchen)
+    }
+
+    @Issue("302")
+    def "auto link with selector list"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+
+
+            @DSL class House {
+              Map<String, Room> rooms
+            }
+            
+            @DSL class Room {
+              @Key String name
+              @Owner House house
+            
+              List<String> adjacentRoomNames
+            
+              @LinkTo(provider = {house.rooms}, selector = 'adjacentRoomNames')
+              List<Room> adjacentRooms
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            room("LivingRoom")  {
+                adjacentRoomNames("Kitchen", "DiningRoom")
+            }
+            room("DiningRoom")
+            room("Kitchen")
+            room("Bedroom")
+        }
+
+        then:
+        instance.rooms.LivingRoom.adjacentRooms == [instance.rooms.Kitchen, instance.rooms.DiningRoom]
+    }
+
     LinkTo withDefaults(LinkTo stub) {
         with(stub) {
                 field() >> ""
                 fieldId() >> ""
-                provider() >> LinkTo.None
+                provider() >> NoClosure
                 providerType() >> Object
                 strategy() >> LinkTo.Strategy.AUTO
                 nameSuffix() >> ""

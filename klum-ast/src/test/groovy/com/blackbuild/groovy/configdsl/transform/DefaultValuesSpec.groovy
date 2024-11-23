@@ -248,7 +248,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 @Default(field = 'another')
-                int value
+                Integer value
                 String another
             }
 '''
