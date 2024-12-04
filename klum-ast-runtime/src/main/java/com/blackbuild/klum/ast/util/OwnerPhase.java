@@ -27,6 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
@@ -47,6 +48,7 @@ public class OwnerPhase extends VisitingPhaseAction {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         setDirectOwners(proxy, container);
         setTransitiveOwners(proxy);
+        setRootOwners(proxy);
         setRoles(proxy, container);
         LifecycleHelper.executeLifecycleClosures(proxy, Owner.class);
     }
@@ -98,6 +100,19 @@ public class OwnerPhase extends VisitingPhaseAction {
                 .forEach(method -> callTransitiveOwnerMethod(proxy, method));
     }
 
+    private void setRootOwners(KlumInstanceProxy proxy) {
+        Object root = PhaseDriver.getInstance().getRootObject();
+
+        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+                .filter(this::isRoot)
+                .filter(field -> isUnset(proxy, field))
+                .forEach(field -> setOwnerFieldValue(proxy, root, field));
+
+        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+                .filter(this::isRoot)
+                .forEach(method -> callOwnerMethod(proxy, root, method));
+    }
+
     private static boolean isUnset(KlumInstanceProxy proxy, Field field) {
         return proxy.getInstanceAttribute(field.getName()) == null;
     }
@@ -132,6 +147,14 @@ public class OwnerPhase extends VisitingPhaseAction {
 
     private boolean isNotTransitive(AnnotatedElement target) {
         return !isTransitive(target);
+    }
+
+    private boolean isRoot(AnnotatedElement target) {
+        return target.getAnnotation(Owner.class).root();
+    }
+
+    private boolean isNotRoot(AnnotatedElement target) {
+        return !isRoot(target);
     }
 
     private Class<?> getOwnerType(AnnotatedElement target) {

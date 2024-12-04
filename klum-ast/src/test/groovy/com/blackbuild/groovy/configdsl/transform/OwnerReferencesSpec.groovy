@@ -835,6 +835,46 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.child.child.grandParent.is(instance)
     }
 
+    def "Root owners are set without an explicit chain"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner(root = true) Parent grandParent
+                String name
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParent.is(instance)
+    }
+
     @Issue("49")
     def "Transitive owners methods are called after normal owners"() {
         given:
@@ -861,6 +901,51 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 String grandParentName
                 
                 @Owner(transitive = true) 
+                void grandParent(Parent grandParent) {
+                    grandParentName = grandParent.name
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Klaus"
+            child {
+                name "Child Level 1"
+                child {
+                    name "Child Level 2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.child.grandParentName == "Klaus"
+    }
+
+    def "Root owners methods are called without explicit chain"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                String name
+                String grandParentName
+                
+                @Owner(root = true) 
                 void grandParent(Parent grandParent) {
                     grandParentName = grandParent.name
                 }

@@ -23,8 +23,10 @@
 - [Gradle Plugin](https://github.com/klum-dsl/klum-ast/wiki/Gradle-Plugins) for easier project setup
 - Various owner improvement:
   - Owner targets now can be transitive, i.e. be filled with the value of an ancestor of the specified type (instead of the direct owner) (see [Transitive Owners](https://github.com/klum-dsl/klum-ast/wiki/Basics#transitive-owners) and [#49](https://github.com/klum-dsl/klum-ast/issues/49))
+  - Ower fields can be filled with the actual root of the model. This works even if no explicit owner field is present (see [Root Owner](https://github.com/klum-dsl/klum-ast/wiki/Basics#root-owners))
   - Owner objects can be converted before handing them to owner fields or methods (see [Owner Converters](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters) and [#189](https://github.com/klum-dsl/klum-ast/issues/189))
   - New `@Role` annotation to infer the name of the owner field containing an object (see [Role fields](https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields) and [#86](https://github.com/klum-dsl/klum-ast/issues/86))
+
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
 - CopyFrom now creates deep clones (see [#36](https://github.com/klum-dsl/klum-ast/issues/36))

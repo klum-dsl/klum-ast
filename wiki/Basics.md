@@ -646,12 +646,16 @@ assert instance.child.child.grandParent.is(instance)
 ```
 Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
 
-A common use case for transitive owners is to give various objects access to the root object of the model. This can most conveniently be done using a common baseclass for interested objects:
+## Root owners
+
+With the field `root` of the `@Owner` annotation, the annotated field will be set to the root object of the model (if the type matches). This is useful if an object needs to access the root object, but has not direct backlink chain to it.
+
+This can most conveniently be done using a common baseclass for interested objects:
 
 ```groovy
 @DSL
 abstract class ModelElement {
-    @Owner(transitive = true)
+    @Owner(root = true)
     MyModel root
 }
 
@@ -662,13 +666,11 @@ class MyModel {
 
 @DSL
 class SomeElement extends ModelElement {
-    @Owner SomeParent parent 
     ...
 }
 
 @DSL
 class AnotherElement extends ModelElement {
-    @Owner AnotherParent parent
     ...
 }
 ```

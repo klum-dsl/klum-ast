@@ -178,6 +178,7 @@ public class KlumInstanceProxy {
         if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
         if (field.isAnnotationPresent(Key.class)) return true;
         if (field.isAnnotationPresent(Owner.class)) return true;
+        if (field.isAnnotationPresent(Role.class)) return true;
         if (field.getName().startsWith("$")) return true;
         if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
         return false;
@@ -301,6 +302,7 @@ public class KlumInstanceProxy {
         return getFieldsAnnotatedWith(instance.getClass(), Owner.class)
                 .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
                 .filter(field -> !field.getAnnotation(Owner.class).transitive())
+                .filter(field -> !field.getAnnotation(Owner.class).root())
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .filter(Objects::nonNull)

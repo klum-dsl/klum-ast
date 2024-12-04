@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.checks.MutuallyExclusive;
 import com.blackbuild.klum.cast.checks.NumberOfParameters;
 import groovy.lang.Closure;
 
@@ -105,6 +106,10 @@ import java.lang.annotation.*;
  * the closest ancestor of the given type (i.e. a grandparent instead of a direct parent). This works for fields as well as
  * methods.</p>
  *
+ * <h2>Root Owners</h2>
+ * <p>If the attribute {@code root} is set, the ultimate top level object is set, if the type matcher. This works for fields as well as
+ * methods.</p>
+ *
  * <h2>Converter</h2>
  * <p>If the attribute {@code converter} is set, the converter is executed against the owner object and the result of the
  * closure is assigned to the field or method. In that case, the single parameter of the closure is used as the owner
@@ -115,10 +120,14 @@ import java.lang.annotation.*;
 @KlumCastValidated
 @WriteAccess(WriteAccess.Type.MANUAL)
 @NumberOfParameters(1)
+@MutuallyExclusive({"root", "transitive"})
 @Documented
 public @interface Owner {
     /** If set to true, the owner is set to the first ancestor of the given type. */
     boolean transitive() default false;
+
+    /** If set to true, the owner is set to root object, if matching. */
+    boolean root() default false;
 
     /**
      * if set, the field or method matches the closure parameter.
