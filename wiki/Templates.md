@@ -72,7 +72,7 @@ In both notations, the `copyFrom` entry should be the first, otherwise it might 
 `withTemplate()` provides scoped templates. It takes a template and a closure, and the template is automatically 
 applied to all instance creations within that closure.
  
- __A template is only applied inside the scope when using the `create()` method (or one of the [[Convenience Factories]]), it is NOT invoked when using the 
+ __A template is only applied inside the scope when using the `Create.*` methods (or one of the [[Convenience Factories]]), it is NOT invoked when using the 
  constructor directly!__ 
 
 Usage:
@@ -238,26 +238,30 @@ class Parent {
 class Child extends Parent {
 }
 
-Parent.Create.Template {
+def parentTemplate = Parent.Create.Template {
     name "parent-template" // overrides default value
 }
 
-Child.Create.Template {
+def childTemplate = Child.Create.Template {
     name "child-template" // overrides parent template value
 }
 
-def c = Child.Create.One()
+Child.withTemplates([parentTemplate, childTemplate]) {
+  def c = Child.Create.One()
 
-assert c.name == "child-template"
+  assert c.name == "child-template"
+ 
+  def d = Child.Create.With {
+     name "explicit" // overrides template value
+  }
+ 
+  assert d.name == "explicit"
 
-def d = Child.Create.With {
-    name "explicit" // overrides template value
 }
 
-assert d.name == "explicit"
 ```
 
-Note that templates for collections **add** to lower precedence values, they do **not** replace them: 
+Note that templates for collections **replace** lower precedence, i.e. the most specific template wins. This behaviour can be altered using [[Copy Strategies]]. 
 
 ```groovy
 @DSL
@@ -269,44 +273,20 @@ class Parent {
 class Child extends Parent {
 }
 
-Parent.Create.Template {
-    names "parent" // adds to default value
+def parentTemplate = Parent.Create.Template {
+    names "parent" // replaces default value
 }
 
-Child.Create.Template {
-    names "child" // adds to parent template value
+def childTemplate = Child.Create.Template {
+    names "child" // replaces parent template value
 }
 
-def c = Child.Create.With {
-    name == "explicit" // adds to template value
-}
+Child.withTemplates([parentTemplate, childTemplate]) {
+  def c = Child.Create.With {
+    name "explicit" // replaces template value
+  }
 
-assert c.names == ["default", "parent", "child", "explicit"]
+  assert c.names == ["explicit"]
+}
 ```
 
-If you want child template to replace the parent, you have to do so explicitly by not using the generated setter:
-
-```groovy
-@DSL
-class Parent {
-    List<String> names = ["default"]
-}
-
-@DSL
-class Child extends Parent {
-}
-
-Parent.Create.Template {
-    names "parent" // adds to default value
-}
-
-Child.Create.Template {
-    names = ["child"] // explicitly override parent template
-}
-
-def c = Child.Create.With {
-    name == "explicit" // adds to template value
-}
-
-assert c.names == ["child", "explicit"]
-```

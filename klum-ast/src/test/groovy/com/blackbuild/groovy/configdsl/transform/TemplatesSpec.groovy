@@ -647,9 +647,11 @@ class TemplatesSpec extends AbstractDSLSpec {
             class Child extends Parent {
             }
         ''')
+        def Child = getClass("pk.Child")
+        def Parent = getClass("pk.Parent")
 
         expect:
-        create("pk.Child") {}.names == ["default"]
+        Child.Create.One().names == ["default"]
 
         when:
         def template = getClass("pk.Parent").Create.Template {
@@ -660,8 +662,8 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.names == ["default", "parent"]
 
         when:
-        getClass("pk.Child").withTemplate(template) {
-            instance = create("pk.Child") {}
+        Child.withTemplate(template) {
+            instance = Child.Create.One()
         }
 
         then:
@@ -669,21 +671,21 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         def childTemplate
-        getClass("pk.Parent").withTemplate(template) {
-            childTemplate = getClass("pk.Child").createAsTemplate {
+        Parent.withTemplate(template) {
+            childTemplate = Child.createAsTemplate {
                 names "child"
             }
         }
-        getClass("pk.Child").withTemplate(childTemplate) {
-            instance = create("pk.Child") {}
+        Child.withTemplate(childTemplate) {
+            instance = Child.Create.One()
         }
 
         then:
         instance.names == ["default", "parent", "child"]
 
         when:
-        getClass("pk.Child").withTemplate(childTemplate) {
-            instance = create("pk.Child") { name "explicit" }
+        Child.withTemplate(childTemplate) {
+            instance = Child.Create.With { name "explicit" }
         }
 
         then:
@@ -704,19 +706,22 @@ class TemplatesSpec extends AbstractDSLSpec {
             class Child extends Parent {
             }
         ''')
-        def template = getClass("pk.Parent").createAsTemplate {
+        def Child = getClass("pk.Child")
+        def Parent = getClass("pk.Parent")
+
+        def template = Parent.Create.Template {
             names "parent"
         }
 
         when:
         def childTemplate
-        getClass("pk.Parent").withTemplate(template) {
-            childTemplate = getClass("pk.Child").createAsTemplate {
+        Parent.withTemplate(template) {
+            childTemplate = Child.Create.Template {
                 names = ["child"]
             }
         }
-        getClass("pk.Child").withTemplate(childTemplate) {
-            instance = create("pk.Child") { name "explicit"}
+        Child.withTemplate(childTemplate) {
+            instance = Child.Create.With { name "explicit"}
         }
 
         then:

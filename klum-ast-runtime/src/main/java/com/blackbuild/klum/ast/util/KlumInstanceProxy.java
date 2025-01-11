@@ -156,6 +156,7 @@ public class KlumInstanceProxy {
      * @param template The template to apply
      */
     public void copyFrom(Object template) {
+        if (template == null) return;
         CopyHandler.copyFrom(instance, template);
     }
 

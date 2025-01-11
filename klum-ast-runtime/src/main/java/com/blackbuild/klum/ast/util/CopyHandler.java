@@ -153,13 +153,13 @@ public class CopyHandler {
         OverwriteStrategy.Map strategy = getMapStrategy(field);
 
         switch (strategy) {
-            case FULL_OVERWRITE:
+            case FULL_REPLACE:
                 if (templateValues != null && !templateValues.isEmpty()) {
                     currentValues.clear();
                     addMapValues(field, currentValues, templateValues);
                 }
                 break;
-            case ALWAYS_OVERWRITE:
+            case ALWAYS_REPLACE:
                 currentValues.clear();
                 if (templateValues != null && !templateValues.isEmpty())
                     addMapValues(field, currentValues, templateValues);
@@ -246,13 +246,13 @@ public class CopyHandler {
                 if (templateValue != null && !templateValue.isEmpty())
                     addCollectionValues(field, currentValue, templateValue);
                 break;
-            case FULL_OVERWRITE:
+            case REPLACE:
                 if (templateValue != null && !templateValue.isEmpty()) {
                     currentValue.clear();
                     addCollectionValues(field, currentValue, templateValue);
                 }
                 break;
-            case ALWAYS_OVERWRITE:
+            case ALWAYS_REPLACE:
                 currentValue.clear();
                 if (templateValue != null && !templateValue.isEmpty())
                     addCollectionValues(field, currentValue, templateValue);
@@ -283,7 +283,7 @@ public class CopyHandler {
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {
         return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collection() != OverwriteStrategy.Collection.INHERIT)
                 .map(Overwrite::collection)
-                .orElse(OverwriteStrategy.Collection.ADD);
+                .orElse(OverwriteStrategy.Collection.REPLACE);
     }
 
 

@@ -57,9 +57,9 @@ public interface OverwriteStrategy {
          */
         ADD,
         /** The collection is fully replaced if the replacement is not null or empty. */
-        FULL_OVERWRITE,
+        REPLACE,
         /** The map is replaced even if the copy source is null or empty. */
-        ALWAYS_OVERWRITE
+        ALWAYS_REPLACE,
     }
 
     /**
@@ -69,9 +69,9 @@ public interface OverwriteStrategy {
         /** No explicit overwrite strategy is set. */
         INHERIT,
         /** The map is fully replaced if the replacement is not null or empty. */
-        FULL_OVERWRITE,
+        FULL_REPLACE,
         /** The map is replaced even if the copy source is null or empty. */
-        ALWAYS_OVERWRITE,
+        ALWAYS_REPLACE,
         /** The members of the copy source are added to the target map. Members with the same keys are replaced. */
         MERGE_KEYS,
         /** The members of the copy source are added to the target map. Members with the same keys are merged. Only valid for DSL elements. */
