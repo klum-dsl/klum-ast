@@ -136,8 +136,12 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Single getSingleStrategy(Field field) {
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.single() != OverwriteStrategy.Single.INHERIT)
+        Overwrite.Single annotation = field.getAnnotation(Overwrite.Single.class);
+        if (annotation != null && annotation.value() != OverwriteStrategy.Single.INHERIT)
+            return annotation.value();
+        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.single().value() != OverwriteStrategy.Single.INHERIT)
                 .map(Overwrite::single)
+                .map(Overwrite.Single::value)
                 .orElse(getDefaultSingleStrategy(field));
     }
 
@@ -225,8 +229,12 @@ public class CopyHandler {
 
 
     private OverwriteStrategy.Map getMapStrategy(Field field) {
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.map() != OverwriteStrategy.Map.INHERIT)
+        Overwrite.Map annotation = field.getAnnotation(Overwrite.Map.class);
+        if (annotation != null && annotation.value() != OverwriteStrategy.Map.INHERIT)
+            return annotation.value();
+        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.map().value() != OverwriteStrategy.Map.INHERIT)
                 .map(Overwrite::map)
+                .map(Overwrite.Map::value)
                 .orElse(getDefaultMapStrategy(field));
     }
 
@@ -281,8 +289,12 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {
-        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collection() != OverwriteStrategy.Collection.INHERIT)
+        Overwrite.Collection annotation = field.getAnnotation(Overwrite.Collection.class);
+        if (annotation != null && annotation.value() != OverwriteStrategy.Collection.INHERIT)
+            return annotation.value();
+        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.collection().value() != OverwriteStrategy.Collection.INHERIT)
                 .map(Overwrite::collection)
+                .map(Overwrite.Collection::value)
                 .orElse(OverwriteStrategy.Collection.REPLACE);
     }
 

@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.validation;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -36,49 +35,15 @@ import java.lang.annotation.Annotation;
 
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 
-public class OverwriteStrategiesCheck extends KlumCastCheck<Annotation> {
+public class OverwriteMapCheck extends KlumCastCheck<Annotation> {
 
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
         FieldNode field = (FieldNode) target;
-        ClassNode fieldType = field.getType();
-
-        if (isCollection(fieldType))
-            checkCollection(annotationToCheck);
-        else if (isMap(fieldType))
-            checkMap(annotationToCheck, field);
-        else
-            checkSingle(annotationToCheck, field);
-    }
-
-    private void checkCollection(AnnotationNode annotationToCheck) {
-        getMemberOrFail(annotationToCheck, "collection", OverwriteStrategy.Collection.INHERIT);
-    }
-
-    private void checkMap(AnnotationNode annotationToCheck, FieldNode field) {
-        OverwriteStrategy.Map strategy = getMemberOrFail(annotationToCheck, "map", OverwriteStrategy.Map.INHERIT);
-
+        OverwriteStrategy.Map strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Map.INHERIT);
         ClassNode elementType = getElementType(field);
 
         if (strategy == OverwriteStrategy.Map.MERGE_VALUES && !DslAstHelper.isDSLObject(elementType))
             throw new IllegalArgumentException("MERGE_VALUES is only allowed for DSL objects");
-    }
-
-    private void checkSingle(AnnotationNode annotationToCheck, FieldNode field) {
-        OverwriteStrategy.Single strategy = getMemberOrFail(annotationToCheck, "single", OverwriteStrategy.Single.INHERIT);
-
-        if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
-            throw new IllegalArgumentException("MERGE is not allowed for DSL objects");
-    }
-
-    private static <T extends Enum<T>> T getMemberOrFail(AnnotationNode annotationToCheck, String memberName, T defaultValue) {
-        if (annotationToCheck.getMember(memberName) == null)
-            throw new IllegalArgumentException("Multiple overwrite strategy is required for collections and maps");
-        return CommonAstHelper.getNullSafeEnumMemberValue(annotationToCheck, memberName, defaultValue);
-    }
-
-    @Override
-    protected boolean isValidFor(AnnotatedNode target) {
-        return target instanceof FieldNode;
     }
 }

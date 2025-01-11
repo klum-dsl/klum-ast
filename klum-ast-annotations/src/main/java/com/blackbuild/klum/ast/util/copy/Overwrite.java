@@ -27,6 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.KlumCastValidator;
 import com.blackbuild.klum.cast.checks.NeedsOneOf;
+import com.blackbuild.klum.cast.checks.NeedsType;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -36,14 +37,42 @@ import java.lang.annotation.Target;
 /**
  * Handles how values are copied from one object to another.
  */
-@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
+@Target({ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NeedsDSLClass
-@NeedsOneOf(value = {"single", "collection", "map"}, exclusive = true)
-@KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesCheck")
+@NeedsOneOf(value = {"single", "collection", "map"})
 public @interface Overwrite {
-    OverwriteStrategy.Single single() default OverwriteStrategy.Single.INHERIT;
-    OverwriteStrategy.Collection collection() default OverwriteStrategy.Collection.INHERIT;
-    OverwriteStrategy.Map map() default OverwriteStrategy.Map.INHERIT;
+
+    Overwrite.Single single() default @Overwrite.Single(OverwriteStrategy.Single.INHERIT);
+    Overwrite.Collection collection() default @Overwrite.Collection(OverwriteStrategy.Collection.INHERIT);
+    Overwrite.Map map() default @Overwrite.Map(OverwriteStrategy.Map.INHERIT);
+
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @NeedsDSLClass
+    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesSingleCheck")
+    @interface Single {
+        OverwriteStrategy.Single value();
+    }
+
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @NeedsDSLClass
+    @NeedsType(java.util.Collection.class)
+    @interface Collection {
+        OverwriteStrategy.Collection value();
+    }
+
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @NeedsDSLClass
+    @NeedsType(java.util.Map.class)
+    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesMapCheck")
+    @interface Map {
+        OverwriteStrategy.Map value();
+    }
 }
