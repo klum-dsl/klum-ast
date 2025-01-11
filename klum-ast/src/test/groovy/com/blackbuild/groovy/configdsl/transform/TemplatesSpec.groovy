@@ -200,13 +200,13 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.createAsTemplate {
+        def template = Foo.Create.Template {
             names "a", "b"
         }
 
         when:
-        clazz.withTemplate(template) {
-            instance = clazz.Create.With {}
+        Foo.withTemplate(template) {
+            instance = Foo.Create.With {}
         }
 
         then:

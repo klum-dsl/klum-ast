@@ -42,6 +42,7 @@ class AbstractDSLSpec extends Specification {
     Class<?> clazz
     Class<?> rwClazz
     CompilerConfiguration compilerConfiguration
+    Map<String, Class<?>> classPool = [:]
 
     def setup() {
         oldLoader = Thread.currentThread().contextClassLoader
@@ -69,6 +70,12 @@ class AbstractDSLSpec extends Specification {
         Thread.currentThread().contextClassLoader = oldLoader
     }
 
+    def propertyMissing(String name) {
+        if (classPool.containsKey(name))
+            return classPool[name]
+        throw new MissingPropertyException(name, getClass())
+    }
+
     def createInstance(@Language("groovy") String code) {
         instance = createClass(code).Create.One()
     }
@@ -82,21 +89,39 @@ class AbstractDSLSpec extends Specification {
     }
 
     Class<?> createClass(@Language("groovy") String code) {
-        clazz = loader.parseClass(code)
-        rwClazz = getRwClass(clazz.name)
+        this.clazz = parseClass(code)
+        rwClazz = getRwClass(this.clazz.name)
+        return this.clazz
+    }
+
+    private Class parseClass(String code) {
+        def clazz = loader.parseClass(code)
+        updateClassPool()
         return clazz
     }
 
+    private Class parseClass(String code, String filename) {
+        def clazz = loader.parseClass(code, filename)
+        updateClassPool()
+        return clazz
+    }
+
+    private void updateClassPool() {
+        loader.loadedClasses.each {
+            classPool[it.name.tokenize(".").last()] = it
+        }
+    }
+
     def createNonDslClass(@Language("groovy") String code) {
-        clazz = loader.parseClass(code)
+        this.clazz = parseClass(code)
     }
 
     def createSecondaryClass(@Language("groovy") String code) {
-        return loader.parseClass(code)
+        return parseClass(code)
     }
 
     def createSecondaryClass(@Language("groovy") String code, String filename) {
-        return loader.parseClass(code, filename)
+        return parseClass(code, filename)
     }
 
     def create(String classname, Closure closure = {}) {
@@ -108,16 +133,18 @@ class AbstractDSLSpec extends Specification {
     }
 
     Class<?> getClass(String classname) {
-        loader.loadClass(classname)
+        if (classPool.containsKey(classname)) {
+            return classPool[classname]
+        }
+        return loader.loadClass(classname)
     }
-
 
     boolean isDeprecated(Method method) {
         method.getAnnotation(Deprecated) != null
     }
 
     List<Method> allMethodsNamed(String name) {
-        clazz.methods.findAll { it.name == name }
+        this.clazz.methods.findAll { it.name == name }
     }
 
     Class getRwClass(String name) {
@@ -144,4 +171,5 @@ class AbstractDSLSpec extends Specification {
             return false
         }
     }
+
 }
