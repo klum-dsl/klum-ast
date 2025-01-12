@@ -41,12 +41,12 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NeedsDSLClass
-@NeedsOneOf(value = {"single", "collection", "map"})
+@NeedsOneOf(value = {"singles", "collections", "maps"})
 public @interface Overwrite {
 
-    Overwrite.Single single() default @Overwrite.Single(OverwriteStrategy.Single.INHERIT);
-    Overwrite.Collection collection() default @Overwrite.Collection(OverwriteStrategy.Collection.INHERIT);
-    Overwrite.Map map() default @Overwrite.Map(OverwriteStrategy.Map.INHERIT);
+    Overwrite.Single singles() default @Overwrite.Single(OverwriteStrategy.Single.INHERIT);
+    Overwrite.Collection collections() default @Overwrite.Collection(OverwriteStrategy.Collection.INHERIT);
+    Overwrite.Map maps() default @Overwrite.Map(OverwriteStrategy.Map.INHERIT);
 
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)

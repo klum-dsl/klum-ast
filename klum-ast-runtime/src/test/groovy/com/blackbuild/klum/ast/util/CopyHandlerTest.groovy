@@ -175,7 +175,6 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         and:
         copy.innerLists[0] == outer.innerLists[0]
         !copy.innerLists[0].is(outer.innerLists[0])
-
     }
 
     @Issue("309")
@@ -230,8 +229,8 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            @Overwrite(collection = @Overwrite.Collection(OverwriteStrategy.Collection.REPLACE), 
-                       map = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES))
+            @Overwrite(collections = @Overwrite.Collection(OverwriteStrategy.Collection.REPLACE), 
+                       maps = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES))
             class AClass {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
