@@ -33,13 +33,17 @@ import org.codehaus.groovy.ast.FieldNode;
 import java.lang.annotation.Annotation;
 
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeEnumMemberValue;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
 
-public class OverwriteStrategiesSingleCheck extends KlumCastCheck<Annotation> {
+public class OverwriteSingleCheck extends KlumCastCheck<Annotation> {
 
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
         FieldNode field = (FieldNode) target;
         OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "single", OverwriteStrategy.Single.INHERIT);
+
+        if (isCollectionOrMap(field.getType()))
+            throw new IllegalArgumentException("Single overwrite strategy is not allowed for collections or maps");
 
         if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
             throw new IllegalArgumentException("MERGE is not allowed for DSL objects");

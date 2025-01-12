@@ -52,7 +52,7 @@ public @interface Overwrite {
     @Retention(RetentionPolicy.RUNTIME)
     @KlumCastValidated
     @NeedsDSLClass
-    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesSingleCheck")
+    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteSingleCheck")
     @interface Single {
         OverwriteStrategy.Single value();
     }
@@ -71,7 +71,7 @@ public @interface Overwrite {
     @KlumCastValidated
     @NeedsDSLClass
     @NeedsType(java.util.Map.class)
-    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteStrategiesMapCheck")
+    @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteMapCheck")
     @interface Map {
         OverwriteStrategy.Map value();
     }

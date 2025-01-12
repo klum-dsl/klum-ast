@@ -135,14 +135,15 @@ public class CopyHandler {
 
     @SuppressWarnings("unchecked")
     private static @Nullable <T> T copyValue(Object templateValue) {
+        if (templateValue == null)
+            return null;
         if (isDslType(templateValue.getClass()))
-            return (T) getProxyFor(templateValue).cloneInstance();
-        else if (templateValue instanceof Collection)
+            return getProxyFor(templateValue).cloneInstance();
+        if (templateValue instanceof Collection)
             return (T) createCopyOfCollection((Collection<Object>) templateValue);
-        else if (templateValue instanceof Map)
+        if (templateValue instanceof Map)
             return (T) createCopyOfMap((Map<String, Object>) templateValue);
-        else
-            return (T) templateValue;
+        return (T) templateValue;
     }
 
     private OverwriteStrategy.Single getSingleStrategy(Field field) {
