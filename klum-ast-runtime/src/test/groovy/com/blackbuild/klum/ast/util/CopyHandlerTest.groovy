@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.klum.ast.util
 
 import spock.lang.Issue
@@ -59,7 +60,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy, template).copyFrom(outer)
+        CopyHandler.copyToFrom(copy, outer)
 
         then:
         copy.name == "bli"
@@ -110,7 +111,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy, template).copyFrom(outer)
+        CopyHandler.copyToFrom(copy, outer)
 
         then:
         copy.name == "bli"
@@ -158,7 +159,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         when:
         def copy = newInstanceOf("pk.Outer")
-        new CopyHandler(copy, template).copyFrom(outer)
+        CopyHandler.copyToFrom(copy, outer)
 
         then:
         copy.name == "bli"
@@ -205,7 +206,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         receiver.inners.put "c", "cFromReceiver"
         receiver.innerLists.add "aFromReceiver"
         receiver.innerLists.add "bFromReceiver"
-        new CopyHandler(receiver, template).copyFrom(template)
+        CopyHandler.copyToFrom(receiver, template)
 
         then:
         receiver.inners.size() == 2
@@ -225,10 +226,12 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.klum.ast.util.copy.Overwrite
+import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            @Overwrite(Overwrite.Strategy.HELM)
+            @Overwrite(collection = @Overwrite.Collection(OverwriteStrategy.Collection.REPLACE), 
+                       map = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES))
             class AClass {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
@@ -247,7 +250,7 @@ import com.blackbuild.klum.ast.util.copy.Overwrite
         receiver.inners.put "c", "cFromReceiver"
         receiver.innerLists.add "aFromReceiver"
         receiver.innerLists.add "bFromReceiver"
-        new CopyHandler(receiver, template).copyFrom(template)
+        CopyHandler.copyToFrom(receiver, template)
 
         then:
         receiver.inners.size() == 3

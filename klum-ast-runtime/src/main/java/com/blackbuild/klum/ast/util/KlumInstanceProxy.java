@@ -157,57 +157,13 @@ public class KlumInstanceProxy {
      */
     public void copyFrom(Object template) {
         if (template == null) return;
-        CopyHandler.copyFrom(instance, template);
+        CopyHandler.copyToFrom(instance, template);
     }
 
     public <T> T cloneInstance() {
         Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey());
         getProxyFor(result).copyFrom(instance);
         return (T) result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T getCopiedValue(T templateValue) {
-        if (isDslType(templateValue.getClass()))
-            return (T) getProxyFor(templateValue).cloneInstance();
-        else if (templateValue instanceof Collection)
-            return (T) createCopyOfCollection((Collection<?>) templateValue);
-        else if (templateValue instanceof Map)
-            return (T) createCopyOfMap((Map<String, ?>) templateValue);
-        else
-            return templateValue;
-    }
-
-    private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
-        Collection<T> result = createNewEmptyCollectionOrMapFrom(templateValue);
-        templateValue.stream().map(this::getCopiedValue).forEach(result::add);
-        return result;
-    }
-
-    private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
-        Map<String, T> result = createNewEmptyCollectionOrMapFrom(templateValue);
-        templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
-        return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T createNewEmptyCollectionOrMapFrom(T source) {
-        return (T) InvokerHelper.invokeConstructorOf(source.getClass(), null);
-    }
-
-    private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
-    }
-
-    private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-
-        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
     }
 
     /**
