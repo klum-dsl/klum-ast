@@ -31,6 +31,7 @@ import java.lang.annotation.Annotation
 class AnnotationHelperTest extends AbstractRuntimeTest {
 
     Class<? extends Annotation> MyAnnotation
+    Class<? extends Annotation> WrapperAnnotation
 
     @Override
     def setup() {
@@ -43,9 +44,15 @@ import java.lang.annotation.*
     String value() default "inherit"
 }
 
+import java.lang.annotation.*
+@Target([ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.ANNOTATION_TYPE, ElementType.PACKAGE])
+@Retention(RetentionPolicy.RUNTIME)
+@MyAnnotation("wrapper")
+@interface WrapperAnnotation {
+}
 '''
         MyAnnotation = getClass("annos.MyAnnotation") as Class<? extends Annotation>
-
+        WrapperAnnotation = getClass("annos.WrapperAnnotation") as Class<? extends Annotation>
     }
 
     def "getMostSpecificAnnotation returns the annotation on the target itself"() {
@@ -72,6 +79,32 @@ import java.lang.annotation.*
 
         and:
         AnnotationHelper.getMostSpecificAnnotation(clazz, MyAnnotation).get().value() == "class"
+    }
+
+    def "getMostSpecificAnnotation returns wrapped annotation on the target itself"() {
+        given:
+        createClass '''
+            package classes
+            import annos.*
+
+            @WrapperAnnotation
+            class Dummy {
+                @WrapperAnnotation
+                String name
+
+                @WrapperAnnotation
+                void name(String bla) {}
+            }
+        '''
+
+        expect:
+        AnnotationHelper.getMostSpecificAnnotation(clazz.getDeclaredField("name"), MyAnnotation).get().value() == "wrapper"
+
+        and:
+        AnnotationHelper.getMostSpecificAnnotation(clazz.getDeclaredMethod("name", String), MyAnnotation).get().value() == "wrapper"
+
+        and:
+        AnnotationHelper.getMostSpecificAnnotation(clazz, MyAnnotation).get().value() == "wrapper"
     }
 
     def "getMostSpecificAnnotation returns the one inherited from the class"() {

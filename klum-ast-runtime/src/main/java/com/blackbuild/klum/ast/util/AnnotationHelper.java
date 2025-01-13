@@ -88,7 +88,7 @@ public class AnnotationHelper {
     }
 
     private static <T extends Annotation> Optional<T> getMostSpecificAnnotationFromMember(AnnotatedElement target, Class<T> annotationType, Predicate<T> filter) {
-        T result = target.getAnnotation(annotationType);
+        T result = getNestedAnnotation(target, annotationType);
         if (result != null && filter.test(result)) return Optional.of(result);
 
         return getMostSpecificAnnotationFromClass(((Member) target).getDeclaringClass(), annotationType, filter);
@@ -96,10 +96,10 @@ public class AnnotationHelper {
 
     private static <T extends Annotation> Optional<T> getMostSpecificAnnotationFromClass(Class<?> target, Class<T> annotationType, Predicate<T> filter) {
         if (target == null) return Optional.empty();
-        T result = target.getAnnotation(annotationType);
+        T result = getNestedAnnotation(target, annotationType);
         if (result != null && filter.test(result)) return Optional.of(result);
 
-        result = target.getPackage().getAnnotation(annotationType);
+        result = getNestedAnnotation(target.getPackage(), annotationType);
         if (result != null && filter.test(result)) return Optional.of(result);
 
         return getMostSpecificAnnotationFromClass(target.getSuperclass(), annotationType, filter);
@@ -117,7 +117,7 @@ public class AnnotationHelper {
         T result = target.getAnnotation(annotationType);
         if (result != null) return result;
 
-        if (!isMetaAnnotaton(annotationType)) return null;
+        if (!isMetaAnnotation(annotationType)) return null;
 
         for (Annotation annotation : target.getAnnotations()) {
             result = annotation.annotationType().getAnnotation(annotationType);
@@ -132,7 +132,7 @@ public class AnnotationHelper {
      * @param type the annotation type to check
      * @return true if the annotation is a meta annotation
      */
-    public static boolean isMetaAnnotaton(Class<? extends Annotation> type) {
+    public static boolean isMetaAnnotation(Class<? extends Annotation> type) {
         Target target = type.getAnnotation(Target.class);
         if (target == null) return true;
         for (ElementType elementType : target.value()) {

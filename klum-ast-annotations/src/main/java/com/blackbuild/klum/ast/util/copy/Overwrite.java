@@ -37,7 +37,7 @@ import java.lang.annotation.Target;
 /**
  * Handles how values are copied from one object to another.
  */
-@Target({ElementType.TYPE, ElementType.PACKAGE})
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NeedsDSLClass

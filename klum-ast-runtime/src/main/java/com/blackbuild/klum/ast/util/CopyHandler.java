@@ -150,7 +150,7 @@ public class CopyHandler {
         Overwrite.Single annotation = field.getAnnotation(Overwrite.Single.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Single.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
                 .map(Overwrite::singles)
                 .map(Overwrite.Single::value)
                 .orElse(getDefaultSingleStrategy(field));
@@ -269,7 +269,7 @@ public class CopyHandler {
         Overwrite.Map annotation = field.getAnnotation(Overwrite.Map.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Map.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.maps().value() != OverwriteStrategy.Map.INHERIT)
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.maps().value() != OverwriteStrategy.Map.INHERIT)
                 .map(Overwrite::maps)
                 .map(Overwrite.Map::value)
                 .orElse(OverwriteStrategy.Map.FULL_REPLACE);
@@ -325,7 +325,7 @@ public class CopyHandler {
         Overwrite.Collection annotation = field.getAnnotation(Overwrite.Collection.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Collection.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(field.getDeclaringClass(), Overwrite.class, o -> o.collections().value() != OverwriteStrategy.Collection.INHERIT)
+        return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collections().value() != OverwriteStrategy.Collection.INHERIT)
                 .map(Overwrite::collections)
                 .map(Overwrite.Collection::value)
                 .orElse(OverwriteStrategy.Collection.REPLACE);

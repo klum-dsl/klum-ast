@@ -32,7 +32,6 @@ import spock.lang.Unroll
 @Unroll
 class OverwriteStrategyTest extends AbstractDSLSpec {
 
-    static final String NO_INNER = "NO_INNER"
     static final String REPLACE = "REPLACE"
     public static final String ALWAYS_REPLACE = "ALWAYS_REPLACE"
     public static final String SET_IF_NULL = "SET_IF_NULL"
@@ -76,7 +75,41 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         SET_IF_NULL    | "target"  | "source"  || "target"
         SET_IF_NULL    | null      | "source"  || "source"
         SET_IF_NULL    | "target"  | null      || "target"
+    }
 
+    def "copy single pojo #strategy on class"() {
+        given:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            
+            @Overwrite(singles = @Overwrite.Single(OverwriteStrategy.Single.$strategy))
+            @DSL class Foo {
+                String bar 
+            }
+        """
+
+        when:
+        def target = Foo.Create.With(bar: targetBar)
+        def source = Foo.Create.With(bar: sourceBar)
+        CopyHandler.copyToFrom(target, source)
+
+        then:
+        target.bar == result
+
+        where:
+        strategy       | targetBar | sourceBar || result
+        REPLACE        | "target"  | "source"  || "source"
+        REPLACE        | null      | "source"  || "source"
+        REPLACE        | "target"  | null      || "target"
+        ALWAYS_REPLACE | "target"  | "source"  || "source"
+        ALWAYS_REPLACE | null      | "source"  || "source"
+        ALWAYS_REPLACE | "target"  | null      || null
+        SET_IF_NULL    | "target"  | "source"  || "target"
+        SET_IF_NULL    | null      | "source"  || "source"
+        SET_IF_NULL    | "target"  | null      || "target"
     }
 
     def "copy single DSL #strategy"() {
