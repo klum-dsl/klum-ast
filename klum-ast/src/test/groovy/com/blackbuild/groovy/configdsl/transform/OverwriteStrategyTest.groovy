@@ -41,6 +41,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
     public static final String MERGE_KEYS = "MERGE_KEYS"
     public static final String MERGE_VALUES = "MERGE_VALUES"
     public static final String ADD_MISSING = "ADD_MISSING"
+    public static final String SET_IF_EMPTY = "SET_IF_EMPTY"
+
 
     def "copy single pojo #strategy"() {
         given:
@@ -188,7 +190,10 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
 
         when:
         def target = Foo.Create.With(bars: targetBars)
-        def source = Foo.Create.With(bars: sourceBars)
+        def source = Foo.Create.With {
+            // need to explicitly set null to overwrite the default empty collection
+            bars = sourceBars
+        }
         CopyHandler.copyToFrom(target, source)
 
         then:
@@ -199,12 +204,19 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         strategy       | targetBars | sourceBars || resultBars
         REPLACE        | [1, 2]     | [3, 4]     || [3, 4]
         REPLACE        | [1, 2]     | []         || [1, 2]
+        REPLACE        | [1, 2]     | null       || [1, 2]
         REPLACE        | []         | [3, 4]     || [3, 4]
         ALWAYS_REPLACE | [1, 2]     | [3, 4]     || [3, 4]
         ALWAYS_REPLACE | [1, 2]     | []         || []
+        ALWAYS_REPLACE | [1, 2]     | null       || [1, 2]
         ALWAYS_REPLACE | []         | [3, 4]     || [3, 4]
+        SET_IF_EMPTY   | [1, 2]     | [3, 4]     || [1, 2]
+        SET_IF_EMPTY   | [1, 2]     | []         || [1, 2]
+        SET_IF_EMPTY   | [1, 2]     | null       || [1, 2]
+        SET_IF_EMPTY   | []         | [3, 4]     || [3, 4]
         ADD            | [1, 2]     | [3, 4]     || [1, 2, 3, 4]
         ADD            | [1, 2]     | []         || [1, 2]
+        ADD            | [1, 2]     | null       || [1, 2]
         ADD            | []         | [3, 4]     || [3, 4]
     }
 
@@ -224,7 +236,9 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
 
         when:
         def target = Foo.Create.With(bars: targetBars)
-        def source = Foo.Create.With(bars: sourceBars)
+        def source = Foo.Create.With {
+            bars = sourceBars
+        }
         CopyHandler.copyToFrom(target, source)
 
         then:
@@ -235,54 +249,23 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         strategy       | targetBars   | sourceBars   || resultBars
         FULL_REPLACE   | [a: 1, b: 2] | [b: 3, c: 4] || [b: 3, c: 4]
         FULL_REPLACE   | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
+        FULL_REPLACE   | [a: 1, b: 2] | null         || [a: 1, b: 2]
         FULL_REPLACE   | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
         ALWAYS_REPLACE | [a: 1, b: 2] | [b: 3, c: 4] || [b: 3, c: 4]
         ALWAYS_REPLACE | [a: 1, b: 2] | [:]          || [:]
+        ALWAYS_REPLACE | [a: 1, b: 2] | null         || [a: 1, b: 2]
         ALWAYS_REPLACE | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
+        SET_IF_EMPTY   | [a: 1, b: 2] | [b: 3, c: 4] || [a: 1, b: 2]
+        SET_IF_EMPTY   | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
+        SET_IF_EMPTY   | [a: 1, b: 2] | null         || [a: 1, b: 2]
+        SET_IF_EMPTY   | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
         MERGE_KEYS     | [a: 1, b: 2] | [b: 3, c: 4] || [a: 1, b: 3, c: 4]
         MERGE_KEYS     | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
+        MERGE_KEYS     | [a: 1, b: 2] | null         || [a: 1, b: 2]
         MERGE_KEYS     | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
         ADD_MISSING    | [a: 1, b: 2] | [b: 3, c: 4] || [a: 1, b: 2, c: 4]
         ADD_MISSING    | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
-        ADD_MISSING    | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
-    }
-
-    def "copy map #strategy"() {
-        given:
-        createClass """
-            package pk
-
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
-            
-            @DSL class Foo {
-                @Overwrite.Map(OverwriteStrategy.Map.$strategy)
-                Map<String, Integer> bars
-            }
-        """
-
-        when:
-        def target = Foo.Create.With(bars: targetBars)
-        def source = Foo.Create.With(bars: sourceBars)
-        CopyHandler.copyToFrom(target, source)
-
-        then:
-        !target.bars.is(source.bars)
-        target.bars == resultBars
-
-        where:
-        strategy       | targetBars   | sourceBars   || resultBars
-        FULL_REPLACE   | [a: 1, b: 2] | [b: 3, c: 4] || [b: 3, c: 4]
-        FULL_REPLACE   | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
-        FULL_REPLACE   | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
-        ALWAYS_REPLACE | [a: 1, b: 2] | [b: 3, c: 4] || [b: 3, c: 4]
-        ALWAYS_REPLACE | [a: 1, b: 2] | [:]          || [:]
-        ALWAYS_REPLACE | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
-        MERGE_KEYS     | [a: 1, b: 2] | [b: 3, c: 4] || [a: 1, b: 3, c: 4]
-        MERGE_KEYS     | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
-        MERGE_KEYS     | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
-        ADD_MISSING    | [a: 1, b: 2] | [b: 3, c: 4] || [a: 1, b: 2, c: 4]
-        ADD_MISSING    | [a: 1, b: 2] | [:]          || [a: 1, b: 2]
+        ADD_MISSING    | [a: 1, b: 2] | null         || [a: 1, b: 2]
         ADD_MISSING    | [:]          | [b: 3, c: 4] || [b: 3, c: 4]
     }
 
@@ -341,6 +324,11 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         ALWAYS_REPLACE | [b: [foo: 1, bar: 2]]                      | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]]
         ALWAYS_REPLACE | [:]                                        | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]]
         ALWAYS_REPLACE | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [:]                                        || [:]
+        SET_IF_EMPTY   | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]]
+        SET_IF_EMPTY   | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [d: [foo: 4, bar: 5]]                      || [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]]
+        SET_IF_EMPTY   | [b: [foo: 1, bar: 2]]                      | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [b: [foo: 1, bar: 2]]
+        SET_IF_EMPTY   | [:]                                        | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]]
+        SET_IF_EMPTY   | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [:]                                        || [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]]
         MERGE_KEYS     | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [a: [foo: 1, bar: 2], b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]]
         MERGE_KEYS     | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [d: [foo: 4, bar: 5]]                      || [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2], d: [foo: 4, bar: 5]]
         MERGE_KEYS     | [b: [foo: 1, bar: 2]]                      | [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]] || [b: [foo: 3, bar: 4], d: [foo: 4, bar: 5]]

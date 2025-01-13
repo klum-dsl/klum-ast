@@ -56,9 +56,11 @@ public interface OverwriteStrategy {
          * by the target collection (like {@link java.util.Set})
          */
         ADD,
-        /** The collection is fully replaced if the replacement is not null or empty. */
+        /** The collection is fully replaced if the replacement is not empty. */
         REPLACE,
-        /** The map is replaced even if the copy source is null or empty. */
+        /** The collection is fully replaced only if target has now elements. */
+        SET_IF_EMPTY,
+        /** The map is replaced even if the copy source is empty. */
         ALWAYS_REPLACE,
     }
 
@@ -68,10 +70,12 @@ public interface OverwriteStrategy {
     enum Map {
         /** No explicit overwrite strategy is set. */
         INHERIT,
-        /** The map is fully replaced if the replacement is not null or empty. */
+        /** The map is fully replaced if the replacement is not empty. */
         FULL_REPLACE,
-        /** The map is replaced even if the copy source is null or empty. */
+        /** The map is replaced even if the copy source is empty. */
         ALWAYS_REPLACE,
+        /** The map is replaced only if the target map is empty. */
+        SET_IF_EMPTY,
         /** The members of the copy source are added to the target map. Members with the same keys are replaced. */
         MERGE_KEYS,
         /** The members of the copy source are added to the target map. Members with the same keys are merged. Only valid for DSL elements. */

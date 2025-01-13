@@ -165,44 +165,42 @@ public class CopyHandler {
         Map<Object,Object> currentValues = proxy.getInstanceAttribute(fieldName);
         Map<Object,Object> templateValues = getProxyFor(source).getInstanceAttribute(fieldName);
 
+        if (templateValues == null)
+            return;
+
         OverwriteStrategy.Map strategy = getMapStrategy(field);
 
         switch (strategy) {
             case FULL_REPLACE:
-                if (notEmpty(templateValues)) {
+                if (!templateValues.isEmpty()) {
                     currentValues.clear();
                     addMapValues(field, currentValues, templateValues);
                 }
                 break;
+            case SET_IF_EMPTY:
+                if (currentValues.isEmpty())
+                    addMapValues(field, currentValues, templateValues);
+                break;
             case ALWAYS_REPLACE:
                 currentValues.clear();
-                if (notEmpty(templateValues))
-                    addMapValues(field, currentValues, templateValues);
+                addMapValues(field, currentValues, templateValues);
                 break;
             case MERGE_KEYS:
-                if (notEmpty(templateValues))
-                    addMapValues(field, currentValues, templateValues);
+                addMapValues(field, currentValues, templateValues);
                 break;
             case MERGE_VALUES:
-                if (notEmpty(templateValues)) {
-                    if (isDslType(DslHelper.getElementType(field)))
-                        mergeMapValues(field, currentValues, templateValues);
-                    else
-                        addMapValues(field, currentValues, templateValues);
-                }
+                if (isDslType(DslHelper.getElementType(field)))
+                    mergeMapValues(field, currentValues, templateValues);
+                else
+                    addMapValues(field, currentValues, templateValues);
                 break;
             case ADD_MISSING:
-                if (notEmpty(templateValues))
-                    addMissingMapValues(field, currentValues, templateValues);
+                addMissingMapValues(field, currentValues, templateValues);
                 break;
             case INHERIT:
             default:
                 throwInvalidStrategy(strategy);
         }
-    }
-
-    private static boolean notEmpty(Map<Object, Object> templateValues) {
-        return templateValues != null && !templateValues.isEmpty();
     }
 
     private static void throwInvalidStrategy(Object strategy) {
@@ -280,32 +278,32 @@ public class CopyHandler {
         Collection<Object> currentValue = proxy.getInstanceAttribute(fieldName);
         Collection<Object> templateValue = getProxyFor(source).getInstanceAttribute(fieldName);
 
+        if (templateValue == null) return;
+
         OverwriteStrategy.Collection strategy = getCollectionStrategy(field);
 
         switch (strategy) {
             case ADD:
-                if (notEmpty(templateValue))
-                    addCollectionValues(field, currentValue, templateValue);
+                addCollectionValues(field, currentValue, templateValue);
                 break;
             case REPLACE:
-                if (notEmpty(templateValue)) {
+                if (!templateValue.isEmpty()) {
                     currentValue.clear();
                     addCollectionValues(field, currentValue, templateValue);
                 }
                 break;
+            case SET_IF_EMPTY:
+                if (currentValue.isEmpty())
+                    addCollectionValues(field, currentValue, templateValue);
+                break;
             case ALWAYS_REPLACE:
                 currentValue.clear();
-                if (notEmpty(templateValue))
-                    addCollectionValues(field, currentValue, templateValue);
+                addCollectionValues(field, currentValue, templateValue);
                 break;
             case INHERIT:
             default:
                 throwInvalidStrategy(strategy);
         }
-    }
-
-    private static boolean notEmpty(Collection<Object> templateValue) {
-        return templateValue != null && !templateValue.isEmpty();
     }
 
     private void addCollectionValues(Field field, Collection<Object> currentValue, Collection<Object> templateValue) {
