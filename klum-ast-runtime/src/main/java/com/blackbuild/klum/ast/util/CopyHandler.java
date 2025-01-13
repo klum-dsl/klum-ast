@@ -118,10 +118,12 @@ public class CopyHandler {
                     replaceValue(fieldName, templateValue);
                 break;
             case MERGE:
-                if (currentValue == null)
-                    replaceValue(fieldName, templateValue);
-                else
-                    getProxyFor(currentValue).copyFrom(templateValue);
+                if (templateValue != null) {
+                    if (currentValue == null || !isDslType(field.getType()))
+                        replaceValue(fieldName, templateValue);
+                    else
+                        CopyHandler.copyToFrom(currentValue, templateValue);
+                }
                 break;
             case INHERIT:
             default:
@@ -153,11 +155,7 @@ public class CopyHandler {
         return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
                 .map(Overwrite::singles)
                 .map(Overwrite.Single::value)
-                .orElse(getDefaultSingleStrategy(field));
-    }
-
-    private OverwriteStrategy.Single getDefaultSingleStrategy(Field field) {
-        return isDslType(field.getType()) ? OverwriteStrategy.Single.MERGE : OverwriteStrategy.Single.REPLACE;
+                .orElse(OverwriteStrategy.Single.MERGE);
     }
 
     private void copyFromMapField(Field field) {
@@ -230,7 +228,7 @@ public class CopyHandler {
             if (currentValue == null)
                 currentValues.put(key, copyValue(value));
             else
-                getProxyFor(currentValue).copyFrom(value);
+                CopyHandler.copyToFrom(currentValue, value);
         }
     }
 

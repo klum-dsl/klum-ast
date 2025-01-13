@@ -162,7 +162,7 @@ public class KlumInstanceProxy {
 
     public <T> T cloneInstance() {
         Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey());
-        getProxyFor(result).copyFrom(instance);
+        CopyHandler.copyToFrom(result, instance);
         return (T) result;
     }
 
