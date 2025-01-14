@@ -49,16 +49,22 @@ public class CopyHandler {
 
     private final Object target;
     private final KlumInstanceProxy proxy;
-    private final Object source;
+    private final Object donor;
 
-    public static void copyToFrom(Object target, Object source) {
-        new CopyHandler(target, source).doCopy();
+    /**
+     * Copies properties from the donor to the target object. Copying is done according to the annotations on the target object's class and
+     * can be customized by using the {@link Overwrite} annotation, as well as its inner class annotations.
+     * @param target the object to copy to
+     * @param donor the object to copy from
+     */
+    public static void copyToFrom(Object target, Object donor) {
+        new CopyHandler(target, donor).doCopy();
     }
 
-    public CopyHandler(Object target, Object source) {
+    public CopyHandler(Object target, Object donor) {
         this.target = target;
         proxy = getProxyFor(target);
-        this.source = source;
+        this.donor = donor;
     }
 
     public void doCopy() {
@@ -66,7 +72,7 @@ public class CopyHandler {
     }
 
     private void copyFromLayer(Class<?> layer) {
-        if (layer.isInstance(source))
+        if (layer.isInstance(donor))
             Arrays.stream(layer.getDeclaredFields())
                     .filter(this::isNotIgnored)
                     .forEach(this::copyFromField);
@@ -100,7 +106,7 @@ public class CopyHandler {
     private void copyFromSingleField(Field field) {
         String fieldName = field.getName();
         Object currentValue = proxy.getInstanceAttribute(fieldName);
-        KlumInstanceProxy templateProxy = getProxyFor(source);
+        KlumInstanceProxy templateProxy = getProxyFor(donor);
         Object templateValue = templateProxy.getInstanceAttribute(fieldName);
 
         OverwriteStrategy.Single strategy = getSingleStrategy(field);
@@ -149,7 +155,7 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Single getSingleStrategy(Field field) {
-        Overwrite.Single annotation = field.getAnnotation(Overwrite.Single.class);
+        Overwrite.Single annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Single.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Single.INHERIT)
             return annotation.value();
         return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.singles().value() != OverwriteStrategy.Single.INHERIT)
@@ -161,7 +167,7 @@ public class CopyHandler {
     private void copyFromMapField(Field field) {
         String fieldName = field.getName();
         Map<Object,Object> currentValues = proxy.getInstanceAttribute(fieldName);
-        Map<Object,Object> templateValues = getProxyFor(source).getInstanceAttribute(fieldName);
+        Map<Object,Object> templateValues = getProxyFor(donor).getInstanceAttribute(fieldName);
 
         if (templateValues == null)
             return;
@@ -262,7 +268,7 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Map getMapStrategy(Field field) {
-        Overwrite.Map annotation = field.getAnnotation(Overwrite.Map.class);
+        Overwrite.Map annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Map.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Map.INHERIT)
             return annotation.value();
         return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.maps().value() != OverwriteStrategy.Map.INHERIT)
@@ -274,7 +280,7 @@ public class CopyHandler {
     private void copyFromCollectionField(Field field) {
         String fieldName = field.getName();
         Collection<Object> currentValue = proxy.getInstanceAttribute(fieldName);
-        Collection<Object> templateValue = getProxyFor(source).getInstanceAttribute(fieldName);
+        Collection<Object> templateValue = getProxyFor(donor).getInstanceAttribute(fieldName);
 
         if (templateValue == null) return;
 
@@ -318,7 +324,7 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {
-        Overwrite.Collection annotation = field.getAnnotation(Overwrite.Collection.class);
+        Overwrite.Collection annotation = AnnotationHelper.getNestedAnnotation(field, Overwrite.Collection.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Collection.INHERIT)
             return annotation.value();
         return AnnotationHelper.getMostSpecificAnnotation(field, Overwrite.class, o -> o.collections().value() != OverwriteStrategy.Collection.INHERIT)

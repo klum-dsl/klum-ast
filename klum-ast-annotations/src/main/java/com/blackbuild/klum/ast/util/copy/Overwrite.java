@@ -48,7 +48,7 @@ public @interface Overwrite {
     Overwrite.Collection collections() default @Overwrite.Collection(OverwriteStrategy.Collection.INHERIT);
     Overwrite.Map maps() default @Overwrite.Map(OverwriteStrategy.Map.INHERIT);
 
-    @Target(ElementType.FIELD)
+    @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @KlumCastValidated
     @NeedsDSLClass
@@ -57,7 +57,7 @@ public @interface Overwrite {
         OverwriteStrategy.Single value();
     }
 
-    @Target(ElementType.FIELD)
+    @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @KlumCastValidated
     @NeedsDSLClass
@@ -66,7 +66,7 @@ public @interface Overwrite {
         OverwriteStrategy.Collection value();
     }
 
-    @Target(ElementType.FIELD)
+    @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @KlumCastValidated
     @NeedsDSLClass
