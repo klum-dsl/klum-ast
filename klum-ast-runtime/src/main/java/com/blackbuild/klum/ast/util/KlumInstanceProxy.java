@@ -38,7 +38,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.util.DslHelper.*;
-import static groovyjarjarasm.asm.Opcodes.*;
 import static java.lang.String.format;
 
 /**
@@ -157,93 +156,14 @@ public class KlumInstanceProxy {
      * @param template The template to apply
      */
     public void copyFrom(Object template) {
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(it -> copyFromLayer(it, template));
+        if (template == null) return;
+        CopyHandler.copyToFrom(instance, template);
     }
 
-    public Object cloneInstance() {
-        Object key = isKeyed(instance.getClass()) ? getKey() : null;
-        Object result = FactoryHelper.createInstance(instance.getClass(), (String) key);
-        getProxyFor(result).copyFrom(instance);
-        return result;
-    }
-
-    private void copyFromLayer(Class<?> layer, Object template) {
-        if (layer.isInstance(template))
-            Arrays.stream(layer.getDeclaredFields())
-                    .filter(this::isNotIgnored)
-                    .forEach(field -> copyFromField(field, template));
-    }
-
-    private boolean isIgnored(Field field) {
-        if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
-        if (field.isAnnotationPresent(Key.class)) return true;
-        if (field.isAnnotationPresent(Owner.class)) return true;
-        if (field.isAnnotationPresent(Role.class)) return true;
-        if (field.getName().startsWith("$")) return true;
-        if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
-        return false;
-    }
-
-    private boolean isNotIgnored(Field field) {
-        return !isIgnored(field);
-    }
-
-    private void copyFromField(Field field, Object template) {
-        String fieldName = field.getName();
-        Object templateValue = getProxyFor(template).getInstanceAttribute(fieldName);
-
-        if (templateValue == null) return;
-
-        if (templateValue instanceof Collection)
-            copyFromCollectionField((Collection<?>) templateValue, fieldName);
-        else if (templateValue instanceof Map)
-            copyFromMapField((Map<?,?>) templateValue, fieldName);
-        else
-            setInstanceAttribute(fieldName, getCopiedValue(templateValue));
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> T getCopiedValue(T templateValue) {
-        if (isDslType(templateValue.getClass()))
-            return (T) getProxyFor(templateValue).cloneInstance();
-        else if (templateValue instanceof Collection)
-            return (T) createCopyOfCollection((Collection<?>) templateValue);
-        else if (templateValue instanceof Map)
-            return (T) createCopyOfMap((Map<String, ?>) templateValue);
-        else
-            return templateValue;
-    }
-
-    private <T> Collection<T> createCopyOfCollection(Collection<T> templateValue) {
-        Collection<T> result = createNewEmptyCollectionOrMapFrom(templateValue);
-        templateValue.stream().map(this::getCopiedValue).forEach(result::add);
-        return result;
-    }
-
-    private <T> Map<String, T> createCopyOfMap(Map<String, T> templateValue) {
-        Map<String, T> result = createNewEmptyCollectionOrMapFrom(templateValue);
-        templateValue.forEach((key, value) -> result.put(key, getCopiedValue(value)));
-        return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T createNewEmptyCollectionOrMapFrom(T source) {
-        return (T) InvokerHelper.invokeConstructorOf(source.getClass(), null);
-    }
-
-    private <K,V> void copyFromMapField(Map<K,V> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Map<K,V> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-        templateValue.forEach((k, v) -> instanceField.put(k, getCopiedValue(v)));
-    }
-
-    private <T> void copyFromCollectionField(Collection<T> templateValue, String fieldName) {
-        if (templateValue.isEmpty()) return;
-        Collection<T> instanceField = getInstanceAttribute(fieldName);
-        instanceField.clear();
-
-        templateValue.stream().map(this::getCopiedValue).forEach(instanceField::add);
+    public <T> T cloneInstance() {
+        Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey());
+        CopyHandler.copyToFrom(result, instance);
+        return (T) result;
     }
 
     /**
@@ -255,6 +175,17 @@ public class KlumInstanceProxy {
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .orElseThrow(AssertionError::new);
+    }
+
+    /**
+     * Returns the key of this proxies instance or null if the instance is not keyed (or the key is null in case of a template).
+     * @return The key or null
+     */
+    Object getNullableKey() {
+        return DslHelper.getKeyField(instance.getClass())
+                .map(Field::getName)
+                .map(instance::getProperty)
+                .orElse(null);
     }
 
     /**
@@ -325,10 +256,10 @@ public class KlumInstanceProxy {
             BreadcrumbCollector.getInstance().enter(fieldOrMethodName, key);
             Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
 
-            if (!fieldOrMethod.isPresent())
+            if (fieldOrMethod.isEmpty())
                 fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
 
-            if (!fieldOrMethod.isPresent())
+            if (fieldOrMethod.isEmpty())
                 throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
 
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
@@ -386,7 +317,7 @@ public class KlumInstanceProxy {
      * @return the added element
      */
     public <T> T addElementToCollection(String fieldName, T element) {
-        Type elementType = DslHelper.getElementType(instance.getClass(), fieldName);
+        Type elementType = DslHelper.getElementTypeOfField(instance.getClass(), fieldName);
         element = forceCastClosure(element, elementType);
         Collection<T> target = getInstanceAttribute(fieldName);
         target.add(element);
@@ -534,7 +465,7 @@ public class KlumInstanceProxy {
     }
 
     private <K, V> V doAddElementToMap(String fieldName, K key, V value) {
-        Type elementType = getElementType(instance.getClass(), fieldName);
+        Type elementType = getElementTypeOfField(instance.getClass(), fieldName);
         key = determineKeyFromMappingClosure(fieldName, value, key);
         if (key == null && isKeyed(getClassFromType(elementType)))
             key = (K) getProxyFor(value).getKey();
@@ -558,16 +489,6 @@ public class KlumInstanceProxy {
             throw new IllegalArgumentException(format("Value is not of type %s", elementType));
     }
 
-    private Class<?> getClassFromType(Type type) {
-        if (type instanceof Class)
-            return (Class<?>) type;
-        if (type instanceof WildcardType)
-            return (Class<?>) ((WildcardType) type).getUpperBounds()[0];
-        if (type instanceof ParameterizedType)
-            return (Class<?>) ((ParameterizedType) type).getRawType();
-        throw new IllegalArgumentException("Unknown Type: " + type);
-    }
-
     private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
         //noinspection unchecked
         return DslHelper.getOptionalFieldAnnotation(instance.getClass(), fieldName, FIELD_ANNOTATION)
@@ -587,7 +508,7 @@ public class KlumInstanceProxy {
      */
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
-        Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);
+        Class<?> elementType = (Class<?>) getElementTypeOfField(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(
                 fieldName,
                 InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
@@ -604,7 +525,7 @@ public class KlumInstanceProxy {
      */
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
-        Class<?> elementType = (Class<?>) getElementType(instance.getClass(), fieldName);
+        Class<?> elementType = (Class<?>) getElementTypeOfField(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToMap(
                 fieldName,
                 null,

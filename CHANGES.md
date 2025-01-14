@@ -26,6 +26,7 @@
   - Ower fields can be filled with the actual root of the model. This works even if no explicit owner field is present (see [Root Owner](https://github.com/klum-dsl/klum-ast/wiki/Basics#root-owners))
   - Owner objects can be converted before handing them to owner fields or methods (see [Owner Converters](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters) and [#189](https://github.com/klum-dsl/klum-ast/issues/189))
   - New `@Role` annotation to infer the name of the owner field containing an object (see [Role fields](https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields) and [#86](https://github.com/klum-dsl/klum-ast/issues/86))
+- Overwrite strategies for `copyFrom` and templates (see [Copy Strategies](https://github.com/klum-dsl/klum-ast/wiki/Copy-Strategies) and [#309](https://github.com/klum-dsl/klum-ast/issues/309))
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))

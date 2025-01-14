@@ -21,29 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.klum.ast.util.copy;
 
-import com.blackbuild.klum.cast.KlumCastValidator;
-
-import java.lang.annotation.*;
-
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Meta-annotation to mark annotations that mark methods that change the model.
- * WriteAccess marked methods are moved into the RW class during compilation.
+ * Overwrite strategy of KlumAST 1.x. Merges single values (or overwrite non DSL single values), replaces collections even
+ * if copy source is empty and merges maps.
  */
-@Target(ElementType.ANNOTATION_TYPE)
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
-@KlumCastValidator(validForTargets = ElementType.METHOD, value = "com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck")
-@Documented
-public @interface WriteAccess {
-
-    /**
-     *Returns the type of write access. LIFECYCLE means the method ist automatically called during
-     * a KlumPhase. MANUAL means the method is called manually by the user as part of the model.
-     * Lifecycle methods must not have any parameters.
-     */
-    Type value() default Type.LIFECYCLE;
-
-    enum Type { LIFECYCLE, MANUAL }
+@Overwrite(
+        singles = @Overwrite.Single(OverwriteStrategy.Single.MERGE),
+        collections = @Overwrite.Collection(OverwriteStrategy.Collection.ALWAYS_REPLACE),
+        maps = @Overwrite.Map(OverwriteStrategy.Map.FULL_REPLACE)
+)
+public @interface LegacyOverwrite {
 }

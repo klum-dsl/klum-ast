@@ -81,7 +81,7 @@ public class DslHelper {
         return result;
     }
 
-    public static Type getElementType(Class<?> type, String name) {
+    public static Type getElementTypeOfField(Class<?> type, String name) {
         Optional<Field> field = getField(type, name);
         return field.stream().map(DslHelper::getElementType).findFirst().orElseThrow(() -> new MissingFieldException(name, type));
     }
@@ -259,5 +259,16 @@ public class DslHelper {
             return cachedField.get().getProperty(instance);
 
         throw new MissingPropertyException(name, instance.getClass());
+    }
+
+
+    public static Class<?> getClassFromType(Type type) {
+        if (type instanceof Class)
+            return (Class<?>) type;
+        if (type instanceof WildcardType)
+            return (Class<?>) ((WildcardType) type).getUpperBounds()[0];
+        if (type instanceof ParameterizedType)
+            return (Class<?>) ((ParameterizedType) type).getRawType();
+        throw new IllegalArgumentException("Unknown Type: " + type);
     }
 }

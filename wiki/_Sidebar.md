@@ -12,6 +12,7 @@
   * [[Convenience Factories]]
   * [[Factory Classes]]
   * [[Templates]]
+  * [[Copy Strategies]]
   * [[Validation]]
   * [[Default Values]]
   * [[Inheritance]]

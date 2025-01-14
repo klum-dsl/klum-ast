@@ -21,29 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.cast.KlumCastValidator;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
+import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
 
-import java.lang.annotation.*;
+import java.lang.annotation.Annotation;
 
+import static com.blackbuild.klum.common.CommonAstHelper.*;
 
-/**
- * Meta-annotation to mark annotations that mark methods that change the model.
- * WriteAccess marked methods are moved into the RW class during compilation.
- */
-@Target(ElementType.ANNOTATION_TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@KlumCastValidator(validForTargets = ElementType.METHOD, value = "com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck")
-@Documented
-public @interface WriteAccess {
+public class OverwriteMapCheck extends KlumCastCheck<Annotation> {
 
-    /**
-     *Returns the type of write access. LIFECYCLE means the method ist automatically called during
-     * a KlumPhase. MANUAL means the method is called manually by the user as part of the model.
-     * Lifecycle methods must not have any parameters.
-     */
-    Type value() default Type.LIFECYCLE;
+    @Override
+    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
+        FieldNode field = (FieldNode) target;
+        OverwriteStrategy.Map strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Map.INHERIT);
+        ClassNode elementType = getElementType(field);
 
-    enum Type { LIFECYCLE, MANUAL }
+        if (strategy == OverwriteStrategy.Map.MERGE_VALUES && !DslAstHelper.isDSLObject(elementType))
+            throw new IllegalArgumentException("MERGE_VALUES is only allowed for DSL objects");
+    }
 }

@@ -21,29 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
-import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.FieldNode;
 
-import static java.util.Objects.requireNonNull;
+import java.lang.annotation.Annotation;
 
-public class WriteAccessMethodCheck extends KlumCastCheck<WriteAccess> {
+import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeEnumMemberValue;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
+
+public class OverwriteSingleCheck extends KlumCastCheck<Annotation> {
+
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        MethodNode method = (MethodNode) target;
+        FieldNode field = (FieldNode) target;
+        OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "single", OverwriteStrategy.Single.INHERIT);
 
-        if (method.isPrivate())
-            throw new IllegalStateException("Lifecycle methods must not be private!");
+        if (isCollectionOrMap(field.getType()))
+            throw new IllegalArgumentException("Single overwrite strategy is not allowed for collections or maps");
 
-        if (requireNonNull(controlAnnotation).value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
-            throw new IllegalStateException(String.format(
-                    "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
-                    method.getDeclaringClass().getName(),
-                    method.getName()
-            ));
+        if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
+            throw new IllegalArgumentException("MERGE is not allowed for DSL objects");
     }
 }
