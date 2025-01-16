@@ -27,11 +27,32 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class BreadcrumbCollector {
 
     // Thread singleton
     private static final ThreadLocal<BreadcrumbCollector> instance = new ThreadLocal<>();
+    private final Deque<Breadcrumb> breadcrumbs = new ArrayDeque<>();
+
+    private BreadcrumbCollector() {
+    }
+
+    public static <T> T withBreadcrumbs(String breadcrumbs, String classifier, Supplier<T> action) {
+        try {
+            BreadcrumbCollector.getInstance().enter(breadcrumbs, classifier);
+            return action.get();
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+        }
+    }
+
+    public void enter(String breadcrumb, String classifier) {
+        if (classifier != null)
+            enter(breadcrumb + "(" + classifier + ")");
+        else
+            enter(breadcrumb);
+    }
 
     @NotNull
     public static BreadcrumbCollector getInstance() {
@@ -40,16 +61,10 @@ public class BreadcrumbCollector {
         return instance.get();
     }
 
-    private final Deque<Breadcrumb> breadcrumbs = new ArrayDeque<>();
-
-    private BreadcrumbCollector() {
-    }
-
-    public void enter(String breadcrumb, String classifier) {
-       if (classifier != null)
-           enter(breadcrumb + "(" + classifier + ")");
-       else
-        enter(breadcrumb);
+    public void leave() {
+        breadcrumbs.pop();
+        if (breadcrumbs.isEmpty())
+            instance.remove();
     }
 
     public void enter(String breadcrumb) {
@@ -69,12 +84,6 @@ public class BreadcrumbCollector {
         head.changePath(head.getPath() + "(" + qualifier + ")");
     }
 
-    public void leave() {
-        breadcrumbs.pop();
-        if (breadcrumbs.isEmpty())
-            instance.remove();
-    }
-
     public String getLastPathElement() {
         return breadcrumbs.peek() != null ? breadcrumbs.peek().getPath() : null;
     }
@@ -91,8 +100,8 @@ public class BreadcrumbCollector {
 
 
     static class Breadcrumb {
-        private String path;
         private final Map<String, AtomicInteger> children = new HashMap<>();
+        private String path;
 
         Breadcrumb(String path) {
             this.path = path;

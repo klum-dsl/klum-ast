@@ -252,9 +252,7 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
-        try {
-            BreadcrumbCollector.getInstance().enter(fieldOrMethodName, key);
-
+        return BreadcrumbCollector.withBreadcrumbs(fieldOrMethodName, key, () -> {
             T existingValue = null;
 
             Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
@@ -278,16 +276,14 @@ public class KlumInstanceProxy {
                 if (type != existingValue.getClass() && type != ((Field) fieldOrMethod.get()).getType())
                     throw new IllegalArgumentException(
                             format("Type mismatch: %s != %s, either use '%s.apply()' to keep existing object or explicitly create and assign a new object.",
-                            type, existingValue.getClass(), fieldOrMethodName));
+                                    type, existingValue.getClass(), fieldOrMethodName));
 
                 return (T) getProxyFor(existingValue).apply(namedParams, body);
             }
 
             T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
             return callSetterOrMethod(fieldOrMethodName, created);
-        } finally {
-            BreadcrumbCollector.getInstance().leave();
-        }
+        });
     }
 
     /**
@@ -371,13 +367,10 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
-        try {
-            BreadcrumbCollector.getInstance().enter(collectionName, key);
+        return BreadcrumbCollector.withBreadcrumbs(collectionName, key, () -> {
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return addElementToCollection(collectionName, created);
-        } finally {
-            BreadcrumbCollector.getInstance().leave();
-        }
+        });
     }
 
     private <T> T createNewInstanceFromParamsAndClosure(Class<? extends T> type, String key, Map<String, Object> namedParams, Closure<T> body) {
@@ -452,9 +445,7 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
-        try {
-            BreadcrumbCollector.getInstance().enter(mapName, key);
-
+        return BreadcrumbCollector.withBreadcrumbs(mapName, key, () -> {
             T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
                 if (type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
@@ -466,9 +457,7 @@ public class KlumInstanceProxy {
 
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return doAddElementToMap(mapName, key, created);
-        } finally {
-            BreadcrumbCollector.getInstance().leave();
-        }
+        });
     }
 
     /**

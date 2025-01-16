@@ -67,9 +67,10 @@ public class FactoryHelper {
      * The model script is determined by reading the properties file META-INF/klum-model/&lt;type&gt;.properties,
      * which must contain the key 'model-class' with the fully qualified class name of the model script.
      * </p>
+     *
      * @param type The type to create
+     * @param <T>  The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createFromClasspath(Class<T> type) {
         return createFromClasspath(type, Thread.currentThread().getContextClassLoader());
@@ -81,11 +82,12 @@ public class FactoryHelper {
      * The model script is determined by reading the properties file META-INF/klum-model/&lt;type&gt;.properties,
      * which must contain the key 'model-class' with the fully qualified class name of the model script.
      * The properties and the script class is loaded using the given class loader.
- *     </p>
-     * @param type The type to create
+     * </p>
+     *
+     * @param type   The type to create
      * @param loader The class loader to load the script name and class from
+     * @param <T>    The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createFromClasspath(Class<T> type, ClassLoader loader) {
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
@@ -102,56 +104,30 @@ public class FactoryHelper {
         }
     }
 
-    /**
-     * Creates a new instance of the given type using the provided values, key and config closure.
-     * <p>
-     * First the class is instantiated using the key as constructor argument if keyed. Then the values are applied
-     * by using the keys as method names of the RW instance and the values as the single argument of that method.
-     * Finally the config closure is applied to the RW instance.
-     * </p>
-     * @param type The type to create
-     * @param values The value map to apply
-     * @param key The key to use for instantiation, ignored if the type is not keyed
-     * @param body The config closure to apply
-     * @return The created instance
-     * @param <T> The type to create
-     */
-    public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
+    private static void assertResourceExists(String path, InputStream stream) {
+        if (stream == null)
+            throw new IllegalStateException("File " + path + " not found in classpath.");
     }
 
-    private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
+    private static String readModelClass(String path, InputStream stream) throws IOException {
+        Properties marker = new Properties();
+        marker.load(stream);
+        String configModelClassName = marker.getProperty(MODEL_CLASS_KEY);
+        if (configModelClassName == null)
+            throw new IllegalStateException("No entry 'model-class' found in " + path);
+        return configModelClassName;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
         try {
-            BreadcrumbCollector.getInstance().enter(type.getSimpleName(), key);
-            T result = createInstance.get();
-            PhaseDriver.enter(result);
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
-            LifecycleHelper.executeLifecycleMethods(proxy, PostCreate.class);
-
-            apply.accept(proxy);
-
-            PhaseDriver.executeIfReady();
-
-            return result;
-        } finally {
-            BreadcrumbCollector.getInstance().leave();
-            PhaseDriver.leave();
-            PhaseDriver.cleanup();
+            Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
+            return createFrom(type, modelClass);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not read model from " + configModelClassName, e);
         }
-    }
-
-
-    static <T> T createInstance(Class<T> type, String key) {
-        if (key == null && DslHelper.isKeyed(type))
-            return createInstanceWithNullArg(type);
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, key);
-    }
-
-    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, args);
     }
 
     /**
@@ -168,10 +144,11 @@ public class FactoryHelper {
      * </p>
      * <p>For a keyed type with a delegating script, the simple name of the script is used as the key, for a
      * regular script, the script itself is responsible to provide the key.</p>
-     * @param type The type to create
+     *
+     * @param type       The type to create
      * @param scriptType The script to run
+     * @param <T>        The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
         if (DelegatingScript.class.isAssignableFrom(scriptType))
@@ -196,19 +173,48 @@ public class FactoryHelper {
             return doCreate(type, null, () -> createInstance(type, null), apply);
     }
 
+    private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
+        return BreadcrumbCollector.withBreadcrumbs(type.getSimpleName(), key, () ->
+                PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object)));
+    }
+
+    private static <T> void postCreate(Consumer<KlumInstanceProxy> apply, T object) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(object);
+        proxy.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(proxy, PostCreate.class);
+
+        apply.accept(proxy);
+    }
+
+    static <T> T createInstance(Class<T> type, String key) {
+        if (key == null && DslHelper.isKeyed(type))
+            return createInstanceWithNullArg(type);
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, key);
+    }
+
+    private static <T> T createInstanceWithNullArg(Class<T> type) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{null});
+    }
+
     /**
-     * Creates an instance of the given type by compiling the given text into a delegating script
-     * and applying it to a newly created instance.
+     * Creates a new instance of the given type using the provided values, key and config closure.
+     * <p>
+     * First the class is instantiated using the key as constructor argument if keyed. Then the values are applied
+     * by using the keys as method names of the RW instance and the values as the single argument of that method.
+     * Finally the config closure is applied to the RW instance.
+     * </p>
      *
-     * @param type The type to create
-     * @param name The name of the script, only relevant for keyed types
+     * @param type   The type to create
+     * @param values The value map to apply
+     * @param key    The key to use for instantiation, ignored if the type is not keyed
+     * @param body   The config closure to apply
+     * @param <T>    The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
-    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
-        GroovyShell shell = createGroovyShell(loader);
-        Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
-        return createFromDelegatingScript(type, (DelegatingScript) parse);
+    public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
+        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
 
     /**
@@ -216,9 +222,9 @@ public class FactoryHelper {
      * and applying it to a newly created instance.
      *
      * @param type The type to create
-     * @param src The URL to read
+     * @param src  The URL to read
+     * @param <T>  The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
         try {
@@ -230,13 +236,36 @@ public class FactoryHelper {
     }
 
     /**
+     * Creates an instance of the given type by compiling the given text into a delegating script
+     * and applying it to a newly created instance.
+     *
+     * @param type The type to create
+     * @param name The name of the script, only relevant for keyed types
+     * @param <T>  The type to create
+     * @return The created instance
+     */
+    public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+        GroovyShell shell = createGroovyShell(loader);
+        Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
+        return createFromDelegatingScript(type, (DelegatingScript) parse);
+    }
+
+    @NotNull
+    private static GroovyShell createGroovyShell(ClassLoader loader) {
+        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
+        return new GroovyShell(gLoader, compilerConfiguration);
+    }
+
+    /**
      * Creates an instance of the given type by reading the given file, compiling it into a delegating script
      * and applying it to a newly created instance.
      *
      * @param type The type to create
      * @param file The file to read
+     * @param <T>  The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createFrom(Class<T> type, File file, ClassLoader loader) {
         try {
@@ -253,10 +282,10 @@ public class FactoryHelper {
      * Template instance don't run lifecycle phases/methods.
      * </p>
      *
-     * @param type The type to create
+     * @param type       The type to create
      * @param scriptFile The resource to read
+     * @param <T>        The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createAsTemplate(Class<T> type, File scriptFile, ClassLoader loader) {
         try {
@@ -274,29 +303,9 @@ public class FactoryHelper {
      * </p>
      *
      * @param type The type to create
-     * @param script The resource to read
-     * @return The created instance
-     * @param <T> The type to create
-     */
-    public static <T> T createAsTemplate(Class<T> type, URL script, ClassLoader loader) {
-        try {
-            return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
-        } catch (IOException e) {
-            throw new KlumException(e);
-        }
-    }
-
-    /**
-     * Creates a template of the given type by reading the given resource, compiling it into a delegating script
-     * and applying it to a newly created instance.
-     * <p>
-     * Template instance don't run lifecycle phases/methods.
-     * </p>
-     *
-     * @param type The type to create
      * @param text The script text
+     * @param <T>  The type to create
      * @return The created instance
-     * @param <T> The type to create
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
         T result = createAsTemplate(type);
@@ -309,36 +318,6 @@ public class FactoryHelper {
         return result;
     }
 
-    @NotNull
-    private static GroovyShell createGroovyShell(ClassLoader loader) {
-        GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
-        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
-        compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
-        return new GroovyShell(gLoader, compilerConfiguration);
-    }
-
-    /**
-     * Creates a new template instance of the given type using the provided values and config closure.
-     * <p>
-     * The values are applied by using the keys as method names of the RW instance and the values as the single argument
-     * of that method. Finally the config closure is applied to the RW instance.
-     * Template instance don't run lifecycle phases/methods.
-     * </p>
-     * @param type The type to create
-     * @param values The value map to apply
-     * @param closure The config closure to apply
-     * @return The created instance
-     * @param <T> The type to create
-     */
-    public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
-        T result = createAsTemplate(type);
-
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.copyFromTemplate();
-        proxy.applyOnly(values, closure);
-        return result;
-    }
-
     private static <T> T createAsTemplate(Class<T> type) {
         if (!DslHelper.isInstantiable(type))
             return createAsSyntheticTemplate(type);
@@ -346,15 +325,6 @@ public class FactoryHelper {
             return createInstanceWithNullArg(type);
         else
             return createInstanceWithArgs(type);
-    }
-
-    public static <T> T createAsStub(Class<T> type, String key) {
-        return createInstance(type, key);
-    }
-
-    private static <T> T createInstanceWithNullArg(Class<T> type) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, new Object[] {null});
     }
 
     private static <T> T createAsSyntheticTemplate(Class<T> type) {
@@ -366,30 +336,56 @@ public class FactoryHelper {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T> T createModelFrom(Class<T> type, ClassLoader loader, String path, String configModelClassName) {
+    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
+        //noinspection unchecked
+        return (T) InvokerHelper.invokeConstructorOf(type, args);
+    }
+
+    /**
+     * Creates a template of the given type by reading the given resource, compiling it into a delegating script
+     * and applying it to a newly created instance.
+     * <p>
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     *
+     * @param type   The type to create
+     * @param script The resource to read
+     * @param <T>    The type to create
+     * @return The created instance
+     */
+    public static <T> T createAsTemplate(Class<T> type, URL script, ClassLoader loader) {
         try {
-            Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
-            return createFrom(type, modelClass);
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
-        } catch (Exception e) {
-            throw new IllegalStateException("Could not read model from " + configModelClassName, e);
+            return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
+        } catch (IOException e) {
+            throw new KlumException(e);
         }
     }
 
-    private static void assertResourceExists(String path, InputStream stream) {
-        if (stream == null)
-            throw new IllegalStateException("File " + path + " not found in classpath.");
+    /**
+     * Creates a new template instance of the given type using the provided values and config closure.
+     * <p>
+     * The values are applied by using the keys as method names of the RW instance and the values as the single argument
+     * of that method. Finally the config closure is applied to the RW instance.
+     * Template instance don't run lifecycle phases/methods.
+     * </p>
+     *
+     * @param type    The type to create
+     * @param values  The value map to apply
+     * @param closure The config closure to apply
+     * @param <T>     The type to create
+     * @return The created instance
+     */
+    public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
+        T result = createAsTemplate(type);
+
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+        proxy.copyFromTemplate();
+        proxy.applyOnly(values, closure);
+        return result;
     }
 
-    private static String readModelClass(String path, InputStream stream) throws IOException {
-        Properties marker = new Properties();
-        marker.load(stream);
-        String configModelClassName = marker.getProperty(MODEL_CLASS_KEY);
-        if (configModelClassName == null)
-            throw new IllegalStateException("No entry 'model-class' found in " + path);
-        return configModelClassName;
+    public static <T> T createAsStub(Class<T> type, String key) {
+        return createInstance(type, key);
     }
 
     private static void breadcrumb(String path) {

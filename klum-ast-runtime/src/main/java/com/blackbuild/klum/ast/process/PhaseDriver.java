@@ -25,7 +25,12 @@ package com.blackbuild.klum.ast.process;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.NavigableSet;
+import java.util.ServiceLoader;
+import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class PhaseDriver {
 
@@ -53,6 +58,18 @@ public class PhaseDriver {
         phaseActions.add(action);
     }
 
+    public static <T> T withPhase(Supplier<T> preparation, Consumer<T> action) {
+        try {
+            T result = preparation.get();
+            PhaseDriver.enter(result);
+            action.accept(result);
+            PhaseDriver.executeIfReady();
+            return result;
+        } finally {
+            PhaseDriver.leave();
+        }
+    }
+
     public static void enter(Object object) {
         PhaseDriver driver = getInstance();
         if (driver.activeObjectPointer == 0)
@@ -63,12 +80,10 @@ public class PhaseDriver {
     public static void leave() {
         PhaseDriver driver = getInstance();
         driver.activeObjectPointer--;
-    }
-
-    public static void cleanup() {
         if (getInstance().activeObjectPointer == 0)
             instance.remove();
     }
+
 
     public int getCurrentPhase() {
         return currentPhase.getPhase();
