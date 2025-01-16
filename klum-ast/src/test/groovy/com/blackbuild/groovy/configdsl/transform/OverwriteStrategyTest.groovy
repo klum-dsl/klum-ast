@@ -342,4 +342,125 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         MERGE_VALUES   | [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]] | [:]                                        || [a: [foo: 1, bar: 2], b: [foo: 1, bar: 2]]
     }
 
+    @Issue("325")
+    def "dsl single adder should merge with existing objects"() {
+        given:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            
+            @DSL class Inner {
+                Integer foo
+                Integer bar 
+            }
+
+            @DSL class Outer {
+                Inner inner 
+            }
+        """
+
+        when:
+        def template = Outer.Create.Template {
+            inner {
+                foo 1
+            }
+        }
+
+        Outer.withTemplate(template) {
+            instance = Outer.Create.With {
+                inner {
+                    bar 2
+                }
+            }
+        }
+
+        then:
+        instance.inner.foo == 1
+        instance.inner.bar == 2
+    }
+
+    @Issue("325")
+    def "dsl single adder should use merge even if another strategy is configured"() {
+        given:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            
+            @DSL class Inner {
+                Integer foo
+                Integer bar 
+            }
+
+            @DSL class Outer {
+                @Overwrite.Single(OverwriteStrategy.Single.SET_IF_NULL)
+                Inner inner 
+            }
+        """
+
+        when:
+        def template = Outer.Create.Template {
+            inner {
+                foo 1
+            }
+        }
+
+        Outer.withTemplate(template) {
+            instance = Outer.Create.With {
+                inner {
+                    bar 2
+                }
+            }
+        }
+
+        then:
+        instance.inner.foo == 1
+        instance.inner.bar == 2
+    }
+
+    @Issue("325")
+
+    def "dsl map adder should merge with existing objects"() {
+        given:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            
+            @DSL class Inner {
+                @Key String key
+                Integer foo
+                Integer bar 
+            }
+
+            @DSL class Outer {
+                Map<String, Inner> inners 
+            }
+        """
+
+        when:
+        def template = Outer.Create.Template {
+            inner("a") {
+                foo 1
+            }
+        }
+
+        def innerInstance
+        Outer.withTemplate(template) {
+            instance = Outer.Create.With {
+                inner("a") {
+                    bar 2
+                }
+            }
+        }
+
+        then:
+        instance.inners.a.foo == 1
+        instance.inners.a.bar == 2
+    }
+
 }

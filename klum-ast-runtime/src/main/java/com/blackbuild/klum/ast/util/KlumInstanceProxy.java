@@ -254,15 +254,35 @@ public class KlumInstanceProxy {
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
         try {
             BreadcrumbCollector.getInstance().enter(fieldOrMethodName, key);
+
+            T existingValue = null;
+
             Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
 
             if (fieldOrMethod.isEmpty())
                 fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
+            else
+                existingValue = getInstanceAttribute(fieldOrMethodName);
 
             if (fieldOrMethod.isEmpty())
                 throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
 
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
+
+            if (existingValue != null) {
+                if (!Objects.equals(effectiveKey, getProxyFor(existingValue).getNullableKey()))
+                    throw new IllegalArgumentException(
+                            format("Key mismatch: %s != %s, either use '%s.apply()' to keep existing object or explicitly create and assign a new object.",
+                                    effectiveKey, getProxyFor(existingValue).getNullableKey(), fieldOrMethodName));
+
+                if (type != existingValue.getClass() && type != ((Field) fieldOrMethod.get()).getType())
+                    throw new IllegalArgumentException(
+                            format("Type mismatch: %s != %s, either use '%s.apply()' to keep existing object or explicitly create and assign a new object.",
+                            type, existingValue.getClass(), fieldOrMethodName));
+
+                return (T) getProxyFor(existingValue).apply(namedParams, body);
+            }
+
             T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
             return callSetterOrMethod(fieldOrMethodName, created);
         } finally {
@@ -434,6 +454,16 @@ public class KlumInstanceProxy {
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
         try {
             BreadcrumbCollector.getInstance().enter(mapName, key);
+
+            T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
+            if (existing != null) {
+                if (type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
+                    throw new IllegalArgumentException(
+                            format("Type mismatch: %s != %s, either use 'apply()' to keep existing object or explicitly create and assign a new object.",
+                                    type, existing.getClass()));
+                return (T) getProxyFor(existing).apply(namedParams, body);
+            }
+
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return doAddElementToMap(mapName, key, created);
         } finally {

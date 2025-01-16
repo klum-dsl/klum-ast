@@ -27,6 +27,7 @@
   - Owner objects can be converted before handing them to owner fields or methods (see [Owner Converters](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters) and [#189](https://github.com/klum-dsl/klum-ast/issues/189))
   - New `@Role` annotation to infer the name of the owner field containing an object (see [Role fields](https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields) and [#86](https://github.com/klum-dsl/klum-ast/issues/86))
 - Overwrite strategies for `copyFrom` and templates (see [Copy Strategies](https://github.com/klum-dsl/klum-ast/wiki/Copy-Strategies) and [#309](https://github.com/klum-dsl/klum-ast/issues/309))
+- Multiple calls to a single object closure now configure the same object instead of completely overriding the previous field, the same for map entries using the same key. (see [#325](https://github.com/klum-dsl/klum-ast/issues/325)). While this is a more natural behaviour, it might break existing code in some corner cases, see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)).
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))

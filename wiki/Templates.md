@@ -32,8 +32,6 @@ As with normal factory methods, templates can be created using the `Create.Templ
 closure, or by using the `Create.TemplateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
 similar to to `Create.From` methods.
 
-```groovy
- 
 There currently four options to apply templates, all examples use the following class and template:
 
 ```groovy
@@ -204,7 +202,7 @@ Config.withTemplates((Environment) : [status: 'valid'], (Server) : [os: 'linux',
 }
 ```
 
-Note that Groovy requires the key object to be in parantheses if it is not a String.
+Note that Groovy requires the key object to be in parentheses if it is not a String.
 
 # templates for abstract classes
 

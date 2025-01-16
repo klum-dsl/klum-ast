@@ -503,7 +503,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "create inner object via key and closure"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -520,7 +520,7 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         def innerInstance
-        instance.apply {
+        instance = Foo.Create.With {
             innerInstance = inner("Dieter") {
                 value 15
             }
@@ -534,13 +534,150 @@ class TransformSpec extends AbstractDSLSpec {
         innerInstance != null
 
         when: "Allow named arguments for simple objects"
-        instance.apply {
+        instance = Foo.Create.With {
             innerInstance = inner("Hans", value: 16)
         }
 
         then:
         innerInstance.name == "Hans"
         innerInstance.value == 16
+    }
+
+    @Issue("325")
+    def "create with double apply should be retained if keys are identical"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar inner
+            }
+
+            @DSL
+            class Bar {
+                @Key String name
+                int value
+            }
+        ''')
+
+        when:
+        def innerInstance
+        def secondInnerInstance
+        instance = Foo.Create.With {
+            innerInstance = inner("Dieter") {
+                value 15
+            }
+            secondInnerInstance = inner("Dieter") {
+                value 1
+            }
+        }
+
+        then:
+        instance.inner.name == "Dieter"
+        instance.inner.value == 1
+        innerInstance.is(secondInnerInstance)
+
+        when: "second apply with different key"
+        instance = Foo.Create.With {
+            inner("Dieter") {
+                value 15
+            }
+            inner("Hans") {
+                value 1
+            }
+        }
+
+        then:
+        def e = thrown(IllegalArgumentException)
+        e.message == "Key mismatch: Hans != Dieter, either use 'inner.apply()' to keep existing object or explicitly create and assign a new object."
+
+        when: "second apply with different key and explicit set"
+        def Bar = getClass("pk.Bar") // need a local variable, since propertyMissing of Test is not called with Delegate Only
+        instance = Foo.Create.With {
+            innerInstance = inner("Dieter") {
+                value 15
+            }
+            inner = Bar.Create.With("Hans") {
+                value 1
+            }
+        }
+
+        then:
+        !innerInstance.is(instance.inner)
+        instance.inner.name == "Hans"
+        instance.inner.value == 1
+    }
+
+    @Issue("325")
+    def "create with double apply fail if different classes are used"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Bar inner
+            }
+
+            @DSL
+            class Bar {
+                int value
+            }
+
+            @DSL
+            class Bier extends Bar {
+            }
+        ''')
+        def Bar = getClass("pk.Bar")
+        def Bier = getClass("pk.Bier")
+
+        when: "second apply with different class"
+        def innerInstance
+        def secondInnerInstance
+        instance = Foo.Create.With {
+            innerInstance = inner {
+                value 15
+            }
+            secondInnerInstance = inner(Bier) {
+                value 1
+            }
+        }
+
+        then:
+        thrown(IllegalArgumentException)
+
+        when: "second apply uses default class"
+        instance = Foo.Create.With {
+            innerInstance = inner(Bier) {
+                value 15
+            }
+            secondInnerInstance = inner {
+                value 1
+            }
+        }
+
+        then:
+        instance.inner.value == 1
+        innerInstance.is(secondInnerInstance)
+        instance.inner.is(innerInstance)
+        instance.inner.getClass() == Bier
+
+        when: "both applys use the same subclass"
+        instance = Foo.Create.With {
+            innerInstance = inner(Bier) {
+                value 15
+            }
+            secondInnerInstance = inner(Bier) {
+                value 1
+            }
+        }
+
+        then:
+        instance.inner.value == 1
+        innerInstance.is(secondInnerInstance)
+        instance.inner.is(innerInstance)
+        instance.inner.getClass() == Bier
     }
 
     def "create list of inner objects"() {
@@ -1201,6 +1338,126 @@ import org.codehaus.groovy.control.CompilePhase
         instance.bars.Felix.url == "4"
     }
 
+    @Issue("325")
+    def "create map of inner objects merges to existing objects"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Key String name
+                String foo
+                String bar
+            }
+        ''')
+
+        when:
+        def firstApply
+        def secondApply
+        instance = Foo.Create.With {
+            bars {
+                firstApply = bar("Dieter") {
+                    foo "fromFirst"
+                }
+                secondApply = bar("Dieter") {
+                    bar "fromSecond"
+                }
+            }
+        }
+
+        then:
+        instance.bars.Dieter.foo == "fromFirst"
+        instance.bars.Dieter.bar == "fromSecond"
+        firstApply.is(secondApply)
+        instance.bars.Dieter.is(firstApply)
+    }
+
+    @Issue("325")
+    def "create map of inner objects merge fails when using incompatible subclasses"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Map<String, Bar> bars
+            }
+
+            @DSL
+            class Bar {
+                @Key String name
+                String foo
+                String bar
+            }
+            
+            @DSL class Bier extends Bar {
+            }
+        ''')
+        def Bar = getClass("pk.Bar")
+        def Bier = getClass("pk.Bier")
+
+        when:
+        def firstApply
+        def secondApply
+        instance = Foo.Create.With {
+            bars {
+                firstApply = bar(Bier, "Dieter") {
+                    foo "fromFirst"
+                }
+                secondApply = bar("Dieter") {
+                    bar "fromSecond"
+                }
+            }
+        }
+
+        then: "Works, because the second apply uses the default class"
+        instance.bars.Dieter.foo == "fromFirst"
+        instance.bars.Dieter.bar == "fromSecond"
+        firstApply.is(secondApply)
+        instance.bars.Dieter.is(firstApply)
+        instance.bars.Dieter.getClass() == Bier
+
+        when:
+        instance = Foo.Create.With {
+            bars {
+                firstApply = bar("Dieter") {
+                    foo "fromFirst"
+                }
+                secondApply = bar(Bier, "Dieter") {
+                    bar "fromSecond"
+                }
+            }
+        }
+
+        then: "fails, because the second apply uses a different class"
+        thrown(IllegalArgumentException)
+
+        when:
+        instance = Foo.Create.With {
+            bars {
+                firstApply = bar(Bier, "Dieter") {
+                    foo "fromFirst"
+                }
+                secondApply = bar(Bier, "Dieter") {
+                    bar "fromSecond"
+                }
+            }
+        }
+
+        then: "works, because the second apply uses the same class"
+        instance.bars.Dieter.foo == "fromFirst"
+        instance.bars.Dieter.bar == "fromSecond"
+        firstApply.is(secondApply)
+        instance.bars.Dieter.is(firstApply)
+        instance.bars.Dieter.getClass() == Bier
+    }
+
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "creation of inner objects in map should return the create object"() {
         given:
@@ -1350,6 +1607,7 @@ import org.codehaus.groovy.control.CompilePhase
 
         then:
         instance.bars.klaus.url == "welt"
+        instance.bars.klaus.is(aBar)
     }
 
     def "equals, hashcode and toString methods are created"() {

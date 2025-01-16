@@ -392,7 +392,7 @@ Foo.Create.With {
 }
 ```
 
-Usually, default implentation is only used on interfaces or abstract classes, but this is not enforced, since there
+Usually, default implementation is only used on interfaces or abstract classes, but this is not enforced, since there
 might be some corner cases where it is useful.
 
 `defaultImpl` can also be used on collections, maps and virtual fields.
