@@ -3,14 +3,90 @@ Migration Guide
 
 # to 2.0
 
+## multiple inner create calls on the same field (or key in a map field) now stack instead of replacing
+
+Previously, multiple calls to the same inner create method would replace the previous value. 
+
+```groovy
+Foo.Create.With {
+    bar {
+        value = 1
+        anotherValue = 2
+    }
+    bar {
+        anotherValue = 3
+    }
+}
+```
+
+Previously, the second call of "bar" would result in a new object, i.e. the object created by the first call would be
+replaced, resulting in:
+
+```groovy
+foo.bar.anotherValue == 3
+foo.bar.value == null
+```
+
+Now those calls stack, so the result would be:
+
+```groovy
+foo.bar.anotherValue == 3
+foo.bar.value == 1
+```
+
+This is especially useful for using deep templates to set the first object:
+
+```groovy
+def template = Foo.Create.Template {
+    bar {
+        value = 1
+        anotherValue = 2
+    }
+}
+
+Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar {
+          anotherValue = 3
+      }
+  }
+}
+```
+
+If the existing object does not match the new object (either because a different key is provided or specific type is given that is
+different from the existing type), an Exception is thrown. In that case, the behaviour can be explicitly overridden by using
+either apply or a setter (to explicitly merge or replace):
+
+```groovy
+Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar.apply { // explicitly force merge
+          anotherValue = 3
+      }
+  }
+}
+```
+
+or
+
+```groovy
+Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar = Bar.Create.With { // explicitly force overwrite
+          anotherValue = 3
+      }
+  }
+}
+```
+
 ## Default Values are actually set, not only returned
 
 This makes objects used in copyFrom behave differently. Previously, the copyFrom methode explicitly ignored default values,
-now the would be copied as well if already set. This can lead to different results if the copy source a) is not a template
+now they would be copied as well if already set. This can lead to different results if the copy source a) is not a template
 object and b) was created outside the current phase run.
 
 If the object was created outside the phase run, it will most likely be a template, so using the `Create.Template()` 
-creator method (or the deprecate `createAsTemplate()` method) will lead to the same result as before.
+creator method (or the deprecated `createAsTemplate()` method) will lead to the same result as before.
 
 ## Owners are now set in the owner phase
 
