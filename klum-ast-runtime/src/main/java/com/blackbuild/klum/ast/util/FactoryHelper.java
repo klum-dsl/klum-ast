@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -152,7 +153,7 @@ public class FactoryHelper {
      */
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
         if (DelegatingScript.class.isAssignableFrom(scriptType))
-            return createFromDelegatingScript(type, (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
+            return createFromDelegatingScript(type, scriptType.getSimpleName(), (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
         Object result = InvokerHelper.runScript(scriptType, null);
         if (!type.isInstance(result))
             throw new IllegalStateException("Script " + scriptType.getName() + " did not return an instance of " + type.getName());
@@ -160,7 +161,7 @@ public class FactoryHelper {
         return (T) result;
     }
 
-    static <T> T createFromDelegatingScript(Class<T> type, DelegatingScript script) {
+    static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
         Consumer<KlumInstanceProxy> apply = proxy -> {
             script.setDelegate(proxy.getRwInstance());
             script.run();
@@ -168,7 +169,7 @@ public class FactoryHelper {
         };
 
         if (DslHelper.isKeyed(type))
-            return doCreate(type, script.getClass().getSimpleName(), () -> createInstance(type, script.getClass().getSimpleName()), apply);
+            return doCreate(type, key, () -> createInstance(type, key), apply);
         else
             return doCreate(type, null, () -> createInstance(type, null), apply);
     }
@@ -226,10 +227,11 @@ public class FactoryHelper {
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, URL src, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, URL src, Function<URL, String> keyProvider, ClassLoader loader) {
+        if (keyProvider == null)
+            keyProvider = FactoryHelper::extractKeyFromUrl;
         try {
-            String path = Paths.get(src.getPath()).getFileName().toString();
-            return createFrom(type, path, ResourceGroovyMethods.getText(src), loader);
+            return createFrom(type, keyProvider.apply(src), ResourceGroovyMethods.getText(src), loader);
         } catch (IOException e) {
             throw new KlumException(e);
         }
@@ -247,7 +249,7 @@ public class FactoryHelper {
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
         GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
-        return createFromDelegatingScript(type, (DelegatingScript) parse);
+        return createFromDelegatingScript(type, name, (DelegatingScript) parse);
     }
 
     @NotNull
@@ -264,12 +266,16 @@ public class FactoryHelper {
      *
      * @param type The type to create
      * @param file The file to read
+     * @param keyProvider The function to provide the key from the file, usually some kind of name extraction
+     * @param loader The classloader to use for creating the script
      * @param <T>  The type to create
      * @return The created instance
      */
-    public static <T> T createFrom(Class<T> type, File file, ClassLoader loader) {
+    public static <T> T createFrom(Class<T> type, File file, Function<File, String> keyProvider, ClassLoader loader) {
+        if (keyProvider == null)
+            keyProvider = FactoryHelper::extractKeyFromFile;
         try {
-            return createFrom(type, file.getName(), ResourceGroovyMethods.getText(file), loader);
+            return createFrom(type, keyProvider.apply(file), ResourceGroovyMethods.getText(file), loader);
         } catch (IOException e) {
             throw new KlumException(e);
         }
@@ -392,4 +398,17 @@ public class FactoryHelper {
         BreadcrumbCollector.getInstance().enter(path);
     }
 
+    private static String extractKeyFromUrl(URL url) {
+        return extractKeyFromFilename(Paths.get(url.getPath()).getFileName().toString());
+    }
+
+    private static String extractKeyFromFile(File f) {
+        String filename = f.getName();
+        return extractKeyFromFilename(filename);
+    }
+
+    private static @NotNull String extractKeyFromFilename(String filename) {
+        int endIndex = filename.lastIndexOf('.');
+        return endIndex != -1 ? filename.substring(0, endIndex) : filename;
+    }
 }
