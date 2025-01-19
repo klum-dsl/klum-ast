@@ -21,43 +21,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process
+package com.blackbuild.klum.ast.util;
 
-import spock.lang.Specification
-import spock.lang.Subject
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 
-class BreadcrumbCollectorTest extends Specification {
+/**
+ * Denotes an exception thrown during the creation of a model.
+ */
+public class KlumModelException extends KlumException {
 
-    @Subject
-    BreadcrumbCollector collector = BreadcrumbCollector.instance;
+    private final String breadCrumbPath;
 
-    def cleanup() {
-        collector.remove()
+    public KlumModelException() {
+        this(null, null);
     }
 
-    def "multiple breadcrumbs work"() {
-        expect:
-        collector.fullPath == ""
-
-        when:
-        collector.enter("a")
-
-        then:
-        collector.fullPath == "/a"
-
-        when:
-        collector.enter("b")
-
-        then:
-        collector.fullPath == "/a/b"
-
-        when:
-        collector.leave()
-        collector.enter("b")
-
-        then:
-        collector.fullPath == "/a/b(2)"
+    public KlumModelException(String message) {
+        this(message, null);
     }
 
+    public KlumModelException(String message, Throwable cause) {
+        super(message, cause);
+        this.breadCrumbPath = BreadcrumbCollector.getInstance().getFullPath();
+    }
 
+    public KlumModelException(Throwable cause) {
+        this(null, cause);
+    }
+
+    public String getBreadCrumbPath() {
+        return breadCrumbPath;
+    }
+
+    @Override
+    public String getMessage() {
+        return super.getMessage() + " at " + breadCrumbPath;
+    }
 }

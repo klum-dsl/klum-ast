@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -52,17 +53,16 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
  * Created by steph on 29.04.2017.
  */
 class AlternativesClassBuilder {
+    private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
     private final ClassNode annotatedClass;
     private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
-    private InnerClassNode collectionFactory;
     private final ClassNode keyType;
     private final ClassNode elementType;
     private final ClassNode rwClass;
     private final String memberName;
     private final Map<ClassNode, String> alternatives;
-
-    private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
+    private InnerClassNode collectionFactory;
     private Map<String, ClassNode> genericsSpec;
 
     public AlternativesClassBuilder(DSLASTTransformation transformation, FieldNode fieldNode) {
@@ -114,11 +114,6 @@ class AlternativesClassBuilder {
         return result;
     }
 
-    private void assertClosureHasNoParameters(ClosureExpression alternativesClosure) {
-        if (alternativesClosure.getParameters().length != 0)
-            CommonAstHelper.addCompileError( "no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
-    }
-
     private ClosureExpression getAlternativesClosureFor(AnnotationNode fieldAnnotation) {
         Expression codeExpression = fieldAnnotation.getMember("alternatives");
         if (codeExpression == null)
@@ -130,6 +125,10 @@ class AlternativesClassBuilder {
         return null;
     }
 
+    private void assertClosureHasNoParameters(ClosureExpression alternativesClosure) {
+        if (alternativesClosure.getParameters().length != 0)
+            CommonAstHelper.addCompileError("no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
+    }
 
     public void invoke() {
         createInnerClass();
@@ -141,101 +140,23 @@ class AlternativesClassBuilder {
         delegateDefaultCreationMethodsToOuterInstance();
     }
 
-    private void createMethodsFromFactory() {
-        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
-        if (factory != null)
-            doCreateMethodsFromFactory();
-        else
-            addDelayedAction(elementType, this::doCreateMethodsFromFactory);
-    }
-
-    private void doCreateMethodsFromFactory() {
-        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
-        genericsSpec = new HashMap<>();
-
-        while (factory != null && factory.isDerivedFrom(KLUM_FACTORY)) {
-            genericsSpec = createGenericsSpec(factory, genericsSpec);
-            factory.getMethods().forEach(this::createDelegateFactoryMethod);
-            factory = factory.getUnresolvedSuperClass();
-        }
-    }
-
-    private void createDelegateFactoryMethod(MethodNode methodNode) {
-        if (methodNode.getName().startsWith("$")) return;
-        if (!methodNode.isPublic()) return;
-        if (methodNode.getName().startsWith("Template")) return;
-
-        ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
-
-        if (isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
-                    .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(fieldNode.getName(),
-                                callX(
-                                        propX(classX(elementType), "Create"),
-                                        methodNode.getName(),
-                                        args(cloneParamsWithAdjustedNames(methodNode))
-                                )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
-        } else if (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
-                    .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(fieldNode.getName(),
-                        callX(
-                            callX(
-                                    propX(classX(elementType), "Create"),
-                                    methodNode.getName(),
-                                    args(cloneParamsWithAdjustedNames(methodNode))
-                            ),
-                            "values"
-                        )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
-        } else if (isAssignableTo(returnType, elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
-                    .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(
-                            memberName,
-                            callX(
-                                    propX(classX(elementType), "Create"),
-                                    methodNode.getName(),
-                                    args(cloneParamsWithAdjustedNames(methodNode))
-                            )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
-        }
-    }
-
-    private boolean fieldNodeIsNoLink() {
-        return DslAstHelper.getFieldType(fieldNode) != FieldType.LINK;
-    }
-
-    private void delegateDefaultCreationMethodsToOuterInstance() {
-        for (MethodNode methodNode : rwClass.getMethods(memberName))
-            createDelegateMethod(methodNode);
-        for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
-            createDelegateMethod(methodNode);
-    }
-
-    void createDelegateMethod(MethodNode targetMethod) {
-        new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
-                .targetType(rwClass)
-                .linkToMethod(targetMethod)
-                .optional()
-                .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
-                .returning(targetMethod.getReturnType())
-                .paramsFrom(targetMethod)
+    private void createInnerClass() {
+        collectionFactory = new InnerClassNode(annotatedClass, annotatedClass.getName() + "$_" + fieldNode.getName(), ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
+        collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
+        collectionFactory.addConstructor(ACC_PUBLIC,
+                params(param(rwClass, "rw")),
+                CommonAstHelper.NO_EXCEPTIONS,
+                block(
+                        assignS(propX(varX("this"), "rw"), varX("rw"))
+                )
+        );
+        MethodBuilder.createProtectedMethod("get$proxy")
+                .returning(make(KlumInstanceProxy.class))
+                .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
                 .addTo(collectionFactory);
+
+        collectionFactory.addAnnotation(createGeneratedAnnotation(AlternativesClassBuilder.class));
+        annotatedClass.getModule().addClass(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
@@ -249,8 +170,10 @@ class AlternativesClassBuilder {
                         propX(varX(closureVarName), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
-                .callMethod(closureVarName, "call")
-                .withDocumentation( doc -> doc
+                .callMethod(classX(BreadcrumbCollector.class), "withBreadcrumbs",
+                        args(constX(fieldNode.getName()), constX(null), varX(closureVarName))
+                )
+                .withDocumentation(doc -> doc
                         .title("Handles the creation/setting of the instances for the " + factoryMethod + " field.")
                         .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
                                 " this method provides additional features like alternative syntaxes or custom factory methods.")
@@ -271,7 +194,7 @@ class AlternativesClassBuilder {
                                 args(varX(templateMapVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
-                .withDocumentation( doc -> doc
+                .withDocumentation(doc -> doc
                         .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
                         .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
                                 "applies it for the closure.")
@@ -295,7 +218,7 @@ class AlternativesClassBuilder {
                                 args(varX(templateVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
-                .withDocumentation( doc -> doc
+                .withDocumentation(doc -> doc
                         .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
                         .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
                                 "applies it for the closure.")
@@ -308,9 +231,39 @@ class AlternativesClassBuilder {
                 .addTo(rwClass);
     }
 
+    private boolean fieldNodeIsNoLink() {
+        return DslAstHelper.getFieldType(fieldNode) != FieldType.LINK;
+    }
+
+    private void createMethodsFromFactory() {
+        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
+        if (factory != null)
+            doCreateMethodsFromFactory();
+        else
+            addDelayedAction(elementType, this::doCreateMethodsFromFactory);
+    }
+
     private void createNamedAlternativeMethodsForSubclasses() {
         CommonAstHelper.findAllKnownSubclassesOf(elementType, annotatedClass.getCompileUnit())
                 .forEach(this::createNamedAlternativeMethodsForSingleSubclass);
+    }
+
+    private void delegateDefaultCreationMethodsToOuterInstance() {
+        for (MethodNode methodNode : rwClass.getMethods(memberName))
+            createDelegateMethod(methodNode);
+        for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
+            createDelegateMethod(methodNode);
+    }
+
+    private void doCreateMethodsFromFactory() {
+        ClassNode factory = CommonAstHelper.getInnerClass(elementType, "_Factory");
+        genericsSpec = new HashMap<>();
+
+        while (factory != null && factory.isDerivedFrom(KLUM_FACTORY)) {
+            genericsSpec = createGenericsSpec(factory, genericsSpec);
+            factory.getMethods().forEach(this::createDelegateFactoryMethod);
+            factory = factory.getUnresolvedSuperClass();
+        }
     }
 
     private void createNamedAlternativeMethodsForSingleSubclass(ClassNode subclass) {
@@ -337,6 +290,73 @@ class AlternativesClassBuilder {
                 .addTo(collectionFactory);
 
         new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);
+    }
+
+    void createDelegateMethod(MethodNode targetMethod) {
+        new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
+                .targetType(rwClass)
+                .linkToMethod(targetMethod)
+                .optional()
+                .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
+                .returning(targetMethod.getReturnType())
+                .paramsFrom(targetMethod)
+                .addTo(collectionFactory);
+    }
+
+    private void createDelegateFactoryMethod(MethodNode methodNode) {
+        if (methodNode.getName().startsWith("$")) return;
+        if (!methodNode.isPublic()) return;
+        if (methodNode.getName().startsWith("Template")) return;
+
+        ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
+
+        if (isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(fieldNode.getName(),
+                            callX(
+                                    propX(classX(elementType), "Create"),
+                                    methodNode.getName(),
+                                    args(cloneParamsWithAdjustedNames(methodNode))
+                            )
+                    )
+                    .copyDocFrom(methodNode)
+                    .addTo(collectionFactory);
+        } else if (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(fieldNode.getName(),
+                            callX(
+                                    callX(
+                                            propX(classX(elementType), "Create"),
+                                            methodNode.getName(),
+                                            args(cloneParamsWithAdjustedNames(methodNode))
+                                    ),
+                                    "values"
+                            )
+                    )
+                    .copyDocFrom(methodNode)
+                    .addTo(collectionFactory);
+        } else if (isAssignableTo(returnType, elementType)) {
+            MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(newClass(returnType))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(
+                            memberName,
+                            callX(
+                                    propX(classX(elementType), "Create"),
+                                    methodNode.getName(),
+                                    args(cloneParamsWithAdjustedNames(methodNode))
+                            )
+                    )
+                    .copyDocFrom(methodNode)
+                    .addTo(collectionFactory);
+        }
     }
 
     private String getShortNameFor(ClassNode subclass) {
@@ -372,24 +392,5 @@ class AlternativesClassBuilder {
             stringSuffix = getMemberStringValue(ancestorAnnotation, "stripSuffix");
         }
         return stringSuffix;
-    }
-
-    private void createInnerClass() {
-        collectionFactory = new InnerClassNode(annotatedClass, annotatedClass.getName() + "$_" + fieldNode.getName(), ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
-        collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
-        collectionFactory.addConstructor(ACC_PUBLIC,
-                params(param(rwClass, "rw")),
-                CommonAstHelper.NO_EXCEPTIONS,
-                block(
-                        assignS(propX(varX("this"), "rw"), varX("rw"))
-                )
-        );
-        MethodBuilder.createProtectedMethod("get$proxy")
-                .returning(make(KlumInstanceProxy.class))
-                .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
-                .addTo(collectionFactory);
-
-        collectionFactory.addAnnotation(createGeneratedAnnotation(AlternativesClassBuilder.class));
-        annotatedClass.getModule().addClass(collectionFactory);
     }
 }

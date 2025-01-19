@@ -53,6 +53,8 @@ public class KlumInstanceProxy {
 
     private final GroovyObject instance;
     private boolean manualValidation;
+    private String breadcrumbPath;
+    private int breadCrumbQuantifier = 1;
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -268,17 +270,19 @@ public class KlumInstanceProxy {
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
 
             if (existingValue != null) {
-                if (!Objects.equals(effectiveKey, getProxyFor(existingValue).getNullableKey()))
-                    throw new IllegalArgumentException(
+                KlumInstanceProxy existingValueProxy = getProxyFor(existingValue);
+                if (!Objects.equals(effectiveKey, existingValueProxy.getNullableKey()))
+                    throw new KlumModelException(
                             format("Key mismatch: %s != %s, either use '%s.apply()' to keep existing object or explicitly create and assign a new object.",
-                                    effectiveKey, getProxyFor(existingValue).getNullableKey(), fieldOrMethodName));
+                                    effectiveKey, existingValueProxy.getNullableKey(), fieldOrMethodName));
 
                 if (type != existingValue.getClass() && type != ((Field) fieldOrMethod.get()).getType())
-                    throw new IllegalArgumentException(
+                    throw new KlumModelException(
                             format("Type mismatch: %s != %s, either use '%s.apply()' to keep existing object or explicitly create and assign a new object.",
                                     type, existingValue.getClass(), fieldOrMethodName));
 
-                return (T) getProxyFor(existingValue).apply(namedParams, body);
+                existingValueProxy.increaseBreadcrumbQuantifier();
+                return (T) existingValueProxy.apply(namedParams, body);
             }
 
             T created = createNewInstanceFromParamsAndClosure(type, effectiveKey, namedParams, body);
@@ -367,7 +371,8 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumbs(collectionName, key, () -> {
+
+        return BreadcrumbCollector.withBreadcrumbs(DslHelper.getElementNameForField(instance.getClass(), collectionName), key, () -> {
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return addElementToCollection(collectionName, created);
         });
@@ -445,7 +450,7 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumbs(mapName, key, () -> {
+        return BreadcrumbCollector.withBreadcrumbs(DslHelper.getElementNameForField(instance.getClass(), mapName), key, () -> {
             T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
                 if (type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
@@ -587,4 +592,19 @@ public class KlumInstanceProxy {
         return Optional.of(result);
     }
 
+    public String getBreadcrumbPath() {
+        if (breadCrumbQuantifier > 1)
+            return breadcrumbPath + "." + breadCrumbQuantifier;
+        return breadcrumbPath;
+    }
+
+    public void setBreadcrumbPath(String breadcrumbPath) {
+        if (this.breadcrumbPath != null)
+            throw new IllegalStateException("Breadcrumb path already set to " + this.breadcrumbPath);
+        this.breadcrumbPath = Objects.requireNonNull(breadcrumbPath);
+    }
+
+    public void increaseBreadcrumbQuantifier() {
+        breadCrumbQuantifier++;
+    }
 }

@@ -175,8 +175,21 @@ public class FactoryHelper {
     }
 
     private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
-        return BreadcrumbCollector.withBreadcrumbs(type.getSimpleName(), key, () ->
-                PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object)));
+        BreadcrumbCollector.getInstance().extend(shortNameFor(type), key);
+        return PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object));
+    }
+
+    private static String shortNameFor(Class<?> type) {
+        StringBuilder result = new StringBuilder();
+
+        if (!type.getPackageName().isEmpty()) {
+            String[] parts = type.getPackageName().split("\\.");
+            for (String part : parts)
+                result.append(part.charAt(0)).append(".");
+        }
+
+        result.append(type.getSimpleName());
+        return result.toString();
     }
 
     private static <T> void postCreate(Consumer<KlumInstanceProxy> apply, T object) {
@@ -191,7 +204,9 @@ public class FactoryHelper {
         if (key == null && DslHelper.isKeyed(type))
             return createInstanceWithNullArg(type);
         //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, key);
+        T result = (T) InvokerHelper.invokeConstructorOf(type, key);
+        KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+        return result;
     }
 
     private static <T> T createInstanceWithNullArg(Class<T> type) {
@@ -215,7 +230,10 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
+        return BreadcrumbCollector.withBreadcrumbs("CREATE:",
+                null,
+                () -> doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body))
+        );
     }
 
     /**
@@ -230,11 +248,15 @@ public class FactoryHelper {
     public static <T> T createFrom(Class<T> type, URL src, Function<URL, String> keyProvider, ClassLoader loader) {
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromUrl;
-        try {
-            return createFrom(type, keyProvider.apply(src), ResourceGroovyMethods.getText(src), loader);
-        } catch (IOException e) {
-            throw new KlumException(e);
-        }
+        String key = keyProvider.apply(src);
+
+        return BreadcrumbCollector.withBreadcrumbs("URL", src, () -> {
+            try {
+                return doCreateFromText(type, key, ResourceGroovyMethods.getText(src), loader);
+            } catch (IOException e) {
+                throw new KlumModelException(e);
+            }
+        });
     }
 
     /**
@@ -247,6 +269,10 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
+        return BreadcrumbCollector.withBreadcrumbs("text", name, () -> doCreateFromText(type, name, text, loader));
+    }
+
+    private static <T> T doCreateFromText(Class<T> type, String name, String text, ClassLoader loader) {
         GroovyShell shell = createGroovyShell(loader);
         Script parse = name != null ? shell.parse(text, name) : shell.parse(text);
         return createFromDelegatingScript(type, name, (DelegatingScript) parse);
@@ -275,9 +301,9 @@ public class FactoryHelper {
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromFile;
         try {
-            return createFrom(type, keyProvider.apply(file), ResourceGroovyMethods.getText(file), loader);
+            return doCreateFromText(type, keyProvider.apply(file), ResourceGroovyMethods.getText(file), loader);
         } catch (IOException e) {
-            throw new KlumException(e);
+            throw new KlumModelException(e);
         }
     }
 
@@ -297,7 +323,7 @@ public class FactoryHelper {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(scriptFile), loader);
         } catch (IOException e) {
-            throw new KlumException(e);
+            throw new KlumModelException(e);
         }
     }
 
@@ -314,7 +340,7 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
-        T result = createAsTemplate(type);
+        T result = createTemplateInstance(type);
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
 
@@ -324,16 +350,16 @@ public class FactoryHelper {
         return result;
     }
 
-    private static <T> T createAsTemplate(Class<T> type) {
+    private static <T> T createTemplateInstance(Class<T> type) {
         if (!DslHelper.isInstantiable(type))
-            return createAsSyntheticTemplate(type);
+            return createSyntheticTemplateInstance(type);
         else if (DslHelper.isKeyed(type))
             return createInstanceWithNullArg(type);
         else
             return createInstanceWithArgs(type);
     }
 
-    private static <T> T createAsSyntheticTemplate(Class<T> type) {
+    private static <T> T createSyntheticTemplateInstance(Class<T> type) {
         try {
             //noinspection unchecked
             return (T) type.getClassLoader().loadClass(type.getName() + "$Template").getDeclaredConstructor().newInstance();
@@ -363,7 +389,7 @@ public class FactoryHelper {
         try {
             return createAsTemplate(type, ResourceGroovyMethods.getText(script), loader);
         } catch (IOException e) {
-            throw new KlumException(e);
+            throw new KlumModelException(e);
         }
     }
 
@@ -382,7 +408,7 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
-        T result = createAsTemplate(type);
+        T result = createTemplateInstance(type);
 
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
         proxy.copyFromTemplate();
@@ -392,10 +418,6 @@ public class FactoryHelper {
 
     public static <T> T createAsStub(Class<T> type, String key) {
         return createInstance(type, key);
-    }
-
-    private static void breadcrumb(String path) {
-        BreadcrumbCollector.getInstance().enter(path);
     }
 
     private static String extractKeyFromUrl(URL url) {

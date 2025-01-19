@@ -23,7 +23,9 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,10 +40,19 @@ public class BreadcrumbCollector {
     private BreadcrumbCollector() {
     }
 
-    public static <T> T withBreadcrumbs(String breadcrumbs, String classifier, Supplier<T> action) {
+    public static <T> T withBreadcrumbs(String breadcrumbs, Object classifier, Supplier<T> action) {
         try {
-            BreadcrumbCollector.getInstance().enter(breadcrumbs, classifier);
+            BreadcrumbCollector.getInstance().enter(breadcrumbs, Objects.toString(classifier, null));
             return action.get();
+        } finally {
+            BreadcrumbCollector.getInstance().leave();
+        }
+    }
+
+    public static <T> T withBreadcrumbs(String breadcrumbs, Object classifier, Closure<T> action) {
+        try {
+            BreadcrumbCollector.getInstance().enter(breadcrumbs, Objects.toString(classifier, null));
+            return action.call();
         } finally {
             BreadcrumbCollector.getInstance().leave();
         }
@@ -64,7 +75,11 @@ public class BreadcrumbCollector {
     public void leave() {
         breadcrumbs.pop();
         if (breadcrumbs.isEmpty())
-            instance.remove();
+            remove();
+    }
+
+    void remove() {
+        instance.remove();
     }
 
     public void enter(String breadcrumb) {
@@ -78,10 +93,19 @@ public class BreadcrumbCollector {
         Objects.requireNonNull(breadcrumbs.peek()).changePath(breadcrumb);
     }
 
-    public void qualify(String qualifier) {
+    public void qualify(@Nullable String qualifier) {
         if (qualifier == null) return;
+        extend(null, qualifier);
+    }
+
+    public void extend(@Nullable String extension, @Nullable String qualifier) {
+        String fullExtension = "";
+        if (extension != null) fullExtension = extension;
+        if (qualifier != null) fullExtension += "(" + qualifier + ")";
+
+        if (fullExtension.isEmpty()) return;
         Breadcrumb head = Objects.requireNonNull(breadcrumbs.peek());
-        head.changePath(head.getPath() + "(" + qualifier + ")");
+        head.changePath(head.getPath() + fullExtension);
     }
 
     public String getLastPathElement() {
@@ -99,7 +123,7 @@ public class BreadcrumbCollector {
     }
 
 
-    static class Breadcrumb {
+    public static class Breadcrumb {
         private final Map<String, AtomicInteger> children = new HashMap<>();
         private String path;
 
@@ -118,6 +142,11 @@ public class BreadcrumbCollector {
         }
 
         public String getPath() {
+            return path;
+        }
+
+        @Override
+        public String toString() {
             return path;
         }
     }

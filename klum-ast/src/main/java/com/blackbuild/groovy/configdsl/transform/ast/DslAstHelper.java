@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.ast.util.LanguageHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -129,17 +130,12 @@ public class DslAstHelper {
             return result;
 
         AnnotationNode fieldAnnotation = CommonAstHelper.getAnnotation(fieldNode, DSLASTTransformation.DSL_FIELD_ANNOTATION);
-        result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", null);
+        result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", "");
 
-        if (result != null && result.length() > 0)
+        if (!result.isEmpty())
             return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
 
-        result = fieldNode.getName();
-
-        if (result.endsWith("s"))
-            result = result.substring(0, result.length() - 1);
-
-        return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
+        return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, LanguageHelper.getSingularForPlural(fieldNode.getName()));
     }
 
     static boolean isKeyed(ClassNode type) {

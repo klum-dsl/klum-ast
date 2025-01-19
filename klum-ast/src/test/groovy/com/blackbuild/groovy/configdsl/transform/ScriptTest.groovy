@@ -94,13 +94,9 @@ value "bla"
         instance.value == "bla"
     }
 
-
-
     File scriptFile(String filename, @Language("groovy") String code) {
         File file = tempFolder.newFile(filename)
         file.text = code
         return file
     }
-
-
 }
