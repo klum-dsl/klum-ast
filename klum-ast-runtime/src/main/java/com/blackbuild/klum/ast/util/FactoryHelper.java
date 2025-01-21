@@ -28,10 +28,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import groovy.lang.Closure;
-import groovy.lang.GroovyClassLoader;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
+import groovy.lang.*;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -54,9 +51,13 @@ import java.util.function.Supplier;
  * the AST generated methods.
  */
 @InlineJavadocs
-public class FactoryHelper {
+public class FactoryHelper extends GroovyObjectSupport {
 
     public static final String MODEL_CLASS_KEY = "model-class";
+
+    static {
+        BreadCrumbVerbInterceptor.registerClass(FactoryHelper.class);
+    }
 
     private FactoryHelper() {
         // static only
@@ -175,21 +176,9 @@ public class FactoryHelper {
     }
 
     private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
-        BreadcrumbCollector.getInstance().extend(shortNameFor(type), key);
-        return PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object));
-    }
-
-    private static String shortNameFor(Class<?> type) {
-        StringBuilder result = new StringBuilder();
-
-        if (!type.getPackageName().isEmpty()) {
-            String[] parts = type.getPackageName().split("\\.");
-            for (String part : parts)
-                result.append(part.charAt(0)).append(".");
-        }
-
-        result.append(type.getSimpleName());
-        return result.toString();
+        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type), key,
+                () -> PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object))
+        );
     }
 
     private static <T> void postCreate(Consumer<KlumInstanceProxy> apply, T object) {
@@ -230,10 +219,7 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return BreadcrumbCollector.withBreadcrumbs("CREATE:",
-                null,
-                () -> doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body))
-        );
+        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
 
     /**
@@ -249,8 +235,8 @@ public class FactoryHelper {
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromUrl;
         String key = keyProvider.apply(src);
-
-        return BreadcrumbCollector.withBreadcrumbs("URL", src, () -> {
+        BreadcrumbCollector.getInstance().setVerb("FromURL").setType(DslHelper.shortNameFor(type)).setQualifier(src.toString());
+        return BreadcrumbCollector.withBreadcrumb(() -> {
             try {
                 return doCreateFromText(type, key, ResourceGroovyMethods.getText(src), loader);
             } catch (IOException e) {
@@ -269,7 +255,8 @@ public class FactoryHelper {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
-        return BreadcrumbCollector.withBreadcrumbs("text", name, () -> doCreateFromText(type, name, text, loader));
+
+        return BreadcrumbCollector.withBreadcrumb("text", name, () -> doCreateFromText(type, name, text, loader));
     }
 
     private static <T> T doCreateFromText(Class<T> type, String name, String text, ClassLoader loader) {

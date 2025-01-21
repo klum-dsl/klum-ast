@@ -25,8 +25,8 @@ class Foo {
         }
 
         then:
-        breadCrumbPath == "/CREATE:p.Foo"
-        breadCrumbFor(instance) == "/CREATE:p.Foo"
+        breadCrumbPath == "/With:p.Foo"
+        breadCrumbFor(instance) == "/With:p.Foo"
     }
 
     def "basic keyed breadcrumb test"() {
@@ -48,8 +48,8 @@ class Foo {
         }
 
         then:
-        breadCrumbPath == "/CREATE:p.Foo(Kurt)"
-        breadCrumbFor(instance) == "/CREATE:p.Foo(Kurt)"
+        breadCrumbPath == "/With:p.Foo(Kurt)"
+        breadCrumbFor(instance) == "/With:p.Foo(Kurt)"
     }
 
     def "nested breadcrumb test"() {
@@ -88,11 +88,11 @@ class KeyBar {
         }
 
         then:
-        breadCrumbPath == "/CREATE:p.Foo/bar"
-        breadCrumbPath2 == "/CREATE:p.Foo/keyBar(Kurt)"
-        breadCrumbFor(instance) == "/CREATE:p.Foo"
-        breadCrumbFor(instance.bar) == "/CREATE:p.Foo/bar"
-        breadCrumbFor(instance.keyBar) == "/CREATE:p.Foo/keyBar(Kurt)"
+        breadCrumbPath == "/With:p.Foo/bar"
+        breadCrumbPath2 == "/With:p.Foo/keyBar(Kurt)"
+        breadCrumbFor(instance) == "/With:p.Foo"
+        breadCrumbFor(instance.bar) == "/With:p.Foo/bar"
+        breadCrumbFor(instance.keyBar) == "/With:p.Foo/keyBar(Kurt)"
 
         when:
         instance = clazz.Create.With {
@@ -103,8 +103,8 @@ class KeyBar {
         }
 
         then:
-        breadCrumbFor(instance.bar) == "/CREATE:p.Foo/bar.2"
-        breadCrumbFor(instance.keyBar) == "/CREATE:p.Foo/keyBar(Kurt).2"
+        breadCrumbFor(instance.bar) == "/With:p.Foo/bar.2"
+        breadCrumbFor(instance.keyBar) == "/With:p.Foo/keyBar(Kurt).2"
 
         when:
         instance = clazz.Create.With {
@@ -114,7 +114,7 @@ class KeyBar {
 
         then:
         def e = thrown(KlumModelException)
-        e.breadCrumbPath == "/CREATE:p.Foo/keyBar(Murt)"
+        e.breadCrumbPath == "/With:p.Foo/keyBar(Murt)"
     }
 
     private String breadCrumbFor(instance) {
@@ -141,9 +141,9 @@ class Bar {
         }
 
         then:
-        breadCrumbFor(instance) == "/CREATE:Foo"
-        breadCrumbFor(instance.bars[0]) == "/CREATE:Foo/bar"
-        breadCrumbFor(instance.bars[1]) == "/CREATE:Foo/bar(2)"
+        breadCrumbFor(instance) == "/With:Foo"
+        breadCrumbFor(instance.bars[0]) == "/With:Foo/bar"
+        breadCrumbFor(instance.bars[1]) == "/With:Foo/bar(2)"
     }
 
     def "complex test with collections and maps"() {
@@ -179,11 +179,11 @@ class Inner {
         }
 
         then:
-        breadCrumbFor(instance.singleMiddle) == "/CREATE:p.Model/singleMiddle(Kurt)"
-        breadCrumbFor(instance.middles[0]) == "/CREATE:p.Model/middle(Hans)"
-        breadCrumbFor(instance.middles[1]) == "/CREATE:p.Model/middle(Franz)"
-        breadCrumbFor(instance.mapMiddles["Hans"]) == "/CREATE:p.Model/mapMiddle(Hans)"
-        breadCrumbFor(instance.mapMiddles["Peter"]) == "/CREATE:p.Model/mapMiddle(Peter)"
+        breadCrumbFor(instance.singleMiddle) == "/With:p.Model/singleMiddle(Kurt)"
+        breadCrumbFor(instance.middles[0]) == "/With:p.Model/middle(Hans)"
+        breadCrumbFor(instance.middles[1]) == "/With:p.Model/middle(Franz)"
+        breadCrumbFor(instance.mapMiddles["Hans"]) == "/With:p.Model/mapMiddle(Hans)"
+        breadCrumbFor(instance.mapMiddles["Peter"]) == "/With:p.Model/mapMiddle(Peter)"
     }
 
     def "complex test with collections and maps and collection factories"() {
@@ -223,10 +223,10 @@ class Inner {
         }
 
         then:
-        breadCrumbFor(instance.middles[0]) == "/CREATE:p.Model/middles/middle(Hans)"
-        breadCrumbFor(instance.middles[1]) == "/CREATE:p.Model/middles/CREATE:p.Middle(Franz)"
-        breadCrumbFor(instance.mapMiddles["Hans"]) == "/CREATE:p.Model/mapMiddles/mapMiddle(Hans)"
-        breadCrumbFor(instance.mapMiddles["Peter"]) == "/CREATE:p.Model/mapMiddles/CREATE:p.Middle(Peter)"
+        breadCrumbFor(instance.middles[0]) == "/With:p.Model/middles/middle(Hans)"
+        breadCrumbFor(instance.middles[1]) == "/With:p.Model/middles/With:p.Middle(Franz)"
+        breadCrumbFor(instance.mapMiddles["Hans"]) == "/With:p.Model/mapMiddles/mapMiddle(Hans)"
+        breadCrumbFor(instance.mapMiddles["Peter"]) == "/With:p.Model/mapMiddles/With:p.Middle(Peter)"
     }
 
 }

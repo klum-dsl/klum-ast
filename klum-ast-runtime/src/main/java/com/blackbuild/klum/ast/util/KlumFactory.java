@@ -25,7 +25,8 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.DSL;
-import groovy.lang.*;
+import groovy.lang.Closure;
+import groovy.lang.Script;
 import groovy.transform.Undefined;
 import groovy.util.DelegatingScript;
 

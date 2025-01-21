@@ -254,7 +254,7 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumbs(fieldOrMethodName, key, () -> {
+        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
             T existingValue = null;
 
             Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
@@ -372,7 +372,7 @@ public class KlumInstanceProxy {
      */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
 
-        return BreadcrumbCollector.withBreadcrumbs(DslHelper.getElementNameForField(instance.getClass(), collectionName), key, () -> {
+        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return addElementToCollection(collectionName, created);
         });
@@ -450,7 +450,7 @@ public class KlumInstanceProxy {
      * @return the newly created element
      */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumbs(DslHelper.getElementNameForField(instance.getClass(), mapName), key, () -> {
+        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
             T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
                 if (type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))

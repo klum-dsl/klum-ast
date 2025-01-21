@@ -94,6 +94,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
+    //public static final ClassNode BREADCRUB_VERB_PROVIDER = make(BreadcrumbVerbProviderMetaClass.class);
     public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
@@ -103,7 +104,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     private static final String FACTORY_FIELD_NAME = "Create";
-    public static final ClassNode OVERRIDE = make(Override.class);
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -204,10 +204,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
-                parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
+                parentRW != null ? parentRW : OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
         AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
+
+        DslAstHelper.registerAsVerbProvider(rwClass);
 
         rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
@@ -1023,6 +1025,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
         AnnoDocUtil.addDocumentation(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
+
+        DslAstHelper.registerAsVerbProvider(factoryClass);
 
         if (factoryIsGeneric)
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,

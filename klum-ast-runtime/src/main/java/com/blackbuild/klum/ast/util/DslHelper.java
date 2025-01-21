@@ -282,4 +282,18 @@ public class DslHelper {
             return (Class<?>) ((ParameterizedType) type).getRawType();
         throw new IllegalArgumentException("Unknown Type: " + type);
     }
+
+    public static String shortNameFor(Class<?> type) {
+        if (type == null) return null;
+        StringBuilder result = new StringBuilder();
+
+        if (!type.getPackageName().isEmpty()) {
+            String[] parts = type.getPackageName().split("\\.");
+            for (String part : parts)
+                result.append(part.charAt(0)).append(".");
+        }
+
+        result.append(type.getSimpleName());
+        return result.toString();
+    }
 }

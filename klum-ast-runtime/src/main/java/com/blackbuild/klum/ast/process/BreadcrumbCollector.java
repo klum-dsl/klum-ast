@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.process;
 
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,32 +36,55 @@ public class BreadcrumbCollector {
     private static final ThreadLocal<BreadcrumbCollector> instance = new ThreadLocal<>();
     private final Deque<Breadcrumb> breadcrumbs = new ArrayDeque<>();
 
+    private String currentVerb;
+    private String currentType;
+    private String currentQualifier;
+    
     private BreadcrumbCollector() {
     }
 
-    public static <T> T withBreadcrumbs(String breadcrumbs, Object classifier, Supplier<T> action) {
+    public static <T> T withBreadcrumb(Supplier<T> action) {
+        BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
         try {
-            BreadcrumbCollector.getInstance().enter(breadcrumbs, Objects.toString(classifier, null));
+            collector.enter();
             return action.get();
         } finally {
-            BreadcrumbCollector.getInstance().leave();
+            collector.leave();
         }
     }
 
-    public static <T> T withBreadcrumbs(String breadcrumbs, Object classifier, Closure<T> action) {
+    public static <T> T withBreadcrumb(String type, String qualifier, Supplier<T> action) {
+        BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
         try {
-            BreadcrumbCollector.getInstance().enter(breadcrumbs, Objects.toString(classifier, null));
+            collector.setType(type).setQualifier(qualifier).enter();
+            return action.get();
+        } finally {
+            collector.leave();
+        }
+    }
+
+    public static <T> T withBreadcrumb(Closure<T> action) {
+        BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
+        try {
+            collector.enter();
             return action.call();
         } finally {
-            BreadcrumbCollector.getInstance().leave();
+            collector.leave();
         }
     }
 
-    public void enter(String breadcrumb, String classifier) {
-        if (classifier != null)
-            enter(breadcrumb + "(" + classifier + ")");
+    public void enter() {
+        if (breadcrumbs.isEmpty())
+            breadcrumbs.push(new Breadcrumb(currentVerb, currentType, currentQualifier));
         else
-            enter(breadcrumb);
+            breadcrumbs.push(breadcrumbs.peek().createChildCrumb(currentVerb, currentType, currentQualifier));
+        clearCurrentCrumb();
+    }
+
+    private void clearCurrentCrumb() {
+        currentVerb = null;
+        currentType = null;
+        currentQualifier = null;
     }
 
     @NotNull
@@ -82,34 +104,22 @@ public class BreadcrumbCollector {
         instance.remove();
     }
 
-    public void enter(String breadcrumb) {
-        if (breadcrumbs.isEmpty())
-            breadcrumbs.push(new Breadcrumb(breadcrumb));
-        else
-            breadcrumbs.push(breadcrumbs.peek().createChildCrumb(breadcrumb));
+    public BreadcrumbCollector setVerb(String verb) {
+        if (currentVerb == null)
+            currentVerb = verb;
+        return this;
     }
 
-    public void replace(String breadcrumb) {
-        Objects.requireNonNull(breadcrumbs.peek()).changePath(breadcrumb);
+    public BreadcrumbCollector setType(String type) {
+        if (currentType == null)
+            currentType = type;
+        return this;
     }
 
-    public void qualify(@Nullable String qualifier) {
-        if (qualifier == null) return;
-        extend(null, qualifier);
-    }
-
-    public void extend(@Nullable String extension, @Nullable String qualifier) {
-        String fullExtension = "";
-        if (extension != null) fullExtension = extension;
-        if (qualifier != null) fullExtension += "(" + qualifier + ")";
-
-        if (fullExtension.isEmpty()) return;
-        Breadcrumb head = Objects.requireNonNull(breadcrumbs.peek());
-        head.changePath(head.getPath() + fullExtension);
-    }
-
-    public String getLastPathElement() {
-        return breadcrumbs.peek() != null ? breadcrumbs.peek().getPath() : null;
+    public BreadcrumbCollector setQualifier(String qualifier) {
+        if (currentQualifier == null)
+            currentQualifier = qualifier;
+        return this;
     }
 
     // join the paths from tail to head, because the breadcrumbs are stacked in reverse order.
@@ -122,23 +132,37 @@ public class BreadcrumbCollector {
         return sb.toString();
     }
 
-
     public static class Breadcrumb {
         private final Map<String, AtomicInteger> children = new HashMap<>();
         private String path;
 
-        Breadcrumb(String path) {
-            this.path = path;
+        Breadcrumb(String verb, String type, String qualifier) {
+            this.path = createPath(verb, type, qualifier);
+        }
+
+        private static @NotNull String createPath(String verb, String type, String qualifier) {
+            StringBuilder builder = new StringBuilder();
+            if (verb != null) builder.append(verb);
+            if (type != null) builder.append(":").append(type);
+            if (qualifier != null) builder.append("(").append(qualifier).append(")");
+            return builder.toString();
+        }
+
+        Breadcrumb(String path, int quantifier) {
+            if (quantifier > 1)
+                this.path = path + "(" + quantifier + ")";
+            else
+                this.path = path;
         }
 
         void changePath(String path) {
             this.path = path;
         }
 
-        Breadcrumb createChildCrumb(String path) {
-            int count = children.computeIfAbsent(path, p -> new AtomicInteger()).incrementAndGet();
-            String effectivePath = count > 1 ? path + "(" + count + ")" : path;
-            return new Breadcrumb(effectivePath);
+        Breadcrumb createChildCrumb(String verb, String type, String qualifier) {
+            String basePath = createPath(verb, type, qualifier);
+            int count = children.computeIfAbsent(basePath, p -> new AtomicInteger()).incrementAndGet();
+            return new Breadcrumb(basePath, count);
         }
 
         public String getPath() {
