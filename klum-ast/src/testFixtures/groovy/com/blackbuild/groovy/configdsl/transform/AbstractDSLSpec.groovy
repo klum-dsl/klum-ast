@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.BreadcrumbCollector
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.runtime.InvokerHelper
@@ -55,11 +56,12 @@ class AbstractDSLSpec extends Specification {
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
-        def outputDirectory = new File("build/test-classes/${getClass().simpleName}/$safeFilename")
+        def outputDirectory = new File("build/test-classes/$GroovySystem.version/${getClass().simpleName}/$safeFilename")
         outputDirectory.deleteDir()
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
         compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
+        BreadcrumbCollector.getInstance(specificationContext.currentIteration.name)
     }
 
     def getSafeFilename() {
@@ -68,6 +70,8 @@ class AbstractDSLSpec extends Specification {
 
     def cleanup() {
         Thread.currentThread().contextClassLoader = oldLoader
+        assert !BreadcrumbCollector.INSTANCE.get()?.breadcrumbs
+        BreadcrumbCollector.INSTANCE.remove()
     }
 
     def propertyMissing(String name) {

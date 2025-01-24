@@ -33,14 +33,19 @@ import java.util.function.Supplier;
 public class BreadcrumbCollector {
 
     // Thread singleton
-    private static final ThreadLocal<BreadcrumbCollector> instance = new ThreadLocal<>();
+    private static final ThreadLocal<BreadcrumbCollector> INSTANCE = new ThreadLocal<>();
     private final Deque<Breadcrumb> breadcrumbs = new ArrayDeque<>();
 
     private String currentVerb;
     private String currentType;
     private String currentQualifier;
+    private String context;
     
     private BreadcrumbCollector() {
+    }
+
+    private BreadcrumbCollector(String context) {
+        this.context = context;
     }
 
     public static <T> T withBreadcrumb(Supplier<T> action) {
@@ -53,10 +58,10 @@ public class BreadcrumbCollector {
         }
     }
 
-    public static <T> T withBreadcrumb(String type, String qualifier, Supplier<T> action) {
+    public static <T> T withBreadcrumb(String verb, String type, String qualifier, Supplier<T> action) {
         BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
         try {
-            collector.setType(type).setQualifier(qualifier).enter();
+            collector.setVerb(verb).setType(type).setQualifier(qualifier).enter();
             return action.get();
         } finally {
             collector.leave();
@@ -67,6 +72,15 @@ public class BreadcrumbCollector {
         BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
         try {
             collector.enter();
+            return action.call();
+        } finally {
+            collector.leave();
+        }
+    }
+    public static <T> T withBreadcrumb(String verb, String type, String qualifier, Closure<T> action) {
+        BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
+        try {
+            collector.setVerb(verb).setType(type).setQualifier(qualifier).enter();
             return action.call();
         } finally {
             collector.leave();
@@ -87,21 +101,45 @@ public class BreadcrumbCollector {
         currentQualifier = null;
     }
 
+    public static boolean hasInstance() {
+        return INSTANCE.get() != null;
+    }
+
     @NotNull
     public static BreadcrumbCollector getInstance() {
-        if (instance.get() == null)
-            instance.set(new BreadcrumbCollector());
-        return instance.get();
+        if (INSTANCE.get() == null)
+            INSTANCE.set(new BreadcrumbCollector());
+        return INSTANCE.get();
+    }
+
+    @NotNull
+    public static BreadcrumbCollector getInstance(String context) {
+        if (INSTANCE.get() == null) {
+            BreadcrumbCollector collector = new BreadcrumbCollector(context);
+            INSTANCE.set(collector);
+        }
+
+        BreadcrumbCollector collector = INSTANCE.get();
+        collector.setContext(context);
+        return collector;
+    }
+
+    public void setContext(String context) {
+        if (context == null) return;
+        if (this.context != null && !this.context.equals(context))
+            throw new IllegalStateException("Context mismatch: " + context + " != " + this.context);
+        this.context = context;
     }
 
     public void leave() {
         breadcrumbs.pop();
+        clearCurrentCrumb();
         if (breadcrumbs.isEmpty())
-            remove();
+            cleanup();
     }
 
-    void remove() {
-        instance.remove();
+    void cleanup() {
+        INSTANCE.remove();
     }
 
     public BreadcrumbCollector setVerb(String verb) {
@@ -124,12 +162,16 @@ public class BreadcrumbCollector {
 
     // join the paths from tail to head, because the breadcrumbs are stacked in reverse order.
     public String getFullPath() {
-        StringBuilder sb = new StringBuilder();
-        breadcrumbs.descendingIterator().forEachRemaining(b -> {
-            sb.append("/");
-            sb.append(b.getPath());
-        });
+        if (breadcrumbs.isEmpty())
+            return "";
+        StringBuilder sb = new StringBuilder("$");
+        breadcrumbs.descendingIterator().forEachRemaining(b -> sb.append("/").append(b.getPath()));
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return "BC: " + breadcrumbs;
     }
 
     public static class Breadcrumb {
@@ -150,7 +192,7 @@ public class BreadcrumbCollector {
 
         Breadcrumb(String path, int quantifier) {
             if (quantifier > 1)
-                this.path = path + "(" + quantifier + ")";
+                this.path = path + "[" + quantifier + "]";
             else
                 this.path = path;
         }

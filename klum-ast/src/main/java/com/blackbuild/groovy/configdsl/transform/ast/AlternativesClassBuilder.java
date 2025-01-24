@@ -133,11 +133,11 @@ class AlternativesClassBuilder {
     public void invoke() {
         createInnerClass();
         createClosureForOuterClass();
+        delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
-        delegateDefaultCreationMethodsToOuterInstance();
     }
 
     private void createInnerClass() {
@@ -150,6 +150,8 @@ class AlternativesClassBuilder {
                         assignS(propX(varX("this"), "rw"), varX("rw"))
                 )
         );
+        DslAstHelper.registerAsVerbProvider(collectionFactory);
+
         MethodBuilder.createProtectedMethod("get$proxy")
                 .returning(make(KlumInstanceProxy.class))
                 .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
@@ -170,8 +172,8 @@ class AlternativesClassBuilder {
                         propX(varX(closureVarName), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
-                .callMethod(classX(BreadcrumbCollector.class), "withBreadcrumbs",
-                        args(constX(fieldNode.getName()), constX(null), varX(closureVarName))
+                .callMethod(classX(BreadcrumbCollector.class), "withBreadcrumb",
+                        args(constX(fieldNode.getName()), constX(null), constX(null), varX(closureVarName))
                 )
                 .withDocumentation(doc -> doc
                         .title("Handles the creation/setting of the instances for the " + factoryMethod + " field.")
@@ -250,9 +252,9 @@ class AlternativesClassBuilder {
 
     private void delegateDefaultCreationMethodsToOuterInstance() {
         for (MethodNode methodNode : rwClass.getMethods(memberName))
-            createDelegateMethod(methodNode);
+            createDelegateMethods(methodNode);
         for (MethodNode methodNode : rwClass.getMethods(fieldNode.getName()))
-            createDelegateMethod(methodNode);
+            createDelegateMethods(methodNode);
     }
 
     private void doCreateMethodsFromFactory() {
@@ -278,6 +280,7 @@ class AlternativesClassBuilder {
         ClassNode subClassSafe = newClass(subclass);
 
         new ProxyMethodBuilder(varX("rw"), methodName, memberName)
+                .optional()
                 .targetType(rwClass)
                 .linkToField(fieldNode)
                 .mod(ACC_PUBLIC)
@@ -292,15 +295,23 @@ class AlternativesClassBuilder {
         new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);
     }
 
-    void createDelegateMethod(MethodNode targetMethod) {
-        new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
-                .targetType(rwClass)
-                .linkToMethod(targetMethod)
-                .optional()
-                .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
-                .returning(targetMethod.getReturnType())
-                .paramsFrom(targetMethod)
-                .addTo(collectionFactory);
+    private void createDelegateMethods(MethodNode targetMethod) {
+        int numberOfDefaultParams = (int) Arrays.stream(targetMethod.getParameters()).filter(p -> p.hasInitialExpression()).count();
+
+        // We want to create an explicit method realized method after resolving default values
+        // i.e. bla(int a, int b = 1) -> bla(int a, int b) and bla(int a), otherwise, null values might
+        // cause the wrong method to be called.
+        do {
+            new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
+                    .targetType(rwClass)
+                    .linkToMethod(targetMethod)
+                    .optional()
+                    .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
+                    .returning(targetMethod.getReturnType())
+                    .paramsFromWithoutDefaults(targetMethod, numberOfDefaultParams)
+                    .addTo(collectionFactory);
+            numberOfDefaultParams--;
+        } while (numberOfDefaultParams >= 0);
     }
 
     private void createDelegateFactoryMethod(MethodNode methodNode) {

@@ -1,3 +1,26 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2024 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package com.blackbuild.groovy.configdsl.transform.ast.process
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
@@ -8,6 +31,10 @@ import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor
 
 @SuppressWarnings("GrPackage")
 class BreadcrumbCollectorRuntimeTest extends AbstractDSLSpec {
+
+    def cleanup() {
+        BreadcrumbCollector.INSTANCE.remove()
+    }
 
     def "basic breadcrumb test"() {
         given:
@@ -20,13 +47,13 @@ class Foo {
  '''
         when:
         String breadCrumbPath = null
-        instance = clazz.Create.With {
+        instance = Foo.Create.With {
             breadCrumbPath = BreadcrumbCollector.instance.fullPath
         }
 
         then:
-        breadCrumbPath == "/With:p.Foo"
-        breadCrumbFor(instance) == "/With:p.Foo"
+        breadCrumbPath == '$/p.Foo.With'
+        breadCrumbFor(instance) == '$/p.Foo.With'
     }
 
     def "basic keyed breadcrumb test"() {
@@ -48,8 +75,8 @@ class Foo {
         }
 
         then:
-        breadCrumbPath == "/With:p.Foo(Kurt)"
-        breadCrumbFor(instance) == "/With:p.Foo(Kurt)"
+        breadCrumbPath == '$/p.Foo.With(Kurt)'
+        breadCrumbFor(instance) == '$/p.Foo.With(Kurt)'
     }
 
     def "nested breadcrumb test"() {
@@ -88,11 +115,11 @@ class KeyBar {
         }
 
         then:
-        breadCrumbPath == "/With:p.Foo/bar"
-        breadCrumbPath2 == "/With:p.Foo/keyBar(Kurt)"
-        breadCrumbFor(instance) == "/With:p.Foo"
-        breadCrumbFor(instance.bar) == "/With:p.Foo/bar"
-        breadCrumbFor(instance.keyBar) == "/With:p.Foo/keyBar(Kurt)"
+        breadCrumbPath == '$/p.Foo.With/bar'
+        breadCrumbPath2 == '$/p.Foo.With/keyBar(Kurt)'
+        breadCrumbFor(instance) == '$/p.Foo.With'
+        breadCrumbFor(instance.bar) == '$/p.Foo.With/bar'
+        breadCrumbFor(instance.keyBar) == '$/p.Foo.With/keyBar(Kurt)'
 
         when:
         instance = clazz.Create.With {
@@ -103,8 +130,8 @@ class KeyBar {
         }
 
         then:
-        breadCrumbFor(instance.bar) == "/With:p.Foo/bar.2"
-        breadCrumbFor(instance.keyBar) == "/With:p.Foo/keyBar(Kurt).2"
+        breadCrumbFor(instance.bar) == '$/p.Foo.With/bar.2'
+        breadCrumbFor(instance.keyBar) == '$/p.Foo.With/keyBar(Kurt).2'
 
         when:
         instance = clazz.Create.With {
@@ -114,7 +141,7 @@ class KeyBar {
 
         then:
         def e = thrown(KlumModelException)
-        e.breadCrumbPath == "/With:p.Foo/keyBar(Murt)"
+        e.breadCrumbPath == '$/p.Foo.With/keyBar(Murt)'
     }
 
     private String breadCrumbFor(instance) {
@@ -141,9 +168,9 @@ class Bar {
         }
 
         then:
-        breadCrumbFor(instance) == "/With:Foo"
-        breadCrumbFor(instance.bars[0]) == "/With:Foo/bar"
-        breadCrumbFor(instance.bars[1]) == "/With:Foo/bar(2)"
+        breadCrumbFor(instance) == '$/Foo.With'
+        breadCrumbFor(instance.bars[0]) == '$/Foo.With/bar'
+        breadCrumbFor(instance.bars[1]) == '$/Foo.With/bar[2]'
     }
 
     def "complex test with collections and maps"() {
@@ -179,11 +206,11 @@ class Inner {
         }
 
         then:
-        breadCrumbFor(instance.singleMiddle) == "/With:p.Model/singleMiddle(Kurt)"
-        breadCrumbFor(instance.middles[0]) == "/With:p.Model/middle(Hans)"
-        breadCrumbFor(instance.middles[1]) == "/With:p.Model/middle(Franz)"
-        breadCrumbFor(instance.mapMiddles["Hans"]) == "/With:p.Model/mapMiddle(Hans)"
-        breadCrumbFor(instance.mapMiddles["Peter"]) == "/With:p.Model/mapMiddle(Peter)"
+        breadCrumbFor(instance.singleMiddle) == '$/p.Model.With/singleMiddle(Kurt)'
+        breadCrumbFor(instance.middles[0]) == '$/p.Model.With/middle(Hans)'
+        breadCrumbFor(instance.middles[1]) == '$/p.Model.With/middle(Franz)'
+        breadCrumbFor(instance.mapMiddles["Hans"]) == '$/p.Model.With/mapMiddle(Hans)'
+        breadCrumbFor(instance.mapMiddles["Peter"]) == '$/p.Model.With/mapMiddle(Peter)'
     }
 
     def "complex test with collections and maps and collection factories"() {
@@ -203,7 +230,6 @@ class Model {
 @DSL
 class Middle {
     @Key String name
-    Set<Inner> inners
 }
 
 class Inner {
@@ -211,22 +237,37 @@ class Inner {
  '''
 
         when:
+        Class<?> Middle = getClass("pk.Middle")
         instance = clazz.Create.With {
+
+            singleMiddle("adder") {}
             mapMiddles {
-                mapMiddle("Hans") {}
-                With("Peter") {}
+                mapMiddle("adder") {}
+                mapMiddle(Middle, "adderWithClass") {}
+                With("factory") {}
             }
+            middle("adder") {}
+            middle(Middle, "adderWithClass") {}
+
             middles {
-                middle("Hans") {}
-                One("Franz")
+                middle("addera") {}
+                middle(Middle, "adderWithClassa") {}
+                One("factory")
             }
         }
 
         then:
-        breadCrumbFor(instance.middles[0]) == "/With:p.Model/middles/middle(Hans)"
-        breadCrumbFor(instance.middles[1]) == "/With:p.Model/middles/With:p.Middle(Franz)"
-        breadCrumbFor(instance.mapMiddles["Hans"]) == "/With:p.Model/mapMiddles/mapMiddle(Hans)"
-        breadCrumbFor(instance.mapMiddles["Peter"]) == "/With:p.Model/mapMiddles/With:p.Middle(Peter)"
+        verifyAll {
+            breadCrumbFor(instance.singleMiddle) == '$/p.Model.With/singleMiddle(adder)'
+            breadCrumbFor(instance.mapMiddles["adder"]) == '$/p.Model.With/mapMiddles/mapMiddle(adder)'
+            breadCrumbFor(instance.mapMiddles["adderWithClass"]) == '$/p.Model.With/mapMiddles/mapMiddle:p.Middle(adderWithClass)'
+            breadCrumbFor(instance.mapMiddles["factory"]) == '$/p.Model.With/mapMiddles/With(factory)'
+            breadCrumbFor(instance.middles[0]) == '$/p.Model.With/middle(adder)'
+            breadCrumbFor(instance.middles[1]) == '$/p.Model.With/middle:p.Middle(adderWithClass)'
+            breadCrumbFor(instance.middles[2]) == '$/p.Model.With/middles/middle(addera)'
+            breadCrumbFor(instance.middles[3]) == '$/p.Model.With/middles/middle:p.Middle(adderWithClassa)'
+            breadCrumbFor(instance.middles[4]) == '$/p.Model.With/middles/One(factory)'
+        }
     }
 
 }

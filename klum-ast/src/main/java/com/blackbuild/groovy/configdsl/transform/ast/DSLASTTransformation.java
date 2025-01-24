@@ -28,7 +28,6 @@ import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.doc.DocUtil;
-import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
@@ -85,16 +84,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
 
-    static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    //public static final ClassNode BREADCRUB_VERB_PROVIDER = make(BreadcrumbVerbProviderMetaClass.class);
     public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
@@ -555,7 +551,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .documentationTitle(DocUtil.getFlagSetterText(fieldNode))
                     .constantParam(fieldName)
-                    .constantParam(true)
+                    .constantPrimitveParam(true)
                     .addTo(rwClass);
         }
 
@@ -644,6 +640,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
+                        .constantPrimitveParam(false)
                         .optionalStringParam(fieldKeyName, fieldKey != null, null)
                         .delegatingClosureParam(elementRwType, null)
                         .addTo(rwClass);
@@ -658,6 +655,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .constantPrimitveParam(true)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
@@ -812,6 +810,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
+                        .constantPrimitveParam(false)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
@@ -826,6 +825,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .constantPrimitveParam(true)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
@@ -913,6 +913,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
+                    .constantPrimitveParam(false)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
@@ -927,6 +928,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)
+                    .constantPrimitveParam(true)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
                     .addTo(rwClass);

@@ -243,29 +243,29 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Creates a new '{{singleElementName}}' {{param:type?with the given type}} and adds it to the '{{fieldName}}' collection.
-     * The newly created element will be configured by the optional parameters values and closure.
+     * Creates a new '{{fieldName}}' {{param:type?with the given type}} or adds to the existing member if existant.
+     * The newly created (or existing) element will be configured by the optional parameters values and closure.
      * @param namedParams the optional parameters
-     * @param fieldOrMethodName the name of the collection to add the new element to
+     * @param fieldOrMethodName the name of the field to set or setter method to call
      * @param type the type of the new element
      * @param key the key to use for the new element
      * @param body the closure to configure the new element
      * @param <T> the type of the newly created element
      * @return the newly created element
      */
-    public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
+    public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, boolean explicitType, String key, Closure<T> body) {
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             T existingValue = null;
 
             Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(instance.getClass(), fieldOrMethodName);
 
-            if (fieldOrMethod.isEmpty())
+            if (fieldOrMethod.isEmpty()) {
                 fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
-            else
+                if (fieldOrMethod.isEmpty())
+                    throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
+            } else {
                 existingValue = getInstanceAttribute(fieldOrMethodName);
-
-            if (fieldOrMethod.isEmpty())
-                throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
+            }
 
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
 
@@ -298,7 +298,7 @@ public class KlumInstanceProxy {
      * @return the value
      */
     public <T> T setSingleField(String fieldOrMethodName, T value) {
-        return callSetterOrMethod(fieldOrMethodName, value);
+        return BreadcrumbCollector.withBreadcrumb(() -> callSetterOrMethod(fieldOrMethodName, value));
     }
 
     /**
@@ -370,9 +370,8 @@ public class KlumInstanceProxy {
      * @param <T> the type of the newly created element
      * @return the newly created element
      */
-    public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, String key, Closure<T> body) {
-
-        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
+    public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             T created = createNewInstanceFromParamsAndClosure(type, key, namedParams, body);
             return addElementToCollection(collectionName, created);
         });
@@ -449,11 +448,11 @@ public class KlumInstanceProxy {
      * @param <T> the type of the newly created element
      * @return the newly created element
      */
-    public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, String key, Closure<T> body) {
-        return BreadcrumbCollector.withBreadcrumb(shortNameFor(type), key, () -> {
+    public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
-                if (type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
+                if (type != null && type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
                     throw new IllegalArgumentException(
                             format("Type mismatch: %s != %s, either use 'apply()' to keep existing object or explicitly create and assign a new object.",
                                     type, existing.getClass()));

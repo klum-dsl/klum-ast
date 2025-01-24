@@ -38,6 +38,6 @@ class AstReflectionBridgeTest extends Specification {
         def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
 
         then:
-        parameterNames == ["namedParams", "collectionName", "type", "key", "body"]
+        parameterNames == ["namedParams", "collectionName", "type", "explicitType", "key", "body"]
     }
 }

@@ -176,7 +176,8 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
-        return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type), key,
+
+        return BreadcrumbCollector.withBreadcrumb(null, null, key,
                 () -> PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object))
         );
     }
@@ -194,7 +195,8 @@ public class FactoryHelper extends GroovyObjectSupport {
             return createInstanceWithNullArg(type);
         //noinspection unchecked
         T result = (T) InvokerHelper.invokeConstructorOf(type, key);
-        KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+        if (BreadcrumbCollector.hasInstance())
+            KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
         return result;
     }
 
@@ -256,7 +258,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createFrom(Class<T> type, String name, String text, ClassLoader loader) {
 
-        return BreadcrumbCollector.withBreadcrumb("text", name, () -> doCreateFromText(type, name, text, loader));
+        return BreadcrumbCollector.withBreadcrumb(null, "text", name, () -> doCreateFromText(type, name, text, loader));
     }
 
     private static <T> T doCreateFromText(Class<T> type, String name, String text, ClassLoader loader) {

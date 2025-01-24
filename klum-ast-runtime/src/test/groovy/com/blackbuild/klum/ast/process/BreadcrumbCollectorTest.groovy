@@ -32,7 +32,7 @@ class BreadcrumbCollectorTest extends Specification {
     BreadcrumbCollector collector = BreadcrumbCollector.instance;
 
     def cleanup() {
-        collector.remove()
+        collector.cleanup()
     }
 
     def "multiple breadcrumbs work"() {
@@ -40,23 +40,23 @@ class BreadcrumbCollectorTest extends Specification {
         collector.fullPath == ""
 
         when:
-        collector.enter("a")
+        collector.setVerb("a").enter()
 
         then:
-        collector.fullPath == "/a"
+        collector.fullPath == '$/a'
 
         when:
-        collector.enter("b")
+        collector.setVerb("b").enter()
 
         then:
-        collector.fullPath == "/a/b"
+        collector.fullPath == '$/a/b'
 
         when:
         collector.leave()
-        collector.enter("b")
+        collector.setVerb("b").enter()
 
         then:
-        collector.fullPath == "/a/b(2)"
+        collector.fullPath == '$/a/b[2]'
     }
 
 

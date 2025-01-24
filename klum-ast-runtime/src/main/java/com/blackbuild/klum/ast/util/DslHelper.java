@@ -284,7 +284,6 @@ public class DslHelper {
     }
 
     public static String shortNameFor(Class<?> type) {
-        if (type == null) return null;
         StringBuilder result = new StringBuilder();
 
         if (!type.getPackageName().isEmpty()) {
