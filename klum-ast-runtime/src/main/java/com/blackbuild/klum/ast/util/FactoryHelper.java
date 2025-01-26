@@ -92,6 +92,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFromClasspath(Class<T> type, ClassLoader loader) {
+        BreadcrumbCollector.getInstance().setType("classpath");
         String path = "META-INF/klum-model/" + type.getName() + ".properties";
 
         try (InputStream stream = loader.getResourceAsStream(path)) {
@@ -153,6 +154,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, Class<? extends Script> scriptType) {
+        BreadcrumbCollector.getInstance().setType("script").setQualifier(DslHelper.shortNameFor(scriptType));
         if (DelegatingScript.class.isAssignableFrom(scriptType))
             return createFromDelegatingScript(type, scriptType.getSimpleName(), (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
         Object result = InvokerHelper.runScript(scriptType, null);
@@ -162,7 +164,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return (T) result;
     }
 
-    static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
+    private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
         Consumer<KlumInstanceProxy> apply = proxy -> {
             script.setDelegate(proxy.getRwInstance());
             script.run();
@@ -170,13 +172,12 @@ public class FactoryHelper extends GroovyObjectSupport {
         };
 
         if (DslHelper.isKeyed(type))
-            return doCreate(type, key, () -> createInstance(type, key), apply);
+            return doCreate(key, () -> createInstance(type, key), apply);
         else
-            return doCreate(type, null, () -> createInstance(type, null), apply);
+            return doCreate(null, () -> createInstance(type, null), apply);
     }
 
-    private static <T> T doCreate(Class<T> type, String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
-
+    private static <T> T doCreate(String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
                 () -> PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object))
         );
@@ -221,7 +222,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return doCreate(type, key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
+        return doCreate(key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
     }
 
     /**
@@ -234,17 +235,15 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, URL src, Function<URL, String> keyProvider, ClassLoader loader) {
+        BreadcrumbCollector.getInstance().setType("url").setQualifier(src.toString());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromUrl;
         String key = keyProvider.apply(src);
-        BreadcrumbCollector.getInstance().setVerb("FromURL").setType(DslHelper.shortNameFor(type)).setQualifier(src.toString());
-        return BreadcrumbCollector.withBreadcrumb(() -> {
-            try {
-                return doCreateFromText(type, key, ResourceGroovyMethods.getText(src), loader);
-            } catch (IOException e) {
-                throw new KlumModelException(e);
-            }
-        });
+        try {
+            return doCreateFromText(type, key, ResourceGroovyMethods.getText(src), loader);
+        } catch (IOException e) {
+            throw new KlumModelException(e);
+        }
     }
 
     /**
@@ -287,6 +286,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createFrom(Class<T> type, File file, Function<File, String> keyProvider, ClassLoader loader) {
+        BreadcrumbCollector.getInstance().setType("file").setQualifier(file.getPath());
         if (keyProvider == null)
             keyProvider = FactoryHelper::extractKeyFromFile;
         try {
@@ -329,23 +329,28 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
-        T result = createTemplateInstance(type);
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.copyFromTemplate();
+        return BreadcrumbCollector.withBreadcrumb(() -> {
+            T result = createTemplateInstance(type);
+            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+            proxy.copyFromTemplate();
 
-        DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
-        script.setDelegate(proxy.getRwInstance());
-        script.run();
-        return result;
+            DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
+            script.setDelegate(proxy.getRwInstance());
+            script.run();
+            return result;
+        });
     }
 
     private static <T> T createTemplateInstance(Class<T> type) {
+        T result;
         if (!DslHelper.isInstantiable(type))
-            return createSyntheticTemplateInstance(type);
+            result = createSyntheticTemplateInstance(type);
         else if (DslHelper.isKeyed(type))
-            return createInstanceWithNullArg(type);
+            result = createInstanceWithNullArg(type);
         else
-            return createInstanceWithArgs(type);
+            result = createInstanceWithArgs(type);
+        KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+        return result;
     }
 
     private static <T> T createSyntheticTemplateInstance(Class<T> type) {
@@ -397,12 +402,13 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
-        T result = createTemplateInstance(type);
-
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-        proxy.copyFromTemplate();
-        proxy.applyOnly(values, closure);
-        return result;
+        return BreadcrumbCollector.withBreadcrumb(() -> {
+            T result = createTemplateInstance(type);
+            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
+            proxy.copyFromTemplate();
+            proxy.applyOnly(values, closure);
+            return result;
+        });
     }
 
     public static <T> T createAsStub(Class<T> type, String key) {

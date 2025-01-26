@@ -24,14 +24,8 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
-import org.intellij.lang.annotations.Language
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
-
 class ScriptTest extends AbstractDSLSpec {
 
-    @Rule
-    TemporaryFolder tempFolder = new TemporaryFolder()
     File scriptFile
 
     def "Object key should match the filename"() {
@@ -92,11 +86,5 @@ value "bla"
         then:
         instance.name == "dummy.bummy"
         instance.value == "bla"
-    }
-
-    File scriptFile(String filename, @Language("groovy") String code) {
-        File file = tempFolder.newFile(filename)
-        file.text = code
-        return file
     }
 }

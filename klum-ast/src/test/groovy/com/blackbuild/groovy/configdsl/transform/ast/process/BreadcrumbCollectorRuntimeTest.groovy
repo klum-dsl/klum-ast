@@ -270,4 +270,121 @@ class Inner {
         }
     }
 
+    def "from script adds to the breadcrumb"() {
+        given:
+        createClass '''
+package pk
+
+@DSL
+class Foo {
+    @Key String name
+    String value
+}
+'''
+        def scriptFile = scriptFile("bla/my.model", '''
+value "bla"
+''')
+        when:
+        instance = Foo.Create.From(scriptFile)
+
+        then:
+        breadCrumbFor(instance) == "\$/p.Foo.From:file($scriptFile.path)"
+    }
+
+    def "from url adds to the breadcrumb"() {
+        given:
+        createClass '''
+package pk
+
+@DSL
+class Foo {
+    @Key String name
+    String value
+}
+'''
+        def scriptUrl = scriptFile("bla/my.model", '''
+value "bla"
+''').toURI().toURL()
+        when:
+        instance = Foo.Create.From(scriptUrl)
+
+        then:
+        breadCrumbFor(instance) == "\$/p.Foo.From:url($scriptUrl)"
+    }
+
+    def "breadcrumbs in templates"() {
+        given:
+        createClass '''
+package pk
+
+import com.blackbuild.groovy.configdsl.transform.Key
+
+@DSL
+class Model {
+    Middle singleMiddle
+    List<Middle> middles
+    Map<String, Middle> mapMiddles
+}
+
+@DSL
+class Middle {
+    @Key String name
+}
+
+class Inner {
+}
+ '''
+
+        when:
+        Class<?> Middle = getClass("pk.Middle")
+        def template = clazz.Create.Template {
+
+            singleMiddle("adder") {}
+            mapMiddles {
+                mapMiddle("adder") {}
+                mapMiddle(Middle, "adderWithClass") {}
+                With("factory") {}
+            }
+            middle("adder") {}
+            middle(Middle, "adderWithClass") {}
+
+            middles {
+                middle("addera") {}
+                middle(Middle, "adderWithClassa") {}
+                One("factory")
+            }
+        }
+
+        then:
+        verifyAll {
+            breadCrumbFor(template.singleMiddle) == '$/p.Model.Template/singleMiddle(adder)'
+            breadCrumbFor(template.mapMiddles["adder"]) == '$/p.Model.Template/mapMiddles/mapMiddle(adder)'
+            breadCrumbFor(template.mapMiddles["adderWithClass"]) == '$/p.Model.Template/mapMiddles/mapMiddle:p.Middle(adderWithClass)'
+            breadCrumbFor(template.mapMiddles["factory"]) == '$/p.Model.Template/mapMiddles/With(factory)'
+            breadCrumbFor(template.middles[0]) == '$/p.Model.Template/middle(adder)'
+            breadCrumbFor(template.middles[1]) == '$/p.Model.Template/middle:p.Middle(adderWithClass)'
+            breadCrumbFor(template.middles[2]) == '$/p.Model.Template/middles/middle(addera)'
+            breadCrumbFor(template.middles[3]) == '$/p.Model.Template/middles/middle:p.Middle(adderWithClassa)'
+            breadCrumbFor(template.middles[4]) == '$/p.Model.Template/middles/One(factory)'
+        }
+
+        when:
+        instance = Model.withTemplate(template) {
+            Model.Create.One()
+        }
+
+        then:
+        verifyAll {
+            breadCrumbFor(instance.singleMiddle) == '$/p.Model.With/singleMiddle(adder)'
+            breadCrumbFor(instance.mapMiddles["adder"]) == '$/p.Model.With/mapMiddles/mapMiddle(adder)'
+            breadCrumbFor(instance.mapMiddles["adderWithClass"]) == '$/p.Model.With/mapMiddles/mapMiddle:p.Middle(adderWithClass)'
+            breadCrumbFor(instance.mapMiddles["factory"]) == '$/p.Model.With/mapMiddles/With(factory)'
+            breadCrumbFor(instance.middles[0]) == '$/p.Model.With/middle(adder)'
+            breadCrumbFor(instance.middles[1]) == '$/p.Model.With/middle:p.Middle(adderWithClass)'
+            breadCrumbFor(instance.middles[2]) == '$/p.Model.With/middles/middle(addera)'
+            breadCrumbFor(instance.middles[3]) == '$/p.Model.With/middles/middle:p.Middle(adderWithClassa)'
+            breadCrumbFor(instance.middles[4]) == '$/p.Model.With/middles/One(factory)'
+        }
+    }
+
 }

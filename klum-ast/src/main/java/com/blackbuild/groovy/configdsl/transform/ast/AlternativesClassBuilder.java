@@ -44,6 +44,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.create
 import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
+import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
@@ -103,7 +104,7 @@ class AlternativesClassBuilder {
             ClassNode classNode = CommonAstHelper.getClassNodeValueFromLiteralMapEntry(entry, fieldNode);
 
             if (!classNode.isDerivedFrom(elementType))
-                CommonAstHelper.addCompileError(String.format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
+                CommonAstHelper.addCompileError(format("Alternatives value '%s' is no subclass of '%s'.", classNode, elementType), fieldNode, entry);
 
             if (result.containsKey(classNode))
                 CommonAstHelper.addCompileError("Values for 'alternatives' must be unique.", fieldNode, entry);
@@ -164,6 +165,8 @@ class AlternativesClassBuilder {
     private void createClosureForOuterClass() {
         String factoryMethod = fieldNode.getName();
         String closureVarName = "closure";
+        String factoryExplanation = "In addition to the other '%s' and '%s' methods, this method provides additional features like alternative syntaxes or custom factory methods.";
+        String closureVarDescription = "The closure to handle the creation/setting of the instances.";
         createOptionalPublicMethod(factoryMethod)
                 .linkToField(fieldNode)
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
@@ -176,10 +179,9 @@ class AlternativesClassBuilder {
                         args(constX(fieldNode.getName()), constX(null), constX(null), varX(closureVarName))
                 )
                 .withDocumentation(doc -> doc
-                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field.")
-                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
-                                " this method provides additional features like alternative syntaxes or custom factory methods.")
-                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                        .title(format("Handles the creation/setting of the instances for the %s field.", factoryMethod))
+                        .p(format(factoryExplanation, memberName, factoryMethod))
+                        .param(closureVarName, closureVarDescription)
 
                 )
                 .addTo(rwClass);
@@ -197,14 +199,12 @@ class AlternativesClassBuilder {
                         )
                 )
                 .withDocumentation(doc -> doc
-                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
-                        .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
-                                "applies it for the closure.")
-                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
-                                " this method provides additional features like alternative syntaxes or custom factory methods.")
+                        .title(format("Handles the creation/setting of the instances for the %s field using the given anonymous template.", factoryMethod))
+                        .p(format("Creates an anonymous template of type {@link %s} from the given map and applies it for the closure.", elementType.getName()))
+                        .p(format(factoryExplanation, memberName, factoryMethod))
                         .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Map,Closure)")
                         .param(templateMapVarName, "The anonymous template to use for the creation/setting of the instances.")
-                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                        .param(closureVarName, closureVarDescription)
                 )
                 .addTo(rwClass);
 
@@ -221,14 +221,12 @@ class AlternativesClassBuilder {
                         )
                 )
                 .withDocumentation(doc -> doc
-                        .title("Handles the creation/setting of the instances for the " + factoryMethod + " field using the given anonymous template.")
-                        .p("Creates an anonymous template of type {@link " + elementType.getName() + "} from the given map and " +
-                                "applies it for the closure.")
-                        .p("In addition to the other '" + memberName + "' and '" + factoryMethod + "' methods," +
-                                " this method provides additional features like alternative syntaxes or custom factory methods.")
+                        .title(format("Handles the creation/setting of the instances for the %s field using the given template.", factoryMethod))
+                        .p("Applies the given template to the closure.")
+                        .p(format(factoryExplanation, memberName, factoryMethod))
                         .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Object,Closure)")
                         .param(templateVarName, "The anonymous template to use for the creation/setting of the instances.")
-                        .param(closureVarName, "The closure to handle the creation/setting of the instances.")
+                        .param(closureVarName, closureVarDescription)
                 )
                 .addTo(rwClass);
     }
@@ -328,7 +326,7 @@ class AlternativesClassBuilder {
                     .cloneParamsFrom(methodNode)
                     .callThis(fieldNode.getName(),
                             callX(
-                                    propX(classX(elementType), "Create"),
+                                    propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
                                     methodNode.getName(),
                                     args(cloneParamsWithAdjustedNames(methodNode))
                             )
@@ -343,7 +341,7 @@ class AlternativesClassBuilder {
                     .callThis(fieldNode.getName(),
                             callX(
                                     callX(
-                                            propX(classX(elementType), "Create"),
+                                            propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
                                             methodNode.getName(),
                                             args(cloneParamsWithAdjustedNames(methodNode))
                                     ),
@@ -360,7 +358,7 @@ class AlternativesClassBuilder {
                     .callThis(
                             memberName,
                             callX(
-                                    propX(classX(elementType), "Create"),
+                                    propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
                                     methodNode.getName(),
                                     args(cloneParamsWithAdjustedNames(methodNode))
                             )

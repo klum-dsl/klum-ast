@@ -99,7 +99,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
-    private static final String FACTORY_FIELD_NAME = "Create";
+    public static final String FACTORY_FIELD_NAME = "Create";
 
     ClassNode annotatedClass;
     ClassNode dslParent;
