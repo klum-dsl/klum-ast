@@ -375,15 +375,16 @@ class Inner {
 
         then:
         verifyAll {
-            breadCrumbFor(instance.singleMiddle) == '$/p.Model.With/singleMiddle(adder)'
-            breadCrumbFor(instance.mapMiddles["adder"]) == '$/p.Model.With/mapMiddles/mapMiddle(adder)'
-            breadCrumbFor(instance.mapMiddles["adderWithClass"]) == '$/p.Model.With/mapMiddles/mapMiddle:p.Middle(adderWithClass)'
-            breadCrumbFor(instance.mapMiddles["factory"]) == '$/p.Model.With/mapMiddles/With(factory)'
-            breadCrumbFor(instance.middles[0]) == '$/p.Model.With/middle(adder)'
-            breadCrumbFor(instance.middles[1]) == '$/p.Model.With/middle:p.Middle(adderWithClass)'
-            breadCrumbFor(instance.middles[2]) == '$/p.Model.With/middles/middle(addera)'
-            breadCrumbFor(instance.middles[3]) == '$/p.Model.With/middles/middle:p.Middle(adderWithClassa)'
-            breadCrumbFor(instance.middles[4]) == '$/p.Model.With/middles/One(factory)'
+            breadCrumbFor(instance) == '$/p.Model.One'
+            breadCrumbFor(instance.singleMiddle) == '$/p.Model.One/{singleMiddle(adder)}'
+            breadCrumbFor(instance.mapMiddles["adder"]) == '$/p.Model.One/{mapMiddles/mapMiddle(adder)}'
+            breadCrumbFor(instance.mapMiddles["adderWithClass"]) == '$/p.Model.One/{mapMiddles/mapMiddle:p.Middle(adderWithClass)}'
+            breadCrumbFor(instance.mapMiddles["factory"]) == '$/p.Model.One/{mapMiddles/With(factory)}'
+            breadCrumbFor(instance.middles[0]) == '$/p.Model.One/{middle(adder)}'
+            breadCrumbFor(instance.middles[1]) == '$/p.Model.One/{middle:p.Middle(adderWithClass)}'
+            breadCrumbFor(instance.middles[2]) == '$/p.Model.One/{middles/middle(addera)}'
+            breadCrumbFor(instance.middles[3]) == '$/p.Model.One/{middles/middle:p.Middle(adderWithClassa)}'
+            breadCrumbFor(instance.middles[4]) == '$/p.Model.One/{middles/One(factory)}'
         }
     }
 

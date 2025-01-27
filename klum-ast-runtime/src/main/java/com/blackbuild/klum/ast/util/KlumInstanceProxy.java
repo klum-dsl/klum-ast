@@ -31,6 +31,7 @@ import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.*;
@@ -163,9 +164,16 @@ public class KlumInstanceProxy {
     }
 
     public <T> T cloneInstance() {
-        Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey());
-        CopyHandler.copyToFrom(result, instance);
+        Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey(), "{" + getLocalBreadcrumbPath() + "}");
+        KlumInstanceProxy cloneProxy = getProxyFor(result);
+        cloneProxy.copyFrom(instance);
         return (T) result;
+    }
+
+    private @NotNull String getLocalBreadcrumbPath() {
+        if (breadcrumbPath == null || breadcrumbPath.length() < 2)
+            return "";
+        return breadcrumbPath.substring(breadcrumbPath.indexOf("/", 2) + 1);
     }
 
     /**

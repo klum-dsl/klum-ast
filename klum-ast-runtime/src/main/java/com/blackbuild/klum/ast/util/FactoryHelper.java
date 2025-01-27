@@ -192,11 +192,17 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     static <T> T createInstance(Class<T> type, String key) {
+        return createInstance(type, key, null);
+    }
+
+    static <T> T createInstance(Class<T> type, String key, String breadCrumbPathExtension) {
         if (key == null && DslHelper.isKeyed(type))
             return createInstanceWithNullArg(type);
         //noinspection unchecked
         T result = (T) InvokerHelper.invokeConstructorOf(type, key);
-        if (BreadcrumbCollector.hasInstance())
+        if (breadCrumbPathExtension != null)
+            KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadCrumbPathExtension);
+        else if (BreadcrumbCollector.hasInstance())
             KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
         return result;
     }
