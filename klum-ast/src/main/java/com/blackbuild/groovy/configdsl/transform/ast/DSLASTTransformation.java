@@ -73,7 +73,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  *
  * @author Stephan Pauxberger
  */
-@SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"})
+@SuppressWarnings({"WeakerAccess"})
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
@@ -297,7 +297,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (validationExpression instanceof ClosureExpression) {
             ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
-            convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
+            convertClosureExpressionToAssertStatement(validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
         } else {
@@ -305,7 +305,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    void convertClosureExpressionToAssertStatement(String fieldName, ClosureExpression closure, String message) {
+    void convertClosureExpressionToAssertStatement(ClosureExpression closure, String message) {
         BlockStatement block = (BlockStatement) closure.getCode();
 
         if (block.getStatements().size() != 1)
@@ -331,9 +331,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (assertStatement.getMessageExpression() == ConstantExpression.NULL) {
             assertStatement.setMessageExpression(
                     new GStringExpression(
-                            "Field '" + fieldName + "' ($" + closureParameterName + ") is invalid",
-                            Arrays.asList(constX("Field '" + fieldName + "' ("), constX(") is invalid")),
-                            Collections.<Expression>singletonList(
+                            "$" + closureParameterName + " does not match",
+                            Arrays.asList(constX(""), constX(" does not match")),
+                            Collections.singletonList(
                                     callX(
                                             INVOKER_HELPER_CLASS,
                                             "format",

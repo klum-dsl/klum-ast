@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.process.KlumPhase
+import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
@@ -787,7 +787,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
-        closurePhase == KlumPhase.OWNER.number
+        closurePhase == DefaultKlumPhase.OWNER.number
     }
 
     @Issue("49")

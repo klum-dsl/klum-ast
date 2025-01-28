@@ -23,21 +23,48 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.process.KlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.AbstractPhaseAction;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
+import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
+import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
 /**
  * Phase Action that validates the model.
  */
-public class ValidationPhase extends VisitingPhaseAction {
+public class ValidationPhase extends AbstractPhaseAction {
     public ValidationPhase() {
-        super(KlumPhase.VALIDATE);
+        super(DefaultKlumPhase.VALIDATE);
     }
 
     @Override
-    public void visit(String path, Object element, Object container) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        if (!proxy.getManualValidation())
-            Validator.validate(element);
+    public void execute() {
+        new Visitor().execute();
+    }
+
+    public static class Visitor implements ModelVisitor {
+
+        private KlumValidationException aggregatedErrors;
+
+        void execute() {
+            Object root = PhaseDriver.getInstance().getRootObject();
+            StructureUtil.visit(root, this);
+            if (aggregatedErrors != null)
+                throw aggregatedErrors;
+        }
+
+        @Override
+        public void visit(String path, Object element, Object container) {
+            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
+            if (proxy.getManualValidation()) return;
+
+            try {
+                Validator.validate(element);
+            } catch (KlumValidationException e) {
+                if (aggregatedErrors == null)
+                    aggregatedErrors = new KlumValidationException();
+                aggregatedErrors.merge(e);
+            }
+        }
     }
 }

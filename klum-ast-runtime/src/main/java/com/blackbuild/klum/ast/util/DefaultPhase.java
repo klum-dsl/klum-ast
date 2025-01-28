@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
-import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -36,7 +36,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 public class DefaultPhase extends VisitingPhaseAction {
 
     public DefaultPhase() {
-        super(KlumPhase.DEFAULT);
+        super(DefaultKlumPhase.DEFAULT);
     }
 
     @Override

@@ -25,7 +25,8 @@
 //file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
+
+import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
@@ -33,7 +34,7 @@ import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
 
-    AssertionError error
+    KlumValidationException error
 
     def "validation with Groovy Truth"() {
         given:
@@ -49,7 +50,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 
     @Issue("25")
@@ -78,7 +79,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when: 'inner instance does not validate'
         clazz.Create.With {
@@ -87,7 +88,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -98,7 +99,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Issue("25")
@@ -127,7 +128,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -138,7 +139,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -151,7 +152,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Issue("25")
@@ -182,7 +183,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -193,7 +194,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -206,7 +207,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation with default message"() {
@@ -223,8 +224,9 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        error = thrown(AssertionError)
-        error.message.startsWith("'name' must be set.")
+        error = thrown(KlumValidationException)
+        error.message.contains("Field 'name' must be set.")
+        error.suppressed.any { it.message == "Field 'name' must be set. at \$/Foo.With" }
     }
 
     def "validation with message"() {
@@ -241,8 +243,8 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        error = thrown(AssertionError)
-        error.message.startsWith("We need a name.")
+        error = thrown(KlumValidationException)
+        error.message.contains("- We need a name")
     }
 
     def "validation with explicit Groovy Truth"() {
@@ -259,7 +261,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 
     def "validation with Ignore"() {
@@ -276,7 +278,7 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation with Closure"() {
@@ -293,22 +295,22 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        def e = thrown(AssertionError)
-        e.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
+        def e = thrown(KlumValidationException)
+        e.message.contains "- Field 'validated': null does not match. Expression: (it?.length() > 3)"
 
 
         when:
         clazz.Create.With { validated "bla"}
 
         then:
-        error = thrown(AssertionError)
-        error.message == "Field 'validated' ('bla') is invalid. Expression: (it?.length() > 3)"
+        error = thrown(KlumValidationException)
+        error.message.contains "- Field 'validated': 'bla' does not match. Expression: (it?.length() > 3)"
 
         when:
         clazz.Create.With { validated "valid"}
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation with Closure and explicit assert"() {
@@ -325,20 +327,20 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        error = thrown(AssertionError)
+        error = thrown(KlumValidationException)
         // error.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
 
         when:
         clazz.Create.With { validated "bla"}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With { validated "valid"}
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation with Closure and message"() {
@@ -355,8 +357,8 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        error = thrown(AssertionError)
-        error.message.startsWith "It shall not be!"
+        error = thrown(KlumValidationException)
+        error.message.contains "- Field 'validated': It shall not be!. Expression: (it?.length() > 3)"
     }
 
     def "validation with named Closure"() {
@@ -373,19 +375,19 @@ class ValidationSpec extends AbstractDSLSpec {
         clazz.Create.With {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With { validated "bla"}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With { validated "valid"}
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Ignore("class is now a warning, not a failure")
@@ -419,13 +421,13 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
 
         when:
         Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance.apply {
@@ -434,7 +436,7 @@ class ValidationSpec extends AbstractDSLSpec {
         Validator.validate(instance)
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation is not performed on templates"() {
@@ -453,7 +455,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "non annotated fields are not validated"() {
@@ -474,7 +476,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "Validate on class validates all unmarked fields"() {
@@ -491,7 +493,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance = clazz.Create.With {
@@ -499,7 +501,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Issue("276")
@@ -520,7 +522,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance = clazz.Create.With {
@@ -528,7 +530,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Issue("276")
@@ -568,7 +570,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = create("pk.Bar") {}
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 
     @Ignore("Legacy feature")
@@ -593,7 +595,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -602,7 +604,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validation methods must not have parameters"() {
@@ -676,7 +678,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -685,10 +687,10 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
-    def "exceptions in validation method are wrapped in AssertionErrors"() {
+    def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''
             @DSL
@@ -711,7 +713,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        error = thrown(AssertionError)
+        error = thrown(KlumValidationException)
         error.message.contains "value1 is too big"
 
         when:
@@ -721,7 +723,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "multiple validation methods"() {
@@ -751,7 +753,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         clazz.Create.With {
@@ -760,7 +762,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     def "validate method can be be defined"() {
@@ -802,7 +804,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        notThrown(AssertionError)
+        notThrown(KlumValidationException)
     }
 
     @Issue("125")
@@ -828,7 +830,7 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then: 'Validation of outer object fails'
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 
     @Issue("223")
@@ -862,16 +864,16 @@ class ValidationSpec extends AbstractDSLSpec {
 
         when:
         instance.name = 'test'
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
 
         when:
         instance.name = null
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 }

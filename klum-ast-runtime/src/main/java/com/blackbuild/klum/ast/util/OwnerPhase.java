@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Role;
-import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
@@ -39,7 +39,7 @@ import java.util.function.Consumer;
 
 public class OwnerPhase extends VisitingPhaseAction {
     public OwnerPhase() {
-        super(KlumPhase.OWNER);
+        super(DefaultKlumPhase.OWNER);
     }
 
     @Override
@@ -153,10 +153,6 @@ public class OwnerPhase extends VisitingPhaseAction {
         return target.getAnnotation(Owner.class).root();
     }
 
-    private boolean isNotRoot(AnnotatedElement target) {
-        return !isRoot(target);
-    }
-
     private Class<?> getOwnerType(AnnotatedElement target) {
         Owner annotation = target.getAnnotation(Owner.class);
         if (annotation.converter() != NoClosure.class)
@@ -167,4 +163,5 @@ public class OwnerPhase extends VisitingPhaseAction {
         else
             return ((Method) target).getParameterTypes()[0];
     }
+
 }

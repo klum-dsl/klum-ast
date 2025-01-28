@@ -21,30 +21,47 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.LifecycleHelper;
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoLink;
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
+/**
+ * Default phases for Klum model creation. Note that the phases are not used directly, but
+ * rather the phase numbers are used to order the actions. This allows to add custom phases
+ * if needed.
+ */
+public enum DefaultKlumPhase implements KlumPhase {
 
-public class AutoLinkPhase extends VisitingPhaseAction {
+    /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
+    CREATE(0),
+    /** Phase for automatic creation of missing objects, usually from annotations. */
+    AUTO_CREATE(10),
+    OWNER(15),
+    AUTO_LINK(20),
+    DEFAULT(25),
+    POST_TREE(30),
+    VALIDATE(50),
+    COMPLETE(100);
+    final int number;
 
-    public AutoLinkPhase() {
-        super(DefaultKlumPhase.AUTO_LINK);
+    DefaultKlumPhase(int number) {
+        this.number = number;
     }
 
     @Override
-    public void visit(String path, Object element, Object container) {
-        ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
-                .entrySet()
-                .stream()
-                .filter(this::isUnset)
-                .forEach(entry -> LinkHelper.autoLink(element, entry.getKey()));
-
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoLink.class);
+    public int getNumber() {
+        return number;
     }
 
+    @Override
+    public String getName() {
+        return name().toLowerCase();
+    }
+
+    public static String getPhaseName(int number) {
+        for (DefaultKlumPhase value : values()) {
+            if (value.number == number) {
+                return value.getName() + ":" + number;
+            }
+        }
+        return "unknown:" + number;
+    }
 }
