@@ -224,6 +224,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         then:
         altCreatorDoc("With", Closure) == """Creates a new instance of the model applying the given configuration closure.
+
 @param configuration The configuration closure to apply to the model.
 @return The instantiated object."""
     }

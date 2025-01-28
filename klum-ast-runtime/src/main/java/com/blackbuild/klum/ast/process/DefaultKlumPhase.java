@@ -21,23 +21,47 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.reflect
+package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
-import org.codehaus.groovy.ast.ClassHelper
-import org.codehaus.groovy.ast.MethodNode
-import spock.lang.Specification
+/**
+ * Default phases for Klum model creation. Note that the phases are not used directly, but
+ * rather the phase numbers are used to order the actions. This allows to add custom phases
+ * if needed.
+ */
+public enum DefaultKlumPhase implements KlumPhase {
 
-class AstReflectionBridgeTest extends Specification {
+    /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
+    CREATE(0),
+    /** Phase for automatic creation of missing objects, usually from annotations. */
+    AUTO_CREATE(10),
+    OWNER(15),
+    AUTO_LINK(20),
+    DEFAULT(25),
+    POST_TREE(30),
+    VALIDATE(50),
+    COMPLETE(100);
+    final int number;
 
-    def "correct parameter names are extracted"() {
-        given:
-        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
+    DefaultKlumPhase(int number) {
+        this.number = number;
+    }
 
-        when:
-        def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
+    @Override
+    public int getNumber() {
+        return number;
+    }
 
-        then:
-        parameterNames == ["namedParams", "collectionName", "type", "explicitType", "key", "body"]
+    @Override
+    public String getName() {
+        return name().toLowerCase();
+    }
+
+    public static String getPhaseName(int number) {
+        for (DefaultKlumPhase value : values()) {
+            if (value.number == number) {
+                return value.getName() + ":" + number;
+            }
+        }
+        return "unknown:" + number;
     }
 }

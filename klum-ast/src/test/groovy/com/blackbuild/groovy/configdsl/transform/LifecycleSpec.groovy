@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.process.KlumPhase
+import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
@@ -31,6 +31,7 @@ import spock.lang.Issue
 
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 
+@SuppressWarnings("GrPackage")
 class LifecycleSpec extends AbstractDSLSpec {
 
     def "apply method must not be declared"() {
@@ -609,7 +610,7 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.name == "bla"
-        executedPhase == KlumPhase.AUTO_CREATE.number
+        executedPhase == DefaultKlumPhase.AUTO_CREATE.number
 
         when:
         executedPhase = -1
@@ -624,7 +625,7 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.name == "bli"
-        executedPhase == KlumPhase.AUTO_CREATE.number
+        executedPhase == DefaultKlumPhase.AUTO_CREATE.number
         objType == rwClazz
     }
 

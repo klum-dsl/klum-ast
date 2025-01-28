@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
@@ -38,7 +38,7 @@ import static java.lang.String.format;
 public class AutoCreationPhase extends VisitingPhaseAction {
 
     public AutoCreationPhase() {
-        super(KlumPhase.AUTO_CREATE);
+        super(DefaultKlumPhase.AUTO_CREATE);
     }
 
     @Override
@@ -82,4 +82,5 @@ public class AutoCreationPhase extends VisitingPhaseAction {
 
         KlumInstanceProxy.getProxyFor(element).setSingleField(fieldName, autoCreated);
     }
+
 }

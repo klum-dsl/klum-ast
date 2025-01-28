@@ -23,28 +23,41 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.util.DslHelper;
+import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.LifecycleHelper;
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoLink;
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 
-public class AutoLinkPhase extends VisitingPhaseAction {
+/**
+ * An Exception that is bound to a specific object in the model.
+ */
+public class KlumVisitorException extends KlumException {
 
-    public AutoLinkPhase() {
-        super(DefaultKlumPhase.AUTO_LINK);
+    private final String breadcrumbPath;
+
+    public KlumVisitorException(String message, Object responsibleObject, Throwable cause) {
+        super(message, cause);
+        if (DslHelper.isDslObject(responsibleObject))
+            this.breadcrumbPath = KlumInstanceProxy.getProxyFor(responsibleObject).getBreadcrumbPath();
+        else
+            this.breadcrumbPath = null;
+    }
+
+    public KlumVisitorException(String message, Object responsibleObject) {
+        this(message, responsibleObject, null);
+    }
+
+    public String getBreadcrumbPath() {
+        return breadcrumbPath;
     }
 
     @Override
-    public void visit(String path, Object element, Object container) {
-        ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
-                .entrySet()
-                .stream()
-                .filter(this::isUnset)
-                .forEach(entry -> LinkHelper.autoLink(element, entry.getKey()));
-
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoLink.class);
+    public String getMessage() {
+        if (breadcrumbPath == null)
+            return super.getMessage();
+        return super.getMessage() + " at " + breadcrumbPath;
     }
 
+    public String getUnlocalizedMessage() {
+        return super.getMessage();
+    }
 }

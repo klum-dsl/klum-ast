@@ -24,25 +24,18 @@
 package com.blackbuild.klum.ast.util;
 
 /**
- * Denotes an exception in the Klum code.
+ * Base exception for errors in the Klum Framework.
  */
 public class KlumException extends RuntimeException {
-    public KlumException() {
-    }
 
-    public KlumException(String message) {
-        super(message);
+    public KlumException() {
     }
 
     public KlumException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public KlumException(Throwable cause) {
-        super(cause);
-    }
-
-    public KlumException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
+    public KlumException(String message) {
+        super(message);
     }
 }

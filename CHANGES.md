@@ -40,6 +40,7 @@
 - Sanity check: Key Fields must not have `@Owner` or `@Field` annotations.
 - Selector members for `@LinkTo` annotations allows to determine the link source from the provider based on the value of another field (see [#302](https://github.com/klum-dsl/klum-ast/issues/302))
 - @LinkTo now correctly handles empty collections/maps as target
+- Allow a custom key-provider function for `createFrom(URL)` and `createFrom(File)` 
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
@@ -63,12 +64,14 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.39
+  - correctly determine the script name if the filename contains multiple "." (see [#328](https://github.com/klum-dsl/klum-ast/issues/328))
 - since rc.33
   - Make RW classes public, not protected. Otherwise, static type checking can fail if owner and child are in different packages 
 - since rc.32
   - new AnnoDocimal version ([Fix for inner enum final modifier](https://github.com/blackbuild/anno-docimal/issues/31))
 - since rc.31
-  - Don't copy Overrides annotation to RW delegation methods (see [#40](https://github.com/klum-dsl/klum-ast/issues/340))
+  - Don't copy Overrides annotation to RW delegation methods (see [#340](https://github.com/klum-dsl/klum-ast/issues/340))
 - since rc.13
   - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
   - Converter methods should honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268))

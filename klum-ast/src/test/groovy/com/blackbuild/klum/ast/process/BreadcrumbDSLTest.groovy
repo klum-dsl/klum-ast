@@ -27,6 +27,10 @@ import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 
 class BreadcrumbDSLTest extends AbstractDSLSpec {
 
+    def cleanup() {
+        BreadcrumbCollector.INSTANCE.remove()
+    }
+
     def "normal create sets breadcrumb"() {
         given:
         createClass '''import com.blackbuild.groovy.configdsl.transform.DSL
@@ -42,7 +46,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo"
+        path == '$/Foo.With'
     }
 
     def "create with key sets keyed breadcrumb"() {
@@ -62,7 +66,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo(bar)"
+        path == '$/Foo.With(bar)'
     }
 
     def "nested objects breadcrumbs are correct"() {
@@ -89,7 +93,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo/bar"
+        path == '$/Foo.With/bar'
     }
 
     def "nested collection objects breadcrumbs are correct"() {
@@ -121,8 +125,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo/bar"
-        path2 == "/Foo/bar(2)"
+        path == '$/Foo.With/bar'
+        path2 == '$/Foo.With/bar[2]'
     }
     def "nested collection of keyed objects uses name instead of index"() {
         given:
@@ -151,8 +155,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo/bar(bar1)"
-        path2 == "/Foo/bar(bar2)"
+        path == '$/Foo.With/bar(bar1)'
+        path2 == '$/Foo.With/bar(bar2)'
     }
 
     def "nested map objects breadcrumbs are correct"() {
@@ -182,7 +186,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         }
 
         then:
-        path == "/Foo/bar(bar1)"
-        path2 == "/Foo/bar(bar2)"
+        path == '$/Foo.With/bar(bar1)'
+        path2 == '$/Foo.With/bar(bar2)'
     }
 }

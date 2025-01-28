@@ -29,7 +29,7 @@ import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 /**
  * Represents an action that is executed in a phase. The action is executed for each element in the model.
  */
-public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
+public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor{
 
     protected VisitingPhaseAction(int phase, String phaseName) {
         super(phase, phaseName);

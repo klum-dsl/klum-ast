@@ -21,23 +21,40 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.reflect
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
-import org.codehaus.groovy.ast.ClassHelper
-import org.codehaus.groovy.ast.MethodNode
-import spock.lang.Specification
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 
-class AstReflectionBridgeTest extends Specification {
+/**
+ * Denotes an exception thrown during the creation of a model.
+ */
+public class KlumModelException extends KlumException {
 
-    def "correct parameter names are extracted"() {
-        given:
-        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
+    private final String breadCrumbPath;
 
-        when:
-        def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
+    public KlumModelException() {
+        this(null, null);
+    }
 
-        then:
-        parameterNames == ["namedParams", "collectionName", "type", "explicitType", "key", "body"]
+    public KlumModelException(String message) {
+        this(message, null);
+    }
+
+    public KlumModelException(String message, Throwable cause) {
+        super(message, cause);
+        this.breadCrumbPath = BreadcrumbCollector.getInstance().getFullPath();
+    }
+
+    public KlumModelException(Throwable cause) {
+        this(null, cause);
+    }
+
+    public String getBreadCrumbPath() {
+        return breadCrumbPath;
+    }
+
+    @Override
+    public String getMessage() {
+        return super.getMessage() + " at " + breadCrumbPath;
     }
 }

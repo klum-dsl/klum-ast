@@ -96,6 +96,17 @@ public class DslHelper {
         return typeArgument;
     }
 
+    public static String getElementNameForField(Class<?> type, String fieldName) {
+        Field field = getField(type, fieldName).orElseThrow(KlumModelException::new);
+
+        com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+
+        if (fieldAnnotation != null && !fieldAnnotation.members().isEmpty())
+            return fieldAnnotation.members();
+
+        return LanguageHelper.getSingularForPlural(fieldName);
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> T castTo(Object object, Class<T> targetType) {
         return (T) InvokerHelper.invokeMethod(object, "asType", targetType);
@@ -270,5 +281,18 @@ public class DslHelper {
         if (type instanceof ParameterizedType)
             return (Class<?>) ((ParameterizedType) type).getRawType();
         throw new IllegalArgumentException("Unknown Type: " + type);
+    }
+
+    public static String shortNameFor(Class<?> type) {
+        StringBuilder result = new StringBuilder();
+
+        if (!type.getPackageName().isEmpty()) {
+            String[] parts = type.getPackageName().split("\\.");
+            for (String part : parts)
+                result.append(part.charAt(0)).append(".");
+        }
+
+        result.append(type.getSimpleName());
+        return result.toString();
     }
 }

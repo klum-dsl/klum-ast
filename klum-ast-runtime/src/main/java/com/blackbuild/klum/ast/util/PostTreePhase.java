@@ -24,12 +24,12 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.PostTree;
-import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
 public class PostTreePhase extends VisitingPhaseAction {
     public PostTreePhase() {
-        super(KlumPhase.POST_TREE);
+        super(DefaultKlumPhase.POST_TREE);
     }
 
     @Override
@@ -37,4 +37,5 @@ public class PostTreePhase extends VisitingPhaseAction {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         LifecycleHelper.executeLifecycleMethods(proxy, PostTree.class);
     }
+
 }

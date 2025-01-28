@@ -23,10 +23,12 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumValidationException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
 
+@SuppressWarnings("GrPackage")
 class ConvenienceFactoriesSpec extends AbstractDSLSpec {
 
     @Rule TemporaryFolder temp = new TemporaryFolder()
@@ -276,7 +278,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         instance = clazz.Create.From(configText)
 
         then:
-        thrown AssertionError
+        thrown KlumValidationException
     }
 
     @Issue("114")

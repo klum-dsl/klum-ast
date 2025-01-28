@@ -26,6 +26,8 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.ast.util.BreadCrumbVerbInterceptor;
+import com.blackbuild.klum.ast.util.LanguageHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -51,6 +53,7 @@ public class DslAstHelper {
     public static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
+    private static final ClassNode BREADCRUMB_VERB_INTERCEPTOR = ClassHelper.make(BreadCrumbVerbInterceptor.class);
 
     private DslAstHelper() {}
 
@@ -129,17 +132,12 @@ public class DslAstHelper {
             return result;
 
         AnnotationNode fieldAnnotation = CommonAstHelper.getAnnotation(fieldNode, DSLASTTransformation.DSL_FIELD_ANNOTATION);
-        result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", null);
+        result = CommonAstHelper.getNullSafeMemberStringValue(fieldAnnotation, "members", "");
 
-        if (result != null && result.length() > 0)
+        if (!result.isEmpty())
             return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
 
-        result = fieldNode.getName();
-
-        if (result.endsWith("s"))
-            result = result.substring(0, result.length() - 1);
-
-        return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, result);
+        return storeAndReturn(fieldNode, ELEMENT_NAME_METADATA_KEY, LanguageHelper.getSingularForPlural(fieldNode.getName()));
     }
 
     static boolean isKeyed(ClassNode type) {
@@ -394,6 +392,10 @@ public class DslAstHelper {
                 .filter(annotation -> filteredTypes.stream().noneMatch(type -> type.equals(annotation.getClassNode())))
                 .filter(annotation -> target.getAnnotations(annotation.getClassNode()).isEmpty())
                 .forEach(target::addAnnotation);
+    }
+
+    public static void registerAsVerbProvider(ClassNode clazz) {
+        clazz.addStaticInitializerStatements(Collections.singletonList(stmt(callX(BREADCRUMB_VERB_INTERCEPTOR, "registerClass", args(classX(clazz))))), false);
     }
 
 }

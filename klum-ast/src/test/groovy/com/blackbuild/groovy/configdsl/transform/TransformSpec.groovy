@@ -24,6 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumModelException
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
 import org.codehaus.groovy.control.CompilePhase
@@ -589,8 +590,8 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         then:
-        def e = thrown(IllegalArgumentException)
-        e.message == "Key mismatch: Hans != Dieter, either use 'inner.apply()' to keep existing object or explicitly create and assign a new object."
+        def e = thrown(KlumModelException)
+        e.message == "Key mismatch: Hans != Dieter, either use 'inner.apply()' to keep existing object or explicitly create and assign a new object. at \$/p.Foo.With/inner(Hans)"
 
         when: "second apply with different key and explicit set"
         def Bar = getClass("pk.Bar") // need a local variable, since propertyMissing of Test is not called with Delegate Only
@@ -645,7 +646,7 @@ class TransformSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(IllegalArgumentException)
+        thrown(KlumModelException)
 
         when: "second apply uses default class"
         instance = Foo.Create.With {

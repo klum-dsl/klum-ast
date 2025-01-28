@@ -23,34 +23,8 @@
  */
 package com.blackbuild.klum.ast.process;
 
-/**
- * Default phases for Klum model creation. Note that the phases are not used directly, but
- * rather the phase numbers are used to order the actions. This allows to add custom phases
- * if needed.
- */
-public enum KlumPhase {
+public interface KlumPhase {
+    int getNumber();
 
-    /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
-    CREATE(0),
-    /** Phase for automatic creation of missing objects, usually from annotations. */
-    AUTO_CREATE(10),
-    OWNER(15),
-    AUTO_LINK(20),
-    DEFAULT(25),
-    POST_TREE(30),
-    VALIDATE(50),
-    COMPLETE(100);
-    final int number;
-
-    KlumPhase(int number) {
-        this.number = number;
-    }
-
-    public int getNumber() {
-        return number;
-    }
-
-    public String getName() {
-        return name().toLowerCase();
-    }
+    String getName();
 }

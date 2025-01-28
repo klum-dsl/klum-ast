@@ -500,7 +500,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     public ProxyMethodBuilder constantParam(Object constantValue) {
-        params.add(new ConstantArgument(constantValue));
+        params.add(new ConstantArgument(constantValue, false));
+        return this;
+    }
+
+    public ProxyMethodBuilder constantPrimitveParam(Object constantValue) {
+        params.add(new ConstantArgument(constantValue, true));
         return this;
     }
 
@@ -516,6 +521,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     public ProxyMethodBuilder paramsFrom(MethodNode targetMethod) {
         return params(targetMethod.getParameters());
+    }
+
+    public ProxyMethodBuilder paramsFromWithoutDefaults(MethodNode targetMethod, int defaultCount) {
+        Parameter[] targetMethodParameters = targetMethod.getParameters();
+        for (int i = 0; i < targetMethodParameters.length - defaultCount; i++) {
+            Parameter param = targetMethodParameters[i];
+            // drop default value
+            params.add(new ProxiedArgument(param.getName(), param.getOriginType(), param.getAnnotations(), null));
+        }
+        return this;
     }
 
     private abstract static class ProxyMethodArgument {
@@ -576,10 +591,12 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private static class ConstantArgument extends ProxyMethodArgument {
         Object constant;
+        boolean keepPrimitive;
 
-        public ConstantArgument(Object constant) {
+        public ConstantArgument(Object constant, boolean keepPrimitive) {
             super(null, null);
             this.constant = constant;
+            this.keepPrimitive = keepPrimitive;
         }
 
         @Override
