@@ -267,7 +267,7 @@ class ValidationSpec extends AbstractDSLSpec {
     def "validation with Ignore"() {
         given:
         createClass('''
-            @DSL @Validation(option = Validation.Option.VALIDATE_UNMARKED)
+            @DSL @Validate
             class Foo {
                 @Validate(Validate.Ignore)
                 String validated
@@ -390,21 +390,6 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
     }
 
-    @Ignore("class is now a warning, not a failure")
-    def "validation only allows GroovyTruth, Ignore or literal closure"() {
-        when:
-        createClass('''
-            @DSL
-            class Foo {
-                @Validate(String.class)
-                String validated
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
-    }
-
     def "defer validation via method"() {
         given:
         createClass('''
@@ -509,7 +494,7 @@ class ValidationSpec extends AbstractDSLSpec {
         when:
         createClass('''
             @DSL
-            @Validation(option = Validation.Option.VALIDATE_UNMARKED)
+            @Validate
             class Foo {
                 String validated
             }
@@ -537,9 +522,8 @@ class ValidationSpec extends AbstractDSLSpec {
     def "Validation on class is converted to validate with static import"() {
         when:
         createClass('''
-            import static com.blackbuild.groovy.configdsl.transform.Validation.Option.VALIDATE_UNMARKED
             @DSL
-            @Validation(option = VALIDATE_UNMARKED)
+            @Validate
             class Foo {
                 String validated
             }
