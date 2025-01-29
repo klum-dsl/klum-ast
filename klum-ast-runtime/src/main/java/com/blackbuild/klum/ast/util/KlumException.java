@@ -45,6 +45,10 @@ public class KlumException extends RuntimeException {
         super(message);
     }
 
+    public KlumException(Throwable cause) {
+        super(cause);
+    }
+
     @Override
     public String getMessage() {
         if (phase == null) return super.getMessage();

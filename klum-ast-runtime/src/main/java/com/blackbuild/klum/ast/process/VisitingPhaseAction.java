@@ -29,7 +29,7 @@ import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 /**
  * Represents an action that is executed in a phase. The action is executed for each element in the model.
  */
-public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor{
+public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
     protected VisitingPhaseAction(KlumPhase phase) {
         super(phase);
@@ -39,7 +39,7 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
      * Executes the phase on the root element of the model.
      */
     @Override
-    public void execute() {
+    protected void doExecute() {
         Object root = PhaseDriver.getInstance().getRootObject();
         StructureUtil.visit(root, this);
     }

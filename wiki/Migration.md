@@ -3,6 +3,10 @@ Migration Guide
 
 # to 2.0
 
+## Validation now throws KlumValidationException
+
+which wraps single `KlumVisitorExceptions` for each failed validation. Previously, an AssertionError was thrown, so calling code might need to be adjusted.
+
 ## multiple inner create calls on the same field (or key in a map field) now stack instead of replacing
 
 Previously, multiple calls to the same inner create method would replace the previous value. 
@@ -205,7 +209,7 @@ when used inside a Collection-Factory:
 
 ```groovy
 @DSL
-Class Bar {
+class Bar {
   @Owner
   Foo owner
 }

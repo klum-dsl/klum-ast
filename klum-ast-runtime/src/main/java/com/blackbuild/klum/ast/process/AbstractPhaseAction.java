@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import com.blackbuild.klum.ast.util.KlumException;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -45,6 +47,19 @@ public abstract class AbstractPhaseAction implements PhaseAction {
     public KlumPhase getPhase() {
         return phase;
     }
+
+    @Override
+    public void execute() {
+        try {
+            doExecute();
+        } catch (KlumException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new KlumException(e);
+        }
+    }
+
+    protected abstract void doExecute();
 
     protected boolean isUnset(Map.Entry<String, Object> entry) {
         Object value = entry.getValue();

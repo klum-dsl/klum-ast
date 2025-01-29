@@ -57,8 +57,8 @@ class MyModel {
 }
 ```
 
-If validation fails, an `AssertionError` is thrown, any other encountered exception during validation is also wrapped in an
-`AssertionError`. Unfortunately, Groovy's Power Assertion are currently not used in the output.
+If validation fails, an `KlumVisitorException` is thrown, any other encountered exception during validation is also wrapped in an
+`KlumVisitorException`. Unfortunately, Groovy's Power Assertion are currently not used in the output.
 
 # `@Required`
 
@@ -130,6 +130,11 @@ class Component {
 
 Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
 
+Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
+
 # Manual validation
 
 Instances can be exempt from running automatically by using the `manualValidation(boolean)` method.
+
+NOTE: this is considered deprecated and will be removed in a future version.
+
