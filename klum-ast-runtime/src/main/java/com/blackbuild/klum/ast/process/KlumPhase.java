@@ -23,8 +23,14 @@
  */
 package com.blackbuild.klum.ast.process;
 
-public interface KlumPhase {
+import java.io.Serializable;
+
+public interface KlumPhase extends Serializable {
     int getNumber();
 
     String getName();
+
+    default String getDisplayName() {
+        return getName() + "(" + getNumber() + ")";
+    }
 }

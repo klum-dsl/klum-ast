@@ -29,7 +29,9 @@ public interface PhaseAction {
      */
     void execute();
 
-    int getPhase();
+    KlumPhase getPhase();
 
-    String getPhaseName();
+    default int getPhaseNumber() {
+        return getPhase().getNumber();
+    }
 }

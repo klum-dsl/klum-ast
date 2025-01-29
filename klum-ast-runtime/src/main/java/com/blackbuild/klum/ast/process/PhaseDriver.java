@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.process;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.NavigableSet;
@@ -34,16 +35,16 @@ import java.util.function.Supplier;
 
 public class PhaseDriver {
 
-    private static final ThreadLocal<PhaseDriver> instance = new ThreadLocal<>();
+    private static final ThreadLocal<PhaseDriver> INSTANCE = new ThreadLocal<>();
 
     @NotNull
     public static PhaseDriver getInstance() {
-        if (instance.get() == null)
-            instance.set(new PhaseDriver());
-        return instance.get();
+        if (INSTANCE.get() == null)
+            INSTANCE.set(new PhaseDriver());
+        return INSTANCE.get();
     }
 
-    private final NavigableSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhase));
+    private final NavigableSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhaseNumber));
 
     private Object rootObject;
     private int activeObjectPointer = 0;
@@ -52,6 +53,22 @@ public class PhaseDriver {
 
     public PhaseDriver() {
         ServiceLoader.load(PhaseAction.class).forEach(phaseActions::add);
+    }
+
+    public static KlumPhase getCurrentPhase() {
+        PhaseAction phaseAction = getCurrentPhaseAction();
+        return phaseAction == null ? null : phaseAction.getPhase();
+    }
+
+    public static String getCurrentPhaseActionType() {
+        PhaseAction phaseAction = getCurrentPhaseAction();
+        return phaseAction == null ? null : phaseAction.getClass().getName();
+    }
+
+    private static @Nullable PhaseAction getCurrentPhaseAction() {
+        PhaseDriver phaseDriver = INSTANCE.get();
+        if (phaseDriver == null || phaseDriver.currentPhase == null) return null;
+        return phaseDriver.currentPhase;
     }
 
     public void addPhase(PhaseAction action) {
@@ -81,12 +98,7 @@ public class PhaseDriver {
         PhaseDriver driver = getInstance();
         driver.activeObjectPointer--;
         if (getInstance().activeObjectPointer == 0)
-            instance.remove();
-    }
-
-
-    public int getCurrentPhase() {
-        return currentPhase.getPhase();
+            INSTANCE.remove();
     }
 
     public static void executeIfReady() {

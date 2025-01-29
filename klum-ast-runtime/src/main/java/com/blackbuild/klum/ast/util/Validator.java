@@ -140,7 +140,7 @@ public class Validator {
 
         String message = validate != null ? validate.message() : "";
         if (message.isEmpty())
-            message = String.format("Field '%s' must be set.", field.getName());
+            message = String.format("Field '%s' must be set", field.getName());
 
         throw new KlumVisitorException(message, instance);
     }

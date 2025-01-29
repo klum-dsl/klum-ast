@@ -225,8 +225,8 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains("Field 'name' must be set.")
-        error.suppressed.any { it.message == "Field 'name' must be set. at \$/Foo.With" }
+        error.message.contains("Field 'name' must be set")
+        error.suppressed.any { it.message == "\$/Foo.With: Field 'name' must be set" }
     }
 
     def "validation with message"() {

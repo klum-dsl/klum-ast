@@ -31,10 +31,6 @@ import com.blackbuild.klum.ast.util.layer3.StructureUtil;
  */
 public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor{
 
-    protected VisitingPhaseAction(int phase, String phaseName) {
-        super(phase, phaseName);
-    }
-
     protected VisitingPhaseAction(KlumPhase phase) {
         super(phase);
     }

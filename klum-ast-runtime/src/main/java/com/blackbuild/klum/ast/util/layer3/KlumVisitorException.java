@@ -54,7 +54,7 @@ public class KlumVisitorException extends KlumException {
     public String getMessage() {
         if (breadcrumbPath == null)
             return super.getMessage();
-        return super.getMessage() + " at " + breadcrumbPath;
+        return breadcrumbPath + ": " + super.getBasicMessage();
     }
 
     public String getUnlocalizedMessage() {
