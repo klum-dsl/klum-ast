@@ -93,7 +93,13 @@ public class StructureUtil {
     private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container) {
         if (!isDslObject(element)) return;
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
-        visitor.visit(path, element, container);
+        try {
+            visitor.visit(path, element, container);
+        } catch (KlumVisitorException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new KlumVisitorException("Error visiting " + path, element, e);
+        }
         alreadyVisited.add(element);
         ClusterModel.getFieldPropertiesStream(element)
                 .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element));

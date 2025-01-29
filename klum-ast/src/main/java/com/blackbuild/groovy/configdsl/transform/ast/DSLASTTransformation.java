@@ -28,7 +28,6 @@ import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.doc.DocUtil;
-import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
@@ -74,7 +73,7 @@ import static org.codehaus.groovy.transform.ToStringASTTransformation.createToSt
  *
  * @author Stephan Pauxberger
  */
-@SuppressWarnings({"WeakerAccess", "DefaultAnnotationParam"})
+@SuppressWarnings({"WeakerAccess"})
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
@@ -85,9 +84,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
 
-    static final ClassNode DEFAULT_ANNOTATION = make(Default.class);
     public static final ClassNode OWNER_ANNOTATION = make(Owner.class);
-    public static final ClassNode FACTORY_HELPER = make(FactoryHelper.class);
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
@@ -102,8 +99,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
-    private static final String FACTORY_FIELD_NAME = "Create";
-    public static final ClassNode OVERRIDE = make(Override.class);
+    public static final String FACTORY_FIELD_NAME = "Create";
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -204,10 +200,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
-                parentRW != null ? parentRW : ClassHelper.OBJECT_TYPE,
+                parentRW != null ? parentRW : OBJECT_TYPE,
                 new ClassNode[] { make(Serializable.class)},
                 MixinNode.EMPTY_ARRAY);
         AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
+
+        DslAstHelper.registerAsVerbProvider(rwClass);
 
         rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
@@ -299,7 +297,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (validationExpression instanceof ClosureExpression) {
             ClosureExpression validationClosure = toStronglyTypedClosure((ClosureExpression) validationExpression, fieldNode.getType());
-            convertClosureExpressionToAssertStatement(fieldNode.getName(), validationClosure, message);
+            convertClosureExpressionToAssertStatement(validationClosure, message);
             // replace closure with strongly typed one
             validateAnnotation.setMember("value", validationClosure);
         } else {
@@ -307,7 +305,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    void convertClosureExpressionToAssertStatement(String fieldName, ClosureExpression closure, String message) {
+    void convertClosureExpressionToAssertStatement(ClosureExpression closure, String message) {
         BlockStatement block = (BlockStatement) closure.getCode();
 
         if (block.getStatements().size() != 1)
@@ -333,9 +331,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (assertStatement.getMessageExpression() == ConstantExpression.NULL) {
             assertStatement.setMessageExpression(
                     new GStringExpression(
-                            "Field '" + fieldName + "' ($" + closureParameterName + ") is invalid",
-                            Arrays.asList(constX("Field '" + fieldName + "' ("), constX(") is invalid")),
-                            Collections.<Expression>singletonList(
+                            "$" + closureParameterName + " does not match",
+                            Arrays.asList(constX(""), constX(" does not match")),
+                            Collections.singletonList(
                                     callX(
                                             INVOKER_HELPER_CLASS,
                                             "format",
@@ -553,7 +551,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .linkToField(fieldNode)
                     .documentationTitle(DocUtil.getFlagSetterText(fieldNode))
                     .constantParam(fieldName)
-                    .constantParam(true)
+                    .constantPrimitveParam(true)
                     .addTo(rwClass);
         }
 
@@ -642,6 +640,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
+                        .constantPrimitveParam(false)
                         .optionalStringParam(fieldKeyName, fieldKey != null, null)
                         .delegatingClosureParam(elementRwType, null)
                         .addTo(rwClass);
@@ -656,6 +655,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .constantPrimitveParam(true)
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
@@ -810,6 +810,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
+                        .constantPrimitveParam(false)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam(elementRwType)
                         .addTo(rwClass);
@@ -824,6 +825,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
+                        .constantPrimitveParam(true)
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
@@ -911,6 +913,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
+                    .constantPrimitveParam(false)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam(targetRwType)
                     .addTo(rwClass);
@@ -925,6 +928,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .namedParams("values")
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)
+                    .constantPrimitveParam(true)
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
                     .addTo(rwClass);
@@ -1023,6 +1027,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
         AnnoDocUtil.addDocumentation(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
+
+        DslAstHelper.registerAsVerbProvider(factoryClass);
 
         if (factoryIsGeneric)
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,

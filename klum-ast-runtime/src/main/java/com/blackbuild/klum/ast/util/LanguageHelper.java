@@ -21,23 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.reflect
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
-import org.codehaus.groovy.ast.ClassHelper
-import org.codehaus.groovy.ast.MethodNode
-import spock.lang.Specification
+public class LanguageHelper {
 
-class AstReflectionBridgeTest extends Specification {
-
-    def "correct parameter names are extracted"() {
-        given:
-        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
-
-        when:
-        def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name
-
-        then:
-        parameterNames == ["namedParams", "collectionName", "type", "explicitType", "key", "body"]
+    private LanguageHelper() {
     }
+
+    public static String getSingularForPlural(String plural) {
+        if (plural.endsWith("ies")) {
+            return plural.substring(0, plural.length() - 3) + "y";
+        } else if (plural.endsWith("s")) {
+            return plural.substring(0, plural.length() - 1);
+        } else {
+            return plural;
+        }
+    }
+
 }

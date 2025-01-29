@@ -92,6 +92,11 @@ public class FieldAstValidator extends KlumCastCheck<Annotation> {
             throw new IllegalStateException(
                     String.format("Default Implementation %s is keyed, but field %s is not.",
                             defaultImpl.getName(), fieldType.getName()));
+
+        if (!isInstantiable(defaultImpl))
+            throw new IllegalStateException(
+                    String.format("Default Implementation %s is not instantiable.", defaultImpl.getName())
+            );
     }
 
     private void validateFieldAnnotationOnSingleField(FieldNode fieldNode) {

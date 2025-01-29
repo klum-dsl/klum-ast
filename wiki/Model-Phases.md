@@ -73,3 +73,7 @@ This could, for example, be used for logging purpose or to register the model in
 
 Note that the lifecycle methods for AutoCreate, AutoLink and PostTree are technically identical, the difference being
 more of a semantic nature. So AutoCreate methods should actually create objects, AutoLink methods should link existing objects.
+
+# Error Handling
+
+If an exception is thrown in any Phase, the exception is wrapped in a `KlumException` or one of its subclasses (like `KlumVisitorException`). This exception contains the relevant phase as well as potentially the path to the object that caused the exception.

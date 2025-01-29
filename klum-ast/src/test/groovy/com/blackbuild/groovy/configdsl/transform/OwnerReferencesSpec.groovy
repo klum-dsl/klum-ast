@@ -24,6 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.KlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -774,12 +775,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        int closurePhase = -1
+        KlumPhase closurePhase = null
         instance = clazz.Create.With {
             name "Klaus"
             bar {
                 ownerClosure {
-                    closurePhase = PhaseDriver.instance.currentPhase
+                    closurePhase = PhaseDriver.currentPhase
                     assert foo.name == "Klaus"
                 }
             }
@@ -787,7 +788,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
-        closurePhase == KlumPhase.OWNER.number
+        closurePhase == DefaultKlumPhase.OWNER
     }
 
     @Issue("49")

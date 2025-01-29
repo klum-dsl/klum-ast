@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util
 
 import spock.lang.Issue
 
+@SuppressWarnings("GrPackage")
 class ValidatorTest extends AbstractRuntimeTest {
 
     void "empty validation works"() {
@@ -38,7 +39,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
@@ -52,6 +53,8 @@ class ValidatorTest extends AbstractRuntimeTest {
 
             @DSL
             class Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            
                 @Validate
                 String name
             }
@@ -59,17 +62,17 @@ class ValidatorTest extends AbstractRuntimeTest {
 
         when:
         instance.name = 'test'
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
 
         when:
         instance.name = null
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
     }
 
     void "simple validation with closure"() {
@@ -80,6 +83,8 @@ class ValidatorTest extends AbstractRuntimeTest {
 
             @DSL
             class Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            
                 // since we don't use AST-Transformation, we need to explicitly use assert
                 @Validate({ assert value > 10})
                 int value
@@ -87,14 +92,14 @@ class ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance.value = 200
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
@@ -109,24 +114,26 @@ class ValidatorTest extends AbstractRuntimeTest {
 
             @DSL
             class Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 @Validate int value
             }
 
             @DSL
             class Bar extends Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
             }
         ''')
         instance = newInstanceOf("pk.Bar")
 
         when:
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance.value = 200
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
@@ -141,27 +148,29 @@ class ValidatorTest extends AbstractRuntimeTest {
 
             @DSL
             class Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            
                 @Validate Boolean value
             }
         ''')
         instance = newInstanceOf("pk.Foo")
 
         when:
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
-        thrown(AssertionError)
+        thrown(KlumValidationException)
 
         when:
         instance.value = false
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then: 'False should satisfy validation'
         noExceptionThrown()
 
         when:
         instance.value = true
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then:
         noExceptionThrown()
@@ -178,13 +187,15 @@ class ValidatorTest extends AbstractRuntimeTest {
             @DSL
             @Validate
             class Foo {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            
                 boolean value
             }
         ''')
         instance = newInstanceOf("pk.Foo")
 
         when:
-        new Validator(instance).execute()
+        Validator.validate(instance)
 
         then: 'boolean fields are ignored'
         noExceptionThrown()

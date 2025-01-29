@@ -23,26 +23,47 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
+
 /**
- * Denotes an exception in the Klum code.
+ * Base exception for errors in the Klum Framework.
  */
 public class KlumException extends RuntimeException {
-    public KlumException() {
-    }
 
-    public KlumException(String message) {
-        super(message);
+    private final KlumPhase phase = PhaseDriver.getCurrentPhase();
+    private final String phaseActionType = PhaseDriver.getCurrentPhaseActionType();
+
+    public KlumException() {
     }
 
     public KlumException(String message, Throwable cause) {
         super(message, cause);
     }
 
+    public KlumException(String message) {
+        super(message);
+    }
+
     public KlumException(Throwable cause) {
         super(cause);
     }
 
-    public KlumException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
+    @Override
+    public String getMessage() {
+        if (phase == null) return super.getMessage();
+        return super.getMessage() + "(" + phase.getDisplayName() + ")";
+    }
+
+    public String getBasicMessage() {
+        return super.getMessage();
+    }
+
+    public KlumPhase getPhase() {
+        return phase;
+    }
+
+    public String getPhaseActionType() {
+        return phaseActionType;
     }
 }

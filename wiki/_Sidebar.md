@@ -6,6 +6,7 @@
   * [[Gradle Plugins]]
   * [[Basics]]
   * [[Model Phases]]
+  * [[Exception Handling]]
   * [[Static Models]]
   * [[Javadoc]]
 * Advanced Features

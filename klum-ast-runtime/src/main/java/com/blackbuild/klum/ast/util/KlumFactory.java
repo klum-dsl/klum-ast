@@ -25,18 +25,22 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.DSL;
-import groovy.lang.*;
+import groovy.lang.Closure;
+import groovy.lang.Script;
 import groovy.transform.Undefined;
+import groovy.util.DelegatingScript;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.blackbuild.klum.ast.util.DslHelper.requireDslType;
 import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
 
 /**
  * Factory to create DSL model objects.
+ *
  * @param <T> The type of the DSL model object.
  */
 @SuppressWarnings({"java:S100", "unused"})
@@ -44,6 +48,7 @@ import static com.blackbuild.klum.ast.util.DslHelper.requireKeyed;
 public class KlumFactory<T> {
 
     protected final Class<T> type;
+
     protected KlumFactory(Class<T> type) {
         requireDslType(type);
         this.type = getTypeOrDefaultType(type);
@@ -61,8 +66,9 @@ public class KlumFactory<T> {
      * placed in '/META-INF/klum-model/"schema-classname".properties'. The properties file must contain a property name
      * "model-class" which contains the name of the compiled script to run, which must return an instance of the
      * model class.
-     * @see #From(Class)
+     *
      * @return The created model object.
+     * @see #From(Class)
      */
     public T FromClasspath() {
         return FactoryHelper.createFromClasspath(type);
@@ -73,9 +79,10 @@ public class KlumFactory<T> {
      * placed in '/META-INF/klum-model/"schema-classname".properties'. The properties file must contain a property name
      * "model-class" which contains the name of the compiled script to run, which must return an instance of the
      * model class.
-     * @see #From(Class)
+     *
      * @param loader The classloader to use to load the properties file.
      * @return The created model object.
+     * @see #From(Class)
      */
     public T FromClasspath(ClassLoader loader) {
         return FactoryHelper.createFromClasspath(type, loader);
@@ -83,11 +90,12 @@ public class KlumFactory<T> {
 
     /**
      * Creates a new instance of the model type by running the given script class. The script must either return an
-     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link groovy.util.DelegatingScript}
+     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link DelegatingScript}
      * whose contents are the same as create/apply closure for this model class.
      * <p>
-     *     Note that in case of a Keyed object in combination with a DelegatingScript, the simple name of the script class
-     *     is used as key.
+     * Note that in case of a Keyed object in combination with a DelegatingScript, the simple name of the script class
+     * is used as key.
+     *
      * @param configurationScript The script class to run.
      * @return The instantiated object.
      */
@@ -98,45 +106,100 @@ public class KlumFactory<T> {
     /**
      * Creates a new instance of the model type by instantiating the class and applying the text content of the
      * given url to it. In case of a keyed model, the last part of the URL is used as the key.
+     *
      * @param configurationUrl The URL where to take the configuration text from.
-     * @see #From(URL, ClassLoader)
      * @return The instantiated object.
+     * @see #From(URL, ClassLoader)
      */
     public T From(URL configurationUrl) {
-        return From(configurationUrl, null);
+        return From(configurationUrl, null, null);
     }
 
     /**
      * Creates a new instance of the model type by instantiating the class and applying the text content of the
      * given url to it. In case of a keyed model, the last part of the URL is used as the key.
+     *
      * @param configurationUrl The URL where to take the configuration text from.
-     * @param loader The classloader to use for compiling the configuration text.
+     * @param keyProvider      A function that derives the key from the URL.
+     * @return The instantiated object.
+     * @see #From(URL, ClassLoader)
+     */
+    public T From(URL configurationUrl, Function<URL, String> keyProvider) {
+        return From(configurationUrl, keyProvider, null);
+    }
+
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given url to it. In case of a keyed model, the last part of the URL is used as the key.
+     *
+     * @param configurationUrl The URL where to take the configuration text from.
+     * @param loader           The classloader to use for compiling the configuration text.
      * @return The instantiated object.
      */
     public T From(URL configurationUrl, ClassLoader loader) {
-        return FactoryHelper.createFrom(type, configurationUrl, loader);
+        return From(configurationUrl, null, loader);
     }
 
     /**
      * Creates a new instance of the model type by instantiating the class and applying the text content of the
-     * given file to it. In case of a keyed model, the filename is used as the key.
-     * @param configurationFile The file where to take the configuration text from.
-     * @see #From(File, ClassLoader) )
+     * given url to it. In case of a keyed model, the key is derived from the URL using the provided keyProvider.
+     *
+     * @param configurationUrl The URL where to take the configuration text from.
+     * @param keyProvider      A function that derives the key from the URL.
+     * @param loader           The classloader to use for compiling the configuration text.
      * @return The instantiated object.
      */
-    public T From(File configurationFile) {
-        return From(configurationFile, null);
+    public T From(URL configurationUrl, Function<URL, String> keyProvider, ClassLoader loader) {
+        return FactoryHelper.createFrom(type, configurationUrl, keyProvider, loader);
     }
 
     /**
      * Creates a new instance of the model type by instantiating the class and applying the text content of the
      * given file to it. In case of a keyed model, the filename is used as the key.
+     *
      * @param configurationFile The file where to take the configuration text from.
-     * @param loader The classloader to use for compiling the configuration text.
+     * @return The instantiated object.
+     * @see #From(File, ClassLoader)
+     */
+    public T From(File configurationFile) {
+        return From(configurationFile, null, null);
+    }
+
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given file to it. In case of a keyed model, provided keyProvider is used to derive the key from the file object.
+     *
+     * @param configurationFile The file where to take the configuration text from.
+     * @param keyProvider       A function that derives the key from the file.
+     * @param loader            The classloader to use for compiling the configuration text.
+     * @return The instantiated object.
+     */
+    public T From(File configurationFile, Function<File, String> keyProvider, ClassLoader loader) {
+        return FactoryHelper.createFrom(type, configurationFile, keyProvider, loader);
+    }
+
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given file to it. In case of a keyed model, the filename is used as the key.
+     *
+     * @param configurationFile The file where to take the configuration text from.
+     * @return The instantiated object.
+     * @see #From(File, ClassLoader)
+     */
+    public T From(File configurationFile, Function<File, String> keyProvider) {
+        return From(configurationFile, keyProvider, null);
+    }
+
+    /**
+     * Creates a new instance of the model type by instantiating the class and applying the text content of the
+     * given file to it. In case of a keyed model, the filename is used as the key.
+     *
+     * @param configurationFile The file where to take the configuration text from.
+     * @param loader            The classloader to use for compiling the configuration text.
      * @return The instantiated object.
      */
     public T From(File configurationFile, ClassLoader loader) {
-        return FactoryHelper.createFrom(type, configurationFile, loader);
+        return From(configurationFile, null, loader);
     }
 
     /**
@@ -151,8 +214,8 @@ public class KlumFactory<T> {
      *     <li>post-apply methods are not called</li>
      * </ul>
      *
-     * @see #Template(Map, Closure)
      * @return a template instance of the model type.
+     * @see #Template(Map, Closure)
      */
     public T Template() {
         return Template(null, null);
@@ -170,9 +233,29 @@ public class KlumFactory<T> {
      *     <li>post-apply methods are not called</li>
      * </ul>
      *
-     * @see #Template(Map, Closure)
+     * @param configMap     The values to set on the template instance.
      * @param configuration The closure to apply to the template instance.
      * @return a template instance of the model type.
+     */
+    public T Template(Map<String, Object> configMap, Closure<?> configuration) {
+        return FactoryHelper.createAsTemplate(type, configMap, configuration);
+    }
+
+    /**
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param configuration The closure to apply to the template instance.
+     * @return a template instance of the model type.
+     * @see #Template(Map, Closure)
      */
     public T Template(Closure<?> configuration) {
         return Template(null, configuration);
@@ -190,32 +273,12 @@ public class KlumFactory<T> {
      *     <li>post-apply methods are not called</li>
      * </ul>
      *
-     * @see #Template(Map, Closure)
      * @param configMap The values to set on the template instance.
      * @return a template instance of the model type.
+     * @see #Template(Map, Closure)
      */
     public T Template(Map<String, Object> configMap) {
         return Template(configMap, null);
-    }
-
-    /**
-     * Creates a template instance of the model type.
-     * <p>
-     * Templates differ from regular instances in the following way:
-     * </p>
-     * <ul>
-     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
-     *     <li>the key of a template model is always null</li>
-     *     <li>owner fields are not set</li>
-     *     <li>post-apply methods are not called</li>
-     * </ul>
-     *
-     * @param configMap The values to set on the template instance.
-     * @param configuration The closure to apply to the template instance.
-     * @return a template instance of the model type.
-     */
-    public T Template(Map<String, Object> configMap, Closure<?> configuration) {
-        return FactoryHelper.createAsTemplate(type, configMap, configuration);
     }
 
     /**
@@ -231,6 +294,7 @@ public class KlumFactory<T> {
      *     <li>owner fields are not set</li>
      *     <li>post-apply methods are not called</li>
      * </ul>
+     *
      * @param scriptFile The script to configure the template
      * @return a template instance of the model type.
      */
@@ -253,7 +317,7 @@ public class KlumFactory<T> {
      * </ul>
      *
      * @param scriptFile The script to configure the template
-     * @param loader The classloader to use for compiling the configuration script.
+     * @param loader     The classloader to use for compiling the configuration script.
      * @return a template instance of the model type.
      */
     public T TemplateFrom(File scriptFile, ClassLoader loader) {
@@ -273,6 +337,7 @@ public class KlumFactory<T> {
      *     <li>owner fields are not set</li>
      *     <li>post-apply methods are not called</li>
      * </ul>
+     *
      * @param scriptUrl The script to configure the template
      * @return a template instance of the model type.
      */
@@ -295,7 +360,7 @@ public class KlumFactory<T> {
      * </ul>
      *
      * @param scriptUrl The script to configure the template
-     * @param loader The classloader to use for compiling the configuration script.
+     * @param loader    The classloader to use for compiling the configuration script.
      * @return a template instance of the model type.
      */
     public T TemplateFrom(URL scriptUrl, ClassLoader loader) {
@@ -304,6 +369,7 @@ public class KlumFactory<T> {
 
     /**
      * Factory for keyed models.
+     *
      * @param <T> The type of the model.
      */
     @SuppressWarnings("java:S100")
@@ -316,6 +382,7 @@ public class KlumFactory<T> {
         /**
          * Creates a new instance of the model by only setting the key, but not applying any configuration (apart from
          * 'postCreate' and 'postApply' methods).
+         *
          * @param key The key to use for the model.
          * @return The instantiated object.
          */
@@ -324,20 +391,34 @@ public class KlumFactory<T> {
         }
 
         /**
+         * Creates a new instance of the model with the given key and applying the given configuration map and closure.
+         *
+         * @param configMap     The configuration map to apply to the model.
+         * @param key           The key to use for the model.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
+         */
+        public T With(Map<String, ?> configMap, String key, Closure<?> configuration) {
+            return FactoryHelper.create(type, configMap, key, configuration);
+        }
+
+        /**
          * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
          * checking for arguments. This means that empty create calls like 'X.create("bla")' will correctly work afterward.
+         *
          * @param key The key to use for the model
          * @return The instantiated object.
          * @deprecated Use {@link #One(String)} instead.
          */
-        @Deprecated
+        @Deprecated(forRemoval = true)
         public T With(String key) {
             return With(null, key, null);
         }
 
         /**
          * Creates a new instance of the model with the given key and applying the given configuration closure.
-         * @param key The key to use for the model.
+         *
+         * @param key           The key to use for the model.
          * @param configuration The configuration closure to apply to the model.
          * @return The instantiated object.
          */
@@ -347,8 +428,9 @@ public class KlumFactory<T> {
 
         /**
          * Creates a new instance of the model with the given key and applying the given configuration map.
+         *
          * @param configMap The configuration map to apply to the model.
-         * @param key The key to use for the model.
+         * @param key       The key to use for the model.
          * @return The instantiated object.
          */
         public T With(Map<String, ?> configMap, String key) {
@@ -356,19 +438,9 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model with the given key and applying the given configuration map and closure.
-         * @param configMap The configuration map to apply to the model.
-         * @param key The key to use for the model.
-         * @param configuration The configuration closure to apply to the model.
-         * @return The instantiated object.
-         */
-        public T With(Map<String, ?> configMap, String key, Closure<?> configuration) {
-            return FactoryHelper.create(type, configMap, key, configuration);
-        }
-
-        /**
          * Creates a new instance of the model with the given key and then applying the given text as configuration.
-         * @param key The key of the model to create.
+         *
+         * @param key           The key of the model to create.
          * @param configuration the configuration text to apply to the model.
          * @return The instantiated object.
          */
@@ -378,9 +450,10 @@ public class KlumFactory<T> {
 
         /**
          * Creates a new instance of the model with the given key and then applying the given text as configuration.
-         * @param key The key of the model to create.
+         *
+         * @param key           The key of the model to create.
          * @param configuration the configuration text to apply to the model.
-         * @param loader The classloader used to compile the configuration text.
+         * @param loader        The classloader used to compile the configuration text.
          * @return The instantiated object.
          */
         public T From(String key, String configuration, ClassLoader loader) {
@@ -390,6 +463,7 @@ public class KlumFactory<T> {
 
     /**
      * Factory for unkeyed models.
+     *
      * @param <T> The type of the model.
      */
     @SuppressWarnings("java:S100")
@@ -399,8 +473,20 @@ public class KlumFactory<T> {
         }
 
         /**
+         * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
+         * checking for arguments. This means that empty create calls like 'X.create()' will correctly work afterward.
+         *
+         * @deprecated Use {@link #One()} instead.
+         */
+        @Deprecated(forRemoval = true)
+        public T With() {
+            return One();
+        }
+
+        /**
          * Creates a new instance of the model applying any configuration (apart from
          * 'postCreate' and 'postApply' methods and any active templates).
+         *
          * @return The instantiated object.
          */
         public T One() {
@@ -408,17 +494,19 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
-         * checking for arguments. This means that emtpy create calls like 'X.create()' will correctly work afterwards.
-         * @deprecated Use {@link #One()} instead.
+         * Creates a new instance of the model applying the given configuration map and closure.
+         *
+         * @param configMap     The configuration map to apply to the model.
+         * @param configuration The configuration closure to apply to the model.
+         * @return The instantiated object.
          */
-        @Deprecated
-        public T With() {
-            return One();
+        public T With(Map<String, ?> configMap, Closure<?> configuration) {
+            return FactoryHelper.create(type, configMap, null, configuration);
         }
 
         /**
          * Creates a new instance of the model applying the given configuration closure.
+         *
          * @param configuration The configuration closure to apply to the model.
          * @return The instantiated object.
          */
@@ -428,6 +516,7 @@ public class KlumFactory<T> {
 
         /**
          * Creates a new instance of the model applying the given configuration map.
+         *
          * @param configMap The configuration map to apply to the model.
          * @return The instantiated object.
          */
@@ -436,17 +525,8 @@ public class KlumFactory<T> {
         }
 
         /**
-         * Creates a new instance of the model applying the given configuration map and closure.
-         * @param configMap The configuration map to apply to the model.
-         * @param configuration The configuration closure to apply to the model.
-         * @return The instantiated object.
-         */
-        public T With(Map<String, ?> configMap, Closure<?> configuration) {
-            return FactoryHelper.create(type, configMap, null, configuration);
-        }
-
-        /**
          * Creates a new instance of the model and then applying the given text as configuration.
+         *
          * @param configuration the configuration text to apply to the model.
          * @return The instantiated object.
          */
@@ -456,8 +536,9 @@ public class KlumFactory<T> {
 
         /**
          * Creates a new instance of the model and then applying the given text as configuration.
+         *
          * @param configuration the configuration text to apply to the model.
-         * @param loader The classloader used to compile the configuration text.
+         * @param loader        The classloader used to compile the configuration text.
          * @return The instantiated object.
          */
         public T From(String configuration, ClassLoader loader) {

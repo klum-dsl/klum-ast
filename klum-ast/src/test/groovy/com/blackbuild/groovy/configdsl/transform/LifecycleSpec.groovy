@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.KlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -31,6 +32,7 @@ import spock.lang.Issue
 
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 
+@SuppressWarnings("GrPackage")
 class LifecycleSpec extends AbstractDSLSpec {
 
     def "apply method must not be declared"() {
@@ -580,7 +582,7 @@ class LifecycleSpec extends AbstractDSLSpec {
 
     def "lifecycle annotated closures are called in their respective lifecycle phase"() {
         given:
-        def executedPhase = -1
+        KlumPhase executedPhase = null
 
         when:
         createClass('''
@@ -603,28 +605,28 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             autoCreate {
                 name = "bla"
-                executedPhase = PhaseDriver.instance.currentPhase
+                executedPhase = PhaseDriver.currentPhase
             }
         }
 
         then:
         instance.name == "bla"
-        executedPhase == KlumPhase.AUTO_CREATE.number
+        executedPhase == DefaultKlumPhase.AUTO_CREATE
 
         when:
-        executedPhase = -1
+        executedPhase = null
         def objType = null
         instance = clazz.Create.With {
             autoCreate { obj ->
                 name = "bli"
                 objType = obj.getClass()
-                executedPhase = PhaseDriver.instance.currentPhase
+                executedPhase = PhaseDriver.currentPhase
             }
         }
 
         then:
         instance.name == "bli"
-        executedPhase == KlumPhase.AUTO_CREATE.number
+        executedPhase == DefaultKlumPhase.AUTO_CREATE
         objType == rwClazz
     }
 

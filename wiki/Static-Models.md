@@ -14,7 +14,7 @@ A static model is a collection of classes that fulfills a couple of constraints:
 
 # How does KlumAST implement the static data model paradigm?
 
-Since 0.98 and continuing to 1.0, KlumAST aspires to create SDMs by using the following techniques:
+KlumAST aspires to create SDMs by using the following techniques:
 
 - setters and added methods, as well as lifecycle methods are moved to a special inner class that is only visible
   during apply and create methods. This means that all DSL features are readily available whenever a model instance 

@@ -23,11 +23,13 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.BreadcrumbCollector
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.runtime.InvokerHelper
 import org.intellij.lang.annotations.Language
 import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 import org.junit.rules.TestName
 import spock.lang.Specification
 
@@ -36,6 +38,7 @@ import java.lang.reflect.Method
 class AbstractDSLSpec extends Specification {
 
     @Rule TestName testName = new TestName()
+    @Rule TemporaryFolder tempFolder = new TemporaryFolder()
     ClassLoader oldLoader
     GroovyClassLoader loader
     def instance
@@ -55,11 +58,12 @@ class AbstractDSLSpec extends Specification {
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
-        def outputDirectory = new File("build/test-classes/${getClass().simpleName}/$safeFilename")
+        def outputDirectory = new File("build/test-classes/$GroovySystem.version/${getClass().simpleName}/$safeFilename")
         outputDirectory.deleteDir()
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
         compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
+        BreadcrumbCollector.getInstance(specificationContext.currentIteration.name)
     }
 
     def getSafeFilename() {
@@ -68,6 +72,8 @@ class AbstractDSLSpec extends Specification {
 
     def cleanup() {
         Thread.currentThread().contextClassLoader = oldLoader
+        assert !BreadcrumbCollector.INSTANCE.get()?.breadcrumbs
+        BreadcrumbCollector.INSTANCE.remove()
     }
 
     def propertyMissing(String name) {
@@ -122,6 +128,13 @@ class AbstractDSLSpec extends Specification {
 
     def createSecondaryClass(@Language("groovy") String code, String filename) {
         return parseClass(code, filename)
+    }
+
+    File scriptFile(String filename, @Language("groovy") String code) {
+        File file = new File(tempFolder.root, filename)
+        file.parentFile.mkdirs()
+        file.text = code
+        return file
     }
 
     def create(String classname, Closure closure = {}) {

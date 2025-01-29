@@ -28,6 +28,9 @@
   - New `@Role` annotation to infer the name of the owner field containing an object (see [Role fields](https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields) and [#86](https://github.com/klum-dsl/klum-ast/issues/86))
 - Overwrite strategies for `copyFrom` and templates (see [Copy Strategies](https://github.com/klum-dsl/klum-ast/wiki/Copy-Strategies) and [#309](https://github.com/klum-dsl/klum-ast/issues/309))
 - Multiple calls to a single object closure now configure the same object instead of completely overriding the previous field, the same for map entries using the same key. (see [#325](https://github.com/klum-dsl/klum-ast/issues/325)). While this is a more natural behaviour, it might break existing code in some corner cases, see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)).
+- Breadcrumbs: each Method or closures encountered while creating model is used to setup a breadcrumb path. This path is used in exceptions to identify the location of the problem in the scripts, which is especially handy when the model is split over various scripts. (see [Exception Handling](https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling) and [#264](https://github.com/klum-dsl/klum-ast/issues/264))
+- Rework exception handling as a whole, this includes a new hierarchy of exceptions (see [Exception Handling](https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling)) which contain relevant information about the phase in which the exception occured as well as the object which caused the exception. This is especially useful for validation exceptions. (see [#149](https://github.com/klum-dsl/klum-ast/issues/149) and [#288](https://github.com/klum-dsl/klum-ast/issues/288))
+- Validations are now all executed, even if exceptions are encountered. All violations are aggregated into a single `KlumValidationException` which is thrown at the end of the phase (see [#146](https://github.com/klum-dsl/klum-ast/issues/146))
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
@@ -40,6 +43,7 @@
 - Sanity check: Key Fields must not have `@Owner` or `@Field` annotations.
 - Selector members for `@LinkTo` annotations allows to determine the link source from the provider based on the value of another field (see [#302](https://github.com/klum-dsl/klum-ast/issues/302))
 - @LinkTo now correctly handles empty collections/maps as target
+- Allow a custom key-provider function for `createFrom(URL)` and `createFrom(File)` 
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
@@ -63,12 +67,14 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.39
+  - correctly determine the script name if the filename contains multiple "." (see [#328](https://github.com/klum-dsl/klum-ast/issues/328))
 - since rc.33
   - Make RW classes public, not protected. Otherwise, static type checking can fail if owner and child are in different packages 
 - since rc.32
   - new AnnoDocimal version ([Fix for inner enum final modifier](https://github.com/blackbuild/anno-docimal/issues/31))
 - since rc.31
-  - Don't copy Overrides annotation to RW delegation methods (see [#40](https://github.com/klum-dsl/klum-ast/issues/340))
+  - Don't copy Overrides annotation to RW delegation methods (see [#340](https://github.com/klum-dsl/klum-ast/issues/340))
 - since rc.13
   - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
   - Converter methods should honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268))

@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import com.blackbuild.klum.ast.util.KlumException;
+
 import java.util.Collection;
 import java.util.Map;
 
@@ -31,31 +33,33 @@ import java.util.Map;
  */
 public abstract class AbstractPhaseAction implements PhaseAction {
 
-    private final int phase;
-    private final String phaseName;
-
-    protected AbstractPhaseAction(int phase, String phaseName) {
-        if (phase < 0)
-            throw new IllegalArgumentException("Phase must be >= 0");
-        if (phase == 0)
-            throw new IllegalArgumentException("Creation Phase (0) cannot execute custom actions");
-        this.phase = phase;
-        this.phaseName = phaseName;
-    }
+    private final KlumPhase phase;
 
     protected AbstractPhaseAction(KlumPhase phase) {
-        this(phase.getNumber(), phase.getName());
+        if (phase.getNumber() < 0)
+            throw new IllegalArgumentException("Phase must be >= 0");
+        if (phase.getNumber() == 0)
+            throw new IllegalArgumentException("Creation Phase (0) cannot execute custom actions");
+        this.phase = phase;
     }
 
     @Override
-    public int getPhase() {
+    public KlumPhase getPhase() {
         return phase;
     }
 
     @Override
-    public String getPhaseName() {
-        return phaseName;
+    public void execute() {
+        try {
+            doExecute();
+        } catch (KlumException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new KlumException(e);
+        }
     }
+
+    protected abstract void doExecute();
 
     protected boolean isUnset(Map.Entry<String, Object> entry) {
         Object value = entry.getValue();
