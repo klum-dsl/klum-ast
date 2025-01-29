@@ -38,7 +38,7 @@ public class ValidationPhase extends AbstractPhaseAction {
     }
 
     @Override
-    public void execute() {
+    protected void doExecute() {
         new Visitor().execute();
     }
 
