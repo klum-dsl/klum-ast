@@ -364,6 +364,17 @@ public class CommonAstHelper {
         return member.getType();
     }
 
+    public static boolean getNullSafeBooleanMember(AnnotationNode node, String name, boolean defaultValue) {
+        if (node == null)
+            return defaultValue;
+
+        Expression member = node.getMember(name);
+        if (!(member instanceof ConstantExpression))
+            return defaultValue;
+
+        return ((ConstantExpression) member).getValue().equals(Boolean.TRUE);
+    }
+
     public static void initializeCollectionOrMap(FieldNode fieldNode) {
         if (fieldNode.hasInitialExpression())
             return;

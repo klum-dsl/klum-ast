@@ -159,6 +159,60 @@ Map<String, Application> getApplications() {
     return ClusterModel.getPropertiesOfType(this, Application, Important)
 }
 ```
+
+## The Layer3 annotation
+
+The Layer3 annotation can be used to annotate classes (like Application in the above example) and currently provides a
+single feature: `fixedKey`. If a keyed class is annotated with `@Layer3(fixedKey=true)`, and an instance of this class or 
+its subclasses is modeled to a single field, the key of the created instance will automatically be set to the name of the
+field, as if the field was annotated with `@Field(key=Field.FieldName)`.
+
+```groovy
+@DSL abstract class Home {
+  @Cluster Map<String, Zone> getZones() {}
+}
+
+@DSL 
+@Layer3(fixedKey = true) 
+abstract class Zone {
+  @Key String key
+  ...
+}
+```
+
+Schema
+
+```groovy
+@DSL class MyHome extends Home {
+  Inside inside
+  Outside outside
+}
+
+@DSL class Outside extends Zone {
+  ...
+}
+@DSL class Inside extends Zone {
+  ...
+}
+```
+
+Now the model can be defined like so:
+
+
+```groovy
+MyHome.Create.With {
+    inside {
+        ...
+    }
+    outside {
+        ...
+    }
+}
+```
+
+and the keys will automatically be set to "inside" and "outside".
+
+
 ## Benefits of a Layer3 model
 
 There are various major benefits of using a Layer3 model vs. a generic schema/model approach:

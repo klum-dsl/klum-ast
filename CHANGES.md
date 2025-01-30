@@ -44,6 +44,8 @@
 - Selector members for `@LinkTo` annotations allows to determine the link source from the provider based on the value of another field (see [#302](https://github.com/klum-dsl/klum-ast/issues/302))
 - @LinkTo now correctly handles empty collections/maps as target
 - Allow a custom key-provider function for `createFrom(URL)` and `createFrom(File)` 
+- Layer3 classes can be annotated with `Layer3` annotation which provides some features:
+  - `fixedKey` makes Keyed layer3 class instances automatically set the key to name of the field that they are set (like `@Field(key=Field.FieldName)` does) (see [#356](https://github.com/klum-dsl/klum-ast/issues/356))
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.

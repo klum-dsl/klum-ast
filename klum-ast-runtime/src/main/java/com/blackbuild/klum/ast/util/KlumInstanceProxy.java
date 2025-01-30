@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.util.layer3.annotations.Layer3;
 import groovy.lang.*;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
@@ -275,7 +276,9 @@ public class KlumInstanceProxy {
                 existingValue = getInstanceAttribute(fieldOrMethodName);
             }
 
-            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
+            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get())
+                    .or(() -> resolveKeyFromFixedLayer3Type(fieldOrMethodName, type))
+                    .orElse(key);
 
             if (existingValue != null) {
                 KlumInstanceProxy existingValueProxy = getProxyFor(existingValue);
@@ -597,6 +600,15 @@ public class KlumInstanceProxy {
 
         String result = ClosureHelper.invokeClosureWithDelegateAsArgument((Class<? extends Closure<String>>) keyMember, instance);
         return Optional.of(result);
+    }
+
+    Optional<String> resolveKeyFromFixedLayer3Type(String fieldName, Class<?> type) {
+        return getDslHierarchyOf(type).stream()
+                .map(layer -> layer.getAnnotation(Layer3.class))
+                .filter(Objects::nonNull)
+                .filter(Layer3::fixedKey)
+                .findAny()
+                .map(a -> fieldName);
     }
 
     public String getBreadcrumbPath() {

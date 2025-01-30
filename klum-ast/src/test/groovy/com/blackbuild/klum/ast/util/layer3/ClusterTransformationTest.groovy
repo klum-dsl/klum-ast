@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 
 class ClusterTransformationTest extends AbstractDSLSpec {
@@ -241,5 +242,76 @@ class ClusterTransformationTest extends AbstractDSLSpec {
         instance.stringLists == [nicknames: ["John", "Johnny"], hobbies: ["Soccer", "Tennis"]]
     }
 
+    @Issue("356")
+    def "allow setting of fixed keys on dsl objects"() {
+        given:
+        createClass '''
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.util.layer3.annotations.Layer3
+
+@DSL abstract class Home {
+  @Cluster Map<String, Zone> getZones() {}
+}
+
+@DSL @Layer3(fixedKey = true) abstract class Zone {
+  @Key String key
+}
+
+@DSL class MyHome extends Home {
+  Inside inside
+  Outside outside
+}
+
+@DSL class Outside extends Zone {
+}
+@DSL class Inside extends Zone {
+}
+'''
+        when:
+        instance = create("MyHome") {
+            inside()
+            outside()
+        }
+
+        then:
+        instance.inside.key == "inside"
+        instance.outside.key == "outside"
+    }
+
+    @Issue("356")
+    def "fixedKey can also be set only on a specific subclass"() {
+        given:
+        createClass '''
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.util.layer3.annotations.Layer3
+
+@DSL abstract class Home {
+  @Cluster Map<String, Zone> getZones() {}
+}
+
+@DSL abstract class Zone {
+  @Key String key
+}
+
+@DSL class MyHome extends Home {
+  Inside inside
+  Outside outside
+}
+
+@DSL @Layer3(fixedKey = true) class Outside extends Zone {
+}
+@DSL class Inside extends Zone {
+}
+'''
+        when:
+        instance = create("MyHome") {
+            inside("manual")
+            outside()
+        }
+
+        then:
+        instance.inside.key == "manual"
+        instance.outside.key == "outside"
+    }
 
 }

@@ -30,6 +30,7 @@ import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethods
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.layer3.annotations.Layer3;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
@@ -81,6 +82,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
     public static final ClassNode KEY_ANNOTATION = make(Key.class);
+    public static final ClassNode LAYER3_ANNOTATION = make(Layer3.class);
 
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
 
@@ -970,34 +972,42 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         AnnotationNode fieldAnnotation = getAnnotation(fieldNode, DSL_FIELD_ANNOTATION);
 
-        if (fieldAnnotation == null)
-            return null;
+        if (fieldAnnotation != null) {
+            Expression keyMember = fieldAnnotation.getMember("key");
 
-        Expression keyMember = fieldAnnotation.getMember("key");
+            if (keyMember instanceof ClassExpression) {
+                ClassNode memberType = keyMember.getType();
+                if (memberType.equals(ClassHelper.make(Field.FieldName.class)))
+                    return constX(fieldNode.getName());
+                else
+                    addError("Field.key must contain either Field.FieldName or a Closure returning a " + targetFieldType.getNameWithoutPackage(), keyMember);
+            } else if (keyMember instanceof ClosureExpression) {
+                ClosureExpression keyProviderClosure = toStronglyTypedClosure((ClosureExpression) keyMember, annotatedClass);
+                // replace closure with strongly typed one
+                fieldAnnotation.setMember("key", keyProviderClosure);
+                String keyGetterName = "$getStaticKeyFor$" + fieldNode.getName();
+                createMethodFromClosure(
+                        keyGetterName,
+                        targetKeyField.getOriginType(),
+                        keyProviderClosure,
+                        propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS),
+                        propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS)
+                ).addTo(rwClass);
 
-        if (keyMember instanceof ClassExpression) {
-            ClassNode memberType = keyMember.getType();
-            if (memberType.equals(ClassHelper.make(Field.FieldName.class)))
-                return constX(fieldNode.getName());
-            else
-                addError("Field.key must contain either Field.FieldName or a Closure returning a " + targetFieldType.getNameWithoutPackage(), keyMember);
-        } else if (keyMember instanceof ClosureExpression) {
-            ClosureExpression keyProviderClosure = toStronglyTypedClosure((ClosureExpression) keyMember, annotatedClass);
-            // replace closure with strongly typed one
-            fieldAnnotation.setMember("key", keyProviderClosure);
-            String keyGetterName = "$getStaticKeyFor$" + fieldNode.getName();
-            createMethodFromClosure(
-                    keyGetterName,
-                    targetKeyField.getOriginType(),
-                    keyProviderClosure,
-                    propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS),
-                    propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS)
-            ).addTo(rwClass);
-
-            return callX(varX("this"), keyGetterName);
+                return callX(varX("this"), keyGetterName);
+            }
         }
 
+        if (isFixedKeyType(targetFieldType))
+            return constX(fieldNode.getName());
+
         return null;
+    }
+
+    private boolean isFixedKeyType(ClassNode targetFieldType) {
+        return getHierarchyOfDSLObjectAncestors(targetFieldType).stream()
+                .map(type -> getAnnotation(type, LAYER3_ANNOTATION))
+                .anyMatch(annotationNode -> getNullSafeBooleanMember(annotationNode, "fixedKey", false));
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
