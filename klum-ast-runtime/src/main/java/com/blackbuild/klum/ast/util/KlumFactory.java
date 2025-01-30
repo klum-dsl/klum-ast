@@ -28,7 +28,6 @@ import com.blackbuild.groovy.configdsl.transform.DSL;
 import groovy.lang.Closure;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
-import groovy.util.DelegatingScript;
 
 import java.io.File;
 import java.net.URL;
@@ -90,7 +89,7 @@ public class KlumFactory<T> {
 
     /**
      * Creates a new instance of the model type by running the given script class. The script must either return an
-     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link DelegatingScript}
+     * instance of the model (i.e. contain something like 'MyClass.Create.With {...}') or must be a {@link groovy.util.DelegatingScript}
      * whose contents are the same as create/apply closure for this model class.
      * <p>
      * Note that in case of a Keyed object in combination with a DelegatingScript, the simple name of the script class
