@@ -55,7 +55,7 @@ public abstract class CreateModelProperties extends DefaultTask {
         try {
             Files.createDirectories(file.getParentFile().toPath());
             Properties propertiesToWrite = new Properties();
-            propertiesToWrite.put("model-class", type);
+            propertiesToWrite.put("model-class", script);
             PropertiesUtils.store(propertiesToWrite, file);
         } catch (IOException e) {
             throw new GradleScriptException("Failed to create model properties file for " + type, e);

@@ -34,8 +34,8 @@ public abstract class KlumModelExtension extends KlumExtension {
 
     public abstract MapProperty<String, String> getTopLevelScripts();
 
-    public void topLevelScript(String model, String script) {
-        getTopLevelScripts().put(model, script);
+    public void topLevelScript(String modelType, String script) {
+        getTopLevelScripts().put(modelType, script);
     }
 
     public void schemas(Action<? super SchemaDependencies> action) {
