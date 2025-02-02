@@ -23,12 +23,12 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import groovy.lang.*;
+import groovy.lang.Closure;
+import groovy.lang.PropertyValue;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
-import org.codehaus.groovy.reflection.CachedField;
-import org.codehaus.groovy.reflection.CachedMethod;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.MetaClassHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
@@ -40,10 +40,10 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static com.blackbuild.klum.ast.util.DslHelper.getMethod;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static org.codehaus.groovy.runtime.DefaultGroovyMethods.getMetaClass;
 import static org.codehaus.groovy.runtime.DefaultGroovyMethods.getMetaPropertyValues;
 
 /**
@@ -308,24 +308,16 @@ public class ClusterModel {
     }
 
     static AnnotatedElement getAnnotatedElementForProperty(Object container, PropertyValue propertyValue) {
-        MetaProperty metaProperty = getMetaClass(container).getMetaProperty(propertyValue.getName());
-        CachedField cachedField;
+        Class<?> containerClass = container.getClass();
 
-        if (metaProperty instanceof CachedField)
-            cachedField = (CachedField) metaProperty;
-        else if (metaProperty instanceof MetaBeanProperty)
-            cachedField = ((MetaBeanProperty) metaProperty).getField();
-        else
-            throw new IllegalArgumentException("Cannot get AnnotatedElement for " + propertyValue.getName());
+        Optional<Field> field = getField(containerClass, propertyValue.getName());
+        if (field.isPresent()) return field.get();
 
-        if (cachedField != null) {
-            if (GroovySystem.getVersion().startsWith("2"))
-                return (Field) InvokerHelper.getProperty(cachedField, "field");
-            else
-                return (Field) InvokerHelper.getProperty(cachedField, "cachedField");
-        }
-        MetaBeanProperty property = (MetaBeanProperty) metaProperty;
-        return ((CachedMethod) property.getGetter()).getCachedMethod();
+        String capitalizedName = MetaClassHelper.capitalize(propertyValue.getName());
+        Optional<Method> method = getMethod(containerClass, "get" + capitalizedName)
+                .or(() -> getMethod(containerClass, "is" + capitalizedName));
+
+        return method.orElseThrow(() -> new IllegalArgumentException("Cannot find field or method for " + propertyValue.getName() + " in " + containerClass.getName()));
     }
 
     static boolean isNoInternalProperty(PropertyValue property) {

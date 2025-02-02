@@ -67,6 +67,10 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.40
+  - unqalified links in KlumFactory's javadoc lead to javadoc failures
+  - gradle model plugin used the wrong class in the model descriptor (model class instead of script class)
+  - ClusterModel filtering against annotations did not always work due to the actual Field object not being retrieved
 - since rc.39
   - correctly determine the script name if the filename contains multiple "." (see [#328](https://github.com/klum-dsl/klum-ast/issues/328))
 - since rc.33
