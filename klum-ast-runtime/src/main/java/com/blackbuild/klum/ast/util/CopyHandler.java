@@ -33,9 +33,9 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor;
@@ -68,23 +68,54 @@ public class CopyHandler {
     }
 
     public void doCopy() {
-        DslHelper.getDslHierarchyOf(target.getClass()).forEach(this::copyFromLayer);
+        if (donor instanceof Map)
+            doCopyFromMap();
+        else
+            doCopyFromObject();
+    }
+
+    private void doCopyFromMap() {
+        for (String key : ((Map<String, Object>) donor).keySet()) {
+            doCopyNamedElement(key);
+        }
+    }
+
+    private void doCopyFromObject() {
+        DslHelper.getDslHierarchyOf(donor.getClass()).forEach(this::copyFromLayer);
     }
 
     private void copyFromLayer(Class<?> layer) {
-        if (layer.isInstance(donor))
-            Arrays.stream(layer.getDeclaredFields())
-                    .filter(this::isNotIgnored)
-                    .forEach(this::copyFromField);
+        for (Field field : layer.getDeclaredFields()) {
+            if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) continue;
+            String name = field.getName();
+
+            doCopyNamedElement(name);
+        }
+    }
+
+    private void doCopyNamedElement(String name) {
+        if (name.startsWith("$")) return;
+
+        Optional<Field> optionalField = DslHelper.getField(target.getClass(), name);
+
+        if (optionalField.isEmpty())
+            handleMissingFieldInTarget(name);
+        else {
+            Field targetField = optionalField.get();
+            if (isNotIgnored(targetField))
+                copyFromField(targetField);
+        }
+    }
+
+    private void handleMissingFieldInTarget(String name) {
+        throw new KlumModelException("Field " + name + " is missing in target object " + target);
     }
 
     @SuppressWarnings("java:S1126")
     private boolean isIgnored(Field field) {
-        if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) return true;
         if (field.isAnnotationPresent(Key.class)) return true;
         if (field.isAnnotationPresent(Owner.class)) return true;
         if (field.isAnnotationPresent(Role.class)) return true;
-        if (field.getName().startsWith("$")) return true;
         if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
         return false;
     }
@@ -106,8 +137,7 @@ public class CopyHandler {
     private void copyFromSingleField(Field field) {
         String fieldName = field.getName();
         Object currentValue = proxy.getInstanceAttribute(fieldName);
-        KlumInstanceProxy templateProxy = getProxyFor(donor);
-        Object templateValue = templateProxy.getInstanceAttribute(fieldName);
+        Object templateValue = getTemplateValue(fieldName, field.getType());
 
         OverwriteStrategy.Single strategy = getSingleStrategy(field);
 
@@ -135,6 +165,17 @@ public class CopyHandler {
             default:
                 throwInvalidStrategy(strategy);
         }
+    }
+
+    private <T> T getTemplateValue(String fieldName, Class<T> type) {
+        Object result;
+        if (donor instanceof Map)
+            result = ((Map<String, Object>) donor).get(fieldName);
+        else
+            result = getProxyFor(donor).getInstanceAttribute(fieldName);
+        if (result != null && !(result instanceof Map) && !type.isInstance(result))
+            throw new IllegalArgumentException("Field " + fieldName + " is not of expected type " + type);
+        return (T) result;
     }
 
     private void replaceValue(String fieldName, Object templateValue) {
@@ -167,7 +208,7 @@ public class CopyHandler {
     private void copyFromMapField(Field field) {
         String fieldName = field.getName();
         Map<Object,Object> currentValues = proxy.getInstanceAttribute(fieldName);
-        Map<Object,Object> templateValues = getProxyFor(donor).getInstanceAttribute(fieldName);
+        Map<Object,Object> templateValues = (Map<Object, Object>) getTemplateValue(fieldName, field.getType());
 
         if (templateValues == null)
             return;
@@ -280,7 +321,7 @@ public class CopyHandler {
     private void copyFromCollectionField(Field field) {
         String fieldName = field.getName();
         Collection<Object> currentValue = proxy.getInstanceAttribute(fieldName);
-        Collection<Object> templateValue = getProxyFor(donor).getInstanceAttribute(fieldName);
+        Collection<Object> templateValue = (Collection<Object>) getTemplateValue(fieldName, field.getType());
 
         if (templateValue == null) return;
 
