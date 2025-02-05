@@ -43,8 +43,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -460,20 +459,26 @@ public class FactoryHelper extends GroovyObjectSupport {
         if (typeHint == null) {
             Class<T> result = getTypeOrDefaultType(baseType);
             if (DslHelper.isInstantiable(result)) return result;
-            throw new KlumModelException("Cannot deduce type from basetype " + baseType.getName() + " without a type hint");
+            throw new KlumModelException("Cannot deduce type from base type " + baseType.getName() + " without a type hint");
         }
 
         ClassLoader loader = baseType.getClassLoader();
 
-        Class<T> result = safeLoadClass(typeHint, loader, baseType);
+        List<String> typeNameVariants = new ArrayList<>();
+        typeNameVariants.add(typeHint);
+        typeNameVariants.add(baseType.getPackage().getName() + "." + typeHint);
 
-        if (result != null) return result;
+        DSL dsl = baseType.getAnnotation(DSL.class);
+        if (dsl != null && !dsl.stripSuffix().isEmpty()) {
+            typeNameVariants.add(dsl.stripSuffix() + typeHint);
+            typeNameVariants.add(dsl.stripSuffix() + baseType.getPackage().getName() + "." + typeHint);
+        }
 
-        result = safeLoadClass(baseType.getPackage().getName() + "." + typeHint, loader, baseType);
-
-        if (result != null) return result;
-
-        throw new KlumModelException("Could not find class for type hint " + typeHint);
+        return typeNameVariants.stream()
+                .map(name -> safeLoadClass(name, loader, baseType))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new KlumModelException("Could not find class for type hint " + typeHint + ", variants tried: " + typeNameVariants));
     }
 
     private static <T> Class<T> safeLoadClass(String className, ClassLoader loader, Class<T> baseType) {

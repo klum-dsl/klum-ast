@@ -387,7 +387,7 @@ import java.lang.annotation.Target;
         "com.blackbuild.groovy.configdsl.transform.ast.DelegatesToRWTransformation",
 })
 @KlumCastValidated
-@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckDslDefaultImpl")
+@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckDslAnnotation")
 @Documented
 public @interface DSL {
     /**
