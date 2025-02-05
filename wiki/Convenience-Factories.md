@@ -160,3 +160,43 @@ Using this technique, the same consumer can work with different models (most of 
 without any need to change or somehow inject the name of the Model class.
 
 In fact, this might actually become the preferred method of consuming a model.
+
+# Map
+
+Using `FromMap` an object can be created from a map. This is a form of "poor man's deserialization", where each entry in
+map is mapped to a similar named field of the new object. The class of the object to be created can be overridden by
+using the special "@type" key in the map, which can either be a fully qualified class name or a class name relative to
+the base type's package. Additionally, the type can be a stripped name as defined by `@DSL.stripSuffix()`.
+
+Owner and Role fields are not set during the creation, but since FromMap is a regular creator method, objects created
+by it undergo the regular lifecycle phases, including setting of owner, role and default values.
+
+Special features of libraries such as renamed fields etc. can be simulated by overriding the FromMap method in a custom 
+factory and adjusting the effective map before calling the super method.
+
+Note that the creation of inner objects delegates to their respective `FromMap` methods.
+
+```groovy
+@DSL class Person {
+    String firstName
+    String lastName
+ 
+    static class Factory extends KlumFactory.Unkeyed<Person> {
+        protected Factory() { super(Person) }
+
+        @Override
+        Person FromMap(Map map) {
+            def transformedMap = map.collectEntries { k, v ->
+                // transform key from kebap to camel case
+             [(k as String).tokenize('-').collect { it.capitalize() }.join('').uncapitalize(), v]
+            }
+            return super.FromMap(transformedMap)
+        }
+    }
+} 
+
+def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller'])
+
+assert person.firstName == 'Klaus'
+assert person.lastName == 'Müller'
+```

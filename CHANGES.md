@@ -31,6 +31,7 @@
 - Breadcrumbs: each Method or closures encountered while creating model is used to setup a breadcrumb path. This path is used in exceptions to identify the location of the problem in the scripts, which is especially handy when the model is split over various scripts. (see [Exception Handling](https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling) and [#264](https://github.com/klum-dsl/klum-ast/issues/264))
 - Rework exception handling as a whole, this includes a new hierarchy of exceptions (see [Exception Handling](https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling)) which contain relevant information about the phase in which the exception occured as well as the object which caused the exception. This is especially useful for validation exceptions. (see [#149](https://github.com/klum-dsl/klum-ast/issues/149) and [#288](https://github.com/klum-dsl/klum-ast/issues/288))
 - Validations are now all executed, even if exceptions are encountered. All violations are aggregated into a single `KlumValidationException` which is thrown at the end of the phase (see [#146](https://github.com/klum-dsl/klum-ast/issues/146))
+- New `FromMap` factory to allow a "poor man's deserialization" (see [Convenience Factories](https://github.com/klum-dsl/klum-ast/wiki/Convenience-Factories#Map) and [#359](https://github.com/klum-dsl/klum-ast/issues/359)) 
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
