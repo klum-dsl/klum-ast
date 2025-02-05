@@ -96,6 +96,7 @@ public class CopyHandler {
 
     private void doCopyNamedElement(String name) {
         if (name.startsWith("$")) return;
+        if (name.startsWith("@")) return;
 
         Optional<Field> optionalField = DslHelper.getField(target.getClass(), name);
 
@@ -367,7 +368,7 @@ public class CopyHandler {
     }
 
     private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
-        if (!elementType.isInstance(value))
+        if (value != null && !(value instanceof Map) && !elementType.isInstance(value))
             throw new IllegalArgumentException("Element " + value + " in " + field + " is not of expected type " + elementType);
     }
 

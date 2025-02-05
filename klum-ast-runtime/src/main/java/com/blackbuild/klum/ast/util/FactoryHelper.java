@@ -24,11 +24,13 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
+import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.*;
+import groovy.transform.Undefined;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -197,6 +199,8 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     static <T> T createInstance(Class<T> type, String key, String breadCrumbPathExtension) {
+        if (!DslHelper.isInstantiable(type))
+            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         if (key == null && DslHelper.isKeyed(type))
             return createInstanceWithNullArg(type);
         //noinspection unchecked
@@ -444,20 +448,49 @@ public class FactoryHelper extends GroovyObjectSupport {
                     .map(Object::toString)
                     .orElse(null);
             String typeFromMap = (String) configMap.get("@type");
-            Class<T> effectiveType = type;
-            if (typeFromMap != null) {
-                try {
-                    effectiveType = (Class<T>) Class.forName(typeFromMap).asSubclass(type);
-                } catch (ClassNotFoundException e) {
-                    throw new KlumModelException("Could not load class " + typeFromMap, e);
-                } catch (ClassCastException e) {
-                    throw new KlumModelException("Class " + typeFromMap + " is not a subclass of " + type);
-                }
-            }
+            Class<T> effectiveType = deduceClass(type, typeFromMap);
 
             T result = createInstance(effectiveType, keyFromMap);
             CopyHandler.copyToFrom(result, configMap);
             return result;
         });
+    }
+
+    private static <T> Class<T> deduceClass(Class<T> baseType, String typeHint) {
+        if (typeHint == null) {
+            Class<T> result = getTypeOrDefaultType(baseType);
+            if (DslHelper.isInstantiable(result)) return result;
+            throw new KlumModelException("Cannot deduce type from basetype " + baseType.getName() + " without a type hint");
+        }
+
+        ClassLoader loader = baseType.getClassLoader();
+
+        Class<T> result = safeLoadClass(typeHint, loader, baseType);
+
+        if (result != null) return result;
+
+        result = safeLoadClass(baseType.getPackage().getName() + "." + typeHint, loader, baseType);
+
+        if (result != null) return result;
+
+        throw new KlumModelException("Could not find class for type hint " + typeHint);
+    }
+
+    private static <T> Class<T> safeLoadClass(String className, ClassLoader loader, Class<T> baseType) {
+        try {
+            Class<T> loadedClass = (Class<T>) loader.loadClass(className);
+            if (!baseType.isAssignableFrom(loadedClass))
+                throw new KlumModelException("Class " + loadedClass.getName() + " is not a subclass of " + baseType.getName());
+            return loadedClass;
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    static <T> Class<T> getTypeOrDefaultType(Class<T> type) {
+        DSL annotation = type.getAnnotation(DSL.class);
+        Class<?> defaultImpl = annotation.defaultImpl();
+        //noinspection unchecked - already verified via CheckDslDefaultImpl
+        return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
     }
 }
