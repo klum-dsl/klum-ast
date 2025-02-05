@@ -333,12 +333,12 @@ import com.blackbuild.klum.ast.util.KlumFactory
         protected Factory() { super(Person) }
         
         @Override
-        Person FromMap(Map map) {
+        Person FromMap(Map<String, Object> map) {
             def transformedMap = map.collectEntries { k, v ->
                 // transform key from kebap to camel case
                 [(k as String).tokenize('-').collect { it.capitalize() }.join('').uncapitalize(), v]
             }
-            return super.FromMap(transformedMap)
+            return super.FromMap(transformedMap as Map<String, Object>)
         }
     }
 } 
@@ -372,7 +372,7 @@ import com.blackbuild.klum.ast.util.KlumFactory
         protected Factory() { super(Address) }
         
         @Override
-        Address FromMap(Map map) {
+        Address FromMap(Map<String, Object> map) {
             def transformedMap = [
                 street: map.number ? "$map.street $map.number" as String : map.street, 
                 city: map.zip ? "$map.city $map.zip" as String : map.city

@@ -185,8 +185,8 @@ Note that the creation of inner objects delegates to their respective `FromMap` 
         protected Factory() { super(Person) }
 
         @Override
-        Person FromMap(Map map) {
-            def transformedMap = map.collectEntries { k, v ->
+        Person FromMap(Map<String, Object> map) {
+            Map<String, Object> transformedMap = map.collectEntries { k, v ->
                 // transform key from kebap to camel case
              [(k as String).tokenize('-').collect { it.capitalize() }.join('').uncapitalize(), v]
             }
