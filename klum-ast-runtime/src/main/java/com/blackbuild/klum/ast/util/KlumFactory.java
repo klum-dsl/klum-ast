@@ -202,6 +202,17 @@ public class KlumFactory<T> {
     }
 
     /**
+     * Creates a new instance of the model type by applying the given configuration map. By default, this
+     * takes the key from a map entry that is named as the key field, other values of the map are set to their
+     * respective fields.
+     * @param configMap a map containing the values to set on the model.
+     * @return The instantiated object.
+     */
+    public T FromMap(Map<String, Object> configMap) {
+        return FactoryHelper.createFromMap(type, configMap);
+    }
+
+    /**
      * Creates a template instance of the model type.
      * <p>
      * Templates differ from regular instances in the following way:

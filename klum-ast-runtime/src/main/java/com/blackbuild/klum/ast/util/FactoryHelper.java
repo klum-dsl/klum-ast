@@ -38,6 +38,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -433,5 +434,30 @@ public class FactoryHelper extends GroovyObjectSupport {
     private static @NotNull String extractKeyFromFilename(String filename) {
         int endIndex = filename.lastIndexOf('.');
         return endIndex != -1 ? filename.substring(0, endIndex) : filename;
+    }
+
+    public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {
+        return BreadcrumbCollector.withBreadcrumb(() -> {
+            String keyFromMap = DslHelper.getKeyField(type)
+                    .map(Field::getName)
+                    .map(configMap::get)
+                    .map(Object::toString)
+                    .orElse(null);
+            String typeFromMap = (String) configMap.get("@type");
+            Class<T> effectiveType = type;
+            if (typeFromMap != null) {
+                try {
+                    effectiveType = (Class<T>) Class.forName(typeFromMap).asSubclass(type);
+                } catch (ClassNotFoundException e) {
+                    throw new KlumModelException("Could not load class " + typeFromMap, e);
+                } catch (ClassCastException e) {
+                    throw new KlumModelException("Class " + typeFromMap + " is not a subclass of " + type);
+                }
+            }
+
+            T result = createInstance(effectiveType, keyFromMap);
+            CopyHandler.copyToFrom(result, configMap);
+            return result;
+        });
     }
 }

@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.blackbuild.klum.ast.util.DslHelper.getFactoryOf;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor;
 import static groovyjarjarasm.asm.Opcodes.*;
@@ -144,19 +145,19 @@ public class CopyHandler {
         switch (strategy) {
             case REPLACE:
                 if (templateValue != null)
-                    replaceValue(fieldName, templateValue);
+                    replaceValue(field, templateValue);
                 break;
             case ALWAYS_REPLACE:
-                replaceValue(fieldName, templateValue);
+                replaceValue(field, templateValue);
                 break;
             case SET_IF_NULL:
                 if (currentValue == null)
-                    replaceValue(fieldName, templateValue);
+                    replaceValue(field, templateValue);
                 break;
             case MERGE:
                 if (templateValue != null) {
                     if (currentValue == null || !isDslType(field.getType()))
-                        replaceValue(fieldName, templateValue);
+                        replaceValue(field, templateValue);
                     else
                         CopyHandler.copyToFrom(currentValue, templateValue);
                 }
@@ -178,8 +179,14 @@ public class CopyHandler {
         return (T) result;
     }
 
-    private void replaceValue(String fieldName, Object templateValue) {
-        proxy.setInstanceAttribute(fieldName, copyValue(templateValue));
+    private void replaceValue(Field field, Object templateValue) {
+        Object valueCopy;
+        if (templateValue instanceof Map) {
+            valueCopy = getFactoryOf(field.getType()).FromMap((Map<String, Object>) templateValue);
+        } else {
+            valueCopy = copyValue(templateValue);
+        }
+        proxy.setInstanceAttribute(field.getName(), valueCopy);
     }
 
     @SuppressWarnings("unchecked")
