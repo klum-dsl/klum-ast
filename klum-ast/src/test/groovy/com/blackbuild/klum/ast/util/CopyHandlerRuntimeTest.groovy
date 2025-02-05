@@ -21,25 +21,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.jackson;
+package com.blackbuild.klum.ast.util
 
-import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.groovy.configdsl.transform.Role;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import spock.lang.Issue
 
-public class KlumAnnotationIntrospector extends JacksonAnnotationIntrospector {
-    @Override
-    public boolean hasIgnoreMarker(AnnotatedMember m) {
-        if (m.hasAnnotation(Owner.class))
-            return true;
+@SuppressWarnings('GrPackage')
+class CopyHandlerRuntimeTest extends AbstractDSLSpec {
 
-        if (m.hasAnnotation(Role.class))
-            return true;
+    @Issue("359")
+    def "copy from map creates copies of nested DSL objects"() {
+        given:
+        createClass('''
+            package pk
 
-        if (m.getName().contains("$"))
-            return true;
+import com.blackbuild.groovy.configdsl.transform.DSL
 
-        return super.hasIgnoreMarker(m);
+            @DSL
+            class Outer {
+                String name
+                Inner inner
+            }
+            
+            @DSL
+            class Inner {
+                String value
+                String another
+            } 
+         ''')
+
+        when:
+        def target = Outer.Create.One()
+        CopyHandler.copyToFrom(target, [name: "bli", inner: [value: "bla", another: "blub"]])
+
+        then:
+        target.name == "bli"
+        target.inner.value == "bla"
+        getClass("pk.Inner").isInstance(target.inner)
     }
+
+
 }

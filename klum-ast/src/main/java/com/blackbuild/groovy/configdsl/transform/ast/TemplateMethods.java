@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
@@ -33,8 +34,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createG
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.*;
 import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static groovyjarjarasm.asm.Opcodes.*;
-import static org.codehaus.groovy.ast.ClassHelper.LIST_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
+import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
 
@@ -43,6 +43,7 @@ class TemplateMethods {
     public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
     public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
     public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
+    public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
     private final FieldNode keyField;
     private ClassNode templateClass;
@@ -59,7 +60,7 @@ class TemplateMethods {
     public void invoke() {
         createImplementationForAbstractClassIfNecessary();
         createAsTemplateMethods();
-        copyFromMethod();
+        copyFromMethods();
         withTemplateMethod();
         withTemplateConvenienceMethod();
         withTemplatesMapMethod();
@@ -108,10 +109,15 @@ class TemplateMethods {
             templateClass = annotatedClass;
     }
 
-    private void copyFromMethod() {
-        createProxyMethod("copyFrom")
+    private void copyFromMethods() {
+        createProxyMethod(COPY_FROM)
                 .mod(ACC_PUBLIC)
                 .param(newClass(dslAncestor), "template", null)
+                .addTo(rwClass);
+        ClassNode mapOfStringsAndObjects = GenericsUtils.makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
+        createProxyMethod(COPY_FROM)
+                .mod(ACC_PUBLIC)
+                .param(mapOfStringsAndObjects, "template", null)
                 .addTo(rwClass);
      }
 

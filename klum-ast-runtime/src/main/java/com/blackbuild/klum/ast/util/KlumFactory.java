@@ -24,10 +24,8 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
-import com.blackbuild.groovy.configdsl.transform.DSL;
 import groovy.lang.Closure;
 import groovy.lang.Script;
-import groovy.transform.Undefined;
 
 import java.io.File;
 import java.net.URL;
@@ -50,14 +48,7 @@ public class KlumFactory<T> {
 
     protected KlumFactory(Class<T> type) {
         requireDslType(type);
-        this.type = getTypeOrDefaultType(type);
-    }
-
-    private Class<T> getTypeOrDefaultType(Class<T> type) {
-        DSL annotation = type.getAnnotation(DSL.class);
-        Class<?> defaultImpl = annotation.defaultImpl();
-        //noinspection unchecked - already verified via CheckDslDefaultImpl
-        return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
+        this.type = FactoryHelper.getTypeOrDefaultType(type);
     }
 
     /**
@@ -199,6 +190,17 @@ public class KlumFactory<T> {
      */
     public T From(File configurationFile, ClassLoader loader) {
         return From(configurationFile, null, loader);
+    }
+
+    /**
+     * Creates a new instance of the model type by applying the given configuration map. By default, this
+     * takes the key from a map entry that is named as the key field, other values of the map are set to their
+     * respective fields.
+     * @param configMap a map containing the values to set on the model.
+     * @return The instantiated object.
+     */
+    public T FromMap(Map<String, Object> configMap) {
+        return FactoryHelper.createFromMap(type, configMap);
     }
 
     /**

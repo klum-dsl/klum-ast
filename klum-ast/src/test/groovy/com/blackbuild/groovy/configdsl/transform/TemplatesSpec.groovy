@@ -32,7 +32,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
 
-    def "copyFrom method is created"() {
+    def "copyFrom methods are created"() {
         when:
         createClass('''
             package pk
@@ -45,6 +45,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         then:
         rwClazz.metaClass.getMetaMethod("copyFrom", getClass("pk.Foo")) != null
+        rwClazz.metaClass.getMetaMethod("copyFrom", Map) != null
 
         when:
         def template = clazz.Create.With {
@@ -60,6 +61,14 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         and:
         !instance.is(template)
+
+        when:
+        instance = clazz.Create.With {
+            copyFrom([name: "Zelt"])
+        }
+
+        then:
+        instance.name == "Zelt"
     }
 
     def "empty template fields are not copied"() {
@@ -123,7 +132,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
-    def "createAsTemplate should never call lifecyle methods"() {
+    def "createAsTemplate should never call lifecycle methods"() {
         given:
         createClass('''
             package pk

@@ -35,7 +35,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLOb
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
 import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
 
-public class CheckDslDefaultImpl extends KlumCastCheck<Annotation> {
+public class CheckDslAnnotation extends KlumCastCheck<Annotation> {
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
         ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);

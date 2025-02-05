@@ -177,6 +177,47 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         !copy.innerLists[0].is(outer.innerLists[0])
     }
 
+    @Issue("36")
+    def "copy from Map creates copies of Maps of Lists"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Outer {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+                
+                Map<String, List<String>> inners = [:]
+                List<List<String>> innerLists = []
+            }
+         ''')
+
+        def outer = [name: "bli", inners: [a: ["a1", "a2"], b: ["b1", "b2"]], innerLists: [["a1", "a2"], ["b1", "b2"]]]
+
+        when:
+        def copy = newInstanceOf("pk.Outer")
+        CopyHandler.copyToFrom(copy, outer)
+
+        then:
+        copy.name == "bli"
+        copy.inners == outer.inners
+        !copy.inners.is(outer.inners)
+        copy.innerLists == outer.innerLists
+        !copy.innerLists.is(outer.innerLists)
+
+        and:
+        copy.inners.a == outer.inners.a
+        !copy.inners.a.is(outer.inners.a)
+
+        and:
+        copy.innerLists[0] == outer.innerLists[0]
+        !copy.innerLists[0].is(outer.innerLists[0])
+    }
+
     @Issue("309")
     def "copy with default strategy set replaces lists and map"() {
         given:

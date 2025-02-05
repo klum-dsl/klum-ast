@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.klum.ast.util
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
@@ -220,5 +221,176 @@ abstract class MyClass {
         instance.job == "baker"
     }
 
+    @Issue("359")
+    def "complex structure with Create.FromMap"() {
+        given:
+        createClass '''
+package pk
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Key
+
+@DSL class Outer {
+    String name
+    String job
+    Inner inner
+    Map<String, OtherInner> others
+}
+
+@DSL class Inner {
+    String name
+    String job
+}
+
+@DSL class OtherInner {
+    @Key String name
+    String job
+}
+'''
+        when:
+        def instance = clazz.Create.FromMap([
+            name: "Hans",
+            job: "baker",
+            inner: [
+                name: "Peter",
+                job: "baker"
+            ],
+            others: [
+                "one": [
+                    name: "Paul",
+                    job: "baker"
+                ],
+                "two": [
+                    name: "Mary",
+                    job: "baker"
+                ]
+            ]
+        ])
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+        instance.inner.name == "Peter"
+        instance.inner.job == "baker"
+        instance.others.one.name == "Paul"
+        instance.others.one.job == "baker"
+        instance.others.two.name == "Mary"
+        instance.others.two.job == "baker"
+    }
+
+    @Issue("359")
+    def "complex structure with subclasses"() {
+        given:
+        createClass '''
+package pk
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Key
+
+@DSL class Outer {
+    String name
+    String job
+    Inner inner
+}
+
+@DSL abstract class Inner {
+    String name
+    String job
+}
+
+@DSL class ConcreteInner extends Inner {}
+'''
+        when:
+        def instance = clazz.Create.FromMap([
+            name: "Hans",
+            job: "baker",
+            inner: [
+                '@type': 'ConcreteInner',
+                name: "Peter",
+                job: "baker"
+            ]
+        ])
+
+        then:
+        instance.name == "Hans"
+        instance.job == "baker"
+        instance.inner.name == "Peter"
+        instance.inner.job == "baker"
+        instance.inner.getClass() == ConcreteInner
+    }
+
+    @Issue("359")
+    def "convert map before creating instance"() {
+        given:
+        createClass '''
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL class Person {
+    String firstName
+    String lastName
+ 
+    static class Factory extends KlumFactory.Unkeyed<Person> {
+        protected Factory() { super(Person) }
+        
+        @Override
+        Person FromMap(Map<String, Object> map) {
+            def transformedMap = map.collectEntries { k, v ->
+                // transform key from kebap to camel case
+                [(k as String).tokenize('-').collect { it.capitalize() }.join('').uncapitalize(), v]
+            }
+            return super.FromMap(transformedMap as Map<String, Object>)
+        }
+    }
+} 
+'''
+        when:
+        def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller'])
+
+        then:
+        person.firstName == 'Klaus'
+        person.lastName == 'Müller'
+    }
+
+    @Issue("359")
+    def "convert map before creating nested instance"() {
+        given:
+        createClass '''
+import com.blackbuild.klum.ast.util.KlumFactory
+
+@DSL class Person {
+    String firstName
+    String lastName
+ 
+    Address address
+} 
+
+@DSL class Address {
+    String street
+    String city
+
+    static class Factory extends KlumFactory.Unkeyed<Address> {
+        protected Factory() { super(Address) }
+        
+        @Override
+        Address FromMap(Map<String, Object> map) {
+            def transformedMap = [
+                street: map.number ? "$map.street $map.number" as String : map.street, 
+                city: map.zip ? "$map.city $map.zip" as String : map.city
+            ]
+            return super.FromMap(transformedMap)
+        }
+    }
+}
+
+'''
+        when:
+        def person = Person.Create.FromMap(['firstName': 'Klaus', 'lastName': 'Müller', address: ['street': 'Hauptstraße', 'number': '12', 'city': 'München', 'zip': '80331']])
+
+        then:
+        person.firstName == 'Klaus'
+        person.lastName == 'Müller'
+        person.address.street == 'Hauptstraße 12'
+        person.address.city == 'München 80331'
+    }
 
 }

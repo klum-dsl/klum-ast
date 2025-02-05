@@ -38,8 +38,7 @@ This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
 
 # Creator methods and collection factories
 
-When using the collection factory closure methods (as to calling the element methods directly), all creator class methods 
-are available as well. This is a more powerful alternative to the regular
+When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular
 [Alternatives Syntax](Alternatives-Syntax.md), especially when using abstract classes.
 
 

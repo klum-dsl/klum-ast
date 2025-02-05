@@ -72,6 +72,10 @@ public class DslHelper {
         return result;
     }
 
+    public static KlumFactory getFactoryOf(Class<?> type) {
+        return (KlumFactory) InvokerHelper.getAttribute(type, "Create");
+    }
+
     public static List<Class<?>> getHierarchyOf(Class<?> type) {
         List<Class<?>> result = new ArrayList<>();
         while (type != null) {

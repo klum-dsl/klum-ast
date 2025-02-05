@@ -24,11 +24,13 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
+import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.*;
+import groovy.transform.Undefined;
 import groovy.util.DelegatingScript;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -38,10 +40,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -196,6 +198,8 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     static <T> T createInstance(Class<T> type, String key, String breadCrumbPathExtension) {
+        if (!DslHelper.isInstantiable(type))
+            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         if (key == null && DslHelper.isKeyed(type))
             return createInstanceWithNullArg(type);
         //noinspection unchecked
@@ -433,5 +437,65 @@ public class FactoryHelper extends GroovyObjectSupport {
     private static @NotNull String extractKeyFromFilename(String filename) {
         int endIndex = filename.lastIndexOf('.');
         return endIndex != -1 ? filename.substring(0, endIndex) : filename;
+    }
+
+    public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {
+        return BreadcrumbCollector.withBreadcrumb(() -> {
+            String keyFromMap = DslHelper.getKeyField(type)
+                    .map(Field::getName)
+                    .map(configMap::get)
+                    .map(Object::toString)
+                    .orElse(null);
+            String typeFromMap = (String) configMap.get("@type");
+            Class<T> effectiveType = deduceClass(type, typeFromMap);
+
+            T result = createInstance(effectiveType, keyFromMap);
+            CopyHandler.copyToFrom(result, configMap);
+            return result;
+        });
+    }
+
+    private static <T> Class<T> deduceClass(Class<T> baseType, String typeHint) {
+        if (typeHint == null) {
+            Class<T> result = getTypeOrDefaultType(baseType);
+            if (DslHelper.isInstantiable(result)) return result;
+            throw new KlumModelException("Cannot deduce type from base type " + baseType.getName() + " without a type hint");
+        }
+
+        ClassLoader loader = baseType.getClassLoader();
+
+        List<String> typeNameVariants = new ArrayList<>();
+        typeNameVariants.add(typeHint);
+        typeNameVariants.add(baseType.getPackage().getName() + "." + typeHint);
+
+        DSL dsl = baseType.getAnnotation(DSL.class);
+        if (dsl != null && !dsl.stripSuffix().isEmpty()) {
+            typeNameVariants.add(dsl.stripSuffix() + typeHint);
+            typeNameVariants.add(dsl.stripSuffix() + baseType.getPackage().getName() + "." + typeHint);
+        }
+
+        return typeNameVariants.stream()
+                .map(name -> safeLoadClass(name, loader, baseType))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new KlumModelException("Could not find class for type hint " + typeHint + ", variants tried: " + typeNameVariants));
+    }
+
+    private static <T> Class<T> safeLoadClass(String className, ClassLoader loader, Class<T> baseType) {
+        try {
+            Class<T> loadedClass = (Class<T>) loader.loadClass(className);
+            if (!baseType.isAssignableFrom(loadedClass))
+                throw new KlumModelException("Class " + loadedClass.getName() + " is not a subclass of " + baseType.getName());
+            return loadedClass;
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    static <T> Class<T> getTypeOrDefaultType(Class<T> type) {
+        DSL annotation = type.getAnnotation(DSL.class);
+        Class<?> defaultImpl = annotation.defaultImpl();
+        //noinspection unchecked - already verified via CheckDslDefaultImpl
+        return defaultImpl.equals(Undefined.class) ? type : (Class<T>) defaultImpl;
     }
 }
