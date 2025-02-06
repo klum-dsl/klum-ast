@@ -200,3 +200,9 @@ def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller
 assert person.firstName == 'Klaus'
 assert person.lastName == 'Müller'
 ```
+
+For String values, some simple transformations are applied:
+
+- enums are resolved by name
+- primitive types are converted via `asType`
+- existing [[Converters]] are used to convert the string to the target type

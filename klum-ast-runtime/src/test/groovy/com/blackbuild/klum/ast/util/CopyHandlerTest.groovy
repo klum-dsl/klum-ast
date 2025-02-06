@@ -218,6 +218,52 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         !copy.innerLists[0].is(outer.innerLists[0])
     }
 
+    def "copy from Map uses converters"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Outer {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+                
+                Inner inner
+                Dummy dummy
+            }
+            
+            enum Dummy {
+                ABC, BCD
+            }
+            
+            class Inner {
+                String firstName
+                String lastName
+                
+                static Inner fromString(String name) {
+                    def strings = name.tokenize(" ")
+                    return new Inner(firstName: strings[0], lastName: strings[1])
+                }
+            }
+            
+         ''')
+
+        def outer = [name: "bli", inner: "Hans Wurst", dummy: "BCD"]
+
+        when:
+        def copy = newInstanceOf("pk.Outer")
+        CopyHandler.copyToFrom(copy, outer)
+
+        then:
+        copy.name == "bli"
+        copy.inner.firstName == "Hans"
+        copy.inner.lastName == "Wurst"
+        copy.dummy == getClass("pk.Dummy").valueOf("BCD")
+    }
+
     @Issue("309")
     def "copy with default strategy set replaces lists and map"() {
         given:

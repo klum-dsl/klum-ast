@@ -30,10 +30,15 @@ import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.util.copy.Overwrite;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -175,9 +180,33 @@ public class CopyHandler {
             result = ((Map<String, Object>) donor).get(fieldName);
         else
             result = getProxyFor(donor).getInstanceAttribute(fieldName);
-        if (result != null && !(result instanceof Map) && !type.isInstance(result))
+        if (result != null && !(result instanceof Map) && !type.isInstance(result)) {
+            if (result instanceof String)
+                return coerceString((String) result, type);
+
             throw new IllegalArgumentException("Field " + fieldName + " is not of expected type " + type);
+        }
         return (T) result;
+    }
+
+    private <T> T coerceString(String result, Class<T> type) {
+        try {
+            return StringGroovyMethods.asType(result, type);
+        } catch (Exception e) {
+            // ignore
+        }
+
+        List<Executable> converterMethods = ConverterHelper.getAllMatchingConverterMethods(type, String.class);
+        if (converterMethods.isEmpty())
+            throw new IllegalArgumentException("Field is not of expected type " + type);
+
+        Executable converterMethod = converterMethods.get(0);
+        if (converterMethod instanceof Method)
+            return (T) InvokerHelper.invokeMethod(type, converterMethod.getName(), new Object[]{ result });
+        if (converterMethod instanceof Constructor)
+            return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{ result });
+
+        throw new IllegalArgumentException("String cannot be coerced to " + type);
     }
 
     private void replaceValue(Field field, Object templateValue) {
