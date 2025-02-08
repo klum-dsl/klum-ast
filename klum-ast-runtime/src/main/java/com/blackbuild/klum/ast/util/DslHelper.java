@@ -55,7 +55,7 @@ public class DslHelper {
 
     public static Type requireDslType(Type type) {
         if (!isDslType(type))
-            throw new IllegalArgumentException(format("Type %s is not a DSL type", type));
+            throw new KlumSchemaException(format("Type %s is not a DSL type", type));
         return type;
     }
 
@@ -72,8 +72,8 @@ public class DslHelper {
         return result;
     }
 
-    public static KlumFactory getFactoryOf(Class<?> type) {
-        return (KlumFactory) InvokerHelper.getAttribute(type, "Create");
+    public static <T> KlumFactory<T> getFactoryOf(Class<T> type) {
+        return (KlumFactory<T>) InvokerHelper.getAttribute(type, "Create");
     }
 
     public static List<Class<?>> getHierarchyOf(Class<?> type) {
@@ -139,10 +139,9 @@ public class DslHelper {
     }
 
     public static <T extends Annotation> T getFieldAnnotation(Class<?> type, String fieldName, Class<T> annotationType) {
-        Optional<Field> field = getField(type, fieldName);
-        if (!field.isPresent())
-            throw new IllegalArgumentException(format("Type %s does not have a field named %s", type, fieldName));
-        return field.get().getAnnotation(annotationType);
+        return getField(type, fieldName)
+                .map(value -> value.getAnnotation(annotationType))
+                .orElseThrow(() -> new KlumModelException(format("Type %s does not have a field named %s", type, fieldName)));
     }
 
     public static boolean isClosure(Class<?> type) {
@@ -160,14 +159,6 @@ public class DslHelper {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();
-    }
-
-    public static Optional<? extends AnnotatedElement> getFieldOrMethod(Class<?> type, String name, Class<?> argumentType) {
-        Optional<Field> field = getField(type, name);
-        if (field.isPresent())
-            return field;
-
-        return getMethod(type, name, argumentType);
     }
 
     private static Optional<Field> getFieldOfHierarchyLayer(Class<?> layer, String name) {
@@ -204,13 +195,13 @@ public class DslHelper {
 
     public static <T> Class<T> requireKeyed(Class<T> type) {
         if (!isKeyed(type))
-            throw new IllegalArgumentException(format("Type %s is not keyed.", type));
+            throw new KlumSchemaException(format("Type %s is not keyed.", type));
         return type;
     }
 
     public static <T> Class<T> requireNotKeyed(Class<T> type) {
         if (isKeyed(type))
-            throw new IllegalArgumentException(format("Type %s is keyed.", type));
+            throw new KlumSchemaException(format("Type %s is keyed.", type));
         return type;
     }
 
@@ -263,7 +254,7 @@ public class DslHelper {
         if (methods.size() == 1)
             return Optional.of(methods.get(0));
 
-        throw new IllegalStateException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
+        throw new KlumSchemaException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
     }
 
     static Object getAttributeValue(String name, Object instance) {
@@ -284,7 +275,7 @@ public class DslHelper {
             return (Class<?>) ((WildcardType) type).getUpperBounds()[0];
         if (type instanceof ParameterizedType)
             return (Class<?>) ((ParameterizedType) type).getRawType();
-        throw new IllegalArgumentException("Unknown Type: " + type);
+        throw new KlumSchemaException("Unknown Type: " + type);
     }
 
     public static String shortNameFor(Class<?> type) {

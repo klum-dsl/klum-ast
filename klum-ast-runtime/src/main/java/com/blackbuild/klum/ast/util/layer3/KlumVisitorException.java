@@ -36,7 +36,9 @@ public class KlumVisitorException extends KlumException {
 
     public KlumVisitorException(String message, Object responsibleObject, Throwable cause) {
         super(message, cause);
-        if (DslHelper.isDslObject(responsibleObject))
+        if (responsibleObject instanceof KlumInstanceProxy)
+            this.breadcrumbPath = ((KlumInstanceProxy) responsibleObject).getBreadcrumbPath();
+        else if (DslHelper.isDslObject(responsibleObject))
             this.breadcrumbPath = KlumInstanceProxy.getProxyFor(responsibleObject).getBreadcrumbPath();
         else
             this.breadcrumbPath = null;

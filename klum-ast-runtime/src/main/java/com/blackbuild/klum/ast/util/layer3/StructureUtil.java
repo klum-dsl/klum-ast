@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumSchemaException;
 import groovy.lang.MetaProperty;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
@@ -400,7 +401,7 @@ public class StructureUtil {
         List<Object> result = new ArrayList<>();
         while (isDslObject(leaf)) {
             if (result.contains(leaf))
-                throw new IllegalStateException("Object " + leaf + " has an owner cycle");
+                throw new KlumSchemaException("Object " + leaf + " has an owner cycle");
             result.add(leaf);
             leaf = KlumInstanceProxy.getProxyFor(leaf).getSingleOwner();
         }

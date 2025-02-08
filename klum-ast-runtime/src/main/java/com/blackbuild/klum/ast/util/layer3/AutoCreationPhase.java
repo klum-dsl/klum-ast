@@ -63,18 +63,18 @@ public class AutoCreationPhase extends VisitingPhaseAction {
             key = null;
         // TODO: Validation AST
         if (key == null && DslHelper.isKeyed(field.getType()))
-            throw new IllegalArgumentException(format("AutoCreate annotation for field '%s' is missing a 'key' field.", fieldName));
+            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' is missing a 'key' field.", fieldName));
         else if (key != null && !DslHelper.isKeyed(field.getType()))
-            throw new IllegalArgumentException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", fieldName, field.getType().getName()));
+            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", fieldName, field.getType().getName()));
 
         Class<?> type = autoCreate.type();
         if (type.equals(Object.class)) {
             if (field.getType().equals(Closure.class)) return;
             if (!isInstantiable(field.getType()))
-                throw new IllegalArgumentException(format("AutoCreate annotation for abstract typed field '%s' is missing a 'type' field.", fieldName));
+                throw new KlumSchemaException(format("AutoCreate annotation for abstract typed field '%s' is missing a 'type' field.", fieldName));
             type = field.getType();
         } else if (!field.getType().isAssignableFrom(type)) {
-            throw new IllegalArgumentException(
+            throw new KlumSchemaException(
                     format("AutoCreate annotation for field '%s' sets type '%s' which is no subtype of the field's type (%s)", fieldName, type, field.getType()));
         }
 

@@ -1,6 +1,4 @@
-[![CI-Groovy 2.4](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-2.4.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-2.4.yml)
-[![CI-Groovy 3](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-3.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-3.yml)
-[![CI-Groovy 4](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-4.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci-groovy-4.yml)
+[![CI](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/klum-dsl/klum-ast/actions/workflows/ci.yml)
 
 Welcome to KlumAST
 ==================

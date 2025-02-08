@@ -184,7 +184,7 @@ public class CopyHandler {
             if (result instanceof String)
                 return coerceString((String) result, type);
 
-            throw new IllegalArgumentException("Field " + fieldName + " is not of expected type " + type);
+            throw new KlumModelException("Field " + fieldName + " is not of expected type " + type);
         }
         return (T) result;
     }
@@ -198,7 +198,7 @@ public class CopyHandler {
 
         List<Executable> converterMethods = ConverterHelper.getAllMatchingConverterMethods(type, String.class);
         if (converterMethods.isEmpty())
-            throw new IllegalArgumentException("Field is not of expected type " + type);
+            throw new KlumModelException("Field is not of expected type " + type);
 
         Executable converterMethod = converterMethods.get(0);
         if (converterMethod instanceof Method)
@@ -206,7 +206,7 @@ public class CopyHandler {
         if (converterMethod instanceof Constructor)
             return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{ result });
 
-        throw new IllegalArgumentException("String cannot be coerced to " + type);
+        throw new KlumModelException("String cannot be coerced to " + type);
     }
 
     private void replaceValue(Field field, Object templateValue) {
@@ -398,7 +398,7 @@ public class CopyHandler {
 
     private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
         if (value != null && !(value instanceof Map) && !elementType.isInstance(value))
-            throw new IllegalArgumentException("Element " + value + " in " + field + " is not of expected type " + elementType);
+            throw new KlumModelException("Element " + value + " in " + field + " is not of expected type " + elementType);
     }
 
     private OverwriteStrategy.Collection getCollectionStrategy(Field field) {

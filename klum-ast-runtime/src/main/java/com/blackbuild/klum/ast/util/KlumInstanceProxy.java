@@ -68,7 +68,7 @@ public class KlumInstanceProxy {
      */
     public static KlumInstanceProxy getProxyFor(Object target) {
         if (!isDslObject(target))
-            throw new IllegalArgumentException(format("Object of type %s is no dsl object", target.getClass()));
+            throw new KlumException(format("Object of type %s is no dsl object", target.getClass()));
         return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
     }
 
@@ -229,7 +229,7 @@ public class KlumInstanceProxy {
     public Object getSingleOwner() {
         Set<Object> owners = getOwners();
         if (owners.size() > 1)
-            throw new IllegalStateException("Object has more that on distinct owner");
+            throw new KlumModelException("Object has more that on distinct owner");
         return owners.stream().findFirst().orElse(null);
     }
 
@@ -270,7 +270,7 @@ public class KlumInstanceProxy {
             if (fieldOrMethod.isEmpty()) {
                 fieldOrMethod = DslHelper.getVirtualSetter(getRwInstance().getClass(), fieldOrMethodName, type);
                 if (fieldOrMethod.isEmpty())
-                    throw new GroovyRuntimeException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
+                    throw new KlumModelException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, instance.getClass()));
             } else {
                 existingValue = getInstanceAttribute(fieldOrMethodName);
             }
@@ -461,7 +461,7 @@ public class KlumInstanceProxy {
             T existing = ((Map<String, T>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
                 if (type != null && type != existing.getClass() && type != getElementTypeOfField(instance.getClass(), mapName))
-                    throw new IllegalArgumentException(
+                    throw new KlumModelException(
                             format("Type mismatch: %s != %s, either use 'apply()' to keep existing object or explicitly create and assign a new object.",
                                     type, existing.getClass()));
                 return (T) getProxyFor(existing).apply(namedParams, body);
@@ -500,10 +500,10 @@ public class KlumInstanceProxy {
         key = determineKeyFromMappingClosure(fieldName, value, key);
         if (key == null && isKeyed(getClassFromType(elementType)))
             key = (K) getProxyFor(value).getKey();
-        Map<K, V> target = getInstanceAttribute(fieldName);
-        value = forceCastClosure(value, elementType);
         if (key == null)
             throw new IllegalArgumentException("Key is null");
+        Map<K, V> target = getInstanceAttribute(fieldName);
+        value = forceCastClosure(value, elementType);
         target.put(key, value);
         return value;
     }
@@ -517,7 +517,7 @@ public class KlumInstanceProxy {
             //noinspection unchecked
             return (V) value;
         else
-            throw new IllegalArgumentException(format("Value is not of type %s", elementType));
+            throw new KlumModelException(format("Value is not of type %s", elementType));
     }
 
     private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
@@ -607,7 +607,7 @@ public class KlumInstanceProxy {
 
     public void setBreadcrumbPath(String breadcrumbPath) {
         if (this.breadcrumbPath != null)
-            throw new IllegalStateException("Breadcrumb path already set to " + this.breadcrumbPath);
+            throw new KlumModelException("Breadcrumb path already set to " + this.breadcrumbPath);
         this.breadcrumbPath = Objects.requireNonNull(breadcrumbPath);
     }
 

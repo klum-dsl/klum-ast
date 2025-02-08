@@ -1437,7 +1437,7 @@ import org.codehaus.groovy.control.CompilePhase
         }
 
         then: "fails, because the second apply uses a different class"
-        thrown(IllegalArgumentException)
+        thrown(KlumModelException)
 
         when:
         instance = Foo.Create.With {

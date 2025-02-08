@@ -45,6 +45,8 @@ import static java.lang.String.format;
 
 public class LinkHelper {
 
+    // TODO: Move to AutoLink Phase, convert static annotation checks to klumCast
+
     private LinkHelper() {
     }
 
@@ -60,8 +62,8 @@ public class LinkHelper {
         if (value == null) return;
 
         if (!field.getType().isAssignableFrom(value.getClass()))
-            throw new IllegalArgumentException(String.format("LinkTo annotation on %s#%s targets %s, which is not compatible with the field type %s",
-                    field.getDeclaringClass().getName(), field.getName(), value.getClass().getName(), field.getType().getName()));
+            throw new KlumVisitorException(String.format("LinkTo annotation on %s#%s targets %s, which is not compatible with the field type %s",
+                    field.getDeclaringClass().getName(), field.getName(), value.getClass().getName(), field.getType().getName()), proxy);
 
         if (value instanceof Collection)
             proxy.addElementsToCollection(field.getName(), (Collection<?>) value);
@@ -92,7 +94,7 @@ public class LinkHelper {
                 return StreamSupport.stream(((Iterable<?>) selectorValue).spliterator(), false)
                         .map(it -> InvokerHelper.getProperty(providerObject, it.toString()))
                         .collect(Collectors.toList());
-            throw new IllegalArgumentException("Selector value must be a String or Iterable, but is " + selectorValue.getClass().getName());
+            throw new KlumVisitorException("Selector value must be a String or Iterable, but is " + selectorValue.getClass().getName(), proxy);
         }
 
         return inferLinkTarget(proxy, fieldToFill, linkTo, providerObject);
@@ -108,8 +110,8 @@ public class LinkHelper {
             return metaPropertyForOwnerPath != null ? metaPropertyForOwnerPath.getProperty(providerObject) : null;
 
         if (pointToDifferentProperties(metaPropertyForOwnerPath, metaPropertyForFieldName))
-            throw new IllegalStateException(format("LinkTo annotation on %s#%s targeting %s would match both instance name (%s) and field name (%s). You need to explicitly set a strategy.",
-                    fieldToFill.getDeclaringClass().getName(), fieldToFill.getName(), providerObject.getClass().getName(), metaPropertyForOwnerPath.getName(), metaPropertyForFieldName.getName()));
+            throw new KlumVisitorException(format("LinkTo annotation on %s#%s targeting %s would match both instance name (%s) and field name (%s). You need to explicitly set a strategy.",
+                    fieldToFill.getDeclaringClass().getName(), fieldToFill.getName(), providerObject.getClass().getName(), metaPropertyForOwnerPath.getName(), metaPropertyForFieldName.getName()), proxy);
 
         if (metaPropertyForOwnerPath != null)
             return metaPropertyForOwnerPath.getProperty(providerObject);

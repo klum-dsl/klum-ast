@@ -105,13 +105,13 @@ public class FactoryHelper extends GroovyObjectSupport {
             return createModelFrom(type, loader, path, configModelClassName);
 
         } catch (IOException e) {
-            throw new IllegalStateException("Error while reading marker properties.", e);
+            throw new KlumModelException("Error while reading marker properties.", e);
         }
     }
 
     private static void assertResourceExists(String path, InputStream stream) {
         if (stream == null)
-            throw new IllegalStateException("File " + path + " not found in classpath.");
+            throw new KlumModelException("File " + path + " not found in classpath.");
     }
 
     private static String readModelClass(String path, InputStream stream) throws IOException {
@@ -119,7 +119,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         marker.load(stream);
         String configModelClassName = marker.getProperty(MODEL_CLASS_KEY);
         if (configModelClassName == null)
-            throw new IllegalStateException("No entry 'model-class' found in " + path);
+            throw new KlumModelException("No entry 'model-class' found in " + path);
         return configModelClassName;
     }
 
@@ -129,9 +129,9 @@ public class FactoryHelper extends GroovyObjectSupport {
             Class<? extends Script> modelClass = (Class<? extends Script>) loader.loadClass(configModelClassName);
             return createFrom(type, modelClass);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
+            throw new KlumModelException("Class '" + configModelClassName + "' defined in " + path + " does not exist", e);
         } catch (Exception e) {
-            throw new IllegalStateException("Could not read model from " + configModelClassName, e);
+            throw new KlumModelException("Could not read model from " + configModelClassName, e);
         }
     }
 
@@ -161,7 +161,7 @@ public class FactoryHelper extends GroovyObjectSupport {
             return createFromDelegatingScript(type, scriptType.getSimpleName(), (DelegatingScript) InvokerHelper.invokeConstructorOf(scriptType, null));
         Object result = InvokerHelper.runScript(scriptType, null);
         if (!type.isInstance(result))
-            throw new IllegalStateException("Script " + scriptType.getName() + " did not return an instance of " + type.getName());
+            throw new KlumModelException("Script " + scriptType.getName() + " did not return an instance of " + type.getName());
         //noinspection unchecked
         return (T) result;
     }
@@ -368,7 +368,7 @@ public class FactoryHelper extends GroovyObjectSupport {
             //noinspection unchecked
             return (T) type.getClassLoader().loadClass(type.getName() + "$Template").getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new IllegalArgumentException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
+            throw new KlumModelException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
         }
     }
 
