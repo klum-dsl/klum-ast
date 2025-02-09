@@ -485,4 +485,48 @@ import java.lang.annotation.Target
         bar.name.call == "bla"
     }
 
+    @Issue("361")
+    def "default values are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+        }
+
+        then:
+        foo.bar.name == "defaultName"
+    }
+
 }

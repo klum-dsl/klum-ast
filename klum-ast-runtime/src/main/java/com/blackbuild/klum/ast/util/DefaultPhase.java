@@ -33,7 +33,6 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.Objects;
 
 import static com.blackbuild.klum.ast.util.ClosureHelper.invokeClosureWithDelegateAsArgument;
 import static com.blackbuild.klum.ast.util.ClosureHelper.isClosureType;
@@ -48,19 +47,22 @@ public class DefaultPhase extends VisitingPhaseAction {
     @Override
     public void visit(String path, Object element, Object container) {
         setFieldsAnnotatedWithDefaultAnnotation(element);
-        setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container);
+        setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(path, element, container);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
         executeDefaultLifecycleMethods(element);
     }
 
-    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(Object element, Object container) {
-
+    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(String path, Object element, Object container) {
+        if (container == null) return;
+        String fieldName = path.substring(path.lastIndexOf('.') + 1);
+        Field field = DslHelper.getField(container.getClass(), fieldName).orElseThrow();
+        AnnotationHelper.getMetaAnnotated(field, DefaultValues.class)
+                .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
     }
 
     private void setDefaultValuesFromDefaultValueAnnotationsOnType(Object element) {
         DslHelper.getDslHierarchyOf(element.getClass()).stream()
                 .flatMap(layer -> AnnotationHelper.getMetaAnnotated(layer, DefaultValues.class))
-                .filter(Objects::nonNull)
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
         }
 
