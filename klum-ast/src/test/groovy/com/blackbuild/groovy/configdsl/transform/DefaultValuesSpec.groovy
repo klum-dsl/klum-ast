@@ -317,4 +317,172 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         foo.value == "default"
     }
 
+    @Issue("361")
+    def "default values are taken from Default Values annotations"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                String name() default ""
+                int age() default 0
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                int age
+            }
+            
+            @FooDefaults(name = "defaultName", age = 42)
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name == "defaultName"
+        bar.age == 42
+    }
+
+    @Issue("361")
+    def "Basic conversions do happen for Default Values annotations"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                String[] names() default []
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                List<String> names
+            }
+            
+            @FooDefaults(names = ["bla", "blub"])
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.names == ["bla", "blub"]
+    }
+
+    @Issue("361")
+    def "Closures for Default Values annotations are executed to determine value"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                Class<? extends Closure> name() default NoClosure
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @FooDefaults(name = { "bla" })
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name == "bla"
+    }
+
+    @Issue("361")
+    def "Closures for Default Values annotations are not executed if the field is a closure"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                Class<? extends Closure> name() default NoClosure
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                Closure<?> name
+            }
+            
+            @FooDefaults(name = { "bla" })
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name instanceof Closure
+        bar.name.call == "bla"
+    }
+
 }

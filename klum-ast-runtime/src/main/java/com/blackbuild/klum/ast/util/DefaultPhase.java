@@ -27,10 +27,16 @@ import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
+import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Objects;
 
+import static com.blackbuild.klum.ast.util.ClosureHelper.invokeClosureWithDelegateAsArgument;
+import static com.blackbuild.klum.ast.util.ClosureHelper.isClosureType;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 
 public class DefaultPhase extends VisitingPhaseAction {
@@ -41,12 +47,49 @@ public class DefaultPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(String path, Object element, Object container) {
+        setFieldsAnnotatedWithDefaultAnnotation(element);
+        setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container);
+        setDefaultValuesFromDefaultValueAnnotationsOnType(element);
+        executeDefaultLifecycleMethods(element);
+    }
+
+    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(Object element, Object container) {
+
+    }
+
+    private void setDefaultValuesFromDefaultValueAnnotationsOnType(Object element) {
+        DslHelper.getDslHierarchyOf(element.getClass()).stream()
+                .flatMap(layer -> AnnotationHelper.getMetaAnnotated(layer, DefaultValues.class))
+                .filter(Objects::nonNull)
+                .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
+        }
+
+    private void setDefaultValuesFromAnnotation(Object element, Annotation valuesAnnotation) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
+        AnnotationHelper.getNonDefaultMembers(valuesAnnotation)
+                .forEach((field, value) -> setFieldToDefaultValue(field, value, proxy));
+    }
+
+    private static void setFieldToDefaultValue(String field, Object value, KlumInstanceProxy proxy) {
+        if (!isEmpty(proxy.getInstanceAttribute(field))) return;
+        Class<?> fieldType = proxy.getField(field).getType();
+
+        if (isClosureType(value) && !Closure.class.isAssignableFrom(fieldType))
+            value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
+
+        proxy.setInstanceAttribute(field, castTo(value, fieldType));
+    }
+
+    private static void executeDefaultLifecycleMethods(Object element) {
+        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), Default.class);
+    }
+
+    private void setFieldsAnnotatedWithDefaultAnnotation(Object element) {
         ClusterModel.getFieldsAnnotatedWith(element, Default.class)
                 .entrySet()
                 .stream()
                 .filter(this::isUnset)
                 .forEach(entry -> applyDefaultValue(element, entry.getKey()));
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), Default.class);
     }
 
     private void applyDefaultValue(Object element, String fieldName) {
@@ -71,7 +114,7 @@ public class DefaultPhase extends VisitingPhaseAction {
             Object delegationTarget = proxy.getInstanceProperty(defaultAnnotation.delegate());
             return delegationTarget != null ? castTo(InvokerHelper.getProperty(delegationTarget, fieldName), fieldType) : null;
         } else {
-            return castTo(ClosureHelper.invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), proxy.getDSLInstance()), fieldType);
+            return castTo(invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), proxy.getDSLInstance()), fieldType);
         }
     }
 

@@ -26,12 +26,12 @@ package com.blackbuild.klum.ast.util;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
-import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Executable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Member;
+import java.lang.reflect.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -125,6 +125,35 @@ public class AnnotationHelper {
         }
 
         return null;
+    }
+
+    /**
+     * Returns all annotations which are themselves annotated with a meta annotation on the given target.
+     * @param target the target to retrieve the annotation from
+     * @param metaAnnotation the meta annotation that must be present on the result annotations
+     * @return the found annotation or null
+     */
+    public static Stream<Annotation> getMetaAnnotated(AnnotatedElement target, Class<? extends Annotation> metaAnnotation) {
+        return Stream.of(target.getAnnotations())
+                .filter(annotation -> annotation.annotationType().isAnnotationPresent(metaAnnotation));
+    }
+
+    public static Map<String, Object> getNonDefaultMembers(Annotation annotation) {
+        Map<String, Object> nonDefaultValues = new HashMap<>();
+
+        for (Method method : annotation.annotationType().getDeclaredMethods()) {
+            try {
+                Object defaultValue = method.getDefaultValue();
+                Object actualValue = method.invoke(annotation);
+
+                if (defaultValue == null || !defaultValue.equals(actualValue))
+                    nonDefaultValues.put(method.getName(), actualValue);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new IllegalStateException("Error accessing annotation member", e);
+            }
+        }
+
+        return nonDefaultValues;
     }
 
     /**
