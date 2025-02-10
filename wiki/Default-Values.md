@@ -90,6 +90,87 @@ assert config.lower == 'hans' // defaults to lowercase name
 # Default as lifecycle annotation
 
 As with other annotations, `@Default` can also be used to annotate parameter less methods or Closure fields to run
-in the Default-Phase, see [Model Phases](Model-Phases.md) for more information.
+in the Default-Phase, see [[Model Phases]] for more information.
+
+# DefaultValues annotation
+
+Another option to set default values is by using annotations annotated with the `@DefaultValues` annotation. This is mostly useful 
+in combination with inheritance and [[Layer3]].
+
+There are two ways to use as `@DefaultValues` annotation, as a class annotation or as a field annotation.
+
+## Class annotation
+
+Consider a layer3 architecture for home automation, where the api layer defines an abstract `Room` class, which will be inherited
+by quasi singleton classes for each room in the house (as part of the schema layer). The `Room` class has a display name field, which 
+should be set by each room class to a default value. Instead of using a Default method or abstract getters, a @DefaultValues annotation can be used.: 
 
 ```groovy
+// Retentention/Target
+@DefaultProvider // makes this annotation a DefaultValue-Provider
+@interface HomeDefaults {
+    String displayName() default ""
+    String shortLabel() default ""
+}
+
+@DSL 
+abstract class Room {
+  String displayName
+  String shortLabel
+}
+
+@DSL 
+@HomeDefaults(displayName = 'Bath', shortLabel = 'BTH')
+class Bathroom extends Room {
+}
+
+@DSL 
+@HomeDefaults(displayName = 'Main Office', shortLabel = 'MOF')
+class Office extends Room {
+}
+```
+
+The main advantage of this approach is, that it is a lot more concise than the other options (like using abstract getters or Default methods, which would also result in more duplicate code). The major disadvantage is that subclasses of Room are not forced by the compiler to set the annotation. But in a layer 3 architecture, one will have a couple of Rooms defined together, usually even in the 
+same source file, so this is not a big issue.
+
+## Field annotation
+
+Default values annotations can also be used on fields to set the default value for that specific field's object. Unlike the class annotation, this makes more sense for non-singleton instances.
+
+Staying with the home automation example, consider the Room containing one or more window members. Since windows are quite similar,
+multiple subclasses for different windows are not necessary. Instead, the window type can be configured by a field annotation:
+
+```groovy
+@DSL 
+class Bathroom extends Room {
+
+  @HomeDefaults(shortLabel = "N")
+  Window north
+
+  @HomeDefaults(shortLabel = "E")
+  Window east
+}
+```
+
+## Closure and coercion
+
+The system tries to coerce the default value to the correct type on a beste effort base. If the member is of type class and 
+contains a closure, that closure is executed against the target object and the result is set as the default value (unless the 
+target field is itself a closure, in that case an instance of that closure is used as default value instead).
+
+```groovy
+@DSL 
+class Bathroom extends Room {
+
+  @HomeDefaults(label = {owner.displayName + " North"})
+  Window north
+    
+  @HomeDefaults(label = {owner.displayName + " East"})
+  Window east
+}
+```
+
+## ignoreUnknownFields
+
+If the field target by a default values annotation's member is not existant, an exception is thrown. This can be prevented
+by setting `DefaultValues.ignoreUnknownFields` to true.
