@@ -43,7 +43,7 @@ public class OwnerPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container) {
+    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         setDirectOwners(proxy, container);

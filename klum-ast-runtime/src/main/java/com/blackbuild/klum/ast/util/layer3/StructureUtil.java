@@ -78,24 +78,24 @@ public class StructureUtil {
     }
 
     public static void visit(Object container, ModelVisitor visitor, String path) {
-        doVisit(container, visitor, new ArrayList<>(), path, null);
+        doVisit(container, visitor, new ArrayList<>(), path, null, null);
     }
 
-    private static void doVisit(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container) {
+    private static void doVisit(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
         if (element == null) return;
         if (element instanceof Collection)
-            doVisitCollection((Collection<?>) element, visitor, alreadyVisited, path, container);
+            doVisitCollection((Collection<?>) element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
         else if (element instanceof Map)
-            doVisitMap((Map<?, ?>) element, visitor, alreadyVisited, path, container);
+            doVisitMap((Map<?, ?>) element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
         else
-            doVisitObject(element, visitor, alreadyVisited, path, container);
+            doVisitObject(element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
     }
 
-    private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container) {
+    private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
         if (!isDslObject(element)) return;
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
         try {
-            visitor.visit(path, element, container);
+            visitor.visit(path, element, container, nameOfFieldInContainer);
         } catch (KlumVisitorException e) {
             throw e;
         } catch (Exception e) {
@@ -103,16 +103,16 @@ public class StructureUtil {
         }
         alreadyVisited.add(element);
         ClusterModel.getFieldPropertiesStream(element)
-                .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element));
+                .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element, property.getName()));
     }
 
-    private static void doVisitMap(Map<?, ?> map, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container) {
-        map.forEach((key, value) -> doVisit(value, visitor, alreadyVisited,path + "." + toGPath(key), container));
+    private static void doVisitMap(Map<?, ?> map, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
+        map.forEach((key, value) -> doVisit(value, visitor, alreadyVisited,path + "." + toGPath(key), container, nameOfFieldInContainer));
     }
 
-    private static void doVisitCollection(Collection<?> collection, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container) {
+    private static void doVisitCollection(Collection<?> collection, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
         AtomicInteger index = new AtomicInteger();
-        collection.forEach(member -> doVisit(member, visitor, alreadyVisited, path + "[" + index.getAndIncrement() + "]", container));
+        collection.forEach(member -> doVisit(member, visitor, alreadyVisited, path + "[" + index.getAndIncrement() + "]", container, nameOfFieldInContainer));
     }
 
     /**

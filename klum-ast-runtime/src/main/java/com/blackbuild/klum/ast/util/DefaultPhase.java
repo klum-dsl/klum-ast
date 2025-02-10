@@ -34,8 +34,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 
-import static com.blackbuild.klum.ast.util.ClosureHelper.invokeClosureWithDelegateAsArgument;
-import static com.blackbuild.klum.ast.util.ClosureHelper.isClosureType;
+import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 
 public class DefaultPhase extends VisitingPhaseAction {
@@ -45,17 +44,16 @@ public class DefaultPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container) {
+    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
         setFieldsAnnotatedWithDefaultAnnotation(element);
-        setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(path, element, container);
+        setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
         executeDefaultLifecycleMethods(element);
     }
 
-    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(String path, Object element, Object container) {
+    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(Object element, Object container, String nameOfFieldInContainer) {
         if (container == null) return;
-        String fieldName = path.substring(path.lastIndexOf('.') + 1);
-        Field field = DslHelper.getField(container.getClass(), fieldName).orElseThrow();
+        Field field = DslHelper.getField(container.getClass(), nameOfFieldInContainer).orElseThrow();
         AnnotationHelper.getMetaAnnotated(field, DefaultValues.class)
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
     }
@@ -76,8 +74,12 @@ public class DefaultPhase extends VisitingPhaseAction {
         if (!isEmpty(proxy.getInstanceAttribute(field))) return;
         Class<?> fieldType = proxy.getField(field).getType();
 
-        if (isClosureType(value) && !Closure.class.isAssignableFrom(fieldType))
-            value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
+        if (isClosureType(value)) {
+            if (Closure.class.isAssignableFrom(fieldType))
+                value = createClosureInstance((Class<? extends Closure<Object>>) value);
+            else
+                value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
+        }
 
         proxy.setInstanceAttribute(field, castTo(value, fieldType));
     }

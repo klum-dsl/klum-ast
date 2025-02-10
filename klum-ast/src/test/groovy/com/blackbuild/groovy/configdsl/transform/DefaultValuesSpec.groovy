@@ -482,7 +482,7 @@ import java.lang.annotation.Target
 
         then:
         bar.name instanceof Closure
-        bar.name.call == "bla"
+        bar.name.call() == "bla"
     }
 
     @Issue("361")
@@ -527,6 +527,101 @@ import java.lang.annotation.Target
 
         then:
         foo.bar.name == "defaultName"
+    }
+
+    @Issue("361")
+    def "default values for collection elements are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                List<Bar> bars
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+            bar()
+        }
+
+        then:
+        foo.bars[0].name == "defaultName"
+        foo.bars[1].name == "defaultName"
+    }
+
+    @Issue("361")
+    def "default values for map elements are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                Map<String, Bar> bars
+            }
+            
+            @DSL class Bar {
+                @Key String key
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar("Klaus")
+            bar("Dieter")
+            bar("Hans", name: "explicit")
+        }
+
+        then:
+        foo.bars["Klaus"].name == "defaultName"
+        foo.bars["Dieter"].name == "defaultName"
+        foo.bars["Hans"].name == "explicit"
     }
 
 }
