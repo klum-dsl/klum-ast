@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumException;
+import org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation;
 
 import java.util.Collection;
 import java.util.Map;
@@ -63,11 +64,17 @@ public abstract class AbstractPhaseAction implements PhaseAction {
 
     protected boolean isUnset(Map.Entry<String, Object> entry) {
         Object value = entry.getValue();
+        return isEmpty(value);
+    }
+
+    protected static boolean isEmpty(Object value) {
         if (value == null) return true;
         if (value instanceof Collection)
             return ((Collection<?>) value).isEmpty();
         if (value instanceof Map)
             return ((Map<?, ?>) value).isEmpty();
+        if (!DefaultTypeTransformation.castToBoolean(value))
+            return true;
         return false;
     }
 }

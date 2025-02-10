@@ -51,6 +51,10 @@ public class ClosureHelper {
         return closure.call(arguments);
     }
 
+    public static boolean isClosureType(Object value) {
+        return value instanceof Class && Closure.class.isAssignableFrom((Class<?>) value);
+    }
+
     /**
      * Instantiates the closure defined by the given type
      * @param closureType

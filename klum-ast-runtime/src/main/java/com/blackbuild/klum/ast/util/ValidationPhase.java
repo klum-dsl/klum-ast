@@ -54,7 +54,7 @@ public class ValidationPhase extends AbstractPhaseAction {
         }
 
         @Override
-        public void visit(String path, Object element, Object container) {
+        public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
             if (proxy.getManualValidation()) return;
 

@@ -25,8 +25,11 @@
 package com.blackbuild.klum.ast.util
 
 import spock.lang.Ignore
+import spock.lang.Issue
 
 import java.lang.annotation.Annotation
+
+import static com.blackbuild.klum.ast.util.AnnotationHelper.getNonDefaultMembers
 
 class AnnotationHelperTest extends AbstractRuntimeTest {
 
@@ -224,5 +227,36 @@ import java.lang.annotation.*
         AnnotationHelper.getMostSpecificAnnotation(clazz, MyAnnotation).get().value() == "package"
     }
 
+    @Issue("361")
+    def "getNonDefaultMembers works"() {
+        given:
+        createClass '''
+package pk
+import java.lang.annotation.*
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@interface DefaultValues {
+    String string() default ""
+    int integer() default 0
+    String nonDefaultString()
+    int nonDefaultInteger()
+}
+
+@DefaultValues(nonDefaultString = "class", nonDefaultInteger = 42)
+class Dummy {}
+
+@DefaultValues(string = "aString", integer = 15, nonDefaultString = "class", nonDefaultInteger = 42)
+class Dummy2 {}
+        '''
+
+        expect:
+        getNonDefaultMembers(getAnnotation("pk.Dummy", "pk.DefaultValues")) == [nonDefaultString: "class", nonDefaultInteger: 42]
+        getNonDefaultMembers(getAnnotation("pk.Dummy2", "pk.DefaultValues")) == [nonDefaultString: "class", nonDefaultInteger: 42, string: "aString", integer: 15]
+    }
+
+    Annotation getAnnotation(String classname, String annotationTypeName) {
+        Class<?> clazz = getClass(classname)
+        return clazz.getAnnotation(getClass(annotationTypeName) as Class<? extends Annotation>)
+    }
 
 }

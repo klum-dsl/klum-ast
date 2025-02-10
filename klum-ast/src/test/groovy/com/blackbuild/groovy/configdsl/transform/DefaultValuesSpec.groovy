@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
-
+import com.blackbuild.klum.ast.util.layer3.KlumVisitorException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
@@ -315,6 +315,373 @@ class DefaultValuesSpec extends AbstractDSLSpec {
 
         then:
         foo.value == "default"
+    }
+
+    @Issue("361")
+    def "default values are taken from Default Values annotations"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                String name() default ""
+                int age() default 0
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+                int age
+            }
+            
+            @FooDefaults(name = "defaultName", age = 42)
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name == "defaultName"
+        bar.age == 42
+    }
+
+    @Issue("361")
+    def "Basic conversions do happen for Default Values annotations"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                String[] names() default []
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                List<String> names
+            }
+            
+            @FooDefaults(names = ["bla", "blub"])
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.names == ["bla", "blub"]
+    }
+
+    @Issue("361")
+    def "Closures for Default Values annotations are executed to determine value"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                Class<? extends Closure> name() default NoClosure
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @FooDefaults(name = { "bla" })
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name == "bla"
+    }
+
+    @Issue("361")
+    def "Closures for Default Values annotations are not executed if the field is a closure"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooDefaults {
+                Class<? extends Closure> name() default NoClosure
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                Closure<?> name
+            }
+            
+            @FooDefaults(name = { "bla" })
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name instanceof Closure
+        bar.name.call() == "bla"
+    }
+
+    @Issue("361")
+    def "default values are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+        }
+
+        then:
+        foo.bar.name == "defaultName"
+    }
+
+    @Issue("361")
+    def "default values for collection elements are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                List<Bar> bars
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+            bar()
+        }
+
+        then:
+        foo.bars[0].name == "defaultName"
+        foo.bars[1].name == "defaultName"
+    }
+
+    @Issue("361")
+    def "default values for map elements are taken from annotation on owner field"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface BarDefaults {
+                String name() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarDefaults(name = "defaultName")
+                Map<String, Bar> bars
+            }
+            
+            @DSL class Bar {
+                @Key String key
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar("Klaus")
+            bar("Dieter")
+            bar("Hans", name: "explicit")
+        }
+
+        then:
+        foo.bars["Klaus"].name == "defaultName"
+        foo.bars["Dieter"].name == "defaultName"
+        foo.bars["Hans"].name == "explicit"
+    }
+
+    @Issue("361")
+    def "default values with no matching fields fail unless strict is turned off"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooStrictDefaults {
+                String name() default ""
+                String game() default ""
+            }
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(ignoreUnknownFields = true)
+            @interface FooLenientDefaults {
+                String name() default ""
+                String game() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @FooStrictDefaults(name = "defaultName", game = "defaultGame")
+            @DSL class StrictBar extends Foo {
+            }
+            
+            @FooLenientDefaults(name = "defaultName", game = "defaultGame")
+            @DSL class LenientBar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = StrictBar.Create.One()
+
+        then:
+        thrown(KlumVisitorException)
+
+        when:
+        bar = LenientBar.Create.One()
+
+        then:
+        bar.name == "defaultName"
     }
 
 }
