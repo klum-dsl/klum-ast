@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
-
+import com.blackbuild.klum.ast.util.layer3.KlumVisitorException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
@@ -622,6 +622,66 @@ import java.lang.annotation.Target
         foo.bars["Klaus"].name == "defaultName"
         foo.bars["Dieter"].name == "defaultName"
         foo.bars["Hans"].name == "explicit"
+    }
+
+    @Issue("361")
+    def "default values with no matching fields fail unless strict is turned off"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface FooStrictDefaults {
+                String name() default ""
+                String game() default ""
+            }
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(ignoreUnknownFields = true)
+            @interface FooLenientDefaults {
+                String name() default ""
+                String game() default ""
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @FooStrictDefaults(name = "defaultName", game = "defaultGame")
+            @DSL class StrictBar extends Foo {
+            }
+            
+            @FooLenientDefaults(name = "defaultName", game = "defaultGame")
+            @DSL class LenientBar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = StrictBar.Create.One()
+
+        then:
+        thrown(KlumVisitorException)
+
+        when:
+        bar = LenientBar.Create.One()
+
+        then:
+        bar.name == "defaultName"
     }
 
 }

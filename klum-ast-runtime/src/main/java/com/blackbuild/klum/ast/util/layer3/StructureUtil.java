@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import groovy.lang.MetaProperty;
@@ -98,6 +99,8 @@ public class StructureUtil {
             visitor.visit(path, element, container, nameOfFieldInContainer);
         } catch (KlumVisitorException e) {
             throw e;
+        } catch (KlumException e) {
+            throw new KlumVisitorException("Error visiting " + path + ": " + e.getMessage(), element, e);
         } catch (Exception e) {
             throw new KlumVisitorException("Error visiting " + path, element, e);
         }

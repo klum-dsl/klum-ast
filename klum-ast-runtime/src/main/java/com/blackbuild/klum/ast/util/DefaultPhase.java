@@ -29,6 +29,7 @@ import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import groovy.lang.Closure;
+import groovy.lang.MissingPropertyException;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.annotation.Annotation;
@@ -36,6 +37,7 @@ import java.lang.reflect.Field;
 
 import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
+import static java.lang.String.format;
 
 public class DefaultPhase extends VisitingPhaseAction {
 
@@ -67,11 +69,20 @@ public class DefaultPhase extends VisitingPhaseAction {
     private void setDefaultValuesFromAnnotation(Object element, Annotation valuesAnnotation) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         AnnotationHelper.getNonDefaultMembers(valuesAnnotation)
-                .forEach((field, value) -> setFieldToDefaultValue(field, value, proxy));
+                .forEach((field, value) -> setFieldToDefaultValue(field, value, proxy, valuesAnnotation));
     }
 
-    private static void setFieldToDefaultValue(String field, Object value, KlumInstanceProxy proxy) {
-        if (!isEmpty(proxy.getInstanceAttribute(field))) return;
+    private static void setFieldToDefaultValue(String field, Object value, KlumInstanceProxy proxy, Annotation valuesAnnotation) {
+        try {
+            if (!isEmpty(proxy.getInstanceAttribute(field))) return;
+
+        } catch (MissingPropertyException e) {
+            boolean ignoreUnknownFields = valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).ignoreUnknownFields();
+            if (ignoreUnknownFields) return;
+            throw new KlumSchemaException(format("Annotation %s defines a default value for '%s', but '%s' has no such field.",
+                    valuesAnnotation.annotationType().getName(), field, proxy.getDSLInstance().getClass().getName()), e);
+        }
+
         Class<?> fieldType = proxy.getField(field).getType();
 
         if (isClosureType(value)) {
@@ -81,7 +92,13 @@ public class DefaultPhase extends VisitingPhaseAction {
                 value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
         }
 
-        proxy.setInstanceAttribute(field, castTo(value, fieldType));
+        try {
+            Object castedValue = castTo(value, fieldType);
+            proxy.setInstanceAttribute(field, castedValue);
+        } catch (Exception e) {
+            throw new KlumSchemaException(format("Could not convert default value from annotation %s.%s to target type %s",
+                    valuesAnnotation.annotationType().getName(), field, fieldType.getName()), e);
+        }
     }
 
     private static void executeDefaultLifecycleMethods(Object element) {

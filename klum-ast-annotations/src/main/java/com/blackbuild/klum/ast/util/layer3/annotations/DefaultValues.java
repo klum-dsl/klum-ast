@@ -35,4 +35,9 @@ import java.lang.annotation.Target;
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
 public @interface DefaultValues {
+    /**
+     * If false (default), the setting will fail if a matching field in the target object does not exist.
+     * If true, missing fields are silently ignored.
+     */
+    boolean ignoreUnknownFields() default false;
 }
