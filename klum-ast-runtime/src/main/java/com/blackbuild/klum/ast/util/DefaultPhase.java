@@ -47,9 +47,9 @@ public class DefaultPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        setFieldsAnnotatedWithDefaultAnnotation(element);
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
+        setFieldsAnnotatedWithDefaultAnnotation(element);
         executeDefaultLifecycleMethods(element);
     }
 
@@ -87,8 +87,10 @@ public class DefaultPhase extends VisitingPhaseAction {
 
         if (isClosureType(value)) {
             if (Closure.class.isAssignableFrom(fieldType))
+                //noinspection unchecked
                 value = createClosureInstance((Class<? extends Closure<Object>>) value);
             else
+                //noinspection unchecked
                 value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
         }
 
