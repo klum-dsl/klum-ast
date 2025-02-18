@@ -46,6 +46,7 @@
 - Selector members for `@LinkTo` annotations allows to determine the link source from the provider based on the value of another field (see [#302](https://github.com/klum-dsl/klum-ast/issues/302))
 - @LinkTo now correctly handles empty collections/maps as target
 - Allow a custom key-provider function for `createFrom(URL)` and `createFrom(File)` 
+- `@Cluster` can also be placed on fields, which will be converted into a getter method (see [#366](https://github.com/klum-dsl/klum-ast/issues/366))
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.

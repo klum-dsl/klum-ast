@@ -44,7 +44,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
                 String nickname
                 int age
             }'''
-        instance = create("Person") {
+        instance = Person.Create.With {
             firstname "John"
             lastname "Doe"
             nickname "Johnny"
@@ -52,6 +52,42 @@ class ClusterTransformationTest extends AbstractDSLSpec {
         }
 
         when:
+        def props = instance.strings
+
+        then:
+        props == [firstname: "John", lastname: "Doe", nickname: "Johnny"]
+    }
+
+    def "Cluster annotation on Map field is correctly resolved"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL abstract class Named {
+                @Cluster Map<String, String> strings
+            }
+            
+            @DSL class Person extends Named {
+                String firstname
+                String lastname
+                String nickname
+                int age
+            }'''
+
+        when:
+        getClass("Named").getDeclaredField("strings")
+
+        then:
+        thrown(NoSuchFieldException)
+        getClass("Named").getDeclaredMethod("getStrings")
+
+        when:
+        instance = Person.Create.With {
+            firstname "John"
+            lastname "Doe"
+            nickname "Johnny"
+            age 42
+        }
         def props = instance.strings
 
         then:
@@ -73,7 +109,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
                 String nickname
                 int age
             }'''
-        instance = create("Person") {
+        instance = Person.Create.With {
             firstname "John"
             nickname "Johnny"
             age 42
@@ -110,7 +146,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
                 String nickname
                 int age
             }'''
-        instance = create("Person") {
+        instance = Person.Create.With {
             firstname "John"
             lastname "Doe"
             nickname "Johnny"
@@ -169,7 +205,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
             }
 '''
         when:
-        instance = create("Person") {
+        instance = Person.Create.With {
             nicknames "John", "Johnny"
             hobbies "Soccer", "Tennis"
             ages 42, 43
@@ -196,7 +232,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
             }
 '''
         when:
-        instance = create("Person") {
+        instance = Person.Create.With {
             nicknames "John", "Johnny"
             hobbies "Soccer", "Tennis"
             ages 42, 43

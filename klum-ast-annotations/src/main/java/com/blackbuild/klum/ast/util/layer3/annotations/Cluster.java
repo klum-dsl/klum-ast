@@ -28,9 +28,10 @@ import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 import java.lang.annotation.*;
 
 /**
- * <p>Automatically implements the annotated method by providing access to all matching fields,
- * possibly filtered by the given annotation. This is usually use to provide the API layer of
- * a three layer model.</p>
+ * Automatically implements the annotated method by providing access to all matching fields,
+ * possibly filtered by the given annotation.
+ *
+ * <p>This is usually use to provide the API layer of a three layer model.</p>
  *
  * <p>For example:</p>
  *
@@ -74,15 +75,20 @@ import java.lang.annotation.*;
  * <p>In that example, <code>getUsers()</code> still returns all user fields, while
  * <code>getRequiredUsers()</code> only returns 'ddl' and 'dml'.</p>
  *
- * The annotation can also be used for methods return Maps of Collections. If the (subclass of) Collection
+ * <p>The annotation can also be used for methods return Maps of Collections. If the (subclass of) Collection
  * is generic, the result is a map of the matching Collections. If the Collection does not use a generic parameter,
- * all collections would be returned
+ * all collections would be returned.</p>
+ *
+ * <p>If the annotation is placed on a field, that field is transparently converted into a matching getter.</p>
  *
  */
-@Target({ElementType.METHOD})
+@Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.ClusterTransformation")
+@GroovyASTTransformationClass({
+        "com.blackbuild.klum.ast.util.layer3.ClusterFieldTransformation",
+        "com.blackbuild.klum.ast.util.layer3.ClusterTransformation"
+        })
 public @interface Cluster {
 
     /**
