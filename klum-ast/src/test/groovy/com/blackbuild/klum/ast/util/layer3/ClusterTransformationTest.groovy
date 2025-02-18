@@ -122,6 +122,34 @@ class ClusterTransformationTest extends AbstractDSLSpec {
         props == [firstname: "John", nickname: "Johnny"]
     }
 
+    def "Cluster annotation with null values on Map resolves correctly"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL abstract class Named {
+                @Cluster abstract Map<String, String> getStrings()
+            }
+            
+            @DSL class Person extends Named {
+                String firstname
+                String lastname
+                String nickname
+                int age
+            }'''
+
+        when:
+        instance = Person.Create.With {
+            firstname "John"
+            nickname "Johnny"
+            age 42
+        }
+        def props = instance.strings
+
+        then:
+        props == [firstname: "John", nickname: "Johnny", lastname: null]
+    }
+
     def "Cluster annotation on Map with filter resolves correctly"() {
         given:
         createClass '''
