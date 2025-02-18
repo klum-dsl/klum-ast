@@ -102,9 +102,11 @@ The Environment base class contains method to access the actual applications as 
 abstract class Environment {
     @Key String name
     
-    @Cluster abstract Map<String, Application> getApplications() 
+    @Cluster Map<String, Application> applications 
 }
 ```
+
+Note that the `@Cluster` annotation can also be placed on a getter method (`getApplications()` in the above example), which can either be abstract or simply contain an empty body (or a body consisting only of `null`) to prevent IDEs from complaining. before rc.45, this was the only option, now using a field is considered the better option.
 
 That way a deployer service can simply iterate over the applications of our CustomerServiceEnvironment and deploy them.
 
