@@ -74,7 +74,7 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
             AnnotationNode layerAnnotation = getAnnotation(layer, CLUSTER_ANNOTATION_TYPE);
             if (layerAnnotation != null)
                 return (boolean) ((ConstantExpression) layerAnnotation.getMember(BOUNDED_MEMBER)).getValue();
-            AnnotationNode packageAnnotation = getAnnotation(layer.getModule().getPackage(), CLUSTER_ANNOTATION_TYPE);
+            AnnotationNode packageAnnotation = getPackageAnnotation(layer, CLUSTER_ANNOTATION_TYPE);
             if (packageAnnotation != null)
                 return (boolean) ((ConstantExpression) packageAnnotation.getMember(BOUNDED_MEMBER)).getValue();
         }
