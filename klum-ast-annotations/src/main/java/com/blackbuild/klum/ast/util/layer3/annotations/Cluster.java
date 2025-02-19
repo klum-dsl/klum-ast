@@ -24,9 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
 import com.blackbuild.klum.cast.KlumCastValidated;
-import com.blackbuild.klum.cast.checks.NeedsGenerics;
-import com.blackbuild.klum.cast.checks.NeedsReturnType;
-import com.blackbuild.klum.cast.checks.NeedsType;
+import com.blackbuild.klum.cast.checks.*;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
 import java.lang.annotation.*;
@@ -106,8 +104,10 @@ import java.util.Map;
  * is generic, the result is a map of the matching Collections. If the Collection does not use a generic parameter,
  * all collections would be returned.</p>
  *
+ * <p>The annotation can also be set on classes or packages. If so, the bounded member is set for all cluster fields of a
+ * a class/all classes of its package. Other members are not allowed on classes/packages.</p>
  */
-@Target({ElementType.METHOD, ElementType.FIELD})
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @GroovyASTTransformationClass({
@@ -118,19 +118,20 @@ import java.util.Map;
 @NeedsType(Map.class)
 @NeedsReturnType(Map.class)
 @NeedsGenerics
+@NeedsOneOf(value = "bounded", whenOn = {ElementType.TYPE, ElementType.PACKAGE})
 public @interface Cluster {
 
     /**
      * If set, filters the results by the given annotation.
      * @return The annotation to filter on.
      */
-    Class<? extends Annotation> value() default Undefined.class;
+    @NotOn({ElementType.TYPE, ElementType.PACKAGE}) Class<? extends Annotation> value() default Undefined.class;
 
     /**
      * If set to false, null values are not included in the result.
      * @return To return or ignore null values.
      */
-    boolean includeNulls() default true;
+    @NotOn({ElementType.TYPE, ElementType.PACKAGE}) boolean includeNulls() default true;
 
     /**
      * If set to true, the setter methods for matching fields are only created inside a named factory.

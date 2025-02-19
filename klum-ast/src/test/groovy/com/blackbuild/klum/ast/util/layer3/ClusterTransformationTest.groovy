@@ -256,6 +256,55 @@ import java.lang.annotation.RetentionPolicy
                 .every { Modifier.isProtected(it.modifiers) }
     }
 
+    @Issue("365")
+    def "bounded Clusters can be configured on class"() {
+        given:
+        createSecondaryClass '''
+            
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+            @DSL class User {
+                String name
+                String password
+            }
+
+            @Cluster(bounded = true) 
+            @DSL abstract class Database {
+                @Cluster Map<String, User> users
+            }
+            
+            @DSL class MyDatabase extends Database {
+                String url
+                User admin
+                User guest
+            }'''
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            users {
+                admin {
+                    name "admin"
+                    password "admin"
+                }
+                guest {
+                    name "guest"
+                    password "guest"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        getClass('MyDatabase$_RW').getDeclaredMethods()
+                .findAll { it.name == "admin" }
+                .every { Modifier.isProtected(it.modifiers) }
+    }
+
     @Issue("366")
     def "Cluster annotation on Map field is correctly resolved"() {
         given:

@@ -46,6 +46,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
 
+    public static final String BOUNDED_MEMBER = "bounded";
     private final MethodNode clusterField;
     private final String fieldName;
     private final AnnotationNode clusterAnnotation;
@@ -62,9 +63,22 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
 
         clusterAnnotation = getAnnotation(clusterField, CLUSTER_ANNOTATION_TYPE);
 
-        ConstantExpression boundedMember = (ConstantExpression) clusterAnnotation.getMember("bounded");
+        bounded = isBounded();
+    }
 
-        bounded = boundedMember != null && (boolean) boundedMember.getValue();
+    private boolean isBounded() {
+        ConstantExpression boundedMember = (ConstantExpression) clusterAnnotation.getMember(BOUNDED_MEMBER);
+        if (boundedMember != null)
+            return (boolean) boundedMember.getValue();
+        for (ClassNode layer : DslAstHelper.getHierarchyOfDSLObjectAncestors(targetClass)) {
+            AnnotationNode layerAnnotation = getAnnotation(layer, CLUSTER_ANNOTATION_TYPE);
+            if (layerAnnotation != null)
+                return (boolean) ((ConstantExpression) layerAnnotation.getMember(BOUNDED_MEMBER)).getValue();
+            AnnotationNode packageAnnotation = getAnnotation(layer.getModule().getPackage(), CLUSTER_ANNOTATION_TYPE);
+            if (packageAnnotation != null)
+                return (boolean) ((ConstantExpression) packageAnnotation.getMember(BOUNDED_MEMBER)).getValue();
+        }
+        return false;
     }
 
     @Override

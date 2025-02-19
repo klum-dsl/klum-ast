@@ -60,11 +60,12 @@ public class CommonAstHelper {
     public static final ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
     public static final ClassNode ENUM_SET_TYPE = makeWithoutCaching(EnumSet.class);
 
-    public static AnnotationNode getAnnotation(AnnotatedNode field, ClassNode type) {
-        return getOptionalAnnotation(field, type).orElse(null);
+    public static AnnotationNode getAnnotation(AnnotatedNode target, ClassNode type) {
+        return getOptionalAnnotation(target, type).orElse(null);
     }
-    public static Optional<AnnotationNode> getOptionalAnnotation(AnnotatedNode field, ClassNode type) {
-        List<AnnotationNode> annotation = field.getAnnotations(type);
+    public static Optional<AnnotationNode> getOptionalAnnotation(AnnotatedNode target, ClassNode type) {
+        if (target == null) return Optional.empty();
+        List<AnnotationNode> annotation = target.getAnnotations(type);
         return annotation.stream().findFirst();
     }
 
@@ -402,7 +403,7 @@ public class CommonAstHelper {
     public static Map<String, ClassNode> getStringClassMapFromClosure(ClosureExpression closureExpression, AnnotatedNode source) {
         MapExpression map = getLiteralMapExpressionFromClosure(closureExpression);
         if (map == null)
-            return null;
+            return Collections.emptyMap();
 
         Map<String, ClassNode> result = new LinkedHashMap<>();
 
