@@ -74,8 +74,10 @@ public class ClusterModel {
      */
     @SuppressWarnings("unchecked") // PropertyValue is not generic
     public static <T> Map<String, T> getPropertiesOfType(Object container, Class<T> fieldType) {
-        return (Map<String, T>) getPropertiesStream(container, fieldType)
-                .collect(toMap(PropertyValue::getName, PropertyValue::getValue));
+        return getPropertiesStream(container, fieldType)
+                .collect(HashMap::new,
+                        (m, e) -> m.put(e.getName(), (T) e.getValue()),
+                        Map::putAll);
     }
 
     /**

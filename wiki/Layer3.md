@@ -92,8 +92,45 @@ environment("prod") {
     //...
 }
 ```
-
 From the modelling perspective, this is a lot more expressive than using generic microservice or database classes. However, the API layer is still very simple, and can be used by the consumer application without having to know about the actual structure of the application.
+
+For each Cluster-Field of a class, a cluster factory named like the field is created, which only contains the matching fields of the cluster. This is especially useful if the name of the field lacks context:
+
+```groovy
+environment("dev") {
+  applications { // cluster factory for field "Environment.applications" 
+      shipping {
+          database {
+              users { // cluster factory for field "Database.users"
+                  ddl "admin"
+                  dml "shipping_user"
+                  monitoring "monitoring"
+              }
+          }
+          frontend {
+              replicas 1
+              ssl false
+              //...
+          }
+          // ...
+      }
+      billing {
+          database {
+            users { // cluster factory for field "Database.users"
+                ddl "admin"
+                dml "billing_user"
+            }
+          }
+          service {
+              //...
+          }
+      }
+  }
+}
+```
+
+By default, these factories are entirely optional (like collection factories), but can be made mandatory by using 
+`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package. This makes the interface cleaner, by removing all cluster field methods from the rw-interface (i.e. code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
 
 The Environment base class contains method to access the actual applications as a Map:
 
@@ -151,7 +188,7 @@ Most ClusterModel methods have an additional parameter to filter the return valu
 The most common usage is the last one, simply filtering on the presence of an annotation on the fields. This can also be implemented using the `value` field of the `@Cluster` annotation:
 
 ```groovy
-@Cluster(Important) abstract Map<String, Application> getApplications()
+@Cluster(Important) Map<String, Application> applications
 ```
 
 will be converted to

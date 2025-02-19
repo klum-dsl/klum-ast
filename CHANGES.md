@@ -33,6 +33,7 @@
 - Validations are now all executed, even if exceptions are encountered. All violations are aggregated into a single `KlumValidationException` which is thrown at the end of the phase (see [#146](https://github.com/klum-dsl/klum-ast/issues/146))
 - New `FromMap` factory to allow a "poor man's deserialization" (see [Convenience Factories](https://github.com/klum-dsl/klum-ast/wiki/Convenience-Factories#Map) and [#359](https://github.com/klum-dsl/klum-ast/issues/359)) 
 - DefaultValues annotations provide an annotation based way to set default values in Layer3 scenarios (see [Default Values](https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation) and [#361](https://github.com/klum-dsl/klum-ast/issues/361))
+- `@Cluster`-Fields create now a factory closure for that field, containing only the cluster members (see [#365](https://github.com/klum-dsl/klum-ast/issues/365))
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))

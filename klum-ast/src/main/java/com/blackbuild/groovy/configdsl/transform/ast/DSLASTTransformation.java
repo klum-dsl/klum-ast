@@ -30,6 +30,7 @@ import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethods
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
@@ -59,6 +60,7 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
+import static com.blackbuild.klum.ast.util.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.util.stream.Collectors.toList;
 import static org.codehaus.groovy.ast.ClassHelper.*;
@@ -144,6 +146,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createConvenienceFactories();
 
         createFieldDSLMethods();
+        createClusterFactories();
         createValidateMethod();
         moveMutatorsToRWClass();
 
@@ -262,6 +265,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void makeClassSerializable() {
         annotatedClass.addInterface(make(Serializable.class));
     }
+
+    private void createClusterFactories() {
+        annotatedClass.getAllDeclaredMethods().stream()
+                .filter(methodNode -> DslAstHelper.hasAnnotation(methodNode, CLUSTER_ANNOTATION_TYPE))
+                .forEach(this::createClusterFactory);
+    }
+
+    private void createClusterFactory(MethodNode methodNode) {
+        new ClusterFactoryBuilder(annotatedClass, methodNode).invoke();
+    }
+
 
     private void createValidateMethod() {
         convertValidationClosures();
@@ -509,7 +523,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    @SuppressWarnings("RedundantIfStatement")
+    @SuppressWarnings({"RedundantIfStatement", "java:S1126"})
     boolean shouldFieldBeIgnored(FieldNode fieldNode) {
         if ((fieldNode.getModifiers() & ACC_SYNTHETIC) != 0) return true;
         if (fieldNode.isFinal()) return true;
@@ -1137,7 +1151,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .addTo(annotatedClass);
     }
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     private void createConvenienceFactories() {
         String deprecationMessage = "Use Create.From(...) instead";
         createFactoryMethod(CREATE_FROM, annotatedClass)

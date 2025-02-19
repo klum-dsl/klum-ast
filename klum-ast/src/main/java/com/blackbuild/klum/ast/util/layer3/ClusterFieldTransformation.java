@@ -68,7 +68,7 @@ public class ClusterFieldTransformation extends AbstractASTTransformation {
             method.addAnnotation(annotation);
         owner.addMethod(method);
         owner.removeField(field.getName());
-        owner.getProperties().removeIf(p -> p.getName().equals(field.getName()));
+        propertyNode.ifPresent(node -> owner.getProperties().remove(node));
     }
 
 }

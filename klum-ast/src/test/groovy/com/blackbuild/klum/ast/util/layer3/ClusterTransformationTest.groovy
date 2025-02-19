@@ -25,6 +25,9 @@ package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
+
+import java.lang.reflect.Modifier
 
 
 class ClusterTransformationTest extends AbstractDSLSpec {
@@ -58,6 +61,251 @@ class ClusterTransformationTest extends AbstractDSLSpec {
         props == [firstname: "John", lastname: "Doe", nickname: "Johnny"]
     }
 
+    @Issue("365")
+    def "Cluster factories are created"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL abstract class Named {
+                @Cluster Map<String, String> names
+            }
+            
+            @DSL class Person extends Named {
+                String firstname
+                String lastname
+                String nickname
+                int age
+            }'''
+        instance = Person.Create.With {
+            names {
+                firstname "John"
+                lastname "Doe"
+                nickname "Johnny"
+            }
+            age 42
+        }
+
+        when:
+        def props = instance.names
+
+        then:
+        props == [firstname: "John", lastname: "Doe", nickname: "Johnny"]
+    }
+
+    @Issue("365")
+    def "Cluster factories are filtered"() {
+        given:
+        createSecondaryClass '''
+            
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @interface Service {}
+
+            @DSL class User {
+                String name
+                String password
+            }
+
+            @DSL abstract class Database {
+                @Cluster Map<String, User> users
+                @Cluster(Service) Map<String, User> serviceUsers
+            }
+            
+            @DSL class MyDatabase extends Database {
+                String url
+                User admin
+                User guest
+                @Service User service1
+                @Service User service2
+            }'''
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            admin {
+                name "admin"
+                password "admin"
+            }
+            guest {
+                name "guest"
+                password "guest"
+            }
+            service1 {
+                name "service1"
+                password "service1"
+            }
+            service2 {
+                name "service2"
+                password "service2"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            users {
+                admin {
+                    name "admin"
+                    password "admin"
+                }
+                guest {
+                    name "guest"
+                    password "guest"
+                }
+                service1 {
+                    name "service1"
+                    password "service1"
+                }
+                service2 {
+                    name "service2"
+                    password "service2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            serviceUsers {
+                service1 {
+                    name "service1"
+                    password "service1"
+                }
+                service2 {
+                    name "service2"
+                    password "service2"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            serviceUsers {
+                admin {
+                    name "admin"
+                    password "admin"
+                }
+            }
+        }
+
+        then:
+        thrown(MissingMethodException)
+    }
+
+    @Issue("365")
+    def "Cluster outside creators are protected"() {
+        given:
+        createSecondaryClass '''
+            
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+            @DSL class User {
+                String name
+                String password
+            }
+
+            @DSL abstract class Database {
+                @Cluster(bounded = true) Map<String, User> users
+            }
+            
+            @DSL class MyDatabase extends Database {
+                String url
+                User admin
+                User guest
+            }'''
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            users {
+                admin {
+                    name "admin"
+                    password "admin"
+                }
+                guest {
+                    name "guest"
+                    password "guest"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        getClass('MyDatabase$_RW').getDeclaredMethods()
+                .findAll { it.name == "admin" }
+                .every { Modifier.isProtected(it.modifiers) }
+    }
+
+    @Issue("365")
+    def "bounded Clusters can be configured on class"() {
+        given:
+        createSecondaryClass '''
+            
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+            @DSL class User {
+                String name
+                String password
+            }
+
+            @Cluster(bounded = true) 
+            @DSL abstract class Database {
+                @Cluster Map<String, User> users
+            }
+            
+            @DSL class MyDatabase extends Database {
+                String url
+                User admin
+                User guest
+            }'''
+
+        when:
+        MyDatabase.Create.With {
+            url "jdbc:postgresql://localhost:5432/mydb"
+            users {
+                admin {
+                    name "admin"
+                    password "admin"
+                }
+                guest {
+                    name "guest"
+                    password "guest"
+                }
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        getClass('MyDatabase$_RW').getDeclaredMethods()
+                .findAll { it.name == "admin" }
+                .every { Modifier.isProtected(it.modifiers) }
+    }
+
+    @Issue("366")
     def "Cluster annotation on Map field is correctly resolved"() {
         given:
         createClass '''
@@ -109,17 +357,45 @@ class ClusterTransformationTest extends AbstractDSLSpec {
                 String nickname
                 int age
             }'''
+
+        when:
         instance = Person.Create.With {
             firstname "John"
             nickname "Johnny"
             age 42
         }
-
-        when:
         def props = instance.strings
 
         then:
         props == [firstname: "John", nickname: "Johnny"]
+    }
+
+    def "Cluster annotation with null values on Map resolves correctly"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL abstract class Named {
+                @Cluster abstract Map<String, String> getStrings()
+            }
+            
+            @DSL class Person extends Named {
+                String firstname
+                String lastname
+                String nickname
+                int age
+            }'''
+
+        when:
+        instance = Person.Create.With {
+            firstname "John"
+            nickname "Johnny"
+            age 42
+        }
+        def props = instance.strings
+
+        then:
+        props == [firstname: "John", nickname: "Johnny", lastname: null]
     }
 
     def "Cluster annotation on Map with filter resolves correctly"() {

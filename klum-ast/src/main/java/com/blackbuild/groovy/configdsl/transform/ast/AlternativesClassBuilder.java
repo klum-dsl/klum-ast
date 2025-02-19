@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.util.KlumFactory;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -53,24 +52,20 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
 /**
  * Created by steph on 29.04.2017.
  */
-class AlternativesClassBuilder {
+class AlternativesClassBuilder extends AbstractFactoryBuilder {
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
-    private final ClassNode annotatedClass;
     private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
     private final ClassNode keyType;
     private final ClassNode elementType;
-    private final ClassNode rwClass;
     private final String memberName;
     private final Map<ClassNode, String> alternatives;
-    private InnerClassNode collectionFactory;
     private Map<String, ClassNode> genericsSpec;
 
     public AlternativesClassBuilder(DSLASTTransformation transformation, FieldNode fieldNode) {
+        super(fieldNode.getOwner());
         this.transformation = transformation;
         this.fieldNode = fieldNode;
-        this.annotatedClass = fieldNode.getOwner();
-        rwClass = getRwClassOf(annotatedClass);
         elementType = CommonAstHelper.getElementType(fieldNode);
         Objects.requireNonNull(elementType);
         keyType = getKeyType(elementType);
@@ -131,35 +126,15 @@ class AlternativesClassBuilder {
             CommonAstHelper.addCompileError("no parameters allowed for alternatives closure.", fieldNode, alternativesClosure);
     }
 
+    @Override
     public void invoke() {
-        createInnerClass();
+        createInnerClass(fieldNode.getName());
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
-    }
-
-    private void createInnerClass() {
-        collectionFactory = new InnerClassNode(annotatedClass, annotatedClass.getName() + "$_" + fieldNode.getName(), ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
-        collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
-        collectionFactory.addConstructor(ACC_PUBLIC,
-                params(param(rwClass, "rw")),
-                CommonAstHelper.NO_EXCEPTIONS,
-                block(
-                        assignS(propX(varX("this"), "rw"), varX("rw"))
-                )
-        );
-        DslAstHelper.registerAsVerbProvider(collectionFactory);
-
-        MethodBuilder.createProtectedMethod("get$proxy")
-                .returning(make(KlumInstanceProxy.class))
-                .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
-                .addTo(collectionFactory);
-
-        collectionFactory.addAnnotation(createGeneratedAnnotation(AlternativesClassBuilder.class));
-        annotatedClass.getModule().addClass(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
@@ -244,7 +219,7 @@ class AlternativesClassBuilder {
     }
 
     private void createNamedAlternativeMethodsForSubclasses() {
-        CommonAstHelper.findAllKnownSubclassesOf(elementType, annotatedClass.getCompileUnit())
+        CommonAstHelper.findAllKnownSubclassesOf(elementType, targetClass.getCompileUnit())
                 .forEach(this::createNamedAlternativeMethodsForSingleSubclass);
     }
 
@@ -291,25 +266,6 @@ class AlternativesClassBuilder {
                 .addTo(collectionFactory);
 
         new ConverterBuilder(transformation, fieldNode, methodName, false, collectionFactory).createConverterMethodsFromFactoryMethods(subclass);
-    }
-
-    private void createDelegateMethods(MethodNode targetMethod) {
-        int numberOfDefaultParams = (int) Arrays.stream(targetMethod.getParameters()).filter(p -> p.hasInitialExpression()).count();
-
-        // We want to create an explicit method realized method after resolving default values
-        // i.e. bla(int a, int b = 1) -> bla(int a, int b) and bla(int a), otherwise, null values might
-        // cause the wrong method to be called.
-        do {
-            new ProxyMethodBuilder(varX("rw"), targetMethod.getName(), targetMethod.getName())
-                    .targetType(rwClass)
-                    .linkToMethod(targetMethod)
-                    .optional()
-                    .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
-                    .returning(targetMethod.getReturnType())
-                    .paramsFromWithoutDefaults(targetMethod, numberOfDefaultParams)
-                    .addTo(collectionFactory);
-            numberOfDefaultParams--;
-        } while (numberOfDefaultParams >= 0);
     }
 
     private void createDelegateFactoryMethod(MethodNode methodNode) {

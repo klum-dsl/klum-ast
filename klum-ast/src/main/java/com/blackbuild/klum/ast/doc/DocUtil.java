@@ -25,7 +25,10 @@ package com.blackbuild.klum.ast.doc;
 
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import org.codehaus.groovy.ast.AnnotatedNode;
+import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.Map;
 
@@ -55,20 +58,33 @@ public class DocUtil {
      * @param field the field to get the display name of
      * @return the display name
      */
-    public static String getDisplayNameOf(FieldNode field) {
-        String sentence = ASTExtractor.extractDocText(field, field.getName()).getTitle();
+    public static String getDisplayNameOf(AnnotatedNode field) {
+        String sentence = ASTExtractor.extractDocText(field, getName(field)).getTitle();
         // TODO other punctuation?
         if (sentence.charAt(sentence.length() - 1) == '.')
             return sentence.substring(0, sentence.length() - 1);
         return sentence;
     }
 
-    public static Map<String, String> getTemplatesFor(FieldNode field) {
+    public static Map<String, String> getTemplatesFor(AnnotatedNode field) {
         Map<String, String> result = ASTExtractor.extractDocText(field).getNamedTags("template");
-        result.putIfAbsent("singleElementName", getSingleElementDisplayNameOf(field));
+        if (field instanceof FieldNode)
+            result.putIfAbsent("singleElementName", getSingleElementDisplayNameOf((FieldNode) field));
         result.putIfAbsent("fieldDisplayName", getDisplayNameOf(field));
-        result.putIfAbsent("fieldName", field.getName());
+        result.putIfAbsent("fieldName", getName(field));
         return result;
+    }
+
+    private static String getName(AnnotatedNode annotatedNode) {
+        if (annotatedNode instanceof FieldNode) {
+            return ((FieldNode) annotatedNode).getName();
+        } else if (annotatedNode instanceof MethodNode) {
+            return ((MethodNode) annotatedNode).getName();
+        } else if (annotatedNode instanceof ClassNode) {
+            return ((ClassNode) annotatedNode).getName();
+        } else {
+            return "unknown";
+        }
     }
 
     /**
