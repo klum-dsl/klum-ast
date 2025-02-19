@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
+import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -49,7 +50,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class ClusterTransformation extends AbstractASTTransformation {
 
-    private static final ClassNode CLUSTER_ANNOTATION_TYPE = ClassHelper.make(Cluster.class);
+    public static final ClassNode CLUSTER_ANNOTATION_TYPE = ClassHelper.make(Cluster.class);
     private static final ClassNode CLUSTER_MODEL_TYPE = ClassHelper.make(ClusterModel.class);
     public static final ClassNode COLLECTION_TYPE = ClassHelper.make(Collection.class);
 
@@ -62,15 +63,19 @@ public class ClusterTransformation extends AbstractASTTransformation {
         if (!(parent instanceof MethodNode)) return;
 
         MethodNode method = (MethodNode) parent;
-        
+
+        assertMethodIsNotStatic(method);
         assertIsAbstractOrEmpty(method);
         assertIsParameterless(method);
         assertReturnsMapOfStrings(method);
 
-
-
-        method.setModifiers(method.getModifiers() & 0x7);
+        method.setModifiers(method.getModifiers() & (Opcodes.ACC_PUBLIC | Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED));
         method.setCode(createMethodBody(method, anno));
+    }
+
+    private void assertMethodIsNotStatic(MethodNode method) {
+        if (method.isStatic())
+            addError(format("Method %s must not be static", method), method);
     }
 
     private void assertReturnsMapOfStrings(MethodNode method) {

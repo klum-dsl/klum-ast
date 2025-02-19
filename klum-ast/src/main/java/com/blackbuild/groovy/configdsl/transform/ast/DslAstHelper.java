@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
@@ -75,6 +76,10 @@ public class DslAstHelper {
 
         hierarchy.addFirst(target);
         return getHierarchyOfDSLObjectAncestors(hierarchy, target.getSuperClass());
+    }
+
+    public static Stream<FieldNode> getFieldsOfDslHierarchy(ClassNode target) {
+        return getHierarchyOfDSLObjectAncestors(target).stream().flatMap(classNode -> classNode.getFields().stream());
     }
 
     public static ClassNode getRwClassOf(ClassNode classNode) {
@@ -355,7 +360,7 @@ public class DslAstHelper {
         return "set" + Verifier.capitalize(fieldName);
     }
 
-    static AnnotationNode createGeneratedAnnotation(Class<?> generatorType) {
+    public static AnnotationNode createGeneratedAnnotation(Class<?> generatorType) {
         return createGeneratedAnnotation(generatorType, null);
     }
 

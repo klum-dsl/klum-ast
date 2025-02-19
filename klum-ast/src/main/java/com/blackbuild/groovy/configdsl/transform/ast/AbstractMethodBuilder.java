@@ -82,7 +82,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T linkToField(FieldNode annotatedNode) {
+    public T linkToField(AnnotatedNode annotatedNode) {
         return (T) inheritDeprecationFrom(annotatedNode)
                 .sourceLinkTo(annotatedNode)
                 .withDocumentation(doc -> doc.templates(DocUtil.getTemplatesFor(annotatedNode)));
