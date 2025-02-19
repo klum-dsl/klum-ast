@@ -63,6 +63,13 @@ public class CommonAstHelper {
     public static AnnotationNode getAnnotation(AnnotatedNode target, ClassNode type) {
         return getOptionalAnnotation(target, type).orElse(null);
     }
+
+    public static AnnotationNode getPackageAnnotation(ClassNode target, ClassNode annotationType) {
+        if (target.getModule() == null)
+            return null;
+        return getAnnotation(target.getModule().getPackage(), annotationType);
+    }
+
     public static Optional<AnnotationNode> getOptionalAnnotation(AnnotatedNode target, ClassNode type) {
         if (target == null) return Optional.empty();
         List<AnnotationNode> annotation = target.getAnnotations(type);
