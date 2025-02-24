@@ -409,11 +409,12 @@ public class ClusterModel {
      */
     public static Map<String, Object> getMethodBasedValues(Object object, Class<? extends Annotation> annotation, Class<?> returnType) {
         return getMethodsAnnotatedWithStream(object, returnType, annotation)
+                .filter(Predicate.not(ClusterModel::isGetter))
                 .collect(toMap(Method::getName, it -> InvokerHelper.invokeMethod(object, it.getName(), null)));
     }
 
     /**
-     * Returns all parameterless methods of the given Return type (possibly filtered).
+     * Returns all parameterless methods (possibly filtered).
      * @param object The object whose methods should be returned
      * @return A list of matching methods
      */
@@ -423,13 +424,14 @@ public class ClusterModel {
     }
 
     @NotNull
-    private static Stream<Method> getMethodsAnnotatedWithStream(Object object, Class<?> returnType, Class<? extends Annotation> annotation) {
+    static Stream<Method> getMethodsAnnotatedWithStream(Object object, Class<?> returnType, Class<? extends Annotation> annotation) {
         return Arrays.stream(object.getClass().getMethods())
-                .filter(it -> it.getParameterCount() == 0)
                 .filter(it -> returnType.isAssignableFrom(it.getReturnType()))
-                .filter(it -> !it.getName().startsWith("get"))
-                .filter(it -> !it.getName().startsWith("is"))
                 .filter(it -> it.isAnnotationPresent(annotation));
+    }
+
+    private static boolean isGetter(Method method) {
+        return method.getParameterCount() == 0 && (method.getName().startsWith("get") || method.getName().startsWith("is"));
     }
 
 }

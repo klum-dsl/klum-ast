@@ -110,6 +110,7 @@ import java.util.Map;
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Inherited
 @GroovyASTTransformationClass({
         "com.blackbuild.klum.ast.util.layer3.ClusterFieldTransformation",
         "com.blackbuild.klum.ast.util.layer3.ClusterTransformation"
@@ -132,6 +133,13 @@ public @interface Cluster {
      * @return To return or ignore null values.
      */
     @NotOn({ElementType.TYPE, ElementType.PACKAGE}) boolean includeNulls() default true;
+
+    /**
+     * If set to true, all matching fields are automatically set during auto-create phase. If set on the class or package level,
+     * this is set for all cluster fields of the class/all classes of the package.
+     * @return Whether to auto-create the fields.
+     */
+    boolean autoCreate() default false;
 
     /**
      * If set to true, the setter methods for matching fields are only created inside a named factory.
