@@ -47,6 +47,7 @@ import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.tools.StringHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
@@ -189,7 +190,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void moveMutatorsToRWClass() {
-        new WriteAccessMethodsMover(annotatedClass, sourceUnit).invoke();
+        new WriteAccessMethodsMover(annotatedClass).invoke();
     }
 
     private void setPropertyAccessors() {
@@ -457,17 +458,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return fieldNode.getName().startsWith("$") || getFieldType(fieldNode) == FieldType.TRANSIENT || DslAstHelper.hasAnnotation(fieldNode, OWNER_ANNOTATION);
     }
 
+    private static final String HASH_CODE_METHOD_NAME = "hashCode";
+
     private void createHashCodeIfNotDefined() {
-        if (hasDeclaredMethod(annotatedClass, "hashCode", 0))
+        if (hasDeclaredMethod(annotatedClass, HASH_CODE_METHOD_NAME, 0))
             return;
 
         if (keyField != null) {
-            createPublicMethod("hashCode")
+            createPublicMethod(HASH_CODE_METHOD_NAME)
                     .returning(ClassHelper.int_TYPE)
-                    .doReturn(callX(varX(keyField.getName()), "hashCode"))
+                    .doReturn(callX(varX(keyField.getName()), HASH_CODE_METHOD_NAME))
                     .addTo(annotatedClass);
         } else {
-            createPublicMethod("hashCode")
+            createPublicMethod(HASH_CODE_METHOD_NAME)
                     .returning(ClassHelper.int_TYPE)
                     .doReturn(constX(0))
                     .addTo(annotatedClass);

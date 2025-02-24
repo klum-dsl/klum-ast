@@ -189,11 +189,12 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
             package tmp
 
             import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
 
             @DSL
             abstract class AbstractConfig {
-                @Cluster(autoCreate = true)
+                @Cluster @AutoCreate
                 Map<String, Child> children
             }
             
@@ -225,16 +226,17 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
             package tmp
 
 import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 
-@DSL
+            @DSL
             abstract class AbstractConfig {
                 @Cluster
                 Map<String, Child> allChildren
-                @Cluster(autoCreate = true, value = Important)
+                @Cluster(Important) @AutoCreate
                 Map<String, Child> importantChildren
             }
             

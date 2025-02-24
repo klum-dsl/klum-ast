@@ -40,8 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static com.blackbuild.klum.ast.util.DslHelper.getElementType;
-import static com.blackbuild.klum.ast.util.DslHelper.isInstantiable;
+import static com.blackbuild.klum.ast.util.DslHelper.*;
 import static java.lang.String.format;
 
 public class AutoCreationPhase extends VisitingPhaseAction {
@@ -52,20 +51,20 @@ public class AutoCreationPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        ClusterModel.getFieldsAnnotatedWith(element, AutoCreate.class)
-                .entrySet()
-                .stream()
+        ClusterModel.getPropertiesStream(element, Object.class)
                 .filter(entry -> entry.getValue() == null)
-                .forEach(entry -> autoCreate(element, entry.getKey()));
+                .map(pv -> ClusterModel.getField(element, pv.getName()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .filter(field -> field.isAnnotationPresent(AutoCreate.class))
+                .forEach(field -> autoCreate(element, field));
 
         autoCreateClusterFields(element);
 
         LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
     }
 
-    private void autoCreate(Object element, String fieldName) {
-        @SuppressWarnings({"OptionalGetWithoutIsPresent", "java:S3655"})
-        Field field = DslHelper.getField(element.getClass(), fieldName).get();
+    private void autoCreate(Object element, Field field) {
         Optional<AutoCreate> autoCreate = AnnotationHelper.getAnnotation(field, AutoCreate.class);
         Map<String, Object> values = autoCreate.map(a -> ClosureHelper.invokeClosure(a.value())).orElse(Collections.emptyMap());
 
@@ -74,30 +73,28 @@ public class AutoCreationPhase extends VisitingPhaseAction {
             key = null;
         // TODO: Validation AST
         if (key == null && DslHelper.isKeyed(field.getType()))
-            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' is missing a 'key' field.", fieldName));
+            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' is missing a 'key' field.", field.getName()));
         else if (key != null && !DslHelper.isKeyed(field.getType()))
-            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", fieldName, field.getType().getName()));
+            throw new KlumSchemaException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", field.getName(), field.getType().getName()));
 
         Class<?> type = autoCreate.isPresent() ? autoCreate.get().type() : Object.class;
         if (type.equals(Object.class)) {
             if (field.getType().equals(Closure.class)) return;
             if (!isInstantiable(field.getType()))
-                throw new KlumSchemaException(format("AutoCreate annotation for abstract typed field '%s' is missing a 'type' field.", fieldName));
+                throw new KlumSchemaException(format("AutoCreate annotation for abstract typed field '%s' is missing a 'type' field.", field.getName()));
             type = field.getType();
         } else if (!field.getType().isAssignableFrom(type)) {
             throw new KlumSchemaException(
-                    format("AutoCreate annotation for field '%s' sets type '%s' which is no subtype of the field's type (%s)", fieldName, type, field.getType()));
+                    format("AutoCreate annotation for field '%s' sets type '%s' which is no subtype of the field's type (%s)", field.getName(), type, field.getType()));
         }
 
         Object autoCreated = FactoryHelper.create(type, values, key, null);
 
-        KlumInstanceProxy.getProxyFor(element).setSingleField(fieldName, autoCreated);
+        KlumInstanceProxy.getProxyFor(element).setSingleField(field.getName(), autoCreated);
     }
 
     private void autoCreateClusterFields(Object element) {
-        boolean clusterAutoCreateActiveForClass = false; // AnnotationHelper.getMostSpecificAnnotation(element.getClass(), Cluster.class, cluster -> cluster.autoCreate()).isPresent();
-
-        Predicate<Method> autoCreateFilter = clusterAutoCreateActiveForClass ? clusterMethod -> true : field -> field.getAnnotation(Cluster.class).autoCreate();
+        Predicate<Method> autoCreateFilter = clusterField -> clusterField.getAnnotation(AutoCreate.class) != null;
 
         ClusterModel.getMethodsAnnotatedWithStream(element, Map.class, Cluster.class)
                 .filter(autoCreateFilter)
@@ -107,15 +104,21 @@ public class AutoCreationPhase extends VisitingPhaseAction {
     private void autoCreateElementsForCluster(Object element, Method clusterMethod) {
         Cluster cluster = clusterMethod.getAnnotation(Cluster.class);
         Class<? extends Annotation> filterAnnotation = cluster.value();
-        Predicate<AnnotatedElement> clusterFilter = filterAnnotation != Cluster.Undefined.class ? elementToCheck -> elementToCheck.getAnnotation(filterAnnotation) != null : elementToCheck -> true;
+        Predicate<AnnotatedElement> clusterFilter = filterAnnotation != Cluster.Undefined.class ? elementToCheck -> elementToCheck.isAnnotationPresent(filterAnnotation) : elementToCheck -> true;
 
         Type elementType = getElementType(clusterMethod.getGenericReturnType());
         if (!(elementType instanceof Class))
             throw new KlumSchemaException(format("Cluster annotation on method '%s', whose element generics is no class (%s)", clusterMethod.getName(), elementType.getTypeName()));
 
+        if (!isDslType(elementType))
+            return;
+
         ClusterModel.getPropertiesStream(element, (Class<?>) elementType, clusterFilter)
-                .filter(propertyValue -> isEmpty(propertyValue.getValue()))
-                .forEach(property -> autoCreate(element, property.getName()));
+                .filter(propertyValue -> propertyValue.getValue() == null)
+                .map(pv -> ClusterModel.getField(element, pv.getName()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(property -> autoCreate(element, property));
     }
 
 

@@ -23,14 +23,12 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.Mutator;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
-import org.codehaus.groovy.control.SourceUnit;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -43,15 +41,12 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
  */
 public class WriteAccessMethodsMover {
 
-    public static final ClassNode MUTATOR_ANNOTATION = ClassHelper.make(Mutator.class);
     public static final ClassNode WRITE_ACCESS_ANNOTATION = ClassHelper.make(WriteAccess.class);
+    public static final String NO_MUTATOR_KEY = WriteAccessMethodsMover.class.getName() + ".noMutator";
     private final ClassNode annotatedClass;
 
-    private final SourceUnit sourceUnit;
-
-    public WriteAccessMethodsMover(ClassNode annotatedClass, SourceUnit sourceUnit) {
+    public WriteAccessMethodsMover(ClassNode annotatedClass) {
         this.annotatedClass = annotatedClass;
-        this.sourceUnit = sourceUnit;
     }
 
     static void downgradeToProtected(MethodNode method) {
@@ -79,14 +74,24 @@ public class WriteAccessMethodsMover {
     }
 
     private void ifMutatorMoveToRWClass(MethodNode method) {
+        if (isExcluded(method)) return;
+
         Optional<WriteAccess.Type> writeType = WriteAccessHelper.getWriteAccessTypeForMethodOrField(method);
 
-        if (!writeType.isPresent()) return;
+        if (writeType.isEmpty()) return;
 
         if (writeType.get() == WriteAccess.Type.LIFECYCLE)
             downgradeToProtected(method);
 
         moveMethodFromModelToRWClass(method);
+    }
+
+    private boolean isExcluded(MethodNode method) {
+        return method.getNodeMetaData(NO_MUTATOR_KEY) == Boolean.TRUE;
+    }
+
+    public static void markAsNoMutator(MethodNode method) {
+        method.putNodeMetaData(NO_MUTATOR_KEY, Boolean.TRUE);
     }
 
     //    static class ReplaceDirectAccessWithSettersVisitor extends CodeVisitorSupport {

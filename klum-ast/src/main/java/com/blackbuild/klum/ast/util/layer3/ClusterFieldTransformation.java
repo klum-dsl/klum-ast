@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
@@ -69,6 +70,7 @@ public class ClusterFieldTransformation extends AbstractASTTransformation {
         owner.addMethod(method);
         owner.removeField(field.getName());
         propertyNode.ifPresent(node -> owner.getProperties().remove(node));
+        WriteAccessMethodsMover.markAsNoMutator(method);
     }
 
 }

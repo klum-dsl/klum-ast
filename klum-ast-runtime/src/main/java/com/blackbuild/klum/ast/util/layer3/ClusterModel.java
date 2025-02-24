@@ -295,6 +295,10 @@ public class ClusterModel {
                 .collect(toList());
     }
 
+    public static Optional<Field> getField(Object container, String fieldName) {
+        return getField(container.getClass(), fieldName);
+    }
+
     public static Optional<Field> getField(Class<?> containerType, String fieldName) {
         while (containerType != null) {
             Optional<Field> field = Arrays.stream(containerType.getDeclaredFields()).filter(it -> it.getName().equals(fieldName)).findFirst();
