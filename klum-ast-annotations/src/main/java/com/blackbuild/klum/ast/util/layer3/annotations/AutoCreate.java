@@ -32,18 +32,25 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Auto create the object of this field, if still null during the auto create phase.
+ * Auto create the object of this field, if still <code>null</code> during the auto create phase.
  * The value must be a literal Map containing the values to be passed to the create method.
  * <p>
  * For keyed fields, the key must be passed as {@link #key()} parameter. Additionally, the
  * concrete type of the object to be created can be passed as {@link #type()} parameter. If
  * the annotated field is an abstract type, the type parameter is mandatory.
+ * </p>
  * <p>
  * When placed on a field of type closure, the behaviour is slightly different. In that case, the closure
  * is called during the lifecycle phase.
+ * </p>
  * <p>
  * AutoCreate can also be used on methods. In that case, the method is handled as a regular
  * lifecycle method.
+ * </p>
+ * <p>
+ * If AutoCreate is placed on a {@link Cluster} field, all matching fields of the cluster auto created,
+ * as if the annotation was placed on each of them.
+ * </p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

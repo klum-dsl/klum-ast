@@ -143,8 +143,6 @@ abstract class Environment {
 }
 ```
 
-Note that the `@Cluster` annotation can also be placed on a getter method (`getApplications()` in the above example), which can either be abstract or simply contain an empty body (or a body consisting only of `null`) to prevent IDEs from complaining. before rc.45, this was the only option, now using a field is considered the better option.
-
 That way a deployer service can simply iterate over the applications of our CustomerServiceEnvironment and deploy them.
 
 ```groovy
@@ -155,6 +153,8 @@ def deploy(Environment env) {
     }
 }
 ```
+
+Note that the `@Cluster` annotation can also be placed on a getter method (which would be called `getApplications()` in the above example), which can either be abstract or simply contain an empty body (or a body consisting only of `null`) to prevent IDEs from complaining. before rc.45, this was the only option, now using a field is considered the better option.
 
 Validations in our ShippingApplication can also be done specifically for that application:
 
@@ -198,6 +198,11 @@ Map<String, Application> getApplications() {
     return ClusterModel.getPropertiesOfType(this, Application, Important)
 }
 ```
+
+## AutoCreate
+
+Any `AutoCreate` annotation placed on the cluster field will be used to automatically create all targeted field's objects during the auto-create phase, thus effectively working as if the annotation was placed on all fields of the cluster.
+
 ## Benefits of a Layer3 model
 
 There are various major benefits of using a Layer3 model vs. a generic schema/model approach:

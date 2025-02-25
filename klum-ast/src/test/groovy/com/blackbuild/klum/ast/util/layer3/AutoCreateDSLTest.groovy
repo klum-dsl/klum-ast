@@ -219,6 +219,45 @@ import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
     }
 
     @Issue("363")
+    def "auto create cluster fields with custom values"() {
+
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL
+            abstract class AbstractConfig {
+                @Cluster @AutoCreate({["name": "acName"]})
+                Map<String, Child> children
+            }
+            
+            @DSL class Config extends AbstractConfig {
+                Child child1
+                Child child2
+            }
+
+            @DSL
+            class Child {
+                String name
+            }
+        ''')
+
+        when:
+        instance = Config.Create.With {
+            "child1"()
+        }
+
+        then:
+        instance.child1.name == null
+        instance.child2.name == "acName"
+        !instance.child1.is(instance.child2)
+    }
+
+    @Issue("363")
     def "auto create cluster fields filtered by annotation"() {
 
         given:

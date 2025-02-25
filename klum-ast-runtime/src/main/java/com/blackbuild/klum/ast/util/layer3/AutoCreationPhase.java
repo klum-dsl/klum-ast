@@ -35,7 +35,6 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -57,18 +56,17 @@ public class AutoCreationPhase extends VisitingPhaseAction {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .filter(field -> field.isAnnotationPresent(AutoCreate.class))
-                .forEach(field -> autoCreate(element, field));
+                .forEach(field -> autoCreate(element, field, field.getAnnotation(AutoCreate.class)));
 
         autoCreateClusterFields(element);
 
         LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
     }
 
-    private void autoCreate(Object element, Field field) {
-        Optional<AutoCreate> autoCreate = AnnotationHelper.getAnnotation(field, AutoCreate.class);
-        Map<String, Object> values = autoCreate.map(a -> ClosureHelper.invokeClosure(a.value())).orElse(Collections.emptyMap());
+    private void autoCreate(Object element, Field field, AutoCreate autoCreate) {
+        Map<String, Object> values = ClosureHelper.invokeClosure(autoCreate.value());
 
-        String key = autoCreate.map(AutoCreate::key).orElse(null);
+        String key = autoCreate.key();
         if (AutoCreate.DEFAULT_KEY.equals(key))
             key = null;
         // TODO: Validation AST
@@ -77,7 +75,7 @@ public class AutoCreationPhase extends VisitingPhaseAction {
         else if (key != null && !DslHelper.isKeyed(field.getType()))
             throw new KlumSchemaException(format("AutoCreate annotation for field '%s' has a key field, but annotated type '%s' is not keyed", field.getName(), field.getType().getName()));
 
-        Class<?> type = autoCreate.isPresent() ? autoCreate.get().type() : Object.class;
+        Class<?> type = autoCreate.type();
         if (type.equals(Object.class)) {
             if (field.getType().equals(Closure.class)) return;
             if (!isInstantiable(field.getType()))
@@ -94,10 +92,9 @@ public class AutoCreationPhase extends VisitingPhaseAction {
     }
 
     private void autoCreateClusterFields(Object element) {
-        Predicate<Method> autoCreateFilter = clusterField -> clusterField.getAnnotation(AutoCreate.class) != null;
 
         ClusterModel.getMethodsAnnotatedWithStream(element, Map.class, Cluster.class)
-                .filter(autoCreateFilter)
+                .filter(clusterField -> clusterField.isAnnotationPresent(AutoCreate.class))
                 .forEach(clusterMethod -> autoCreateElementsForCluster(element, clusterMethod));
     }
 
@@ -113,12 +110,14 @@ public class AutoCreationPhase extends VisitingPhaseAction {
         if (!isDslType(elementType))
             return;
 
+        AutoCreate autoCreate = clusterMethod.getAnnotation(AutoCreate.class);
+
         ClusterModel.getPropertiesStream(element, (Class<?>) elementType, clusterFilter)
                 .filter(propertyValue -> propertyValue.getValue() == null)
                 .map(pv -> ClusterModel.getField(element, pv.getName()))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .forEach(property -> autoCreate(element, property));
+                .forEach(property -> autoCreate(element, property, autoCreate));
     }
 
 
