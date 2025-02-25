@@ -92,8 +92,14 @@ public class DslHelper {
 
     public static Type getElementType(Field field) {
         Type genericType = field.getGenericType();
-        ParameterizedType parameterizedType = (ParameterizedType) genericType;
-        Type[] typeArguments = parameterizedType.getActualTypeArguments();
+        return getElementType(genericType);
+    }
+
+    public static Type getElementType(Type type) {
+        if (!(type instanceof ParameterizedType))
+            throw new IllegalArgumentException("Type is not a parameterized type: " + type);
+
+        Type[] typeArguments = ((ParameterizedType) type).getActualTypeArguments();
         Type typeArgument = typeArguments[typeArguments.length - 1];
         if (typeArgument instanceof WildcardType)
             return ((WildcardType) typeArgument).getUpperBounds()[0];

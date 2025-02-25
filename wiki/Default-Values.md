@@ -107,7 +107,7 @@ should be set by each room class to a default value. Instead of using a Default 
 
 ```groovy
 // Retentention/Target
-@DefaultProvider // makes this annotation a DefaultValue-Provider
+@DefaultValues // makes this annotation a DefaultValue-Provider
 @interface HomeDefaults {
     String displayName() default ""
     String shortLabel() default ""

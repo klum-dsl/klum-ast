@@ -110,6 +110,7 @@ import java.util.Map;
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Inherited
 @GroovyASTTransformationClass({
         "com.blackbuild.klum.ast.util.layer3.ClusterFieldTransformation",
         "com.blackbuild.klum.ast.util.layer3.ClusterTransformation"

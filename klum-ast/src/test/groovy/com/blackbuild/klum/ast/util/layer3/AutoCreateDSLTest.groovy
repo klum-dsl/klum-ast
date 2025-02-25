@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import spock.lang.Issue
 
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 @SuppressWarnings('GrPackage')
@@ -180,4 +181,122 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
         instance.child.age == 42
     }
 
+    @Issue("363")
+    def "auto create cluster fields"() {
+
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL
+            abstract class AbstractConfig {
+                @Cluster @AutoCreate
+                Map<String, Child> children
+            }
+            
+            @DSL class Config extends AbstractConfig {
+                Child child1
+                Child child2
+            }
+
+            @DSL
+            class Child {
+            }
+        ''')
+
+        when:
+        instance = Config.Create.One()
+
+        then:
+        instance.children.size() == 2
+        instance.child1 != null
+        instance.child2 != null
+        !instance.child1.is(instance.child2)
+    }
+
+    @Issue("363")
+    def "auto create cluster fields with custom values"() {
+
+        given:
+        createClass('''
+            package tmp
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+            @DSL
+            abstract class AbstractConfig {
+                @Cluster @AutoCreate({["name": "acName"]})
+                Map<String, Child> children
+            }
+            
+            @DSL class Config extends AbstractConfig {
+                Child child1
+                Child child2
+            }
+
+            @DSL
+            class Child {
+                String name
+            }
+        ''')
+
+        when:
+        instance = Config.Create.With {
+            "child1"()
+        }
+
+        then:
+        instance.child1.name == null
+        instance.child2.name == "acName"
+        !instance.child1.is(instance.child2)
+    }
+
+    @Issue("363")
+    def "auto create cluster fields filtered by annotation"() {
+
+        given:
+        createClass('''
+            package tmp
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+
+            @DSL
+            abstract class AbstractConfig {
+                @Cluster
+                Map<String, Child> allChildren
+                @Cluster(Important) @AutoCreate
+                Map<String, Child> importantChildren
+            }
+            
+            @DSL class Config extends AbstractConfig {
+                @Important Child child1
+                Child child2
+            }
+
+            @DSL
+            class Child {
+            }
+            
+            @Retention(RetentionPolicy.RUNTIME)
+            @interface Important {}
+        ''')
+
+        when:
+        instance = Config.Create.One()
+
+        then:
+        instance.child1 != null
+        instance.child2 == null
+    }
 }

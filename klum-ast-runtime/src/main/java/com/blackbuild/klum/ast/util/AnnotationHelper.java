@@ -171,4 +171,7 @@ public class AnnotationHelper {
         return false;
     }
 
+    public static <T extends Annotation> Optional<T> getAnnotation(Field field, Class<T> annotationType) {
+        return Optional.ofNullable(field.getAnnotation(annotationType));
+    }
 }
