@@ -272,33 +272,78 @@ public class ClusterModel {
                 .filter(it -> hasField(container.getClass(), it.getName()));
     }
 
+    /**
+     * Returns a stream of all properties of the given container.
+     * This includes all properties, regardless of their type.
+     *
+     * @param container The object whose properties should be returned
+     * @return A stream of PropertyValue objects representing all properties of the container
+     */
     @NotNull
     public static Stream<PropertyValue> getAllPropertiesStream(Object container) {
         return getMetaPropertyValues(container).stream()
                 .filter(ClusterModel::isNoInternalProperty);
     }
 
+    /**
+     * Returns a list of all fields of the given container with the given type,
+     * only including fields that are unset (null).
+     *
+     * @param container The object whose fields should be returned
+     * @param fieldType The type of properties to be returned
+     * @return A list of PropertyValue objects representing all properties of the given type that are null
+     */
     public static List<PropertyValue> getUnsetPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> it.getValue() == null)
                 .collect(toList());
     }
 
+    /**
+     * Returns a list of all fields of the given container with the given type,
+     * only including fields that are set (not null).
+     *
+     * @param container The object whose fields should be returned
+     * @param fieldType The type of properties to be returned
+     * @return A list of PropertyValue objects representing all properties of the given type that are not null
+     */
     public static List<PropertyValue> getSetPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .filter(it -> it.getValue() != null)
                 .collect(toList());
     }
 
+    /**
+     * Returns a list of all fields of the given container with the given type.
+     * This includes inherited fields.
+     *
+     * @param container The object whose fields should be returned
+     * @param fieldType The type of properties to be returned
+     * @return A list of PropertyValue objects representing all properties of the given type
+     */
     public static List<PropertyValue> getAllPropertiesOfType(Object container, Class<?> fieldType) {
         return getPropertiesStream(container, fieldType)
                 .collect(toList());
     }
 
+    /**
+     * Retrieves a field from the given container object by its name.
+     *
+     * @param container The object containing the field.
+     * @param fieldName The name of the field to retrieve.
+     * @return An Optional containing the Field if found, otherwise an empty Optional.
+     */
     public static Optional<Field> getField(Object container, String fieldName) {
         return getField(container.getClass(), fieldName);
     }
 
+    /**
+     * Retrieves a field from the given class by its name, searching through the class hierarchy.
+     *
+     * @param containerType The class to search for the field.
+     * @param fieldName The name of the field to retrieve.
+     * @return An Optional containing the Field if found, otherwise an empty Optional.
+     */
     public static Optional<Field> getField(Class<?> containerType, String fieldName) {
         while (containerType != null) {
             Optional<Field> field = Arrays.stream(containerType.getDeclaredFields()).filter(it -> it.getName().equals(fieldName)).findFirst();
@@ -309,8 +354,15 @@ public class ClusterModel {
         return Optional.empty();
     }
 
+    /**
+     * Checks if the given class contains a field with the specified name.
+     *
+     * @param containerType The class to search for the field.
+     * @param fieldName The name of the field to check for.
+     * @return true if the field is present, false otherwise.
+     */
     public static boolean hasField(Class<?> containerType, String fieldName) {
-        return getField(containerType,fieldName).isPresent();
+        return getField(containerType, fieldName).isPresent();
     }
 
     static AnnotatedElement getAnnotatedElementForProperty(Object container, PropertyValue propertyValue) {

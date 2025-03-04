@@ -47,7 +47,6 @@ import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.codehaus.groovy.tools.StringHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
@@ -320,7 +319,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
     }
 
-    void convertClosureExpressionToAssertStatement(ClosureExpression closure, String message) {
+    private void convertClosureExpressionToAssertStatement(ClosureExpression closure, String message) {
         BlockStatement block = (BlockStatement) closure.getCode();
 
         if (block.getStatements().size() != 1)
