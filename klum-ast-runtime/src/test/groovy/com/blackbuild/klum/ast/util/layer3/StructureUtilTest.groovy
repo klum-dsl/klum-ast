@@ -108,4 +108,22 @@ class StructureUtilTest extends AbstractRuntimeTest {
         !StructureUtil.getPathOfFieldContaining(owner, child4).present
     }
 
+    def "bug: getNonIgnoredProperties fails on String fields"() {
+        given:
+        createClass '''
+            class Owner {
+                String name
+            }
+        '''
+
+        def instance = newInstanceOf("Owner", [name: "John"])
+
+        when:
+        def result = StructureUtil.deepFind(instance, Integer)
+
+        then:
+        noExceptionThrown()
+        result.isEmpty()
+    }
+
 }

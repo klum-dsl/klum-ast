@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
@@ -175,11 +176,16 @@ public class StructureUtil {
             ((Collection<?>) container).forEach(member -> result.putAll(doDeepFind(member, type, ignoredTypes, path + "[" + index.getAndIncrement() + "]", visited)));
         } else if (container instanceof Map) {
             ((Map<?, ?>) container).forEach((key, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + toGPath(key), visited)));
-        } else {
+        } else if (!isIgnoredType(container.getClass())){
             getNonIgnoredProperties(container).forEach((name, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + name, visited)));
         }
 
         return result;
+    }
+
+    private static boolean isIgnoredType(Class<?> type) {
+        if (type.getPackageName().startsWith("java.")) return true;
+        return false;
     }
 
     static String toGPath(Object value) {
@@ -196,7 +202,7 @@ public class StructureUtil {
                     .filter(it -> !it.getName().contains("$"))
                     .filter(it -> !Modifier.isStatic(it.getModifiers()))
                     .filter(it -> !it.isSynthetic())
-                    .forEach(it -> result.put(it.getName(), InvokerHelper.getProperty(container, it.getName())));
+                    .forEach(it -> result.put(it.getName(), DslHelper.getCachedField(container.getClass(), it.getName()).map(f -> f.getProperty(container)).orElse(null)));
             type = type.getSuperclass();
         }
 
