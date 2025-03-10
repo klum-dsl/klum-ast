@@ -72,6 +72,9 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.51
+  - root objects of the wrong type should silently be ignored. This allows partial models to be created, which is especially
+    important for testing.
 - since rc.40
   - unqalified links in KlumFactory's javadoc lead to javadoc failures
   - gradle model plugin used the wrong class in the model descriptor (model class instead of script class)

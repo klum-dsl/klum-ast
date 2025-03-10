@@ -122,7 +122,9 @@ public class OwnerPhase extends VisitingPhaseAction {
     }
 
     private static void setOwnerFieldValue(KlumInstanceProxy proxy, Object value, Field field) {
-        proxy.setInstanceAttribute(field.getName(), convertValue(field.getAnnotation(Owner.class), value));
+        Object valueToSet = convertValue(field.getAnnotation(Owner.class), value);
+        if (field.getType().isInstance(valueToSet))
+            proxy.setInstanceAttribute(field.getName(), valueToSet);
     }
 
     private static Object convertValue(Owner owner, Object originalValue) {

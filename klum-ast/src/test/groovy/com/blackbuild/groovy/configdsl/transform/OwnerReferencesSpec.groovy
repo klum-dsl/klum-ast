@@ -876,6 +876,43 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.child.child.grandParent.is(instance)
     }
 
+    def "BUG: Root owners should only be set when of correct type"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+            }
+
+            @DSL
+            class Child {
+                GrandChild child
+                String name
+            }
+            
+            @DSL
+            class GrandChild {
+                @Owner(root = true) Parent grandParent
+                String name
+            }
+        ''')
+
+        when: "partial model"
+        instance = Child.Create.With {
+            name "Child Level 1"
+            child {
+                name "Child Level 2"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.child.grandParent == null
+    }
+
     @Issue("49")
     def "Transitive owners methods are called after normal owners"() {
         given:
