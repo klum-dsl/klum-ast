@@ -35,6 +35,7 @@ import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -193,6 +194,8 @@ public class StructureUtil {
         while (type != null) {
             Arrays.stream(type.getDeclaredFields())
                     .filter(it -> !it.getName().contains("$"))
+                    .filter(it -> !Modifier.isStatic(it.getModifiers()))
+                    .filter(it -> !it.isSynthetic())
                     .forEach(it -> result.put(it.getName(), InvokerHelper.getProperty(container, it.getName())));
             type = type.getSuperclass();
         }
