@@ -348,5 +348,42 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         receiver.innerLists == ["aFromTemplate"]
     }
 
+    @Issue("374")
+    def "copy handler ignores TRANSIENT and IGNORED field"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Field
+            import com.blackbuild.groovy.configdsl.transform.FieldType
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String normalField
+                @Field(FieldType.TRANSIENT)
+                String transientField
+                @Field(FieldType.IGNORED)
+                String ignoredField
+            }
+         ''')
+
+        def template = newInstanceOf("pk.AClass")
+        template.normalField = "normalFieldFromTemplate"
+        template.transientField = "transientFieldFromTemplate"
+        template.ignoredField = "ignoredFieldFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        CopyHandler.copyToFrom(receiver, template)
+
+        then:
+        receiver.normalField == "normalFieldFromTemplate"
+        receiver.transientField == null
+        receiver.ignoredField == null
+    }
+
 
 }

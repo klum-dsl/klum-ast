@@ -123,7 +123,8 @@ public class CopyHandler {
         if (field.isAnnotationPresent(Key.class)) return true;
         if (field.isAnnotationPresent(Owner.class)) return true;
         if (field.isAnnotationPresent(Role.class)) return true;
-        if (DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT) return true;
+        FieldType klumFieldType = DslHelper.getKlumFieldType(field);
+        if (klumFieldType == FieldType.TRANSIENT || klumFieldType == FieldType.IGNORED) return true;
         return false;
     }
 
