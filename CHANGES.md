@@ -72,6 +72,8 @@
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
 ##Fixes
+- since rc.54
+  - `Required.value()` is correctly translated to `Validate.message()` (see [#373](https://github.com/klum-dsl/klum-ast/issues/373))
 - since rc.51
   - root objects of the wrong type should silently be ignored. This allows partial models to be created, which is especially
     important for testing.

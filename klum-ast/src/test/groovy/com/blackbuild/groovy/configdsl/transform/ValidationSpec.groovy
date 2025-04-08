@@ -860,4 +860,27 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         thrown(KlumValidationException)
     }
+
+    @Issue("373")
+    void "Message is correctly converted"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                @Required("Name must be set")
+                String name
+            }
+        ''')
+        instance = clazz.Create.Template() // skip validation, we call validator explicitly
+
+        when:
+        instance.name = null
+        Validator.validate(instance)
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains "Name must be set"
+    }
 }
