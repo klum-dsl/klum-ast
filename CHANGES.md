@@ -53,12 +53,12 @@
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
   - creator methods on the model class have been deprecated.
-- Breaking changes ((see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+- Breaking changes (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
 - it is a compile error to place the `@Validate` annotation on a boolean field.
 - KlumAST is split into different modules, klum-ast-compile is compile-time only,
   klum-ast-runtime is needed for runtime as well. This completes
   the changes started in 1.2.0
-- In order for the serialization in jackson to work, the new klum-ast-jackson module needs to be included in the project (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Jackson-Integration)))))
+- In order for the serialization in jackson to work, the new klum-ast-jackson module needs to be included in the project (see [Jackson Integration](https://github.com/klum-dsl/klum-ast/wiki/Jackson-Integration))
 - The naming of virtual fields is changed, now the virtual field
   is identical to the method name (previously, the first element of the camel
   cased method name was removed).
@@ -79,7 +79,7 @@
   - root objects of the wrong type should silently be ignored. This allows partial models to be created, which is especially
     important for testing.
 - since rc.40
-  - unqalified links in KlumFactory's javadoc lead to javadoc failures
+  - unqualified links in KlumFactory's javadoc lead to javadoc failures
   - gradle model plugin used the wrong class in the model descriptor (model class instead of script class)
   - ClusterModel filtering against annotations did not always work due to the actual Field object not being retrieved
 - since rc.39
