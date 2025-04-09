@@ -66,12 +66,12 @@
 - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
 - The `@Validation` annotation is deprecated, any use except for `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
 - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
-- The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own validate methods is legal again.
+- The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own `validate()` methods is legal again.
 - Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.
 - Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 
-##Fixes
+## Fixes
 - since rc.54
   - `Required.value()` is correctly translated to `Validate.message()` (see [#373](https://github.com/klum-dsl/klum-ast/issues/373))
   - CopyHandler should ignore field type IGNORED (see [#374](https://github.com/klum-dsl/klum-ast/issues/374))
