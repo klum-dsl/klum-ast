@@ -348,6 +348,50 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         receiver.innerLists == ["aFromTemplate"]
     }
 
+    @Issue("348")
+    def "copy with Overwrite.Missing Ignore ignores missing fields"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.copy.Overwrite
+import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            @Overwrite(missing = @Overwrite.Missing(OverwriteStrategy.Missing.IGNORE))
+            class AClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+            }
+
+            @DSL
+            class BClass {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                Map<String, String> inners = [:]
+                List<String> otherLists = []
+            }
+         ''')
+
+        def template = newInstanceOf("pk.BClass")
+        template.inners.put "a", "aFromTemplate"
+        template.inners.put "b", "bFromTemplate"
+        template.otherLists.add "aFromTemplate"
+
+        when:
+        def receiver = newInstanceOf("pk.AClass")
+        receiver.inners.put "a", "aFromReceiver"
+        receiver.inners.put "c", "cFromReceiver"
+        receiver.innerLists.add "aFromReceiver"
+        receiver.innerLists.add "bFromReceiver"
+        CopyHandler.copyToFrom(receiver, template)
+
+        then:
+        notThrown(KlumModelException)
+    }
+
     @Issue("374")
     def "copy handler ignores TRANSIENT and IGNORED field"() {
         given:

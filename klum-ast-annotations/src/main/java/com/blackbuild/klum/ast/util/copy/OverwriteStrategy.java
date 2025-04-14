@@ -83,4 +83,16 @@ public interface OverwriteStrategy {
         /** The members of the copy source are added to the target map. Members with the existing keys are ignored. */
         ADD_MISSING
     }
+
+    /**
+     * Strategies for handling fields that are missing in the target object.
+     */
+    enum Missing {
+        /** No explicit strategy is set. */
+        INHERIT,
+        /** Fail if the target field is missing. */
+        FAIL,
+        /** Silently ignore missing target fields. */
+        IGNORE
+    }
 }

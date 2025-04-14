@@ -142,3 +142,11 @@ public @interface HelmOverwrite {
 ```
 
 Note that only one level of nesting is supported, i.e. you cannot nest annotations inside nested annotations.
+
+# Missing field handling
+
+The `@Overwrite` annotation as well as nested annotations can contain an additional member named `missing` of type
+`OverwriteStrategy.Missing`, which controls the handling of fields in the donor that are not present in the target
+object. This can either be `FAIL` (the default) or `IGNORE`.
+
+Note that since this is checked on the target object, it does nothing when being put a field.

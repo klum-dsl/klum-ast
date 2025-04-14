@@ -46,6 +46,6 @@ public class OverwriteSingleCheck extends KlumCastCheck<Annotation> {
             throw new IllegalArgumentException("Single overwrite strategy is not allowed for collections or maps");
 
         if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
-            throw new IllegalArgumentException("MERGE is not allowed for DSL objects");
+            throw new IllegalArgumentException("MERGE is only allowed for DSL objects");
     }
 }

@@ -115,7 +115,8 @@ public class CopyHandler {
     }
 
     private void handleMissingFieldInTarget(String name) {
-        throw new KlumModelException("Field " + name + " is missing in target object " + target);
+        if (getMissingStrategy() == OverwriteStrategy.Missing.FAIL)
+            throw new KlumModelException("Field " + name + " is missing in target object " + target);
     }
 
     @SuppressWarnings("java:S1126")
@@ -410,6 +411,16 @@ public class CopyHandler {
                 .map(Overwrite::collections)
                 .map(Overwrite.Collection::value)
                 .orElse(OverwriteStrategy.Collection.REPLACE);
+    }
+
+    private OverwriteStrategy.Missing getMissingStrategy() {
+        Overwrite.Missing annotation = AnnotationHelper.getNestedAnnotation(target.getClass(), Overwrite.Missing.class);
+        if (annotation != null && annotation.value() != OverwriteStrategy.Missing.INHERIT)
+            return annotation.value();
+        return AnnotationHelper.getMostSpecificAnnotation(target.getClass(), Overwrite.class, o -> o.missing().value() != OverwriteStrategy.Missing.INHERIT)
+                .map(Overwrite::missing)
+                .map(Overwrite.Missing::value)
+                .orElse(OverwriteStrategy.Missing.FAIL);
     }
 
 

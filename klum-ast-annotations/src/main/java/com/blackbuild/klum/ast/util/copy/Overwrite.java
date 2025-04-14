@@ -47,6 +47,7 @@ public @interface Overwrite {
     Overwrite.Single singles() default @Overwrite.Single(OverwriteStrategy.Single.INHERIT);
     Overwrite.Collection collections() default @Overwrite.Collection(OverwriteStrategy.Collection.INHERIT);
     Overwrite.Map maps() default @Overwrite.Map(OverwriteStrategy.Map.INHERIT);
+    Overwrite.Missing missing() default @Overwrite.Missing(OverwriteStrategy.Missing.FAIL);
 
     @Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
     @Retention(RetentionPolicy.RUNTIME)
@@ -74,5 +75,13 @@ public @interface Overwrite {
     @KlumCastValidator("com.blackbuild.klum.ast.validation.OverwriteMapCheck")
     @interface Map {
         OverwriteStrategy.Map value();
+    }
+
+    @Target({ElementType.ANNOTATION_TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @KlumCastValidated
+    @NeedsDSLClass
+    @interface Missing {
+        OverwriteStrategy.Missing value();
     }
 }
