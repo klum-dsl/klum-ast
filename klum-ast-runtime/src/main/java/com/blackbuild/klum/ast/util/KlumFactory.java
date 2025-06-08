@@ -102,7 +102,7 @@ public class KlumFactory<T> {
      * @see #From(URL, ClassLoader)
      */
     public T From(URL configurationUrl) {
-        return From(configurationUrl, null, null);
+        return FactoryHelper.createFrom(type, configurationUrl, null, null);
     }
 
     /**
@@ -115,7 +115,7 @@ public class KlumFactory<T> {
      * @see #From(URL, ClassLoader)
      */
     public T From(URL configurationUrl, Function<URL, String> keyProvider) {
-        return From(configurationUrl, keyProvider, null);
+        return FactoryHelper.createFrom(type, configurationUrl, keyProvider, null);
     }
 
     /**
@@ -127,7 +127,7 @@ public class KlumFactory<T> {
      * @return The instantiated object.
      */
     public T From(URL configurationUrl, ClassLoader loader) {
-        return From(configurationUrl, null, loader);
+        return FactoryHelper.createFrom(type, configurationUrl, null, loader);
     }
 
     /**
@@ -152,7 +152,7 @@ public class KlumFactory<T> {
      * @see #From(File, ClassLoader)
      */
     public T From(File configurationFile) {
-        return From(configurationFile, null, null);
+        return FactoryHelper.createFrom(type, configurationFile, null, null);
     }
 
     /**
@@ -177,7 +177,7 @@ public class KlumFactory<T> {
      * @see #From(File, ClassLoader)
      */
     public T From(File configurationFile, Function<File, String> keyProvider) {
-        return From(configurationFile, keyProvider, null);
+        return FactoryHelper.createFrom(type, configurationFile, keyProvider, null);
     }
 
     /**
@@ -189,7 +189,7 @@ public class KlumFactory<T> {
      * @return The instantiated object.
      */
     public T From(File configurationFile, ClassLoader loader) {
-        return From(configurationFile, null, loader);
+        return FactoryHelper.createFrom(type, configurationFile, null, loader);
     }
 
     /**
@@ -219,7 +219,7 @@ public class KlumFactory<T> {
      * @see #Template(Map, Closure)
      */
     public T Template() {
-        return Template(null, null);
+        return FactoryHelper.createAsTemplate(type, null, (Closure<?>) null);
     }
 
     /**
@@ -259,7 +259,7 @@ public class KlumFactory<T> {
      * @see #Template(Map, Closure)
      */
     public T Template(Closure<?> configuration) {
-        return Template(null, configuration);
+        return FactoryHelper.createAsTemplate(type, null, configuration);
     }
 
     /**
@@ -279,7 +279,7 @@ public class KlumFactory<T> {
      * @see #Template(Map, Closure)
      */
     public T Template(Map<String, Object> configMap) {
-        return Template(configMap, null);
+        return FactoryHelper.createAsTemplate(type, configMap, null);
     }
 
     /**
@@ -300,7 +300,7 @@ public class KlumFactory<T> {
      * @return a template instance of the model type.
      */
     public T TemplateFrom(File scriptFile) {
-        return TemplateFrom(scriptFile, null);
+        return FactoryHelper.createAsTemplate(type, scriptFile, null);
     }
 
     /**
@@ -343,7 +343,7 @@ public class KlumFactory<T> {
      * @return a template instance of the model type.
      */
     public T TemplateFrom(URL scriptUrl) {
-        return TemplateFrom(scriptUrl, null);
+        return FactoryHelper.createAsTemplate(type, scriptUrl, null);
     }
 
     /**
@@ -388,7 +388,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T One(String key) {
-            return With(null, key, null);
+            return FactoryHelper.create(type, null, key, null);
         }
 
         /**
@@ -413,7 +413,7 @@ public class KlumFactory<T> {
          */
         @Deprecated(forRemoval = true)
         public T With(String key) {
-            return With(null, key, null);
+            return FactoryHelper.create(type, null, key, null);
         }
 
         /**
@@ -424,7 +424,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T With(String key, Closure<?> configuration) {
-            return With(null, key, configuration);
+            return FactoryHelper.create(type, null, key, configuration);
         }
 
         /**
@@ -435,7 +435,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T With(Map<String, ?> configMap, String key) {
-            return With(configMap, key, null);
+            return FactoryHelper.create(type, configMap, key, null);
         }
 
         /**
@@ -446,7 +446,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T From(String key, String configuration) {
-            return From(key, configuration, null);
+            return FactoryHelper.createFrom(type, key, configuration, null);
         }
 
         /**
@@ -481,7 +481,7 @@ public class KlumFactory<T> {
          */
         @Deprecated(forRemoval = true)
         public T With() {
-            return One();
+            return FactoryHelper.create(type, null, null, null);
         }
 
         /**
@@ -491,7 +491,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T One() {
-            return With(null, null);
+            return FactoryHelper.create(type, null, null, null);
         }
 
         /**
@@ -512,7 +512,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T With(Closure<?> configuration) {
-            return With(null, configuration);
+            return FactoryHelper.create(type, null, null, configuration);
         }
 
         /**
@@ -522,7 +522,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T With(Map<String, ?> configMap) {
-            return With(configMap, null);
+            return FactoryHelper.create(type, configMap, null, null);
         }
 
         /**
@@ -532,7 +532,7 @@ public class KlumFactory<T> {
          * @return The instantiated object.
          */
         public T From(String configuration) {
-            return From(configuration, null);
+            return FactoryHelper.createFrom(type, null, configuration, null);
         }
 
         /**
