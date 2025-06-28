@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 
@@ -84,7 +85,7 @@ class DelegateFromRwToModel {
         }
 
         MethodNode newMethod = new ProxyMethodBuilder(
-                varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
+                varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
                 candidate.getName(),
                 candidate.getName()
         )

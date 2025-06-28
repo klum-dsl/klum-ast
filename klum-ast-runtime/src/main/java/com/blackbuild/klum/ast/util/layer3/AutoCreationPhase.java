@@ -50,17 +50,19 @@ public class AutoCreationPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        ClusterModel.getPropertiesStream(element, Object.class)
-                .filter(entry -> entry.getValue() == null)
-                .map(pv -> ClusterModel.getField(element, pv.getName()))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .filter(field -> field.isAnnotationPresent(AutoCreate.class))
-                .forEach(field -> autoCreate(element, field, field.getAnnotation(AutoCreate.class)));
+        withCurrentTemplates(element, () -> {
+            ClusterModel.getPropertiesStream(element, Object.class)
+                    .filter(entry -> entry.getValue() == null)
+                    .map(pv -> ClusterModel.getField(element, pv.getName()))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .filter(field -> field.isAnnotationPresent(AutoCreate.class))
+                    .forEach(field -> autoCreate(element, field, field.getAnnotation(AutoCreate.class)));
 
-        autoCreateClusterFields(element);
+            autoCreateClusterFields(element);
 
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
+            LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
+        });
     }
 
     private void autoCreate(Object element, Field field, AutoCreate autoCreate) {

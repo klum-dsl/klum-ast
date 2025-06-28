@@ -61,12 +61,17 @@ public class TemplateManager {
         // Thread local singleton
     }
 
+
     private void deregister() {
         if (templates.isEmpty())
             INSTANCE.remove();
     }
 
     private final Map<Class<?>, Object> templates = new HashMap<>();
+
+    Map<Class<?>, Object> getCurrentTemplates() {
+        return new HashMap<>(templates);
+    }
 
     /**
      * Executes the given closure with the given template as the template for the given type.

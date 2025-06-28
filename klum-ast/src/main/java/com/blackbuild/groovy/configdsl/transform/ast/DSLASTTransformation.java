@@ -27,6 +27,10 @@ import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
+import com.blackbuild.klum.ast.KlumKeyedModelObject;
+import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.KlumRwObject;
+import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
@@ -96,12 +100,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
-    public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
     public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     public static final String FACTORY_FIELD_NAME = "Create";
+    public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
+    public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
+    public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -130,6 +136,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else
             createExplicitEmptyConstructor();
 
+        implementMarkerInterfaces();
+
         checkFieldNames();
         warnIfAFieldIsNamedOwner();
 
@@ -157,6 +165,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+    }
+
+    private void implementMarkerInterfaces() {
+        if (keyField != null) annotatedClass.addInterface(KLUM_KEYED_MODEL_OBJECT);
+        else if (isAbstract(annotatedClass)) annotatedClass.addInterface(KLUM_MODEL_OBJECT);
+        else annotatedClass.addInterface(KLUM_UNKEYED_MODEL_OBJECT);
     }
 
     private void createExplicitEmptyConstructor() {
@@ -204,18 +218,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
                 parentRW != null ? parentRW : OBJECT_TYPE,
-                new ClassNode[] { make(Serializable.class)},
+                new ClassNode[] { make(Serializable.class), make(KlumRwObject.class) },
                 MixinNode.EMPTY_ARRAY);
         AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
 
         DslAstHelper.registerAsVerbProvider(rwClass);
 
-        rwClass.addField(NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
+        rwClass.addField(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
 
         BlockStatement block = new BlockStatement();
         if (parentRW != null)
             block.addStatement(ctorSuperS(varX("model")));
-        block.addStatement(assignS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX("model")));
+        block.addStatement(assignS(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX("model")));
 
         rwClass.addConstructor(
                 ACC_PROTECTED,
@@ -226,7 +240,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         MethodBuilder.createProtectedMethod("get$proxy")
                 .returning(make(KlumInstanceProxy.class))
-                .doReturn(propX(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
+                .doReturn(propX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
                 .addTo(rwClass);
 
         annotatedClass.getModule().addClass(rwClass);
@@ -252,7 +266,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .statement(
                         ifS(
                                 callX(varX("type"), "isAssignableFrom", classX(annotatedClass)),
-                                returnS(varX(NAME_OF_MODEL_FIELD_IN_RW_CLASS))
+                                returnS(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS))
                         )
                 )
                 .addTo(rwClass);
@@ -1006,8 +1020,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     keyGetterName,
                     targetKeyField.getOriginType(),
                     keyProviderClosure,
-                    propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS),
-                    propX(varX("this"), NAME_OF_MODEL_FIELD_IN_RW_CLASS)
+                    propX(varX("this"), KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS),
+                    propX(varX("this"), KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS)
             ).addTo(rwClass);
 
             return callX(varX("this"), keyGetterName);

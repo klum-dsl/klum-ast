@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -185,8 +186,10 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         when:
+        def currentTemplates
         clazz.withTemplate(template) {
             instance = clazz.Create.With("Hallo") {
+                currentTemplates = KlumInstanceProxy.getProxyFor(delegate).currentTemplates
                 value "own"
             }
         }
@@ -195,6 +198,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "Hallo"
         instance.value == "own"
         instance.value2 == "DefaultValue2"
+        currentTemplates == [(clazz): template]
     }
 
     def "Lists and Maps in template object should be cloned"() {
@@ -869,20 +873,20 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String token
             }
         ''')
-        def fooClass = getClass("pk.Foo")
-        def fooTemplate = fooClass.Create.With(name: 'DefaultName')
-        def barClass = getClass("pk.Bar")
-        def barTemplate = barClass.Create.With(token: 'DefaultToken')
+        def Foo = getClass("pk.Foo")
+        def fooTemplate = Foo.Create.With(name: 'DefaultName')
+        def Bar = getClass("pk.Bar")
+        def barTemplate = Bar.Create.With(token: 'DefaultToken')
 
 
         def foo, bar
         when:
-        clazz.withTemplates((fooClass) : fooTemplate, (barClass) : barTemplate) {
-            foo = fooClass.Create.With {
+        clazz.withTemplates((Foo) : fooTemplate, (Bar) : barTemplate) {
+            foo = Foo.Create.With {
                 value 'blub'
             }
 
-            bar = barClass.Create.With()
+            bar = Bar.Create.With()
         }
 
         then:
@@ -1313,5 +1317,48 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.key == null
         template.name == "Default"
         template.value == "DefaultValue"
+    }
+
+    @Issue("368")
+    def "instance proxies store the currently active templates"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+        ''')
+
+        when:
+        def template = clazz.Create.Template {
+            name "Default"
+        }
+
+        then:
+        template.name == "Default"
+
+        when:
+        def instance = clazz.Create.With {
+            name "Instance"
+        }
+        def proxy = KlumInstanceProxy.getProxyFor(instance)
+
+        then:
+        instance.name == "Instance"
+        proxy.currentTemplates == [:]
+
+        when:
+        clazz.withTemplate(template) {
+            instance = clazz.Create.With {
+                name "Overridden"
+            }
+        }
+        proxy = KlumInstanceProxy.getProxyFor(instance)
+
+        then:
+        instance.name == "Overridden"
+        proxy.currentTemplates[clazz] == template
     }
 }

@@ -37,7 +37,7 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
             package pk
 
             @DSL
-            class Foo {
+            class Foo implements KlumModelObject {
                 @Key String name
             }
             @DSL

@@ -35,10 +35,11 @@ class CopyHandlerTest extends AbstractRuntimeTest {
             package pk
 
 import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class Outer {
+            class Outer implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
@@ -46,7 +47,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             }
             
             @DSL
-            class Inner {
+            class Inner implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String value
             } 
@@ -79,7 +80,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class Outer {
+            class Outer implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
@@ -88,7 +89,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             }
             
             @DSL
-            class Inner {
+            class Inner implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String value
             } 
@@ -141,7 +142,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class Outer {
+            class Outer implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
@@ -187,7 +188,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class Outer {
+            class Outer implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
@@ -227,7 +228,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class Outer {
+            class Outer implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
@@ -274,7 +275,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class AClass {
+            class AClass implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
@@ -318,7 +319,7 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             @DSL
             @Overwrite(collections = @Overwrite.Collection(OverwriteStrategy.Collection.REPLACE), 
                        maps = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES))
-            class AClass {
+            class AClass implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
@@ -361,14 +362,14 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             @Overwrite(missing = @Overwrite.Missing(OverwriteStrategy.Missing.IGNORE))
-            class AClass {
+            class AClass implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
             }
 
             @DSL
-            class BClass {
+            class BClass implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> otherLists = []
@@ -404,7 +405,7 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
-            class AClass {
+            class AClass implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String normalField
                 @Field(FieldType.TRANSIENT)

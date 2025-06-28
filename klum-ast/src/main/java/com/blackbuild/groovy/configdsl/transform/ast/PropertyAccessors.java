@@ -118,7 +118,7 @@ class PropertyAccessors {
                 .mod(DslAstHelper.isProtected(pNode.getField()) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(fieldType, "value")
-                .statement(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
+                .statement(callX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
                 .addTo(dslastTransformation.rwClass);
 
         pNode.setSetterBlock(null);
@@ -143,7 +143,7 @@ class PropertyAccessors {
         String ownerGetter = getGetterName(fieldName);
         createPublicMethod(ownerGetter)
                 .returning(fieldNode.getType())
-                .doReturn(callX(varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
+                .doReturn(callX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
                 .addTo(dslastTransformation.rwClass);
 
     }

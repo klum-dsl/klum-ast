@@ -45,6 +45,7 @@ abstract class AbstractRuntimeTest extends Specification {
         importCustomizer.addStarImports(
                 "com.blackbuild.groovy.configdsl.transform",
                 "com.blackbuild.klum.ast.util",
+                "com.blackbuild.klum.ast",
                 this.getClass().getPackage().name
         )
 
