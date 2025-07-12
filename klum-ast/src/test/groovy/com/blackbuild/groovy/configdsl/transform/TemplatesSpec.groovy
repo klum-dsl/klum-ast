@@ -1331,9 +1331,18 @@ class TemplatesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
+
             @DSL
             class Foo {
                 String name
+                @Field(FieldType.TRANSIENT)
+                Map<Class, Object> activeTemplatesDuringAutoCreate
+                
+                @AutoCreate void storeTemplates() {
+                    activeTemplatesDuringAutoCreate = KlumInstanceProxy.getProxyFor(this).currentTemplates
+                }
             }
         ''')
 
@@ -1356,15 +1365,21 @@ class TemplatesSpec extends AbstractDSLSpec {
         proxy.currentTemplates == [:]
 
         when:
+        def templatesDuringCreation = null
         clazz.withTemplate(template) {
             instance = clazz.Create.With {
                 name "Overridden"
+                templatesDuringCreation = KlumInstanceProxy.getProxyFor(delegate).currentTemplates
             }
         }
         proxy = KlumInstanceProxy.getProxyFor(instance)
 
         then:
         instance.name == "Overridden"
-        proxy.currentTemplates[clazz] == template
+        templatesDuringCreation == [(clazz): template]
+        instance.activeTemplatesDuringAutoCreate == [(clazz): template]
+
+        and: "templates are cleared after the instance is created"
+        proxy.currentTemplates[clazz] == null
     }
 }

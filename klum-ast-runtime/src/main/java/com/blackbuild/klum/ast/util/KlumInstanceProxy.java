@@ -59,7 +59,7 @@ public class KlumInstanceProxy {
     private boolean manualValidation;
     private String breadcrumbPath;
     private int breadCrumbQuantifier = 1;
-    private Map<Class<?>, Object> currentTemplates;
+    private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -631,7 +631,7 @@ public class KlumInstanceProxy {
     }
 
     void removeCurrentTemplates() {
-        this.currentTemplates = null;
+        this.currentTemplates = Collections.emptyMap();
     }
 
     public Map<Class<?>, Object> getCurrentTemplates() {

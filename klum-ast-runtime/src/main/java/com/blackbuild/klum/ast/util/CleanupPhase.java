@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
 public class CleanupPhase extends VisitingPhaseAction {
-    protected CleanupPhase() {
+    public CleanupPhase() {
         super(DefaultKlumPhase.COMPLETE);
     }
 

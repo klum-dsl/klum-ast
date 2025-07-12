@@ -68,7 +68,9 @@ Validates the correctness of the model according to the presence of the `@Valida
 
 ## Completion (100)
 
-Has no default actions. Plugins can register actions to be executed after the model has been created and validated.
+Deletes registered template objects.
+
+Plugins can register actions to be executed after the model has been created and validated.
 This could, for example, be used for logging purpose or to register the model in some kind of external registry.
 
 Note that the lifecycle methods for AutoCreate, AutoLink and PostTree are technically identical, the difference being
