@@ -4,7 +4,7 @@ In this documentation, we differentiate between three kinds of values:
 ## DSL-Objects
 DSL Objects are annotated with `@DSL`. These are (potentially complex) objects enhanced by the transformation. They
 can either be *keyed* or *unkeyed*. Keyed means they have a designated field of type String (currently) decorated with the
- `@Key` annotation, acting as key for this class. DSL classes are automatically made `Serializable`.
+ `@Key` annotation, acting as a key for this class. DSL classes are automatically made `Serializable`.
 
 ## Collections
 Collections are (currently either List or Map). Map keys are always Strings, List values and Map values can either be
@@ -22,5 +22,5 @@ Collection name and element name can be customized via the @Field Annotation (se
 *Collections must be strongly typed using generics!*
   
 ## Simple Values
-Are everything else, i.e. simple values as well as more complex not-DSL objects.
+These are everything else, i.e., simple values as well as more complex not-DSL objects.
 

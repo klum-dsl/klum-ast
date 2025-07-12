@@ -21,7 +21,7 @@
 - Switch annotation validation to [KlumCast](https://github.com/klum-dsl/klum-cast) Framework (see [#312](https://github.com/klum-dsl/klum-ast/issues/312)))
 - Generate Documentation for almost all generated methods via [AnnoDocimal](https://github.com/blackbuild/anno-docimal) (see [#197](https://github.com/klum-dsl/klum-ast/issues/197)))
 - [Gradle Plugin](https://github.com/klum-dsl/klum-ast/wiki/Gradle-Plugins) for easier project setup
-- Various owner improvement:
+- Various owner improvements:
   - Owner targets now can be transitive, i.e. be filled with the value of an ancestor of the specified type (instead of the direct owner) (see [Transitive Owners](https://github.com/klum-dsl/klum-ast/wiki/Basics#transitive-owners) and [#49](https://github.com/klum-dsl/klum-ast/issues/49))
   - Ower fields can be filled with the actual root of the model. This works even if no explicit owner field is present (see [Root Owner](https://github.com/klum-dsl/klum-ast/wiki/Basics#root-owners))
   - Owner objects can be converted before handing them to owner fields or methods (see [Owner Converters](https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters) and [#189](https://github.com/klum-dsl/klum-ast/issues/189))
@@ -34,6 +34,7 @@
 - New `FromMap` factory to allow a "poor man's deserialization" (see [Convenience Factories](https://github.com/klum-dsl/klum-ast/wiki/Convenience-Factories#Map) and [#359](https://github.com/klum-dsl/klum-ast/issues/359)) 
 - DefaultValues annotations provide an annotation based way to set default values in Layer3 scenarios (see [Default Values](https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation) and [#361](https://github.com/klum-dsl/klum-ast/issues/361))
 - `@Cluster`-Fields create now a factory closure for that field, containing only the cluster members (see [#365](https://github.com/klum-dsl/klum-ast/issues/365))
+- `applyLater` methods for all objects that can be used to hook closures to be applied in later phases (see [Model Phases](https://github.com/klum-dsl/klum-ast/wiki/Model-Phases))
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))
@@ -49,6 +50,7 @@
 - Allow a custom key-provider function for `createFrom(URL)` and `createFrom(File)` 
 - `@Cluster` can also be placed on fields, which will be converted into a getter method (see [#366](https://github.com/klum-dsl/klum-ast/issues/366))
 - `@Cluster` can be combined with `@AutoCreate` to auto create all members of the annotated cluster (see [#363](https://github.com/klum-dsl/klum-ast/issues/363))
+- Templates that where active during an object's creation are now stored in the proxy of that object and will be applied to any object created by that object in later phases (usually AutoCreate) (see [#377](https://github.com/klum-dsl/klum-ast/issues/377))
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.

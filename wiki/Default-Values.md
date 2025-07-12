@@ -2,7 +2,7 @@ Fields (of non DSL-types) can be annotated with `@Default` to designate a defaul
 Groovy Truth. `@Default` supports three different members (only one at a time), which result in different return values
 being returned. The default value is coerced to the correct result type.
 
-Note that the behaviour was different before 2.0. Previously, the getter was modified so that the default value was 
+Note that the behavior was different before 2.0. Previously, the getter was modified so that the default value was 
 returned, but since 2.0 the actual field is set during the "default"-phase.
 
 The values can be set using the following strategies:
@@ -130,7 +130,7 @@ class Office extends Room {
 }
 ```
 
-The main advantage of this approach is, that it is a lot more concise than the other options (like using abstract getters or Default methods, which would also result in more duplicate code). The major disadvantage is that subclasses of Room are not forced by the compiler to set the annotation. But in a layer 3 architecture, one will have a couple of Rooms defined together, usually even in the 
+The main advantage of this approach is that it is a lot more concise than the other options (like using abstract getters or Default methods, which would also result in more duplicate code). The major disadvantage is that the compiler does not force subclasses of Room to set the annotation. But in a layer 3 architecture, one will have a couple of Rooms defined together, usually even in the 
 same source file, so this is not a big issue.
 
 ## Field annotation

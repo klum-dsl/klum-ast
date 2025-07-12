@@ -24,19 +24,28 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
-import com.blackbuild.groovy.configdsl.transform.*;
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
+import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
-import groovy.lang.*;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
+import groovy.lang.Closure;
+import groovy.lang.GroovyObject;
+import groovy.lang.MissingPropertyException;
+import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
-import java.lang.reflect.*;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -60,6 +69,7 @@ public class KlumInstanceProxy {
     private String breadcrumbPath;
     private int breadCrumbQuantifier = 1;
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
+    private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -171,6 +181,10 @@ public class KlumInstanceProxy {
     public void copyFrom(Object template) {
         if (template == null) return;
         CopyHandler.copyToFrom(instance, template);
+        if (isDslObject(template))
+            getProxyFor(template).applyLaterClosures
+                    .forEach((phase, actions) ->
+                            applyLaterClosures.computeIfAbsent(phase, ignore -> new ArrayList<>()).addAll(actions));
     }
 
     public <T> T cloneInstance() {
@@ -636,6 +650,42 @@ public class KlumInstanceProxy {
 
     public Map<Class<?>, Object> getCurrentTemplates() {
         return currentTemplates;
+    }
+
+    /**
+     * Schedules the given closure to be executed in the PostApply phase.
+     * @param closure The closure to be executed later
+     */
+    public void applyLater(Closure<?> closure) {
+        applyLater(DefaultKlumPhase.APPLY_LATER, closure);
+    }
+
+    /**
+     * Schedules the given closure to be executed in the given phase.
+     * @param defaultKlumPhase The phase in which the closure should be executed
+     * @param closure The closure to be executed later
+     */
+    public void applyLater(DefaultKlumPhase defaultKlumPhase, Closure<?> closure) {
+        applyLater(defaultKlumPhase.getNumber(), closure);
+    }
+
+    /**
+     * Schedules the given closure to be executed in the given phase.
+     * @param number The phase number in which the closure should be executed
+     * @param closure The closure to be executed later
+     */
+    public void applyLater(Integer number, Closure<?> closure) {
+        applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
+        PhaseDriver.getInstance().registerApplyLaterPhase(number);
+    }
+
+    /**
+     * Executes all closures that were scheduled for the given phase.
+     * @param phase The phase number for which to execute the closures
+     */
+    public void executeApplyLaterClosures(int phase) {
+        applyLaterClosures.getOrDefault(phase, Collections.emptyList())
+                .forEach(closure -> applyOnly(null, closure));
     }
 
     /**

@@ -21,23 +21,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3.annotations;
+package com.blackbuild.klum.ast.process;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 
-/**
- * Marker interface to designate an annotation as a default value provider.
- * The attributes of the annotated annotation type will be used as default values for the annotated dsl object,
- * either as is, or, in the case of a closure member, the result of the closure.
- */
-@Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@Target(ElementType.ANNOTATION_TYPE)
-public @interface DefaultValues {
-    /**
-     * If false (default), the setting will fail if a matching field in the target object does not exist.
-     * If true, missing fields are silently ignored.
-     */
-    boolean ignoreUnknownFields() default false;
+class ApplyLaterPhase extends VisitingPhaseAction {
+
+    ApplyLaterPhase(int phase) {
+        super(new Phase(phase));
+    }
+
+    @Override
+    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        KlumInstanceProxy.getProxyFor(element).executeApplyLaterClosures(getPhaseNumber());
+    }
+
+    static class Phase implements KlumPhase {
+        private final int phaseNumber;
+
+        Phase(int phaseNumber) {
+            this.phaseNumber = phaseNumber;
+        }
+
+        @Override
+        public int getNumber() {
+            return phaseNumber;
+        }
+
+        @Override
+        public String getName() {
+            return "ApplyLaterPhase(" + phaseNumber + ")";
+        }
+    }
 }

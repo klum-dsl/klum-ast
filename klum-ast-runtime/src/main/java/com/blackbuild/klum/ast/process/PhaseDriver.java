@@ -26,10 +26,7 @@ package com.blackbuild.klum.ast.process;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Comparator;
-import java.util.NavigableSet;
-import java.util.ServiceLoader;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -44,7 +41,9 @@ public class PhaseDriver {
         return INSTANCE.get();
     }
 
-    private final NavigableSet<PhaseAction> phaseActions = new TreeSet<>(Comparator.comparingInt(PhaseAction::getPhaseNumber));
+    private final NavigableMap<Integer, List<PhaseAction>> phaseActions = new TreeMap<>();
+
+    private final Set<Integer> applyLaterPhases = new TreeSet<>();
 
     private Object rootObject;
     private int activeObjectPointer = 0;
@@ -52,7 +51,7 @@ public class PhaseDriver {
     private PhaseAction currentPhase;
 
     public PhaseDriver() {
-        ServiceLoader.load(PhaseAction.class).forEach(phaseActions::add);
+        ServiceLoader.load(PhaseAction.class).forEach(this::addPhase);
     }
 
     public static KlumPhase getCurrentPhase() {
@@ -72,7 +71,13 @@ public class PhaseDriver {
     }
 
     public void addPhase(PhaseAction action) {
-        phaseActions.add(action);
+        phaseActions.computeIfAbsent(action.getPhaseNumber(), ignore -> new ArrayList<>()).add(action);
+    }
+
+    public void registerApplyLaterPhase(int phaseNumber) {
+        if (applyLaterPhases.contains(phaseNumber)) return;
+        applyLaterPhases.add(phaseNumber);
+        addPhase(new ApplyLaterPhase(phaseNumber));
     }
 
     public static <T> T withPhase(Supplier<T> preparation, Consumer<T> action) {
@@ -104,9 +109,11 @@ public class PhaseDriver {
     public static void executeIfReady() {
         PhaseDriver phaseDriver = getInstance();
         if (phaseDriver.activeObjectPointer != 1) return;
-        for (PhaseAction a : phaseDriver.phaseActions) {
-            phaseDriver.currentPhase = a;
-            a.execute();
+        for (List<PhaseAction> actions : phaseDriver.phaseActions.values()) {
+            for (PhaseAction action : actions) {
+                phaseDriver.currentPhase = action;
+                action.execute();
+            }
         }
     }
 
