@@ -85,9 +85,9 @@ public class TemplateManager {
      * @param <T>      the type of the template
      * @return the result of the closure
      */
-    public static <T> Object withTemplate(Class<T> type, T template, Closure<?> body) {
+    public static <T, C> T withTemplate(Class<C> type, C template, Closure<T> body) {
         TemplateManager manager = getInstance();
-        T oldTemplate = manager.getTemplate(type);
+        C oldTemplate = manager.getTemplate(type);
         try {
             manager.setTemplate(type, template);
             return body.call();
@@ -110,8 +110,8 @@ public class TemplateManager {
      * @param <T>      the type of the template
      * @return the result of the closure
      */
-    public static <T> Object withTemplate(Class<T> type, Map<String, Object> template, Closure<?> body) {
-        T templateInstance = FactoryHelper.createAsTemplate(type, template, null);
+    public static <T,C> T withTemplate(Class<C> type, Map<String, Object> template, Closure<T> body) {
+        C templateInstance = FactoryHelper.createAsTemplate(type, template, null);
         return withTemplate(type, templateInstance, body);
     }
 
@@ -126,20 +126,16 @@ public class TemplateManager {
      * @param newTemplates the templates to apply, Mapping classes to their respective templates
      * @param body         the closure to execute
      * @return the result of the closure
-     * @deprecated use #withTemplates(List, Closure)
      */
-    @Deprecated(forRemoval = true, since = "2.0.0")
-    public static Object withTemplates(Map<Class<?>, Object> newTemplates, Closure<?> body) {
+    public static <T> T doWithTemplates(Map<Class<?>, Object> newTemplates, Closure<T> body) {
         if (newTemplates.isEmpty())
             return body.call();
 
         TemplateManager manager = getInstance();
-
-        Map<Class<?>, Object> effectiveTemplates = newTemplates.entrySet().stream().collect(toMap(Map.Entry::getKey, TemplateManager::mapToTemplate));
         Map<Class<?>, Object> oldTemplates = new HashMap<>(manager.templates);
 
         try {
-            manager.addTemplates(effectiveTemplates);
+            manager.addTemplates(newTemplates);
             return body.call();
         } finally {
             manager.setTemplates(oldTemplates);
@@ -147,12 +143,26 @@ public class TemplateManager {
         }
     }
 
-    private static Object mapToTemplate(Map.Entry<Class<?>, Object> entry) {
-        if (entry.getValue() instanceof Map)
-            //noinspection unchecked
-            return FactoryHelper.createAsTemplate(entry.getKey(), (Map<String, Object>) entry.getValue(), null);
-        else
-            return entry.getValue();
+    /**
+     * Executes the given closure with the given anonymous templates.
+     * This is done by converting the values of the map into templates objects of the type defined by the keys.
+     *
+     * @param newTemplates the templates to apply, Mapping classes to their respective anonymous templates
+     * @param body         the closure to execute
+     * @return the result of the closure
+     */
+    public static <T> T withTemplates(Map<Class<?>, Map<String, Object>> newTemplates, Closure<T> body) {
+        if (newTemplates.isEmpty())
+            return body.call();
+
+        Map<Class<?>, Object> effectiveTemplates = newTemplates.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, TemplateManager::mapToTemplate));
+
+        return doWithTemplates(effectiveTemplates, body);
+    }
+
+    private static Object mapToTemplate(Map.Entry<Class<?>, Map<String, Object>> entry) {
+        return FactoryHelper.createAsTemplate(entry.getKey(), entry.getValue(), null);
     }
 
     /**
@@ -165,9 +175,9 @@ public class TemplateManager {
      * @param body         the closure to execute
      * @return the result of the closure
      */
-    public static Object withTemplates(List<Object> newTemplates, Closure<?> body) {
+    public static <T> T withTemplates(List<Object> newTemplates, Closure<T> body) {
         Map<Class<?>, Object> templateMap = newTemplates.stream().collect(toMap(TemplateManager::getRealType, identity()));
-        return withTemplates(templateMap, body);
+        return doWithTemplates(templateMap, body);
     }
 
     private static Class<?> getRealType(Object target) {

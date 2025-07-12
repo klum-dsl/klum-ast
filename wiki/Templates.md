@@ -120,7 +120,7 @@ Config.withTemplate(url: "http://x.y") {
 
 When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
 specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
-that are create inside this collection factory:
+that are created inside this collection factory:
 
 ```groovy
 Config.Create.With {
@@ -156,7 +156,6 @@ Config.Create.With {
 
 - a List of template objects, which are applied to their respective classes (templates for abstract classes are applied
 to the real class)
-- a Map of classes to template instances. Can be used to explicitly define which class is used
 - a Map of classes to a Map. Uses the convenience syntax to create anonymous templates on the fly
 
 Instead of writing something like this:
@@ -177,16 +176,6 @@ One can also write:
 
 ```groovy
 Config.withTemplates([defaultEnvironment, defaultServer, defaultHost]) {
-    Config.Create.With {
-        // ...                    
-    }
-}
-```
-
-or
-
-```groovy
-Config.withTemplates((Environment) : defaultEnvironment, (Server) : defaultServer, (Host) : defaultHost) {
     Config.Create.With {
         // ...                    
     }
@@ -259,7 +248,7 @@ Child.withTemplates([parentTemplate, childTemplate]) {
 
 ```
 
-Note that templates for collections **replace** lower precedence, i.e. the most specific template wins. This behaviour can be altered using [[Copy Strategies]]. 
+Note that templates for collections **replace** lower precedence, i.e. the most specific template wins. This behavior can be altered using [[Copy Strategies]]. 
 
 ```groovy
 @DSL

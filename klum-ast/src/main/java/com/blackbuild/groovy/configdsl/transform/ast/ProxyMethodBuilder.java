@@ -249,11 +249,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     private DocBuilder addParameterJavaDocs(DocBuilder doc) {
-        for (ProxyMethodArgument p : params) {
-            if (p.asParameterJavaDoc().isPresent()) {
-                doc.param(p.name, p.asParameterJavaDoc().get());
-            }
-        }
+        for (ProxyMethodArgument p : params)
+            p.asParameterJavaDoc().ifPresent(paramDoc -> doc.param(p.name, paramDoc));
         return doc;
     }
 
@@ -304,6 +301,13 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      */
     public ProxyMethodBuilder closureParam(String name, String doc) {
         return closureParam(name, ConstantExpression.NULL, doc);
+    }
+
+    /**
+     * Adds a parameter of type closure.
+     */
+    public ProxyMethodBuilder mandatoryClosureParam(String name, String doc) {
+        return closureParam(name, null, doc);
     }
 
     /**

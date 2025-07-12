@@ -48,7 +48,7 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
     }
 
     protected void withCurrentTemplates(Object element, Runnable runnable) {
-        TemplateManager.withTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
+        TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
             @Override
             public Void call() {
                 runnable.run();
