@@ -43,7 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.klum.ast.util.KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;

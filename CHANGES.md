@@ -70,6 +70,7 @@
 - Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.
 - Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
+- `withTemplates(Map, Closure)` now only accepts anonymous templates, i.e. the signature changed from `withTemplates(Map<Class, Object>, Closure)` to `withTemplates(Map<Class, Map<String, Object>, Closure)`. Calls using concrete templates now must use `withTemplates(List<Object>, Closure)` instead.
 
 ## Fixes
 - since rc.54

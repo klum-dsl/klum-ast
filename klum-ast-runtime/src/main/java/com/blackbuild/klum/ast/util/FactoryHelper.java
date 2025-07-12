@@ -204,10 +204,12 @@ public class FactoryHelper extends GroovyObjectSupport {
             return createInstanceWithNullArg(type);
         //noinspection unchecked
         T result = (T) InvokerHelper.invokeConstructorOf(type, key);
+        KlumInstanceProxy instanceProxy = KlumInstanceProxy.getProxyFor(result);
         if (breadCrumbPathExtension != null)
-            KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadCrumbPathExtension);
+            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadCrumbPathExtension);
         else if (BreadcrumbCollector.hasInstance())
-            KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+        instanceProxy.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
         return result;
     }
 

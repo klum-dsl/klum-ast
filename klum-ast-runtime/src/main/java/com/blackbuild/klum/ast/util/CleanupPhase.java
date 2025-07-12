@@ -21,39 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process;
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.TemplateManager;
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
-import groovy.lang.Closure;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 
-/**
- * Represents an action that is executed in a phase. The action is executed for each element in the model.
- */
-public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
-
-    protected VisitingPhaseAction(KlumPhase phase) {
-        super(phase);
+public class CleanupPhase extends VisitingPhaseAction {
+    public CleanupPhase() {
+        super(DefaultKlumPhase.COMPLETE);
     }
 
-    /**
-     * Executes the phase on the root element of the model.
-     */
     @Override
-    protected void doExecute() {
-        Object root = PhaseDriver.getInstance().getRootObject();
-        StructureUtil.visit(root, this);
-    }
-
-    protected void withCurrentTemplates(Object element, Runnable runnable) {
-        TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
-            @Override
-            public Void call() {
-                runnable.run();
-                return null;
-            }
-        });
+    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        KlumInstanceProxy.getProxyFor(element).cleanup();
     }
 }

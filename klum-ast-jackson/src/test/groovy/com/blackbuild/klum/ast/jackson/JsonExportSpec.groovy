@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+//file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
@@ -39,6 +40,10 @@ class JsonExportSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 Bar bar
+                
+                static <T> T doIt(Map<Class<?>, Object> args, Closure<T> closure) {
+                    return closure.call()
+                }
             }
 
             @DSL

@@ -192,18 +192,13 @@ The old templates are restored after the closure has been executed.
 @param closure the closure to execute
 @return the result of the closure"""
 
-        methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given templates.
+        methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given anonymous templates.
 <p>
-This means that all objects of the given types created in the scope of the closure will use the given template,
-which also includes objects deeper in the structure.
-The old templates are restored after the closure has been executed. Usually it
-is better to use {@link #withTemplates(List, Closure)}, which maps the templates
-to their respective classes.
+This is done by converting the values of the map into templates objects of the type defined by the keys.
 </p>
-@param templates the templates to apply, Mapping classes to their respective templates
+@param templates the templates to apply, Mapping classes to their respective anonymous templates
 @param closure the closure to execute
-@return the result of the closure
-@deprecated use #withTemplates(List, Closure)"""
+@return the result of the closure"""
         rwMethodDoc("copyFrom", clazz) == """Copies all non null / non empty elements from target to this.
 @param template The template to apply"""
 

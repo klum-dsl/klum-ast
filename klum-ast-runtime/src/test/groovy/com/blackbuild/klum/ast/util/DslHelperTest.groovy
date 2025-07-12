@@ -92,7 +92,7 @@ class DslHelperTest extends AbstractRuntimeTest {
         createClass('''
             import com.blackbuild.groovy.configdsl.transform.DSL
             @DSL
-            class Dummy {
+            class Dummy implements KlumModelObject {
                 @com.blackbuild.groovy.configdsl.transform.Field
                 void doIt(Parent parent) {}
             }

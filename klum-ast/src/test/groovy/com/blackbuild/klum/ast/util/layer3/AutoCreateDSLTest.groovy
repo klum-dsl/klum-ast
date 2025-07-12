@@ -299,4 +299,61 @@ import java.lang.annotation.RetentionPolicy
         instance.child1 != null
         instance.child2 == null
     }
+
+    @Issue("368")
+    def "auto create should use templates set during creation of parent object"() {
+
+        given:
+        createClass('''
+            package tmp
+            
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+
+            @DSL
+            class Container {
+                Config config
+            }
+
+            @DSL
+            class Config {
+                @AutoCreate
+                Child child
+            }
+
+            @DSL
+            class Child {
+                String name
+            }
+        ''')
+        Class Child = getClass("tmp.Child")
+        Class Container = getClass("tmp.Container")
+
+        when:
+        def template = Child.Create.Template(name: "fromTemplate")
+        // need to use a virtual container, since templates create around the root object WOULD apply to auto-created fields as well
+        instance = Container.Create.With {
+            Child.withTemplate(template) {
+                config()
+            }
+        }
+
+        then:
+        instance.config.child != null
+        instance.config.child.name == "fromTemplate"
+
+        when:
+        instance = Container.Create.With {
+            Child.withTemplate(template) {
+                config {
+                    child {
+                        name "explicitName"
+                    }
+                }
+            }
+        }
+
+        then:
+        instance.config.child.name == "explicitName"
+    }
 }

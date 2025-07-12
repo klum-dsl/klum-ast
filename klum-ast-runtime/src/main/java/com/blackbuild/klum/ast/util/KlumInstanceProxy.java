@@ -25,6 +25,8 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import com.blackbuild.groovy.configdsl.transform.*;
+import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import groovy.lang.*;
 import groovy.transform.Undefined;
@@ -51,11 +53,13 @@ public class KlumInstanceProxy {
     public static final String NAME_OF_RW_FIELD_IN_MODEL_CLASS = "$rw";
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
     public static final Class<com.blackbuild.groovy.configdsl.transform.Field> FIELD_ANNOTATION = com.blackbuild.groovy.configdsl.transform.Field.class;
+    public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
 
     private final GroovyObject instance;
     private boolean manualValidation;
     private String breadcrumbPath;
     private int breadCrumbQuantifier = 1;
+    private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -67,9 +71,15 @@ public class KlumInstanceProxy {
      * @return the proxy instance of the given target.
      */
     public static KlumInstanceProxy getProxyFor(Object target) {
-        if (!isDslObject(target))
-            throw new KlumException(format("Object of type %s is no dsl object", target.getClass()));
-        return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
+        if (target instanceof KlumInstanceProxy)
+            return (KlumInstanceProxy) target;
+        if (target instanceof KlumModelObject)
+            return (KlumInstanceProxy) InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
+        if (target instanceof KlumRwObject) {
+            Object modelInstance = InvokerHelper.getAttribute(target, KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS);
+            return (KlumInstanceProxy) InvokerHelper.getAttribute(modelInstance, KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS);
+        }
+        throw new KlumException(format("Object of type %s is no dsl object", target.getClass()));
     }
 
     protected GroovyObject getRwInstance() {
@@ -166,6 +176,7 @@ public class KlumInstanceProxy {
     public <T> T cloneInstance() {
         Object result = FactoryHelper.createInstance(instance.getClass(), (String) getNullableKey(), "{" + getLocalBreadcrumbPath() + "}");
         KlumInstanceProxy cloneProxy = getProxyFor(result);
+        cloneProxy.setCurrentTemplates(currentTemplates);
         cloneProxy.copyFrom(instance);
         return (T) result;
     }
@@ -613,5 +624,25 @@ public class KlumInstanceProxy {
 
     public void increaseBreadcrumbQuantifier() {
         breadCrumbQuantifier++;
+    }
+
+    void setCurrentTemplates(Map<Class<?>, Object> currentTemplates) {
+        this.currentTemplates = currentTemplates;
+    }
+
+    void removeCurrentTemplates() {
+        this.currentTemplates = Collections.emptyMap();
+    }
+
+    public Map<Class<?>, Object> getCurrentTemplates() {
+        return currentTemplates;
+    }
+
+    /**
+     * Cleans up any unnecessary resources or references held by this instance.
+     * Currently, this only cleans up stored templates.
+     */
+    public void cleanup() {
+        removeCurrentTemplates();
     }
 }

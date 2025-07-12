@@ -25,7 +25,6 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
-import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
@@ -36,12 +35,12 @@ import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.clonePara
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
-import static org.codehaus.groovy.ast.tools.GenericsUtils.newClass;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
+@SuppressWarnings("java:S1192")
 class TemplateMethods {
     public static final String WITH_TEMPLATE = "withTemplate";
     public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
-    public static final String COPY_FROM_TEMPLATE = "copyFromTemplate";
     public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
     public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
@@ -71,7 +70,7 @@ class TemplateMethods {
         createTemplateMethod(WITH_TEMPLATE)
                 .constantClassParam(annotatedClass)
                 .param(newClass(dslAncestor), "template", null)
-                .closureParam("closure", null)
+                .mandatoryClosureParam("closure", null)
                 .addTo(annotatedClass);
     }
 
@@ -79,18 +78,19 @@ class TemplateMethods {
         createTemplateMethod(WITH_TEMPLATE)
                 .constantClassParam(annotatedClass)
                 .nonOptionalNamedParams("templateMap", null)
-                .closureParam("closure", null)
+                .mandatoryClosureParam("closure", null)
                 .addTo(annotatedClass);
     }
 
-    @Deprecated
     private void withTemplatesMapMethod() {
-        String templatesVarName = "templates";
-        String closureParamName = "closure";
+        ClassNode classType = makeClassSafe(Class.class);
+        ClassNode innerMapType = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
+        ClassNode templatesType = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(classType), new GenericsType(innerMapType));
+
         createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
                 .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(MAP_TYPE), templatesVarName, null)
-                .closureParam(closureParamName, null)
+                .param(templatesType, "templates", null)
+                .mandatoryClosureParam("closure", null)
                 .addTo(annotatedClass);
     }
 
@@ -98,7 +98,7 @@ class TemplateMethods {
         createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates", null)
-                .closureParam("closure", null)
+                .mandatoryClosureParam("closure", null)
                 .addTo(annotatedClass);
     }
 
@@ -114,7 +114,7 @@ class TemplateMethods {
                 .mod(ACC_PUBLIC)
                 .param(newClass(dslAncestor), "template", null)
                 .addTo(rwClass);
-        ClassNode mapOfStringsAndObjects = GenericsUtils.makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
+        ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
         createProxyMethod(COPY_FROM)
                 .mod(ACC_PUBLIC)
                 .param(mapOfStringsAndObjects, "template", null)
@@ -171,7 +171,7 @@ class TemplateMethods {
         );
     }
 
-    @SuppressWarnings("RedundantIfStatement")
+    @SuppressWarnings({"RedundantIfStatement", "java:S1126"})
     private boolean methodIsAnAlreadyImplementedInterfaceMethod(MethodNode abstractMethod) {
         if (!abstractMethod.getDeclaringClass().isInterface())
             return false;

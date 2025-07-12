@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
+import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.*;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.reflection.CachedField;
@@ -49,8 +50,7 @@ public class DslHelper {
     public static boolean isDslType(Type type) {
         if (!(type instanceof Class))
             return false;
-        Class<?> clazz = (Class<?>) type;
-        return clazz.isAnnotationPresent(DSL.class);
+        return KlumModelObject.class.isAssignableFrom((Class<?>) type);
     }
 
     public static Type requireDslType(Type type) {
@@ -60,7 +60,7 @@ public class DslHelper {
     }
 
     public static boolean isDslObject(Object object) {
-        return object != null && isDslType(object.getClass());
+        return object instanceof KlumModelObject;
     }
 
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {

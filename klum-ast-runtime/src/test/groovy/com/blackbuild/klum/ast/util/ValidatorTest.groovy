@@ -52,7 +52,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo {
+            class Foo implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
             
                 @Validate
@@ -82,7 +82,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo {
+            class Foo implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
             
                 // since we don't use AST-Transformation, we need to explicitly use assert
@@ -113,7 +113,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo {
+            class Foo implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 @Validate int value
             }
@@ -147,7 +147,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo {
+            class Foo implements KlumModelObject {
                 KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
             
                 @Validate Boolean value

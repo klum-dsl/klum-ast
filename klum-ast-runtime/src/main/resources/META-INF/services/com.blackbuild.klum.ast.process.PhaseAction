@@ -4,3 +4,4 @@ com.blackbuild.klum.ast.util.DefaultPhase
 com.blackbuild.klum.ast.util.PostTreePhase
 com.blackbuild.klum.ast.util.layer3.AutoCreationPhase
 com.blackbuild.klum.ast.util.layer3.AutoLinkPhase
+com.blackbuild.klum.ast.util.CleanupPhase

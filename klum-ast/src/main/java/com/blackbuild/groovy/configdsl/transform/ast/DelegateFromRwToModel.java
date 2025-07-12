@@ -23,8 +23,12 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
+import org.codehaus.groovy.classgen.Verifier;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +66,9 @@ class DelegateFromRwToModel {
                 .filter(method -> !IGNORED_FIELDS_FOR_RW_TO_MODEL_DELEGATION.contains(method.getName()))
                 .filter(method -> !method.isPrivate())
                 .forEach(this::delegateMethodToRw);
+        annotatedClass.getProperties().stream()
+                .filter(field -> DslAstHelper.getFieldType(field.getField()) == FieldType.TRANSIENT)
+                .forEach(this::mapGettersAndSettersForIgnoredFields);
     }
 
     private void delegateMethodToRw(MethodNode candidate) {
@@ -84,7 +91,7 @@ class DelegateFromRwToModel {
         }
 
         MethodNode newMethod = new ProxyMethodBuilder(
-                varX(DSLASTTransformation.NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
+                varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS, correctToGenericsSpecRecurse(genericsSpec, annotatedClass)),
                 candidate.getName(),
                 candidate.getName()
         )
@@ -119,4 +126,27 @@ class DelegateFromRwToModel {
         }
         return names;
     }
+
+    private void mapGettersAndSettersForIgnoredFields(PropertyNode propertyNode) {
+        MethodNode virtualGetter = new MethodNode(
+                GeneralUtils.getGetterName(propertyNode),
+                propertyNode.getModifiers(),
+                propertyNode.getType(),
+                Parameter.EMPTY_ARRAY,
+                ClassNode.EMPTY_ARRAY,
+                null
+        );
+        delegateMethodToRw(virtualGetter);
+        MethodNode virtualSetter = new MethodNode(
+                "set" + Verifier.capitalize(propertyNode.getName()),
+                propertyNode.getModifiers(),
+                ClassHelper.VOID_TYPE,
+                new Parameter[]{new Parameter(propertyNode.getType(), propertyNode.getName())},
+                ClassNode.EMPTY_ARRAY,
+                null
+        );
+        delegateMethodToRw(virtualSetter);
+    }
+
+
 }
