@@ -35,6 +35,9 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 # Phase Details
 
+## ApplyLater (1)
+The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures that were registered using the `applyLater` method without a phase argument.
+
 ## AutoCreate (10)
 
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
@@ -79,3 +82,37 @@ more of a semantic nature. So AutoCreate methods should actually create objects,
 # Error Handling
 
 If an exception is thrown in any Phase, the exception is wrapped in a `KlumException` or one of its subclasses (like `KlumVisitorException`). This exception contains the relevant phase as well as potentially the path to the object that caused the exception.
+
+# applyLater methods
+
+RW classes also provide `applyLater` methods that can be used to register actions to be executed in arbitrary phases. If no phase is specified,
+the action is executed in the `ApplyLater` phase. 
+
+ApplyLater closures on templates are not executed but are copied along with the other template values to the created object. 
+This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.
+
+```groovy
+class PersonText extends Specification {
+
+    def template = Person.Create.Template {
+        applyLater {
+            // this closure will be executed for all objects created from this template
+            street "Main Street " + name
+            city "City of " + name
+        }
+    }
+
+    def "a testcase with person objects"() {
+        given:
+        def person = Persion.withTemplate(template) {
+            PersonText.Create.With(name: "Hans")
+        }
+
+        when:
+        def result = service.doSomething(person)
+
+        then:
+        //... check something
+    }
+}
+```

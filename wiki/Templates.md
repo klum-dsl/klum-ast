@@ -213,7 +213,7 @@ The order of precedence is
 - own templates
 - explicit setter methods
 
-I.e. given the following code:
+I.e., given the following code:
 
 ```groovy
 @DSL
@@ -248,7 +248,7 @@ Child.withTemplates([parentTemplate, childTemplate]) {
 
 ```
 
-Note that templates for collections **replace** lower precedence, i.e. the most specific template wins. This behavior can be altered using [[Copy Strategies]]. 
+Note that templates for collections **replace** lower precedence, i.e., the most specific template wins. This behavior can be altered using [[Copy Strategies]]. 
 
 ```groovy
 @DSL
@@ -277,3 +277,6 @@ Child.withTemplates([parentTemplate, childTemplate]) {
 }
 ```
 
+# ApplyLater and templates
+
+As stated in [[Model Phases]], templates can also contain `applyLater` closures. These closures are not executed on the template, but copied to  created objects and executed in their `ApplyLater` phase (or any other explicitly called phase). 

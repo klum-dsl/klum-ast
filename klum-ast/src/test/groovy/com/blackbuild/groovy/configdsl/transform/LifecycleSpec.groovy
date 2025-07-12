@@ -691,7 +691,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.nameInPhases == [0: null, 10: null, 50: "foo"]
+        instance.nameInPhases == [0: null, 10: "foo", 50: "foo"]
     }
 
 }

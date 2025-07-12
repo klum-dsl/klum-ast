@@ -32,6 +32,7 @@ public enum DefaultKlumPhase implements KlumPhase {
 
     /** The creation phase is not encountered in the PhaseDriver, it handles the actual creation of the objects. */
     CREATE(0),
+    APPLY_LATER(1),
     /** Phase for automatic creation of missing objects, usually from annotations. */
     AUTO_CREATE(10),
     OWNER(15),

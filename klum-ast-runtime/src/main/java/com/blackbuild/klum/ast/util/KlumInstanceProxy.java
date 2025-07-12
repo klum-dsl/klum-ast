@@ -181,6 +181,10 @@ public class KlumInstanceProxy {
     public void copyFrom(Object template) {
         if (template == null) return;
         CopyHandler.copyToFrom(instance, template);
+        if (isDslObject(template))
+            getProxyFor(template).applyLaterClosures
+                    .forEach((phase, actions) ->
+                            applyLaterClosures.computeIfAbsent(phase, ignore -> new ArrayList<>()).addAll(actions));
     }
 
     public <T> T cloneInstance() {
@@ -649,11 +653,11 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Schedules the given closure to be executed in the PostTree phase.
+     * Schedules the given closure to be executed in the PostApply phase.
      * @param closure The closure to be executed later
      */
     public void applyLater(Closure<?> closure) {
-        applyLater(DefaultKlumPhase.POST_TREE, closure);
+        applyLater(DefaultKlumPhase.APPLY_LATER, closure);
     }
 
     /**
@@ -670,7 +674,7 @@ public class KlumInstanceProxy {
      * @param number The phase number in which the closure should be executed
      * @param closure The closure to be executed later
      */
-    public void applyLater(int number, Closure<?> closure) {
+    public void applyLater(Integer number, Closure<?> closure) {
         applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
         PhaseDriver.getInstance().registerApplyLaterPhase(number);
     }

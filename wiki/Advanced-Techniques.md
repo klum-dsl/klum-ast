@@ -3,7 +3,7 @@ Methods accepting closures are automatically annotated with correct
 `@DelegatesTo` annotations, allowing modern IDEs to infer the available
 methods automatically.
 
-There might be situtations, however, when it is needed to delegate
+There might be situations, however, when it is necessary to delegate
 to an RW instance. For example, the `configure` method for a Gradle class
 `Configurable` is basically the same as the Klum `apply` method.
 
@@ -13,7 +13,6 @@ needs simply to apply the interface to the model:
 ```groovy
 @DSL
 class AggregatorExtension implements Configurable<AggregatorExtension>{
-    @Override
     AggregatorExtension configure(Closure closure) {
         return apply(closure)
     }
@@ -21,7 +20,7 @@ class AggregatorExtension implements Configurable<AggregatorExtension>{
 }
 ```
 
-This works, but lacks any form of IDE support for the extension in the
+This works but lacks any form of IDE support for the extension in the
 build.gradle script.
 
 Unfortunately, one can also not simply use `@DelegatesTo(AggregatorExtension._RW)`
@@ -66,8 +65,8 @@ class Container {
 
 # Behaviour models: Parameter Hints
 
-Fields can also contain dynamic behaviour in form of closure or
-interface parameters. That way, the actual behaviour of the model
+Fields can also contain dynamic behavior in the form of closure or
+interface parameters. That way, the actual behavior of the model
 can be injected for the model, as opposed to the schema.
 
 Consider the following example:
@@ -112,7 +111,7 @@ interface DescriptionProvider {
 
 That way, in the actual model, the description algorithm can be injected. 
 Note that in Groovy any single abstract method interface (functional interface)
-can be replace with a closure:
+can be replaced with a closure:
 
 ```groovy
 ValueProvider.create() {
@@ -122,7 +121,7 @@ ValueProvider.create() {
 }
 ```
 
-The closure in this case will automatically resolved as having a single parameter
+The closure in this case will automatically be resolved as having a single parameter
 of type Map and a return value of String, which will also be checked by
 the compiler.
 
@@ -161,13 +160,12 @@ In normal Groovy, this could be solved by including the `@ClosureParams` annotat
 on the Closure parameter of the method, but since these methods are generated, this is not
 directly possible. However, KlumAST provides a workaround: the `@ParameterAnnotation`:
 
-The ParameterAnnotation is a meta annotation that can be used to annotate
+The ParameterAnnotation is a meta-annotation that can be used to annotate
 other annotations (of ElementType METHOD and/or FIELD). If the target 
 annotation is placed on a (virtual) field of the schema, all annotation members
-of the target annotation are copied as parameter annotations of the value
-parameter of the generated setter or single element adder. See javadoc for details.
+of the target annotation are copied to the generated setter or single element adder. They will become parameter annotations of the single method parameter. See Javadoc for details.
 
-For our closure field, there is a pre implemented annotation, `@ParameterAnnotation.ClosureHints`,
+For our closure field, there is a pre-implemented annotation, `@ParameterAnnotation.ClosureHints`,
 that contains members for both relevant annotation types. Our example 
 can be improved with:
 

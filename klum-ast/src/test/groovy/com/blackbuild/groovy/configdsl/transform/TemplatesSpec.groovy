@@ -1382,4 +1382,38 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         and: "templates are cleared after the instance is created"
         proxy.currentTemplates[clazz] == null
     }
+
+    @Issue("376")
+    def "applyLaterClosures are copied from template"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+                String fullName
+            }
+        ''')
+
+        when:
+        def template = Foo.Create.Template {
+            applyLater {
+                fullName name.toUpperCase()
+            }
+        }
+
+        then: "applyLater is not run in templates"
+        template.fullName == null
+
+        when:
+        def instance = Foo.withTemplate(template) {
+            Foo.Create.With {
+                name "foo"
+            }
+        }
+
+        then:
+        instance.fullName == "FOO"
+    }
 }
