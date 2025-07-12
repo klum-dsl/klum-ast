@@ -637,4 +637,12 @@ public class KlumInstanceProxy {
     public Map<Class<?>, Object> getCurrentTemplates() {
         return currentTemplates;
     }
+
+    /**
+     * Cleans up any unnecessary resources or references held by this instance.
+     * Currently, this only cleans up stored templates.
+     */
+    public void cleanup() {
+        removeCurrentTemplates();
+    }
 }
