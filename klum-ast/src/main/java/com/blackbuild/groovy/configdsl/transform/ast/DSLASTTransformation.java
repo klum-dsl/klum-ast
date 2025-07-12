@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
@@ -1042,6 +1043,23 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .namedParams("values", null)
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
+
+        createProxyMethod("applyLater")
+                .mod(ACC_PUBLIC)
+                .delegatingClosureParam(rwClass, null, null)
+                .addTo(rwClass);
+
+        createProxyMethod("applyLater")
+                .mod(ACC_PUBLIC)
+                .param(Integer_TYPE, "phase")
+                .delegatingClosureParam(rwClass, null, null)
+                .addTo(rwClass);
+
+        createProxyMethod("applyLater")
+                .mod(ACC_PUBLIC)
+                .param(make(DefaultKlumPhase.class), "phase")
+                .delegatingClosureParam(rwClass, null, null)
+                .addTo(rwClass);
     }
 
     private void createFactoryField() {

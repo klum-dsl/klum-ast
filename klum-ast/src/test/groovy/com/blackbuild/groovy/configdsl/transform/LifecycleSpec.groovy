@@ -652,5 +652,46 @@ class LifecycleSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue("376")
+    def "applyLater calls are applied in their respective phases"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.process.DefaultKlumPhase
+            
+            @DSL
+            class Foo {
+                @Field(FieldType.TRANSIENT)
+                Map<Integer, String> nameInPhases = [:]
+            
+                String name
+                
+                @PostCreate void postCreate() {
+                    nameInPhases[0] = name
+                }
+                
+                @AutoCreate void autoCreate() {
+                    nameInPhases[DefaultKlumPhase.AUTO_CREATE.number] = name
+                }
+                
+                @Validate void validate() {
+                    nameInPhases[DefaultKlumPhase.VALIDATE.number] = name
+                }
+            }
+        ''')
+
+        when:
+
+        instance = clazz.Create.With {
+            applyLater {
+                name = "foo"
+            }
+        }
+
+        then:
+        instance.nameInPhases == [0: null, 10: null, 50: "foo"]
+    }
 
 }
