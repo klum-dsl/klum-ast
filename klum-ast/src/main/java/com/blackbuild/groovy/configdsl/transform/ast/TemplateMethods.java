@@ -127,7 +127,7 @@ class TemplateMethods {
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
-                .forRemoval("Use Create.Template() instead")
+                .forRemoval("Use Template.Create() instead")
                 .namedParams("values", null)
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
