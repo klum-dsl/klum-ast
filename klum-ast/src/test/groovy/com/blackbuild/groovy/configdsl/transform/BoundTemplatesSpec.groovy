@@ -790,7 +790,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         }
 
         when:
-        clazz.Template.WithMultiple((clazz): template) {
+        clazz.Template.WithAll((clazz): template) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -814,7 +814,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.Template.WithMultiple([:]) {
+        clazz.Template.WithAll([:]) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -850,7 +850,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.Template.WithMultiple((Foo) : fooTemplate, (Bar) : barTemplate) {
+        clazz.Template.WithAll((Foo) : fooTemplate, (Bar) : barTemplate) {
             foo = Foo.Create.With {
                 value 'blub'
             }
@@ -887,7 +887,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.Template.WithMultiple([fooTemplate, barTemplate]) {
+        clazz.Template.WithAll([fooTemplate, barTemplate]) {
             foo = fooClass.Create.With {
                 value 'blub'
             }
@@ -921,7 +921,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
 
         def bar
         when:
-        clazz.Template.WithMultiple([fooTemplate]) {
+        clazz.Template.WithAll([fooTemplate]) {
             bar = getClass('pk.Bar').Create.With {
                 token "b"
             }
@@ -950,7 +950,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         def childClass = getClass('pk.Child')
 
         when:
-        getClass("pk.Parent").Template.WithMultiple((parentClass) : parentClass.Create.With(name: "parent"), (childClass): childClass.Create.With(names: ["child"])) {
+        getClass("pk.Parent").Template.WithAll((parentClass) : parentClass.Create.With(name: "parent"), (childClass): childClass.Create.With(names: ["child"])) {
             instance = create("pk.Child") { name "explicit" }
         }
 
@@ -1004,7 +1004,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.Template.WithMultiple((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
+        clazz.Template.WithAll((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
             foo = fooClass.Create.With {
                 value 'blub'
             }

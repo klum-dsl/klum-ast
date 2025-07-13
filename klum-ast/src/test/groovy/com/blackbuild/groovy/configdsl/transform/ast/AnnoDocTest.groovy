@@ -193,7 +193,7 @@ The old templates are restored after the closure has been executed.
 @param templates the templates to apply
 @param closure the closure to execute
 @return the result of the closure
-@deprecated Use Template.WithMultiple() instead"""
+@deprecated Use Template.WithAll() instead"""
 
         methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given anonymous templates.
 <p>
@@ -202,7 +202,7 @@ This is done by converting the values of the map into template objects of the ty
 @param templates the templates to apply, Mapping classes to their respective anonymous templates
 @param closure the closure to execute
 @return the result of the closure
-@deprecated Use Template.WithMultiple() instead"""
+@deprecated Use Template.WithAll() instead"""
         rwMethodDoc("copyFrom", clazz) == """Copies all non null / non empty elements from target to this.
 @param template The template to apply"""
 

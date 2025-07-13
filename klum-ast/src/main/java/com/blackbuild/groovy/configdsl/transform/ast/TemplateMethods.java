@@ -93,7 +93,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(templatesType, "templates", null)
                 .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithMultiple() instead")
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
                 .addTo(annotatedClass);
     }
 
@@ -102,7 +102,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates", null)
                 .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithMultiple() instead")
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
                 .addTo(annotatedClass);
     }
 

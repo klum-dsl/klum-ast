@@ -73,6 +73,12 @@
 - Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 - `withTemplates(Map, Closure)` now only accepts anonymous templates, i.e. the signature changed from `withTemplates(Map<Class, Object>, Closure)` to `withTemplates(Map<Class, Map<String, Object>, Closure)`. Calls using concrete templates now must use `withTemplates(List<Object>, Closure)` instead.
+- Template-specific methods are now pooled in a new `BoundTemplateHandler` class, which is accessible for as static Field Template.
+  - `X.withTemplate()` -> `X.Template.With()`
+  - `X.withTemplates()` -> `X.Template.WithAll()`
+  - `X.Create.TemplateFrom()` -> `X.Template.CreateFrom()`
+  - `X.Create.AsTemplate()` -> `X.Template.Create()`
+  - `withTemplate()` and `withTemplates()` are now deprecated, use the new methods instead.
 
 ## Fixes
 - since rc.54

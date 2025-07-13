@@ -85,7 +85,7 @@ public class BoundTemplateHandler<T> {
      * @param <C>          the return type of the closure
      * @return the result of the closure
      */
-    public <C> C WithMultiple(Map<Class<?>, Map<String, Object>> newTemplates, Closure<C> body) {
+    public <C> C WithAll(Map<Class<?>, Map<String, Object>> newTemplates, Closure<C> body) {
         return TemplateManager.withTemplates(newTemplates, body);
     }
 
@@ -99,7 +99,7 @@ public class BoundTemplateHandler<T> {
      * @param body         the closure to execute
      * @return the result of the closure
      */
-    public <C> C WithMultiple(List<Object> newTemplates, Closure<C> body) {
+    public <C> C WithAll(List<Object> newTemplates, Closure<C> body) {
         return TemplateManager.withTemplates(newTemplates, body);
     }
 
