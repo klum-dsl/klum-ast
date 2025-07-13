@@ -33,6 +33,7 @@ import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
@@ -106,9 +107,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String CREATE_METHOD_NAME = "create";
     public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     public static final String FACTORY_FIELD_NAME = "Create";
+    public static final String TEMPLATE_FIELD_NAME = "Template";
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
+    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -153,6 +156,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createFactoryField();
         createFactoryMethods();
         createConvenienceFactories();
+
+        createTemplateField();
 
         createFieldDSLMethods();
         createClusterFactories();
@@ -1217,6 +1222,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optionalClassLoaderParam()
                 .addTo(annotatedClass);
     }
+
+    private void createTemplateField() {
+        FieldNode templateField = new FieldNode(
+                TEMPLATE_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
+                annotatedClass,
+                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
+        );
+
+        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
+        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        annotatedClass.addField(templateField);
+    }
+
 
     @SuppressWarnings({"unchecked", "java:S1872"})
     public <T extends Enum<?>> T getEnumMemberValue(AnnotationNode node, String name, Class<T> type, T defaultValue) {

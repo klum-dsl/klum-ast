@@ -7,7 +7,7 @@ Templates are regular instances of DSL objects, which will usually be assigned t
  will be created. 
  
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
- templates easier, the `Create.Template` and `Create.TemplateFrom` methods are provided, which behave like normal factory methods
+ templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
  with the following differences:
  
  - the result is always unkeyed (setting the key to null in case of a keyed class)
@@ -21,16 +21,18 @@ abstract class Parent {
     abstract int calcValue()
 }
 
-def template = Parent.Create.Template()
+def template = Parent.Template.Create()
 ```
  
 Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
 it is also applied when creating child class instances. Child template values can override parent templates. For examples
 see the test cases in TemplateSpec.
 
-As with normal factory methods, templates can be created using the `Create.Template` method by applying a map and or configuration
-closure, or by using the `Create.TemplateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
-similar to to `Create.From` methods.
+Template specific methods are pooled in the `Templates` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
+
+As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and or configuration
+closure, or by using the `Template.CreateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
+similar to the `Create.From` methods.
 
 There currently four options to apply templates, all examples use the following class and template:
 
@@ -41,7 +43,7 @@ class Config {
     List<String> roles
 }
 
-def template = Config.Create.Template {
+def template = Config.Template.Create {
     url "http://x.y"
     roles "developer", "guest"
 }
@@ -65,9 +67,9 @@ def c2 = Config.Create.With(copyFrom: template) {
 
 In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. 
 
-# withTemplate()
+# Template.With()
  
-`withTemplate()` provides scoped templates. It takes a template and a closure, and the template is automatically 
+`Template.With()` provides scoped templates. It takes a template and a closure, and the template is automatically 
 applied to all instance creations within that closure.
  
  __A template is only applied inside the scope when using the `Create.*` methods (or one of the [[Convenience Factories]]), it is NOT invoked when using the 
@@ -75,13 +77,13 @@ applied to all instance creations within that closure.
 
 Usage:
 ```groovy
-def template = Config.Create.With {
+def template = Config.Template.Create {
     url "http://x.y"
     roles "developer", "guest"
 }
 
 def c, d
-Config.withTemplate(template) {
+Config.Template.With(template) {
     c = Config.Create.With {
         roles "productowner"
     }
@@ -96,10 +98,10 @@ assert c.roles == [ "developer", "guest", "scrummaster" ]
 ```
 
 # With anonymous template
-`withTemplate` can also be called using only named parameters, creating a temporary, anonymous template:
+`Template.With` can also be called using only named parameters, creating a temporary, anonymous template:
 
 ```groovy
-Config.withTemplate(Config.Create.With(url: "http://x.y")) {
+Config.Template.With(Config.Template.Create(url: "http://x.y")) {
     c = Config.Create.With {
         roles "productowner"
     }
@@ -109,14 +111,14 @@ Config.withTemplate(Config.Create.With(url: "http://x.y")) {
 could be written as:
 
 ```groovy
-Config.withTemplate(url: "http://x.y") {
+Config.Template.With(url: "http://x.y") {
     c = Config.Create.With {
         roles "productowner"
     }
 }
 ```
 
-# withTemplate for collection factories
+# templates for collection factories
 
 When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
 specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
@@ -150,9 +152,9 @@ Config.Create.With {
 }
 ```
 
-# withTemplates()
+# Templates.WithAll()
 
-`withTemplates` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
+`Templates.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
 
 - a List of template objects, which are applied to their respective classes (templates for abstract classes are applied
 to the real class)
@@ -161,9 +163,9 @@ to the real class)
 Instead of writing something like this:
 
 ```groovy
-Environment.withTemplate(defaultEnvironment) {
-    Server.withTemplate(defaultServer) {
-        Host.template(defaultHost) {
+Environment.Template.With(defaultEnvironment) {
+    Server.Template.With(defaultServer) {
+        Host.Template.With(defaultHost) {
             Config.Create.With {
                 // ...                    
             }
@@ -175,7 +177,7 @@ Environment.withTemplate(defaultEnvironment) {
 One can also write:
 
 ```groovy
-Config.withTemplates([defaultEnvironment, defaultServer, defaultHost]) {
+Config.Templates.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
     Config.Create.With {
         // ...                    
     }
@@ -184,7 +186,7 @@ Config.withTemplates([defaultEnvironment, defaultServer, defaultHost]) {
 
 or, using anonymous templates:
 ```groovy
-Config.withTemplates((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
+Config.Templates.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
     Config.Create.With {
         // ...                    
     }
@@ -225,15 +227,15 @@ class Parent {
 class Child extends Parent {
 }
 
-def parentTemplate = Parent.Create.Template {
+def parentTemplate = Parent.Template.Create {
     name "parent-template" // overrides default value
 }
 
-def childTemplate = Child.Create.Template {
+def childTemplate = Child.Template.Create {
     name "child-template" // overrides parent template value
 }
 
-Child.withTemplates([parentTemplate, childTemplate]) {
+Child.Templates.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.One()
 
   assert c.name == "child-template"
@@ -260,15 +262,15 @@ class Parent {
 class Child extends Parent {
 }
 
-def parentTemplate = Parent.Create.Template {
+def parentTemplate = Parent.Template.Create {
     names "parent" // replaces default value
 }
 
-def childTemplate = Child.Create.Template {
+def childTemplate = Child.Template.Create {
     names "child" // replaces parent template value
 }
 
-Child.withTemplates([parentTemplate, childTemplate]) {
+Child.Templates.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.With {
     name "explicit" // replaces template value
   }

@@ -25,7 +25,7 @@ package com.blackbuild.groovy.configdsl.transform
 /**
  * Created by snpaux on 28.04.2017.
  */
-class DebugWithMultipleFilesSpec extends AbstractFolderBasedDSLSpec {
+class DebugWithAllFilesSpec extends AbstractFolderBasedDSLSpec {
 
     def "load files for alternatives"() {
         given:

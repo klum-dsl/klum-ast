@@ -71,6 +71,7 @@ class TemplateMethods {
                 .constantClassParam(annotatedClass)
                 .param(newClass(dslAncestor), "template", null)
                 .mandatoryClosureParam("closure", null)
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.With() instead")
                 .addTo(annotatedClass);
     }
 
@@ -79,6 +80,7 @@ class TemplateMethods {
                 .constantClassParam(annotatedClass)
                 .nonOptionalNamedParams("templateMap", null)
                 .mandatoryClosureParam("closure", null)
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.With() instead")
                 .addTo(annotatedClass);
     }
 
@@ -91,6 +93,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(templatesType, "templates", null)
                 .mandatoryClosureParam("closure", null)
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
                 .addTo(annotatedClass);
     }
 
@@ -99,6 +102,7 @@ class TemplateMethods {
                 .returning(ClassHelper.DYNAMIC_TYPE)
                 .param(newClass(LIST_TYPE), "templates", null)
                 .mandatoryClosureParam("closure", null)
+                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
                 .addTo(annotatedClass);
     }
 
@@ -123,7 +127,7 @@ class TemplateMethods {
 
     private void createAsTemplateMethods() {
         createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
-                .forRemoval("Use Create.Template() instead")
+                .forRemoval("Use Template.Create() instead")
                 .namedParams("values", null)
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
