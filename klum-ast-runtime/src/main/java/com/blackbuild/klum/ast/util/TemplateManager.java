@@ -145,7 +145,7 @@ public class TemplateManager {
 
     /**
      * Executes the given closure with the given anonymous templates.
-     * This is done by converting the values of the map into templates objects of the type defined by the keys.
+     * This is done by converting the values of the map into template objects of the type defined by the keys.
      *
      * @param newTemplates the templates to apply, Mapping classes to their respective anonymous templates
      * @param body         the closure to execute

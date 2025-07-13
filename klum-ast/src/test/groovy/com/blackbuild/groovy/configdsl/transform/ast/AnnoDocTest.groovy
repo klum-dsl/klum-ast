@@ -194,7 +194,7 @@ The old templates are restored after the closure has been executed.
 
         methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given anonymous templates.
 <p>
-This is done by converting the values of the map into templates objects of the type defined by the keys.
+This is done by converting the values of the map into template objects of the type defined by the keys.
 </p>
 @param templates the templates to apply, Mapping classes to their respective anonymous templates
 @param closure the closure to execute
