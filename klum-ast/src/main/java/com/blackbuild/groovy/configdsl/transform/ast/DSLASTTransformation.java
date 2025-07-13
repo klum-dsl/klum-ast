@@ -1227,7 +1227,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         FieldNode templateField = new FieldNode(
                 TEMPLATE_FIELD_NAME,
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                newClass(TEMPLATE_TYPE),
+                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
                 annotatedClass,
                 ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
         );

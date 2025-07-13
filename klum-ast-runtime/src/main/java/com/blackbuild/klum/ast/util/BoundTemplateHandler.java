@@ -25,6 +25,8 @@ package com.blackbuild.klum.ast.util;
 
 import groovy.lang.Closure;
 
+import java.io.File;
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
@@ -100,5 +102,171 @@ public class BoundTemplateHandler<T> {
     public <C> C WithMultiple(List<Object> newTemplates, Closure<C> body) {
         return TemplateManager.withTemplates(newTemplates, body);
     }
+
+    /**
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @return a template instance of the model type.
+     * @see #Create(Map, Closure)
+     */
+    public T Create() {
+        return FactoryHelper.createAsTemplate(type, null, (Closure<?>) null);
+    }
+
+    /**
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param configMap     The values to set on the template instance.
+     * @param configuration The closure to apply to the template instance.
+     * @return a template instance of the model type.
+     */
+    public T Create(Map<String, Object> configMap, Closure<?> configuration) {
+        return FactoryHelper.createAsTemplate(type, configMap, configuration);
+    }
+
+    /**
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param configuration The closure to apply to the template instance.
+     * @return a template instance of the model type.
+     * @see #Create(Map, Closure)
+     */
+    public T Create(Closure<?> configuration) {
+        return FactoryHelper.createAsTemplate(type, null, configuration);
+    }
+
+    /**
+     * Creates a template instance of the model type.
+     * <p>
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param configMap The values to set on the template instance.
+     * @return a template instance of the model type.
+     * @see #Create(Map, Closure)
+     */
+    public T Create(Map<String, Object> configMap) {
+        return FactoryHelper.createAsTemplate(type, configMap, null);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link KlumFactory#From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptFile The script to configure the template
+     * @return a template instance of the model type.
+     */
+    public T CreateFrom(File scriptFile) {
+        return FactoryHelper.createAsTemplate(type, scriptFile, null);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link KlumFactory#From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptFile The script to configure the template
+     * @param loader     The classloader to use for compiling the configuration script.
+     * @return a template instance of the model type.
+     */
+    public T CreateFrom(File scriptFile, ClassLoader loader) {
+        return FactoryHelper.createAsTemplate(type, scriptFile, loader);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link KlumFactory#From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptUrl The script to configure the template
+     * @return a template instance of the model type.
+     */
+    public T CreateFrom(URL scriptUrl) {
+        return FactoryHelper.createAsTemplate(type, scriptUrl, null);
+    }
+
+    /**
+     * Creates a template instance of the model type by applying the given text as configuration.
+     * <p>
+     * As with {@link KlumFactory#From(File)},
+     * the file is converted into a DelegatingScript which is then executed to create the model instance.
+     * Templates differ from regular instances in the following way:
+     * </p>
+     * <ul>
+     *     <li>Template instances can even be created for abstract model classes using a synthetic subclass</li>
+     *     <li>the key of a template model is always null</li>
+     *     <li>owner fields are not set</li>
+     *     <li>post-apply methods are not called</li>
+     * </ul>
+     *
+     * @param scriptUrl The script to configure the template
+     * @param loader    The classloader to use for compiling the configuration script.
+     * @return a template instance of the model type.
+     */
+    public T CreateFrom(URL scriptUrl, ClassLoader loader) {
+        return FactoryHelper.createAsTemplate(type, scriptUrl, loader);
+    }
+
 
 }
