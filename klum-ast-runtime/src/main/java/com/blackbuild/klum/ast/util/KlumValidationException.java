@@ -23,25 +23,31 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.layer3.KlumVisitorException;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Denotes an exception that means a validation error occurred in the model.
+ * This is used to collect multiple validation errors and provide a detailed message.
+ * <p>
+ *     Note that this is explicitly not a subclass of {@link KlumModelException}, since a KlumModelException
+ *     points to a specific model element that is invalid, while this exception collects multiple validation errors.
+ * </p>
+ */
 public class KlumValidationException extends KlumException {
 
-    private final Map<String, List<KlumVisitorException>> validationErrors = new LinkedHashMap<>();
+    private final Map<String, List<KlumValidationProblem>> validationErrors = new LinkedHashMap<>();
 
-    public KlumValidationException(List<KlumVisitorException> validationErrors) {
-        for (KlumVisitorException validationError : validationErrors) {
-            addException(validationError);
-        }
+    public KlumValidationException(List<KlumValidationProblem> validationErrors) {
+        for (KlumValidationProblem validationError : validationErrors)
+            addProblem(validationError);
     }
 
-    private void addException(KlumVisitorException validationError) {
-        addSuppressed(validationError);
+    private void addProblem(KlumValidationProblem validationError) {
+        if (validationError.getException() != null)
+            addSuppressed(validationError.exception);
         this.validationErrors.computeIfAbsent(validationError.getBreadcrumbPath(), k -> new ArrayList<>()).add(validationError);
     }
 
@@ -49,14 +55,14 @@ public class KlumValidationException extends KlumException {
     }
 
     public void merge(KlumValidationException other) {
-        for (List<KlumVisitorException> errors : other.getValidationErrors().values()) {
-            for (KlumVisitorException validationError : errors) {
-                addException(validationError);
+        for (List<KlumValidationProblem> errors : other.getValidationErrors().values()) {
+            for (KlumValidationProblem validationError : errors) {
+                addProblem(validationError);
             }
         }
     }
 
-    public Map<String, List<KlumVisitorException>> getValidationErrors() {
+    public Map<String, List<KlumValidationProblem>> getValidationErrors() {
         return validationErrors;
     }
 
@@ -66,7 +72,12 @@ public class KlumValidationException extends KlumException {
         sb.append("Validation errors:\n");
         validationErrors.forEach((key, value) -> {
             sb.append("  at ").append(key).append(":\n");
-            value.forEach(e -> sb.append("    - ").append(e.getUnlocalizedMessage()).append("\n"));
+            value.forEach(e ->
+                    sb.append("    - ")
+                            .append(e.getMember())
+                            .append(": ")
+                            .append(e.getMessage())
+                            .append("\n"));
         });
         return sb.toString();
     }

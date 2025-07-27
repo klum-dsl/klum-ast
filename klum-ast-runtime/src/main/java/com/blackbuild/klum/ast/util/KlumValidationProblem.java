@@ -21,39 +21,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.DslHelper;
-import com.blackbuild.klum.ast.util.KlumException;
+public class KlumValidationProblem {
 
-/**
- * An Exception that is bound to a specific object in the model.
- */
-public class KlumVisitorException extends KlumException {
+    public final String breadcrumbPath;
+    public final String member;
+    public final String message;
+    public final Throwable exception;
 
-    private final String breadcrumbPath;
-
-    public KlumVisitorException(String message, Object responsibleObject, Throwable cause) {
-        super(message, cause);
-        this.breadcrumbPath = DslHelper.getBreadcrumbPath(responsibleObject);
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception) {
+        this.breadcrumbPath = breadcrumbPath;
+        this.member = member;
+        this.message = message;
+        this.exception = exception;
     }
 
-    public KlumVisitorException(String message, Object responsibleObject) {
-        this(message, responsibleObject, null);
+    public String getMessage() {
+        return message;
     }
 
     public String getBreadcrumbPath() {
         return breadcrumbPath;
     }
 
-    @Override
-    public String getMessage() {
-        if (breadcrumbPath == null)
-            return super.getMessage();
-        return breadcrumbPath + ": " + super.getBasicMessage();
+    public String getFullPath() {
+        return breadcrumbPath + (member != null ? "#" + member : "");
     }
 
-    public String getUnlocalizedMessage() {
-        return super.getMessage();
+    public String getFullMessage() {
+        return getFullPath() + ": " + message;
+    }
+
+    public String getMember() {
+        return member;
+    }
+
+    public Throwable getException() {
+        return exception;
     }
 }

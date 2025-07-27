@@ -226,7 +226,6 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         error = thrown(KlumValidationException)
         error.message.contains("Field 'name' must be set")
-        error.suppressed.any { it.message == "\$/Foo.With: Field 'name' must be set" }
     }
 
     def "validation with message"() {
@@ -244,7 +243,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains("- We need a name")
+        error.message.contains("- name: We need a name")
     }
 
     def "validation with explicit Groovy Truth"() {
@@ -296,7 +295,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         def e = thrown(KlumValidationException)
-        e.message.contains "- Field 'validated': null does not match. Expression: (it?.length() > 3)"
+        e.message.contains "- validated: null does not match. Expression: (it?.length() > 3)"
 
 
         when:
@@ -304,7 +303,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains "- Field 'validated': 'bla' does not match. Expression: (it?.length() > 3)"
+        error.message.contains "- validated: 'bla' does not match. Expression: (it?.length() > 3)"
 
         when:
         clazz.Create.With { validated "valid"}
@@ -358,7 +357,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains "- Field 'validated': It shall not be!. Expression: (it?.length() > 3)"
+        error.message.contains "- validated: It shall not be!. Expression: (it?.length() > 3)"
     }
 
     def "validation with named Closure"() {

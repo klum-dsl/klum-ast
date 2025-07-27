@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
-import com.blackbuild.klum.ast.util.layer3.KlumVisitorException;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
@@ -34,17 +33,19 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
 public class Validator {
 
     private final Object instance;
+    private final String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final List<KlumVisitorException> validationErrors = new ArrayList<>();
+    private final List<KlumValidationProblem> validationErrors = new ArrayList<>();
 
-    public static void validate(Object instance) throws KlumValidationException {
+    public static void validate(Object instance) throws KlumValidationException{
         Validator validator = new Validator(instance);
         validator.execute();
         if (!validator.validationErrors.isEmpty()) {
@@ -52,8 +53,19 @@ public class Validator {
         }
     }
 
+    public static List<KlumValidationProblem> lenientValidate(Object instance) {
+        Validator validator = new Validator(instance);
+        validator.execute();
+        return validator.validationErrors;
+    }
+
+    public static void validateHierarchy(Object instance) throws KlumValidationException {
+        new ValidationPhase.Visitor().executeOn(instance);
+    }
+
     protected Validator(Object instance) {
         this.instance = instance;
+        this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
     }
 
     public void execute() {
@@ -70,37 +82,27 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-
-            try {
-                validateCustomMethod(m);
-            } catch (KlumVisitorException e) {
-                validationErrors.add(e);
-            }
+            validateCustomMethod(m).ifPresent(validationErrors::add);
         }
     }
 
-    private void validateCustomMethod(Method method) {
-        withExceptionCheck("Method '" + method.getName() + "'", () -> InvokerHelper.invokeMethod(instance, method.getName(), null));
+    private Optional<KlumValidationProblem> validateCustomMethod(Method method) {
+        return withExceptionCheck(method.getName() + "()", () -> InvokerHelper.invokeMethod(instance, method.getName(), null));
     }
 
-    private void withExceptionCheck(String message, Runnable runnable) throws KlumVisitorException {
+    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Runnable runnable) {
         try {
             runnable.run();
-        } catch (KlumVisitorException e) {
-            throw e;
+            return Optional.empty();
         } catch (Exception | AssertionError e) {
-            throw new KlumVisitorException(message + ": " + e.getMessage(), instance, e);
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e));
         }
     }
 
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            try {
-                validateField(field);
-            } catch (KlumVisitorException e) {
-                validationErrors.add(e);
-            }
+            validateField(field).ifPresent(validationErrors::add);
         }
     }
 
@@ -119,9 +121,9 @@ public class Validator {
         return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
     }
 
-    private void validateField(Field field) {
+    private Optional<KlumValidationProblem> validateField(Field field) {
         if (!shouldValidate(field))
-            return;
+            return Optional.empty();
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
 
@@ -129,19 +131,19 @@ public class Validator {
         Class<? extends Closure> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
 
         if (validationValue == Validate.GroovyTruth.class)
-            checkAgainstGroovyTruth(field, value, validate);
+            return checkAgainstGroovyTruth(field, value, validate);
         else
-            withExceptionCheck("Field '" + field.getName() + "'", () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value));
+            return withExceptionCheck(field.getName(), () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value));
     }
 
-    private void checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
-        if (field.getType() == Boolean.class && value != null) return;
-        if (castToBoolean(value)) return;
+    private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
+        if (field.getType() == Boolean.class && value != null) return Optional.empty();
+        if (castToBoolean(value)) return Optional.empty();
 
         String message = validate != null ? validate.message() : "";
         if (message.isEmpty())
             message = String.format("Field '%s' must be set", field.getName());
 
-        throw new KlumVisitorException(message, instance);
+        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null));
     }
 }

@@ -296,4 +296,13 @@ public class DslHelper {
         result.append(type.getSimpleName());
         return result.toString();
     }
+
+    public static String getBreadcrumbPath(Object instance) {
+        if (instance instanceof KlumInstanceProxy)
+            return ((KlumInstanceProxy) instance).getBreadcrumbPath();
+        else if (DslHelper.isDslObject(instance))
+            return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
+        else
+            return null;
+    }
 }
