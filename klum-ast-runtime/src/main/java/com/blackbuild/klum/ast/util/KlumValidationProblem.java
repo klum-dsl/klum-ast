@@ -29,12 +29,18 @@ public class KlumValidationProblem {
     public final String member;
     public final String message;
     public final Throwable exception;
+    public final Level level;
 
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception) {
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception, Level level) {
         this.breadcrumbPath = breadcrumbPath;
         this.member = member;
         this.message = message;
         this.exception = exception;
+        this.level = level;
+    }
+
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception) {
+        this(breadcrumbPath, member, message, exception, Level.ERROR);
     }
 
     public String getMessage() {
@@ -59,5 +65,16 @@ public class KlumValidationProblem {
 
     public Throwable getException() {
         return exception;
+    }
+
+    public Level getLevel() {
+        return level;
+    }
+
+    public enum Level {
+        INFO,
+        WARNING,
+        DEPRECATION,
+        ERROR
     }
 }

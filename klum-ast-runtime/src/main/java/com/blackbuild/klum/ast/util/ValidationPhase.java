@@ -47,12 +47,13 @@ public class ValidationPhase extends AbstractPhaseAction {
         private KlumValidationException aggregatedErrors;
 
         void execute() {
-            executeOn(PhaseDriver.getInstance().getRootObject());
+            executeOn(PhaseDriver.getInstance().getRootObject(), KlumValidationProblem.Level.DEPRECATION);
         }
 
-        void executeOn(Object root) {
+        void executeOn(Object root, KlumValidationProblem.Level maxAllowedLevel) {
             StructureUtil.visit(root, this);
-            if (aggregatedErrors != null)
+            if (aggregatedErrors == null) return;
+            if (aggregatedErrors.maxLevel().ordinal() > maxAllowedLevel.ordinal())
                 throw aggregatedErrors;
         }
 

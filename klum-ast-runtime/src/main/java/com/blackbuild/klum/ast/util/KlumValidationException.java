@@ -81,4 +81,12 @@ public class KlumValidationException extends KlumException {
         });
         return sb.toString();
     }
+
+    public KlumValidationProblem.Level maxLevel() {
+        return validationErrors.values().stream()
+                .flatMap(List::stream)
+                .map(KlumValidationProblem::getLevel)
+                .max(Enum::compareTo)
+                .orElse(KlumValidationProblem.Level.INFO);
+    }
 }

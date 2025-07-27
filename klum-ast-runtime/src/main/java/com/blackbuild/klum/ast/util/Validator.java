@@ -60,7 +60,11 @@ public class Validator {
     }
 
     public static void validateHierarchy(Object instance) throws KlumValidationException {
-        new ValidationPhase.Visitor().executeOn(instance);
+        validateHierarchy(instance, KlumValidationProblem.Level.DEPRECATION);
+    }
+
+    public static void validateHierarchy(Object instance, KlumValidationProblem.Level maxAllowedLevel) throws KlumValidationException {
+        new ValidationPhase.Visitor().executeOn(instance, maxAllowedLevel);
     }
 
     protected Validator(Object instance) {
