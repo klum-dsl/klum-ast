@@ -25,7 +25,7 @@
 //file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
-
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -299,14 +299,14 @@ class ValidationSpec extends AbstractDSLSpec {
 
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         error = thrown(KlumValidationException)
         error.message.contains "- ERROR #validated: 'bla' does not match. Expression: (it?.length() > 3)"
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -330,13 +330,13 @@ class ValidationSpec extends AbstractDSLSpec {
         // error.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -377,13 +377,13 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -881,5 +881,66 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         def e = thrown(KlumValidationException)
         e.message.contains "Name must be set"
+    }
+
+    @Issue("145")
+    def "warning issues"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        def validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then:
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.problems.size() == 1
+        validationResults.message == '''$/Foo.With:
+- WARNING #validated: Field 'validated' must be set'''
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then:
+        notThrown(KlumValidationException)
+        validationResults.maxLevel == Validate.Level.NONE
+    }
+
+    @Issue("145")
+    def "warning and error issues"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validated
+
+                @Validate(level = Validate.Level.ERROR)
+                String validatedError
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message == '''$/Foo.With:
+- ERROR #validatedError: Field 'validatedError' must be set
+- WARNING #validated: Field 'validated' must be set'''
     }
 }

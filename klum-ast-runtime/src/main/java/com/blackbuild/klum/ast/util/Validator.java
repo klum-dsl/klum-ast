@@ -28,6 +28,7 @@ import com.blackbuild.groovy.configdsl.transform.Validate;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -46,7 +47,7 @@ public class Validator {
     public static void validate(Object instance) throws KlumValidationException{
         Validator validator = new Validator(instance);
         validator.execute();
-        validator.validationErrors.throwOn(KlumValidationProblem.Level.ERROR);
+        validator.validationErrors.throwOn(Validate.Level.ERROR);
     }
 
     public static KlumValidationResult lenientValidate(Object instance) {
@@ -55,11 +56,11 @@ public class Validator {
         return validator.validationErrors;
     }
 
-    public static void validateHierarchy(Object instance) throws KlumValidationException {
-        validateHierarchy(instance, KlumValidationProblem.Level.DEPRECATION);
+    public static void validateStructure(Object instance) throws KlumValidationException {
+        validateStructure(instance, Validate.Level.DEPRECATION);
     }
 
-    public static void validateHierarchy(Object instance, KlumValidationProblem.Level maxAllowedLevel) throws KlumValidationException {
+    public static void validateStructure(Object instance, Validate.Level maxAllowedLevel) throws KlumValidationException {
         new ValidationPhase.Visitor().executeOn(instance, maxAllowedLevel);
     }
 
@@ -89,17 +90,22 @@ public class Validator {
     }
 
     private Optional<KlumValidationProblem> validateCustomMethod(Method method) {
-        return withExceptionCheck(method.getName() + "()", () -> InvokerHelper.invokeMethod(instance, method.getName(), null));
+        Validate.Level level = getValidateAnnotationOrDefault(method).level();
+        return withExceptionCheck(
+                method.getName() + "()",
+                level,
+                () -> InvokerHelper.invokeMethod(instance, method.getName(), null)
+        );
     }
 
-    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Runnable runnable) {
+    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
             runnable.run();
             return Optional.empty();
         } catch (Exception e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e));
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e, level));
         } catch (AssertionError e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null));
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null, level));
         }
     }
 
@@ -112,8 +118,7 @@ public class Validator {
 
     private boolean isNotExplicitlyIgnored(Field field) {
         if (Modifier.isStatic(field.getModifiers())) return false;
-        Validate validate = field.getAnnotation(Validate.class);
-        return validate == null || validate.value() != Validate.Ignore.class;
+        return getValidateAnnotationOrDefault(field).value() != Validate.Ignore.class;
     }
 
     private boolean shouldValidate(Field field) {
@@ -131,23 +136,33 @@ public class Validator {
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
 
-        Validate validate = field.getAnnotation(Validate.class);
-        Class<? extends Closure> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
+        Validate validate = getValidateAnnotationOrDefault(field);
 
-        if (validationValue == Validate.GroovyTruth.class)
+        if (validate.value() == Validate.GroovyTruth.class)
             return checkAgainstGroovyTruth(field, value, validate);
         else
-            return withExceptionCheck(field.getName(), () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value));
+            return withExceptionCheck(
+                    field.getName(),
+                    validate.level(),
+                    () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validate.value(), instance, value)
+            );
     }
 
     private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
         if (field.getType() == Boolean.class && value != null) return Optional.empty();
         if (castToBoolean(value)) return Optional.empty();
 
-        String message = validate != null ? validate.message() : "";
+        String message = validate.message();
+
         if (message.isEmpty())
             message = String.format("Field '%s' must be set", field.getName());
 
-        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null));
+        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
+    }
+
+    private Validate getValidateAnnotationOrDefault(AnnotatedElement member) {
+        Validate validate = member.getAnnotation(Validate.class);
+        if (validate != null) return validate;
+        return Validate.DefaultImpl.INSTANCE;
     }
 }

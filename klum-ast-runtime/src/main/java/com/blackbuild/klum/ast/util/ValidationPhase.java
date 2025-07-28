@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -48,13 +49,13 @@ public class ValidationPhase extends AbstractPhaseAction {
     public static class Visitor implements ModelVisitor {
 
         private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
-        private KlumValidationProblem.Level currentMaxLevel = KlumValidationProblem.Level.NONE;
+        private Validate.Level currentMaxLevel = Validate.Level.NONE;
 
         void execute() {
-            executeOn(PhaseDriver.getInstance().getRootObject(), KlumValidationProblem.Level.DEPRECATION);
+            executeOn(PhaseDriver.getInstance().getRootObject(), Validate.Level.DEPRECATION);
         }
 
-        void executeOn(Object root, KlumValidationProblem.Level maxAllowedLevel) {
+        void executeOn(Object root, Validate.Level maxAllowedLevel) {
             StructureUtil.visit(root, this);
             if (currentMaxLevel.worseThan(maxAllowedLevel))
                 throw new KlumValidationException(aggregatedErrors);

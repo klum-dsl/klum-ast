@@ -254,6 +254,10 @@ public class KlumInstanceProxy {
         this.validationResults = validationResults;
     }
 
+    public KlumValidationResult getValidationResults() {
+        return validationResults;
+    }
+
     /**
      * Returns the owner of this object. If the object has more than one field annotated with {@link Owner},
      * all of them that are not null must point to the same object, otherwise an {@link IllegalStateException}

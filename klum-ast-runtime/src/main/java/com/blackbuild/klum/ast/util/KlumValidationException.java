@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
+
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
@@ -50,7 +52,7 @@ public class KlumValidationException extends KlumException {
                 .collect(joining("\n"));
     }
 
-    public String getMessage(KlumValidationProblem.Level minimumLevel) {
+    public String getMessage(Validate.Level minimumLevel) {
         return validationResults.stream()
                 .map(klumValidationResult -> klumValidationResult.getMessage(minimumLevel))
                 .collect(joining("\n"));

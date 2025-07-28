@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
@@ -39,19 +40,15 @@ public class KlumValidationProblem implements Serializable, Comparable<KlumValid
     public final String member;
     public final String message;
     public final Exception exception;
-    public final Level level;
+    public final Validate.Level level;
     private final String breadcrumbPath;
 
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception, Level level) {
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception, Validate.Level level) {
         this.breadcrumbPath = breadcrumbPath;
         this.member = member;
         this.message = message;
         this.exception = exception;
         this.level = level;
-    }
-
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception) {
-        this(breadcrumbPath, member, message, exception, Level.ERROR);
     }
 
     public String getMessage() {
@@ -82,7 +79,7 @@ public class KlumValidationProblem implements Serializable, Comparable<KlumValid
         return exception;
     }
 
-    public Level getLevel() {
+    public Validate.Level getLevel() {
         return level;
     }
 
@@ -91,23 +88,4 @@ public class KlumValidationProblem implements Serializable, Comparable<KlumValid
         return COMPARATOR.compare(this, o);
     }
 
-    public enum Level {
-        NONE,
-        INFO,
-        WARNING,
-        DEPRECATION,
-        ERROR;
-
-        public Level combine(Level other) {
-            return this.worseThan(other) ? this : other;
-        }
-
-        public boolean worseThan(Level other) {
-            return this.ordinal() > other.ordinal();
-        }
-
-        public boolean equalOrWorseThan(Level level) {
-            return this.ordinal() >= level.ordinal();
-        }
-    }
 }

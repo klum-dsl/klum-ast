@@ -23,7 +23,10 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
+
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
@@ -47,14 +50,14 @@ public class KlumValidationResult implements Serializable {
         validationProblems.addAll(problems);
     }
 
-    public KlumValidationProblem.Level getMaxLevel() {
+    public Validate.Level getMaxLevel() {
         return validationProblems.stream()
                 .map(KlumValidationProblem::getLevel)
-                .max(KlumValidationProblem.Level::compareTo)
-                .orElse(KlumValidationProblem.Level.NONE);
+                .max(Validate.Level::compareTo)
+                .orElse(Validate.Level.NONE);
     }
 
-    public String getMessage(KlumValidationProblem.Level minimumLevel) {
+    public String getMessage(Validate.Level minimumLevel) {
         if (breadcrumbPath == null)
             return getMessageWithFullPaths();
 
@@ -74,10 +77,10 @@ public class KlumValidationResult implements Serializable {
     }
 
     public String getMessage() {
-        return getMessage(KlumValidationProblem.Level.NONE);
+        return getMessage(Validate.Level.NONE);
     }
 
-    String getMessageWithFullPaths(KlumValidationProblem.Level minimumLevel) {
+    String getMessageWithFullPaths(Validate.Level minimumLevel) {
         if (validationProblems.isEmpty())
             return "";
 
@@ -90,15 +93,19 @@ public class KlumValidationResult implements Serializable {
     }
 
     String getMessageWithFullPaths() {
-        return getMessageWithFullPaths(KlumValidationProblem.Level.NONE);
+        return getMessageWithFullPaths(Validate.Level.NONE);
     }
 
-    public boolean has(KlumValidationProblem.Level level) {
+    public boolean has(Validate.Level level) {
         return getMaxLevel().equalOrWorseThan(level);
     }
 
-    public void throwOn(KlumValidationProblem.Level level) throws KlumValidationException {
+    public void throwOn(Validate.Level level) throws KlumValidationException {
         if (getMaxLevel().equalOrWorseThan(level))
             throw new KlumValidationException(List.of(this));
+    }
+
+    public Collection<KlumValidationProblem> getProblems() {
+        return validationProblems;
     }
 }
