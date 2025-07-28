@@ -24,14 +24,15 @@
 package com.blackbuild.klum.ast.util;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.TreeSet;
 
 /**
  * Validation results for a single object.
  */
 public class KlumValidationResult implements Serializable {
-    private final List<KlumValidationProblem> validationProblems = new ArrayList<>();
+    private final NavigableSet<KlumValidationProblem> validationProblems = new TreeSet<>();
     private final String breadcrumbPath;
 
     public KlumValidationResult(String breadcrumbPath) {
@@ -53,20 +54,48 @@ public class KlumValidationResult implements Serializable {
                 .orElse(KlumValidationProblem.Level.NONE);
     }
 
-    public String getMessage() {
+    public String getMessage(KlumValidationProblem.Level minimumLevel) {
+        if (breadcrumbPath == null)
+            return getMessageWithFullPaths();
+
+        if (validationProblems.isEmpty())
+            return breadcrumbPath + ": NONE";
+
         StringBuilder sb = new StringBuilder();
-        sb.append("at ").append(breadcrumbPath).append(":\n");
-        validationProblems.forEach(e ->
-                sb.append(" - ")
+        sb.append(breadcrumbPath).append(":\n");
+        for (KlumValidationProblem e : validationProblems)
+            if (e.getLevel().equalOrWorseThan(minimumLevel))
+                sb.append("- ")
                         .append(e.getLocalMessage())
-                        .append("\n"));
+                        .append("\n");
+        // remove trailing newline
+        sb.setLength(sb.length() - 1);
         return sb.toString();
+    }
+
+    public String getMessage() {
+        return getMessage(KlumValidationProblem.Level.NONE);
+    }
+
+    String getMessageWithFullPaths(KlumValidationProblem.Level minimumLevel) {
+        if (validationProblems.isEmpty())
+            return "";
+
+        StringBuilder sb = new StringBuilder();
+        for (KlumValidationProblem e : validationProblems)
+            if (e.getLevel().equalOrWorseThan(minimumLevel))
+                sb.append(e.getFullMessage()).append("\n");
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    String getMessageWithFullPaths() {
+        return getMessageWithFullPaths(KlumValidationProblem.Level.NONE);
     }
 
     public boolean has(KlumValidationProblem.Level level) {
         return getMaxLevel().equalOrWorseThan(level);
     }
-
 
     public void throwOn(KlumValidationProblem.Level level) throws KlumValidationException {
         if (getMaxLevel().equalOrWorseThan(level))

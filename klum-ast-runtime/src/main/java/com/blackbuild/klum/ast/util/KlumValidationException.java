@@ -24,7 +24,8 @@
 package com.blackbuild.klum.ast.util;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * Denotes an exception that means a validation error occurred in the model.
@@ -44,6 +45,14 @@ public class KlumValidationException extends KlumException {
 
     @Override
     public String getMessage() {
-        return validationResults.stream().map(KlumValidationResult::getMessage).collect(Collectors.joining("\n"));
+        return validationResults.stream()
+                .map(KlumValidationResult::getMessage)
+                .collect(joining("\n"));
+    }
+
+    public String getMessage(KlumValidationProblem.Level minimumLevel) {
+        return validationResults.stream()
+                .map(klumValidationResult -> klumValidationResult.getMessage(minimumLevel))
+                .collect(joining("\n"));
     }
 }

@@ -23,10 +23,19 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.Serializable;
+import java.util.Comparator;
 
-public class KlumValidationProblem implements Serializable {
+import static java.util.Comparator.*;
 
+public class KlumValidationProblem implements Serializable, Comparable<KlumValidationProblem> {
+
+    private static final Comparator<KlumValidationProblem> COMPARATOR =
+            comparing(KlumValidationProblem::getBreadcrumbPath, nullsLast(naturalOrder()))
+            .thenComparing(KlumValidationProblem::getLevel, reverseOrder())
+            .thenComparing(KlumValidationProblem::getMember, nullsLast(naturalOrder()));
     public final String member;
     public final String message;
     public final Exception exception;
@@ -75,6 +84,11 @@ public class KlumValidationProblem implements Serializable {
 
     public Level getLevel() {
         return level;
+    }
+
+    @Override
+    public int compareTo(@NotNull KlumValidationProblem o) {
+        return COMPARATOR.compare(this, o);
     }
 
     public enum Level {
