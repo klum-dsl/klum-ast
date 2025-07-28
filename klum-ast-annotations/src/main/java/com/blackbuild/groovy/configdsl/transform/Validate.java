@@ -168,6 +168,18 @@ public @interface Validate {
         public boolean equalOrWorseThan(Level level) {
             return this.ordinal() >= level.ordinal();
         }
+
+        public static Level fromString(String level) {
+            if (level == null || level.isEmpty()) return NONE;
+
+            try {
+                return Level.values()[Integer.parseInt(level)];
+            } catch (NumberFormatException e) {
+                // ignore, is no number
+            }
+
+            return Level.valueOf(level.toUpperCase());
+        }
     }
 
     /**

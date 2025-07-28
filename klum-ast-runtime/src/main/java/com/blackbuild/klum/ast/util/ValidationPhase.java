@@ -37,6 +37,9 @@ import java.util.List;
  * Phase Action that validates the model.
  */
 public class ValidationPhase extends AbstractPhaseAction {
+
+    public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
+
     public ValidationPhase() {
         super(DefaultKlumPhase.VALIDATE);
     }
@@ -51,13 +54,17 @@ public class ValidationPhase extends AbstractPhaseAction {
         private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
         private Validate.Level currentMaxLevel = Validate.Level.NONE;
 
-        void execute() {
-            executeOn(PhaseDriver.getInstance().getRootObject(), Validate.Level.DEPRECATION);
+        Validate.Level getFailLevel() {
+            return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
         }
 
-        void executeOn(Object root, Validate.Level maxAllowedLevel) {
+        void execute() {
+            executeOn(PhaseDriver.getInstance().getRootObject(), getFailLevel());
+        }
+
+        void executeOn(Object root, Validate.Level failOnLevel) {
             StructureUtil.visit(root, this);
-            if (currentMaxLevel.worseThan(maxAllowedLevel))
+            if (currentMaxLevel.equalOrWorseThan(failOnLevel))
                 throw new KlumValidationException(aggregatedErrors);
         }
 
