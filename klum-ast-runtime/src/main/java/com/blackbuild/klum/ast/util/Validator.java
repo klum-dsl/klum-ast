@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import groovy.lang.Closure;
@@ -32,6 +33,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
@@ -154,9 +156,22 @@ public class Validator {
     private Optional<KlumValidationProblem> checkForDeprecation(Field field, Object value) {
         if (!isGroovyTruth(field, value)) return Optional.empty();
 
-        String message = String.format("Field '%s' is deprecated", field.getName());
+        String message = getDeprecationMessage(field);
 
         return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
+    }
+
+    private String getDeprecationMessage(Field field) {
+        AnnoDoc annoDoc = field.getAnnotation(AnnoDoc.class);
+
+        if (annoDoc == null)
+            return String.format("Field '%s' is deprecated", field.getName());
+
+        return Arrays.stream(annoDoc.value().split("\\R"))
+                .filter(l -> l.startsWith("@deprecated "))
+                .map(l -> l.replaceFirst("@deprecated ", "").trim())
+                .findAny()
+                .orElse(String.format("Field '%s' is deprecated", field.getName()));
     }
 
     private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {

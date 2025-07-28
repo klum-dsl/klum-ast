@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
+import spock.lang.IgnoreIf
 import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
@@ -973,6 +974,34 @@ class ValidationSpec extends AbstractDSLSpec {
         result.problems.size() == 1
         result.message == '''$/Foo.With:
 - DEPRECATION #validated: Field 'validated' is deprecated'''
-
     }
+
+    @Issue("145")
+    @IgnoreIf({ GroovySystem.version.startsWith("2.") })
+    def "Deprecation message is extracted from javadoc if present"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                /**
+                 * @deprecated Use something else.
+                 */
+                @Deprecated
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'Warning for deprecated field'
+        result.maxLevel == Validate.Level.DEPRECATION
+        result.problems.size() == 1
+        result.message == '''$/Foo.With:
+- DEPRECATION #validated: Use something else.'''
+    }
+
 }
