@@ -34,11 +34,18 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
+/**
+ * Validates an instance of a DSL object, checking for the presence of required fields,
+ * custom validation methods, and deprecated fields.
+ */
 public class Validator {
+
+    public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
 
     private final Object instance;
     private final String breadcrumbPath;
@@ -46,24 +53,77 @@ public class Validator {
     private Class<?> currentType;
     private final KlumValidationResult validationErrors;
 
+    /**
+     * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
+     *
+     * @param instance the instance to validate
+     * @throws KlumValidationException if validation errors are found
+     */
     public static void validate(Object instance) throws KlumValidationException{
         Validator validator = new Validator(instance);
         validator.execute();
-        validator.validationErrors.throwOn(Validate.Level.ERROR);
+        validator.validationErrors.throwOn(getFailLevel());
     }
 
+    /**
+     * Validates the given instance, returning a {@link KlumValidationResult} containing any validation errors.
+     * This method does not throw an exception, allowing for lenient validation.
+     *
+     * @param instance the instance to validate
+     * @return a {@link KlumValidationResult} containing validation errors
+     */
     public static KlumValidationResult lenientValidate(Object instance) {
         Validator validator = new Validator(instance);
         validator.execute();
         return validator.validationErrors;
     }
 
-    public static void validateStructure(Object instance) throws KlumValidationException {
-        validateStructure(instance, Validate.Level.DEPRECATION);
+    /**
+     * Validates the structure of the given instance, checking for required fields and custom validation methods.
+     * This method uses the default fail level defined by the system property {@code klum.validation.failOnLevel}.
+     *
+     * @param instance the instance to validate
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static List<KlumValidationResult> validateStructure(Object instance) throws KlumValidationException {
+        return validateStructure(instance, getFailLevel());
     }
 
-    public static void validateStructure(Object instance, Validate.Level maxAllowedLevel) throws KlumValidationException {
-        new ValidationPhase.Visitor().executeOn(instance, maxAllowedLevel);
+    /**
+     * Validates the structure of the given instance, checking for required fields and custom validation methods,
+     * throwing a {@link KlumValidationException} if any validation problems with the fail level are found.
+     *
+     * @param instance the instance to validate
+     * @param failLevel the maximum allowed validation level
+     * @return a list of {@link KlumValidationResult} containing validation errors
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static List<KlumValidationResult> validateStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
+        return new ValidationPhase.Visitor().executeOn(instance, failLevel);
+    }
+
+    /**
+     * Retrieves the validation result for the given instance, either from the proxy or by performing a lenient validation.
+     * This method is useful when you want to check the validation results without throwing an exception.
+     *
+     * @param instance the instance to validate
+     * @return a {@link KlumValidationResult} containing validation errors
+     */
+    public static KlumValidationResult getValidationResult(Object instance) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
+        KlumValidationResult validationResult = proxy.getValidationResults();
+        if (validationResult != null) return validationResult;
+        return lenientValidate(instance);
+    }
+
+    /**
+     * Retrieves the fail level for validation, which is defined by the system property {@code klum.validation.failOnLevel}.
+     * If the property is not set, it defaults to {@link Validate.Level#ERROR}.
+     *
+     * @return the fail level for validation
+     */
+    public static Validate.Level getFailLevel() {
+        return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
     }
 
     protected Validator(Object instance) {
@@ -185,6 +245,7 @@ public class Validator {
         return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
     }
 
+    @SuppressWarnings("java:S1126")
     private boolean isGroovyTruth(Field field, Object value) {
         if (field.getType() == Boolean.class && value != null) return true;
         if (castToBoolean(value)) return true;

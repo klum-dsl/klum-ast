@@ -3,7 +3,7 @@ Resulting objects can be automatically be validated. This is controlled via the 
 # On classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e. all not explicitly marked fields are validated
 against Groovy truth
- (i.e. numbers must be non-zero, collections and Strings non-empty and other objects not null).
+ (i.e. numbers must be non-zero, collections and Strings non-empty, and other objects not null).
    
 # On fields
 The `@Validate` annotation controls validation of a single field. If the annotation is not present, the presence on the class  
@@ -39,7 +39,7 @@ class Figure {
 }
 ```
 
-For validation closures, take care to account for `null` values, for example by using the groovy
+For validation closures, take care to account for `null` values, for example, by using the groovy
 safe operator or short circuit operators:
 
 ```groovy
@@ -57,8 +57,8 @@ class MyModel {
 }
 ```
 
-If validation fails, an `KlumVisitorException` is thrown, any other encountered exception during validation is also wrapped in an
-`KlumVisitorException`. Unfortunately, Groovy's Power Assertion are currently not used in the output.
+Any failed validation is wrapped in a `KlumValidationProblem`, all 
+problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via the `validationResult` property or `Validator.getValidationResult(Object)` method.
 
 # `@Required`
 
@@ -96,7 +96,7 @@ class MyModel {
 
 # Validation of inner objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
-phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e. validation for
+phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e., validation for
 the complete model tree runs immediately before the initial create method returns.
 
 This means that inner objects can make use of the complete model tree (provided they have an owner field).
@@ -131,6 +131,28 @@ class Component {
 Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
+
+# Validation levels
+
+There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.
+
+Usually, validation problems are considered errors, but you can use the `level` parameter of the `@Validate` (or `@Required`) annotation to change this. 
+
+In the normal case, only errors lead to a `KlumValidationException` being thrown, but all validation problems are collected in the `KlumValidationResult` and can be accessed via the `Validator.getValidationResult(Object)`.
+
+The level on which the validation causes an exception can be overridden by the `klum.validation.failOnLevel` system property.
+
+# Deprecations
+
+If a field is marked as deprecated but has no `@Validate` annotation, it is automatically validated against Groovy False, i.e. if the value is not null or empty, a validation problem of level DEPRECATION is reported.
+
+This behavior can be overridden by explicitly setting a `@Validate` annotation on the field.
+
+The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
+
+# Multiple problems on a single field
+
+Note that currently, only a single validation problem can be reported for every field, or method, so to perform multiple, independent checks, it is necessary to use separate validation methods.
 
 # Manual validation
 

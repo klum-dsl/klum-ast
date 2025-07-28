@@ -43,4 +43,7 @@ import java.lang.annotation.Target;
 public @interface Required {
     /** An optional message to be given for failed validations */
     String value() default "";
+
+    /** The level of the validation problem, defaults to {@link Validate.Level#ERROR} if the requirement is violated. */
+    Validate.Level level() default Validate.Level.ERROR;
 }

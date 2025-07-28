@@ -38,8 +38,6 @@ import java.util.List;
  */
 public class ValidationPhase extends AbstractPhaseAction {
 
-    public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
-
     public ValidationPhase() {
         super(DefaultKlumPhase.VALIDATE);
     }
@@ -54,18 +52,15 @@ public class ValidationPhase extends AbstractPhaseAction {
         private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
         private Validate.Level currentMaxLevel = Validate.Level.NONE;
 
-        Validate.Level getFailLevel() {
-            return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
-        }
-
         void execute() {
-            executeOn(PhaseDriver.getInstance().getRootObject(), getFailLevel());
+            executeOn(PhaseDriver.getInstance().getRootObject(), Validator.getFailLevel());
         }
 
-        void executeOn(Object root, Validate.Level failOnLevel) {
+        List<KlumValidationResult> executeOn(Object root, Validate.Level failOnLevel) {
             StructureUtil.visit(root, this);
             if (currentMaxLevel.equalOrWorseThan(failOnLevel))
                 throw new KlumValidationException(aggregatedErrors);
+            return aggregatedErrors;
         }
 
         @Override
