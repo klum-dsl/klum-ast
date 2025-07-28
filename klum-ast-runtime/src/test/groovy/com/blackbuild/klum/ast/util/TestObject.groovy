@@ -21,29 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.util
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.blackbuild.klum.ast.KlumModelObject
 
-/**
- * Denotes an exception that means a validation error occurred in the model.
- * This is used to collect multiple validation errors and provide a detailed message.
- * <p>
- *     Note that this is explicitly not a subclass of {@link KlumModelException}, since a KlumModelException
- *     points to a specific model element that is invalid, while this exception collects multiple validation errors.
- * </p>
- */
-public class KlumValidationException extends KlumException {
-
-    private final List<KlumValidationResult> validationResults;
-
-    public KlumValidationException(List<KlumValidationResult> validationResults) {
-        this.validationResults = validationResults;
-    }
-
-    @Override
-    public String getMessage() {
-        return validationResults.stream().map(KlumValidationResult::getMessage).collect(Collectors.joining("\n"));
-    }
+class TestObject implements KlumModelObject {
+    public KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
 }

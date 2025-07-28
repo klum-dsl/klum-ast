@@ -29,6 +29,9 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Phase Action that validates the model.
  */
@@ -44,7 +47,8 @@ public class ValidationPhase extends AbstractPhaseAction {
 
     public static class Visitor implements ModelVisitor {
 
-        private KlumValidationException aggregatedErrors;
+        private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
+        private KlumValidationProblem.Level currentMaxLevel = KlumValidationProblem.Level.NONE;
 
         void execute() {
             executeOn(PhaseDriver.getInstance().getRootObject(), KlumValidationProblem.Level.DEPRECATION);
@@ -52,9 +56,8 @@ public class ValidationPhase extends AbstractPhaseAction {
 
         void executeOn(Object root, KlumValidationProblem.Level maxAllowedLevel) {
             StructureUtil.visit(root, this);
-            if (aggregatedErrors == null) return;
-            if (aggregatedErrors.maxLevel().ordinal() > maxAllowedLevel.ordinal())
-                throw aggregatedErrors;
+            if (currentMaxLevel.worseThan(maxAllowedLevel))
+                throw new KlumValidationException(aggregatedErrors);
         }
 
         @Override
@@ -62,13 +65,9 @@ public class ValidationPhase extends AbstractPhaseAction {
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
             if (proxy.getManualValidation()) return;
 
-            try {
-                Validator.validate(element);
-            } catch (KlumValidationException e) {
-                if (aggregatedErrors == null)
-                    aggregatedErrors = new KlumValidationException();
-                aggregatedErrors.merge(e);
-            }
+            KlumValidationResult result = Validator.lenientValidate(element);
+            aggregatedErrors.add(result);
+            currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
         }
     }
 }

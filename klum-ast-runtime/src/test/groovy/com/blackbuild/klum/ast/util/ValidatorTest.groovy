@@ -34,7 +34,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             package pk
 
             @DSL
-            class Foo {
+            class Foo extends TestObject {
             }
         ''')
 
@@ -52,9 +52,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
+            class Foo extends TestObject {
                 @Validate
                 String name
             }
@@ -82,9 +80,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
+            class Foo extends TestObject {
                 // since we don't use AST-Transformation, we need to explicitly use assert
                 @Validate({ assert value > 10})
                 int value
@@ -113,14 +109,12 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+            class Foo extends TestObject {
                 @Validate int value
             }
 
             @DSL
             class Bar extends Foo {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
             }
         ''')
         instance = newInstanceOf("pk.Bar")
@@ -147,9 +141,7 @@ class ValidatorTest extends AbstractRuntimeTest {
             import com.blackbuild.groovy.configdsl.transform.Validate
 
             @DSL
-            class Foo implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
+            class Foo extends TestObject {
                 @Validate Boolean value
             }
         ''')
@@ -186,9 +178,7 @@ class ValidatorTest extends AbstractRuntimeTest {
 
             @DSL
             @Validate
-            class Foo {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
+            class Foo extends TestObject {
                 boolean value
             }
         ''')

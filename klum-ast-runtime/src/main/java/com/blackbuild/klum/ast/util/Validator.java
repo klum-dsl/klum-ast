@@ -31,8 +31,6 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
@@ -43,17 +41,15 @@ public class Validator {
     private final String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final List<KlumValidationProblem> validationErrors = new ArrayList<>();
+    private final KlumValidationResult validationErrors;
 
     public static void validate(Object instance) throws KlumValidationException{
         Validator validator = new Validator(instance);
         validator.execute();
-        if (!validator.validationErrors.isEmpty()) {
-            throw new KlumValidationException(validator.validationErrors);
-        }
+        validator.validationErrors.throwOn(KlumValidationProblem.Level.ERROR);
     }
 
-    public static List<KlumValidationProblem> lenientValidate(Object instance) {
+    public static KlumValidationResult lenientValidate(Object instance) {
         Validator validator = new Validator(instance);
         validator.execute();
         return validator.validationErrors;
@@ -70,10 +66,12 @@ public class Validator {
     protected Validator(Object instance) {
         this.instance = instance;
         this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+        this.validationErrors = new KlumValidationResult(breadcrumbPath);
     }
 
     public void execute() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
+        KlumInstanceProxy.getProxyFor(instance).setValidationResults(validationErrors);
     }
 
     private void validateType(Class<?> type) {
@@ -86,7 +84,7 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationErrors::add);
+            validateCustomMethod(m).ifPresent(validationErrors::addProblem);
         }
     }
 
@@ -98,15 +96,17 @@ public class Validator {
         try {
             runnable.run();
             return Optional.empty();
-        } catch (Exception | AssertionError e) {
+        } catch (Exception e) {
             return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e));
+        } catch (AssertionError e) {
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null));
         }
     }
 
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationErrors::add);
+            validateField(field).ifPresent(validationErrors::addProblem);
         }
     }
 

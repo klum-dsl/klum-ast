@@ -70,6 +70,7 @@ public class KlumInstanceProxy {
     private int breadCrumbQuantifier = 1;
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
+    private KlumValidationResult validationResults;
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -243,6 +244,14 @@ public class KlumInstanceProxy {
 
     void manualValidation(boolean value) {
         manualValidation = value;
+    }
+
+    boolean isValidated() {
+        return validationResults != null;
+    }
+
+    public void setValidationResults(KlumValidationResult validationResults) {
+        this.validationResults = validationResults;
     }
 
     /**

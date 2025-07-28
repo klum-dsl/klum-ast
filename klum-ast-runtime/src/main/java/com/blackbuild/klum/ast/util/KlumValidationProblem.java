@@ -23,15 +23,17 @@
  */
 package com.blackbuild.klum.ast.util;
 
-public class KlumValidationProblem {
+import java.io.Serializable;
 
-    public final String breadcrumbPath;
+public class KlumValidationProblem implements Serializable {
+
     public final String member;
     public final String message;
-    public final Throwable exception;
+    public final Exception exception;
     public final Level level;
+    private final String breadcrumbPath;
 
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception, Level level) {
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception, Level level) {
         this.breadcrumbPath = breadcrumbPath;
         this.member = member;
         this.message = message;
@@ -39,7 +41,7 @@ public class KlumValidationProblem {
         this.level = level;
     }
 
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Throwable exception) {
+    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception) {
         this(breadcrumbPath, member, message, exception, Level.ERROR);
     }
 
@@ -56,14 +58,18 @@ public class KlumValidationProblem {
     }
 
     public String getFullMessage() {
-        return getFullPath() + ": " + message;
+        return getLevel().name() + " " + getFullPath() + ": " + message;
+    }
+
+    public String getLocalMessage() {
+        return getLevel().name() + " #" + getMember() + ": " + message;
     }
 
     public String getMember() {
         return member;
     }
 
-    public Throwable getException() {
+    public Exception getException() {
         return exception;
     }
 
@@ -72,9 +78,22 @@ public class KlumValidationProblem {
     }
 
     public enum Level {
+        NONE,
         INFO,
         WARNING,
         DEPRECATION,
-        ERROR
+        ERROR;
+
+        public Level combine(Level other) {
+            return this.worseThan(other) ? this : other;
+        }
+
+        public boolean worseThan(Level other) {
+            return this.ordinal() > other.ordinal();
+        }
+
+        public boolean equalOrWorseThan(Level level) {
+            return this.ordinal() >= level.ordinal();
+        }
     }
 }
