@@ -35,6 +35,7 @@
 - DefaultValues annotations provide an annotation based way to set default values in Layer3 scenarios (see [Default Values](https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation) and [#361](https://github.com/klum-dsl/klum-ast/issues/361))
 - `@Cluster`-Fields create now a factory closure for that field, containing only the cluster members (see [#365](https://github.com/klum-dsl/klum-ast/issues/365))
 - `applyLater` methods for all objects that can be used to hook closures to be applied in later phases (see [Model Phases](https://github.com/klum-dsl/klum-ast/wiki/Model-Phases))
+- Validations have additional levels (WARNING, DEPRECATION and INFO) that can be set for each individual validation. Non error validations to lead to failure in the model (see [#145](https://github.com/klum-dsl/klum-ast/issues/365) and [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation))
 
 ## Improvements
 - Creator classes also support methods creating multiple instances at once (see [#319](https://github.com/klum-dsl/klum-ast/issues/319))

@@ -21,29 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform;
+package com.blackbuild.klum.ast.util
 
-import org.codehaus.groovy.transform.GroovyASTTransformationClass;
+import com.blackbuild.klum.ast.KlumModelObject
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-/**
- * Shortcut for an empty {@link Validate} annotation on a field. Checks during validation whether the annotated field
- * is set, i.e. resolves to Groovy truth (or non null for {@link Boolean}  fields). As with validate, it is illegal to place
- * this annotation on a primitive boolean field.
- */
-@Target({ElementType.FIELD, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
-@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.converters.RequiredToValidateTransformation")
-@Documented
-public @interface Required {
-    /** An optional message to be given for failed validations */
-    String value() default "";
-
-    /** The level of the validation problem, defaults to {@link Validate.Level#ERROR} if the requirement is violated. */
-    Validate.Level level() default Validate.Level.ERROR;
+class TestObject implements KlumModelObject {
+    public KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
 }

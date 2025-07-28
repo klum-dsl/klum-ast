@@ -23,41 +23,118 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
-import com.blackbuild.klum.ast.util.layer3.KlumVisitorException;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
+/**
+ * Validates an instance of a DSL object, checking for the presence of required fields,
+ * custom validation methods, and deprecated fields.
+ */
 public class Validator {
 
+    public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
+
     private final Object instance;
+    private final String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final List<KlumVisitorException> validationErrors = new ArrayList<>();
+    private final KlumValidationResult validationErrors;
 
-    public static void validate(Object instance) throws KlumValidationException {
+    /**
+     * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
+     *
+     * @param instance the instance to validate
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static void validate(Object instance) throws KlumValidationException{
         Validator validator = new Validator(instance);
         validator.execute();
-        if (!validator.validationErrors.isEmpty()) {
-            throw new KlumValidationException(validator.validationErrors);
-        }
+        validator.validationErrors.throwOn(getFailLevel());
+    }
+
+    /**
+     * Validates the given instance, returning a {@link KlumValidationResult} containing any validation errors.
+     * This method does not throw an exception, allowing for lenient validation.
+     *
+     * @param instance the instance to validate
+     * @return a {@link KlumValidationResult} containing validation errors
+     */
+    public static KlumValidationResult lenientValidate(Object instance) {
+        Validator validator = new Validator(instance);
+        validator.execute();
+        return validator.validationErrors;
+    }
+
+    /**
+     * Validates the structure of the given instance, checking for required fields and custom validation methods.
+     * This method uses the default fail level defined by the system property {@code klum.validation.failOnLevel}.
+     *
+     * @param instance the instance to validate
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static List<KlumValidationResult> validateStructure(Object instance) throws KlumValidationException {
+        return validateStructure(instance, getFailLevel());
+    }
+
+    /**
+     * Validates the structure of the given instance, checking for required fields and custom validation methods,
+     * throwing a {@link KlumValidationException} if any validation problems with the fail level are found.
+     *
+     * @param instance the instance to validate
+     * @param failLevel the maximum allowed validation level
+     * @return a list of {@link KlumValidationResult} containing validation errors
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static List<KlumValidationResult> validateStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
+        return new ValidationPhase.Visitor().executeOn(instance, failLevel);
+    }
+
+    /**
+     * Retrieves the validation result for the given instance, either from the proxy or by performing a lenient validation.
+     * This method is useful when you want to check the validation results without throwing an exception.
+     *
+     * @param instance the instance to validate
+     * @return a {@link KlumValidationResult} containing validation errors
+     */
+    public static KlumValidationResult getValidationResult(Object instance) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
+        KlumValidationResult validationResult = proxy.getValidationResults();
+        if (validationResult != null) return validationResult;
+        return lenientValidate(instance);
+    }
+
+    /**
+     * Retrieves the fail level for validation, which is defined by the system property {@code klum.validation.failOnLevel}.
+     * If the property is not set, it defaults to {@link Validate.Level#ERROR}.
+     *
+     * @return the fail level for validation
+     */
+    public static Validate.Level getFailLevel() {
+        return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
     }
 
     protected Validator(Object instance) {
         this.instance = instance;
+        this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+        this.validationErrors = new KlumValidationResult(breadcrumbPath);
     }
 
     public void execute() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
+        KlumInstanceProxy.getProxyFor(instance).setValidationResults(validationErrors);
     }
 
     private void validateType(Class<?> type) {
@@ -70,44 +147,40 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-
-            try {
-                validateCustomMethod(m);
-            } catch (KlumVisitorException e) {
-                validationErrors.add(e);
-            }
+            validateCustomMethod(m).ifPresent(validationErrors::addProblem);
         }
     }
 
-    private void validateCustomMethod(Method method) {
-        withExceptionCheck("Method '" + method.getName() + "'", () -> InvokerHelper.invokeMethod(instance, method.getName(), null));
+    private Optional<KlumValidationProblem> validateCustomMethod(Method method) {
+        Validate.Level level = getValidateAnnotationOrDefault(method).level();
+        return withExceptionCheck(
+                method.getName() + "()",
+                level,
+                () -> InvokerHelper.invokeMethod(instance, method.getName(), null)
+        );
     }
 
-    private void withExceptionCheck(String message, Runnable runnable) throws KlumVisitorException {
+    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
             runnable.run();
-        } catch (KlumVisitorException e) {
-            throw e;
-        } catch (Exception | AssertionError e) {
-            throw new KlumVisitorException(message + ": " + e.getMessage(), instance, e);
+            return Optional.empty();
+        } catch (Exception e) {
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e, level));
+        } catch (AssertionError e) {
+            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null, level));
         }
     }
 
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            try {
-                validateField(field);
-            } catch (KlumVisitorException e) {
-                validationErrors.add(e);
-            }
+            validateField(field).ifPresent(validationErrors::addProblem);
         }
     }
 
     private boolean isNotExplicitlyIgnored(Field field) {
         if (Modifier.isStatic(field.getModifiers())) return false;
-        Validate validate = field.getAnnotation(Validate.class);
-        return validate == null || validate.value() != Validate.Ignore.class;
+        return getValidateAnnotationOrDefault(field).value() != Validate.Ignore.class;
     }
 
     private boolean shouldValidate(Field field) {
@@ -116,32 +189,72 @@ public class Validator {
         if (field.isAnnotationPresent(Owner.class)) return false;
         if (field.getType() == boolean.class) return false;
 
-        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
+        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
     }
 
-    private void validateField(Field field) {
+    private Optional<KlumValidationProblem> validateField(Field field) {
         if (!shouldValidate(field))
-            return;
+            return Optional.empty();
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
 
-        Validate validate = field.getAnnotation(Validate.class);
-        Class<? extends Closure> validationValue = validate != null ? validate.value() : Validate.GroovyTruth.class;
+        if (field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
+            return checkForDeprecation(field, value);
 
-        if (validationValue == Validate.GroovyTruth.class)
-            checkAgainstGroovyTruth(field, value, validate);
+        Validate validate = getValidateAnnotationOrDefault(field);
+
+        if (validate.value() == Validate.GroovyTruth.class)
+            return checkAgainstGroovyTruth(field, value, validate);
         else
-            withExceptionCheck("Field '" + field.getName() + "'", () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validationValue, instance, value));
+            return withExceptionCheck(
+                    field.getName(),
+                    validate.level(),
+                    () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validate.value(), instance, value)
+            );
     }
 
-    private void checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
-        if (field.getType() == Boolean.class && value != null) return;
-        if (castToBoolean(value)) return;
+    private Optional<KlumValidationProblem> checkForDeprecation(Field field, Object value) {
+        if (!isGroovyTruth(field, value)) return Optional.empty();
 
-        String message = validate != null ? validate.message() : "";
+        String message = getDeprecationMessage(field);
+
+        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
+    }
+
+    private String getDeprecationMessage(Field field) {
+        AnnoDoc annoDoc = field.getAnnotation(AnnoDoc.class);
+
+        if (annoDoc == null)
+            return String.format("Field '%s' is deprecated", field.getName());
+
+        return Arrays.stream(annoDoc.value().split("\\R"))
+                .filter(l -> l.startsWith("@deprecated "))
+                .map(l -> l.replaceFirst("@deprecated ", "").trim())
+                .findAny()
+                .orElse(String.format("Field '%s' is deprecated", field.getName()));
+    }
+
+    private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
+        if (isGroovyTruth(field, value)) return Optional.empty();
+
+        String message = validate.message();
+
         if (message.isEmpty())
             message = String.format("Field '%s' must be set", field.getName());
 
-        throw new KlumVisitorException(message, instance);
+        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
+    }
+
+    @SuppressWarnings("java:S1126")
+    private boolean isGroovyTruth(Field field, Object value) {
+        if (field.getType() == Boolean.class && value != null) return true;
+        if (castToBoolean(value)) return true;
+        return false;
+    }
+
+    private Validate getValidateAnnotationOrDefault(AnnotatedElement member) {
+        Validate validate = member.getAnnotation(Validate.class);
+        if (validate != null) return validate;
+        return Validate.DefaultImpl.INSTANCE;
     }
 }

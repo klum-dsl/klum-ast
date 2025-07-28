@@ -108,7 +108,10 @@ import java.lang.annotation.*;
  *     <li>custom validation methods</li>
  * </ul>
  *
- * <p>if the validation fails for any validation field or method, an {@link IllegalStateException} is thrown.</p>
+ * <p>Using the {@link #level()} member, the validation can be designated as information/warning only.</p>
+ *
+ * <p>Validation is usually executed as part of the ValidationPhase, which performs validations on all objects in the
+ * hierarchy. Validation results of all objects are collected, and if an Error level problem is found, a KlumValidationException is thrown.</p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -133,6 +136,53 @@ public @interface Validate {
     String message() default "";
 
     /**
+     * Defines the severity of the validation problem. Default is {@link Level#ERROR}. This can be used to create
+     * Warning or Info messages instead of errors.
+     */
+    @NotOn(ElementType.TYPE)
+    Level level() default Level.ERROR;
+
+    /**
+     * Defines the severity of the validation problem.
+     */
+    enum Level {
+        /** No validation problem, used as a default value */
+        NONE,
+        /** Informational message, used to indicate that something is not wrong, but might be worth noting. */
+        INFO,
+        /** Warning message, used to indicate that something is not wrong, but might lead to problems later on. */
+        WARNING,
+        /** Indicates that the validation problem is a deprecation warning, meaning that the validation target is still valid but should not be used anymore. */
+        DEPRECATION,
+        /** Indicates that the validation problem is an error, meaning that the validation target is not valid. */
+        ERROR;
+
+        public Level combine(Level other) {
+            return this.worseThan(other) ? this : other;
+        }
+
+        public boolean worseThan(Level other) {
+            return this.ordinal() > other.ordinal();
+        }
+
+        public boolean equalOrWorseThan(Level level) {
+            return this.ordinal() >= level.ordinal();
+        }
+
+        public static Level fromString(String level) {
+            if (level == null || level.isEmpty()) return NONE;
+
+            try {
+                return Level.values()[Integer.parseInt(level)];
+            } catch (NumberFormatException e) {
+                // ignore, is no number
+            }
+
+            return Level.valueOf(level.toUpperCase());
+        }
+    }
+
+    /**
      * Default value for {@link Validate#value()}. Designates the field to be validated against Groovy Truth.
      */
     class GroovyTruth extends NamedAnnotationMemberClosure<Object> {
@@ -148,6 +198,31 @@ public @interface Validate {
     class Ignore extends NamedAnnotationMemberClosure<Object> {
         public Ignore(Object owner, Object thisObject) {
             super(owner, thisObject);
+        }
+    }
+
+    class DefaultImpl implements Validate {
+
+        public static final Validate INSTANCE = new DefaultImpl();
+
+        @Override
+        public Class<? extends Closure> value() {
+            return GroovyTruth.class;
+        }
+
+        @Override
+        public String message() {
+            return "";
+        }
+
+        @Override
+        public Level level() {
+            return Level.ERROR;
+        }
+
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return Validate.class;
         }
     }
 

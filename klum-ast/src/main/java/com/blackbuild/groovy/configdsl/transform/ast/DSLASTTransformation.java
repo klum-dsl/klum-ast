@@ -296,7 +296,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new ClusterFactoryBuilder(annotatedClass, methodNode).invoke();
     }
 
-
     private void createValidateMethod() {
         convertValidationClosures();
 
@@ -313,7 +312,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createProxyMethod(VALIDATE_METHOD)
                 .mod(ACC_PUBLIC)
                 .optional()
-                .forRemoval("Use ")
+                .forRemoval("Use Validator.validate() instead")
                 .addTo(annotatedClass);
     }
 

@@ -23,16 +23,21 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Phase Action that validates the model.
  */
 public class ValidationPhase extends AbstractPhaseAction {
+
     public ValidationPhase() {
         super(DefaultKlumPhase.VALIDATE);
     }
@@ -44,13 +49,18 @@ public class ValidationPhase extends AbstractPhaseAction {
 
     public static class Visitor implements ModelVisitor {
 
-        private KlumValidationException aggregatedErrors;
+        private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
+        private Validate.Level currentMaxLevel = Validate.Level.NONE;
 
         void execute() {
-            Object root = PhaseDriver.getInstance().getRootObject();
+            executeOn(PhaseDriver.getInstance().getRootObject(), Validator.getFailLevel());
+        }
+
+        List<KlumValidationResult> executeOn(Object root, Validate.Level failOnLevel) {
             StructureUtil.visit(root, this);
-            if (aggregatedErrors != null)
-                throw aggregatedErrors;
+            if (currentMaxLevel.equalOrWorseThan(failOnLevel))
+                throw new KlumValidationException(aggregatedErrors);
+            return aggregatedErrors;
         }
 
         @Override
@@ -58,13 +68,9 @@ public class ValidationPhase extends AbstractPhaseAction {
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
             if (proxy.getManualValidation()) return;
 
-            try {
-                Validator.validate(element);
-            } catch (KlumValidationException e) {
-                if (aggregatedErrors == null)
-                    aggregatedErrors = new KlumValidationException();
-                aggregatedErrors.merge(e);
-            }
+            KlumValidationResult result = Validator.lenientValidate(element);
+            aggregatedErrors.add(result);
+            currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
         }
     }
 }

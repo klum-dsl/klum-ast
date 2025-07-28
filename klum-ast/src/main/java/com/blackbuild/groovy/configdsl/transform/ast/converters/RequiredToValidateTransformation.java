@@ -62,9 +62,12 @@ public class RequiredToValidateTransformation extends AbstractASTTransformation 
         AnnotationNode validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
 
         Expression value = requiredAnnotation.getMember("value");
-
         if (value != null)
             validateAnnotation.addMember("message", value);
+
+        Expression level = requiredAnnotation.getMember("level");
+        if (level != null)
+            validateAnnotation.addMember("level", level);
 
         annotatedField.addAnnotation(validateAnnotation);
     }

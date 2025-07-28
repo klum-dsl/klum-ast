@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 
 /**
  * An Exception that is bound to a specific object in the model.
@@ -36,12 +35,7 @@ public class KlumVisitorException extends KlumException {
 
     public KlumVisitorException(String message, Object responsibleObject, Throwable cause) {
         super(message, cause);
-        if (responsibleObject instanceof KlumInstanceProxy)
-            this.breadcrumbPath = ((KlumInstanceProxy) responsibleObject).getBreadcrumbPath();
-        else if (DslHelper.isDslObject(responsibleObject))
-            this.breadcrumbPath = KlumInstanceProxy.getProxyFor(responsibleObject).getBreadcrumbPath();
-        else
-            this.breadcrumbPath = null;
+        this.breadcrumbPath = DslHelper.getBreadcrumbPath(responsibleObject);
     }
 
     public KlumVisitorException(String message, Object responsibleObject) {

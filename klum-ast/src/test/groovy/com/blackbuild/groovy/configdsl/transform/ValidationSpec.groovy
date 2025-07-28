@@ -25,11 +25,12 @@
 //file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
-
+import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
+import spock.lang.IgnoreIf
 import spock.lang.Issue
 
 class ValidationSpec extends AbstractDSLSpec {
@@ -226,7 +227,6 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         error = thrown(KlumValidationException)
         error.message.contains("Field 'name' must be set")
-        error.suppressed.any { it.message == "\$/Foo.With: Field 'name' must be set" }
     }
 
     def "validation with message"() {
@@ -244,7 +244,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains("- We need a name")
+        error.message.contains("- ERROR #name: We need a name")
     }
 
     def "validation with explicit Groovy Truth"() {
@@ -296,18 +296,18 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         def e = thrown(KlumValidationException)
-        e.message.contains "- Field 'validated': null does not match. Expression: (it?.length() > 3)"
+        e.message.contains "- ERROR #validated: null does not match. Expression: (it?.length() > 3)"
 
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains "- Field 'validated': 'bla' does not match. Expression: (it?.length() > 3)"
+        error.message.contains "- ERROR #validated: 'bla' does not match. Expression: (it?.length() > 3)"
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -331,13 +331,13 @@ class ValidationSpec extends AbstractDSLSpec {
         // error.message == "Field 'validated' (null) is invalid. Expression: (it?.length() > 3)"
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -358,7 +358,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         error = thrown(KlumValidationException)
-        error.message.contains "- Field 'validated': It shall not be!. Expression: (it?.length() > 3)"
+        error.message.contains "- ERROR #validated: It shall not be!. Expression: (it?.length() > 3)"
     }
 
     def "validation with named Closure"() {
@@ -378,13 +378,13 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "bla"}
+        clazz.Create.With { validated "bla" }
 
         then:
         thrown(KlumValidationException)
 
         when:
-        clazz.Create.With { validated "valid"}
+        clazz.Create.With { validated "valid" }
 
         then:
         notThrown(KlumValidationException)
@@ -883,4 +883,125 @@ class ValidationSpec extends AbstractDSLSpec {
         def e = thrown(KlumValidationException)
         e.message.contains "Name must be set"
     }
+
+    @Issue("145")
+    def "warning issues"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        def validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then:
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.problems.size() == 1
+        validationResults.message == '''$/Foo.With:
+- WARNING #validated: Field 'validated' must be set'''
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then:
+        notThrown(KlumValidationException)
+        validationResults.maxLevel == Validate.Level.NONE
+    }
+
+    @Issue("145")
+    def "warning and error issues"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validated
+
+                @Validate(level = Validate.Level.ERROR)
+                String validatedError
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message == '''$/Foo.With:
+- ERROR #validatedError: Field 'validatedError' must be set
+- WARNING #validated: Field 'validated' must be set'''
+    }
+
+    @Issue("145")
+    def "Deprecated fields with validation result in a Deprecation warning if set"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Deprecated
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'No Warnings'
+        result.maxLevel == Validate.Level.NONE
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'Warning for deprecated field'
+        result.maxLevel == Validate.Level.DEPRECATION
+        result.problems.size() == 1
+        result.message == '''$/Foo.With:
+- DEPRECATION #validated: Field 'validated' is deprecated'''
+    }
+
+    @Issue("145")
+    @IgnoreIf({ GroovySystem.version.startsWith("2.") })
+    def "Deprecation message is extracted from javadoc if present"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                /**
+                 * @deprecated Use something else.
+                 */
+                @Deprecated
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'Warning for deprecated field'
+        result.maxLevel == Validate.Level.DEPRECATION
+        result.problems.size() == 1
+        result.message == '''$/Foo.With:
+- DEPRECATION #validated: Use something else.'''
+    }
+
 }
