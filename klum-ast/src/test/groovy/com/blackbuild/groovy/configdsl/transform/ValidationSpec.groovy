@@ -943,4 +943,36 @@ class ValidationSpec extends AbstractDSLSpec {
 - ERROR #validatedError: Field 'validatedError' must be set
 - WARNING #validated: Field 'validated' must be set'''
     }
+
+    @Issue("145")
+    def "Deprecated fields with validation result in a Deprecation warning if set"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Deprecated
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'No Warnings'
+        result.maxLevel == Validate.Level.NONE
+
+        when:
+        instance = clazz.Create.With {
+            validated "bla"
+        }
+        result = KlumInstanceProxy.getProxyFor(instance).validationResults
+
+        then: 'Warning for deprecated field'
+        result.maxLevel == Validate.Level.DEPRECATION
+        result.problems.size() == 1
+        result.message == '''$/Foo.With:
+- DEPRECATION #validated: Field 'validated' is deprecated'''
+
+    }
 }

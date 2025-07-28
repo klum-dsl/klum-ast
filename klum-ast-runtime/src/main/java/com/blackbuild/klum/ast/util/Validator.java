@@ -127,7 +127,7 @@ public class Validator {
         if (field.isAnnotationPresent(Owner.class)) return false;
         if (field.getType() == boolean.class) return false;
 
-        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
+        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
     }
 
     private Optional<KlumValidationProblem> validateField(Field field) {
@@ -135,6 +135,9 @@ public class Validator {
             return Optional.empty();
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
+
+        if (field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
+            return checkForDeprecation(field, value);
 
         Validate validate = getValidateAnnotationOrDefault(field);
 
@@ -148,9 +151,16 @@ public class Validator {
             );
     }
 
+    private Optional<KlumValidationProblem> checkForDeprecation(Field field, Object value) {
+        if (!isGroovyTruth(field, value)) return Optional.empty();
+
+        String message = String.format("Field '%s' is deprecated", field.getName());
+
+        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
+    }
+
     private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
-        if (field.getType() == Boolean.class && value != null) return Optional.empty();
-        if (castToBoolean(value)) return Optional.empty();
+        if (isGroovyTruth(field, value)) return Optional.empty();
 
         String message = validate.message();
 
@@ -158,6 +168,12 @@ public class Validator {
             message = String.format("Field '%s' must be set", field.getName());
 
         return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
+    }
+
+    private boolean isGroovyTruth(Field field, Object value) {
+        if (field.getType() == Boolean.class && value != null) return true;
+        if (castToBoolean(value)) return true;
+        return false;
     }
 
     private Validate getValidateAnnotationOrDefault(AnnotatedElement member) {
