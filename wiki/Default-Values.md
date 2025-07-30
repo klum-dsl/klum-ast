@@ -174,3 +174,23 @@ class Bathroom extends Room {
 
 If the field target by a default values annotation's member is not existant, an exception is thrown. This can be prevented
 by setting `DefaultValues.ignoreUnknownFields` to true.
+
+## valueTarget
+
+`@DefaultValues` has an optional `valueTarget` member that can be used to map the `value` member of the targeted annotation to a different field. This allows for nice single-value annotations (like `@DisplayName`).
+
+```groovy
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.FIELD])
+@DefaultValues(valueTarget = "displayName")
+@interface DisplayName {
+    String value()
+}
+
+@DSL class Home {
+    @DisplayName("Living Room")
+    LivingRoom livingRoom
+}
+```
+
+Note that if the targeted field is actually named `value`, the `valueTarget` member of the control annotation must still be set (to 'value'), or the validation will fail.

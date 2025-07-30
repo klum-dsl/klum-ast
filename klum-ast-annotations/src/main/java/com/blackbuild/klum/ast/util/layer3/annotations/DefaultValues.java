@@ -23,6 +23,9 @@
  */
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
+import com.blackbuild.klum.cast.KlumCastValidated;
+import com.blackbuild.klum.cast.KlumCastValidator;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
@@ -34,10 +37,17 @@ import java.lang.annotation.Target;
  */
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
+@KlumCastValidated
+@KlumCastValidator("com.blackbuild.klum.ast.util.layer3.DefaultValuesCheck")
 public @interface DefaultValues {
     /**
      * If false (default), the setting will fail if a matching field in the target object does not exist.
      * If true, missing fields are silently ignored.
      */
     boolean ignoreUnknownFields() default false;
+
+    /**
+     * Maps the member 'values' of the annotated annotation to a specific target field in the annotated object.
+     */
+    String valueTarget() default "";
 }

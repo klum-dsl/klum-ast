@@ -34,6 +34,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Map;
 
 import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
@@ -68,7 +69,14 @@ public class DefaultPhase extends VisitingPhaseAction {
 
     private void setDefaultValuesFromAnnotation(Object element, Annotation valuesAnnotation) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        AnnotationHelper.getNonDefaultMembers(valuesAnnotation)
+        Map<String, Object> nonDefaultMembers = AnnotationHelper.getNonDefaultMembers(valuesAnnotation);
+        if (nonDefaultMembers.containsKey("value")) {
+            String valueTarget = valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).valueTarget();
+            Object mapping = nonDefaultMembers.remove("value");
+            nonDefaultMembers.put(valueTarget, mapping);
+        }
+
+        nonDefaultMembers
                 .forEach((field, value) -> setFieldToDefaultValue(field, value, proxy, valuesAnnotation));
     }
 
