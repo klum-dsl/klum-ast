@@ -18,10 +18,10 @@ instead are part of the creation phase, and run for each object separately.
 
 # Creation
 
-The creation phase is started by the first call to any creation method in a thread. It consists of the actual instantiation of the model root as well as calling its apply methods. Creation of an object includes calling of postCreate and postApply methods of that object, as well as any `@Owner` fields or methods. (Note that `@Owner` handling might be promoted to a separate phase in the future)
+The creation phase is started by the first call to any creation method in a thread. It consists of the actual instantiation of the model root as well as calling its apply methods. Creation of an object includes calling of `postCreate` and `postApply` methods on that object, as well as any `@Owner` fields or methods. (Note that `@Owner` handling might be promoted to a separate phase in the future)
 
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
-subsequent phases.
+later phases.
 
 ## PhaseActions
 
@@ -36,7 +36,7 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 # Phase Details
 
 ## ApplyLater (1)
-The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures that were registered using the `applyLater` method without a phase argument.
+The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument.
 
 ## AutoCreate (10)
 

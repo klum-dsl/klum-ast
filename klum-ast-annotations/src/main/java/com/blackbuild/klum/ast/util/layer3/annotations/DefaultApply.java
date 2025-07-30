@@ -23,31 +23,28 @@
  */
 package com.blackbuild.klum.ast.util.layer3.annotations;
 
-import com.blackbuild.klum.cast.KlumCastValidated;
-import com.blackbuild.klum.cast.KlumCastValidator;
+import groovy.lang.Closure;
+import groovy.transform.TypeChecked;
+import groovy.transform.TypeCheckingMode;
+import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * Marker interface to designate an annotation as a default value provider.
- * The attributes of the annotated annotation type will be used as default values for the annotated dsl object,
- * either as is, or, in the case of a closure member, the result of the closure.
+ * Marks a field with a closure that is automatically applied during the default phase.
+ * This uses the mechanism described in {@link DefaultValues}. Note that since this is technically a Default closure,
+ * it must check itself whether a value is already set, if it should not be overridden.
  */
-@Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
-@Target(ElementType.ANNOTATION_TYPE)
-@KlumCastValidated
-@KlumCastValidator("com.blackbuild.klum.ast.util.layer3.DefaultValuesCheck")
-public @interface DefaultValues {
-    /**
-     * If false (default), the setting will fail if a matching field in the target object does not exist.
-     * If true, missing fields are silently ignored.
-     */
-    boolean ignoreUnknownFields() default false;
+@Target({ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+@DefaultValues(valueTarget = "apply")
+@Documented
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.ApplyDefaultTransformation")
+public @interface DefaultApply {
 
     /**
-     * Maps the member 'values' of the annotated annotation to a specific target field in the annotated object.
+     * The closure to apply. Delegate of the closure will be value of the field annotated with this annotation.
      */
-    String valueTarget() default "";
+    @TypeChecked(TypeCheckingMode.SKIP)
+    Class<? extends Closure<Object>> value();
 }

@@ -672,16 +672,194 @@ import java.lang.annotation.Target
         '''
 
         when:
-        def bar = StrictBar.Create.One()
+        StrictBar.Create.One()
 
         then:
         thrown(KlumVisitorException)
 
         when:
-        bar = LenientBar.Create.One()
+        def bar = LenientBar.Create.One()
 
         then:
         bar.name == "defaultName"
+    }
+
+    @Issue("370")
+    def "if default-values annotation has a 'value' member, valueTarget must be set"() {
+        when: "value member is present, but valuesTarget is not set"
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.*
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues()
+            @interface NoValuesMappingSet {
+                String value()
+            }
+'''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        when: "valuesTarget is set, but value member is not present"
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.*
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(valueTarget = "name")
+            @interface MappingSetButNoValueInAnnotation {
+                String name()
+            }
+'''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        when: "valuesTarget is set and value member is present"
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.*
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(valueTarget = "name")
+            @interface MappingSetButNoValueInAnnotation {
+                String value()
+            }
+'''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("370")
+    def "values member of defaultValues annotation can be remapped"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(valueTarget = 'name')
+            @interface FooName {
+                String value()
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            abstract class Foo {
+                String name
+            }
+            
+            @FooName("defaultName")
+            @DSL class Bar extends Foo {
+            }
+        '''
+
+        when:
+        def bar = Bar.Create.One()
+
+        then:
+        bar.name == "defaultName"
+    }
+
+    @Issue("370")
+    def "remapping also works on fields"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues(valueTarget = "name")
+            @interface BarName {
+                String value()
+            }
+'''
+
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @BarName("defaultName")
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                String name
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+        }
+
+        then:
+        foo.bar.name == "defaultName"
+    }
+
+    @Issue("370")
+    def "Apply annotation uses DefaultValues for additional templating"() {
+        given:
+        createClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultApply
+
+            @DSL
+            class Foo {
+                @DefaultApply({
+                    name "defaultName"
+                    age 42
+                })
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                String name
+                int age
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+        }
+
+        then:
+        foo.bar.name == "defaultName"
+        foo.bar.age == 42
     }
 
 }
