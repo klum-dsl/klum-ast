@@ -829,4 +829,37 @@ import java.lang.annotation.Target
         foo.bar.name == "defaultName"
     }
 
+    @Issue("370")
+    def "Apply annotation uses DefaultValues for additional templating"() {
+        given:
+        createClass '''
+            package pk
+
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultApply
+
+            @DSL
+            class Foo {
+                @DefaultApply({
+                    name "defaultName"
+                    age 42
+                })
+                Bar bar
+            }
+            
+            @DSL class Bar {
+                String name
+                int age
+            }
+        '''
+
+        when:
+        def foo = Foo.Create.With {
+            bar()
+        }
+
+        then:
+        foo.bar.name == "defaultName"
+        foo.bar.age == 42
+    }
+
 }

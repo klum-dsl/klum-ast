@@ -194,3 +194,38 @@ by setting `DefaultValues.ignoreUnknownFields` to true.
 ```
 
 Note that if the targeted field is actually named `value`, the `valueTarget` member of the control annotation must still be set (to 'value'), or the validation will fail.
+
+## DefaultApply
+
+The `@DefaultApply` annotation is a special case for DefaultValues. It applys the given apply annotation to the object of the target field in 
+the default phase. 
+
+Note that there are two caveats to this annotation:
+
+1. Since there is no way to notify the IDE about the closures delegate, there is no code completion for the annotation's closure (however, the compiler will correctly check the contents of the closure).
+2. As with Default-methods, any checks whether the fields are already set must be done manually. 
+
+```groovy
+@DSL
+class Foo {
+    @DefaultApply({
+        if (!name) name "defaultName"
+        if (!age) age 42
+    })
+    Bar bar
+}
+
+@DSL class Bar {
+    String name
+    int age
+}
+
+when:
+def foo = Foo.Create.With {
+    bar()
+}
+
+then:
+foo.bar.name == "defaultName"
+foo.bar.age == 42
+```

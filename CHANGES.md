@@ -53,6 +53,7 @@
 - `@Cluster` can be combined with `@AutoCreate` to auto create all members of the annotated cluster (see [#363](https://github.com/klum-dsl/klum-ast/issues/363))
 - Templates that where active during an object's creation are now stored in the proxy of that object and will be applied to any object created by that object in later phases (usually AutoCreate) (see [#377](https://github.com/klum-dsl/klum-ast/issues/377))
 - `@DefaultValues` has a `valueTarget` member that is used to remap the `value` member of the targeted annotation to a specific field (see [#370](https://github.com/klum-dsl/klum-ast/issues/370))
+- new Layer3 `@DefaultApply` annotation that can be used for complex, schema-controlled default values (see [#370](https://github.com/klum-dsl/klum-ast/issues/370) and [Default Values](https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation))
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
   - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.

@@ -326,4 +326,3 @@ StructureUtil.deepFind(model, DbUser).each { path, user ->
 
 Note that this check should not be standard model validation, because it requires access to the actual database.
 
-

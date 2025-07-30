@@ -29,16 +29,20 @@ import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import groovy.lang.Closure;
+import groovy.lang.MetaMethod;
 import groovy.lang.MissingPropertyException;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 
 import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 
 public class DefaultPhase extends VisitingPhaseAction {
 
@@ -76,25 +80,28 @@ public class DefaultPhase extends VisitingPhaseAction {
             nonDefaultMembers.put(valueTarget, mapping);
         }
 
-        nonDefaultMembers
-                .forEach((field, value) -> setFieldToDefaultValue(field, value, proxy, valuesAnnotation));
+        nonDefaultMembers.forEach((field, value) -> setFieldToDefaultValue(field, value, proxy, valuesAnnotation));
     }
 
     private static void setFieldToDefaultValue(String field, Object value, KlumInstanceProxy proxy, Annotation valuesAnnotation) {
+
         try {
             if (!isEmpty(proxy.getInstanceAttribute(field))) return;
-
         } catch (MissingPropertyException e) {
-            boolean ignoreUnknownFields = valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).ignoreUnknownFields();
-            if (ignoreUnknownFields) return;
-            throw new KlumSchemaException(format("Annotation %s defines a default value for '%s', but '%s' has no such field.",
+            // ignore
+        }
+
+        Class<?> targetType = null;
+        try {
+            targetType = determineTargetType(field, value, proxy, targetType);
+        } catch (MissingPropertyException e) {
+            if (shouldIgnoreUnknownFields(valuesAnnotation)) return;
+            throw new KlumSchemaException(format("Annotation %s defines a default value for '%s', but '%s' has no such field or virtual setter method.",
                     valuesAnnotation.annotationType().getName(), field, proxy.getDSLInstance().getClass().getName()), e);
         }
 
-        Class<?> fieldType = proxy.getField(field).getType();
-
         if (isClosureType(value)) {
-            if (Closure.class.isAssignableFrom(fieldType))
+            if (Closure.class.isAssignableFrom(targetType))
                 //noinspection unchecked
                 value = createClosureInstance((Class<? extends Closure<Object>>) value);
             else
@@ -103,12 +110,40 @@ public class DefaultPhase extends VisitingPhaseAction {
         }
 
         try {
-            Object castedValue = castTo(value, fieldType);
-            proxy.setInstanceAttribute(field, castedValue);
+            Object castedValue = castTo(value, targetType);
+            proxy.invokeRwMethod(field, castedValue);
         } catch (Exception e) {
             throw new KlumSchemaException(format("Could not convert default value from annotation %s.%s to target type %s",
-                    valuesAnnotation.annotationType().getName(), field, fieldType.getName()), e);
+                    valuesAnnotation.annotationType().getName(), field, targetType.getName()), e);
         }
+    }
+
+    private static @NotNull Class<?> determineTargetType(String field, Object value, KlumInstanceProxy proxy, Class<?> fieldType) {
+        Class<?> methodArgument = isClosureType(value) ? (Class<?>) value : value.getClass();
+        MetaMethod exactlyMatchingSetter = proxy.getRwInstance().getMetaClass().getMetaMethod(field, new Object[]{methodArgument});
+
+        if (exactlyMatchingSetter != null)
+            fieldType = exactlyMatchingSetter.getParameterTypes()[0].getTheClass();
+
+        if (fieldType == null) {
+                fieldType = determineTargetTypeFromSingleSetterOrField(field, proxy);
+        }
+        return fieldType;
+    }
+
+    private static boolean shouldIgnoreUnknownFields(Annotation valuesAnnotation) {
+        return valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).ignoreUnknownFields();
+    }
+
+    private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, KlumInstanceProxy proxy) {
+        List<MetaMethod> matchingSetters = proxy.getRwInstance().getMetaClass().getMetaMethods().stream()
+                .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
+                .collect(toList());
+
+        if (matchingSetters.size() == 1)
+            return matchingSetters.get(0).getParameterTypes()[0].getTheClass();
+        else
+            return proxy.getField(field).getType();
     }
 
     private static void executeDefaultLifecycleMethods(Object element) {
