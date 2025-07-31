@@ -1,7 +1,6 @@
 plugins {
     id "java-library"
     id 'groovy'
-    //id 'jacoco'
     id 'signing'
     id 'maven-publish'
     id 'com.github.hierynomus.license'
@@ -20,18 +19,7 @@ java {
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-parameters'
 }
- /*
-jacoco {
-    toolVersion = "0.8.11"
-}
 
-jacocoTestReport {
-    executionData(tasks.withType(Test))
-    reports {
-        xml.required = true
-    }
-}
-*/
 dependencies {
     compileOnly libs.jb.anno
     compileOnly libs.groovy.v2

@@ -1,5 +1,6 @@
 plugins {
     id "klum-ast.base-conventions"
+    id "klum-ast.jacoco-conventions"
     id 'com.gradle.plugin-publish'
     id 'java-gradle-plugin'
 }
