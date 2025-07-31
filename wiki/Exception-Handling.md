@@ -34,12 +34,15 @@ bars {
 
 NOTE: Besides being part of the exception, the breadcrumb-path is also stored in the KlumInstanceProxy of the generated object. 
 
+## KlumSchemaException
+
+The KlumSchemaException is thrown when a problem occurs during realization of a model, but likely to be originated in the schema, as opposed to the actual model. Misplaced annotations or wrong types are the most common causes for this exception.
+
 ## KlumVisitorException
 
-The KlumVisitorException is thrown when a problem occurs during the traversal of the model tree, usually as partof the execution of a phase. It contains a reference to the object in the model tree that caused the exception.
+The KlumVisitorException is thrown when a problem occurs during the traversal of the model tree, usually as part of the execution of a phase. It contains a reference to the object in the model tree that caused the exception.
 
-The most notable use is the occurrence of [[Validation]] exceptions. Each failed validation check results in a single thrown `KlumVisitorException` that contains the object that failed the validation as well as a failure message. These single exceptions will finally be aggregated into a single `KlumValidationException` that contains all failed validations.
 
 ## KlumValidationException
 
-As stated above, a `KlumValidationException` is thrown when a validation fails. It contains a list of all failed validations, each represented by a `KlumVisitorException`, sorted by their occuring object.
+A `KlumValidationException` is thrown when a validation fails. It contains a list of all failed validations, each represented by a `KlumVisitorException`, sorted by their occurring object.

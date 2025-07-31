@@ -12,12 +12,12 @@ Code completion for AST Transformations in the IDE can be achieved by three diff
 - By splitting the model classes and the actual users of the model into different projects and letting the user project
   only rely on the compiled model, modern IDEs can provide full code completion by looking at the generated code. However
   this might not always be the most convenient solution. see [[Usage]] for details.
-- Both Eclipse (dlsd) and Intellij IDEA (gdsl) provide mechanisms for providing hints to the IDE about the result of the
+- Both Eclipse (dlsd) and IntelliJ IDEA (gdsl) provide mechanisms for providing hints to the IDE about the result of the
   transformation. Unfortunately, there are currently two problems:
-  - Currently there only exists a gdsl for IDEA, which is outdated and suffers from a bug/change in the newer versions 
+  - Currently, there only exists a gdsl for IDEA, which is outdated and suffers from a bug/change in the newer versions 
     (since 2016.2), which makes them useless. For that reason, the gdsl is currently not included in the KlumAST jar file
-  - Both approaches are incompatible, effectively doubling the effort for maintaining such a solution
-- A transformation specific plugin could be implemented to encapsulate the gdsl/dlsd, however, as with solution two, 
+  - Both approaches are incompatible, effectively doubling the effort of maintaining such a solution
+- A transformation-specific plugin could be implemented to encapsulate the gdsl/dlsd; however, as with solution two, 
   this approach would need a lot of effort (contributions welcome!)
   
 Currently, only the first approach is working, but aside of the inconvenience of maintaining two separate projects, it 
@@ -59,16 +59,16 @@ Most DSL approaches fall into two categories:
 
   So basically, developing a DSL with dynamic features is easy and rather straightforward, using the DSL is rather cumbersome.
 
-- Hard wired programming of the DSL, basically creating a lot of methods with `Closure` parameters. This directory
-  is for example taken partially by the Gradle DSL. This approach is nice for the users of such a DSL, since they get
+- Hard-wired programming of the DSL, basically creating a lot of methods with `Closure` parameters. This direction
+  is, for example, taken partially by the Gradle DSL. This approach is nice for the users of such a DSL, since they get
   all the advantages of modern IDEs, like code completion and syntax highlighting.
   However, the cost of this approach lies in the additional efforts in actually creating the DSL-classes,
-  using lot's of repetative code.
+  using lots of repetitive code.
 
 Klum AST tries to focus on the second approach and creates type safe, static models, but
-tries to reduce the boilerplate code to a minimum by using Annotation controled AST transformation
-in order to auto generate it. The result is the best of both worlds: Faster, nicer and cleaner DSL classes on
+tries to reduce the boilerplate code to a minimum by using Annotation controlled AST transformation
+ to auto generate it. The result is the best of both worlds: Faster, nicer and cleaner DSL classes on
 the developer side, ease of use on the user side.
 
-As an additional bonus, since KlumAST strongly separates RO and RW model parts, the API using an actualy model
+As an additional bonus, since KlumAST strongly separates RO and RW model parts, the API using an actually model
 does not even see the mutating parts of the model, making developing against a given DSL easier as well.

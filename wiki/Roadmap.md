@@ -5,7 +5,7 @@ This page contains some of the planned milestones for next versions
 2.0 marks an extensive redesign, the switch to a more modular approach and the introduction of a runtime dependency. 
 I tried to keep necessary migration steps to a minimum, but some changes are necessary, see [[Migration]] for Details.
 
-Status: Mature, I some features that I would to include
+Status: Mature, I have some features that I would still like to include, but i believe I am on the finishing line now.
 
 # 2.1 -> Interface Stripdown
 

@@ -2,7 +2,7 @@ KlumAST provides some Gradle plugins to make the setup of a Klum project easier.
 
 # com.blackbuild.convention.groovy
 
-This plugins is not specific to Klum and might be extracted to a separate project in the future. It basically sets the neccesary dependencies for Groovy as well as a matching version of the Spock Framework.
+This plugin is not specific to Klum and might be extracted to a separate project in the future. It basically sets the necessary dependencies for Groovy as well as a matching version of the Spock Framework.
 
 The version can be set directly via two properties, or - more conveniently - via a single enum property:
 
@@ -24,8 +24,8 @@ Note that the plugin does **not** apply the groovy plugin, it only reacts to its
 Applying the plugin (provided the Groovy plugin is also applied) does the following thing:
 
 - Create two additional configurations, `groovy` and `spock`, which are used to declare the dependencies on Groovy and Spock
-- Adding default dependencies dependening on the value of groovyVersion (or specifially 'groovy' and 'spock' parameters).
-- linking those configuration to the `compileOnly` and `testImplementation` configurations
+- Adding default dependencies dependening on the value of groovyVersion (or specifically 'groovy' and 'spock' parameters).
+- linking those configurations to the `compileOnly` and `testImplementation` configurations
 - Configure all test tasks with `useJunitPlatform()` if the Groovy version is different from 2.4
 
 If the plugin is applied to a child project, it will inherit the configured Groovy versions from the root project, if applicable (even if the Groovy plugin is not applied to the root project). That way, the Groovy version can be set in a single place. In a klum project, this is usually the only situation where the convention plugin needs to be used directly, as the other two plugins will apply it automatically.
