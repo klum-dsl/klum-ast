@@ -563,7 +563,7 @@ public class KlumInstanceProxy {
         return DslHelper.getOptionalFieldAnnotation(instance.getClass(), fieldName, FIELD_ANNOTATION)
                 .map(com.blackbuild.groovy.configdsl.transform.Field::keyMapping)
                 .filter(DslHelper::isClosure)
-                .map(value -> (K) ClosureHelper.invokeClosure(value, element))
+                .map(value -> ClosureHelper.invokeClosure((Class<Closure<K>>) value, element))
                 .orElse(defaultValue);
     }
 

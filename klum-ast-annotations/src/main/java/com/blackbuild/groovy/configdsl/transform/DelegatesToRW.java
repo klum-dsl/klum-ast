@@ -46,6 +46,6 @@ public @interface DelegatesToRW {
      * The type to which the closure argument should delegate. If not set, the type owning the method
      * is taken.
      */
-    Class value() default Undefined.class;
+    Class<?> value() default Undefined.class;
 
 }

@@ -73,20 +73,20 @@ public @interface Field {
      * Maps names to classes. If used, this value must be a closure which contains only a map with
      * literal String to Class mappings, i.e. {@code @DSL(alternatives = {child: ChildElement, sub: SubElement})}.
      */
-    Class alternatives() default Undefined.class;
+    Class<?> alternatives() default Undefined.class;
 
     /**
      * Closure that is used to derive the key from the value. This is only valid for Map types. The closure
      * gets a single parameter of the value type and must return a value of the key type.
      */
-    Class keyMapping() default Undefined.class;
+    Class<?> keyMapping() default Undefined.class;
 
     /**
      * Allows to set the key for a single Keyed Object field to a value defined
      * by the owner. This member can contain either Closure executed against the owner
      * object or the special entry {@link FieldName}, which takes the name of the field.
      */
-    Class key() default Undefined.class;
+    Class<?> key() default Undefined.class;
 
     /**
      * <p>Create converter methods for this field. Converter methods have the same name as regular setter / adders, but
