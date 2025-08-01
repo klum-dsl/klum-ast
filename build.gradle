@@ -37,8 +37,6 @@ sonar {
         property "sonar.organization", "klum-dsl"
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.gradle.skipCompile", "true"
-        property "sonar.verbose", "true"
-        property "sonar.log.level", "DEBUG"
     }
 }
 
