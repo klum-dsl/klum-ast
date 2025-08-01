@@ -33,6 +33,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.classgen.Verifier;
+import org.codehaus.groovy.control.SourceUnit;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -289,7 +290,7 @@ public class DslAstHelper {
         return getCodeClosureFor(target, annotation, member);
     }
 
-    static List<ClosureExpression> getClosureMemberList(AnnotationNode anno, String name) {
+    static List<ClosureExpression> getClosureMemberList(AnnotationNode anno, String name, SourceUnit sourceUnit) {
         if (anno == null)
             return Collections.emptyList();
 
@@ -309,11 +310,11 @@ public class DslAstHelper {
                 if (itemExpr instanceof ClosureExpression)
                     list.add((ClosureExpression) itemExpr);
                 else
-                    addCompileError("Only closure are allowed for " + name, itemExpr);
+                    addCompileError(sourceUnit, "Only closure are allowed for " + name, itemExpr);
             return list;
         }
 
-        addCompileError("Unknown value", expr);
+        addCompileError(sourceUnit, "Unknown value", expr);
         return Collections.emptyList();
     }
 
