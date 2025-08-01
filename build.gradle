@@ -39,7 +39,7 @@ sonar {
     }
 }
 
-tasks.named('sonarqube') {
+tasks.named('sonar') {
     doFirst {
         // lazy initialize the property to collect all coverage files
         def jacocoFilesFromSubprojects = subprojects.findAll {it.plugins.hasPlugin('jacoco')}
