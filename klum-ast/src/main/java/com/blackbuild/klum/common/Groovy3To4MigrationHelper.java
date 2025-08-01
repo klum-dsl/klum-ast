@@ -34,6 +34,7 @@ import java.util.List;
 
 import static groovy.transform.Undefined.isUndefined;
 
+@SuppressWarnings("java:S1168") // null is intentional, mimics the behavior of wrapped groovy methods
 public class Groovy3To4MigrationHelper {
 
     private Groovy3To4MigrationHelper() {

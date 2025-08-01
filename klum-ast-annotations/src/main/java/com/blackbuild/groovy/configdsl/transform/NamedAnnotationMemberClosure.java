@@ -32,6 +32,7 @@ import groovy.lang.Closure;
  * of simply class, reducing the need for manual validation.
  * @param <T>
  */
+@SuppressWarnings("java:S1172") // marker only
 public abstract class NamedAnnotationMemberClosure<T> extends Closure<T> {
     protected NamedAnnotationMemberClosure(Object owner, Object thisObject) {
         super(owner, thisObject);

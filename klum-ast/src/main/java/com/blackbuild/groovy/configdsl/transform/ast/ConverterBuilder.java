@@ -112,7 +112,7 @@ class ConverterBuilder {
     }
 
     void execute() {
-        convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters"));
+        convertClosureListToConverterClass(getClosureMemberList(getAnnotation(fieldNode, DSL_FIELD_ANNOTATION), "converters", rwClass.getModule().getContext()));
 
         if (convertersAnnotation != null) {
             List<ClassNode> classList = Groovy3To4MigrationHelper.getMemberClassList(convertersAnnotation, "value", transformation.annotatedClass.getModule().getContext());
