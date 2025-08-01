@@ -39,6 +39,19 @@ sonar {
     }
 }
 
+tasks.named('sonarqube') {
+    doFirst {
+        // lazy initialize the property to collect all coverage files
+        def jacocoFilesFromSubprojects = subprojects.findAll {it.plugins.hasPlugin('jacoco')}
+                .collect {it.tasks.withType(Test)}.flatten().collect {it.jacoco.destinationFile}
+
+        sonarqube.properties {
+            property "sonar.jacoco.reportPaths", jacocoFilesFromSubprojects.join(',')
+        }
+        println jacocoFilesFromSubprojects
+    }
+}
+
 gitPublish {
     repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
     branch = 'master'
