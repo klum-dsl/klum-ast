@@ -1,5 +1,6 @@
 plugins {
     id "klum-ast.multigroovy-conventions"
+    id "klum-ast.jacoco-conventions"
     id "java-test-fixtures"
 }
 

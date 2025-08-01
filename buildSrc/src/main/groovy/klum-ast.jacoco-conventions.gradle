@@ -1,0 +1,17 @@
+plugins {
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = "0.8.13"
+}
+jacocoTestReport {
+    executionData(tasks.withType(Test))
+    reports {
+        xml.required = true
+    }
+}
+
+tasks.withType(JavaCompile) {
+    finalizedBy jacocoTestReport
+}
