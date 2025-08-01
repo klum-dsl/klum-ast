@@ -16,6 +16,7 @@ plugins {
     id "com.github.ben-manes.versions"
     id "io.github.gradle-nexus.publish-plugin"
     id "org.sonarqube"
+    id "jacoco-report-aggregation"
 }
 
 group 'com.blackbuild.klum.ast'
@@ -36,19 +37,8 @@ sonar {
         property "sonar.organization", "klum-dsl"
         property "sonar.host.url", "https://sonarcloud.io"
         property "sonar.gradle.skipCompile", "true"
-    }
-}
-
-tasks.named('sonar') {
-    doFirst {
-        // lazy initialize the property to collect all coverage files
-        def jacocoFilesFromSubprojects = subprojects.findAll {it.plugins.hasPlugin('jacoco')}
-                .collect {it.tasks.withType(Test)}.flatten().collect {it.jacoco.destinationFile}
-
-        sonarqube.properties {
-            property "sonar.jacoco.reportPaths", jacocoFilesFromSubprojects.join(',')
-        }
-        println jacocoFilesFromSubprojects
+        property "sonar.verbose", "true"
+        property "sonar.log.level", "DEBUG"
     }
 }
 
@@ -88,3 +78,5 @@ if (hasProperty('buildScan')) {
         termsOfServiceAgree = 'yes'
     }
 }
+
+tasks.sonar.dependsOn(":code-coverage-report:testCodeCoverageReport")

@@ -1,0 +1,29 @@
+plugins {
+    id 'base'
+    id 'jacoco-report-aggregation'
+}
+
+// Only needed for the jacoco-report-aggregation plugin
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    jacocoAggregation project(':klum-ast')
+    jacocoAggregation project(':klum-ast-jackson')
+    jacocoAggregation project(':klum-ast-gradle-plugin')
+}
+
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testType = TestSuiteType.UNIT_TEST
+            //testSuiteName = TestSuiteType.UNIT_TEST
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('testCodeCoverageReport', JacocoReport)
+}

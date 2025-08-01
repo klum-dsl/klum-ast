@@ -5,13 +5,9 @@ plugins {
 jacoco {
     toolVersion = "0.8.13"
 }
-jacocoTestReport {
-    executionData(tasks.withType(Test))
-    reports {
-        xml.required = true
-    }
-}
 
-tasks.withType(JavaCompile) {
-    finalizedBy jacocoTestReport
+sonar {
+    properties {
+        property "sonar.coverage.jacoco.xmlReportPaths", project(":code-coverage-report").tasks.named("testCodeCoverageReport").get().reports.xml.outputLocation.get().asFile.absolutePath
+    }
 }

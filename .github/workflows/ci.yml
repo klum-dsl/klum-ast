@@ -41,7 +41,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run:
-          ./gradlew build --scan sonar
+          ./gradlew build --scan sonar --info
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v5
         if: success() || failure()

@@ -1,5 +1,6 @@
 plugins {
     id "klum-ast.base-conventions"
+    id "klum-ast.jacoco-conventions"
 }
 
 description "Annontations for Klum AST"
@@ -7,6 +8,8 @@ description "Annontations for Klum AST"
 dependencies {
     api libs.annodocimal.annotations
     api libs.klum.cast.annotations
+    testImplementation libs.spock.g3
+    testImplementation libs.groovy.v3
 }
 
 publishing {
@@ -16,3 +19,8 @@ publishing {
         }
     }
 }
+
+test {
+    useJUnitPlatform()
+}
+
