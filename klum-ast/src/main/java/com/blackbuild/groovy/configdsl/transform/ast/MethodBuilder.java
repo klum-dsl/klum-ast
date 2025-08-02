@@ -405,7 +405,7 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
      * @return the MethodBuilderInstance
      * @deprecated Debug only
      */
-    @Deprecated
+    @Deprecated(since = "0.0.0")
     public MethodBuilder println(Expression args) {
         return callThis("println", args);
     }
@@ -416,7 +416,7 @@ public final class MethodBuilder extends AbstractMethodBuilder<MethodBuilder> {
      * @return the MethodBuilderInstance
      * @deprecated Debug only
      */
-    @Deprecated
+    @Deprecated(since = "0.0.0")
     public MethodBuilder println(String string) {
         return callThis("println", constX(string));
     }

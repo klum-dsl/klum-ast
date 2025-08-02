@@ -40,6 +40,7 @@ import static org.codehaus.groovy.ast.ClassHelper.make;
  * Converter Transformation for {@link com.blackbuild.groovy.configdsl.transform.Validation} into {@link Validate}.
  */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
+@Deprecated(forRemoval = true)
 public class ValidationToValidateTransformation extends AbstractASTTransformation {
 
     private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);

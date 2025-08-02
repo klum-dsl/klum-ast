@@ -46,7 +46,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Deprecated
+@Deprecated(forRemoval = true)
 @GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.converters.ValidationToValidateTransformation")
 public @interface Validation {
 
@@ -60,13 +60,13 @@ public @interface Validation {
     /**
      * Not used anymore.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     Mode mode() default Mode.AUTOMATIC;
 
     /**
      * Validation mode, either automatically (call validation after apply), or manually.
      */
-    @Deprecated
+    @Deprecated(forRemoval = true)
     enum Mode {
         /**
          * Valdation is performed automatically after the apply method has been executed.

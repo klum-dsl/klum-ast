@@ -48,7 +48,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
  * @deprecated don't use, remove later
  */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
-@Deprecated
+@Deprecated(since = "1.2.0", forRemoval = true)
 public class FieldTypeDeprecationTransformation extends AbstractASTTransformation {
 
     private static final ClassNode FIELD_ANNOTATION = make(Field.class);

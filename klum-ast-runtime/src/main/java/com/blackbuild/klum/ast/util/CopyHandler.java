@@ -298,8 +298,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            if (!currentValues.containsKey(key))
-                currentValues.put(key, copyValue(value));
+            currentValues.computeIfAbsent(key, k -> copyValue(value));
         }
     }
 

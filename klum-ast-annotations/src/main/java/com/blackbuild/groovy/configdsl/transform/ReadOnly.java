@@ -39,6 +39,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.SOURCE)
 @GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.deprecations.FieldTypeDeprecationTransformation")
-@Deprecated
+@Deprecated(since = "1.2.0", forRemoval = true)
 public @interface ReadOnly {
 }
