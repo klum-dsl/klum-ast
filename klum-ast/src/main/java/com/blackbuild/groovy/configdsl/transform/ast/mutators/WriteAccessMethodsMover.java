@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.klum.common.CommonAstHelper;
-import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 
@@ -41,8 +40,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
  */
 public class WriteAccessMethodsMover {
 
-    public static final ClassNode WRITE_ACCESS_ANNOTATION = ClassHelper.make(WriteAccess.class);
-    public static final String NO_MUTATOR_KEY = WriteAccessMethodsMover.class.getName() + ".noMutator";
+    private static final String NO_MUTATOR_KEY = WriteAccessMethodsMover.class.getName() + ".noMutator";
     private final ClassNode annotatedClass;
 
     public WriteAccessMethodsMover(ClassNode annotatedClass) {

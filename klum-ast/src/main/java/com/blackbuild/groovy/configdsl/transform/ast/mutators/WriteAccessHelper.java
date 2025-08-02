@@ -27,6 +27,8 @@ import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassHelper;
+import org.codehaus.groovy.ast.ClassNode;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +36,8 @@ import java.util.Optional;
 import static com.blackbuild.klum.common.CommonAstHelper.getClassFromClassLoader;
 
 public class WriteAccessHelper {
+
+    private static final ClassNode WRITE_ACCESS_ANNOTATION = ClassHelper.make(WriteAccess.class);
 
     private WriteAccessHelper() {
         // helper class
@@ -48,7 +52,7 @@ public class WriteAccessHelper {
     }
 
     private static WriteAccess.Type getWriteAccessTypeForAnnotation(AnnotationNode annotation) {
-        if (!DslAstHelper.hasAnnotation(annotation.getClassNode(), WriteAccessMethodsMover.WRITE_ACCESS_ANNOTATION)) return null;
+        if (!DslAstHelper.hasAnnotation(annotation.getClassNode(), WRITE_ACCESS_ANNOTATION)) return null;
 
         // We need to use the class explicitly, since we cannot access the members of metaAnnotations directly
         // This is safe, since annotations are in a different module and thus already compiled
