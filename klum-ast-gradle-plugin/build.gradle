@@ -7,6 +7,8 @@ plugins {
 
 description "KlumAST Gradle Plugins"
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
 gradlePlugin {
     plugins {
         klumAstSchmemaPlugin {

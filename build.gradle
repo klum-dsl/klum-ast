@@ -77,4 +77,4 @@ if (hasProperty('buildScan')) {
     }
 }
 
-tasks.sonar.dependsOn(":code-coverage-report:testCodeCoverageReport")
+tasks.sonar.dependsOn(project(":code-coverage-report").tasks.withType(JacocoReport))

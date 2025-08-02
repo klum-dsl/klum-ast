@@ -18,12 +18,17 @@ dependencies {
 reporting {
     reports {
         testCodeCoverageReport(JacocoCoverageReport) {
-            testType = TestSuiteType.UNIT_TEST
-            //testSuiteName = TestSuiteType.UNIT_TEST
+            testSuiteName = "test"
+        }
+        groovy3CodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = "groovy3Tests"
+        }
+        groovy4CodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = "groovy4Tests"
         }
     }
 }
 
 tasks.named('check') {
-    dependsOn tasks.named('testCodeCoverageReport', JacocoReport)
+    dependsOn tasks.withType(JacocoReport)
 }

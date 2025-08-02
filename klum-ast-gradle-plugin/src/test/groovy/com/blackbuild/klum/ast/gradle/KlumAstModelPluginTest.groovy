@@ -65,8 +65,9 @@ class KlumAstModelPluginTest extends Specification {
         project.getPluginManager().apply(KlumAstModelPlugin)
         project.klumModel {
             schemas {
-                schema "bla:blub:1.0"
-                schema "bla:bli:2.0"
+                // somehow, schema "bla:blub:1.0" is not recognized in a test after updating from gradle 8.7 to 8.14, use add for now
+                schema.add "bla:blub:1.0"
+                schema.add "bla:bli:2.0"
             }
         }
 
