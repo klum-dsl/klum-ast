@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
@@ -39,6 +41,9 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 @SuppressWarnings("java:S1192")
 class TemplateMethods {
+    public static final String TEMPLATE_FIELD_NAME = "Template";
+    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
+
     public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
     private final FieldNode keyField;
@@ -56,6 +61,21 @@ class TemplateMethods {
     public void invoke() {
         createImplementationForAbstractClassIfNecessary();
         copyFromMethods();
+        createTemplateField();
+    }
+
+    private void createTemplateField() {
+        FieldNode templateField = new FieldNode(
+                TEMPLATE_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
+                annotatedClass,
+                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
+        );
+
+        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
+        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        annotatedClass.addField(templateField);
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
@@ -78,7 +98,6 @@ class TemplateMethods {
      }
 
     private void createTemplateClass() {
-
         templateClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$Template",

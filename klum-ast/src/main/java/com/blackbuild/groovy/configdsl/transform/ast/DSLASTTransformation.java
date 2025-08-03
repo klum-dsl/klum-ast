@@ -33,7 +33,6 @@ import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
@@ -96,19 +95,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
-    public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
-    public static final String CREATE_METHOD_NAME = "create";
-    public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     public static final String FACTORY_FIELD_NAME = "Create";
-    public static final String TEMPLATE_FIELD_NAME = "Template";
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
-    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
     public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
@@ -152,8 +145,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createApplyMethods();
         createTemplateMethods();
         createFactoryField();
-
-        createTemplateField();
 
         createFieldDSLMethods();
         createClusterFactories();
@@ -1165,20 +1156,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
         if (existing == null)
             factoryClass.addMethod(newMethod);
-    }
-
-    private void createTemplateField() {
-        FieldNode templateField = new FieldNode(
-                TEMPLATE_FIELD_NAME,
-                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
-                annotatedClass,
-                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
-        );
-
-        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
-        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
-        annotatedClass.addField(templateField);
     }
 
 
