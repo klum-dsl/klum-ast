@@ -193,7 +193,7 @@ public @interface Validate {
 
     /**
      * If used as value for {@link Validate#value()}, configures validation to ignore this field. Makes only sense
-     * in combination with {@link Validation.Option#VALIDATE_UNMARKED}.
+     * when Validate is also placed on type.
      */
     class Ignore extends NamedAnnotationMemberClosure<Object> {
         public Ignore(Object owner, Object thisObject) {
