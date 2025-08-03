@@ -62,7 +62,7 @@ class StaticTypingConfigSpec extends AbstractDSLSpec {
             import pk.*
             
             Config.Create.With {
-                Component.withTemplate(name: 'Kurt') {
+                Component.Template.With(name: 'Kurt') {
                     systems {
                         system {
                             components {

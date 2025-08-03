@@ -163,46 +163,6 @@ Note that explicit calls to apply() are usually not necessary, as apply is part 
         methodDoc("apply", Closure) == rwMethodDoc("apply", Closure)
         methodDoc("apply", Map, Closure) == rwMethodDoc("apply", Map, Closure)
 
-        methodDoc("withTemplate", clazz, Closure) == """Executes the given closure with the given template as the template for the given type.
-<p>
-This means that all objects of the given type created in the scope of the closure will use the given template,
-which also includes objects deeper in the structure.
-The old template is restored after the closure has been executed.
-</p>
-@param template the template
-@param closure the closure to execute
-@return the result of the closure
-@deprecated Use Template.With() instead"""
-        methodDoc("withTemplate", Map, Closure) == """Executes the given closure with an anonymous template for the given type.
-<p>
-This means that all objects of the given type created in the scope of the closure will use the given template,
-which also includes objects deeper in the structure.
-The template will be created from the given map (using Create.AsTemplate(Map)).
-The old template is restored after the closure has been executed.
-</p>
-@param templateMap the Map to construct the template from
-@param closure the closure to execute
-@return the result of the closure
-@deprecated Use Template.With() instead"""
-        methodDoc("withTemplates", List, Closure) == """Executes the given closure with the given templates.
-<p>
-This means that all objects of the given types created in the scope of the closure will use the given template,
-which also includes objects deeper in the structure.
-The old templates are restored after the closure has been executed.
-</p>
-@param templates the templates to apply
-@param closure the closure to execute
-@return the result of the closure
-@deprecated Use Template.WithAll() instead"""
-
-        methodDoc("withTemplates", Map, Closure) == """Executes the given closure with the given anonymous templates.
-<p>
-This is done by converting the values of the map into template objects of the type defined by the keys.
-</p>
-@param templates the templates to apply, Mapping classes to their respective anonymous templates
-@param closure the closure to execute
-@return the result of the closure
-@deprecated Use Template.WithAll() instead"""
         rwMethodDoc("copyFrom", clazz) == """Copies all non null / non empty elements from target to this.
 @param template The template to apply"""
 

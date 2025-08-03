@@ -369,7 +369,7 @@ class Inner {
         }
 
         when:
-        instance = Model.withTemplate(template) {
+        instance = Model.Template.With(template) {
             Model.Create.One()
         }
 

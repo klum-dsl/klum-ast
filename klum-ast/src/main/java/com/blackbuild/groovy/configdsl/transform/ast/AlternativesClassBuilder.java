@@ -168,8 +168,8 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
-                                elementType,
-                                TemplateMethods.WITH_TEMPLATE,
+                                propX(classX(elementType), "Template"),
+                                "With",
                                 args(varX(templateMapVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
@@ -190,8 +190,8 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
-                                elementType,
-                                TemplateMethods.WITH_TEMPLATE,
+                                propX(classX(elementType), "Template"),
+                                "With",
                                 args(varX(templateVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )

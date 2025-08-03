@@ -109,6 +109,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
     public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
+    public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -303,12 +304,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .documentationTitle("Prevent automatic validation of this instance during Validation phase.")
                     .addTo(rwClass);
         }
-
-        createProxyMethod(VALIDATE_METHOD)
-                .mod(ACC_PUBLIC)
-                .optional()
-                .forRemoval("Use Validator.validate() instead")
-                .addTo(annotatedClass);
     }
 
     private void convertValidationClosures() {
@@ -1043,18 +1038,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(Integer_TYPE, "phase")
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(make(DefaultKlumPhase.class), "phase")
                 .delegatingClosureParam(rwClass, null, null)

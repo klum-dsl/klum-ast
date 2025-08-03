@@ -159,7 +159,7 @@ class Element {
     String value
 }
 ''')
-        def template = getClass("pk.Element").createAsTemplate(value: "fromTemplate")
+        def template = getClass("pk.Element").Template.Create(value: "fromTemplate")
 
         when:
         instance = clazz.Create.With {

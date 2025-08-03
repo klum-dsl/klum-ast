@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
-import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
 import org.codehaus.groovy.ast.*;
@@ -56,12 +55,6 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecR
 class ConverterBuilder {
 
     private static final List<String> DEFAULT_PREFIXES = asList("from", "of", "create", "parse");
-    private static final List<String> DSL_METHODS = asList(
-            DSLASTTransformation.CREATE_FROM,
-            DSLASTTransformation.CREATE_METHOD_NAME,
-            DSLASTTransformation.CREATE_FROM_CLASSPATH,
-            TemplateMethods.CREATE_AS_TEMPLATE
-    );
 
     static final ClassNode CONVERTERS_ANNOTATION = make(Converters.class);
     static final ClassNode CONVERTER_ANNOTATION = make(Converter.class);
@@ -203,7 +196,7 @@ class ConverterBuilder {
             return true;
         if (hasAnnotation(method, CONVERTER_ANNOTATION))
             return true;
-        if (isValidName(method.getName()) && !isKlumMethod(method))
+        if (isValidName(method.getName()))
             return true;
         return false;
     }
@@ -218,11 +211,6 @@ class ConverterBuilder {
 
     private boolean isNameIncluded(String name) {
         return includes.isEmpty() || includes.stream().anyMatch(name::startsWith);
-    }
-
-    private boolean isKlumMethod(MethodNode method) {
-        return hasAnnotation(method, ClassHelper.make(KlumGenerated.class))
-                || (isDSLObject(method.getDeclaringClass()) && DSL_METHODS.contains(method.getName()));
     }
 
     private void createConverterMethod(Parameter[] sourceParameters, ClassNode converterType, String converterMethod, MethodNode sourceMethod) {

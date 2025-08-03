@@ -333,7 +333,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
         def template = Child.Create.Template(name: "fromTemplate")
         // need to use a virtual container, since templates create around the root object WOULD apply to auto-created fields as well
         instance = Container.Create.With {
-            Child.withTemplate(template) {
+            Child.Template.With(template) {
                 config()
             }
         }
@@ -344,7 +344,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
 
         when:
         instance = Container.Create.With {
-            Child.withTemplate(template) {
+            Child.Template.With(template) {
                 config {
                     child {
                         name "explicitName"
