@@ -528,7 +528,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = clazz.createFromClasspath()
+        instance = clazz.Create.FromClasspath()
 
         then:
         instance.name == "hallo"
@@ -563,7 +563,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = getClass("pk.Config").createFromClasspath()
+        instance = getClass("pk.Config").Create.FromClasspath()
 
         then:
         instance.name == "hallo"
@@ -593,7 +593,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = clazz.createFromClasspath()
+        instance = clazz.Create.FromClasspath()
 
         then:
         instance.name == "hallo"

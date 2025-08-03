@@ -580,7 +580,7 @@ public class KlumInstanceProxy {
         Class<?> elementType = (Class<?>) getElementTypeOfField(instance.getClass(), fieldName);
         Arrays.stream(scripts).forEach(script -> addElementToCollection(
                 fieldName,
-                InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
+                InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script))
         );
     }
 
@@ -598,7 +598,7 @@ public class KlumInstanceProxy {
         Arrays.stream(scripts).forEach(script -> addElementToMap(
                 fieldName,
                 null,
-                InvokerHelper.invokeStaticMethod(elementType, "createFrom", script))
+                InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script))
         );
     }
 

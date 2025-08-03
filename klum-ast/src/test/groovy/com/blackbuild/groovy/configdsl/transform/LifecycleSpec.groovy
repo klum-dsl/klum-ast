@@ -51,22 +51,6 @@ class LifecycleSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "create method must not be declared"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                static Foo create(Closure c) {
-                }
-            }
-        ''')
-
-        then:
-        thrown(MultipleCompilationErrorsException)
-    }
-
     def "Lifecycle methods must not be private"() {
         when:
         createClass('''

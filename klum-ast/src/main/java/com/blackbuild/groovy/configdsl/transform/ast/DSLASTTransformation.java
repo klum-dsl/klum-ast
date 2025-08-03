@@ -56,15 +56,12 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
-import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.ast.util.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
@@ -154,8 +151,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createApplyMethods();
         createTemplateMethods();
         createFactoryField();
-        createFactoryMethods();
-        createConvenienceFactories();
 
         createTemplateField();
 
@@ -1175,51 +1170,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
         if (existing == null)
             factoryClass.addMethod(newMethod);
-    }
-
-    private void createFactoryMethods() {
-        if (!isInstantiable(annotatedClass))
-            return;
-
-        createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
-                .forRemoval("Use Create.With() instead")
-                .namedParams("values")
-                .optionalStringParam("name", keyField != null)
-                .delegatingClosureParam(rwClass)
-                .addTo(annotatedClass);
-    }
-
-    @Deprecated(forRemoval = true)
-    private void createConvenienceFactories() {
-        String deprecationMessage = "Use Create.From(...) instead";
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE, "The script to create the instance from")
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .optionalStringParam("name", keyField != null, "The key to use for the new instance")
-                .stringParam("text", "The text to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .param(make(File.class), "src", "The file to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .param(make(URL.class), "src", "The URL to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
     }
 
     private void createTemplateField() {
