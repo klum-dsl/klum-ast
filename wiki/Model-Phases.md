@@ -104,7 +104,7 @@ class PersonText extends Specification {
 
     def "a testcase with person objects"() {
         given:
-        def person = Persion.withTemplate(template) {
+        def person = Person.Template.With(template) {
             PersonText.Create.With(name: "Hans")
         }
 
