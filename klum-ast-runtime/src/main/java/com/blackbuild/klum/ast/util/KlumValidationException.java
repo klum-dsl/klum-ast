@@ -47,13 +47,12 @@ public class KlumValidationException extends KlumException {
 
     @Override
     public String getMessage() {
-        return validationResults.stream()
-                .map(KlumValidationResult::getMessage)
-                .collect(joining("\n"));
+        return getMessage(Validate.Level.INFO);
     }
 
     public String getMessage(Validate.Level minimumLevel) {
         return validationResults.stream()
+                .filter(klumValidationResult -> klumValidationResult.has(minimumLevel))
                 .map(klumValidationResult -> klumValidationResult.getMessage(minimumLevel))
                 .collect(joining("\n"));
     }

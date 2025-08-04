@@ -69,8 +69,10 @@ public class ValidationPhase extends AbstractPhaseAction {
             if (proxy.getManualValidation()) return;
 
             KlumValidationResult result = Validator.lenientValidate(element);
-            aggregatedErrors.add(result);
-            currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
+            if (result.getMaxLevel().equalOrWorseThan(Validate.Level.INFO)) {
+                aggregatedErrors.add(result);
+                currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
+            }
         }
     }
 }
