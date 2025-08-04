@@ -888,7 +888,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         validationResults.maxLevel == Validate.Level.WARNING
         validationResults.problems.size() == 1
-        validationResults.message == '''$/Foo.With:
+        validationResults.message == '''<root>($/Foo.With):
 - WARNING #validated: Field 'validated' must be set'''
 
         when:
@@ -921,7 +921,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         def e = thrown(KlumValidationException)
-        e.message == '''$/Foo.With:
+        e.message == '''<root>($/Foo.With):
 - ERROR #validatedError: Field 'validatedError' must be set
 - WARNING #validated: Field 'validated' must be set'''
     }
@@ -953,7 +953,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.problems.size() == 1
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Field 'validated' is deprecated'''
     }
 
@@ -981,7 +981,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.problems.size() == 1
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Use something else.'''
     }
 

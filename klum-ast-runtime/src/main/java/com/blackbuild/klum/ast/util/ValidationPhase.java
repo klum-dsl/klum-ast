@@ -68,7 +68,7 @@ public class ValidationPhase extends AbstractPhaseAction {
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
             if (proxy.getManualValidation()) return;
 
-            KlumValidationResult result = Validator.lenientValidate(element);
+            KlumValidationResult result = Validator.lenientValidate(element, path);
             if (result.getMaxLevel().equalOrWorseThan(Validate.Level.INFO)) {
                 aggregatedErrors.add(result);
                 currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());

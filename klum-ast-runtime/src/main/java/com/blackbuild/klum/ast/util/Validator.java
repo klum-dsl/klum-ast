@@ -59,8 +59,19 @@ public class Validator {
      * @param instance the instance to validate
      * @throws KlumValidationException if validation errors are found
      */
-    public static void validate(Object instance) throws KlumValidationException{
-        Validator validator = new Validator(instance);
+    public static void validate(Object instance) throws KlumValidationException {
+        validate(instance, null);
+    }
+
+    /**
+     * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
+     *
+     * @param instance the instance to validate
+     * @param path an optional path to be stored in the validation problem
+     * @throws KlumValidationException if validation errors are found
+     */
+    public static void validate(Object instance, String path) throws KlumValidationException{
+        Validator validator = new Validator(instance, path);
         validator.execute();
         validator.validationErrors.throwOn(getFailLevel());
     }
@@ -70,10 +81,11 @@ public class Validator {
      * This method does not throw an exception, allowing for lenient validation.
      *
      * @param instance the instance to validate
+     * @param path
      * @return a {@link KlumValidationResult} containing validation errors
      */
-    public static KlumValidationResult lenientValidate(Object instance) {
-        Validator validator = new Validator(instance);
+    public static KlumValidationResult lenientValidate(Object instance, String path) {
+        Validator validator = new Validator(instance, path);
         validator.execute();
         return validator.validationErrors;
     }
@@ -113,7 +125,7 @@ public class Validator {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
         KlumValidationResult validationResult = proxy.getValidationResults();
         if (validationResult != null) return validationResult;
-        return lenientValidate(instance);
+        return lenientValidate(instance, null);
     }
 
     /**
@@ -126,9 +138,14 @@ public class Validator {
         return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
     }
 
-    protected Validator(Object instance) {
+    protected Validator(Object instance, String path) {
         this.instance = instance;
-        this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+        if (path != null) {
+            this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
+        } else {
+            // Use the default breadcrumb path from the instance
+            this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+        }
         this.validationErrors = new KlumValidationResult(breadcrumbPath);
     }
 
