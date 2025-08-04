@@ -1,7 +1,18 @@
 # 2.1.0
-No new features, but all deprecated features from 2.0.0 have been removed.
+No new features, but all deprecated features from 2.0.0 have been removed. All dropped methods are correctly declared in 2.0.0,
+aloing with the migration path.
 
-see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) and below (2.0.0) for details.
+## Dropped methods and features (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
+- The `@Validation` annotation. Use `@Validate` on class level instead.
+- Creator methods on the model class have been dropped
+  - `X.create*()` -> `X.Create.*()`
+- The generated `validate()` method. Use `Validator.validate()` instead. This means that creating own `validate()` methods is legal again.
+- Template-specific methods are now pooled in a new `BoundTemplateHandler` class, which is accessible for as static Field Template.
+  - `X.withTemplate()` -> `X.Template.With()`
+  - `X.withTemplates()` -> `X.Template.WithAll()`
+  - `X.Create.TemplateFrom()` -> `X.Template.CreateFrom()`
+  - `X.Create.AsTemplate()` -> `X.Template.Create()`
+  - `withTemplate()` and `withTemplates()` are now deprecated, use the new methods instead.
 
 # 2.0.0
 ## New Features
@@ -61,9 +72,17 @@ see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) and below (
 - new Layer3 `@DefaultApply` annotation that can be used for complex, schema-controlled default values (see [#370](https://github.com/klum-dsl/klum-ast/issues/370) and [Default Values](https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation))
 
 ## Deprecations (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
-  - The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
-  - creator methods on the model class have been deprecated.
-- Breaking changes (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
+- The `@Validation` annotation is deprecated. Use `@Validate` on class level instead.
+- creator methods on the model class have been deprecated.
+- The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own `validate()` methods is legal again.
+- Template-specific methods are now pooled in a new `BoundTemplateHandler` class, which is accessible for as static Field Template.
+  - `X.withTemplate()` -> `X.Template.With()`
+  - `X.withTemplates()` -> `X.Template.WithAll()`
+  - `X.Create.TemplateFrom()` -> `X.Template.CreateFrom()`
+  - `X.Create.AsTemplate()` -> `X.Template.Create()`
+  - `withTemplate()` and `withTemplates()` are now deprecated, use the new methods instead.
+
+## Breaking changes (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration))
 - it is a compile error to place the `@Validate` annotation on a boolean field.
 - KlumAST is split into different modules, klum-ast-compile is compile-time only,
   klum-ast-runtime is needed for runtime as well. This completes
@@ -74,19 +93,11 @@ see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) and below (
   cased method name was removed).
 - methods named `doValidate` are no longer considered Validate methods by default.
 - Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3
-- The `@Validation` annotation is deprecated, any use except for `@Validate(option=Validation.Option.VALIDATE_UNMARKED)` will have no effect.
 - Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.
-- The generated `validate()` method is now deprecated, use `KlumInstanceProxy.validate()` instead. This means that creating own `validate()` methods is legal again.
 - Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.
 - Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
  `copyFrom`. Make sure to create template instances with `Create.Template` if you want to use them as templates.
 - `withTemplates(Map, Closure)` now only accepts anonymous templates, i.e. the signature changed from `withTemplates(Map<Class, Object>, Closure)` to `withTemplates(Map<Class, Map<String, Object>, Closure)`. Calls using concrete templates now must use `withTemplates(List<Object>, Closure)` instead.
-- Template-specific methods are now pooled in a new `BoundTemplateHandler` class, which is accessible for as static Field Template.
-  - `X.withTemplate()` -> `X.Template.With()`
-  - `X.withTemplates()` -> `X.Template.WithAll()`
-  - `X.Create.TemplateFrom()` -> `X.Template.CreateFrom()`
-  - `X.Create.AsTemplate()` -> `X.Template.Create()`
-  - `withTemplate()` and `withTemplates()` are now deprecated, use the new methods instead.
 
 ## Fixes
 - since rc.54
