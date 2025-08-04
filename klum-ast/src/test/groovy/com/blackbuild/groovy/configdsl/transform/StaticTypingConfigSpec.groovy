@@ -61,8 +61,8 @@ class StaticTypingConfigSpec extends AbstractDSLSpec {
         def script = createSecondaryClass '''
             import pk.*
             
-            Config.Create.With {
                 Component.Template.With(name: 'Kurt') {
+            Config.Create.With {
                     systems {
                         system {
                             components {
