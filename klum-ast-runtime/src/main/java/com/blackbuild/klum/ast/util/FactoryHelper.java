@@ -413,7 +413,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @param <T>     The type to create
      * @return The created instance
      */
-    public static <T> T createAsTemplate(Class<T> type, Map<String, Object> values, Closure<?> closure) {
+    public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, Closure<?> closure) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
             T result = createTemplateInstance(type);
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);

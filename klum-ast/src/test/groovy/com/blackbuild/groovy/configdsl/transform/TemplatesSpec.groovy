@@ -119,13 +119,13 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.createAsTemplate {
+        def template = clazz.Template.Create {
             name "Default"
             value "DefaultValue"
         }
 
         when:
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -136,7 +136,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
-    def "createAsTemplate should never call lifecycle methods"() {
+    def "Template.Create should never call lifecycle methods"() {
         given:
         createClass('''
             package pk
@@ -160,7 +160,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def template = clazz.createAsTemplate {
+        def template = clazz.Template.Create {
             name "Default"
         }
 
@@ -183,14 +183,14 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = clazz.createAsTemplate {
+        def template = clazz.Template.Create {
             value "DefaultValue"
             value2 "DefaultValue2"
         }
 
         when:
         def currentTemplates = null
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = clazz.Create.With("Hallo") {
                 currentTemplates = KlumInstanceProxy.getProxyFor(delegate).currentTemplates
                 value "own"
@@ -221,7 +221,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         when:
-        Foo.withTemplate(template) {
+        Foo.Template.With(template) {
             instance = Foo.Create.With {}
         }
 
@@ -253,15 +253,15 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         and:
         def childTemplate
-        def template = clazz.createAsTemplate {
+        def template = clazz.Template.Create {
             name "bli"
         }
-        clazz.withTemplate(template) {
-            childTemplate = childClass.createAsTemplate {}
+        clazz.Template.With(template) {
+            childTemplate = childClass.Template.Create {}
         }
 
         when:
-        clazz.withTemplate(childTemplate) {
+        clazz.Template.With(childTemplate) {
             instance = grandChildClass.Create.With("Bla") {}
         }
 
@@ -287,12 +287,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").Template.Create {
             name "default"
         }
 
         when:
-        getClass("pk.Parent").withTemplate(template) {
+        getClass("pk.Parent").Template.With(template) {
             instance = create("pk.Child") {}
         }
 
@@ -323,7 +323,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        def template = clazz.createAsTemplate(name: 'Dieter')
+        def template = clazz.Template.Create(name: 'Dieter')
 
         then:
         notThrown(InstantiationException)
@@ -331,7 +331,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.name == 'Dieter'
 
         when:
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = getClass('pk.Child').Create.One()
         }
 
@@ -360,7 +360,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        instance = getClass("pk.Parent").createAsTemplate()
+        instance = getClass("pk.Parent").Template.Create()
 
         then:
         notThrown(InstantiationException)
@@ -382,7 +382,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         getClass('pk.Parent$Template') != null
 
         when:
-        getClass("pk.Parent").createAsTemplate()
+        getClass("pk.Parent").Template.Create()
 
         then:
         notThrown(InstantiationException)
@@ -405,12 +405,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").Template.Create {
             name "default"
         }
 
         when:
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").Template.With(template) {
             instance = create("pk.Child") {}
         }
 
@@ -435,13 +435,13 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").Template.Create {
             name "default"
             value "defaultValue"
         }
 
         when:
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").Template.With(template) {
             instance = create("pk.Child") {}
         }
 
@@ -467,16 +467,16 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").Template.Create {
             name "parent"
         }
-        def childTemplate = getClass("pk.Child").createAsTemplate {
+        def childTemplate = getClass("pk.Child").Template.Create {
             name "child"
         }
 
         when:
-        getClass("pk.Parent").withTemplate(template) {
-            getClass("pk.Child").withTemplate(childTemplate) {
+        getClass("pk.Parent").Template.With(template) {
+            getClass("pk.Child").Template.With(childTemplate) {
                 instance = create("pk.Child") {}
             }
         }
@@ -507,12 +507,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").Template.Create {
             name "child"
         }
 
         when:
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").Template.With(template) {
             instance = clazz.Create.With {
                 child {}
             }
@@ -544,12 +544,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").Template.Create {
             name "parent"
         }
 
         when:
-        getClass("pk.Parent").withTemplate(template) {
+        getClass("pk.Parent").Template.With(template) {
             instance = clazz.Create.With {
                 child {}
             }
@@ -583,12 +583,12 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         and:
-        def template = getClass("pk.Child").createAsTemplate {
+        def template = getClass("pk.Child").Template.Create {
             name "child"
         }
 
         when:
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").Template.With(template) {
             instance = clazz.Create.With {
                 children {
                     child {}
@@ -619,10 +619,10 @@ class TemplatesSpec extends AbstractDSLSpec {
         create("pk.Child") {}.name == "default"
 
         when:
-        def template = getClass("pk.Parent").createAsTemplate {
+        def template = getClass("pk.Parent").Template.Create {
             name "parent"
         }
-        getClass("pk.Child").withTemplate(template) {
+        getClass("pk.Child").Template.With(template) {
             instance = create("pk.Child") {}
         }
 
@@ -630,10 +630,10 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "parent"
 
         when:
-        def otherTemplate = getClass("pk.Child").createAsTemplate {
+        def otherTemplate = getClass("pk.Child").Template.Create {
             name "child"
         }
-        getClass("pk.Child").withTemplate(otherTemplate) {
+        getClass("pk.Child").Template.With(otherTemplate) {
             instance = create("pk.Child") {}
         }
 
@@ -641,7 +641,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.name == "child"
 
         when:
-        getClass("pk.Child").withTemplate(otherTemplate) {
+        getClass("pk.Child").Template.With(otherTemplate) {
             instance = create("pk.Child") {name "explicit"}
         }
 
@@ -678,7 +678,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         template.names == ["default", "parent"]
 
         when:
-        Child.withTemplate(template) {
+        Child.Template.With(template) {
             instance = Child.Create.One()
         }
 
@@ -687,12 +687,12 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         def childTemplate
-        Parent.withTemplate(template) {
-            childTemplate = Child.createAsTemplate {
+        Parent.Template.With(template) {
+            childTemplate = Child.Template.Create {
                 names "child"
             }
         }
-        Child.withTemplate(childTemplate) {
+        Child.Template.With(childTemplate) {
             instance = Child.Create.One()
         }
 
@@ -700,7 +700,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.names == ["default", "parent", "child"]
 
         when:
-        Child.withTemplate(childTemplate) {
+        Child.Template.With(childTemplate) {
             instance = Child.Create.With { name "explicit" }
         }
 
@@ -731,12 +731,12 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         when:
         def childTemplate
-        Parent.withTemplate(template) {
+        Parent.Template.With(template) {
             childTemplate = Child.Create.Template {
                 names = ["child"]
             }
         }
-        Child.withTemplate(childTemplate) {
+        Child.Template.With(childTemplate) {
             instance = Child.Create.With { name "explicit"}
         }
 
@@ -754,12 +754,12 @@ class TemplatesSpec extends AbstractDSLSpec {
                 String value
             }
         ''')
-        def template = clazz.createAsTemplate {
+        def template = clazz.Template.Create {
             value "default"
         }
 
         when:
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = create("pk.Foo") {
                 value "non-default"
             }
@@ -795,7 +795,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         when:
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -826,7 +826,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         }
 
         when:
-        clazz.withTemplates((clazz): template) {
+        clazz.Template.WithAll((clazz): template) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -850,7 +850,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.withTemplates([:]) {
+        clazz.Template.WithAll([:]) {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -886,7 +886,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.withTemplates((Foo) : fooTemplate, (Bar) : barTemplate) {
+        clazz.Template.WithAll((Foo) : fooTemplate, (Bar) : barTemplate) {
             foo = Foo.Create.With {
                 value 'blub'
             }
@@ -923,7 +923,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.withTemplates([fooTemplate, barTemplate]) {
+        clazz.Template.WithAll([fooTemplate, barTemplate]) {
             foo = fooClass.Create.With {
                 value 'blub'
             }
@@ -953,11 +953,11 @@ class TemplatesSpec extends AbstractDSLSpec {
             }
         ''')
         def fooClass = getClass('pk.Foo')
-        def fooTemplate = fooClass.createAsTemplate(name: 'DefaultName')
+        def fooTemplate = fooClass.Template.Create(name: 'DefaultName')
 
         def bar
         when:
-        clazz.withTemplates([fooTemplate]) {
+        clazz.Template.WithAll([fooTemplate]) {
             bar = getClass('pk.Bar').Create.With {
                 token "b"
             }
@@ -986,7 +986,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         def childClass = getClass('pk.Child')
 
         when:
-        getClass("pk.Parent").withTemplates((parentClass) : parentClass.Create.With(name: "parent"), (childClass): childClass.Create.With(names: ["child"])) {
+        getClass("pk.Parent").Template.WithAll((parentClass) : parentClass.Create.With(name: "parent"), (childClass): childClass.Create.With(names: ["child"])) {
             instance = create("pk.Child") { name "explicit" }
         }
 
@@ -1007,7 +1007,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.withTemplate(name: "Default", value: "DefaultValue") {
+        clazz.Template.With(name: "Default", value: "DefaultValue") {
             instance = clazz.Create.With {
                 name "own"
             }
@@ -1040,7 +1040,7 @@ class TemplatesSpec extends AbstractDSLSpec {
 
         def foo, bar
         when:
-        clazz.withTemplates((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
+        clazz.Template.WithAll((fooClass) : [name: 'DefaultName'], (barClass) : [token: 'DefaultToken']) {
             foo = fooClass.Create.With {
                 value 'blub'
             }
@@ -1066,7 +1066,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        clazz.withTemplate(name: "Default") {
+        clazz.Template.With(name: "Default") {
             instance = clazz.Create.With {
                 value "bla"
             }
@@ -1095,12 +1095,12 @@ class TemplatesSpec extends AbstractDSLSpec {
                 def doIt() {}
             }
         ''')
-        def template = getClass('pk.Foo').createAsTemplate {
+        def template = getClass('pk.Foo').Template.Create {
             name "Default"
         }
 
         when:
-        getClass("pk.Foo").withTemplate(template) {
+        getClass("pk.Foo").Template.With(template) {
             instance = getClass("pk.Bar").Create.With {
                 value "bla"
             }
@@ -1129,7 +1129,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        getClass("pk.Foo").withTemplate(name: "Default") {
+        getClass("pk.Foo").Template.With(name: "Default") {
             instance = getClass("pk.Bar").Create.With {
                 value "bla"
             }
@@ -1366,7 +1366,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
 
         when:
         def templatesDuringCreation = null
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = clazz.Create.With {
                 name "Overridden"
                 templatesDuringCreation = KlumInstanceProxy.getProxyFor(delegate).currentTemplates
@@ -1407,7 +1407,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         template.fullName == null
 
         when:
-        def instance = Foo.withTemplate(template) {
+        def instance = Foo.Template.With(template) {
             Foo.Create.With {
                 name "foo"
             }

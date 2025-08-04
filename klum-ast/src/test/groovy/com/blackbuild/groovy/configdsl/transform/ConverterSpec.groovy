@@ -262,7 +262,7 @@ class ConverterSpec extends AbstractDSLSpec {
                 String token
                 
                 static Bar fromLong(long value, String token = "dummy") {
-                    return create(birthday: new Date(value), token: token)
+                    return Bar.Create.With(birthday: new Date(value), token: token)
                 }
             }
             '''
@@ -302,7 +302,7 @@ class ConverterSpec extends AbstractDSLSpec {
                 Date birthday
                 
                 static Bar fromLong(String name, long value) {
-                    return create(name, birthday: new Date(value))
+                    return Bar.Create.With(name, birthday: new Date(value))
                 }
             }
             '''
@@ -332,7 +332,7 @@ class ConverterSpec extends AbstractDSLSpec {
                 Date birthday
                 
                 static Bar fromLong(String name, long value) {
-                    return create(name, birthday: new Date(value))
+                    return Bar.Create.With(name, birthday: new Date(value))
                 }
             }
             '''
@@ -362,7 +362,7 @@ class ConverterSpec extends AbstractDSLSpec {
                 Date birthday
                 
                 static Bar fromLong(String name, long value) {
-                    return create(name, birthday: new Date(value))
+                    return Bar.Create.With(name, birthday: new Date(value))
                 }
             }
             '''

@@ -72,7 +72,7 @@ public class BoundTemplateHandler<T> {
      * @param <C>      the return type of the closure
      * @return the result of the closure
      */
-    public <C> C With(Map<String, Object> template, Closure<C> body) {
+    public <C> C With(Map<String, ?> template, Closure<C> body) {
         return TemplateManager.withTemplate(type, template, body);
     }
 
@@ -85,7 +85,7 @@ public class BoundTemplateHandler<T> {
      * @param <C>          the return type of the closure
      * @return the result of the closure
      */
-    public <C> C WithAll(Map<Class<?>, Map<String, Object>> newTemplates, Closure<C> body) {
+    public <C> C WithAll(Map<Class<?>, Map<String, ?>> newTemplates, Closure<C> body) {
         return TemplateManager.withTemplates(newTemplates, body);
     }
 
@@ -138,7 +138,7 @@ public class BoundTemplateHandler<T> {
      * @param configuration The closure to apply to the template instance.
      * @return a template instance of the model type.
      */
-    public T Create(Map<String, Object> configMap, Closure<?> configuration) {
+    public T Create(Map<String, ?> configMap, Closure<?> configuration) {
         return FactoryHelper.createAsTemplate(type, configMap, configuration);
     }
 
@@ -178,7 +178,7 @@ public class BoundTemplateHandler<T> {
      * @return a template instance of the model type.
      * @see #Create(Map, Closure)
      */
-    public T Create(Map<String, Object> configMap) {
+    public T Create(Map<String, ?> configMap) {
         return FactoryHelper.createAsTemplate(type, configMap, null);
     }
 

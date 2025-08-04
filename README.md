@@ -5,26 +5,17 @@ Welcome to KlumAST
 Turn your models into supermodels!
 
 
-
 [![klum logo](img/klumlogo.png)](https://github.com/klum-dsl/klum-ast)
 
 # Breaking changes
 
-I decided to release 1.2.0 prior to doing some extensive refactorings including splitting into runtime and compile
-time dependencies.
+I have finally released 2.0.0 and 2.1.0. Both are based on the same major changes, including runtime dependencies, modularization, etc.
 
-Thus 1.2.0 is simply a step up to 2.0.0, mainly designed to replace various rc-version in use.
+Users of 1.2.0 (or lower) should take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
 
-Some new features being introduced in 1.2.0 need KlumAST to
-be present on the classpath during runtime.
+2.1.0 does not introduce new features but drops all methods that were deprecated in 2.0.0.
 
-Closure are now all `DELEGATE_ONLY`, this means methods of an outer object cannot be
-directly accessed. This is cleaner and somewhat closer to the behaviour of
-xml or other structured languages. Accessing outer methods should be a corner case.
-Take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) if you encounter errors.
-
-Factory methods on DSL classes are deprecated in favor of a single `Create` class field which encapsulates all
-relevant factory methods.
+2.x will be the last version of KlumAST that supports Groovy 2.x. The next major version will require Groovy 3.x and Java 17.
 
 # What is KlumAST?
 

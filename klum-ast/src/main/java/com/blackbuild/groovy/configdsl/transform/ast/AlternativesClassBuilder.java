@@ -168,8 +168,8 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
-                                elementType,
-                                TemplateMethods.WITH_TEMPLATE,
+                                propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),
+                                "With",
                                 args(varX(templateMapVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
@@ -190,8 +190,8 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                 .delegatingClosureParam(collectionFactory, MethodBuilder.ClosureDefaultValue.NONE)
                 .statement(
                         callX(
-                                elementType,
-                                TemplateMethods.WITH_TEMPLATE,
+                                propX(classX(elementType), TemplateMethods.TEMPLATE_FIELD_NAME),
+                                "With",
                                 args(varX(templateVarName), closureX(stmt(callThisX(factoryMethod, varX(closureVarName)))))
                         )
                 )
@@ -271,7 +271,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
     private void createDelegateFactoryMethod(MethodNode methodNode) {
         if (methodNode.getName().startsWith("$")) return;
         if (!methodNode.isPublic()) return;
-        if (methodNode.getName().startsWith("Template")) return;
+        if (methodNode.getName().startsWith(TemplateMethods.TEMPLATE_FIELD_NAME)) return;
 
         ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
 

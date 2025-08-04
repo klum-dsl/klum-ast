@@ -174,7 +174,6 @@ class ValidatorTest extends AbstractRuntimeTest {
         createClass('''
             package pk
             import com.blackbuild.groovy.configdsl.transform.Validate
-            import com.blackbuild.groovy.configdsl.transform.Validation
 
             @DSL
             @Validate

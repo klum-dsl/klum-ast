@@ -435,7 +435,7 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.createAsTemplate {
+        instance = clazz.Template.Create {
             nonValidated "bla"
         }
 
@@ -619,25 +619,6 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
-    }
-
-    def "validation method is deprecated"() {
-        when:
-        createClass('''
-            @DSL
-            class Foo {
-                String value1
-                String value2
-
-                @Validate
-                private def stringLength() {
-                    assert value1.length() < value2.length()
-                }
-            }
-        ''')
-
-        then:
-        isDeprecated(clazz.getMethod("validate"))
     }
 
     def "validation method"() {

@@ -368,7 +368,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
             }
         }
 
-        Outer.withTemplate(template) {
+        Outer.Template.With(template) {
             instance = Outer.Create.With {
                 inner {
                     bar 2
@@ -408,7 +408,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
             }
         }
 
-        Outer.withTemplate(template) {
+        Outer.Template.With(template) {
             instance = Outer.Create.With {
                 inner {
                     bar 2
@@ -450,7 +450,7 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         }
 
         def innerInstance
-        Outer.withTemplate(template) {
+        Outer.Template.With(template) {
             instance = Outer.Create.With {
                 inner("a") {
                     bar 2

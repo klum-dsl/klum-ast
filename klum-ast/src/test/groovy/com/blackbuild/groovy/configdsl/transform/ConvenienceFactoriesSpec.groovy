@@ -335,7 +335,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         def configText = '''
             value "bla"
 
-            pk.Bar.withTemplate(bValue: 'default') {
+            pk.Bar.Template.With(bValue: 'default') {
                 bar {}
             }
         '''
@@ -495,7 +495,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         def template = clazz.Create.With(name: 'Dieter')
 
         when:
-        clazz.withTemplate(template) {
+        clazz.Template.With(template) {
             instance = clazz.Create.From(configText)
         }
 
@@ -528,7 +528,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = clazz.createFromClasspath()
+        instance = clazz.Create.FromClasspath()
 
         then:
         instance.name == "hallo"
@@ -563,7 +563,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = getClass("pk.Config").createFromClasspath()
+        instance = getClass("pk.Config").Create.FromClasspath()
 
         then:
         instance.name == "hallo"
@@ -593,7 +593,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
         loader.addURL(classPathRoot.toURI().toURL())
 
         when:
-        instance = clazz.createFromClasspath()
+        instance = clazz.Create.FromClasspath()
 
         then:
         instance.name == "hallo"

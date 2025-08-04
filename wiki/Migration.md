@@ -1,6 +1,12 @@
 Migration Guide
 ---------------
 
+# to 2.1
+
+It is strongly advised to first update to 2.0 and the to 2.1. 
+
+2.1 drops all deprecated methods of 2.0. Since they are documented, replacing them with their new counterparts should be straightforward.
+
 # to 2.0
 
 ## Validation now throws KlumValidationException

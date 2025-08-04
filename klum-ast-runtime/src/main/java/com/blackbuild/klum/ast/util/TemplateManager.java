@@ -110,7 +110,7 @@ public class TemplateManager {
      * @param <T>      the type of the template
      * @return the result of the closure
      */
-    public static <T,C> T withTemplate(Class<C> type, Map<String, Object> template, Closure<T> body) {
+    public static <T,C> T withTemplate(Class<C> type, Map<String, ?> template, Closure<T> body) {
         C templateInstance = FactoryHelper.createAsTemplate(type, template, null);
         return withTemplate(type, templateInstance, body);
     }
@@ -127,12 +127,12 @@ public class TemplateManager {
      * @param body         the closure to execute
      * @return the result of the closure
      */
-    public static <T> T doWithTemplates(Map<Class<?>, Object> newTemplates, Closure<T> body) {
+    public static <T> T doWithTemplates(Map<Class<?>, ?> newTemplates, Closure<T> body) {
         if (newTemplates.isEmpty())
             return body.call();
 
         TemplateManager manager = getInstance();
-        Map<Class<?>, Object> oldTemplates = new HashMap<>(manager.templates);
+        Map<Class<?>, ?> oldTemplates = new HashMap<>(manager.templates);
 
         try {
             manager.addTemplates(newTemplates);
@@ -151,7 +151,7 @@ public class TemplateManager {
      * @param body         the closure to execute
      * @return the result of the closure
      */
-    public static <T> T withTemplates(Map<Class<?>, Map<String, Object>> newTemplates, Closure<T> body) {
+    public static <T> T withTemplates(Map<Class<?>, Map<String, ?>> newTemplates, Closure<T> body) {
         if (newTemplates.isEmpty())
             return body.call();
 
@@ -161,7 +161,7 @@ public class TemplateManager {
         return doWithTemplates(effectiveTemplates, body);
     }
 
-    private static Object mapToTemplate(Map.Entry<Class<?>, Map<String, Object>> entry) {
+    private static Object mapToTemplate(Map.Entry<Class<?>, Map<String, ?>> entry) {
         return FactoryHelper.createAsTemplate(entry.getKey(), entry.getValue(), null);
     }
 
@@ -216,7 +216,7 @@ public class TemplateManager {
      *
      * @param newTemplates the templates to add
      */
-    public void addTemplates(Map<Class<?>, Object> newTemplates) {
+    public void addTemplates(Map<Class<?>, ?> newTemplates) {
         templates.putAll(newTemplates);
     }
 
@@ -225,7 +225,7 @@ public class TemplateManager {
      *
      * @param newTemplates the templates to set
      */
-    public void setTemplates(Map<Class<?>, Object> newTemplates) {
+    public void setTemplates(Map<Class<?>, ?> newTemplates) {
         templates.clear();
         addTemplates(newTemplates);
     }

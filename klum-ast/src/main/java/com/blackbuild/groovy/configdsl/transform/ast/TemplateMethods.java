@@ -23,6 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
@@ -39,9 +41,9 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 
 @SuppressWarnings("java:S1192")
 class TemplateMethods {
-    public static final String WITH_TEMPLATE = "withTemplate";
-    public static final String WITH_MULTIPLE_TEMPLATES = "withTemplates";
-    public static final String CREATE_AS_TEMPLATE = "createAsTemplate";
+    public static final String TEMPLATE_FIELD_NAME = "Template";
+    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
+
     public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
     private final FieldNode keyField;
@@ -58,52 +60,22 @@ class TemplateMethods {
 
     public void invoke() {
         createImplementationForAbstractClassIfNecessary();
-        createAsTemplateMethods();
         copyFromMethods();
-        withTemplateMethod();
-        withTemplateConvenienceMethod();
-        withTemplatesMapMethod();
-        withTemplatesListMethod();
+        createTemplateField();
     }
 
-    private void withTemplateMethod() {
-        createTemplateMethod(WITH_TEMPLATE)
-                .constantClassParam(annotatedClass)
-                .param(newClass(dslAncestor), "template", null)
-                .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.With() instead")
-                .addTo(annotatedClass);
-    }
+    private void createTemplateField() {
+        FieldNode templateField = new FieldNode(
+                TEMPLATE_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
+                annotatedClass,
+                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
+        );
 
-    private void withTemplateConvenienceMethod() {
-        createTemplateMethod(WITH_TEMPLATE)
-                .constantClassParam(annotatedClass)
-                .nonOptionalNamedParams("templateMap", null)
-                .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.With() instead")
-                .addTo(annotatedClass);
-    }
-
-    private void withTemplatesMapMethod() {
-        ClassNode classType = makeClassSafe(Class.class);
-        ClassNode innerMapType = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
-        ClassNode templatesType = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(classType), new GenericsType(innerMapType));
-
-        createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
-                .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(templatesType, "templates", null)
-                .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
-                .addTo(annotatedClass);
-    }
-
-    private void withTemplatesListMethod() {
-        createTemplateMethod(WITH_MULTIPLE_TEMPLATES)
-                .returning(ClassHelper.DYNAMIC_TYPE)
-                .param(newClass(LIST_TYPE), "templates", null)
-                .mandatoryClosureParam("closure", null)
-                .deprecated(DeprecationType.FOR_REMOVAL, "Use Template.WithAll() instead")
-                .addTo(annotatedClass);
+        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
+        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        annotatedClass.addField(templateField);
     }
 
     private void createImplementationForAbstractClassIfNecessary() {
@@ -125,16 +97,7 @@ class TemplateMethods {
                 .addTo(rwClass);
      }
 
-    private void createAsTemplateMethods() {
-        createFactoryMethod(CREATE_AS_TEMPLATE, annotatedClass)
-                .forRemoval("Use Template.Create() instead")
-                .namedParams("values", null)
-                .delegatingClosureParam(rwClass, null)
-                .addTo(annotatedClass);
-    }
-
     private void createTemplateClass() {
-
         templateClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$Template",

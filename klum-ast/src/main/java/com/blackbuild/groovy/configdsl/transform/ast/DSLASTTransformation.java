@@ -33,7 +33,6 @@ import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
@@ -56,15 +55,12 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 
-import java.io.File;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.*;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createFactoryMethod;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.ast.util.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
@@ -99,19 +95,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String VALIDATE_METHOD = "validate";
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
-    public static final String CREATE_FROM = "createFrom";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
-    public static final String CREATE_METHOD_NAME = "create";
-    public static final String CREATE_FROM_CLASSPATH = "createFromClasspath";
     public static final String FACTORY_FIELD_NAME = "Create";
-    public static final String TEMPLATE_FIELD_NAME = "Template";
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
-    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
+    public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
     ClassNode dslParent;
@@ -154,10 +145,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createApplyMethods();
         createTemplateMethods();
         createFactoryField();
-        createFactoryMethods();
-        createConvenienceFactories();
-
-        createTemplateField();
 
         createFieldDSLMethods();
         createClusterFactories();
@@ -308,12 +295,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .documentationTitle("Prevent automatic validation of this instance during Validation phase.")
                     .addTo(rwClass);
         }
-
-        createProxyMethod(VALIDATE_METHOD)
-                .mod(ACC_PUBLIC)
-                .optional()
-                .forRemoval("Use Validator.validate() instead")
-                .addTo(annotatedClass);
     }
 
     private void convertValidationClosures() {
@@ -1048,18 +1029,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .delegatingClosureParam(rwClass, null)
                 .addTo(annotatedClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(Integer_TYPE, "phase")
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod("applyLater")
+        createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(make(DefaultKlumPhase.class), "phase")
                 .delegatingClosureParam(rwClass, null, null)
@@ -1175,65 +1156,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
         if (existing == null)
             factoryClass.addMethod(newMethod);
-    }
-
-    private void createFactoryMethods() {
-        if (!isInstantiable(annotatedClass))
-            return;
-
-        createFactoryMethod(CREATE_METHOD_NAME, annotatedClass)
-                .forRemoval("Use Create.With() instead")
-                .namedParams("values")
-                .optionalStringParam("name", keyField != null)
-                .delegatingClosureParam(rwClass)
-                .addTo(annotatedClass);
-    }
-
-    @Deprecated(forRemoval = true)
-    private void createConvenienceFactories() {
-        String deprecationMessage = "Use Create.From(...) instead";
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .simpleClassParam("configType", ClassHelper.SCRIPT_TYPE, "The script to create the instance from")
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .optionalStringParam("name", keyField != null, "The key to use for the new instance")
-                .stringParam("text", "The text to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .param(make(File.class), "src", "The file to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .param(make(URL.class), "src", "The URL to create the instance from")
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-
-        createFactoryMethod(CREATE_FROM_CLASSPATH, annotatedClass)
-                .forRemoval(deprecationMessage)
-                .optionalClassLoaderParam()
-                .addTo(annotatedClass);
-    }
-
-    private void createTemplateField() {
-        FieldNode templateField = new FieldNode(
-                TEMPLATE_FIELD_NAME,
-                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
-                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
-                annotatedClass,
-                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
-        );
-
-        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
-        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
-        annotatedClass.addField(templateField);
     }
 
 

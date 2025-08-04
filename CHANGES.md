@@ -1,4 +1,9 @@
-# 2.0.0 (unreleased)
+# 2.1.0
+No new features, but all deprecated features from 2.0.0 have been removed.
+
+see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration) and below (2.0.0) for details.
+
+# 2.0.0
 ## New Features
 - New Field Type: BUILDER: Getters are protected or private in model, but dsl methods are public
 - Compatibility with Groovy 3 and 4. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins). Tests are run with Groovy 3 and 4 as well.
