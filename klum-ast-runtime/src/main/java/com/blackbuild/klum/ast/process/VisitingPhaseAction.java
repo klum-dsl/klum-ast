@@ -56,4 +56,5 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
             }
         });
     }
+
 }

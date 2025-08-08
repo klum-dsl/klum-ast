@@ -29,6 +29,8 @@ import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
 import groovy.lang.Closure;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
@@ -49,7 +51,7 @@ public class AutoCreationPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
                     .filter(entry -> entry.getValue() == null)

@@ -3,8 +3,8 @@ Layer3 advanced structures
 
 A Layer3 structure is a way of approaching a model from two sides:
 
-- The API layer provides abstract base classes for the schema. These base classes usually provide access to the relevant fields of the actual classes using Maps and collections. The API layer is thus consumer specific and technical in nature.
-- The Scheme layer provides the actual classes, i.e. specific subclasses of the classes defined in the API-Layer. These provide named fields and validations, making the actual modelling easier. These fields are usually a lot more domain specific.
+- The API layer provides abstract base classes for the schema. These base classes usually provide access to the relevant fields of the actual classes using Maps and collections. The API layer is thus consumer-specific and technical in nature.
+- The Scheme layer provides the actual classes, i.e., specific subclasses of the classes defined in the API-Layer. These provide named fields and validations, making the actual modeling easier. These fields are usually a lot more domain-specific.
 - The model layer contains the actual configuration scripts to instantiate the schema layer classes and connect them to each other.
 
 ## Example structure
@@ -18,9 +18,9 @@ In this structure, the API layer will provide the following classes:
 - `Database`
 - `Microservice`
 
-These are the classes that will be consumed by our Consumer application (for example a deployment pipeline).
+These are the classes that will be consumed by our Consumer application (for example, a deployment pipeline).
 
-The schema layer contains classes modelling the actual applications, i.e. if we have two applications, each application will consist of a database class and several microservice classes.
+The schema layer contains classes modeling the actual applications, i.e., if we have two applications, each application will consist of a database class and several microservice classes.
 
 ```groovy
 @DSL class CustomerServiceEnvironment extends Environment {
@@ -92,7 +92,7 @@ environment("prod") {
     //...
 }
 ```
-From the modelling perspective, this is a lot more expressive than using generic microservice or database classes. However, the API layer is still very simple, and can be used by the consumer application without having to know about the actual structure of the application.
+From the modeling perspective, this is a lot more expressive than using generic microservice or database classes. However, the API layer is still very simple and can be used by the consumer application without having to know about the actual structure of the application.
 
 For each Cluster-Field of a class, a cluster factory named like the field is created, which only contains the matching fields of the cluster. This is especially useful if the name of the field lacks context:
 
@@ -130,7 +130,7 @@ environment("dev") {
 ```
 
 By default, these factories are entirely optional (like collection factories), but can be made mandatory by using 
-`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package. This makes the interface cleaner, by removing all cluster field methods from the rw-interface (i.e. code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
+`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package. This makes the interface cleaner by removing all cluster field methods from the rw-interface (i.e., code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
 
 The Environment base class contains method to access the actual applications as a Map:
 
@@ -209,7 +209,7 @@ There are various major benefits of using a Layer3 model vs. a generic schema/mo
 
 ### Editing and code completion
 
-With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above being modelled using a generic schema/model approach:
+With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above being modeled using a generic schema/model approach:
 
 ```groovy
 environment("dev") {
@@ -233,31 +233,31 @@ Besides being harder to read there is neither code completion help nor any prote
 
 In contrast, by using a specific `ShippingApplication` class, there is exactly one field for each microservice, and the developer can use code completion to see which fields are available. Also, typos like using the wrong user will be detected by the compiler and the IDE immediately.
 
-Using a specific subclass also allows to properly comment the domain specific fields (what is the use of the monitoring db user?), which is not possible with a generic schema/model approach.
+Using a specific subclass also allows properly commenting the domain-specific fields (what is the use of the monitoring db user?), which is not possible with a generic schema/model approach.
 
 ### Domain consumers
 
 Since we are building an environment model in this example, there are two distinct types of consumers:
 
-* Generic consumers, like a deployment pipeline or a test framework only use the generic methods of the API layer (behaving exactly like in the generic schema/model approach)
+* Generic consumers, like a deployment pipeline or a test framework, only use the generic methods of the API layer (behaving exactly like in the generic schema/model approach)
 * Specific consumers know the actual ShippingApplication and can access its various fields directly. Specific consumers can be, for example:
-    * The application itself, for example in reading the jdbc url for the actual database directly from the model (instead of an application.yaml or such)
+    * The application itself, for example, in reading the jdbc url for the actual database directly from the model (instead of an application.yaml or such)
     * A post-deployment test that runs against a specific environment and needs to know the actual database users and passwords can obtain them directly from the model. Combined with password retrieving techniques like an Hashicorp Vault accessor, this can be a very powerful approach. Since the tests are identical for every stage, they can be effectively reused. A developer can use the same tests against a local virtual machine as against the actual approval environment. The only difference being that the developer would not have the rights to access the actual passwords of the approval environment.
 
 ### Validation
 
-With ShipmentApplication being a class with domain knowledge, it can also contain domain specific validations. For example:
+With ShipmentApplication being a class with domain knowledge, it can also contain domain-specific validations. For example:
 
 - if ssl is enabled in the frontend, the backend must have a configured validation server
 - if a monitoring service is defined, the monitoring database user must be defined
 
-Making these validation with a domain schema is trivial.
+Making these validations with a domain schema is trivial.
 
 ### Automatic creation and linking
 
-Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant, but also error-prone, since the monitoring service might be configured differently for each application.
+Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant but also error-prone, since the monitoring service might be configured differently for each application.
 
-Using the schema layer with auto create, the monitoring service could automatically be created.
+Using the schema layer with `AutoCreate`, the monitoring service could automatically be created.
 
 ```groovy
 abstract class MonitoredApplication extends Application {
@@ -275,14 +275,14 @@ class MonitoringService extends Microservice {
   @LinkTo Database database
 }
 ```
-During the instantiation of the model, the database field will bea automatically filled, but can still be overwritten 
-on instance level. See JavaDoc for `LinkTo` for more details.
+During the instantiation of the model, the database field will bea automatically filled but can still be overwritten 
+on instance level. See Javadoc for `LinkTo` for more details.
 
 ### Role fields
 
 Fields can be annotated with `@Role` to indicate that they are used for a specific role as seen from their owner. 
 Consider a Database class that has various users. Each user object has access to its owning database object, but it
-might be necessary fo the User object to know how it is used in their database. Rather then forcing the modeller to 
+might be necessary for the User object to know how it is used in their database. Rather than forcing the modeler to 
 set the role manually, it can simply be inferred from the field name of the Database that points to the user:
 
 ```groovy
@@ -314,7 +314,7 @@ assert db.dml.role == "dml"
 assert db.monitoring.role == "monitoring"
 ```
 
-That way some kind of environment checker can for example validate that all non ddl user habe the correct privileges:
+That way some kind of environment checker can, for example, validate that all non ddl users have the correct privileges:
 
 ```groovy
 StructureUtil.deepFind(model, DbUser).each { path, user ->
@@ -324,5 +324,5 @@ StructureUtil.deepFind(model, DbUser).each { path, user ->
 }
 ```
 
-Note that this check should not be standard model validation, because it requires access to the actual database.
+Note that this check should not be done during standard model validation because it requires access to the actual database.
 

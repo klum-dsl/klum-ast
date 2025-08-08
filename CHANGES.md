@@ -1,6 +1,16 @@
+# 2.1.3
+- `StructureUtil.visit()` and `StructureUtil.deepFind()` should ignore `Owner` and `Link` fields (see [#396](https://github.com/klum-dsl/klum-ast/issues/396))
+- internal: `StructureUtil.deepFind()` should internally use a visitor instead of duplicating logic (see [#397](https://github.com/klum-dsl/klum-ast/issues/397)) 
+
+# 2.1.2
+- Validate problems should include the structure path along with the breadcrumb path
+
+# 2.1.1
+- KlumValidationException should omit empty KlumValidationResult instances.
+
 # 2.1.0
 No new features, but all deprecated features from 2.0.0 have been removed. All dropped methods are correctly declared in 2.0.0,
-aloing with the migration path.
+along with their migration paths.
 
 ## Dropped methods and features (see [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration)):
 - The `@Validation` annotation. Use `@Validate` on class level instead.

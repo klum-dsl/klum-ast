@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.klum.ast.util.AbstractRuntimeTest
+import org.jetbrains.annotations.NotNull
+import spock.lang.Issue
 
 class StructureUtilTest extends AbstractRuntimeTest {
     def "getPathOfFieldContaining returns the correct field"() {
@@ -126,4 +128,53 @@ class StructureUtilTest extends AbstractRuntimeTest {
         result.isEmpty()
     }
 
+    @Issue("396")
+    def "structureUtil should ignore owner fields and link only fields"() {
+        given:
+        createClass '''import com.blackbuild.groovy.configdsl.transform.Owner
+import com.blackbuild.klum.ast.KlumModelObject
+
+            class Container implements KlumModelObject {
+                String name
+                Content child
+                Content otherChild
+            }
+            
+            class Content implements KlumModelObject {
+                String name
+                @Owner Container container 
+            }
+        '''
+
+        def visitor = new ModelVisitor() {
+            List<Object> visited = []
+
+            @Override
+            void visit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
+                visited.add(element)
+            }
+        }
+
+        def container = newInstanceOf("Container", [name: "Container1", child: newInstanceOf("Content", [name: "Child1"]), otherChild: newInstanceOf("Content", [name: "Child2"])])
+        container.child.container = container
+        container.otherChild.container = container
+
+        when:
+        StructureUtil.visit(container, visitor)
+
+        then:
+        visitor.visited.size() == 3
+        visitor.visited[0].is(container)
+        visitor.visited[1].is(container.child)
+        visitor.visited[2].is(container.otherChild)
+
+        when:
+        visitor.visited.clear()
+        StructureUtil.visit(container.child, visitor)
+
+        then:
+        visitor.visited.size() == 1
+        visitor.visited[0].is(container.child)
+    }
+    
 }

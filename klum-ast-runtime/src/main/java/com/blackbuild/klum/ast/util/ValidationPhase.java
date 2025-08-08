@@ -29,6 +29,8 @@ import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +66,7 @@ public class ValidationPhase extends AbstractPhaseAction {
         }
 
         @Override
-        public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
             KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
             if (proxy.getManualValidation()) return;
 
@@ -74,5 +76,6 @@ public class ValidationPhase extends AbstractPhaseAction {
                 currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
             }
         }
+
     }
 }

@@ -27,7 +27,6 @@ import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
-import groovy.lang.MetaProperty;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -43,6 +42,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import static com.blackbuild.klum.ast.util.DslHelper.isDslObject;
+import static java.util.function.Predicate.not;
 
 /**
  * Utility class for working with data structures. Provides methods to iterate through data structures and find
@@ -76,12 +76,31 @@ public class StructureUtil {
         return toDefaultFieldName(object.getClass());
     }
 
-    public static void visit(Object container, ModelVisitor visitor) {
-        visit(container, visitor, "<root>");
+    /**
+     * Iterates through a data structure and invokes the given visitor for each element.
+     * The default implementation of the
+     * ModelVisitor only visits DSL objects, but this can be adjusted by overriding the shouldVisit method.
+     * <p>
+     *     The visitation only goes downwards, ignoring {@link com.blackbuild.groovy.configdsl.transform.Owner} and {@link com.blackbuild.groovy.configdsl.transform.FieldType#LINK}
+     *     fields, and ignores object cycles.
+     * </p>
+     *
+     * @param root The root object to start the visitation from
+     * @param visitor The visitor to invoke for each element
+     */
+    public static void visit(Object root, ModelVisitor visitor) {
+        visit(root, visitor, "<root>");
     }
 
-    public static void visit(Object container, ModelVisitor visitor, String path) {
-        doVisit(container, visitor, new ArrayList<>(), path, null, null);
+    /**
+     * Iterates through a data structure and invokes the given visitor for each element.
+     * Behaves like {@link #visit(Object, ModelVisitor)} but allows to specify a path representation for the root element..
+     * @param root The root object to start the visitation from.
+     * @param visitor The visitor to invoke for each element.
+     * @param path The path representation of the root element.
+     */
+    public static void visit(Object root, ModelVisitor visitor, String path) {
+        doVisit(root, visitor, new ArrayList<>(), path, null, null);
     }
 
     private static void doVisit(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
@@ -95,7 +114,8 @@ public class StructureUtil {
     }
 
     private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        if (!isDslObject(element)) return;
+        ModelVisitor.Action action = visitor.shouldVisit(path, element, container, nameOfFieldInContainer);
+        if (action == ModelVisitor.Action.SKIP) return;
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
         try {
             visitor.visit(path, element, container, nameOfFieldInContainer);
@@ -107,8 +127,9 @@ public class StructureUtil {
             throw new KlumVisitorException("Error visiting " + path, element, e);
         }
         alreadyVisited.add(element);
-        ClusterModel.getFieldPropertiesStream(element)
-                .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element, property.getName()));
+
+        if (action == ModelVisitor.Action.SKIP_SUBTREE) return;
+        getNonIgnoredProperties(element).forEach((name, value) -> doVisit(value, visitor, alreadyVisited, path + "." + name, element, name));
     }
 
     private static void doVisitMap(Map<?, ?> map, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
@@ -153,39 +174,9 @@ public class StructureUtil {
      * @return a map of strings to objects
      */
     public static <T> Map<String, T> deepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path) {
-        return doDeepFind(container, type, ignoredTypes, path, new ArrayList<>());
-    }
-
-    protected static <T> Map<String, T> doDeepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path, List<Object> visited) {
-        Map<String, T> result = new HashMap<>();
-        if (container == null
-                || ignoredTypes.stream().anyMatch(it -> it.isInstance(container))
-                || visited.stream().anyMatch(it -> it == container))
-            return result;
-
-        visited.add(container);
-
-        if (type.isInstance(container)) {
-            //noinspection unchecked
-            result.put(path, (T) container);
-            return result;
-        }
-
-        if (container instanceof Collection) {
-            AtomicInteger index = new AtomicInteger();
-            ((Collection<?>) container).forEach(member -> result.putAll(doDeepFind(member, type, ignoredTypes, path + "[" + index.getAndIncrement() + "]", visited)));
-        } else if (container instanceof Map) {
-            ((Map<?, ?>) container).forEach((key, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + toGPath(key), visited)));
-        } else if (!isIgnoredType(container.getClass())){
-            getNonIgnoredProperties(container).forEach((name, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + name, visited)));
-        }
-
-        return result;
-    }
-
-    private static boolean isIgnoredType(Class<?> type) {
-        if (type.getPackageName().startsWith("java.")) return true;
-        return false;
+        DeepFindVisitor<T> visitor = new DeepFindVisitor<>(type, ignoredTypes);
+        visit(container, visitor, path);
+        return visitor.result;
     }
 
     static String toGPath(Object value) {
@@ -198,20 +189,29 @@ public class StructureUtil {
         Class<?> type = container.getClass();
 
         while (type != null) {
-            Arrays.stream(type.getDeclaredFields())
-                    .filter(it -> !it.getName().contains("$"))
-                    .filter(it -> !Modifier.isStatic(it.getModifiers()))
-                    .filter(it -> !it.isSynthetic())
-                    .forEach(it -> result.put(it.getName(), DslHelper.getCachedField(container.getClass(), it.getName()).map(f -> f.getProperty(container)).orElse(null)));
+            addNonIgnoredProperties(container, type, result);
             type = type.getSuperclass();
         }
 
         return result;
     }
 
+    private static void addNonIgnoredProperties(Object container, Class<?> type, Map<String, Object> result) {
+        Arrays.stream(type.getDeclaredFields())
+                .filter(it -> !it.getName().contains("$"))
+                .filter(it -> !Modifier.isStatic(it.getModifiers()))
+                .filter(it -> !it.isSynthetic())
+                .filter(not(DslHelper::isOwner))
+                .filter(not(DslHelper::isLink))
+                .forEach(it -> result.put(
+                        it.getName(),
+                        DslHelper.getFieldValue(container,it.getName())));
+    }
+
     /**
      * Returns the name of the field of the container containing the given object. If the object is not
-     * contained in a field, returns an empty Optional.
+     * contained in a field, returns an empty Optional. This if the object is contained in a collection or map, a gson like
+     * expression is returned ("container.map.'child-name'" or 'container.list[2]').
      * @param container The container object to search
      * @param child The child object to look for
      * @return The name of the field containing the child object, or an empty Optional if the object is not contained in a field.
@@ -248,7 +248,7 @@ public class StructureUtil {
     }
 
     @NotNull
-    public static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
+    static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
         return ClusterModel.getPropertiesStream(container, child.getClass())
                 .filter(it -> it.getValue() == child)
                 .map(PropertyValue::getName)
@@ -274,10 +274,6 @@ public class StructureUtil {
                 .filter(it -> it.getValue() == value)
                 .map(Map.Entry::getKey)
                 .findFirst();
-    }
-
-    static boolean isNoInternalProperty(MetaProperty property) {
-        return !property.getName().contains("$");
     }
 
     /**
@@ -420,4 +416,29 @@ public class StructureUtil {
         return result;
      }
 
+    private static class DeepFindVisitor<T> implements ModelVisitor {
+        private final List<Class<?>> ignoredTypes;
+        private final Class<T> type;
+        final Map<String, T> result = new HashMap<>();
+
+        public DeepFindVisitor(Class<T> type, List<Class<?>> ignoredTypes) {
+            this.ignoredTypes = ignoredTypes;
+            this.type = type;
+        }
+
+        @Override
+        public Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
+            if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
+            return Action.HANDLE;
+        }
+
+        @Override
+        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+            if (type.isInstance(element)) {
+                //noinspection unchecked
+                result.put(path, (T) element);
+            }
+        }
+    }
 }
