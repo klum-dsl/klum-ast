@@ -28,7 +28,7 @@ import com.blackbuild.klum.ast.util.DslHelper;
 public interface DslObjectOnlyModelVisitor extends ModelVisitor {
 
     @Override
-    default boolean shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        return DslHelper.isDslObject(element);
+    default Action shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        return DslHelper.isDslObject(element) ? Action.HANDLE : Action.SKIP;
     }
 }

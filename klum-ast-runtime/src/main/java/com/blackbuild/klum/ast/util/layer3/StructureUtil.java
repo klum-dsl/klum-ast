@@ -27,7 +27,6 @@ import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
-import groovy.lang.MetaProperty;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -96,7 +95,8 @@ public class StructureUtil {
     }
 
     private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        if (!visitor.shouldVisit(path, element, container, nameOfFieldInContainer)) return;
+        ModelVisitor.Action action = visitor.shouldVisit(path, element, container, nameOfFieldInContainer);
+        if (action == ModelVisitor.Action.SKIP) return;
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
         try {
             visitor.visit(path, element, container, nameOfFieldInContainer);
@@ -109,6 +109,7 @@ public class StructureUtil {
         }
         alreadyVisited.add(element);
 
+        if (action == ModelVisitor.Action.SKIP_SUBTREE) return;
         getNonIgnoredProperties(element).forEach((name, value) -> doVisit(value, visitor, alreadyVisited, path + "." + name, element, name));
     }
 
@@ -159,34 +160,26 @@ public class StructureUtil {
 
     protected static <T> Map<String, T> doDeepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path, List<Object> visited) {
         Map<String, T> result = new HashMap<>();
-        if (container == null
-                || ignoredTypes.stream().anyMatch(it -> it.isInstance(container))
-                || visited.stream().anyMatch(it -> it == container))
-            return result;
+        ModelVisitor visitor = new ModelVisitor() {
+            @Override
+            public Action shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
+                if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
+                if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
+                return Action.HANDLE;
+            }
 
-        visited.add(container);
+            @Override
+            public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+                if (type.isInstance(container)) {
+                    //noinspection unchecked
+                    result.put(path, (T) container);
+                }
+            }
+        };
 
-        if (type.isInstance(container)) {
-            //noinspection unchecked
-            result.put(path, (T) container);
-            return result;
-        }
-
-        if (container instanceof Collection) {
-            AtomicInteger index = new AtomicInteger();
-            ((Collection<?>) container).forEach(member -> result.putAll(doDeepFind(member, type, ignoredTypes, path + "[" + index.getAndIncrement() + "]", visited)));
-        } else if (container instanceof Map) {
-            ((Map<?, ?>) container).forEach((key, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + toGPath(key), visited)));
-        } else if (!isIgnoredType(container.getClass())){
-            getNonIgnoredProperties(container).forEach((name, value) -> result.putAll(doDeepFind(value, type, ignoredTypes, path + "." + name, visited)));
-        }
+        visit(container, visitor, path);
 
         return result;
-    }
-
-    private static boolean isIgnoredType(Class<?> type) {
-        if (type.getPackageName().startsWith("java.")) return true;
-        return false;
     }
 
     static String toGPath(Object value) {
@@ -283,10 +276,6 @@ public class StructureUtil {
                 .filter(it -> it.getValue() == value)
                 .map(Map.Entry::getKey)
                 .findFirst();
-    }
-
-    static boolean isNoInternalProperty(MetaProperty property) {
-        return !property.getName().contains("$");
     }
 
     /**

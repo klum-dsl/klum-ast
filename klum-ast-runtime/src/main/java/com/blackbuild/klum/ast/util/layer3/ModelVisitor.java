@@ -27,7 +27,13 @@ public interface ModelVisitor {
 
     void visit(String path, Object element, Object container, String nameOfFieldInContainer);
 
-    default boolean shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        return true;
+    default Action shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        return Action.HANDLE;
+    }
+
+    enum Action {
+        HANDLE,
+        SKIP,
+        SKIP_SUBTREE,
     }
 }
