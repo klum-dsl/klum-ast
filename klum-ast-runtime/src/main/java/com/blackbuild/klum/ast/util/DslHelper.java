@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.DSL;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.*;
 import groovyjarjarasm.asm.Opcodes;
@@ -136,6 +137,12 @@ public class DslHelper {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();
+    }
+
+    public static <T> T getFieldValue(Object container, String name) {
+        return (T) DslHelper.getCachedField(container.getClass(), name)
+                .map(f -> f.getProperty(container))
+                .orElse(null);
     }
 
     public static FieldType getKlumFieldType(Field field) {
@@ -304,5 +311,13 @@ public class DslHelper {
             return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
         else
             return null;
+    }
+
+    public static boolean isOwner(@NotNull Field field) {
+        return field.isAnnotationPresent(Owner.class);
+    }
+
+    public static boolean isLink(@NotNull Field field) {
+        return getKlumFieldType(field) == FieldType.LINK;
     }
 }

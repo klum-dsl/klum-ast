@@ -27,7 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
+import com.blackbuild.klum.ast.util.layer3.DslObjectOnlyModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class ValidationPhase extends AbstractPhaseAction {
         new Visitor().execute();
     }
 
-    public static class Visitor implements ModelVisitor {
+    public static class Visitor implements DslObjectOnlyModelVisitor {
 
         private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
         private Validate.Level currentMaxLevel = Validate.Level.NONE;

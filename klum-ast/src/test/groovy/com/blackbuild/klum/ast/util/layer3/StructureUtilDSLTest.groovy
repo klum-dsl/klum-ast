@@ -160,8 +160,11 @@ import com.blackbuild.groovy.configdsl.transform.Owner
     def "Visitor works"() {
         given:
         def result = [:]
-        def visitor = { String path, Object value, Object container, String fieldInContainer ->
-            result[path] = value
+        def visitor = new DslObjectOnlyModelVisitor() {
+            @Override
+            void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+                result[path] = element
+            }
         }
 
         when:

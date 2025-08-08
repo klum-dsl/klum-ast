@@ -21,39 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process;
+package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.TemplateManager;
-import com.blackbuild.klum.ast.util.layer3.DslObjectOnlyModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
-import groovy.lang.Closure;
+import com.blackbuild.klum.ast.util.DslHelper;
 
-/**
- * Represents an action that is executed in a phase. The action is executed for each element in the model.
- */
-public abstract class VisitingPhaseAction extends AbstractPhaseAction implements DslObjectOnlyModelVisitor {
+public interface DslObjectOnlyModelVisitor extends ModelVisitor {
 
-    protected VisitingPhaseAction(KlumPhase phase) {
-        super(phase);
-    }
-
-    /**
-     * Executes the phase on the root element of the model.
-     */
     @Override
-    protected void doExecute() {
-        Object root = PhaseDriver.getInstance().getRootObject();
-        StructureUtil.visit(root, this);
-    }
-
-    protected void withCurrentTemplates(Object element, Runnable runnable) {
-        TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
-            @Override
-            public Void call() {
-                runnable.run();
-                return null;
-            }
-        });
+    default boolean shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        return DslHelper.isDslObject(element);
     }
 }

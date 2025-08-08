@@ -43,6 +43,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import static com.blackbuild.klum.ast.util.DslHelper.isDslObject;
+import static java.util.function.Predicate.not;
 
 /**
  * Utility class for working with data structures. Provides methods to iterate through data structures and find
@@ -95,7 +96,7 @@ public class StructureUtil {
     }
 
     private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        if (!isDslObject(element)) return;
+        if (!visitor.shouldVisit(path, element, container, nameOfFieldInContainer)) return;
         if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
         try {
             visitor.visit(path, element, container, nameOfFieldInContainer);
@@ -107,8 +108,8 @@ public class StructureUtil {
             throw new KlumVisitorException("Error visiting " + path, element, e);
         }
         alreadyVisited.add(element);
-        ClusterModel.getFieldPropertiesStream(element)
-                .forEach(property -> doVisit(property.getValue(), visitor, alreadyVisited, path + "." + property.getName(), element, property.getName()));
+
+        getNonIgnoredProperties(element).forEach((name, value) -> doVisit(value, visitor, alreadyVisited, path + "." + name, element, name));
     }
 
     private static void doVisitMap(Map<?, ?> map, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
@@ -198,15 +199,23 @@ public class StructureUtil {
         Class<?> type = container.getClass();
 
         while (type != null) {
-            Arrays.stream(type.getDeclaredFields())
-                    .filter(it -> !it.getName().contains("$"))
-                    .filter(it -> !Modifier.isStatic(it.getModifiers()))
-                    .filter(it -> !it.isSynthetic())
-                    .forEach(it -> result.put(it.getName(), DslHelper.getCachedField(container.getClass(), it.getName()).map(f -> f.getProperty(container)).orElse(null)));
+            addNonIgnoredProperties(container, type, result);
             type = type.getSuperclass();
         }
 
         return result;
+    }
+
+    private static void addNonIgnoredProperties(Object container, Class<?> type, Map<String, Object> result) {
+        Arrays.stream(type.getDeclaredFields())
+                .filter(it -> !it.getName().contains("$"))
+                .filter(it -> !Modifier.isStatic(it.getModifiers()))
+                .filter(it -> !it.isSynthetic())
+                .filter(not(DslHelper::isOwner))
+                .filter(not(DslHelper::isLink))
+                .forEach(it -> result.put(
+                        it.getName(),
+                        DslHelper.getFieldValue(container,it.getName())));
     }
 
     /**
