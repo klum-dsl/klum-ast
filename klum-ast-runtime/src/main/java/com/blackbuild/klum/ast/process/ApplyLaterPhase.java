@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class ApplyLaterPhase extends VisitingPhaseAction {
 
@@ -32,7 +34,7 @@ class ApplyLaterPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         KlumInstanceProxy.getProxyFor(element).executeApplyLaterClosures(getPhaseNumber());
     }
 

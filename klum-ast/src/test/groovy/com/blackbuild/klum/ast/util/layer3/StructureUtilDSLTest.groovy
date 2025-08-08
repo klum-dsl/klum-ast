@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import org.jetbrains.annotations.NotNull
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 class StructureUtilDSLTest extends AbstractDSLSpec {
 
@@ -160,9 +161,9 @@ import com.blackbuild.groovy.configdsl.transform.Owner
     def "Visitor works"() {
         given:
         def result = [:]
-        def visitor = new DslObjectOnlyModelVisitor() {
+        def visitor = new ModelVisitor() {
             @Override
-            void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+            void visit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
                 result[path] = element
             }
         }
@@ -181,5 +182,16 @@ import com.blackbuild.groovy.configdsl.transform.Owner
 
         and: "getter like methods are not visited"
         !result.keySet().contains("<root>.projects.demo.nameAndProfile")
+    }
+
+    def "deepFind should find all instances of a type"() {
+        when:
+        def result = StructureUtil.deepFind(instance, MavenConfig)
+
+        then:
+        noExceptionThrown()
+        result.size() == 2
+        result['.projects.demo.mvn'].is(instance.projects.demo.mvn)
+        result[".projects.'demo-2'.mvn"].is(instance.projects.'demo-2'.mvn)
     }
 }

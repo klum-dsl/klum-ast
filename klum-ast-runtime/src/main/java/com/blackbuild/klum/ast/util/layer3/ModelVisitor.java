@@ -23,17 +23,43 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.DslHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Visitor for a model tree. Note that the default behavior is to only handle DSL objects, this can be changed by overriding {@link #shouldVisit(String, Object, Object, String)}.
+ */
+@FunctionalInterface
 public interface ModelVisitor {
 
-    void visit(String path, Object element, Object container, String nameOfFieldInContainer);
+    /**
+     * Visit the given element.
+     * @param path a string (GSON-like) representation of the path from the root to this element
+     * @param element the element to visit
+     * @param container The object containing this element. If the element is a member of a collection or map, the object containing the collection or map.
+     * @param nameOfFieldInContainer The name of the field in the container pointing to this object (or its collection/map
+     */
+    void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer);
 
-    default Action shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
-        return Action.HANDLE;
+    /**
+     * Checks whether the given element should be visited. The defautlt implementation is to only handle DSL objects.
+     * @param path a string (GSON-like) representation of the path from the root to this element
+     * @param element the element to visit
+     * @param container The object containing this element. If the element is a member of a collection or map, the object containing the collection or map.
+     * @param nameOfFieldInContainer The name of the field in the container pointing to this object (or its collection/map
+     * @return whether to skip, visit or skip subtree
+     */
+    default Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        return DslHelper.isDslObject(element) ? Action.HANDLE : Action.SKIP;
     }
 
     enum Action {
+        /** Handle the element. */
         HANDLE,
+        /** Skip the element, including subelements. */
         SKIP,
+        /** Handle the element, but skip subelements. */
         SKIP_SUBTREE,
     }
 }

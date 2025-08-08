@@ -29,6 +29,8 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoLink;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AutoLinkPhase extends VisitingPhaseAction {
 
@@ -37,7 +39,7 @@ public class AutoLinkPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
                 .entrySet()
                 .stream()

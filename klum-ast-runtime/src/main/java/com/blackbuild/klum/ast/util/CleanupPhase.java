@@ -25,6 +25,8 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class CleanupPhase extends VisitingPhaseAction {
     public CleanupPhase() {
@@ -32,7 +34,7 @@ public class CleanupPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         KlumInstanceProxy.getProxyFor(element).cleanup();
     }
 }

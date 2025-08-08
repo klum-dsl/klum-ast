@@ -25,14 +25,14 @@ package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
-import com.blackbuild.klum.ast.util.layer3.DslObjectOnlyModelVisitor;
+import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 
 /**
  * Represents an action that is executed in a phase. The action is executed for each element in the model.
  */
-public abstract class VisitingPhaseAction extends AbstractPhaseAction implements DslObjectOnlyModelVisitor {
+public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
     protected VisitingPhaseAction(KlumPhase phase) {
         super(phase);
@@ -56,4 +56,5 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
             }
         });
     }
+
 }

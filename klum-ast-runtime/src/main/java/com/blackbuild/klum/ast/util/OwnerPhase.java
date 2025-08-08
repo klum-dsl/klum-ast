@@ -31,6 +31,7 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -43,7 +44,7 @@ public class OwnerPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         setDirectOwners(proxy, container);

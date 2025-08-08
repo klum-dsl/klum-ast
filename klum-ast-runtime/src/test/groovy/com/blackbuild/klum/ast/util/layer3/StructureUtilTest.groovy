@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.klum.ast.util.AbstractRuntimeTest
+import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
 class StructureUtilTest extends AbstractRuntimeTest {
@@ -145,11 +146,11 @@ import com.blackbuild.klum.ast.KlumModelObject
             }
         '''
 
-        def visitor = new DslObjectOnlyModelVisitor() {
+        def visitor = new ModelVisitor() {
             List<Object> visited = []
 
             @Override
-            void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
+            void visit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
                 visited.add(element)
             }
         }

@@ -76,12 +76,31 @@ public class StructureUtil {
         return toDefaultFieldName(object.getClass());
     }
 
-    public static void visit(Object container, ModelVisitor visitor) {
-        visit(container, visitor, "<root>");
+    /**
+     * Iterates through a data structure and invokes the given visitor for each element.
+     * The default implementation of the
+     * ModelVisitor only visits DSL objects, but this can be adjusted by overriding the shouldVisit method.
+     * <p>
+     *     The visitation only goes downwards, ignoring {@link com.blackbuild.groovy.configdsl.transform.Owner} and {@link com.blackbuild.groovy.configdsl.transform.FieldType#LINK}
+     *     fields, and ignores object cycles.
+     * </p>
+     *
+     * @param root The root object to start the visitation from
+     * @param visitor The visitor to invoke for each element
+     */
+    public static void visit(Object root, ModelVisitor visitor) {
+        visit(root, visitor, "<root>");
     }
 
-    public static void visit(Object container, ModelVisitor visitor, String path) {
-        doVisit(container, visitor, new ArrayList<>(), path, null, null);
+    /**
+     * Iterates through a data structure and invokes the given visitor for each element.
+     * Behaves like {@link #visit(Object, ModelVisitor)} but allows to specify a path representation for the root element..
+     * @param root The root object to start the visitation from.
+     * @param visitor The visitor to invoke for each element.
+     * @param path The path representation of the root element.
+     */
+    public static void visit(Object root, ModelVisitor visitor, String path) {
+        doVisit(root, visitor, new ArrayList<>(), path, null, null);
     }
 
     private static void doVisit(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
@@ -155,31 +174,9 @@ public class StructureUtil {
      * @return a map of strings to objects
      */
     public static <T> Map<String, T> deepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path) {
-        return doDeepFind(container, type, ignoredTypes, path, new ArrayList<>());
-    }
-
-    protected static <T> Map<String, T> doDeepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path, List<Object> visited) {
-        Map<String, T> result = new HashMap<>();
-        ModelVisitor visitor = new ModelVisitor() {
-            @Override
-            public Action shouldVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
-                if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
-                if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
-                return Action.HANDLE;
-            }
-
-            @Override
-            public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-                if (type.isInstance(container)) {
-                    //noinspection unchecked
-                    result.put(path, (T) container);
-                }
-            }
-        };
-
+        DeepFindVisitor<T> visitor = new DeepFindVisitor<>(type, ignoredTypes);
         visit(container, visitor, path);
-
-        return result;
+        return visitor.result;
     }
 
     static String toGPath(Object value) {
@@ -213,7 +210,8 @@ public class StructureUtil {
 
     /**
      * Returns the name of the field of the container containing the given object. If the object is not
-     * contained in a field, returns an empty Optional.
+     * contained in a field, returns an empty Optional. This if the object is contained in a collection or map, a gson like
+     * expression is returned ("container.map.'child-name'" or 'container.list[2]').
      * @param container The container object to search
      * @param child The child object to look for
      * @return The name of the field containing the child object, or an empty Optional if the object is not contained in a field.
@@ -250,7 +248,7 @@ public class StructureUtil {
     }
 
     @NotNull
-    public static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
+    static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
         return ClusterModel.getPropertiesStream(container, child.getClass())
                 .filter(it -> it.getValue() == child)
                 .map(PropertyValue::getName)
@@ -418,4 +416,29 @@ public class StructureUtil {
         return result;
      }
 
+    private static class DeepFindVisitor<T> implements ModelVisitor {
+        private final List<Class<?>> ignoredTypes;
+        private final Class<T> type;
+        final Map<String, T> result = new HashMap<>();
+
+        public DeepFindVisitor(Class<T> type, List<Class<?>> ignoredTypes) {
+            this.ignoredTypes = ignoredTypes;
+            this.type = type;
+        }
+
+        @Override
+        public Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
+            if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
+            return Action.HANDLE;
+        }
+
+        @Override
+        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+            if (type.isInstance(element)) {
+                //noinspection unchecked
+                result.put(path, (T) element);
+            }
+        }
+    }
 }
