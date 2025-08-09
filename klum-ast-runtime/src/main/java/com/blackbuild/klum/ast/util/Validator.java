@@ -124,10 +124,13 @@ public class Validator {
      * @return a {@link KlumValidationResult} containing validation errors
      */
     public static KlumValidationResult getValidationResult(Object instance) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
-        KlumValidationResult validationResult = proxy.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+        KlumValidationResult validationResult = doGetValidationResult(instance);
         if (validationResult != null) return validationResult;
         return lenientValidate(instance, null);
+    }
+
+    private static KlumValidationResult doGetValidationResult(Object instance) {
+        return KlumInstanceProxy.getProxyFor(instance).getValidationResults();
     }
 
     /**
@@ -142,13 +145,20 @@ public class Validator {
 
     protected Validator(Object instance, String path) {
         this.instance = instance;
-        if (path != null) {
-            this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
+        KlumValidationResult existingResult = doGetValidationResult(instance);
+
+        if (existingResult != null) {
+            this.validationErrors = existingResult;
+            this.breadcrumbPath = existingResult.getBreadcrumbPath();
         } else {
-            // Use the default breadcrumb path from the instance
-            this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+            if (path != null) {
+                this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
+            } else {
+                // Use the default breadcrumb path from the instance
+                this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+            }
+            this.validationErrors = new KlumValidationResult(breadcrumbPath);
         }
-        this.validationErrors = new KlumValidationResult(breadcrumbPath);
     }
 
     public void execute() {

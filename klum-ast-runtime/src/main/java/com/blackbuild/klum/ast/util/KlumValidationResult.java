@@ -43,6 +43,10 @@ public class KlumValidationResult implements Serializable {
         this.breadcrumbPath = breadcrumbPath;
     }
 
+    public String getBreadcrumbPath() {
+        return breadcrumbPath;
+    }
+
     public void addProblem(KlumValidationProblem problem) {
         this.validationProblems.add(problem);
     }
