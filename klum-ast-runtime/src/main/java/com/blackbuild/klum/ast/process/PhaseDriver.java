@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,6 +46,8 @@ public class PhaseDriver {
 
     // used to prevent concurrent modification exceptions. Used if a phase action registers other actions
     private final NavigableMap<Integer, ApplyLaterPhase> applyLaterPhaseActions = new TreeMap<>();
+
+    private final List<Closure<?>> postPhaseClosures = new ArrayList<>();
 
     private Object rootObject;
     private int activeObjectPointer = 0;
@@ -77,6 +80,17 @@ public class PhaseDriver {
 
     public void registerApplyLaterPhase(int phaseNumber) {
         applyLaterPhaseActions.computeIfAbsent(phaseNumber, ignore -> new ApplyLaterPhase(phaseNumber));
+    }
+
+    /**
+     * Registers a closure to be run directly after the current phase. This can be used to circumvent corner cases,
+     * where an object modifies its own containing datastructure.
+     * @param closure The closure to be executed after the current phase.
+     */
+    public static void postPhaseApply(Closure<?> closure) {
+        if (getCurrentPhase() == null)
+            throw new IllegalStateException("Cannot register post-phase action outside of a phase");
+        getInstance().postPhaseClosures.add(closure);
     }
 
     public static <T> T withPhase(Supplier<T> preparation, Consumer<T> action) {
@@ -119,12 +133,18 @@ public class PhaseDriver {
             for (PhaseAction action : entries.getValue()) {
                 phaseDriver.executeAction(action);
             }
+            phaseDriver.callApplyLaterClosures();
             lastPhase = currentPhase;
         }
         // execute remaining apply-later phases
         for (ApplyLaterPhase applyLaterPhase : phaseDriver.applyLaterPhaseActions.tailMap(lastPhase).values()) {
             applyLaterPhase.execute();
         }
+    }
+
+    private void callApplyLaterClosures() {
+        postPhaseClosures.forEach(Closure::call);
+        postPhaseClosures.clear();
     }
 
     private void executeAction(PhaseAction action) {
