@@ -1,3 +1,6 @@
+# 2.1.4
+- Prevent ConcurrentModificationExceptions when calling `applyLater` from a lifecycle method
+
 # 2.1.3
 - `StructureUtil.visit()` and `StructureUtil.deepFind()` should ignore `Owner` and `Link` fields (see [#396](https://github.com/klum-dsl/klum-ast/issues/396))
 - internal: `StructureUtil.deepFind()` should internally use a visitor instead of duplicating logic (see [#397](https://github.com/klum-dsl/klum-ast/issues/397)) 

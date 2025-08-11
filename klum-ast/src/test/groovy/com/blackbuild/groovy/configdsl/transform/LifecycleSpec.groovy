@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+
 import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.KlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
@@ -676,6 +677,37 @@ class LifecycleSpec extends AbstractDSLSpec {
 
         then:
         instance.nameInPhases == [0: null, 10: "foo", 50: "foo"]
+    }
+
+    def "applyLater calls during lifecycle methods should not cause CME"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.process.*
+            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            
+            @DSL
+            class Foo {
+                @Field(FieldType.TRANSIENT)  
+                String action
+                @Field(FieldType.TRANSIENT)  
+                int phaseNumber
+            
+                @AutoCreate void autoCreate() {
+                    applyLater {
+                        action = PhaseDriver.currentPhaseActionType
+                        phaseNumber =  PhaseDriver.currentPhase.number    
+                    }
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.One()
+
+        then:
+        instance.action == "com.blackbuild.klum.ast.process.ApplyLaterPhase"
     }
 
 }

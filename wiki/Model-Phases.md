@@ -13,7 +13,7 @@ the RW class.
 In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner). These closures will be executed
 in their respective phases, with the RW object as delegate (i.e. will behave as like apply closures).
 
-The lifecycle annotations `@PostCreate` and `@PostApply` are a special case. These are not run as separate phases, but
+The lifecycle annotations `@PostCreate` and `@PostApply` are special cases. These are not run as separate phases, but
 instead are part of the creation phase, and run for each object separately. 
 
 # Creation
@@ -30,7 +30,7 @@ use it iterate through the model tree.
 
 PhaseActions are usually registered by using the Java ServiceLoader mechanism, so plugins can extend the functionality.
 
-Each phase has an ordinal defining the execution order of those phases. Main phases are defined in the `KlumPhase` enum, but 
+Each phase has an ordinal defining the execution order of those phases. Main phases are defined in the `DefaultKlumPhase` enum, but 
 there ordinals are spaced to allow for plugins to insert phases in between.
 
 # Phase Details
@@ -116,3 +116,25 @@ class PersonText extends Specification {
     }
 }
 ```
+
+# Methods that modify datastructures
+
+In some (usually migration related) cases, a lifecycle methods trying to modify the list or map containing itself. This would
+lead to a concurrent modification exception. To avoid this, the code of the lifecycle method can be wrapped in an applyLater closure,
+causing it to run directly after the current phase has finished.
+
+```groovy
+@AutoLink moveLegacySiblings() {
+    if (this.hasLegacySiblings()) {
+        // this closure will be executed after the current phase has finished
+        applyLater {
+            this.legacySiblings.each {
+                parent.removeChild(it)
+                this.addLegacy(it)
+            }
+        }
+    }
+}
+```
+
+Note that this example could have been better realized in a parent's autolink method, removing the need for the applyLater closure. 

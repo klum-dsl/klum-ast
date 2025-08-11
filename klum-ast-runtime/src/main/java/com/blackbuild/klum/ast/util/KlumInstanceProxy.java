@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
@@ -666,11 +667,13 @@ public class KlumInstanceProxy {
     }
 
     /**
-     * Schedules the given closure to be executed in the PostApply phase.
+     * Schedules the given closure to be executed in the PostApply phase or after the current phase when called from a lifecycle method.
      * @param closure The closure to be executed later
      */
     public void applyLater(Closure<?> closure) {
-        applyLater(DefaultKlumPhase.APPLY_LATER, closure);
+        KlumPhase phase = PhaseDriver.getCurrentPhase();
+        if (phase == null) phase = DefaultKlumPhase.APPLY_LATER;
+        applyLater(phase, closure);
     }
 
     /**
@@ -678,7 +681,7 @@ public class KlumInstanceProxy {
      * @param defaultKlumPhase The phase in which the closure should be executed
      * @param closure The closure to be executed later
      */
-    public void applyLater(DefaultKlumPhase defaultKlumPhase, Closure<?> closure) {
+    public void applyLater(KlumPhase defaultKlumPhase, Closure<?> closure) {
         applyLater(defaultKlumPhase.getNumber(), closure);
     }
 

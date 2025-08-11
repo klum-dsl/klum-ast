@@ -43,7 +43,8 @@ public class PhaseDriver {
 
     private final NavigableMap<Integer, List<PhaseAction>> phaseActions = new TreeMap<>();
 
-    private final Set<Integer> applyLaterPhases = new TreeSet<>();
+    // used to prevent concurrent modification exceptions. Used if a phase action registers other actions
+    private final NavigableMap<Integer, ApplyLaterPhase> applyLaterPhaseActions = new TreeMap<>();
 
     private Object rootObject;
     private int activeObjectPointer = 0;
@@ -75,9 +76,7 @@ public class PhaseDriver {
     }
 
     public void registerApplyLaterPhase(int phaseNumber) {
-        if (applyLaterPhases.contains(phaseNumber)) return;
-        applyLaterPhases.add(phaseNumber);
-        addPhase(new ApplyLaterPhase(phaseNumber));
+        applyLaterPhaseActions.computeIfAbsent(phaseNumber, ignore -> new ApplyLaterPhase(phaseNumber));
     }
 
     public static <T> T withPhase(Supplier<T> preparation, Consumer<T> action) {
@@ -109,12 +108,28 @@ public class PhaseDriver {
     public static void executeIfReady() {
         PhaseDriver phaseDriver = getInstance();
         if (phaseDriver.activeObjectPointer != 1) return;
-        for (List<PhaseAction> actions : phaseDriver.phaseActions.values()) {
-            for (PhaseAction action : actions) {
-                phaseDriver.currentPhase = action;
-                action.execute();
+        int lastPhase = 0;
+        for (Map.Entry<Integer, List<PhaseAction>> entries : phaseDriver.phaseActions.entrySet()) {
+            Integer currentPhase = entries.getKey();
+            // execute all apply-later phases between the last executed phase and before the current phase
+            for (ApplyLaterPhase applyLaterPhase : phaseDriver.applyLaterPhaseActions.subMap(lastPhase, currentPhase).values()) {
+                phaseDriver.executeAction(applyLaterPhase);
             }
+
+            for (PhaseAction action : entries.getValue()) {
+                phaseDriver.executeAction(action);
+            }
+            lastPhase = currentPhase;
         }
+        // execute remaining apply-later phases
+        for (ApplyLaterPhase applyLaterPhase : phaseDriver.applyLaterPhaseActions.tailMap(lastPhase).values()) {
+            applyLaterPhase.execute();
+        }
+    }
+
+    private void executeAction(PhaseAction action) {
+        currentPhase = action;
+        action.execute();
     }
 
     public Object getRootObject() {
