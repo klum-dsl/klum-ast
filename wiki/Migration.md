@@ -1,6 +1,10 @@
 Migration Guide
 ---------------
 
+# to 2.2
+
+`toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.
+
 # to 2.1
 
 It is strongly advised to first update to 2.0 and the to 2.1. 

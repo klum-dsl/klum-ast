@@ -95,13 +95,13 @@ Each DSLObject gets a `copyFrom()` method with its own class as parameter. This 
 object over to this objects, excluding key and owner fields. This is done recursively, i.e. nested DSL objects are
 copied as well.
 
-## equals() and toString() methods
+## equals() method
 
-If not yet present, `equals()` and `toString()` methods are generated using the respective ASTTransformations. You
-can customize them by using the original ASTTransformations.
+If not yet present, the `equals()` method is generated using the default `@EqualsAndHashCode` ASTTransformations. You
+can customize it by using the original ASTTransformation.
 
 ## hashCode()
-A barebone hashcode is created, with a constant 0 for non-keyed objects, and the hashcode of
+A barebone hashCode is created, with a constant 0 for non-keyed objects, and the hashcode of
 the key for keyed objects. While this is correct and works with changing objects after
 adding them to a HashSet / HashMap, the performance for Sets of non-Keyed objects is severely
 reduced.

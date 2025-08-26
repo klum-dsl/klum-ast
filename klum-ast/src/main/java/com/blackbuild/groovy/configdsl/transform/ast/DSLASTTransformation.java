@@ -70,7 +70,6 @@ import static org.codehaus.groovy.ast.expr.MethodCallExpression.NO_ARGUMENTS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.createEquals;
-import static org.codehaus.groovy.transform.ToStringASTTransformation.createToString;
 
 /**
  * Transformation class for the @DSL annotation.
@@ -439,9 +438,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();
             createEquals(annotatedClass, true, dslParent != null, true, getAllIgnoredFieldNames(), null);
-        }
-        if (!hasAnnotation(annotatedClass, TOSTRING_ANNOT)) {
-            createToString(annotatedClass, false, true, getOwnerFieldNames(annotatedClass), null, false);
         }
     }
 
