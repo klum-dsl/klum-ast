@@ -1,4 +1,7 @@
-# 2.1.4
+# 2.2.0
+- Minor Breaking change: `toString()` methods are not created anymore. If needed, they can still be generated using the default Groovy `@ToString` annotation. 
+
+# 2.1.4/2.1.5
 - Prevent ConcurrentModificationExceptions when calling `applyLater` from a lifecycle method
 
 # 2.1.3

@@ -1623,7 +1623,8 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         then:
-        clazz.declaredMethods.find { Method method -> method.name == "toString"}
+        clazz.declaredMethods.find { Method method -> method.name == "equals"}
+        clazz.declaredMethods.find { Method method -> method.name == "hashCode"}
     }
 
     def "hashcode is 0 for non keyed objects"() {
