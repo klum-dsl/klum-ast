@@ -94,4 +94,4 @@ def config = Config.Create.With {
 }
 ```
 
-Find more details on in our [wiki](https://github.com/klum-dsl/klum-ast/wiki)
+Find more details in our [wiki](https://github.com/klum-dsl/klum-ast/wiki)
