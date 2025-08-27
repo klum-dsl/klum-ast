@@ -3,7 +3,7 @@ plugins {
     id "klum-ast.jacoco-conventions"
 }
 
-description "Annontations for Klum AST"
+description = "Annontations for Klum AST"
 
 dependencies {
     api libs.annodocimal.annotations

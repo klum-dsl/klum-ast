@@ -3,7 +3,7 @@ plugins {
     id "klum-ast.jacoco-conventions"
 }
 
-description "Jackson enhancements for KlumAST"
+description = "Jackson enhancements for KlumAST"
 
 dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")

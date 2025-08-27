@@ -4,7 +4,7 @@ plugins {
     id "java-test-fixtures"
 }
 
-description "compileOnly part of KlumAST"
+description = "compileOnly part of KlumAST"
 
 test {
     inputs.dir file("src/test/scenarios")

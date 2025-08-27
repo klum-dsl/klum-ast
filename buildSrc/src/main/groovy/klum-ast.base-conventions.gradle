@@ -6,7 +6,7 @@ plugins {
     id 'com.github.hierynomus.license'
 }
 
-group rootProject.group
+group = rootProject.group
 
 java {
     toolchain {
@@ -67,7 +67,7 @@ publishing.publications.configureEach {
 
 afterEvaluate {
     signing {
-        required { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        required = { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
         publishing.publications.configureEach {
             sign it
         }
@@ -81,6 +81,6 @@ license {
     mapping("groovy", "SLASHSTAR_STYLE")
     mapping("gdsl", "SLASHSTAR_STYLE")
     exclude("mockup/**")
-    strictCheck(true)
+    strictCheck = true
 }
 

@@ -19,8 +19,8 @@ plugins {
     id "jacoco-report-aggregation"
 }
 
-group 'com.blackbuild.klum.ast'
-description 'A transformation for creating convenient configuration model DSLs.'
+group = 'com.blackbuild.klum.ast'
+description = 'A transformation for creating convenient configuration model DSLs.'
 
 nexusPublishing {
     repositories {

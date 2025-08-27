@@ -3,7 +3,7 @@ plugins {
     id "klum-ast.jacoco-conventions"
 }
 
-description "Runtime Library for KlumAST"
+description = "Runtime Library for KlumAST"
 
 sourceSets {
     main {
