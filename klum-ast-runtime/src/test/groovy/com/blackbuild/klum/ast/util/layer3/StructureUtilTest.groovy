@@ -35,23 +35,30 @@ class StructureUtilTest extends AbstractRuntimeTest {
                 String name
                 Child child
                 Child otherChild
+                Child thirdChild
             }
             
             class Child {
                 String name
             }
+            
+            class SubChild extends Child {
+                String otherName
+            }
 '''
         def child1 = newInstanceOf("Child", [name: "John"])
         def child2 = newInstanceOf("Child", [name: "Jane"])
         def child3 = newInstanceOf("Child", [name: "Jack"])
+        def subChild = newInstanceOf("SubChild", [name: "Jill", otherName: "JillOther"])
 
         when:
-        def owner = newInstanceOf("Owner", [name: "John", child: child1, otherChild: child2])
+        def owner = newInstanceOf("Owner", [name: "John", child: child1, otherChild: child2, thirdChild: subChild])
 
         then:
         StructureUtil.getPathOfFieldContaining(owner, child1).get() == "child"
         StructureUtil.getPathOfFieldContaining(owner, child2).get() == "otherChild"
         !StructureUtil.getPathOfFieldContaining(owner, child3).present
+        StructureUtil.getPathOfFieldContaining(owner, subChild).get() == "thirdChild"
     }
 
     def "getPathOfFieldContaining for Collections return the right indexed name"() {
@@ -73,12 +80,12 @@ class StructureUtilTest extends AbstractRuntimeTest {
         def child4 = newInstanceOf("Child", [name: "Jill"])
 
         when:
-        def owner = newInstanceOf("Owner", [name: "John", children: [child1], otherChildren: [child2, child3]]);
+        def owner = newInstanceOf("Owner", [name: "John", children: [child1], otherChildren: [child2, child3]])
 
         then:
-        StructureUtil.getPathOfFieldContaining(owner, child1).get() == "children[0]";
-        StructureUtil.getPathOfFieldContaining(owner, child2).get() == "otherChildren[0]";
-        StructureUtil.getPathOfFieldContaining(owner, child3).get() == "otherChildren[1]";
+        StructureUtil.getPathOfFieldContaining(owner, child1).get() == "children[0]"
+        StructureUtil.getPathOfFieldContaining(owner, child2).get() == "otherChildren[0]"
+        StructureUtil.getPathOfFieldContaining(owner, child3).get() == "otherChildren[1]"
         !StructureUtil.getPathOfFieldContaining(owner, child4).present
     }
 

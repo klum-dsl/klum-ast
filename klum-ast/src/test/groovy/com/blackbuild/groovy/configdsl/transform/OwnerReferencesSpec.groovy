@@ -1200,4 +1200,49 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.access.serviceRole == "access"
     }
 
+    def "BUG: Role fields should be set for subclasses"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Database {
+                DatabaseUser resourceUser
+                DatabaseUser connectUser
+                DatabaseUser monitoringUser
+            }
+
+            @DSL
+            class DatabaseUser {
+                @Owner Database database
+                @Role String role
+                
+                String name
+            }
+            
+            @DSL
+            class SpecialDatabaseUser extends DatabaseUser {}
+        '''
+
+        when:
+        Class SpecialDatabaseUser = getClass("pk.SpecialDatabaseUser")
+        instance = clazz.Create.With {
+            resourceUser {
+                name "user1"
+            }
+            connectUser {
+                name "user2"
+            }
+            monitoringUser(SpecialDatabaseUser) {
+                name "user3"
+            }
+        }
+
+        then:
+        noExceptionThrown()
+        instance.resourceUser.role == "resourceUser"
+        instance.connectUser.role == "connectUser"
+        instance.monitoringUser.role == "monitoringUser"
+    }
+
 }

@@ -1,6 +1,9 @@
 # 2.2.0
 - Minor Breaking change: `toString()` methods are not created anymore. If needed, they can still be generated using the default Groovy `@ToString` annotation. 
 
+## Bugfixes
+- `StructureUtil.getPathOfFieldContaining()` and therefore `@Role` fields ignored fields where the value was actually a subclass of the field type.
+
 # 2.1.4/2.1.5
 - Prevent ConcurrentModificationExceptions when calling `applyLater` from a lifecycle method
 
