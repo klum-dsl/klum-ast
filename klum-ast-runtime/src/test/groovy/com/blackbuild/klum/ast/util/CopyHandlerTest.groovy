@@ -430,5 +430,55 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         receiver.ignoredField == null
     }
 
+    @Issue("400")
+    def "copyFrom fails on primitive values"() {
+        given:
+        createClass('''
+            package pk
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.KlumModelObject
+
+            @SuppressWarnings('UnnecessaryQualifiedReference')
+            @DSL
+            class Foo implements KlumModelObject {
+                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                int number
+                byte byteNumber
+                short shortNumber
+                long longNumber
+                float floatNumber
+                double doubleNumber
+                boolean boolValue
+                char charValue
+            }
+         ''')
+
+        def donor = newInstanceOf("pk.Foo")
+        donor.number = 42
+        donor.byteNumber = 1
+        donor.shortNumber = 2
+        donor.longNumber = 3L
+        donor.floatNumber = 4.0f
+        donor.doubleNumber = 5.0d
+        donor.boolValue = true
+        donor.charValue = 'c'
+
+        when:
+        def copy = newInstanceOf("pk.Foo")
+        CopyHandler.copyToFrom(copy, donor)
+
+        then:
+        noExceptionThrown()
+        copy.number == 42
+        copy.byteNumber == 1
+        copy.shortNumber == 2
+        copy.longNumber == 3L
+        copy.floatNumber == 4.0f
+        copy.doubleNumber == 5.0d
+        copy.boolValue
+        copy.charValue == 'c'
+    }
+
 
 }

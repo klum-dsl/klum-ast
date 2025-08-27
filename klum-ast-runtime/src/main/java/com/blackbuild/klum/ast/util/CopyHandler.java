@@ -182,13 +182,31 @@ public class CopyHandler {
             result = ((Map<String, Object>) donor).get(fieldName);
         else
             result = getProxyFor(donor).getInstanceAttribute(fieldName);
-        if (result != null && !(result instanceof Map) && !type.isInstance(result)) {
+        if (result != null && !(result instanceof Map) && !isInstance(type, result)) {
             if (result instanceof String)
                 return coerceString((String) result, type);
 
             throw new KlumModelException("Field " + fieldName + " is not of expected type " + type);
         }
         return (T) result;
+    }
+
+    @SuppressWarnings("java:S3776")
+    private static <T> boolean isInstance(Class<T> type, Object result) {
+        if (type.isInstance(result)) return true;
+
+        if (type.isPrimitive()) {
+            if (type == int.class) return result instanceof Integer;
+            if (type == long.class) return result instanceof Long;
+            if (type == float.class) return result instanceof Float;
+            if (type == double.class) return result instanceof Double;
+            if (type == boolean.class) return result instanceof Boolean;
+            if (type == byte.class) return result instanceof Byte;
+            if (type == char.class) return result instanceof Character;
+            if (type == short.class) return result instanceof Short;
+        }
+
+        return false;
     }
 
     private <T> T coerceString(String result, Class<T> type) {
