@@ -27,6 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
@@ -883,7 +884,7 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
 
         when:
-        def validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+        def validationResults = getValidationResult(instance)
 
         then:
         validationResults.maxLevel == Validate.Level.WARNING
@@ -895,7 +896,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             validated "bla"
         }
-        validationResults = KlumInstanceProxy.getProxyFor(instance).validationResults
+        validationResults = getValidationResult(instance)
 
         then:
         notThrown(KlumValidationException)
@@ -939,7 +940,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {}
-        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+        def result = getValidationResult(instance)
 
         then: 'No Warnings'
         result.maxLevel == Validate.Level.NONE
@@ -948,7 +949,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             validated "bla"
         }
-        result = KlumInstanceProxy.getProxyFor(instance).validationResults
+        result = getValidationResult(instance)
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
@@ -976,13 +977,17 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             validated "bla"
         }
-        def result = KlumInstanceProxy.getProxyFor(instance).validationResults
+        def result = getValidationResult(instance)
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.problems.size() == 1
         result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Use something else.'''
+    }
+
+    private KlumValidationResult getValidationResult(Object target = instance) {
+        return KlumInstanceProxy.getProxyFor(target).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class)
     }
 
 }

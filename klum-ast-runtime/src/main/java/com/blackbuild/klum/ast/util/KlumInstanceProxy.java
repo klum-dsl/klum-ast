@@ -70,8 +70,10 @@ public class KlumInstanceProxy {
     private String breadcrumbPath;
     private int breadCrumbQuantifier = 1;
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
+
+    private final Map<String, Object> metadata = new HashMap<>();
+
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
-    private KlumValidationResult validationResults;
 
     public KlumInstanceProxy(GroovyObject instance) {
         this.instance = instance;
@@ -245,18 +247,6 @@ public class KlumInstanceProxy {
 
     void manualValidation(boolean value) {
         manualValidation = value;
-    }
-
-    boolean isValidated() {
-        return validationResults != null;
-    }
-
-    public void setValidationResults(KlumValidationResult validationResults) {
-        this.validationResults = validationResults;
-    }
-
-    public KlumValidationResult getValidationResults() {
-        return validationResults;
     }
 
     /**
@@ -710,5 +700,22 @@ public class KlumInstanceProxy {
      */
     public void cleanup() {
         removeCurrentTemplates();
+    }
+
+    public boolean hasMetaData(String key) {
+        return metadata.containsKey(key);
+    }
+
+    public <T> T getMetaData(String key, Class<T> type) {
+        Object value = metadata.get(key);
+        if (value == null)
+            return null;
+        if (!type.isInstance(value))
+            throw new KlumException(format("Metadata value for key '%s' is not of type %s", key, type.getName()));
+        return (T) value;
+    }
+
+    public void setMetaData(String key, Object value) {
+        metadata.put(key, value);
     }
 }

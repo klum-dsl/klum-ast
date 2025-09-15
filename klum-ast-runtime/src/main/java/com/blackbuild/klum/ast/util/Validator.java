@@ -123,7 +123,7 @@ public class Validator {
      */
     public static KlumValidationResult getValidationResult(Object instance) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
-        KlumValidationResult validationResult = proxy.getValidationResults();
+        KlumValidationResult validationResult = proxy.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
         if (validationResult != null) return validationResult;
         return lenientValidate(instance, null);
     }
@@ -151,7 +151,8 @@ public class Validator {
 
     public void execute() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-        KlumInstanceProxy.getProxyFor(instance).setValidationResults(validationErrors);
+        KlumInstanceProxy klumInstanceProxy = KlumInstanceProxy.getProxyFor(instance);
+        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationErrors);
     }
 
     private void validateType(Class<?> type) {

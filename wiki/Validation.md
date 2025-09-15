@@ -58,7 +58,7 @@ class MyModel {
 ```
 
 Any failed validation is wrapped in a `KlumValidationProblem`, all 
-problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via the `validationResult` property or `Validator.getValidationResult(Object)` method.
+problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
 
 # `@Required`
 
