@@ -94,6 +94,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         thrown(KlumValidationException)
 
         when:
+        createInstance()
         instance.value = 200
         Validator.validate(instance)
 
@@ -126,6 +127,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         thrown(KlumValidationException)
 
         when:
+        instance = newInstanceOf("pk.Bar")
         instance.value = 200
         Validator.validate(instance)
 
@@ -154,6 +156,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         thrown(KlumValidationException)
 
         when:
+        instance = newInstanceOf("pk.Foo")
         instance.value = false
         Validator.validate(instance)
 
@@ -161,6 +164,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         noExceptionThrown()
 
         when:
+        instance = newInstanceOf("pk.Foo")
         instance.value = true
         Validator.validate(instance)
 

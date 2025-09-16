@@ -52,29 +52,31 @@ public class Validator {
     private final String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final KlumValidationResult validationErrors;
+    private final KlumValidationResult validationIssues;
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
      *
      * @param instance the instance to validate
+     * @return The encountered issues if below fail level
      * @throws KlumValidationException if validation errors are found
      */
-    public static void validate(Object instance) throws KlumValidationException {
-        validate(instance, null);
+    public static KlumValidationResult validate(Object instance) throws KlumValidationException {
+        return validate(instance, null);
     }
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
      *
      * @param instance the instance to validate
-     * @param path an optional path to be stored in the validation problem
+     * @param path     an optional path to be stored in the validation problem
+     * @return The encountered issues if below fail level
      * @throws KlumValidationException if validation errors are found
      */
-    public static void validate(Object instance, String path) throws KlumValidationException{
-        Validator validator = new Validator(instance, path);
-        validator.execute();
-        validator.validationErrors.throwOn(getFailLevel());
+    public static KlumValidationResult validate(Object instance, String path) throws KlumValidationException{
+        KlumValidationResult result = lenientValidate(instance, path);
+        result.throwOn(getFailLevel());
+        return result;
     }
 
     /**
@@ -88,7 +90,7 @@ public class Validator {
     public static KlumValidationResult lenientValidate(Object instance, String path) {
         Validator validator = new Validator(instance, path);
         validator.execute();
-        return validator.validationErrors;
+        return validator.validationIssues;
     }
 
     /**
@@ -130,7 +132,7 @@ public class Validator {
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
-        return KlumInstanceProxy.getProxyFor(instance).getValidationResults();
+        return KlumInstanceProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
     }
 
     /**
@@ -148,7 +150,7 @@ public class Validator {
         KlumValidationResult existingResult = doGetValidationResult(instance);
 
         if (existingResult != null) {
-            this.validationErrors = existingResult;
+            this.validationIssues = existingResult;
             this.breadcrumbPath = existingResult.getBreadcrumbPath();
         } else {
             if (path != null) {
@@ -157,14 +159,14 @@ public class Validator {
                 // Use the default breadcrumb path from the instance
                 this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
             }
-            this.validationErrors = new KlumValidationResult(breadcrumbPath);
+            this.validationIssues = new KlumValidationResult(breadcrumbPath);
         }
     }
 
     public void execute() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
         KlumInstanceProxy klumInstanceProxy = KlumInstanceProxy.getProxyFor(instance);
-        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationErrors);
+        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationIssues);
     }
 
     private void validateType(Class<?> type) {
@@ -177,7 +179,7 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationErrors::addProblem);
+            validateCustomMethod(m).ifPresent(validationIssues::addProblem);
         }
     }
 
@@ -204,7 +206,7 @@ public class Validator {
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationErrors::addProblem);
+            validateField(field).ifPresent(validationIssues::addProblem);
         }
     }
 

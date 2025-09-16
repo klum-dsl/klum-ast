@@ -88,6 +88,10 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
 
     def createInstance(@Language("groovy") String code) {
         createClass(code)
+        createInstance()
+    }
+
+    void createInstance() {
         instance = InvokerHelper.invokeNoArgumentsConstructorOf(clazz)
     }
 

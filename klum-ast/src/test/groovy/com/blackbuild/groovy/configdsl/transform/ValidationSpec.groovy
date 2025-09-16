@@ -416,7 +416,8 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(KlumValidationException)
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
+            manualValidation(true)
             validated "bla"
         }
         Validator.validate(instance)
