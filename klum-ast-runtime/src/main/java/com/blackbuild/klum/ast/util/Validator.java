@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
@@ -111,7 +112,8 @@ public class Validator {
      * @throws KlumValidationException if validation errors are found
      */
     public static List<KlumValidationResult> validateStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
-        return new ValidationPhase.Visitor().executeOn(instance, failLevel);
+        StructureUtil.visit(instance, new ValidationPhase());
+        return new VerifyPhase.Visitor().executeOn(instance, failLevel);
     }
 
     /**
@@ -123,7 +125,7 @@ public class Validator {
      */
     public static KlumValidationResult getValidationResult(Object instance) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
-        KlumValidationResult validationResult = proxy.getValidationResults();
+        KlumValidationResult validationResult = proxy.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
         if (validationResult != null) return validationResult;
         return lenientValidate(instance, null);
     }
@@ -151,7 +153,8 @@ public class Validator {
 
     public void execute() {
         DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-        KlumInstanceProxy.getProxyFor(instance).setValidationResults(validationErrors);
+        KlumInstanceProxy klumInstanceProxy = KlumInstanceProxy.getProxyFor(instance);
+        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationErrors);
     }
 
     private void validateType(Class<?> type) {

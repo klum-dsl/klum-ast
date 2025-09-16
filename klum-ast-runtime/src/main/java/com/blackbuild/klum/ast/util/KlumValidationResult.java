@@ -35,6 +35,7 @@ import java.util.TreeSet;
  * Validation results for a single object.
  */
 public class KlumValidationResult implements Serializable {
+    public static final String METADATA_KEY = KlumValidationResult.class.getName();
     private final NavigableSet<KlumValidationProblem> validationProblems = new TreeSet<>();
     private final String breadcrumbPath;
 

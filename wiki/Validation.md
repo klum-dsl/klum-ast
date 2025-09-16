@@ -58,21 +58,27 @@ class MyModel {
 ```
 
 Any failed validation is wrapped in a `KlumValidationProblem`, all 
-problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via the `validationResult` property or `Validator.getValidationResult(Object)` method.
+problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
 
 # `@Required`
 
-`@Required` is a convenient alias for `@Validate` with an empty value (i.e. default validation), also with an optional message.
+`@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
 
 ```groovy
 @DSL
 class MyModel {
 
- @Required
- Person administrator
+    @Required
+    Person administrator
 
- @Required("We really need another person (4-eyes principle)")
- Person person
+    @Required("We really need another person (4-eyes principle)")
+    Person person
+
+    /**
+     * @deprecated Use person instead
+     */
+    @Required(level = Validate.Level.DEPRECATION)
+    Person manager
 }
 ```
 
@@ -87,6 +93,12 @@ class MyModel {
 
  @Validate(message="We really need another person (4-eyes principle)")
  Person person
+
+ /**
+  * @deprecated Use person instead
+  */
+ @Validate(level = Validate.Level.DEPRECATION)
+ Person manager
 }
 ```
 
@@ -153,6 +165,13 @@ The warning message for a deprecated field is taken from the `@deprecated` javad
 # Multiple problems on a single field
 
 Note that currently, only a single validation problem can be reported for every field, or method, so to perform multiple, independent checks, it is necessary to use separate validation methods.
+
+# Validation and Verify
+
+The collection of validation problems and the actual throwing of the KlumValidationException is done in two separate phases.
+
+The actual check against the fail level is done in the Verify phase. This allows for custom validations provided by plugins
+(like the bean validation framework) to add their own checks.
 
 # Manual validation
 

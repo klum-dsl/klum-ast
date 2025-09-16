@@ -40,6 +40,7 @@ public enum DefaultKlumPhase implements KlumPhase {
     DEFAULT(25),
     POST_TREE(30),
     VALIDATE(50),
+    VERIFY(80),
     COMPLETE(100);
     final int number;
 
