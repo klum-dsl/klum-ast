@@ -65,9 +65,13 @@ The Default phase is used to set default values for non-DSL fields. See [Default
 The PostTree phase allows to execute actions on a completely realized model tree. This can be used
 to create interlinks between objects that are too complex for AutoLink/AutoCreate.
 
-## Validation (50)
+## Validation (50-60)
 
-Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore.
+Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins on collect validation problems, but do not throw exceptions. This is handled by the Verify phase.
+
+## Verify (80)
+
+Verifies that previous phases have raised no validation problems of the fail level or higher (ERROR by default). Throws an exception otherwise.
 
 ## Completion (100)
 

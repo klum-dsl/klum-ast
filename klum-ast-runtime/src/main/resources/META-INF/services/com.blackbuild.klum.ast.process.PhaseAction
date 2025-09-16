@@ -1,4 +1,5 @@
 com.blackbuild.klum.ast.util.ValidationPhase
+com.blackbuild.klum.ast.util.VerifyPhase
 com.blackbuild.klum.ast.util.OwnerPhase
 com.blackbuild.klum.ast.util.DefaultPhase
 com.blackbuild.klum.ast.util.PostTreePhase
