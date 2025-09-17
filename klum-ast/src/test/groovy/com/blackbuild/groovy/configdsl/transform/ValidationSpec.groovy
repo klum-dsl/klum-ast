@@ -29,7 +29,6 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
-import com.blackbuild.klum.ast.util.layer3.KlumVisitorException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.IgnoreIf
@@ -1059,11 +1058,12 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("395")
-    def "It is illegal to call addIssue/addError in non validation methods"() {
+    def "custom issues can be reported in other phases and will be stacked"() {
         given:
         createClass('''
             @DSL
             class Foo {
+                @Validate({ value.length() > 5})
                 String value
 
                 @PostTree aCustomIssue() {
@@ -1079,33 +1079,8 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(KlumVisitorException)
-    }
-
-    @Issue("395")
-    def "custom issues can be reported in other phases and will be stacked"() {
-        given:
-        createClass('''
-            @DSL
-            class Foo {
-                @Validate({ value.length() > 5})
-                String value
-
-                @PostTree aCustomIssue() {
-                    Validator.addErrorTo(this, "There has been as disturbance in the force")
-                }
-
-            }
-        ''')
-
-        when:
-        clazz.Create.With {
-            value "bla"
-        }
-
-        then:
         def e = thrown(KlumValidationException)
-        e.message.contains("""- ERROR #<none>: There has been as disturbance in the force
+        e.message.contains("""- ERROR #aCustomIssue: There has been as disturbance in the force
 - ERROR #value: 'bla' does not match. Expression: (value.length() > 5)""")
     }
 

@@ -49,6 +49,8 @@ public class PhaseDriver {
 
     private final List<Closure<?>> postPhaseClosures = new ArrayList<>();
 
+    private final Context context = new Context();
+
     private Object rootObject;
     private int activeObjectPointer = 0;
 
@@ -74,6 +76,14 @@ public class PhaseDriver {
         return phaseDriver.currentPhase;
     }
 
+    public static Context getContext() {
+        return getInstance().context;
+    }
+
+    public static void setCurrentMember(String member) {
+        getInstance().context.setMember(member);
+    }
+
     public void addPhase(PhaseAction action) {
         phaseActions.computeIfAbsent(action.getPhaseNumber(), ignore -> new ArrayList<>()).add(action);
     }
@@ -93,14 +103,17 @@ public class PhaseDriver {
         getInstance().postPhaseClosures.add(closure);
     }
 
-    public static <T> T withPhase(Supplier<T> preparation, Consumer<T> action) {
+    public static <T> T withPhaseDriver(Supplier<T> generator, Consumer<T> action) {
+        Object oldInstance = PhaseDriver.getInstance().context.getInstance();
         try {
-            T result = preparation.get();
+            T result = generator.get();
+            PhaseDriver.getInstance().context.setInstance(result);
             PhaseDriver.enter(result);
             action.accept(result);
             PhaseDriver.executeIfReady();
             return result;
         } finally {
+            PhaseDriver.getInstance().context.setInstance(oldInstance);
             PhaseDriver.leave();
         }
     }
@@ -154,5 +167,35 @@ public class PhaseDriver {
 
     public Object getRootObject() {
         return rootObject;
+    }
+
+    public static class Context {
+        private KlumPhase phase = DefaultKlumPhase.CREATE ;
+        private Object instance;
+        private String member;
+
+        public KlumPhase getPhase() {
+            return phase;
+        }
+
+        public void setPhase(KlumPhase phase) {
+            this.phase = phase;
+        }
+
+        public Object getInstance() {
+            return instance;
+        }
+
+        public void setInstance(Object instance) {
+            this.instance = instance;
+        }
+
+        public String getMember() {
+            return member;
+        }
+
+        public void setMember(String member) {
+            this.member = member;
+        }
     }
 }

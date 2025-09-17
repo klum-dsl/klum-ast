@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
@@ -44,7 +45,14 @@ public class LifecycleHelper {
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .map(Method::getName)
                 .distinct()
-                .forEach(method -> InvokerHelper.invokeMethod(rw, method, null));
+                .forEach(method -> {
+                    try {
+                        PhaseDriver.setCurrentMember(method);
+                        InvokerHelper.invokeMethod(rw, method, null);
+                    } finally {
+                        PhaseDriver.setCurrentMember(null);
+                    }
+                });
         executeLifecycleClosures(proxy, annotation);
     }
 
@@ -57,7 +65,12 @@ public class LifecycleHelper {
 
     private static void executeLifecycleClosure(KlumInstanceProxy proxy, String name) {
         Closure<?> closure = proxy.getInstanceAttribute(name);
-        ClosureHelper.invokeClosureWithDelegateAsArgument(closure, proxy.getRwInstance());
+        try {
+            PhaseDriver.setCurrentMember(name);
+            ClosureHelper.invokeClosureWithDelegateAsArgument(closure, proxy.getRwInstance());
+        } finally {
+            PhaseDriver.setCurrentMember(null);
+        }
         proxy.setInstanceAttribute(name, null);
     }
 

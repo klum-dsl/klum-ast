@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -53,7 +54,6 @@ public class Validator {
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
     private final KlumValidationResult validationIssues;
-    private static ThreadLocal<Context> context = new ThreadLocal<>();
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
@@ -152,8 +152,7 @@ public class Validator {
     }
 
     /**
-     * Adds an issue to the validation result of the current instance. This is only valid in the context of field closure or validation method
-     * during the Validation phase.
+     * Adds an issue to the validation result of the current instance. This is only valid in the context a lifecycle method/closure.
      *
      * @param message the message of the issue
      */
@@ -162,17 +161,16 @@ public class Validator {
     }
 
     /**
-     * Adds an issue to the validation result of the current instance. This is only valid in the context of field closure or validation method
-     * during the Validation phase.
+     * Adds an issue to the validation result of the current instance. This is only valid in the context of a lifecycle method/closure.
      * @param message the message of the issue
      * @param level the level of the issue
      */
     public static void addIssue(String message, Validate.Level level) {
-        Context currentContext = context.get();
-        if (currentContext == null || currentContext.instance == null)
-            throw new KlumSchemaException("addIssue() called outside of validation context.");
-        KlumValidationResult validationResult = doGetOrCreateValidationResult(currentContext.instance);
-        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), currentContext.member, message, null, level));
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(currentContext.getInstance());
+        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), currentContext.getMember(), message, null, level));
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
@@ -218,10 +216,10 @@ public class Validator {
 
     public void execute() {
         try {
-            context.set(new Context(instance));
+            PhaseDriver.getContext().setInstance(instance);
             DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
         } finally {
-            context.remove();
+            PhaseDriver.getContext().setInstance(null);
         }
     }
 
@@ -250,7 +248,7 @@ public class Validator {
 
     private Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
-            context.get().member = memberName;
+            PhaseDriver.getContext().setMember(memberName);
             runnable.run();
             return Optional.empty();
         } catch (Exception e) {
@@ -258,7 +256,7 @@ public class Validator {
         } catch (AssertionError e) {
             return Optional.of(new KlumValidationIssue(breadcrumbPath, memberName, e.getMessage(), null, level));
         } finally {
-            context.get().member = null;
+            PhaseDriver.getContext().setMember(null);
         }
     }
 
@@ -347,14 +345,5 @@ public class Validator {
         Validate validate = member.getAnnotation(Validate.class);
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;
-    }
-
-    private static class Context {
-        private Object instance;
-        private String member;
-
-        private Context(Object instance) {
-            this.instance = instance;
-        }
     }
 }
