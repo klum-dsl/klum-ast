@@ -5,20 +5,23 @@ Model creation goes through several phases. These phases are local to the curren
 
 # Lifecycle annotations
 
-Many lifecycle phases have a designated annotation. Methods and/or fields annotated withe these annotations are handled in the
+Many lifecycle phases have a designated annotation. Methods and/or fields annotated with these annotations are handled in the
 corresponding phase. Lifecycle annotations are annotations marked with the meta annotation `@WriteAccess(LIFECYCLE)`. Those 
 methods must be parameterless and not be private. Their visibility will be downgraded to `protected` and they will be moved to
 the RW class.
 
-In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner). These closures will be executed
-in their respective phases, with the RW object as delegate (i.e. will behave as like apply closures).
+In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner`). These closures will be executed
+in their respective phases, with the RW object as delegate (i.e., will behave as like `apply` closures).
 
 The lifecycle annotations `@PostCreate` and `@PostApply` are special cases. These are not run as separate phases, but
 instead are part of the creation phase, and run for each object separately. 
 
+Note that lifecycle methods and closures are called unconditionally, regardless of the state of the object (for example,
+a `@Default` field will only be handled if the field is not set yet, while a `@Default` method or Closure will always be called). Thus those methods need to check for themselves if they should do anything.
+
 # Creation
 
-The creation phase is started by the first call to any creation method in a thread. It consists of the actual instantiation of the model root as well as calling its apply methods. Creation of an object includes calling of `postCreate` and `postApply` methods on that object, as well as any `@Owner` fields or methods. (Note that `@Owner` handling might be promoted to a separate phase in the future)
+The creation phase is started by the first call to any creation method in a thread. It consists of the actual instantiation of the model root as well as calling its apply methods. Creation of an object includes calling of `@PostCreate` and `@PostApply` methods (and closures) on that object.
 
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
 later phases.
@@ -41,7 +44,7 @@ The ApplyLater phase is the first phase after the initial creation of the model.
 ## AutoCreate (10)
 
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
-any lifecycle methods that are marked with `@AutoCreate`.
+any lifecycle methods and Closures that are marked with `@AutoCreate`.
 
 ## Owner (15)
 
@@ -54,20 +57,20 @@ Also resolves `@Role` fields and methods, which are technically special case `@O
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
-by annotating fields with `@LinkTo`. Also, regular lifecycle methods can be annotated with `@AutoLink` to be executed.
+by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure fields can be annotated with `@AutoLink` to be executed.
 
 ## Default (25)
 
-The Default phase is used to set default values for non-DSL fields. See [Default Values](Default-Values.md) for details.
+The Default phase is used to set default values for non-DSL fields. See [Default Values](Default-Values.md) for details. As will all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
 
 ## PostTree (30)
 
-The PostTree phase allows to execute actions on a completely realized model tree. This can be used
-to create interlinks between objects that are too complex for AutoLink/AutoCreate.
+The PostTree phase allows executing actions on a completely realized model tree. This can be used
+to create interlinking between objects that are too complex for AutoLink/AutoCreate.
 
 ## Validation (50-60)
 
-Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins on collect validation problems, but do not throw exceptions. This is handled by the Verify phase.
+Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins only collect validation problems but do not throw exceptions. This is handled by the Verify phase.
 
 ## Verify (80)
 

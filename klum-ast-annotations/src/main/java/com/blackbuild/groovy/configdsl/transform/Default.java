@@ -81,6 +81,8 @@ import java.lang.annotation.*;
  * instance.element.name == "inner"
  * }
  * </code></pre>
+ * <p>Like all lifecycle annotations, this annotation can also be placed on a method, which will be executed in the phase, or on a field of type closure, which will be executed along with
+ * annotated methods.</p>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

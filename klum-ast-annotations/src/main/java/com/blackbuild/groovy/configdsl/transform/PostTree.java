@@ -36,11 +36,13 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * <p>Designates a method to be executed after the complete model has been created and auto* phases have run.
- * PostTree methods can be use to modify the model as a whole.</p>
+ * PostTree methods can be used to modify the model as a whole.</p>
  *
  * <p>Due to the late phase in which PostTree methods run, the model is already fully linked.</p>
  *
  * <p>Like all lifecycle methods, PostTree methods must be non-private and parameterless.</p>
+ * <p>Like all lifecycle annotations, this annotation can also be placed on fields of type closure, which will be executed along with
+ * annotated methods.</p>
  */
 @Target({FIELD, METHOD})
 @Retention(RUNTIME)
