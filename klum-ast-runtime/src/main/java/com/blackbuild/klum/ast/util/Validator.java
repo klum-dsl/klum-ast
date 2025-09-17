@@ -53,6 +53,7 @@ public class Validator {
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
     private final KlumValidationResult validationIssues;
+    private static ThreadLocal<Context> context = new ThreadLocal<>();
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
@@ -126,13 +127,64 @@ public class Validator {
      * @return a {@link KlumValidationResult} containing validation errors
      */
     public static KlumValidationResult getValidationResult(Object instance) {
-        KlumValidationResult validationResult = doGetValidationResult(instance);
-        if (validationResult != null) return validationResult;
-        return lenientValidate(instance, null);
+        return doGetValidationResult(instance);
+    }
+
+    /**
+     * Adds an issue to the validation result of the given instance.
+     *
+     * @param instance the instance to add the issue to
+     * @param message  the message of the issue
+     */
+    public static void addErrorTo(Object instance, String message) {
+        addIssueTo(instance, message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the given instance.
+     * @param instance the instance to add the issue to
+     * @param message the message of the issue
+     * @param level the level of the issue
+     */
+    public static void addIssueTo(Object instance, String message, Validate.Level level) {
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
+        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), null, message, null, level));
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance. This is only valid in the context of field closure or validation method
+     * during the Validation phase.
+     *
+     * @param message the message of the issue
+     */
+    public static void addError(String message) {
+        addIssue(message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance. This is only valid in the context of field closure or validation method
+     * during the Validation phase.
+     * @param message the message of the issue
+     * @param level the level of the issue
+     */
+    public static void addIssue(String message, Validate.Level level) {
+        Context currentContext = context.get();
+        if (currentContext == null || currentContext.instance == null)
+            throw new KlumSchemaException("addIssue() called outside of validation context.");
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(currentContext.instance);
+        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), currentContext.member, message, null, level));
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
         return KlumInstanceProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+    }
+
+    private static KlumValidationResult doGetOrCreateValidationResult(Object instance) {
+        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
+
+        if (!proxy.hasMetaData(KlumValidationResult.METADATA_KEY))
+            proxy.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getBreadcrumbPath(instance)));
+        return doGetValidationResult(instance);
     }
 
     /**
@@ -160,13 +212,17 @@ public class Validator {
                 this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
             }
             this.validationIssues = new KlumValidationResult(breadcrumbPath);
+            KlumInstanceProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, this.validationIssues);
         }
     }
 
     public void execute() {
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-        KlumInstanceProxy klumInstanceProxy = KlumInstanceProxy.getProxyFor(instance);
-        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationIssues);
+        try {
+            context.set(new Context(instance));
+            DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
+        } finally {
+            context.remove();
+        }
     }
 
     private void validateType(Class<?> type) {
@@ -183,7 +239,7 @@ public class Validator {
         }
     }
 
-    private Optional<KlumValidationProblem> validateCustomMethod(Method method) {
+    private Optional<KlumValidationIssue> validateCustomMethod(Method method) {
         Validate.Level level = getValidateAnnotationOrDefault(method).level();
         return withExceptionCheck(
                 method.getName() + "()",
@@ -192,14 +248,17 @@ public class Validator {
         );
     }
 
-    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
+    private Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
+            context.get().member = memberName;
             runnable.run();
             return Optional.empty();
         } catch (Exception e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e, level));
+            return Optional.of(new KlumValidationIssue(breadcrumbPath, memberName, e.getMessage(), e, level));
         } catch (AssertionError e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null, level));
+            return Optional.of(new KlumValidationIssue(breadcrumbPath, memberName, e.getMessage(), null, level));
+        } finally {
+            context.get().member = null;
         }
     }
 
@@ -224,7 +283,7 @@ public class Validator {
         return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
     }
 
-    private Optional<KlumValidationProblem> validateField(Field field) {
+    private Optional<KlumValidationIssue> validateField(Field field) {
         if (!shouldValidate(field))
             return Optional.empty();
 
@@ -245,12 +304,12 @@ public class Validator {
             );
     }
 
-    private Optional<KlumValidationProblem> checkForDeprecation(Field field, Object value) {
+    private Optional<KlumValidationIssue> checkForDeprecation(Field field, Object value) {
         if (!isGroovyTruth(field, value)) return Optional.empty();
 
         String message = getDeprecationMessage(field);
 
-        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
+        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
     }
 
     private String getDeprecationMessage(Field field) {
@@ -266,7 +325,7 @@ public class Validator {
                 .orElse(String.format("Field '%s' is deprecated", field.getName()));
     }
 
-    private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
+    private Optional<KlumValidationIssue> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
         if (isGroovyTruth(field, value)) return Optional.empty();
 
         String message = validate.message();
@@ -274,7 +333,7 @@ public class Validator {
         if (message.isEmpty())
             message = String.format("Field '%s' must be set", field.getName());
 
-        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
+        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, validate.level()));
     }
 
     @SuppressWarnings("java:S1126")
@@ -288,5 +347,14 @@ public class Validator {
         Validate validate = member.getAnnotation(Validate.class);
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;
+    }
+
+    private static class Context {
+        private Object instance;
+        private String member;
+
+        private Context(Object instance) {
+            this.instance = instance;
+        }
     }
 }

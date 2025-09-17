@@ -36,7 +36,7 @@ import java.util.TreeSet;
  */
 public class KlumValidationResult implements Serializable {
     public static final String METADATA_KEY = KlumValidationResult.class.getName();
-    private final NavigableSet<KlumValidationProblem> validationProblems = new TreeSet<>();
+    private final NavigableSet<KlumValidationIssue> validationProblems = new TreeSet<>();
     private final String breadcrumbPath;
 
     public KlumValidationResult(String breadcrumbPath) {
@@ -47,17 +47,17 @@ public class KlumValidationResult implements Serializable {
         return breadcrumbPath;
     }
 
-    public void addProblem(KlumValidationProblem problem) {
+    public void addProblem(KlumValidationIssue problem) {
         this.validationProblems.add(problem);
     }
 
-    public void addProblems(List<KlumValidationProblem> problems) {
+    public void addProblems(List<KlumValidationIssue> problems) {
         validationProblems.addAll(problems);
     }
 
     public Validate.Level getMaxLevel() {
         return validationProblems.stream()
-                .map(KlumValidationProblem::getLevel)
+                .map(KlumValidationIssue::getLevel)
                 .max(Validate.Level::compareTo)
                 .orElse(Validate.Level.NONE);
     }
@@ -71,7 +71,7 @@ public class KlumValidationResult implements Serializable {
 
         StringBuilder sb = new StringBuilder();
         sb.append(breadcrumbPath).append(":\n");
-        for (KlumValidationProblem e : validationProblems)
+        for (KlumValidationIssue e : validationProblems)
             if (e.getLevel().equalOrWorseThan(minimumLevel))
                 sb.append("- ")
                         .append(e.getLocalMessage())
@@ -90,7 +90,7 @@ public class KlumValidationResult implements Serializable {
             return "";
 
         StringBuilder sb = new StringBuilder();
-        for (KlumValidationProblem e : validationProblems)
+        for (KlumValidationIssue e : validationProblems)
             if (e.getLevel().equalOrWorseThan(minimumLevel))
                 sb.append(e.getFullMessage()).append("\n");
         sb.setLength(sb.length() - 1);
@@ -110,7 +110,7 @@ public class KlumValidationResult implements Serializable {
             throw new KlumValidationException(List.of(this));
     }
 
-    public Collection<KlumValidationProblem> getProblems() {
+    public Collection<KlumValidationIssue> getProblems() {
         return validationProblems;
     }
 }

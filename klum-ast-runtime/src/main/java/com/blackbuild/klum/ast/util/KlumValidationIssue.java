@@ -28,24 +28,25 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.util.Comparator;
+import java.util.Objects;
 
 import static java.util.Comparator.*;
 
-public class KlumValidationProblem implements Serializable, Comparable<KlumValidationProblem> {
+public class KlumValidationIssue implements Serializable, Comparable<KlumValidationIssue> {
 
-    private static final Comparator<KlumValidationProblem> COMPARATOR =
-            comparing(KlumValidationProblem::getBreadcrumbPath, nullsLast(naturalOrder()))
-            .thenComparing(KlumValidationProblem::getLevel, reverseOrder())
-            .thenComparing(KlumValidationProblem::getMember, nullsLast(naturalOrder()));
+    private static final Comparator<KlumValidationIssue> COMPARATOR =
+            comparing(KlumValidationIssue::getBreadcrumbPath, nullsLast(naturalOrder()))
+            .thenComparing(KlumValidationIssue::getLevel, reverseOrder())
+            .thenComparing(KlumValidationIssue::getMember, nullsLast(naturalOrder()));
     public final String member;
     public final String message;
     public final Exception exception;
     public final Validate.Level level;
     private final String breadcrumbPath;
 
-    public KlumValidationProblem(String breadcrumbPath, String member, String message, Exception exception, Validate.Level level) {
+    public KlumValidationIssue(String breadcrumbPath, String member, String message, Exception exception, Validate.Level level) {
         this.breadcrumbPath = breadcrumbPath;
-        this.member = member;
+        this.member = Objects.requireNonNullElse(member, "<none>");
         this.message = message;
         this.exception = exception;
         this.level = level;
@@ -84,8 +85,19 @@ public class KlumValidationProblem implements Serializable, Comparable<KlumValid
     }
 
     @Override
-    public int compareTo(@NotNull KlumValidationProblem o) {
+    public int compareTo(@NotNull KlumValidationIssue o) {
         return COMPARATOR.compare(this, o);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof KlumValidationIssue)) return false;
+        KlumValidationIssue that = (KlumValidationIssue) o;
+        return Objects.equals(member, that.member) && Objects.equals(message, that.message) && Objects.equals(exception, that.exception) && level == that.level && Objects.equals(breadcrumbPath, that.breadcrumbPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(member, message, exception, level, breadcrumbPath);
+    }
 }

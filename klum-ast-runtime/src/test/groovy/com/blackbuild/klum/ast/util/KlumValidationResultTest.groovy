@@ -42,8 +42,8 @@ class KlumValidationResultTest extends Specification {
     def "validation result with problems"() {
         when:
         def result = new KlumValidationResult("path")
-        result.addProblem(new KlumValidationProblem("path", "field1", "Error message 1", null, Validate.Level.ERROR))
-        result.addProblem(new KlumValidationProblem("path", "method1()", "Warning message 2", null, Validate.Level.WARNING))
+        result.addProblem(new KlumValidationIssue("path", "field1", "Error message 1", null, Validate.Level.ERROR))
+        result.addProblem(new KlumValidationIssue("path", "method1()", "Warning message 2", null, Validate.Level.WARNING))
 
         then:
         result.maxLevel == Validate.Level.ERROR
@@ -57,10 +57,10 @@ WARNING path#method1(): Warning message 2"""
     def "results are sorted by level and member"() {
         when:
         def result = new KlumValidationResult("path")
-        result.addProblem(new KlumValidationProblem("path", "method2()", "Warning message 2", null, Validate.Level.WARNING))
-        result.addProblem(new KlumValidationProblem("path", "field1", "Error message 1", null, Validate.Level.ERROR))
-        result.addProblem(new KlumValidationProblem("path", "field3", "Info message 3", null, Validate.Level.INFO))
-        result.addProblem(new KlumValidationProblem("path", "method2()", "Error message 4", null, Validate.Level.ERROR))
+        result.addProblem(new KlumValidationIssue("path", "method2()", "Warning message 2", null, Validate.Level.WARNING))
+        result.addProblem(new KlumValidationIssue("path", "field1", "Error message 1", null, Validate.Level.ERROR))
+        result.addProblem(new KlumValidationIssue("path", "field3", "Info message 3", null, Validate.Level.INFO))
+        result.addProblem(new KlumValidationIssue("path", "method2()", "Error message 4", null, Validate.Level.ERROR))
 
         then:
         result.maxLevel == Validate.Level.ERROR
@@ -78,10 +78,10 @@ INFO path#field3: Info message 3"""
     def "filtered output"() {
         when:
         def result = new KlumValidationResult("path")
-        result.addProblem(new KlumValidationProblem("path", "method2()", "Warning message 2", null, Validate.Level.WARNING))
-        result.addProblem(new KlumValidationProblem("path", "field1", "Error message 1", null, Validate.Level.ERROR))
-        result.addProblem(new KlumValidationProblem("path", "field3", "Info message 3", null, Validate.Level.INFO))
-        result.addProblem(new KlumValidationProblem("path", "method2()", "Error message 4", null, Validate.Level.ERROR))
+        result.addProblem(new KlumValidationIssue("path", "method2()", "Warning message 2", null, Validate.Level.WARNING))
+        result.addProblem(new KlumValidationIssue("path", "field1", "Error message 1", null, Validate.Level.ERROR))
+        result.addProblem(new KlumValidationIssue("path", "field3", "Info message 3", null, Validate.Level.INFO))
+        result.addProblem(new KlumValidationIssue("path", "method2()", "Error message 4", null, Validate.Level.ERROR))
 
         then:
         result.maxLevel == Validate.Level.ERROR

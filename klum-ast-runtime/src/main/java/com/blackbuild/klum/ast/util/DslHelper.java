@@ -305,12 +305,7 @@ public class DslHelper {
     }
 
     public static String getBreadcrumbPath(Object instance) {
-        if (instance instanceof KlumInstanceProxy)
-            return ((KlumInstanceProxy) instance).getBreadcrumbPath();
-        else if (DslHelper.isDslObject(instance))
-            return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
-        else
-            return null;
+        return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
     }
 
     public static boolean isOwner(@NotNull Field field) {
