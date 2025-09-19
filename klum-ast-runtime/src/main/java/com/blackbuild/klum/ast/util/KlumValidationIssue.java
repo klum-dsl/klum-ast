@@ -37,7 +37,8 @@ public class KlumValidationIssue implements Serializable, Comparable<KlumValidat
     private static final Comparator<KlumValidationIssue> COMPARATOR =
             comparing(KlumValidationIssue::getBreadcrumbPath, nullsLast(naturalOrder()))
             .thenComparing(KlumValidationIssue::getLevel, reverseOrder())
-            .thenComparing(KlumValidationIssue::getMember, nullsLast(naturalOrder()));
+            .thenComparing(KlumValidationIssue::getMember, nullsFirst(naturalOrder()))
+            .thenComparing(KlumValidationIssue::getMessage, nullsLast(naturalOrder()));
     public final String member;
     public final String message;
     public final Exception exception;
@@ -61,7 +62,7 @@ public class KlumValidationIssue implements Serializable, Comparable<KlumValidat
     }
 
     public String getFullPath() {
-        return breadcrumbPath + (member != null ? "#" + member : "");
+        return breadcrumbPath + "#" + member;
     }
 
     public String getFullMessage() {
@@ -69,7 +70,7 @@ public class KlumValidationIssue implements Serializable, Comparable<KlumValidat
     }
 
     public String getLocalMessage() {
-        return getLevel().name() + " #" + getMember() + ": " + message;
+        return getLevel().name() + " #" + member + ": " + message;
     }
 
     public String getMember() {

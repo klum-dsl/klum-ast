@@ -30,6 +30,8 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -48,6 +50,7 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 public class Validator {
 
     public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
+    public static final String ANY_MEMBER = "*";
 
     private final Object instance;
     private final String breadcrumbPath;
@@ -131,52 +134,91 @@ public class Validator {
     }
 
     /**
-     * Adds an issue to the validation result of the given instance.
+     * Adds an error issue to the validation result of the given instance. The issue will not be associated with a specific member.
      *
      * @param instance the instance to add the issue to
      * @param message  the message of the issue
      */
     public static void addErrorTo(Object instance, String message) {
-        addIssueTo(instance, message, Validate.Level.ERROR);
+        addErrorTo(instance, null, message);
+    }
+
+    /**
+     * Adds an error issue to the validation result of the given instance.
+     *
+     * @param instance the instance to add the issue to
+     * @param member The member to add the issue to, can be null
+     * @param message  the message of the issue
+     */
+    public static void addErrorTo(Object instance, @Nullable String member, String message) {
+        addIssueTo(instance, member, message, Validate.Level.ERROR);
     }
 
     /**
      * Adds an issue to the validation result of the given instance.
+     *
      * @param instance the instance to add the issue to
-     * @param message the message of the issue
-     * @param level the level of the issue
+     * @param member The member to add the issue to, can be null
+     * @param message  the message of the issue
+     * @param level    the level of the issue
      */
-    public static void addIssueTo(Object instance, String message, Validate.Level level) {
+    public static void addIssueTo(@NotNull Object instance, @Nullable String member, String message, Validate.Level level) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
-        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), null, message, null, level));
+        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
     }
 
     /**
-     * Adds an issue to the validation result of the current instance. This is only valid in the context a lifecycle method/closure.
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure.
      *
      * @param message the message of the issue
      */
-    public static void addError(String message) {
-        addIssue(message, Validate.Level.ERROR);
+    public static void addError(@NotNull String message) {
+        addIssueToMember(null, message, Validate.Level.ERROR);
     }
 
     /**
-     * Adds an issue to the validation result of the current instance. This is only valid in the context of a lifecycle method/closure.
+     * Adds an issue to the validation result of the current instance, flagging a different member than the one currently being validated.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param member The member to add the issue to
      * @param message the message of the issue
-     * @param level the level of the issue
+     */
+    public static void addErrorToMember(@NotNull String member, @NotNull String message) {
+        addIssueToMember(member, message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure and uses the name of the current method as the member name.
+     *
+     * @param message the message of the issue
+     * @param level   the level of the issue
      */
     public static void addIssue(String message, Validate.Level level) {
+        addIssueToMember(null, message, level);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param member The member to add the issue to, if null, use the member of the current context
+     * @param message the message of the issue
+     * @param level   the level of the issue
+     */
+    public static void addIssueToMember(String member, String message, Validate.Level level) {
         PhaseDriver.Context currentContext = PhaseDriver.getContext();
         if (currentContext == null || currentContext.getInstance() == null)
             throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
-        KlumValidationResult validationResult = doGetOrCreateValidationResult(currentContext.getInstance());
-        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), currentContext.getMember(), message, null, level));
+        addIssueTo(currentContext.getInstance(), member != null ? member : currentContext.getMember(), message, level);
     }
 
     /**
      * Suppresses any future issues for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure.
      *
-     * @param member the member to suppress issues for
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(String member) {
         PhaseDriver.Context currentContext = PhaseDriver.getContext();
@@ -188,7 +230,7 @@ public class Validator {
     /**
      * Suppresses any future issues for the given member in the validation result of the given instance.
      * @param instance the instance to suppress issues for
-     * @param member the member to suppress issues for
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(Object instance, String member) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);

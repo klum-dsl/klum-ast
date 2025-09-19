@@ -46,11 +46,13 @@ public class KlumValidationResult implements Serializable {
     }
 
     public void addProblem(KlumValidationIssue problem) {
+        if (suppressedIssues.contains(Validator.ANY_MEMBER)) return;
         if (!suppressedIssues.contains(problem.getMember()))
             this.validationProblems.add(problem);
     }
 
     public void addProblems(List<KlumValidationIssue> problems) {
+        if (suppressedIssues.contains(Validator.ANY_MEMBER)) return;
         for (KlumValidationIssue problem : problems)
             addProblem(problem);
     }

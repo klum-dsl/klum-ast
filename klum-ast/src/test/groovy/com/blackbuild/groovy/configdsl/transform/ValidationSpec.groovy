@@ -1031,6 +1031,34 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("395")
+    def "custom issues can override member name"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                List<String> values
+
+                @Validate aCustomIssue() {
+                    for (String value in values) {
+                        if (value.length() < 4)
+                            Validator.addErrorToMember("values", "Value '$value' is too short")
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            values "bla", "blub", "bli"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("""- ERROR #values: Value 'bla' is too short
+- ERROR #values: Value 'bli' is too short""")
+    }
+
+    @Issue("395")
     def "custom issues are stacked with normal validation issues"() {
         given:
         createClass('''
@@ -1086,14 +1114,14 @@ class ValidationSpec extends AbstractDSLSpec {
 
     @Issue("406")
     @PendingFeature
-    def "It is illegal to call addIssue/addError in non validation methods compiler check"() {
+    def "It is illegal to call addIssue/addError in non lifecycle methods"() {
         when:
         createClass('''
             @DSL
             class Foo {
                 String value
 
-                @PostTree aCustomIssue() {
+                void aCustomIssue() {
                     Validator.addError("There has been as disturbance in the force")
                 }
 
