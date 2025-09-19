@@ -28,7 +28,7 @@ import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
-import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.tools.GeneralUtils;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
@@ -37,13 +37,13 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
- * Converter Transformation for {@link com.blackbuild.groovy.configdsl.transform.Required} into {@link com.blackbuild.groovy.configdsl.transform.Validate}.
- * Necessary since {@link groovy.transform.AnnotationCollector} does not seem to work here.
+ * Converter Transformation for {@link com.blackbuild.groovy.configdsl.transform.Optional} into {@link Validate}.
  */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
-public class RequiredToValidateTransformation extends AbstractASTTransformation {
+public class OptionalToValidateTransformation extends AbstractASTTransformation {
 
     private static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
+    private static final ClassNode VALIDATE_IGNORE_MEMBER = make(Validate.Ignore.class);
 
     FieldNode annotatedField;
     AnnotationNode requiredAnnotation;
@@ -56,15 +56,7 @@ public class RequiredToValidateTransformation extends AbstractASTTransformation 
         requiredAnnotation = (AnnotationNode) nodes[0];
 
         AnnotationNode validateAnnotation = new AnnotationNode(VALIDATE_ANNOTATION);
-
-        Expression value = requiredAnnotation.getMember("value");
-        if (value != null)
-            validateAnnotation.addMember("message", value);
-
-        Expression level = requiredAnnotation.getMember("level");
-        if (level != null)
-            validateAnnotation.addMember("level", level);
-
+        validateAnnotation.addMember("value", GeneralUtils.classX(VALIDATE_IGNORE_MEMBER));
         annotatedField.addAnnotation(validateAnnotation);
     }
 }

@@ -27,27 +27,17 @@ import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.checks.NotTogetherWith;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * Shortcut for an empty {@link Validate} annotation on a field. Checks during validation whether the annotated field
- * is set, i.e. resolves to Groovy truth (or non null for {@link Boolean}  fields). As with validate, it is illegal to place
- * this annotation on a primitive boolean field.
+ * Shortcut for an Validate(Ignore) annotation on a field. Ignores the field during validation, even if Validate is set
+ * for the class.
  */
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.converters.RequiredToValidateTransformation")
+@GroovyASTTransformationClass("com.blackbuild.groovy.configdsl.transform.ast.converters.OptionalToValidateTransformation")
 @Documented
 @KlumCastValidated
 @NotTogetherWith(Validate.class)
-public @interface Required {
-    /** An optional message to be given for failed validations */
-    String value() default "";
-
-    /** The level of the validation problem, defaults to {@link Validate.Level#ERROR} if the requirement is violated. */
-    Validate.Level level() default Validate.Level.ERROR;
+public @interface Optional {
 }

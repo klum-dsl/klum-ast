@@ -4,6 +4,7 @@
   - Validation-phase is split into validation and verify phases.
   - Provided new (preliminary) methods to explicitly create validation issues. This allows validation issues to be created in earlier phases, as well as multiple issues in a single validation/lifecycle method.
   - further validation issues can explicitly be suppressed for specific fields
+  - New annotation `@Optional` as alias for `@Validate(Validate.Ignore)`
 
 ## Bugfixes
 - `StructureUtil.getPathOfFieldContaining()` and therefore `@Role` fields ignored fields where the value was actually a subclass of the field type.

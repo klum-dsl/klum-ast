@@ -60,7 +60,7 @@ class MyModel {
 Any failed validation is wrapped in a `KlumValidationProblem`, all 
 problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
 
-# `@Required`
+# `@Required` and `@Optional`
 
 `@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
 
@@ -101,6 +101,9 @@ class MyModel {
  Person manager
 }
 ```
+
+Likewise, `@Optional` is a convenient alias for `@Validate(Validate.Ignore)`, to explicitly ignore a from validation when
+`Validate` is used on a class.
 
 # On methods
 

@@ -833,21 +833,61 @@ class ValidationSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        instance = clazz.Create.Template() // skip validation, we call validatior explicitly
 
         when:
-        instance.name = 'test'
-        Validator.validate(instance)
+        instance = clazz.Create.With {
+            name "test"
+        }
 
         then:
         noExceptionThrown()
 
         when:
-        instance.name = null
-        Validator.validate(instance)
+        instance = clazz.Create.With {
+        }
 
         then:
         thrown(KlumValidationException)
+    }
+
+    @Issue("409")
+    void "Optional as an alias for Validate(Ignore)"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL @Validate
+            class Foo {
+                @Optional
+                String name
+                
+                String fullName
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+        }
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        instance = clazz.Create.With {
+            fullName "test"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        instance = clazz.Create.With {
+            name "bla"
+            fullName "test"
+        }
+
+        then:
+        notThrown(KlumValidationException)
     }
 
     @Issue("373")
