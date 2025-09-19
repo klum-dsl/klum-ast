@@ -173,6 +173,28 @@ public class Validator {
         validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), currentContext.getMember(), message, null, level));
     }
 
+    /**
+     * Suppresses any future issues for the given member in the validation result of the given instance.
+     *
+     * @param member the member to suppress issues for
+     */
+    public static void suppressFurtherIssues(String member) {
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
+        suppressFurtherIssues(currentContext.getInstance(), member);
+    }
+
+    /**
+     * Suppresses any future issues for the given member in the validation result of the given instance.
+     * @param instance the instance to suppress issues for
+     * @param member the member to suppress issues for
+     */
+    public static void suppressFurtherIssues(Object instance, String member) {
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
+        validationResult.suppressIssues(member);
+    }
+
     private static KlumValidationResult doGetValidationResult(Object instance) {
         return KlumInstanceProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
     }

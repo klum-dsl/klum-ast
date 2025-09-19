@@ -26,10 +26,7 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Validation results for a single object.
@@ -38,6 +35,7 @@ public class KlumValidationResult implements Serializable {
     public static final String METADATA_KEY = KlumValidationResult.class.getName();
     private final NavigableSet<KlumValidationIssue> validationProblems = new TreeSet<>();
     private final String breadcrumbPath;
+    private final Set<String> suppressedIssues = new HashSet<>();
 
     public KlumValidationResult(String breadcrumbPath) {
         this.breadcrumbPath = breadcrumbPath;
@@ -48,11 +46,13 @@ public class KlumValidationResult implements Serializable {
     }
 
     public void addProblem(KlumValidationIssue problem) {
-        this.validationProblems.add(problem);
+        if (!suppressedIssues.contains(problem.getMember()))
+            this.validationProblems.add(problem);
     }
 
     public void addProblems(List<KlumValidationIssue> problems) {
-        validationProblems.addAll(problems);
+        for (KlumValidationIssue problem : problems)
+            addProblem(problem);
     }
 
     public Validate.Level getMaxLevel() {
@@ -112,5 +112,9 @@ public class KlumValidationResult implements Serializable {
 
     public Collection<KlumValidationIssue> getProblems() {
         return validationProblems;
+    }
+
+    public void suppressIssues(String member) {
+        suppressedIssues.add(member);
     }
 }

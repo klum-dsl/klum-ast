@@ -1084,7 +1084,6 @@ class ValidationSpec extends AbstractDSLSpec {
 - ERROR #value: 'bla' does not match. Expression: (value.length() > 5)""")
     }
 
-
     @Issue("406")
     @PendingFeature
     def "It is illegal to call addIssue/addError in non validation methods compiler check"() {
@@ -1103,6 +1102,28 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("395")
+    def "prevent warnings for specific fields"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Required
+                String validatedWarning
+
+                @PostTree suppressWarningforValidateWarning() {
+                    Validator.suppressFurtherIssues("validatedWarning")
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.One()
+
+        then:
+        notThrown(KlumValidationException)
     }
 
     private KlumValidationResult getValidationResult(Object target = instance) {
