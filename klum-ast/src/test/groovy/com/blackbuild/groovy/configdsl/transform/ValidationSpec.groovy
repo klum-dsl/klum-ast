@@ -30,14 +30,19 @@ import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.Ignore
-import spock.lang.IgnoreIf
-import spock.lang.Issue
-import spock.lang.PendingFeature
+import spock.lang.*
+import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 class ValidationSpec extends AbstractDSLSpec {
 
     KlumValidationException error
+
+    @AutoCleanup("teardown") SystemProperties sysProps = new SystemProperties()
+
+    @Override
+    def setup() {
+        sysProps.setup()
+    }
 
     @Override
     String[] getAdditionalImports() {
@@ -392,41 +397,6 @@ class ValidationSpec extends AbstractDSLSpec {
 
         when:
         clazz.Create.With { validated "valid" }
-
-        then:
-        notThrown(KlumValidationException)
-    }
-
-    def "defer validation via method"() {
-        given:
-        createClass('''
-            @DSL
-            class Foo {
-                @Validate
-                String validated
-            }
-        ''')
-
-        when:
-        instance = clazz.Create.With {
-            manualValidation(true)
-        }
-
-        then:
-        notThrown(KlumValidationException)
-
-        when:
-        Validator.validate(instance)
-
-        then:
-        thrown(KlumValidationException)
-
-        when:
-        instance = clazz.Create.With {
-            manualValidation(true)
-            validated "bla"
-        }
-        Validator.validate(instance)
 
         then:
         notThrown(KlumValidationException)
@@ -902,11 +872,9 @@ class ValidationSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        instance = clazz.Create.Template() // skip validation, we call validator explicitly
 
         when:
-        instance.name = null
-        Validator.validate(instance)
+        instance = clazz.Create.One()
 
         then:
         def e = thrown(KlumValidationException)
@@ -1192,6 +1160,99 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         notThrown(KlumValidationException)
+    }
+
+    @Issue("381")
+    def "verify can be skipped using system property"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        sysProps.set("klum.validation.skipVerify", "true")
+        instance = clazz.Create.With {}
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    def "fail level can be controlled using system property"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        sysProps.set("klum.validation.failOnLevel", "WARNING")
+        instance = clazz.Create.With {}
+
+        then:
+        thrown(KlumValidationException)
+    }
+
+    @Issue("381")
+    def "verify can be redone using Validated.verifyStructure"() {
+        given:
+        sysProps.set("klum.validation.skipVerify", "true")
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            @DSL
+            class Foo {
+                @Required String name
+                @AutoCreate Bar bar
+            }
+            
+            @DSL class Bar {
+                @Required String game
+            } 
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+        }
+
+        then:
+        notThrown(KlumValidationException)
+        instance.bar != null
+        Validator.getValidationResult(instance).getProblems().size() == 1
+        Validator.getValidationResult(instance.bar).getProblems().size() == 1
+
+        when:
+        def results = Validator.getValidationResultsFromStructure(instance)
+
+        then:
+        results.size() == 2
+        results.collect { it.getProblems() }.flatten().size() == 2
+
+        when:
+        Validator.verifyStructure(instance)
+
+        then:
+        def e= thrown(KlumValidationException)
+        e.message.contains('''<root>($/Foo.With):
+- ERROR #name: Field 'name' must be set
+<root>.bar($/Foo.With/):
+- ERROR #game: Field 'game' must be set''')
     }
 
     private KlumValidationResult getValidationResult(Object target = instance) {

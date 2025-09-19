@@ -217,9 +217,6 @@ The collection of validation problems and the actual throwing of the KlumValidat
 The actual check against the fail level is done in the Verify phase. This allows for custom validations provided by plugins
 (like the bean validation framework) to add their own checks.
 
-# Manual validation
+# Skipping verification
 
-Instances can be exempt from running automatically by using the `manualValidation(boolean)` method.
-
-NOTE: this is considered deprecated and will be removed in a future version.
-
+By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still executed, and the results can be extracted from the instances using the `Validator.getValidationResultsFromStructure(Object)` method (or `verifyStructure(Object)` can be used to run the verification later and throw an exception as needed). 

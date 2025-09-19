@@ -39,8 +39,6 @@ public class ValidationPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        if (KlumInstanceProxy.getProxyFor(element).getManualValidation()) return;
-
-        Validator.lenientValidate(element, path);
+        new Validator(element, path).execute();
     }
 }

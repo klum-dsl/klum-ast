@@ -66,7 +66,6 @@ public class KlumInstanceProxy {
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
 
     private final GroovyObject instance;
-    private boolean manualValidation;
     private String breadcrumbPath;
     private int breadCrumbQuantifier = 1;
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
@@ -225,28 +224,6 @@ public class KlumInstanceProxy {
                 .map(Field::getName)
                 .map(instance::getProperty)
                 .orElse(null);
-    }
-
-    /**
-     * Executes validation for this instance
-     *
-     * @deprecated use {@link com.blackbuild.klum.ast.util.Validator#validate(Object)} instead
-     */
-    @Deprecated(forRemoval = true)
-    public void validate() {
-        Validator.validate(instance);
-    }
-
-    boolean getManualValidation() {
-        return manualValidation;
-    }
-
-    void manualValidation() {
-        manualValidation = true;
-    }
-
-    void manualValidation(boolean value) {
-        manualValidation = value;
     }
 
     /**

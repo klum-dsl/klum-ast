@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
+import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -37,6 +38,7 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -58,68 +60,56 @@ public class Validator {
     private Class<?> currentType;
     private final KlumValidationResult validationIssues;
 
+
     /**
-     * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
+     * Retrieves the validation results from the given instance and its child objects.
      *
-     * @param instance the instance to validate
-     * @return The encountered issues if below fail level
-     * @throws KlumValidationException if validation errors are found
+     * @param instance the instance to validate the structure of. Must be a DSL object.
+     * @return a list of {@link KlumValidationResult} containing validation errors.
      */
-    public static KlumValidationResult validate(Object instance) throws KlumValidationException {
-        return validate(instance, null);
+    public static List<KlumValidationResult> getValidationResultsFromStructure(Object instance) {
+        ValidationResultCollector visitor = new ValidationResultCollector();
+        StructureUtil.visit(instance, visitor);
+        return visitor.aggregatedErrors;
     }
 
     /**
-     * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
+     * Retrieves all validation issues from the given instance and its child objects, and throws a {@link KlumValidationException}
+     * if any validation issues with the level defined using the system property "klum.validation.failOnLevel" (or ERROR by default).
      *
-     * @param instance the instance to validate
-     * @param path     an optional path to be stored in the validation problem
-     * @return The encountered issues if below fail level
-     * @throws KlumValidationException if validation errors are found
+     * @param instance the instance to validate the structure of. Must be a DSL object.
+     * @return a list of {@link KlumValidationResult} containing validation errors.
+     * @throws KlumValidationException if validation errors are found with a level equal or worse than the given level.
      */
-    public static KlumValidationResult validate(Object instance, String path) throws KlumValidationException{
-        KlumValidationResult result = lenientValidate(instance, path);
-        result.throwOn(getFailLevel());
-        return result;
+    public static List<KlumValidationResult> verifyStructure(Object instance) throws KlumValidationException {
+        return verifyStructure(instance, getFailLevel());
     }
 
     /**
-     * Validates the given instance, returning a {@link KlumValidationResult} containing any validation errors.
-     * This method does not throw an exception, allowing for lenient validation.
-     *
-     * @param instance the instance to validate
-     * @param path
-     * @return a {@link KlumValidationResult} containing validation errors
+     * Retrieves all validation issues from the given instance and its child objects, and throws a {@link KlumValidationException}
+     * if any validation issues with the given fail level or higher are found.
+     * @param instance the instance to validate the structure of. Must be a DSL object.
+     * @param failLevel the minimum encountered level to result in an exception.
+     * @return a list of {@link KlumValidationResult} containing validation errors.
+     * @throws KlumValidationException if validation errors are found with a level equal or worse than the given level.
      */
-    public static KlumValidationResult lenientValidate(Object instance, String path) {
-        Validator validator = new Validator(instance, path);
-        validator.execute();
-        return validator.validationIssues;
+    public static List<KlumValidationResult> verifyStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
+        ValidationResultCollector visitor = new ValidationResultCollector();
+        StructureUtil.visit(instance, visitor);
+        KlumValidationResult.throwOn(visitor.aggregatedErrors, failLevel);
+        return visitor.aggregatedErrors;
     }
 
-    /**
-     * Validates the structure of the given instance, checking for required fields and custom validation methods.
-     * This method uses the default fail level defined by the system property {@code klum.validation.failOnLevel}.
-     *
-     * @param instance the instance to validate
-     * @throws KlumValidationException if validation errors are found
-     */
-    public static List<KlumValidationResult> validateStructure(Object instance) throws KlumValidationException {
-        return validateStructure(instance, getFailLevel());
-    }
+    static class ValidationResultCollector implements ModelVisitor {
 
-    /**
-     * Validates the structure of the given instance, checking for required fields and custom validation methods,
-     * throwing a {@link KlumValidationException} if any validation problems with the fail level are found.
-     *
-     * @param instance the instance to validate
-     * @param failLevel the maximum allowed validation level
-     * @return a list of {@link KlumValidationResult} containing validation errors
-     * @throws KlumValidationException if validation errors are found
-     */
-    public static List<KlumValidationResult> validateStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
-        StructureUtil.visit(instance, new ValidationPhase());
-        return new VerifyPhase.Visitor().executeOn(instance, failLevel);
+        private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
+
+        @Override
+        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+            KlumValidationResult result = getValidationResult(element);
+            if (result != null && result.has(Validate.Level.INFO))
+                aggregatedErrors.add(result);
+        }
     }
 
     /**
@@ -203,7 +193,7 @@ public class Validator {
      * Adds an issue to the validation result of the current instance.
      * This is only valid in the context of a lifecycle method/closure.
      *
-     * @param member The member to add the issue to, if null, use the member of the current context
+     * @param member The member to add the issue to. If null, use the member of the current context
      * @param message the message of the issue
      * @param level   the level of the issue
      */
@@ -409,5 +399,9 @@ public class Validator {
         Validate validate = member.getAnnotation(Validate.class);
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;
+    }
+
+    KlumValidationResult getValidationIssues() {
+        return validationIssues;
     }
 }

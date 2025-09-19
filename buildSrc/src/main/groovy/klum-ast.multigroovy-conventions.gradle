@@ -38,6 +38,7 @@ testing {
                 implementation libs.spock.junit4."g$groovyVersion"
                 implementation libs.groovy."v$groovyVersion"
                 implementation sourceSets.test.output
+                implementation 'uk.org.webcompere:system-stubs-core:2.1.8'
                 runtimeOnly libs.bytebuddy
                 runtimeOnly libs.objenesis
                 runtimeOnly libs.jpl

@@ -23,22 +23,16 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Phase Action that validates the model.
  */
 public class VerifyPhase extends AbstractPhaseAction {
+
+    public static final String SKIP_VERIFY_PROPERTY = "klum.validation.skipVerify";
 
     public VerifyPhase() {
         super(DefaultKlumPhase.VERIFY);
@@ -46,34 +40,11 @@ public class VerifyPhase extends AbstractPhaseAction {
 
     @Override
     protected void doExecute() {
-        new Visitor().execute();
+        Validator.verifyStructure(PhaseDriver.getInstance().getRootObject());
     }
 
-    public static class Visitor implements ModelVisitor {
-
-        private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
-        private Validate.Level currentMaxLevel = Validate.Level.NONE;
-
-        void execute() {
-            executeOn(PhaseDriver.getInstance().getRootObject(), Validator.getFailLevel());
-        }
-
-        List<KlumValidationResult> executeOn(Object root, Validate.Level failOnLevel) {
-            StructureUtil.visit(root, this);
-            if (currentMaxLevel.equalOrWorseThan(failOnLevel))
-                throw new KlumValidationException(aggregatedErrors);
-            return aggregatedErrors;
-        }
-
-        @Override
-        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-            KlumValidationResult result = proxy.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
-            if (result != null && result.has(Validate.Level.INFO)) {
-                aggregatedErrors.add(result);
-                currentMaxLevel = currentMaxLevel.combine(result.getMaxLevel());
-            }
-        }
-
+    @Override
+    public String getSkipProperty() {
+        return SKIP_VERIFY_PROPERTY;
     }
 }

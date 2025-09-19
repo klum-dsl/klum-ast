@@ -4,6 +4,7 @@ Migration Guide
 # to 2.2
 
 `toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.
+`manualValidation` has been dropped, as it does not work with stackable issues. This feature can be simulated by either downgrading the issues on the object at hand or skipping the Verify phase and handling errors manually
 
 # to 2.1
 

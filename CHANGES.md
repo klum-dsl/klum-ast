@@ -1,10 +1,13 @@
 # 2.2.0
+- Breaking change: Dropped manualValidation() support
 - Minor Breaking change: `toString()` methods are not created anymore. If needed, they can still be generated using the default Groovy `@ToString` annotation. 
 - Validation improvements (see [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation) [#395](https://github.com/klum-dsl/klum-ast/issues/395))
   - Validation-phase is split into validation and verify phases.
   - Provided new (preliminary) methods to explicitly create validation issues. This allows validation issues to be created in earlier phases, as well as multiple issues in a single validation/lifecycle method.
   - further validation issues can explicitly be suppressed for specific fields
   - New annotation `@Optional` as alias for `@Validate(Validate.Ignore)`
+  - VerifyPhase can now be skipped using system property `klum.validation.skipVerify`
+  - Results of a complete structure can be retrieved using `Validator.getValidationResultsFromStructure(Object)` or verified later using `Validator.verifyStructure(Object)`
 
 ## Bugfixes
 - `StructureUtil.getPathOfFieldContaining()` and therefore `@Role` fields ignored fields where the value was actually a subclass of the field type.

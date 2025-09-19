@@ -158,14 +158,14 @@ public @interface Validate {
         ERROR;
 
         public Level combine(Level other) {
-            return this.worseThan(other) ? this : other;
+            return this.worseThen(other) ? this : other;
         }
 
-        public boolean worseThan(Level other) {
+        public boolean worseThen(Level other) {
             return this.ordinal() > other.ordinal();
         }
 
-        public boolean equalOrWorseThan(Level level) {
+        public boolean equalOrWorseThen(Level level) {
             return this.ordinal() >= level.ordinal();
         }
 

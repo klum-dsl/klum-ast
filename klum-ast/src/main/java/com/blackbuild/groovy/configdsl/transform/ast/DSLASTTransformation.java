@@ -147,7 +147,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         createFieldDSLMethods();
         createClusterFactories();
-        createValidateMethod();
+        convertValidationClosures();
         moveMutatorsToRWClass();
 
         createOwnerClosureMethods();
@@ -280,20 +280,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createClusterFactory(MethodNode methodNode) {
         new ClusterFactoryBuilder(annotatedClass, methodNode).invoke();
-    }
-
-    private void createValidateMethod() {
-        convertValidationClosures();
-
-        // TODO: to proxy
-        if (dslParent == null) {
-            // add manual validation only to root of hierarchy
-            createProxyMethod("manualValidation")
-                    .mod(ACC_PUBLIC)
-                    .param(Boolean_TYPE, "validation", constX(true), "true to enable manual validation, false to disable")
-                    .documentationTitle("Prevent automatic validation of this instance during Validation phase.")
-                    .addTo(rwClass);
-        }
     }
 
     private void convertValidationClosures() {

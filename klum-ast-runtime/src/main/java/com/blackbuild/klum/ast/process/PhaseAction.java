@@ -34,4 +34,21 @@ public interface PhaseAction {
     default int getPhaseNumber() {
         return getPhase().getNumber();
     }
+
+    /**
+     * Can be used to skip a phase in certain conditions, usually by setting a system property.
+     * @return true if the phase should be skipped.
+     */
+    default boolean shouldSkip() {
+        String skipProperty = getSkipProperty();
+        return skipProperty != null && Boolean.getBoolean(skipProperty);
+    }
+
+    /**
+     * Property to set to skip the phase.
+     * @return the name of the property or null if the phase cannot be skipped by a property.
+     */
+    default String getSkipProperty() {
+        return null;
+    }
 }

@@ -25,6 +25,7 @@ dependencies {
     compileOnly libs.groovy.v2
 
     testImplementation libs.jb.anno
+    testImplementation 'uk.org.webcompere:system-stubs-core:2.1.8'
 
     testRuntimeOnly libs.bundles.spockRuntime
     testRuntimeOnly libs.jpl

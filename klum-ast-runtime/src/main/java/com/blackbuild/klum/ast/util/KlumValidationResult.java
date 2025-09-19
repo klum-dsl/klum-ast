@@ -37,6 +37,13 @@ public class KlumValidationResult implements Serializable {
     private final String breadcrumbPath;
     private final Set<String> suppressedIssues = new HashSet<>();
 
+    public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) {
+        boolean failuresEncountered = results.stream().flatMap(r -> r.getProblems().stream())
+                .anyMatch(kvi -> kvi.getLevel().equalOrWorseThen(failLevel));
+        if (failuresEncountered)
+            throw new KlumValidationException(results);
+    }
+
     public KlumValidationResult(String breadcrumbPath) {
         this.breadcrumbPath = breadcrumbPath;
     }
@@ -74,7 +81,7 @@ public class KlumValidationResult implements Serializable {
         StringBuilder sb = new StringBuilder();
         sb.append(breadcrumbPath).append(":\n");
         for (KlumValidationIssue e : validationProblems)
-            if (e.getLevel().equalOrWorseThan(minimumLevel))
+            if (e.getLevel().equalOrWorseThen(minimumLevel))
                 sb.append("- ")
                         .append(e.getLocalMessage())
                         .append("\n");
@@ -93,7 +100,7 @@ public class KlumValidationResult implements Serializable {
 
         StringBuilder sb = new StringBuilder();
         for (KlumValidationIssue e : validationProblems)
-            if (e.getLevel().equalOrWorseThan(minimumLevel))
+            if (e.getLevel().equalOrWorseThen(minimumLevel))
                 sb.append(e.getFullMessage()).append("\n");
         sb.setLength(sb.length() - 1);
         return sb.toString();
@@ -104,11 +111,11 @@ public class KlumValidationResult implements Serializable {
     }
 
     public boolean has(Validate.Level level) {
-        return getMaxLevel().equalOrWorseThan(level);
+        return getMaxLevel().equalOrWorseThen(level);
     }
 
     public void throwOn(Validate.Level level) throws KlumValidationException {
-        if (getMaxLevel().equalOrWorseThan(level))
+        if (getMaxLevel().equalOrWorseThen(level))
             throw new KlumValidationException(List.of(this));
     }
 

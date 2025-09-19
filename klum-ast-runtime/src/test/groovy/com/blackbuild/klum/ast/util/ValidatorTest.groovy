@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util
 
+import com.blackbuild.groovy.configdsl.transform.Validate
 import spock.lang.Issue
 
 @SuppressWarnings("GrPackage")
@@ -39,7 +40,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         noExceptionThrown()
@@ -60,14 +61,14 @@ class ValidatorTest extends AbstractRuntimeTest {
 
         when:
         instance.name = 'test'
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         noExceptionThrown()
 
         when:
         instance.name = null
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         thrown(KlumValidationException)
@@ -88,7 +89,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         thrown(KlumValidationException)
@@ -96,7 +97,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         when:
         createInstance()
         instance.value = 200
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         noExceptionThrown()
@@ -121,7 +122,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         instance = newInstanceOf("pk.Bar")
 
         when:
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         thrown(KlumValidationException)
@@ -129,7 +130,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         when:
         instance = newInstanceOf("pk.Bar")
         instance.value = 200
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         noExceptionThrown()
@@ -150,7 +151,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         instance = newInstanceOf("pk.Foo")
 
         when:
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         thrown(KlumValidationException)
@@ -158,7 +159,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         when:
         instance = newInstanceOf("pk.Foo")
         instance.value = false
-        Validator.validate(instance)
+        validate(instance)
 
         then: 'False should satisfy validation'
         noExceptionThrown()
@@ -166,7 +167,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         when:
         instance = newInstanceOf("pk.Foo")
         instance.value = true
-        Validator.validate(instance)
+        validate(instance)
 
         then:
         noExceptionThrown()
@@ -188,11 +189,15 @@ class ValidatorTest extends AbstractRuntimeTest {
         instance = newInstanceOf("pk.Foo")
 
         when:
-        Validator.validate(instance)
+        validate(instance)
 
         then: 'boolean fields are ignored'
         noExceptionThrown()
     }
 
-
+    private static void validate(Object instance) {
+        def validator = new Validator(instance, "")
+        validator.execute()
+        validator.validationIssues.throwOn(Validate.Level.ERROR);
+    }
 }

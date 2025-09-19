@@ -51,6 +51,7 @@ public abstract class AbstractPhaseAction implements PhaseAction {
 
     @Override
     public void execute() {
+        if (shouldSkip()) return;
         try {
             PhaseDriver.getContext().setPhase(getPhase());
             doExecute();
