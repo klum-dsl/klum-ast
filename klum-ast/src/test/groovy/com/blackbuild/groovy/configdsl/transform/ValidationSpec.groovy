@@ -33,10 +33,16 @@ import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.IgnoreIf
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 class ValidationSpec extends AbstractDSLSpec {
 
     KlumValidationException error
+
+    @Override
+    String[] getAdditionalImports() {
+        return ["com.blackbuild.klum.ast.util.Validator"]
+    }
 
     def "validation with Groovy Truth"() {
         given:
@@ -416,7 +422,8 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(KlumValidationException)
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
+            manualValidation(true)
             validated "bla"
         }
         Validator.validate(instance)
@@ -984,6 +991,167 @@ class ValidationSpec extends AbstractDSLSpec {
         result.problems.size() == 1
         result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Use something else.'''
+    }
+
+    @Issue("395")
+    def "custom issues in validation methods"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate aCustomIssue() {
+                    if (value1.length() > value2.length())
+                        Validator.addError("There has been as disturbance in the force")
+                }
+
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value1 "bla"
+            value2 "ab"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("- ERROR #aCustomIssue(): There has been as disturbance in the force")
+
+        when:
+        clazz.Create.With {
+            value1 "bl"
+            value2 "abc"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("395")
+    def "custom issues can override member name"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                List<String> values
+
+                @Validate aCustomIssue() {
+                    for (String value in values) {
+                        if (value.length() < 4)
+                            Validator.addErrorToMember("values", "Value '$value' is too short")
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            values "bla", "blub", "bli"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("""- ERROR #values: Value 'bla' is too short
+- ERROR #values: Value 'bli' is too short""")
+    }
+
+    @Issue("395")
+    def "custom issues are stacked with normal validation issues"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ value.length() > 5})
+                String value
+
+                @Validate aCustomIssue() {
+                    Validator.addError("There has been as disturbance in the force")
+                }
+
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value "bla"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("""- ERROR #aCustomIssue(): There has been as disturbance in the force
+- ERROR #value: 'bla' does not match. Expression: (value.length() > 5)""")
+    }
+
+    @Issue("395")
+    def "custom issues can be reported in other phases and will be stacked"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate({ value.length() > 5})
+                String value
+
+                @PostTree aCustomIssue() {
+                    Validator.addError("There has been as disturbance in the force")
+                }
+
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value "bla"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("""- ERROR #aCustomIssue: There has been as disturbance in the force
+- ERROR #value: 'bla' does not match. Expression: (value.length() > 5)""")
+    }
+
+    @Issue("406")
+    @PendingFeature
+    def "It is illegal to call addIssue/addError in non lifecycle methods"() {
+        when:
+        createClass('''
+            @DSL
+            class Foo {
+                String value
+
+                void aCustomIssue() {
+                    Validator.addError("There has been as disturbance in the force")
+                }
+
+            }
+        ''')
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("395")
+    def "prevent warnings for specific fields"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Required
+                String validatedWarning
+
+                @PostTree suppressWarningforValidateWarning() {
+                    Validator.suppressFurtherIssues("validatedWarning")
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.One()
+
+        then:
+        notThrown(KlumValidationException)
     }
 
     private KlumValidationResult getValidationResult(Object target = instance) {

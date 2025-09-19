@@ -52,11 +52,14 @@ public abstract class AbstractPhaseAction implements PhaseAction {
     @Override
     public void execute() {
         try {
+            PhaseDriver.getContext().setPhase(getPhase());
             doExecute();
         } catch (KlumException e) {
             throw e;
         } catch (Exception e) {
             throw new KlumException(e);
+        } finally {
+            PhaseDriver.getContext().setPhase(null);
         }
     }
 

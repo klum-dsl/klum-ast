@@ -39,6 +39,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * methods in a class. {@link PostApply} methods must not be private, so they can be overridden, it is advised to make
  * them protected.</p>
  *
+ * <p>Like all lifecycle annotations, this annotation can also be placed on fields of type closure, which will be executed along with
+ * annotated methods.</p>
+ *
  * <p>{@link PostApply} methods are called in the order of the model hierarchy, i.e. first the lifecycle methods of the
  * ancestor model are called, then of the next level and so one. Overridden {@link PostApply} methods are called in the
  * place where they were originally defined, i.e. if a method is defined in {@code Parent} and overridden in

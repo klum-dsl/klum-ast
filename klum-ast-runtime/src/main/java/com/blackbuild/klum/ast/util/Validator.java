@@ -26,9 +26,12 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Field;
@@ -47,34 +50,37 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 public class Validator {
 
     public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
+    public static final String ANY_MEMBER = "*";
 
     private final Object instance;
     private final String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final KlumValidationResult validationErrors;
+    private final KlumValidationResult validationIssues;
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
      *
      * @param instance the instance to validate
+     * @return The encountered issues if below fail level
      * @throws KlumValidationException if validation errors are found
      */
-    public static void validate(Object instance) throws KlumValidationException {
-        validate(instance, null);
+    public static KlumValidationResult validate(Object instance) throws KlumValidationException {
+        return validate(instance, null);
     }
 
     /**
      * Validates the given instance, throwing a {@link KlumValidationException} if any validation errors are found.
      *
      * @param instance the instance to validate
-     * @param path an optional path to be stored in the validation problem
+     * @param path     an optional path to be stored in the validation problem
+     * @return The encountered issues if below fail level
      * @throws KlumValidationException if validation errors are found
      */
-    public static void validate(Object instance, String path) throws KlumValidationException{
-        Validator validator = new Validator(instance, path);
-        validator.execute();
-        validator.validationErrors.throwOn(getFailLevel());
+    public static KlumValidationResult validate(Object instance, String path) throws KlumValidationException{
+        KlumValidationResult result = lenientValidate(instance, path);
+        result.throwOn(getFailLevel());
+        return result;
     }
 
     /**
@@ -88,7 +94,7 @@ public class Validator {
     public static KlumValidationResult lenientValidate(Object instance, String path) {
         Validator validator = new Validator(instance, path);
         validator.execute();
-        return validator.validationErrors;
+        return validator.validationIssues;
     }
 
     /**
@@ -124,10 +130,123 @@ public class Validator {
      * @return a {@link KlumValidationResult} containing validation errors
      */
     public static KlumValidationResult getValidationResult(Object instance) {
+        return doGetValidationResult(instance);
+    }
+
+    /**
+     * Adds an error issue to the validation result of the given instance. The issue will not be associated with a specific member.
+     *
+     * @param instance the instance to add the issue to
+     * @param message  the message of the issue
+     */
+    public static void addErrorTo(Object instance, String message) {
+        addErrorTo(instance, null, message);
+    }
+
+    /**
+     * Adds an error issue to the validation result of the given instance.
+     *
+     * @param instance the instance to add the issue to
+     * @param member The member to add the issue to, can be null
+     * @param message  the message of the issue
+     */
+    public static void addErrorTo(Object instance, @Nullable String member, String message) {
+        addIssueTo(instance, member, message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the given instance.
+     *
+     * @param instance the instance to add the issue to
+     * @param member The member to add the issue to, can be null
+     * @param message  the message of the issue
+     * @param level    the level of the issue
+     */
+    public static void addIssueTo(@NotNull Object instance, @Nullable String member, String message, Validate.Level level) {
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
+        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param message the message of the issue
+     */
+    public static void addError(@NotNull String message) {
+        addIssueToMember(null, message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance, flagging a different member than the one currently being validated.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param member The member to add the issue to
+     * @param message the message of the issue
+     */
+    public static void addErrorToMember(@NotNull String member, @NotNull String message) {
+        addIssueToMember(member, message, Validate.Level.ERROR);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure and uses the name of the current method as the member name.
+     *
+     * @param message the message of the issue
+     * @param level   the level of the issue
+     */
+    public static void addIssue(String message, Validate.Level level) {
+        addIssueToMember(null, message, level);
+    }
+
+    /**
+     * Adds an issue to the validation result of the current instance.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param member The member to add the issue to, if null, use the member of the current context
+     * @param message the message of the issue
+     * @param level   the level of the issue
+     */
+    public static void addIssueToMember(String member, String message, Validate.Level level) {
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
+        addIssueTo(currentContext.getInstance(), member != null ? member : currentContext.getMember(), message, level);
+    }
+
+    /**
+     * Suppresses any future issues for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure.
+     *
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     */
+    public static void suppressFurtherIssues(String member) {
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
+        suppressFurtherIssues(currentContext.getInstance(), member);
+    }
+
+    /**
+     * Suppresses any future issues for the given member in the validation result of the given instance.
+     * @param instance the instance to suppress issues for
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     */
+    public static void suppressFurtherIssues(Object instance, String member) {
+        KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
+        validationResult.suppressIssues(member);
+    }
+
+    private static KlumValidationResult doGetValidationResult(Object instance) {
+        return KlumInstanceProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+    }
+
+    private static KlumValidationResult doGetOrCreateValidationResult(Object instance) {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
-        KlumValidationResult validationResult = proxy.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
-        if (validationResult != null) return validationResult;
-        return lenientValidate(instance, null);
+
+        if (!proxy.hasMetaData(KlumValidationResult.METADATA_KEY))
+            proxy.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getBreadcrumbPath(instance)));
+        return doGetValidationResult(instance);
     }
 
     /**
@@ -142,19 +261,30 @@ public class Validator {
 
     protected Validator(Object instance, String path) {
         this.instance = instance;
-        if (path != null) {
-            this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
+        KlumValidationResult existingResult = doGetValidationResult(instance);
+
+        if (existingResult != null) {
+            this.validationIssues = existingResult;
+            this.breadcrumbPath = existingResult.getBreadcrumbPath();
         } else {
-            // Use the default breadcrumb path from the instance
-            this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+            if (path != null) {
+                this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
+            } else {
+                // Use the default breadcrumb path from the instance
+                this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
+            }
+            this.validationIssues = new KlumValidationResult(breadcrumbPath);
+            KlumInstanceProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, this.validationIssues);
         }
-        this.validationErrors = new KlumValidationResult(breadcrumbPath);
     }
 
     public void execute() {
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-        KlumInstanceProxy klumInstanceProxy = KlumInstanceProxy.getProxyFor(instance);
-        klumInstanceProxy.setMetaData(KlumValidationResult.METADATA_KEY, validationErrors);
+        try {
+            PhaseDriver.getContext().setInstance(instance);
+            DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
+        } finally {
+            PhaseDriver.getContext().setInstance(null);
+        }
     }
 
     private void validateType(Class<?> type) {
@@ -167,11 +297,11 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationErrors::addProblem);
+            validateCustomMethod(m).ifPresent(validationIssues::addProblem);
         }
     }
 
-    private Optional<KlumValidationProblem> validateCustomMethod(Method method) {
+    private Optional<KlumValidationIssue> validateCustomMethod(Method method) {
         Validate.Level level = getValidateAnnotationOrDefault(method).level();
         return withExceptionCheck(
                 method.getName() + "()",
@@ -180,21 +310,24 @@ public class Validator {
         );
     }
 
-    private Optional<KlumValidationProblem> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
+    private Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
+            PhaseDriver.getContext().setMember(memberName);
             runnable.run();
             return Optional.empty();
         } catch (Exception e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), e, level));
+            return Optional.of(new KlumValidationIssue(breadcrumbPath, memberName, e.getMessage(), e, level));
         } catch (AssertionError e) {
-            return Optional.of(new KlumValidationProblem(breadcrumbPath, memberName, e.getMessage(), null, level));
+            return Optional.of(new KlumValidationIssue(breadcrumbPath, memberName, e.getMessage(), null, level));
+        } finally {
+            PhaseDriver.getContext().setMember(null);
         }
     }
 
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationErrors::addProblem);
+            validateField(field).ifPresent(validationIssues::addProblem);
         }
     }
 
@@ -212,7 +345,7 @@ public class Validator {
         return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
     }
 
-    private Optional<KlumValidationProblem> validateField(Field field) {
+    private Optional<KlumValidationIssue> validateField(Field field) {
         if (!shouldValidate(field))
             return Optional.empty();
 
@@ -233,12 +366,12 @@ public class Validator {
             );
     }
 
-    private Optional<KlumValidationProblem> checkForDeprecation(Field field, Object value) {
+    private Optional<KlumValidationIssue> checkForDeprecation(Field field, Object value) {
         if (!isGroovyTruth(field, value)) return Optional.empty();
 
         String message = getDeprecationMessage(field);
 
-        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
+        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
     }
 
     private String getDeprecationMessage(Field field) {
@@ -254,7 +387,7 @@ public class Validator {
                 .orElse(String.format("Field '%s' is deprecated", field.getName()));
     }
 
-    private Optional<KlumValidationProblem> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
+    private Optional<KlumValidationIssue> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
         if (isGroovyTruth(field, value)) return Optional.empty();
 
         String message = validate.message();
@@ -262,7 +395,7 @@ public class Validator {
         if (message.isEmpty())
             message = String.format("Field '%s' must be set", field.getName());
 
-        return Optional.of(new KlumValidationProblem(breadcrumbPath, field.getName(), message, null, validate.level()));
+        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, validate.level()));
     }
 
     @SuppressWarnings("java:S1126")

@@ -181,7 +181,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     private static <T> T doCreate(String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
-                () -> PhaseDriver.withPhase(createInstance, object -> postCreate(apply, object))
+                () -> PhaseDriver.withPhaseDriver(createInstance, object -> postCreate(apply, object))
         );
     }
 

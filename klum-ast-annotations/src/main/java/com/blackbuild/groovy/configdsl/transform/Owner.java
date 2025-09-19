@@ -64,13 +64,16 @@ import java.lang.annotation.*;
  *
  * <ul>
  * <li>is not set</li>
- * <li>has a type that the container object is derived from (i.e. the object is a legal value for that field)</li>
+ * <li>has a type that the container object is derived from (i.e., the object is a legal value for that field)</li>
  * </ul>
  *
  * <p>will be set to the owner value.</p>
  *
  * <p>This means that if an object that already has an existing owner is reused, the owner is not overridden, but silently ignored.
- * I.e. the first object that an object is assigned to, is the actual owner.</p>
+ * I.e., the first object that an object is assigned to is the actual owner.</p>
+ *
+ * <h3>Closure field</h3>
+ * <p>If the annotated field is of type {@link Closure}, the Closure itself will be executed in the owner phase.</p>
  *
  * <h2>Methods</h2>
  * <p>Can also be used to annotate a single parameter method. All matching methods are also called when the object is
@@ -103,7 +106,7 @@ import java.lang.annotation.*;
  *
  * <h2>Transitive Owners</h2>
  * <p>If the attribute {@code transitive} is set, not only the direct container is considered as ancestor, but instead
- * the closest ancestor of the given type (i.e. a grandparent instead of a direct parent). This works for fields as well as
+ * the closest ancestor of the given type (i.e., a grandparent instead of a direct parent). This works for fields as well as
  * methods.</p>
  *
  * <h2>Root Owners</h2>
@@ -130,8 +133,8 @@ public @interface Owner {
     boolean root() default false;
 
     /**
-     * if set, the field or method matches the closure parameter.
-     * When set the converter is executed against owner object and the result of the closure is assigned to the field or method.
+     * If set, the field or method matches the closure parameter.
+     * When set, the converter is executed against the owner object, and the result of the closure is assigned to the field or method.
      */
     Class<? extends Closure<Object>> converter() default NoClosure.class;
 }

@@ -104,7 +104,48 @@ class MyModel {
 
 # On methods
 
-`@Validate` can also be used on parameterless methods. In this case, the method is executed during the validation phase. If it sucessfully returns, the validation is considered successful. If it throws an exception, the validation fails.
+`@Validate` can also be used on parameterless methods. In this case, the method is executed during the validation phase. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
+
+## Custom issues
+
+Instead of throwing an exception, the method can also use static methods of the `Validator` class to report issues. There are several methods:
+
+* `Validator.addError(String)`
+* `Validator.addErrorToMember(String, String)`
+* `Validator.addIssue(String, Validate.Level)`
+* `Validator.addIssueToMember(String, String, Validate.Level)`
+
+These add the issue to the object whose method lifecycle is currently being executed. The `*toMember` variants allow 
+specifying the field name of the member that caused the issue, the other to use the lifecycle method's name.
+
+```groovy
+@DSL
+class AnObject {
+    
+    List<String> values
+    
+    @Validate
+    void validate() {
+        if (values.size() < 2)
+            Validator.addError("Need at least two values")
+        values.each {
+            if (it.size() < 3)
+                Validator.addErrorToMember("values", "$it: Need at least three characters")
+        }
+    }    
+    
+}
+```
+
+Using these methods, it is possible to report multiple issues in the same method.
+
+Additionally, there are methods to provide an explicit object to report the issue on, this allows for a upper level object to report issues on a lower level object.
+
+* `Validator.addErrorTo(Object, String)`
+* `Validator.addErrorTo(Object, String, String)`
+* `Validator.addIssueTo(Object, String, String, Validate.Level)`
+
+The member name is optional, if not provided, a generic `<none>` is used. Also note that there is no three argument version of `addIssueTo`, to prevent argument confusion.
 
 # Validation of inner objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
@@ -144,6 +185,10 @@ Thanks to deferred validation, it is irrelevant whether the stages are set befor
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
 
+# Suppress Further issues
+
+Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version).
+
 # Validation levels
 
 There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.
@@ -156,15 +201,11 @@ The level on which the validation causes an exception can be overridden by the `
 
 # Deprecations
 
-If a field is marked as deprecated but has no `@Validate` annotation, it is automatically validated against Groovy False, i.e. if the value is not null or empty, a validation problem of level DEPRECATION is reported.
+If a field is marked as deprecated but has no `@Validate` annotation, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
 
 This behavior can be overridden by explicitly setting a `@Validate` annotation on the field.
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
-
-# Multiple problems on a single field
-
-Note that currently, only a single validation problem can be reported for every field, or method, so to perform multiple, independent checks, it is necessary to use separate validation methods.
 
 # Validation and Verify
 

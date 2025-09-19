@@ -51,8 +51,11 @@ class AbstractDSLSpec extends Specification {
         oldLoader = Thread.currentThread().contextClassLoader
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
-                "com.blackbuild.groovy.configdsl.transform"
+                "com.blackbuild.groovy.configdsl.transform",
+                this.getClass().getPackageName()
         )
+
+        importCustomizer.addImports(getAdditionalImports())
 
         compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
@@ -64,6 +67,10 @@ class AbstractDSLSpec extends Specification {
         compilerConfiguration.targetDirectory = outputDirectory
         compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
         BreadcrumbCollector.getInstance(specificationContext.currentIteration.name)
+    }
+
+    String[] getAdditionalImports() {
+        []
     }
 
     def getSafeFilename() {

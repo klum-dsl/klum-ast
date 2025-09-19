@@ -40,7 +40,7 @@ import java.util.Map;
  * the annotated field is an abstract type, the type parameter is mandatory.
  * </p>
  * <p>
- * When placed on a field of type closure, the behaviour is slightly different. In that case, the closure
+ * When placed on a field of type closure, the behavior is slightly different. In that case, the closure
  * is called during the lifecycle phase.
  * </p>
  * <p>
