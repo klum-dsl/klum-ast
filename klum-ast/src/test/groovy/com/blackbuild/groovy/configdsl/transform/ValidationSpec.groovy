@@ -903,7 +903,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         validationResults.maxLevel == Validate.Level.WARNING
-        validationResults.problems.size() == 1
+        validationResults.issues.size() == 1
         validationResults.message == '''<root>($/Foo.With):
 - WARNING #validated: Field 'validated' must be set'''
 
@@ -968,8 +968,8 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
-        result.problems.size() == 1
-        result.message == '''<root>($/Foo.With):
+        result.issues.size() == 1
+        result.message == '''$/Foo.With:
 - DEPRECATION #validated: Field 'validated' is deprecated'''
     }
 
@@ -996,7 +996,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
-        result.problems.size() == 1
+        result.issues.size() == 1
         result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Use something else.'''
     }
@@ -1248,15 +1248,15 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         notThrown(KlumValidationException)
         instance.bar != null
-        Validator.getValidationResult(instance).getProblems().size() == 1
-        Validator.getValidationResult(instance.bar).getProblems().size() == 1
+        Validator.getValidationResult(instance).getIssues().size() == 1
+        Validator.getValidationResult(instance.bar).getIssues().size() == 1
 
         when:
         def results = Validator.getValidationResultsFromStructure(instance)
 
         then:
         results.size() == 2
-        results.collect { it.getProblems() }.flatten().size() == 2
+        results.collect { it.getIssues() }.flatten().size() == 2
 
         when:
         Validator.verifyStructure(instance)
@@ -1304,8 +1304,33 @@ class ValidationSpec extends AbstractDSLSpec {
         e.validationResults.size() == 1
     }
 
+    def "Deprecation warnings are only raised if the field was set during apply"() {
+        given:
+        createClass'''
+            @DSL class Foo {
+                @Deprecated
+                @Default(code = {"Bla"})
+                String deprecatedField
+            }'''
+
+        when:
+        instance = clazz.Create.One()
+
+        then:
+        Validator.getValidationResult(instance).issues.isEmpty()
+
+        when:
+        instance = clazz.Create.With {
+            deprecatedField "Test"
+        }
+
+        then:
+        Validator.getValidationResult(instance).issues.size() == 1
+        Validator.getValidationResult(instance).getIssues().first().message == "Field 'deprecatedField' is deprecated"
+    }
+
     private KlumValidationResult getValidationResult(Object target = instance) {
-        return KlumInstanceProxy.getProxyFor(target).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class)
+        return Validator.getValidationResult(target)
     }
 
 }

@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -39,7 +38,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +45,7 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 
 /**
  * Validates an instance of a DSL object, checking for the presence of required fields,
- * custom validation methods, and deprecated fields.
+ * and custom validation methods.
  */
 public class Validator {
 
@@ -154,7 +152,7 @@ public class Validator {
      */
     public static void addIssueTo(@NotNull Object instance, @Nullable String member, String message, Validate.Level level) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
-        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
+        validationResult.addIssue(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
     }
 
     /**
@@ -312,7 +310,7 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationIssues::addProblem);
+            validateCustomMethod(m).ifPresent(validationIssues::addIssue);
         }
     }
 
@@ -342,7 +340,7 @@ public class Validator {
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationIssues::addProblem);
+            validateField(field).ifPresent(validationIssues::addIssue);
         }
     }
 
@@ -357,7 +355,7 @@ public class Validator {
         if (field.isAnnotationPresent(Owner.class)) return false;
         if (field.getType() == boolean.class) return false;
 
-        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
+        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
     }
 
     private Optional<KlumValidationIssue> validateField(Field field) {
@@ -365,9 +363,6 @@ public class Validator {
             return Optional.empty();
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
-
-        if (field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
-            return checkForDeprecation(field, value);
 
         Validate validate = getValidateAnnotationOrDefault(field);
 
@@ -379,27 +374,6 @@ public class Validator {
                     validate.level(),
                     () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validate.value(), instance, value)
             );
-    }
-
-    private Optional<KlumValidationIssue> checkForDeprecation(Field field, Object value) {
-        if (!isGroovyTruth(field, value)) return Optional.empty();
-
-        String message = getDeprecationMessage(field);
-
-        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
-    }
-
-    private String getDeprecationMessage(Field field) {
-        AnnoDoc annoDoc = field.getAnnotation(AnnoDoc.class);
-
-        if (annoDoc == null)
-            return String.format("Field '%s' is deprecated", field.getName());
-
-        return Arrays.stream(annoDoc.value().split("\\R"))
-                .filter(l -> l.startsWith("@deprecated "))
-                .map(l -> l.replaceFirst("@deprecated ", "").trim())
-                .findAny()
-                .orElse(String.format("Field '%s' is deprecated", field.getName()));
     }
 
     private Optional<KlumValidationIssue> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {

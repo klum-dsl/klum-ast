@@ -33,12 +33,12 @@ import java.util.*;
  */
 public class KlumValidationResult implements Serializable {
     public static final String METADATA_KEY = KlumValidationResult.class.getName();
-    private final NavigableSet<KlumValidationIssue> validationProblems = new TreeSet<>();
+    private final NavigableSet<KlumValidationIssue> issued = new TreeSet<>();
     private final String breadcrumbPath;
     private final Map<String, Validate.Level> suppressedIssues = new HashMap<>();
 
     public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) {
-        boolean failuresEncountered = results.stream().flatMap(r -> r.getProblems().stream())
+        boolean failuresEncountered = results.stream().flatMap(r -> r.getIssues().stream())
                 .anyMatch(kvi -> kvi.getLevel().equalOrWorseThen(failLevel));
         if (failuresEncountered)
             throw new KlumValidationException(results);
@@ -52,9 +52,9 @@ public class KlumValidationResult implements Serializable {
         return breadcrumbPath;
     }
 
-    public void addProblem(KlumValidationIssue problem) {
+    public void addIssue(KlumValidationIssue problem) {
         if (!isSuppressed(problem.getMember(), problem.getLevel()))
-            this.validationProblems.add(problem);
+            this.issued.add(problem);
     }
 
     private boolean isSuppressed(String member, Validate.Level level) {
@@ -63,13 +63,8 @@ public class KlumValidationResult implements Serializable {
                 .equalOrWorseThen(level);
     }
 
-    public void addProblems(List<KlumValidationIssue> problems) {
-        for (KlumValidationIssue problem : problems)
-            addProblem(problem);
-    }
-
     public Validate.Level getMaxLevel() {
-        return validationProblems.stream()
+        return issued.stream()
                 .map(KlumValidationIssue::getLevel)
                 .max(Validate.Level::compareTo)
                 .orElse(Validate.Level.NONE);
@@ -79,12 +74,12 @@ public class KlumValidationResult implements Serializable {
         if (breadcrumbPath == null)
             return getMessageWithFullPaths();
 
-        if (validationProblems.isEmpty())
+        if (issued.isEmpty())
             return breadcrumbPath + ": NONE";
 
         StringBuilder sb = new StringBuilder();
         sb.append(breadcrumbPath).append(":\n");
-        for (KlumValidationIssue e : validationProblems)
+        for (KlumValidationIssue e : issued)
             if (e.getLevel().equalOrWorseThen(minimumLevel))
                 sb.append("- ")
                         .append(e.getLocalMessage())
@@ -99,11 +94,11 @@ public class KlumValidationResult implements Serializable {
     }
 
     String getMessageWithFullPaths(Validate.Level minimumLevel) {
-        if (validationProblems.isEmpty())
+        if (issued.isEmpty())
             return "";
 
         StringBuilder sb = new StringBuilder();
-        for (KlumValidationIssue e : validationProblems)
+        for (KlumValidationIssue e : issued)
             if (e.getLevel().equalOrWorseThen(minimumLevel))
                 sb.append(e.getFullMessage()).append("\n");
         sb.setLength(sb.length() - 1);
@@ -123,8 +118,8 @@ public class KlumValidationResult implements Serializable {
             throw new KlumValidationException(List.of(this));
     }
 
-    public Collection<KlumValidationIssue> getProblems() {
-        return validationProblems;
+    public Collection<KlumValidationIssue> getIssues() {
+        return issued;
     }
 
     public void suppressIssues(String member) {

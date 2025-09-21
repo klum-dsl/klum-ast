@@ -67,8 +67,11 @@ public abstract class AbstractPhaseAction implements PhaseAction {
     protected abstract void doExecute();
 
     protected boolean isUnset(Map.Entry<String, Object> entry) {
-        Object value = entry.getValue();
-        return isEmpty(value);
+        return isEmpty(entry.getValue());
+    }
+
+    protected boolean isSet(Map.Entry<String, Object> entry) {
+        return !isUnset(entry);
     }
 
     protected static boolean isEmpty(Object value) {
@@ -77,6 +80,8 @@ public abstract class AbstractPhaseAction implements PhaseAction {
             return ((Collection<?>) value).isEmpty();
         if (value instanceof Map)
             return ((Map<?, ?>) value).isEmpty();
+        if (value instanceof Boolean)
+            return false;
         if (!DefaultTypeTransformation.castToBoolean(value))
             return true;
         return false;

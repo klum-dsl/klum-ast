@@ -200,9 +200,9 @@ The level on which the validation causes an exception can be overridden by the `
 
 # Deprecations
 
-If a field is marked as deprecated but has no `@Validate` annotation, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
+If a field is marked as deprecated, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
 
-This behavior can be overridden by explicitly setting a `@Validate` annotation on the field.
+This happens in the early validation phase, i.e., the issue will not be raised if the field is set by a later phase (like Default, AutoCreate, or AutoLink).
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
 
