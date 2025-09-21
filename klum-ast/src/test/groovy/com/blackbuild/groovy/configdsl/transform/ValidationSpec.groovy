@@ -27,6 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.util.KlumValidationIssue
 import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -1327,6 +1328,33 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         Validator.getValidationResult(instance).issues.size() == 1
         Validator.getValidationResult(instance).getIssues().first().message == "Field 'deprecatedField' is deprecated"
+    }
+
+    @Issue("407")
+    def "Notify allows to explicitly raise an issue if a values is set or not set manually"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "Should not be set manually")
+                String aField
+
+                @Notify(ifUnset = "Should be set manually")
+                String anotherField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 2
+        result.message == '''$/Foo.With:
+- WARNING #aField: Should not be set manually
+- WARNING #anotherField: Should be set manually'''
     }
 
     private KlumValidationResult getValidationResult(Object target = instance) {

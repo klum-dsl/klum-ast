@@ -5,6 +5,7 @@ import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
+import com.blackbuild.klum.ast.util.layer3.annotations.Notify;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,6 +20,31 @@ public class EarlyValidationPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        markDeprecateUnsetFields(element);
+        markFieldsWithNotify(element);
+    }
+
+    private void markFieldsWithNotify(@NotNull Object element) {
+        ClusterModel.getFieldsAnnotatedWith(element, Notify.class)
+                .forEach((key, value) -> checkNotifyAnnotation(element, key, value));
+    }
+
+    private void checkNotifyAnnotation(@NotNull Object element, String fieldName, Object value) {
+        Field field = ClusterModel.getField(element, fieldName).get();
+
+        Notify notify = field.getAnnotation(Notify.class);
+
+        boolean valueIsEmpty = isEmpty(value);
+        boolean shouldBeEmpty = !isEmpty(notify.ifSet());
+
+        if (valueIsEmpty && !shouldBeEmpty) {
+            Validator.addIssueToMember(fieldName, notify.ifUnset(), notify.level());
+        } else if (!valueIsEmpty && shouldBeEmpty) {
+            Validator.addIssueToMember(fieldName, notify.ifSet(), notify.level());
+        }
+    }
+
+    private void markDeprecateUnsetFields(@NotNull Object element) {
         ClusterModel.getFieldsAnnotatedWith(element, Deprecated.class)
                 .entrySet()
                 .stream()
