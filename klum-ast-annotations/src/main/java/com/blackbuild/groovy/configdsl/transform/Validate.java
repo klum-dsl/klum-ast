@@ -158,6 +158,7 @@ public @interface Validate {
         ERROR;
 
         public Level combine(Level other) {
+            if (other == null) return this;
             return this.worseThen(other) ? this : other;
         }
 

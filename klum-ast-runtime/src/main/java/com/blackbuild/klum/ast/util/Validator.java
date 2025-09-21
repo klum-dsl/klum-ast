@@ -198,33 +198,58 @@ public class Validator {
      * @param level   the level of the issue
      */
     public static void addIssueToMember(String member, String message, Validate.Level level) {
-        PhaseDriver.Context currentContext = PhaseDriver.getContext();
-        if (currentContext == null || currentContext.getInstance() == null)
-            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
-        addIssueTo(currentContext.getInstance(), member != null ? member : currentContext.getMember(), message, level);
+        addIssueTo(getCurrentInstance(), member != null ? member : PhaseDriver.getContext().getMember(), message, level);
     }
 
     /**
-     * Suppresses any future issues for the given member in the validation result of the given instance.
-     * This is only valid in the context of a lifecycle method/closure.
+     * Suppresses any future non-ERROR issues of level for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure. Has no effect on already registered issues.
      *
      * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(String member) {
-        PhaseDriver.Context currentContext = PhaseDriver.getContext();
-        if (currentContext == null || currentContext.getInstance() == null)
-            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
-        suppressFurtherIssues(currentContext.getInstance(), member);
+        suppressFurtherIssues(member, Validate.Level.DEPRECATION);
     }
 
     /**
-     * Suppresses any future issues for the given member in the validation result of the given instance.
-     * @param instance the instance to suppress issues for
+     * Suppresses any future issues up to the given level for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure. Has no effect on already registered issues.
+     *
      * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     * @param upToLevel the level to suppress issues up to.
+     */
+    public static void suppressFurtherIssues(String member, Validate.Level upToLevel) {
+        suppressFurtherIssues(getCurrentInstance(), member, upToLevel);
+    }
+
+    private static Object getCurrentInstance() {
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("Method called outside of lifecycle method/closure.");
+        return currentContext.getInstance();
+    }
+
+    /**
+     * Suppresses any future non-ERROR issues for the given member in the validation result of the given instance.
+     * Has no effect on already registered issues.
+     *
+     * @param instance the instance to suppress issues for
+     * @param member   the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(Object instance, String member) {
+        suppressFurtherIssues(instance, member, Validate.Level.DEPRECATION);
+    }
+
+    /**
+     * Suppresses any future issues up to the given level for the given member in the validation result of the given instance.
+     * Has no effect on already registered issues.
+     * @param instance the instance to suppress issues for
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     * @param upToLevel the level to suppress issues up to.
+     */
+    public static void suppressFurtherIssues(Object instance, String member, Validate.Level upToLevel) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
-        validationResult.suppressIssues(member);
+        validationResult.suppressIssues(member, upToLevel);
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {

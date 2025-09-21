@@ -1146,8 +1146,11 @@ class ValidationSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
-                @Required
+                @Required(level = Validate.Level.WARNING)
                 String validatedWarning
+
+                @Required
+                String validatedError
 
                 @PostTree suppressWarningforValidateWarning() {
                     Validator.suppressFurtherIssues("validatedWarning")
@@ -1156,10 +1159,21 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.Create.One()
+        instance = clazz.Create.With {
+            validatedError "bla"
+        }
 
         then:
         notThrown(KlumValidationException)
+
+        when:
+        instance = clazz.Create.With {
+        }
+
+        then: 'Errors are still reported'
+        def e = thrown(KlumValidationException)
+        e.message.contains '''- ERROR #validatedError: Field 'validatedError' must be set'''
+        !e.message.contains('validatedWarning')
     }
 
     @Issue("381")
@@ -1253,6 +1267,41 @@ class ValidationSpec extends AbstractDSLSpec {
 - ERROR #name: Field 'name' must be set
 <root>.bar($/Foo.With/):
 - ERROR #game: Field 'game' must be set''')
+    }
+
+    @Issue("407")
+    def "issues can be suppressed up to a certain level"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validatedWarning
+
+                @Validate(level = Validate.Level.DEPRECATION)
+                String validatedDeprecation
+
+                @Validate(level = Validate.Level.ERROR)
+                String validatedError
+
+                @PostTree suppressWarningforValidateWarning() {
+                    Validator.suppressFurtherIssues("validatedWarning")
+                }
+                
+                @PostTree suppressDeprecationforValidateDeprecation() {
+                    Validator.suppressFurtherIssues("validatedDeprecation", Validate.Level.DEPRECATION)
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.One()
+
+        then: 'Only error remains'
+        def e = thrown(KlumValidationException)
+        e.message == '''$/Foo.One:
+- ERROR #validatedError: Field 'validatedError' must be set'''
+        e.validationResults.size() == 1
     }
 
     private KlumValidationResult getValidationResult(Object target = instance) {

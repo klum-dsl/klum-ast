@@ -35,7 +35,7 @@ public class KlumValidationResult implements Serializable {
     public static final String METADATA_KEY = KlumValidationResult.class.getName();
     private final NavigableSet<KlumValidationIssue> validationProblems = new TreeSet<>();
     private final String breadcrumbPath;
-    private final Set<String> suppressedIssues = new HashSet<>();
+    private final Map<String, Validate.Level> suppressedIssues = new HashMap<>();
 
     public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) {
         boolean failuresEncountered = results.stream().flatMap(r -> r.getProblems().stream())
@@ -53,13 +53,17 @@ public class KlumValidationResult implements Serializable {
     }
 
     public void addProblem(KlumValidationIssue problem) {
-        if (suppressedIssues.contains(Validator.ANY_MEMBER)) return;
-        if (!suppressedIssues.contains(problem.getMember()))
+        if (!isSuppressed(problem.getMember(), problem.getLevel()))
             this.validationProblems.add(problem);
     }
 
+    private boolean isSuppressed(String member, Validate.Level level) {
+        return suppressedIssues.getOrDefault(member, Validate.Level.NONE)
+                .combine(suppressedIssues.getOrDefault(Validator.ANY_MEMBER, Validate.Level.NONE))
+                .equalOrWorseThen(level);
+    }
+
     public void addProblems(List<KlumValidationIssue> problems) {
-        if (suppressedIssues.contains(Validator.ANY_MEMBER)) return;
         for (KlumValidationIssue problem : problems)
             addProblem(problem);
     }
@@ -124,6 +128,10 @@ public class KlumValidationResult implements Serializable {
     }
 
     public void suppressIssues(String member) {
-        suppressedIssues.add(member);
+        suppressIssues(member, Validate.Level.DEPRECATION);
+    }
+
+    public void suppressIssues(String member, Validate.Level upToLevel) {
+        suppressedIssues.merge(member, upToLevel, (old, newValue) -> newValue.combine(old) );
     }
 }

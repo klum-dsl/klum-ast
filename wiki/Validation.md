@@ -188,10 +188,6 @@ Thanks to deferred validation, it is irrelevant whether the stages are set befor
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
 
-# Suppress Further issues
-
-Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version).
-
 # Validation levels
 
 There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.
@@ -209,6 +205,14 @@ If a field is marked as deprecated but has no `@Validate` annotation, it is auto
 This behavior can be overridden by explicitly setting a `@Validate` annotation on the field.
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
+
+# Suppress Further issues
+
+Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version). By default, all issues up to level DEPRECATION are suppressed (i.e., every but an ERROR). This can be changed by providing a different level as the last argument.
+
+Also, using the `Validator.ANY_MEMBER` as member name, all further issues on the object are suppressed.
+
+Suppression has no effect on already reported issues.
 
 # Validation and Verify
 

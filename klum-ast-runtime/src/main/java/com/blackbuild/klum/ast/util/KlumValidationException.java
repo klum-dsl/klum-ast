@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Validate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.stream.Collectors.joining;
@@ -42,7 +43,7 @@ public class KlumValidationException extends KlumException {
     private final List<KlumValidationResult> validationResults;
 
     public KlumValidationException(List<KlumValidationResult> validationResults) {
-        this.validationResults = validationResults;
+        this.validationResults = new ArrayList<>(validationResults);
     }
 
     @Override
@@ -55,5 +56,9 @@ public class KlumValidationException extends KlumException {
                 .filter(klumValidationResult -> klumValidationResult.has(minimumLevel))
                 .map(klumValidationResult -> klumValidationResult.getMessage(minimumLevel))
                 .collect(joining("\n"));
+    }
+
+    public List<KlumValidationResult> getValidationResults() {
+        return validationResults;
     }
 }

@@ -4,7 +4,7 @@
 - Validation improvements (see [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation) [#395](https://github.com/klum-dsl/klum-ast/issues/395))
   - Validation-phase is split into validation and verify phases.
   - Provided new (preliminary) methods to explicitly create validation issues. This allows validation issues to be created in earlier phases, as well as multiple issues in a single validation/lifecycle method.
-  - further validation issues can explicitly be suppressed for specific fields
+  - further validation issues can explicitly be suppressed for specific fields and specific maximum levels
   - New annotation `@Optional` as alias for `@Validate(Validate.Ignore)`
   - VerifyPhase can now be skipped using system property `klum.validation.skipVerify`
   - Results of a complete structure can be retrieved using `Validator.getValidationResultsFromStructure(Object)` or verified later using `Validator.verifyStructure(Object)`
