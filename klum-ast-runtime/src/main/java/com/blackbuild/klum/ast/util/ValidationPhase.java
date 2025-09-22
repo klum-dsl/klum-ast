@@ -39,6 +39,6 @@ public class ValidationPhase extends VisitingPhaseAction {
 
     @Override
     public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        new Validator(element, path).execute();
+        new Validator(element).execute();
     }
 }

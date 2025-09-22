@@ -258,7 +258,7 @@ public class Validator {
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(instance);
 
         if (!proxy.hasMetaData(KlumValidationResult.METADATA_KEY))
-            proxy.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getBreadcrumbPath(instance)));
+            proxy.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getModelAndBreadcrumbPath(instance)));
         return doGetValidationResult(instance);
     }
 
@@ -272,7 +272,7 @@ public class Validator {
         return Validate.Level.fromString(System.getProperty(FAIL_ON_LEVEL_PROPERTY, Validate.Level.ERROR.name()));
     }
 
-    protected Validator(Object instance, String path) {
+    protected Validator(Object instance) {
         this.instance = instance;
         KlumValidationResult existingResult = doGetValidationResult(instance);
 
@@ -280,12 +280,7 @@ public class Validator {
             this.validationIssues = existingResult;
             this.breadcrumbPath = existingResult.getBreadcrumbPath();
         } else {
-            if (path != null) {
-                this.breadcrumbPath = path + "(" + DslHelper.getBreadcrumbPath(instance) + ")";
-            } else {
-                // Use the default breadcrumb path from the instance
-                this.breadcrumbPath = DslHelper.getBreadcrumbPath(instance);
-            }
+            this.breadcrumbPath = DslHelper.getModelAndBreadcrumbPath(instance);
             this.validationIssues = new KlumValidationResult(breadcrumbPath);
             KlumInstanceProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, this.validationIssues);
         }

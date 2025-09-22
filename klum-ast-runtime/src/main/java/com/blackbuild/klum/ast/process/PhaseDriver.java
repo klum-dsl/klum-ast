@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -120,8 +121,10 @@ public class PhaseDriver {
 
     public static void enter(Object object) {
         PhaseDriver driver = getInstance();
-        if (driver.activeObjectPointer == 0)
+        if (driver.activeObjectPointer == 0) {
             driver.rootObject = object;
+            KlumInstanceProxy.getProxyFor(object).setModelPath("<root>");
+        }
         driver.activeObjectPointer++;
     }
 
