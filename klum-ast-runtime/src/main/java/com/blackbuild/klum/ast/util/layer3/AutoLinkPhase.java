@@ -39,7 +39,7 @@ public class AutoLinkPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
                 .entrySet()
                 .stream()

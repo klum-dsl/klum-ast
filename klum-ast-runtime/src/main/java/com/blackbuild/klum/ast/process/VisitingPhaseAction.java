@@ -28,6 +28,8 @@ import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents an action that is executed in a phase. The action is executed for each element in the model.
@@ -46,6 +48,19 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
         Object root = PhaseDriver.getInstance().getRootObject();
         StructureUtil.visit(root, this);
     }
+
+    @Override
+    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        try {
+            PhaseDriver.getContext().setInstance(element);
+            doVisit(path, element, container, nameOfFieldInContainer);
+        } finally {
+            PhaseDriver.getContext().setInstance(null);
+        }
+
+    }
+
+    protected abstract void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer);
 
     protected void withCurrentTemplates(Object element, Runnable runnable) {
         TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {

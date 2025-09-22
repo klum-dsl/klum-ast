@@ -34,7 +34,7 @@ public class CleanupPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         KlumInstanceProxy.getProxyFor(element).cleanup();
     }
 }

@@ -1421,6 +1421,42 @@ class ValidationSpec extends AbstractDSLSpec {
         result.issues.size() == 0
     }
 
+    def "BUG: warnings in an inner object are reported on the wrong object"() {
+        given:
+        createClass('''
+            @DSL
+            class Outer {
+                @Deprecated
+                String name
+                
+                Inner inner
+            }
+            
+            @DSL
+            class Inner {
+                @Deprecated
+                String description
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            name "Test"
+            inner {
+                description "bla"
+            }
+        }
+        def result = Validator.getValidationResultsFromStructure(instance)
+
+        then:
+        result.size() == 2
+        result[0].message == '''<root>($/Outer.With):
+- DEPRECATION #name: Field 'name' is deprecated'''
+        result[1].message == '''<root>.inner($/Outer.With/inner):
+- DEPRECATION #description: Field 'description' is deprecated'''
+    }
+
+
     private KlumValidationResult getValidationResult(Object target = instance) {
         return Validator.getValidationResult(target)
     }

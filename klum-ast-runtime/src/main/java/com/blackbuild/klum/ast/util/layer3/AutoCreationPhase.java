@@ -52,7 +52,7 @@ public class AutoCreationPhase extends VisitingPhaseAction {
     }
 
     @Override
-    public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
                     .filter(entry -> entry.getValue() == null)
