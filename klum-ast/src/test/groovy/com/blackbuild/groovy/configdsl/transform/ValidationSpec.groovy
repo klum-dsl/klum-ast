@@ -1266,7 +1266,7 @@ class ValidationSpec extends AbstractDSLSpec {
         def e= thrown(KlumValidationException)
         e.message =='''<root>($/Foo.With):
 - ERROR #name: Field 'name' must be set
-<root>.bar($/Foo.With/):
+<root>.bar($/Foo.With/bar:@AutoCreate):
 - ERROR #game: Field 'game' must be set'''
     }
 

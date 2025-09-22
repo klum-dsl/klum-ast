@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.process
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.util.DslHelper
+import spock.lang.Issue
 
 class BreadcrumbDSLTest extends AbstractDSLSpec {
 
@@ -61,7 +63,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         def path = null
 
         when:
-        create("Foo", "bar") {
+        instance = create("Foo", "bar") {
             path = BreadcrumbCollector.instance.fullPath
         }
 
@@ -139,24 +141,31 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
             }
             @DSL class Bar {
                 @Key String name
+                Inner inner
+            }
+            @DSL class Inner {
+                String game
             }
 '''
-        def path = null
-        def path2 = null
-
         when:
-        create("Foo") {
+        instance = create("Foo") {
             bar("bar1") {
-                path = BreadcrumbCollector.instance.fullPath
+                inner {
+                    game = "yes"
+                }
             }
             bar("bar2") {
-                path2 = BreadcrumbCollector.instance.fullPath
+                inner {
+                    game = "no"
+                }
             }
         }
 
         then:
-        path == '$/Foo.With/bar(bar1)'
-        path2 == '$/Foo.With/bar(bar2)'
+        DslHelper.getBreadcrumbPath(instance.bar[0]) == '$/Foo.With/bar(bar1)'
+        DslHelper.getBreadcrumbPath(instance.bar[1]) == '$/Foo.With/bar(bar2)'
+        DslHelper.getBreadcrumbPath(instance.bar[0].inner) == '$/Foo.With/bar(bar1)/inner'
+        DslHelper.getBreadcrumbPath(instance.bar[1].inner) == '$/Foo.With/bar(bar2)/inner'
     }
 
     def "nested map objects breadcrumbs are correct"() {
@@ -188,5 +197,30 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
         then:
         path == '$/Foo.With/bar(bar1)'
         path2 == '$/Foo.With/bar(bar2)'
+    }
+
+    @Issue("412")
+    def "breadcrumbs for auto created instances are correct"() {
+        given:
+        createClass '''
+            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            @DSL class Foo {
+                @AutoCreate Bar bar
+            }
+            @DSL class Bar {
+                @AutoCreate Inner inner
+            }
+            @DSL class Inner {
+            }
+'''
+        when:
+        instance = create("Foo") {}
+
+        then:
+        instance.bar.inner != null
+        DslHelper.getBreadcrumbPath(instance.bar) == '$/Foo.With/bar:@AutoCreate'
+        DslHelper.getBreadcrumbPath(instance.bar.inner) == '$/Foo.With/bar:@AutoCreate/inner:@AutoCreate'
     }
 }
