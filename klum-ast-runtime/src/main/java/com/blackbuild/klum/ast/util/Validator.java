@@ -23,7 +23,6 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -39,7 +38,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,7 +45,7 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 
 /**
  * Validates an instance of a DSL object, checking for the presence of required fields,
- * custom validation methods, and deprecated fields.
+ * and custom validation methods.
  */
 public class Validator {
 
@@ -154,7 +152,7 @@ public class Validator {
      */
     public static void addIssueTo(@NotNull Object instance, @Nullable String member, String message, Validate.Level level) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
-        validationResult.addProblem(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
+        validationResult.addIssue(new KlumValidationIssue(validationResult.getBreadcrumbPath(), member, message, null, level));
     }
 
     /**
@@ -198,33 +196,58 @@ public class Validator {
      * @param level   the level of the issue
      */
     public static void addIssueToMember(String member, String message, Validate.Level level) {
-        PhaseDriver.Context currentContext = PhaseDriver.getContext();
-        if (currentContext == null || currentContext.getInstance() == null)
-            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
-        addIssueTo(currentContext.getInstance(), member != null ? member : currentContext.getMember(), message, level);
+        addIssueTo(getCurrentInstance(), member != null ? member : PhaseDriver.getContext().getMember(), message, level);
     }
 
     /**
-     * Suppresses any future issues for the given member in the validation result of the given instance.
-     * This is only valid in the context of a lifecycle method/closure.
+     * Suppresses any future non-ERROR issues of level for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure. Has no effect on already registered issues.
      *
      * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(String member) {
-        PhaseDriver.Context currentContext = PhaseDriver.getContext();
-        if (currentContext == null || currentContext.getInstance() == null)
-            throw new KlumSchemaException("addIssue()/addError() called outside of lifecycle method/closure.");
-        suppressFurtherIssues(currentContext.getInstance(), member);
+        suppressFurtherIssues(member, Validate.Level.DEPRECATION);
     }
 
     /**
-     * Suppresses any future issues for the given member in the validation result of the given instance.
-     * @param instance the instance to suppress issues for
+     * Suppresses any future issues up to the given level for the given member in the validation result of the given instance.
+     * This is only valid in the context of a lifecycle method/closure. Has no effect on already registered issues.
+     *
      * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     * @param upToLevel the level to suppress issues up to.
+     */
+    public static void suppressFurtherIssues(String member, Validate.Level upToLevel) {
+        suppressFurtherIssues(getCurrentInstance(), member, upToLevel);
+    }
+
+    private static Object getCurrentInstance() {
+        PhaseDriver.Context currentContext = PhaseDriver.getContext();
+        if (currentContext == null || currentContext.getInstance() == null)
+            throw new KlumSchemaException("Method called outside of lifecycle method/closure.");
+        return currentContext.getInstance();
+    }
+
+    /**
+     * Suppresses any future non-ERROR issues for the given member in the validation result of the given instance.
+     * Has no effect on already registered issues.
+     *
+     * @param instance the instance to suppress issues for
+     * @param member   the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
      */
     public static void suppressFurtherIssues(Object instance, String member) {
+        suppressFurtherIssues(instance, member, Validate.Level.DEPRECATION);
+    }
+
+    /**
+     * Suppresses any future issues up to the given level for the given member in the validation result of the given instance.
+     * Has no effect on already registered issues.
+     * @param instance the instance to suppress issues for
+     * @param member the member to suppress issues for. Can be {@link Validator#ANY_MEMBER} to suppress all further issues on the whole instance.
+     * @param upToLevel the level to suppress issues up to.
+     */
+    public static void suppressFurtherIssues(Object instance, String member, Validate.Level upToLevel) {
         KlumValidationResult validationResult = doGetOrCreateValidationResult(instance);
-        validationResult.suppressIssues(member);
+        validationResult.suppressIssues(member, upToLevel);
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
@@ -287,7 +310,7 @@ public class Validator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationIssues::addProblem);
+            validateCustomMethod(m).ifPresent(validationIssues::addIssue);
         }
     }
 
@@ -317,7 +340,7 @@ public class Validator {
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationIssues::addProblem);
+            validateField(field).ifPresent(validationIssues::addIssue);
         }
     }
 
@@ -332,7 +355,7 @@ public class Validator {
         if (field.isAnnotationPresent(Owner.class)) return false;
         if (field.getType() == boolean.class) return false;
 
-        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class) || field.isAnnotationPresent(Deprecated.class);
+        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
     }
 
     private Optional<KlumValidationIssue> validateField(Field field) {
@@ -340,9 +363,6 @@ public class Validator {
             return Optional.empty();
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
-
-        if (field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
-            return checkForDeprecation(field, value);
 
         Validate validate = getValidateAnnotationOrDefault(field);
 
@@ -354,27 +374,6 @@ public class Validator {
                     validate.level(),
                     () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validate.value(), instance, value)
             );
-    }
-
-    private Optional<KlumValidationIssue> checkForDeprecation(Field field, Object value) {
-        if (!isGroovyTruth(field, value)) return Optional.empty();
-
-        String message = getDeprecationMessage(field);
-
-        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, Validate.Level.DEPRECATION));
-    }
-
-    private String getDeprecationMessage(Field field) {
-        AnnoDoc annoDoc = field.getAnnotation(AnnoDoc.class);
-
-        if (annoDoc == null)
-            return String.format("Field '%s' is deprecated", field.getName());
-
-        return Arrays.stream(annoDoc.value().split("\\R"))
-                .filter(l -> l.startsWith("@deprecated "))
-                .map(l -> l.replaceFirst("@deprecated ", "").trim())
-                .findAny()
-                .orElse(String.format("Field '%s' is deprecated", field.getName()));
     }
 
     private Optional<KlumValidationIssue> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {

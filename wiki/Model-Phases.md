@@ -41,6 +41,11 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 ## ApplyLater (1)
 The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument.
 
+## Early Validation (5)
+
+The early validation phase is used to validate everything model supplied (as opposed to auto created, which are supplied by the schema),
+i.e., everything provided by a user-provided script or code. This includes checks for deprecated fields or explicit notifications using the `@Notify` annotation.
+
 ## AutoCreate (10)
 
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs

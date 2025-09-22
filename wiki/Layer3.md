@@ -257,7 +257,7 @@ Making these validations with a domain schema is trivial.
 
 Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant but also error-prone, since the monitoring service might be configured differently for each application.
 
-Using the schema layer with `AutoCreate`, the monitoring service could automatically be created.
+Using the schema layer with `@AutoCreate`, the monitoring service could automatically be created.
 
 ```groovy
 abstract class MonitoredApplication extends Application {
@@ -276,7 +276,7 @@ class MonitoringService extends Microservice {
 }
 ```
 During the instantiation of the model, the database field will bea automatically filled but can still be overwritten 
-on instance level. See Javadoc for `LinkTo` for more details.
+on instance level. See Javadoc for `@LinkTo` for more details.
 
 ### Role fields
 

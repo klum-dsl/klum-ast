@@ -188,10 +188,6 @@ Thanks to deferred validation, it is irrelevant whether the stages are set befor
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
 
-# Suppress Further issues
-
-Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version).
-
 # Validation levels
 
 There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.
@@ -204,11 +200,42 @@ The level on which the validation causes an exception can be overridden by the `
 
 # Deprecations
 
-If a field is marked as deprecated but has no `@Validate` annotation, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
+If a field is marked as deprecated, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
 
-This behavior can be overridden by explicitly setting a `@Validate` annotation on the field.
+This happens in the early validation phase, i.e., the issue will not be raised if the field is set by a later phase (like Default, AutoCreate, or AutoLink).
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
+
+If a `@Notify` annotation is present alongside the `@Deprecated` annotation, the `@Notify` is used to determine the warning behavior.
+
+# `@Notify`
+
+The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
+
+```groovy
+@DSL
+class MyModel {
+    @AutoCreate
+    @Notify(isUnset = "Value will be autocreated, which might lead to unexpected behavior")
+    String shouldBeSetManually
+}
+@DSL
+class AnotherModel {
+    @LinkTo
+    @Notify(isSet = "This value will usually be linked automatically, and should only be set manually if you know what you are doing", level = Validate.Level.INFO)
+    String autoLinked
+}
+```
+
+As with most issue-related annotations, the issue level can be set via the `level` parameter. The default is WARNING.
+
+# Suppress Further issues
+
+Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version). By default, all issues up to level DEPRECATION are suppressed (i.e., every but an ERROR). This can be changed by providing a different level as the last argument.
+
+Also, using the `Validator.ANY_MEMBER` as member name, all further issues on the object are suppressed.
+
+Suppression has no effect on already reported issues.
 
 # Validation and Verify
 

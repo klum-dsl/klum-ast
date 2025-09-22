@@ -27,6 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.util.KlumValidationIssue
 import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -903,7 +904,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         validationResults.maxLevel == Validate.Level.WARNING
-        validationResults.problems.size() == 1
+        validationResults.issues.size() == 1
         validationResults.message == '''<root>($/Foo.With):
 - WARNING #validated: Field 'validated' must be set'''
 
@@ -968,8 +969,8 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
-        result.problems.size() == 1
-        result.message == '''<root>($/Foo.With):
+        result.issues.size() == 1
+        result.message == '''$/Foo.With:
 - DEPRECATION #validated: Field 'validated' is deprecated'''
     }
 
@@ -996,8 +997,8 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
-        result.problems.size() == 1
-        result.message == '''<root>($/Foo.With):
+        result.issues.size() == 1
+        result.message == '''$/Foo.With:
 - DEPRECATION #validated: Use something else.'''
     }
 
@@ -1146,8 +1147,11 @@ class ValidationSpec extends AbstractDSLSpec {
         createClass('''
             @DSL
             class Foo {
-                @Required
+                @Required(level = Validate.Level.WARNING)
                 String validatedWarning
+
+                @Required
+                String validatedError
 
                 @PostTree suppressWarningforValidateWarning() {
                     Validator.suppressFurtherIssues("validatedWarning")
@@ -1156,10 +1160,21 @@ class ValidationSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.Create.One()
+        instance = clazz.Create.With {
+            validatedError "bla"
+        }
 
         then:
         notThrown(KlumValidationException)
+
+        when:
+        instance = clazz.Create.With {
+        }
+
+        then: 'Errors are still reported'
+        def e = thrown(KlumValidationException)
+        e.message.contains '''- ERROR #validatedError: Field 'validatedError' must be set'''
+        !e.message.contains('validatedWarning')
     }
 
     @Issue("381")
@@ -1234,15 +1249,15 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         notThrown(KlumValidationException)
         instance.bar != null
-        Validator.getValidationResult(instance).getProblems().size() == 1
-        Validator.getValidationResult(instance.bar).getProblems().size() == 1
+        Validator.getValidationResult(instance).getIssues().size() == 1
+        Validator.getValidationResult(instance.bar).getIssues().size() == 1
 
         when:
         def results = Validator.getValidationResultsFromStructure(instance)
 
         then:
         results.size() == 2
-        results.collect { it.getProblems() }.flatten().size() == 2
+        results.collect { it.getIssues() }.flatten().size() == 2
 
         when:
         Validator.verifyStructure(instance)
@@ -1255,8 +1270,141 @@ class ValidationSpec extends AbstractDSLSpec {
 - ERROR #game: Field 'game' must be set''')
     }
 
+    @Issue("407")
+    def "issues can be suppressed up to a certain level"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                @Validate(level = Validate.Level.WARNING)
+                String validatedWarning
+
+                @Validate(level = Validate.Level.DEPRECATION)
+                String validatedDeprecation
+
+                @Validate(level = Validate.Level.ERROR)
+                String validatedError
+
+                @PostTree suppressWarningforValidateWarning() {
+                    Validator.suppressFurtherIssues("validatedWarning")
+                }
+                
+                @PostTree suppressDeprecationforValidateDeprecation() {
+                    Validator.suppressFurtherIssues("validatedDeprecation", Validate.Level.DEPRECATION)
+                }
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.One()
+
+        then: 'Only error remains'
+        def e = thrown(KlumValidationException)
+        e.message == '''$/Foo.One:
+- ERROR #validatedError: Field 'validatedError' must be set'''
+        e.validationResults.size() == 1
+    }
+
+    def "Deprecation warnings are only raised if the field was set during apply"() {
+        given:
+        createClass'''
+            @DSL class Foo {
+                @Deprecated
+                @Default(code = {"Bla"})
+                String deprecatedField
+            }'''
+
+        when:
+        instance = clazz.Create.One()
+
+        then:
+        Validator.getValidationResult(instance).issues.isEmpty()
+
+        when:
+        instance = clazz.Create.With {
+            deprecatedField "Test"
+        }
+
+        then:
+        Validator.getValidationResult(instance).issues.size() == 1
+        Validator.getValidationResult(instance).getIssues().first().message == "Field 'deprecatedField' is deprecated"
+    }
+
+    @Issue("407")
+    def "Notify allows to explicitly raise an issue if a values is set or not set manually"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "Should not be set manually")
+                String aField
+
+                @Notify(ifUnset = "Should be set manually")
+                String anotherField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 2
+        result.message == '''$/Foo.With:
+- WARNING #aField: Should not be set manually
+- WARNING #anotherField: Should be set manually'''
+    }
+
+    @Issue("407")
+    def "Notify overrules deprecated"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "Overridden deprecation", level = Validate.Level.INFO)
+                @Deprecated
+                String aField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 1
+        result.message == '''$/Foo.With:
+- INFO #aField: Overridden deprecation'''
+    }
+
+    @Issue("407")
+    def "Notify with level NONE overrules deprecated"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "ignore", level = Validate.Level.NONE)
+                @Deprecated
+                String aField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 0
+    }
+
     private KlumValidationResult getValidationResult(Object target = instance) {
-        return KlumInstanceProxy.getProxyFor(target).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class)
+        return Validator.getValidationResult(target)
     }
 
 }
