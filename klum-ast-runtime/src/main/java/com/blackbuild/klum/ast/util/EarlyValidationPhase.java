@@ -30,7 +30,7 @@ public class EarlyValidationPhase extends VisitingPhaseAction {
     }
 
     private void checkNotifyAnnotation(@NotNull Object element, String fieldName, Object value) {
-        Field field = ClusterModel.getField(element, fieldName).get();
+        Field field = ClusterModel.getField(element, fieldName).orElseThrow();
 
         Notify notify = field.getAnnotation(Notify.class);
 
@@ -53,7 +53,9 @@ public class EarlyValidationPhase extends VisitingPhaseAction {
     }
 
     private void raiseDeprecationIssue(@NotNull Object element, String fieldName) {
-        Field field = ClusterModel.getField(element, fieldName).get();
+        Field field = ClusterModel.getField(element, fieldName).orElseThrow();
+
+        if (field.isAnnotationPresent(Notify.class)) return;
 
         String message = getDeprecationMessage(field);
 

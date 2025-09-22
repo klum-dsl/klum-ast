@@ -10,8 +10,9 @@ import java.lang.annotation.*;
 /**
  * Can be used to mark fields to emit a notification if its value is manually set or not set.
  * This is most useful in combination with {@link com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate}
- * or {@link com.blackbuild.klum.ast.util.layer3.annotations.AutoLink}, to designate that the AutoCreate/AutoLink mechanism
+ * or {@link com.blackbuild.klum.ast.util.layer3.annotations.LinkTo}, to designate that the AutoCreate/AutoLink mechanism
  * is either an unwanted fallback (ifUnset), or the expected behavior (ifSet).
+ * <p>Notify can also be used to change the default behavior for deprecated fields.</p>
  * The default level is WARNING, but this can be overridden by {@link #level()}.
  */
 @Target({ElementType.FIELD})

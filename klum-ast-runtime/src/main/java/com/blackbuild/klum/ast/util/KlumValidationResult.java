@@ -58,6 +58,7 @@ public class KlumValidationResult implements Serializable {
     }
 
     private boolean isSuppressed(String member, Validate.Level level) {
+        if (level == Validate.Level.NONE) return true;
         return suppressedIssues.getOrDefault(member, Validate.Level.NONE)
                 .combine(suppressedIssues.getOrDefault(Validator.ANY_MEMBER, Validate.Level.NONE))
                 .equalOrWorseThen(level);

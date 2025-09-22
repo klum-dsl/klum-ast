@@ -206,6 +206,29 @@ This happens in the early validation phase, i.e., the issue will not be raised i
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
 
+If a `@Notify` annotation is present alongside the `@Deprecated` annotation, the `@Notify` is used to determine the warning behavior.
+
+# `@Notify`
+
+The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
+
+```groovy
+@DSL
+class MyModel {
+    @AutoCreate
+    @Notify(isUnset = "Value will be autocreated, which might lead to unexpected behavior")
+    String shouldBeSetManually
+}
+@DSL
+class AnotherModel {
+    @LinkTo
+    @Notify(isSet = "This value will usually be linked automatically, and should only be set manually if you know what you are doing", level = Validate.Level.INFO)
+    String autoLinked
+}
+```
+
+As with most issue-related annotations, the issue level can be set via the `level` parameter. The default is WARNING.
+
 # Suppress Further issues
 
 Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version). By default, all issues up to level DEPRECATION are suppressed (i.e., every but an ERROR). This can be changed by providing a different level as the last argument.

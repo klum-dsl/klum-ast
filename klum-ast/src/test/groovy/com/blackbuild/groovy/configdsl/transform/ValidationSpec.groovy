@@ -1357,6 +1357,52 @@ class ValidationSpec extends AbstractDSLSpec {
 - WARNING #anotherField: Should be set manually'''
     }
 
+    @Issue("407")
+    def "Notify overrules deprecated"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "Overridden deprecation", level = Validate.Level.INFO)
+                @Deprecated
+                String aField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 1
+        result.message == '''$/Foo.With:
+- INFO #aField: Overridden deprecation'''
+    }
+
+    @Issue("407")
+    def "Notify with level NONE overrules deprecated"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+            @DSL
+            class Foo {
+                @Notify(ifSet = "ignore", level = Validate.Level.NONE)
+                @Deprecated
+                String aField
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {
+            aField "Test"
+        }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        result.issues.size() == 0
+    }
+
     private KlumValidationResult getValidationResult(Object target = instance) {
         return Validator.getValidationResult(target)
     }
