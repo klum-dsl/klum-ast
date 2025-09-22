@@ -970,7 +970,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.issues.size() == 1
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Field 'validated' is deprecated'''
     }
 
@@ -998,7 +998,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.issues.size() == 1
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - DEPRECATION #validated: Use something else.'''
     }
 
@@ -1264,10 +1264,10 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         def e= thrown(KlumValidationException)
-        e.message.contains('''<root>($/Foo.With):
+        e.message =='''<root>($/Foo.With):
 - ERROR #name: Field 'name' must be set
-<root>.bar($/Foo.With/):
-- ERROR #game: Field 'game' must be set''')
+<root>.bar($/Foo.With/bar:@AutoCreate):
+- ERROR #game: Field 'game' must be set'''
     }
 
     @Issue("407")
@@ -1300,7 +1300,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then: 'Only error remains'
         def e = thrown(KlumValidationException)
-        e.message == '''$/Foo.One:
+        e.message == '''<root>($/Foo.One):
 - ERROR #validatedError: Field 'validatedError' must be set'''
         e.validationResults.size() == 1
     }
@@ -1352,7 +1352,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         result.issues.size() == 2
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - WARNING #aField: Should not be set manually
 - WARNING #anotherField: Should be set manually'''
     }
@@ -1377,7 +1377,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
         then:
         result.issues.size() == 1
-        result.message == '''$/Foo.With:
+        result.message == '''<root>($/Foo.With):
 - INFO #aField: Overridden deprecation'''
     }
 

@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.VisitingPhaseAction;
 import com.blackbuild.klum.ast.util.*;
@@ -90,7 +91,9 @@ public class AutoCreationPhase extends VisitingPhaseAction {
                     format("AutoCreate annotation for field '%s' sets type '%s' which is no subtype of the field's type (%s)", field.getName(), type, field.getType()));
         }
 
-        Object autoCreated = FactoryHelper.create(type, values, key, null);
+        Class<?> finalType = type;
+        String finalKey = key;
+        Object autoCreated = BreadcrumbCollector.withFullPathOverride(getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate", () -> FactoryHelper.create(finalType, values, finalKey, null));
 
         KlumInstanceProxy.getProxyFor(element).setSingleField(field.getName(), autoCreated);
     }

@@ -196,7 +196,7 @@ class ValidatorTest extends AbstractRuntimeTest {
     }
 
     private static void validate(Object instance) {
-        def validator = new Validator(instance, "")
+        def validator = new Validator(instance)
         validator.execute()
         validator.validationIssues.throwOn(Validate.Level.ERROR);
     }

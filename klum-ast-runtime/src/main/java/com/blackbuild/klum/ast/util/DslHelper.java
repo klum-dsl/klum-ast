@@ -308,6 +308,19 @@ public class DslHelper {
         return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
     }
 
+    public static String getModelPath(Object instance) {
+        return KlumInstanceProxy.getProxyFor(instance).getModelPath();
+    }
+
+    public static String getModelAndBreadcrumbPath(Object instance) {
+        String modelPath = getModelPath(instance);
+        String breadcrumbPath = getBreadcrumbPath(instance);
+        if (modelPath == null)
+            return "(" + breadcrumbPath + ")";
+        else
+            return modelPath + "(" + breadcrumbPath + ")";
+    }
+
     public static boolean isOwner(@NotNull Field field) {
         return field.isAnnotationPresent(Owner.class);
     }

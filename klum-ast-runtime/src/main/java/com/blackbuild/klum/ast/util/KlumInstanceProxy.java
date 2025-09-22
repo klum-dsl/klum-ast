@@ -67,6 +67,7 @@ public class KlumInstanceProxy {
 
     private final GroovyObject instance;
     private String breadcrumbPath;
+    private String modelPath;
     private int breadCrumbQuantifier = 1;
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
 
@@ -336,11 +337,21 @@ public class KlumInstanceProxy {
     }
 
     private <T> T callSetterOrMethod(String fieldOrMethodName, T value) {
+        setModelPathOfInnerObject(value, fieldOrMethodName);
         if (DslHelper.getField(instance.getClass(), fieldOrMethodName).isPresent())
             setInstanceAttribute(fieldOrMethodName, value);
         else
             invokeRwMethod(fieldOrMethodName, value);
         return value;
+    }
+
+    private void setModelPathOfInnerObject(Object value, String pathSegment) {
+        if (isDslObject(value)) {
+            KlumInstanceProxy valueProxy = getProxyFor(value);
+            if (valueProxy.modelPath == null) {
+                valueProxy.modelPath = modelPath + "." + pathSegment;
+            }
+        }
     }
 
     /**
@@ -355,6 +366,7 @@ public class KlumInstanceProxy {
         element = forceCastClosure(element, elementType);
         Collection<T> target = getInstanceAttribute(fieldName);
         target.add(element);
+        setModelPathOfInnerObject(element, fieldName + "[" + target.size() + "]");
         return element;
     }
 
@@ -511,6 +523,7 @@ public class KlumInstanceProxy {
         Map<K, V> target = getInstanceAttribute(fieldName);
         value = forceCastClosure(value, elementType);
         target.put(key, value);
+        setModelPathOfInnerObject(value, fieldName + "[" + key + "]");
         return value;
     }
 
@@ -694,5 +707,13 @@ public class KlumInstanceProxy {
 
     public void setMetaData(String key, Object value) {
         metadata.put(key, value);
+    }
+
+    public void setModelPath(String path) {
+        modelPath = path;
+    }
+
+    public String getModelPath() {
+        return modelPath;
     }
 }

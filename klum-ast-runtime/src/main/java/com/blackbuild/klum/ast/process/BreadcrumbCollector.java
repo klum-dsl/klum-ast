@@ -26,7 +26,10 @@ package com.blackbuild.klum.ast.process;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -40,6 +43,7 @@ public class BreadcrumbCollector {
     private String currentType;
     private String currentQualifier;
     private String context;
+    private String fullPathOverride;
     
     private BreadcrumbCollector() {
     }
@@ -84,6 +88,17 @@ public class BreadcrumbCollector {
             return action.call();
         } finally {
             collector.leave();
+        }
+    }
+
+    public static <T> T withFullPathOverride(String fullPathOverride, Supplier<T> action) {
+        BreadcrumbCollector collector = BreadcrumbCollector.getInstance();
+        String oldFullPathOverride = collector.fullPathOverride;
+        try {
+            collector.fullPathOverride = fullPathOverride;
+            return action.get();
+        } finally {
+            collector.fullPathOverride = oldFullPathOverride;
         }
     }
 
@@ -162,10 +177,16 @@ public class BreadcrumbCollector {
 
     // join the paths from tail to head, because the breadcrumbs are stacked in reverse order.
     public String getFullPath() {
+        if (fullPathOverride != null)
+            return fullPathOverride;
         if (breadcrumbs.isEmpty())
             return "";
         StringBuilder sb = new StringBuilder("$");
-        breadcrumbs.descendingIterator().forEachRemaining(b -> sb.append("/").append(b.getPath()));
+        breadcrumbs.descendingIterator().forEachRemaining(b -> {
+            String path = b.getPath();
+            if (!path.isEmpty())
+                sb.append("/").append(path);
+        });
         return sb.toString();
     }
 
