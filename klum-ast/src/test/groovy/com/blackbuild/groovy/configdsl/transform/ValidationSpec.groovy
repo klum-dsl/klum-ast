@@ -998,7 +998,7 @@ class ValidationSpec extends AbstractDSLSpec {
         then: 'Warning for deprecated field'
         result.maxLevel == Validate.Level.DEPRECATION
         result.issues.size() == 1
-        result.message == '''<root>($/Foo.With):
+        result.message == '''$/Foo.With:
 - DEPRECATION #validated: Use something else.'''
     }
 
