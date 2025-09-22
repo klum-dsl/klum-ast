@@ -359,6 +359,9 @@ public class Validator {
 
         Object value = DslHelper.getAttributeValue(field.getName(), instance);
 
+        if (instance.getClass().isAnnotationPresent(Validate.class) && field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
+            return Optional.empty();
+
         Validate validate = getValidateAnnotationOrDefault(field);
 
         if (validate.value() == Validate.GroovyTruth.class)

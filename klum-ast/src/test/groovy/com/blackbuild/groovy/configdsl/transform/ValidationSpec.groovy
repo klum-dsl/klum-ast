@@ -974,6 +974,24 @@ class ValidationSpec extends AbstractDSLSpec {
 - DEPRECATION #validated: Field 'validated' is deprecated'''
     }
 
+    def "Deprecated fields do not raise an issue for Validate on class"() {
+        given:
+        createClass('''
+            @DSL
+            @Validate
+            class Foo {
+                @Deprecated
+                String validated
+            }
+        ''')
+
+        when:
+        instance = clazz.Create.With {}
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
     @Issue("145")
     @IgnoreIf({ GroovySystem.version.startsWith("2.") })
     def "Deprecation message is extracted from javadoc if present"() {
