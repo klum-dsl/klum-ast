@@ -14,6 +14,7 @@
 ## Bugfixes
 - `StructureUtil.getPathOfFieldContaining()` and therefore `@Role` fields ignored fields where the value was actually a subclass of the field type.
 - CopyFrom and templating failed on primitive values. See [#400](https://github.com/klum-dsl/klum-ast/issues/400)
+- modelPath / Validation path was off if using various complex inner factories or AutoCreates
 
 # 2.1.4/2.1.5
 - Prevent ConcurrentModificationExceptions when calling `applyLater` from a lifecycle method

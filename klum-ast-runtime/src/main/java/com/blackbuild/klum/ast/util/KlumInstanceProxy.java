@@ -34,6 +34,7 @@ import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
+import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 import groovy.lang.MissingPropertyException;
@@ -346,11 +347,13 @@ public class KlumInstanceProxy {
     }
 
     private void setModelPathOfInnerObject(Object value, String pathSegment) {
+        if (modelPath == null) return;
         if (isDslObject(value)) {
-            KlumInstanceProxy valueProxy = getProxyFor(value);
-            if (valueProxy.modelPath == null) {
-                valueProxy.modelPath = modelPath + "." + pathSegment;
-            }
+            StructureUtil.visit(
+                    value,
+                    (path, element, container, nameOfFieldInContainer) -> getProxyFor(element).modelPath = path,
+                    modelPath + "." + pathSegment
+            );
         }
     }
 
@@ -710,7 +713,8 @@ public class KlumInstanceProxy {
     }
 
     public void setModelPath(String path) {
-        modelPath = path;
+        if (modelPath == null)
+            modelPath = path;
     }
 
     public String getModelPath() {

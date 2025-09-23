@@ -25,9 +25,8 @@
 //file:noinspection GrMethodMayBeStatic
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
+
 import com.blackbuild.klum.ast.util.KlumValidationException
-import com.blackbuild.klum.ast.util.KlumValidationIssue
 import com.blackbuild.klum.ast.util.KlumValidationResult
 import com.blackbuild.klum.ast.util.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
