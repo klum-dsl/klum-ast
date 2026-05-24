@@ -73,7 +73,9 @@ include 'klum-ast'
 include 'klum-ast-runtime'
 include 'klum-ast-jackson'
 include 'klum-ast-gradle-plugin'
+include 'klum-ast-bean-validation'
 include 'code-coverage-report'
+
 
 // includeBuild "../anno-docimal"
 

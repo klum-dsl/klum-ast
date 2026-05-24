@@ -21,31 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.process.AbstractPhaseAction;
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.validation.Validator;
+import com.blackbuild.klum.ast.util.KlumModelException;
+
+import java.util.List;
 
 /**
- * Phase Action that validates the model.
+ * Denotes an exception that means a validation error occurred in the model.
+ * This is used to collect multiple validation errors and provide a detailed message.
+ * <p>
+ *     Note that this is explicitly not a subclass of {@link KlumModelException}, since a KlumModelException
+ *     points to a specific model element that is invalid, while this exception collects multiple validation errors.
+ * </p>
  */
-public class VerifyPhase extends AbstractPhaseAction {
-
-    public static final String SKIP_VERIFY_PROPERTY = "klum.validation.skipVerify";
-
-    public VerifyPhase() {
-        super(DefaultKlumPhase.VERIFY);
-    }
-
-    @Override
-    protected void doExecute() {
-        Validator.verifyStructure(PhaseDriver.getInstance().getRootObject());
-    }
-
-    @Override
-    public String getSkipProperty() {
-        return SKIP_VERIFY_PROPERTY;
+public class KlumValidationException extends com.blackbuild.klum.ast.util.KlumValidationException {
+    public KlumValidationException(List<KlumValidationResult> validationResults) {
+        super(validationResults);
     }
 }

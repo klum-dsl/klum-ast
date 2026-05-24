@@ -1,0 +1,24 @@
+plugins {
+    id "klum-ast.multigroovy-conventions"
+    id "klum-ast.jacoco-conventions"
+}
+
+description = "Java Bean Validation extension"
+
+dependencies {
+    api project(':klum-ast-runtime')
+
+    api 'org.hibernate.validator:hibernate-validator:9.1.0.Final'
+
+    sharedTests project(':klum-ast')
+    // just to make intellij happy, base classes are actually included as sources
+    testCompileOnly(testFixtures(project(':klum-ast')))
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+        }
+    }
+}

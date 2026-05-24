@@ -24,6 +24,8 @@
 package com.blackbuild.klum.ast.util
 
 import com.blackbuild.groovy.configdsl.transform.Validate
+import com.blackbuild.klum.ast.validation.KlumValidationIssue
+import com.blackbuild.klum.ast.validation.KlumValidationResult
 import spock.lang.Specification
 
 
