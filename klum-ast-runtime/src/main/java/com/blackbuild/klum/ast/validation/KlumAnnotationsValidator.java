@@ -23,32 +23,19 @@
  */
 package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.ClosureHelper;
 import com.blackbuild.klum.ast.util.DslHelper;
-import groovy.lang.Closure;
-import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Optional;
 
-import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
-
-/**
- * Validator that validates {@link com.blackbuild.groovy.configdsl.transform.Validate} annotations on fields of the instance.
- */
-public class KlumAnnotationsValidator implements InstanceValidator {
-
-    private Object instance;
-    private String breadcrumbPath;
-    private boolean classHasValidateAnnotation;
-    private Class<?> currentType;
-    private KlumValidationResult validationResult;
+public abstract class KlumAnnotationsValidator implements InstanceValidator {
+    protected Object instance;
+    protected String breadcrumbPath;
+    protected boolean classHasValidateAnnotation;
+    protected Class<?> currentType;
+    protected KlumValidationResult validationResult;
 
     @Override
     public void validateInstance(Object instance, KlumValidationResult validationResult) {
@@ -62,27 +49,13 @@ public class KlumAnnotationsValidator implements InstanceValidator {
     private void validateType(Class<?> type) {
         currentType = type;
         classHasValidateAnnotation = type.isAnnotationPresent(Validate.class);
-        validateFields();
-        executeCustomValidationMethods();
+        doValidateLayer();
     }
 
-    private void executeCustomValidationMethods() {
-        for (Method m : currentType.getDeclaredMethods()) {
-            if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationResult::addIssue);
-        }
-    }
+    protected abstract void doValidateLayer();
 
-    private Optional<KlumValidationIssue> validateCustomMethod(Method method) {
-        Validate.Level level = getValidateAnnotationOrDefault(method).level();
-        return withExceptionCheck(
-                method.getName() + "()",
-                level,
-                () -> InvokerHelper.invokeMethod(instance, method.getName(), null)
-        );
-    }
 
-    private Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
+    protected Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
             PhaseDriver.getContext().setMember(memberName);
             runnable.run();
@@ -96,67 +69,7 @@ public class KlumAnnotationsValidator implements InstanceValidator {
         }
     }
 
-    private void validateFields() {
-        for (Field field : currentType.getDeclaredFields()) {
-            if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationResult::addIssue);
-        }
-    }
-
-    private boolean isNotExplicitlyIgnored(Field field) {
-        if (Modifier.isStatic(field.getModifiers())) return false;
-        return getValidateAnnotationOrDefault(field).value() != Validate.Ignore.class;
-    }
-
-    private boolean shouldValidate(Field field) {
-        if (field.getName().startsWith("$")) return false;
-        if (Modifier.isTransient(field.getModifiers())) return false;
-        if (field.isAnnotationPresent(Owner.class)) return false;
-        if (field.getType() == boolean.class) return false;
-
-        return classHasValidateAnnotation || field.isAnnotationPresent(Validate.class);
-    }
-
-    private Optional<KlumValidationIssue> validateField(Field field) {
-        if (!shouldValidate(field))
-            return Optional.empty();
-
-        Object value = DslHelper.getAttributeValue(field.getName(), instance);
-
-        if (instance.getClass().isAnnotationPresent(Validate.class) && field.isAnnotationPresent(Deprecated.class) && !field.isAnnotationPresent(Validate.class))
-            return Optional.empty();
-
-        Validate validate = getValidateAnnotationOrDefault(field);
-
-        if (validate.value() == Validate.GroovyTruth.class)
-            return checkAgainstGroovyTruth(field, value, validate);
-        else
-            return withExceptionCheck(
-                    field.getName(),
-                    validate.level(),
-                    () -> ClosureHelper.invokeClosureWithDelegate((Class<? extends Closure<Void>>) validate.value(), instance, value)
-            );
-    }
-
-    private Optional<KlumValidationIssue> checkAgainstGroovyTruth(Field field, Object value, Validate validate) {
-        if (isGroovyTruth(field, value)) return Optional.empty();
-
-        String message = validate.message();
-
-        if (message.isEmpty())
-            message = String.format("Field '%s' must be set", field.getName());
-
-        return Optional.of(new KlumValidationIssue(breadcrumbPath, field.getName(), message, null, validate.level()));
-    }
-
-    @SuppressWarnings("java:S1126")
-    private boolean isGroovyTruth(Field field, Object value) {
-        if (field.getType() == Boolean.class && value != null) return true;
-        if (castToBoolean(value)) return true;
-        return false;
-    }
-
-    private Validate getValidateAnnotationOrDefault(AnnotatedElement member) {
+    protected Validate getValidateAnnotationOrDefault(AnnotatedElement member) {
         Validate validate = member.getAnnotation(Validate.class);
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;

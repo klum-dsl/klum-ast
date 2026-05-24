@@ -1,1 +1,2 @@
-com.blackbuild.klum.ast.validation.KlumAnnotationsValidator
+com.blackbuild.klum.ast.validation.KlumFieldAnnotationsValidator
+com.blackbuild.klum.ast.validation.KlumMethodAnnotationsValidator
