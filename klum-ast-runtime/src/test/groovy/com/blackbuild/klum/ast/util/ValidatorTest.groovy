@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.util
 
 import com.blackbuild.groovy.configdsl.transform.Validate
-import com.blackbuild.klum.ast.validation.ObjectValidator
+import com.blackbuild.klum.ast.validation.SingleObjectValidationHandler
 import spock.lang.Issue
 
 @SuppressWarnings("GrPackage")
@@ -197,8 +197,7 @@ class ValidatorTest extends AbstractRuntimeTest {
     }
 
     private static void validate(Object instance) {
-        def validator = new ObjectValidator(instance)
-        validator.execute()
-        validator.validationIssues.throwOn(Validate.Level.ERROR);
+        def validator = new SingleObjectValidationHandler(instance)
+        validator.execute().throwOn(Validate.Level.ERROR);
     }
 }

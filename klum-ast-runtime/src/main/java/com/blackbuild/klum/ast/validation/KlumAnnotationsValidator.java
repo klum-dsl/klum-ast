@@ -26,7 +26,8 @@ package com.blackbuild.klum.ast.validation;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.*;
+import com.blackbuild.klum.ast.util.ClosureHelper;
+import com.blackbuild.klum.ast.util.DslHelper;
 import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
@@ -39,42 +40,23 @@ import java.util.Optional;
 import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation.castToBoolean;
 
 /**
- * Validates an instance of a DSL object, checking for the presence of required fields,
- * and custom validation methods.
+ * Validator that validates {@link com.blackbuild.groovy.configdsl.transform.Validate} annotations on fields of the instance.
  */
-class ObjectValidator {
+public class KlumAnnotationsValidator implements InstanceValidator {
 
-    public static final String FAIL_ON_LEVEL_PROPERTY = "klum.validation.failOnLevel";
-    public static final String ANY_MEMBER = "*";
-
-    private final Object instance;
-    private final String breadcrumbPath;
+    private Object instance;
+    private String breadcrumbPath;
     private boolean classHasValidateAnnotation;
     private Class<?> currentType;
-    private final KlumValidationResult validationIssues;
+    private KlumValidationResult validationResult;
 
-
-    protected ObjectValidator(Object instance) {
+    @Override
+    public void validateInstance(Object instance, KlumValidationResult validationResult) {
         this.instance = instance;
-        KlumValidationResult existingResult = KlumInstanceProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+        this.breadcrumbPath = validationResult.getBreadcrumbPath();
+        this.validationResult = validationResult;
 
-        if (existingResult != null) {
-            this.validationIssues = existingResult;
-            this.breadcrumbPath = existingResult.getBreadcrumbPath();
-        } else {
-            this.breadcrumbPath = DslHelper.getModelAndBreadcrumbPath(instance);
-            this.validationIssues = new KlumValidationResult(breadcrumbPath);
-            KlumInstanceProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, this.validationIssues);
-        }
-    }
-
-    public void execute() {
-        try {
-            PhaseDriver.getContext().setInstance(instance);
-            DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-        } finally {
-            PhaseDriver.getContext().setInstance(null);
-        }
+        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
     }
 
     private void validateType(Class<?> type) {
@@ -87,7 +69,7 @@ class ObjectValidator {
     private void executeCustomValidationMethods() {
         for (Method m : currentType.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationIssues::addIssue);
+            validateCustomMethod(m).ifPresent(validationResult::addIssue);
         }
     }
 
@@ -117,7 +99,7 @@ class ObjectValidator {
     private void validateFields() {
         for (Field field : currentType.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
-            validateField(field).ifPresent(validationIssues::addIssue);
+            validateField(field).ifPresent(validationResult::addIssue);
         }
     }
 
@@ -178,9 +160,5 @@ class ObjectValidator {
         Validate validate = member.getAnnotation(Validate.class);
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;
-    }
-
-    KlumValidationResult getValidationIssues() {
-        return validationIssues;
     }
 }

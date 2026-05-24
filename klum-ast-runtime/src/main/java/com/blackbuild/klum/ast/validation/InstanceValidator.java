@@ -23,22 +23,16 @@
  */
 package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 /**
- * Phase Action that validates the model.
+ * Interface for various implementations of validations. Custom implementations can be registered via SPI (Service Provider Interface).
  */
-public class ValidationPhase extends VisitingPhaseAction {
+public interface InstanceValidator {
 
-    public ValidationPhase() {
-        super(DefaultKlumPhase.VALIDATE);
-    }
-
-    @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        new SingleObjectValidationHandler(element).execute();
-    }
+    /**
+     * Validates the given instance. Returns a list of validation issues.
+     *
+     * @param instance         the instance to validate
+     * @param validationResult ths validation result to collect the issues in
+     */
+    void validateInstance(Object instance, KlumValidationResult validationResult);
 }
