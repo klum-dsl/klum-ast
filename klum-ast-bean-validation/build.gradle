@@ -8,11 +8,17 @@ description = "Java Bean Validation extension"
 dependencies {
     api project(':klum-ast-runtime')
 
-    api 'org.hibernate.validator:hibernate-validator:9.1.0.Final'
+    api 'org.hibernate.validator:hibernate-validator:8.0.3.Final'
 
     sharedTests project(':klum-ast')
     // just to make intellij happy, base classes are actually included as sources
-    testCompileOnly(testFixtures(project(':klum-ast')))
+    testCompileOnly(testFixtures(project(':klum-ast-runtime')))
+}
+
+// Need to add test fixtures as source, since we compile with different spock versions
+tasks.withType(GroovyCompile).configureEach {
+    if (!name.contains("Test") || name.contains("Fixtures")) return
+    it.source(project(':klum-ast-runtime').sourceSets.testFixtures.groovy.srcDirs)
 }
 
 publishing {
