@@ -27,8 +27,8 @@ package com.blackbuild.groovy.configdsl.transform
 
 
 import com.blackbuild.klum.ast.util.KlumValidationException
-import com.blackbuild.klum.ast.util.KlumValidationResult
-import com.blackbuild.klum.ast.util.Validator
+import com.blackbuild.klum.ast.validation.KlumValidationResult
+import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.*
 import uk.org.webcompere.systemstubs.properties.SystemProperties
@@ -46,7 +46,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
     @Override
     String[] getAdditionalImports() {
-        return ["com.blackbuild.klum.ast.util.Validator"]
+        return ["com.blackbuild.klum.ast.validation.Validator"]
     }
 
     def "validation with Groovy Truth"() {

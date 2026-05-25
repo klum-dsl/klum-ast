@@ -21,31 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.validation.Validator;
+import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Phase Action that validates the model.
  */
-public class VerifyPhase extends AbstractPhaseAction {
+public class ValidationPhase extends VisitingPhaseAction {
 
-    public static final String SKIP_VERIFY_PROPERTY = "klum.validation.skipVerify";
-
-    public VerifyPhase() {
-        super(DefaultKlumPhase.VERIFY);
+    public ValidationPhase() {
+        super(DefaultKlumPhase.VALIDATE);
     }
 
     @Override
-    protected void doExecute() {
-        Validator.verifyStructure(PhaseDriver.getInstance().getRootObject());
-    }
-
-    @Override
-    public String getSkipProperty() {
-        return SKIP_VERIFY_PROPERTY;
+    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        new SingleObjectValidationHandler(element).execute();
     }
 }

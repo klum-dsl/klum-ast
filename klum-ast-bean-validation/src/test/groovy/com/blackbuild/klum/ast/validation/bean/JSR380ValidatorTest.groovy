@@ -21,14 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.validation.bean
 
 import com.blackbuild.groovy.configdsl.transform.Validate
+import com.blackbuild.klum.ast.util.AbstractRuntimeTest
+import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.validation.KlumValidationResult
 import com.blackbuild.klum.ast.validation.SingleObjectValidationHandler
 import spock.lang.Issue
 
-@SuppressWarnings("GrPackage")
-class ValidatorTest extends AbstractRuntimeTest {
+@Issue("258")
+class JSR380ValidatorTest extends AbstractRuntimeTest {
 
     void "empty validation works"() {
         given:
@@ -41,56 +44,29 @@ class ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         noExceptionThrown()
     }
 
-    void "simple validation"() {
+    void "simple validation with JBV 3.0 annotations"() {
         given:
         createInstance('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
 
-            @DSL
-            class Foo extends TestObject {
-                @Validate
-                String name
-            }
-        ''')
-
-        when:
-        instance.name = 'test'
-        validate(instance)
-
-        then:
-        noExceptionThrown()
-
-        when:
-        instance.name = null
-        validate(instance)
-
-        then:
-        thrown(KlumValidationException)
-    }
-
-    void "simple validation with closure"() {
-        given:
-        createInstance('''
-            package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+import jakarta.validation.constraints.Min
 
             @DSL
             class Foo extends TestObject {
                 // since we don't use AST-Transformation, we need to explicitly use assert
-                @Validate({ assert value > 10})
+                @Min(20L)
                 int value
             }
         ''')
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
@@ -98,106 +74,97 @@ class ValidatorTest extends AbstractRuntimeTest {
         when:
         createInstance()
         instance.value = 200
-        validate(instance)
+        validateX(instance)
 
         then:
         noExceptionThrown()
     }
 
-    @Issue("https://github.com/klum-dsl/klum-ast/issues/230")
-    void "BUG: validator fails on inheritance"() {
+    void "simple validation with inheritance"() {
         given:
         createClass('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+
+import jakarta.validation.constraints.Min
 
             @DSL
             class Foo extends TestObject {
-                @Validate int value
+                // since we don't use AST-Transformation, we need to explicitly use assert
+                @Min(20L)
+                int value
             }
-
+            
             @DSL
             class Bar extends Foo {
+                // since we don't use AST-Transformation, we need to explicitly use assert
+                @Min(20L)
+                int value2
             }
         ''')
-        instance = newInstanceOf("pk.Bar")
+        createInstanceOf("pk.Bar")
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
 
-        when:
-        instance = newInstanceOf("pk.Bar")
+        when: "only parent value satisfied"
+        createInstanceOf("pk.Bar")
         instance.value = 200
-        validate(instance)
-
-        then:
-        noExceptionThrown()
-    }
-
-    @Issue("223")
-    def "Validation on Boolean checks not null instead of Groovy Truth"() {
-        given:
-        createClass('''
-            package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
-
-            @DSL
-            class Foo extends TestObject {
-                @Validate Boolean value
-            }
-        ''')
-        instance = newInstanceOf("pk.Foo")
-
-        when:
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
 
-        when:
-        instance = newInstanceOf("pk.Foo")
-        instance.value = false
-        validate(instance)
+        when: "only child value satisfied"
+        createInstanceOf("pk.Bar")
+        instance.value2 = 200
+        validateX(instance)
 
-        then: 'False should satisfy validation'
-        noExceptionThrown()
+        then:
+        thrown(KlumValidationException)
 
-        when:
-        instance = newInstanceOf("pk.Foo")
-        instance.value = true
-        validate(instance)
+        when: "both values satisfied"
+        createInstanceOf("pk.Bar")
+        instance.value = 200
+        instance.value2 = 200
+        validateX(instance)
 
         then:
         noExceptionThrown()
     }
 
-    @Issue("223")
-    def "boolean fields are ignored on class level Validate"() {
+    void "simple validation different levels"() {
         given:
-        createClass('''
+        createInstance('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+
+            import jakarta.validation.constraints.Min
 
             @DSL
-            @Validate
             class Foo extends TestObject {
-                boolean value
+                @Min(value = 20L, payload = Level.WARNING)
+                int value
             }
         ''')
-        instance = newInstanceOf("pk.Foo")
 
         when:
-        validate(instance)
+        def result = validate(instance)
 
-        then: 'boolean fields are ignored'
-        noExceptionThrown()
+        then:
+        result.has(Validate.Level.WARNING)
+        result.issues.size() == 1
+        result.issues.first().member == "value"
     }
 
-    private static void validate(Object instance) {
+    private static void validateX(Object instance) {
         def validator = new SingleObjectValidationHandler(instance)
-        validator.execute().throwOn(Validate.Level.ERROR);
+        validator.execute().throwOn(Validate.Level.ERROR)
+    }
+
+    private static KlumValidationResult validate(Object instance) {
+        def validator = new SingleObjectValidationHandler(instance)
+        return validator.execute()
     }
 }

@@ -51,6 +51,7 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
         extension.getGroovyVersion().convention(GroovyVersion.GROOVY_3);
         configureGroovyAndJava();
         addDependentPlugins();
+        lockDependencyVersions();
         addDependencies();
         configurePublishing();
         additionalConfig();
@@ -75,6 +76,17 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
     protected abstract void addDependentPlugins();
 
     protected abstract void addDependencies();
+
+    protected void lockDependencyVersions() {
+        project.getConfigurations().configureEach(configuration ->
+                configuration.getResolutionStrategy().eachDependency(details -> {
+                    if ("com.blackbuild.klum.ast".equals(details.getRequested().getGroup())) {
+                        details.useVersion(version);
+                        details.because("klum-ast version must match plugin version");
+                    }
+                })
+        );
+    }
 
     private void configurePublishing() {
         project.getPlugins().withType(MavenPublishPlugin.class, mavenPublishPlugin ->

@@ -1,6 +1,7 @@
 plugins {
     id "klum-ast.multigroovy-conventions"
     id "klum-ast.jacoco-conventions"
+    id "java-test-fixtures"
 }
 
 description = "Runtime Library for KlumAST"
@@ -29,7 +30,20 @@ dependencies {
     gdsl 'com.github.adedayo.intellij.sdk:core-api:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:java-psi-impl:142.1'
     gdsl 'com.github.adedayo.intellij.sdk:annotations:142.1'
+
+    testFixturesCompileOnly libs.bundles.spock.groovy.v3
+    testFixturesCompileOnly libs.jb.anno
+
+
+
 }
+
+// Need to add test fixtures as source, since we compile with different spock versions
+tasks.withType(GroovyCompile).configureEach {
+    if (!name.contains("Test") || name.contains("Fixtures")) return
+    it.source(project(':klum-ast-runtime').sourceSets.testFixtures.groovy.srcDirs)
+}
+
 
 publishing {
     publications {

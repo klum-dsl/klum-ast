@@ -21,9 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.util.KlumValidationException;
 
 import java.io.Serializable;
 import java.util.*;

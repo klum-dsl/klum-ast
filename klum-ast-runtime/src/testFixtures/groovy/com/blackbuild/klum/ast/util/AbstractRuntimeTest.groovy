@@ -95,6 +95,10 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
         instance = InvokerHelper.invokeNoArgumentsConstructorOf(clazz)
     }
 
+    void createInstanceOf(String className) {
+        instance = InvokerHelper.invokeNoArgumentsConstructorOf(getClass(className))
+    }
+
     def newInstanceOf(String className, Object[] args = []) {
         return InvokerHelper.invokeConstructorOf(getClass(className), args)
     }

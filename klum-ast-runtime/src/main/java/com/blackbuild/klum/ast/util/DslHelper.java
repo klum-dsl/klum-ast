@@ -270,7 +270,7 @@ public class DslHelper {
         throw new KlumSchemaException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
     }
 
-    static Object getAttributeValue(String name, Object instance) {
+    public static Object getAttributeValue(String name, Object instance) {
         Optional<CachedField> cachedField = getCachedField(instance.getClass(), name);
 
         // cannot use .map, because value can be null

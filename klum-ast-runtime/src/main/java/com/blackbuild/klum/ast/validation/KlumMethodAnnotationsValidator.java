@@ -21,24 +21,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.blackbuild.groovy.configdsl.transform.Validate;
+import org.codehaus.groovy.runtime.InvokerHelper;
+
+import java.lang.reflect.Method;
+import java.util.Optional;
 
 /**
- * Phase Action that validates the model.
+ * Validator that validates {@link com.blackbuild.groovy.configdsl.transform.Validate} annotations on methods of the instance.
  */
-public class ValidationPhase extends VisitingPhaseAction {
-
-    public ValidationPhase() {
-        super(DefaultKlumPhase.VALIDATE);
-    }
+public class KlumMethodAnnotationsValidator extends KlumAnnotationsValidator {
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        new Validator(element).execute();
+    protected void doValidateLayer() {
+        for (Method m : currentType.getDeclaredMethods()) {
+            if (!m.isAnnotationPresent(Validate.class)) continue;
+            validateCustomMethod(m).ifPresent(validationResult::addIssue);
+        }
     }
+
+    private Optional<KlumValidationIssue> validateCustomMethod(Method method) {
+        Validate.Level level = getValidateAnnotationOrDefault(method).level();
+        return withExceptionCheck(
+                method.getName() + "()",
+                level,
+                () -> InvokerHelper.invokeMethod(instance, method.getName(), null)
+        );
+    }
+
 }

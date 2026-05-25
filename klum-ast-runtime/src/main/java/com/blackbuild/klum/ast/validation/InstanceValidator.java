@@ -21,31 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
-
-import com.blackbuild.klum.ast.process.AbstractPhaseAction;
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.validation.Validator;
+package com.blackbuild.klum.ast.validation;
 
 /**
- * Phase Action that validates the model.
+ * Interface for various implementations of validations. Custom implementations can be registered via SPI (Service Provider Interface).
  */
-public class VerifyPhase extends AbstractPhaseAction {
+public interface InstanceValidator {
 
-    public static final String SKIP_VERIFY_PROPERTY = "klum.validation.skipVerify";
-
-    public VerifyPhase() {
-        super(DefaultKlumPhase.VERIFY);
-    }
-
-    @Override
-    protected void doExecute() {
-        Validator.verifyStructure(PhaseDriver.getInstance().getRootObject());
-    }
-
-    @Override
-    public String getSkipProperty() {
-        return SKIP_VERIFY_PROPERTY;
-    }
+    /**
+     * Validates the given instance. Returns a list of validation issues.
+     *
+     * @param instance         the instance to validate
+     * @param validationResult ths validation result to collect the issues in
+     */
+    void validateInstance(Object instance, KlumValidationResult validationResult);
 }

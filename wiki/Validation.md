@@ -247,3 +247,50 @@ The actual check against the fail level is done in the Verify phase. This allows
 # Skipping verification
 
 By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still executed, and the results can be extracted from the instances using the `Validator.getValidationResultsFromStructure(Object)` method (or `verifyStructure(Object)` can be used to run the verification later and throw an exception as needed). 
+
+# JSR380 validation
+
+Using the optional module `klum-ast-bean-validation` it is possible to use the JSR380 validation framework. By default, this includes Hibernate-Validator 8 as dependency, this can be exchanged using default gradle mechanisms (with version 3, this will change to hibernate validator 9).
+
+With the dependency in the classpath, JSR380 annotations are automatically evaluated during the validation phase in addition to standard klum validation.
+
+```groovy
+import jakarta.validation.constraints.Size
+
+@DSL class Foo {
+    @Size(min = 2, max = 4, message = "Must be between 2 and 4 values")
+    List<String> values
+}
+```
+
+## Validation levels and JSR380
+
+Levels are provided using the `jakarta.validation.Payload` interface. The class `com.blackbuild.klum.ast.validation.bean.Level` provides inner classes for each value of `Validate.Level`. When set on an annotation, an occuring violation will be set to that level:
+
+```groovy
+import jakarta.validation.constraints.Size
+import com.blackbuild.klum.ast.validation.bean.Level
+
+@DSL class Foo {
+    @Size(min = 2, payload = Level.ERROR)
+    List<String> values
+}
+```
+
+Note that other payloads are ignored.
+
+## Using the gradle plugin
+
+When using the [gradle plugin](Gradle-Plugins.md), the dependency version can be omitted:
+
+```groovy
+plugins {
+    id 'com.blackbuild.klum-ast-schema:2.2.0'
+    id "maven-publish"
+}
+
+dependencies {
+    // will be set to the version of the plugin (2.2.0)
+    api 'com.blackbuild.klum:klum-ast-bean-validation'
+}
+```
