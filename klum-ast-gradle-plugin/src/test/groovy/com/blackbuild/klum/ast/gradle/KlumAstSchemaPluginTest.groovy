@@ -54,8 +54,8 @@ class KlumAstSchemaPluginTest extends Specification {
         project.plugins.hasPlugin(GroovyPlugin)
 
         and:
-        project.configurations.getByName("compileOnly").dependencies.any { it.name == "klum-ast" && it.group == "com.blackbuild.klum.ast" && it.version == version }
-        project.configurations.getByName("api").dependencies.any { it.name == "klum-ast-runtime" && it.group == "com.blackbuild.klum.ast" && it.version == version }
+        project.configurations.getByName("compileOnly").dependencies.any { it.name == "klum-ast" && it.group == "com.blackbuild.klum.ast" && it.version == null }
+        project.configurations.getByName("api").dependencies.any { it.name == "klum-ast-runtime" && it.group == "com.blackbuild.klum.ast" && it.version == null }
 
         when:
         def java = project.getExtensions().getByType(JavaPluginExtension.class)

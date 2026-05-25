@@ -42,8 +42,8 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
     }
 
     protected void addDependencies() {
-        project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast:" + version);
-        project.getDependencies().add("api", "com.blackbuild.klum.ast:klum-ast-runtime:" + version);
+        project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast");
+        project.getDependencies().add("api", "com.blackbuild.klum.ast:klum-ast-runtime");
     }
 
     @Override

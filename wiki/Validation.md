@@ -278,3 +278,19 @@ import com.blackbuild.klum.ast.validation.bean.Level
 ```
 
 Note that other payloads are ignored.
+
+## Using the gradle plugin
+
+When using the [gradle plugin](Gradle-Plugins.md), the dependency version can be omitted:
+
+```groovy
+plugins {
+    id 'com.blackbuild.klum-ast-schema:2.2.0'
+    id "maven-publish"
+}
+
+dependencies {
+    // will be set to the version of the plugin (2.2.0)
+    api 'com.blackbuild.klum:klum-ast-bean-validation'
+}
+```
