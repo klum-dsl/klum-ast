@@ -12,6 +12,7 @@ repositories {
 dependencies {
     jacocoAggregation project(':klum-ast')
     jacocoAggregation project(':klum-ast-jackson')
+    jacocoAggregation project(':klum-ast-bean-validation')
     jacocoAggregation project(':klum-ast-gradle-plugin')
 }
 
