@@ -33,6 +33,8 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.Set;
 
 public class JSR380Validator implements InstanceValidator {
@@ -46,15 +48,26 @@ public class JSR380Validator implements InstanceValidator {
                 .messageInterpolator(new ParameterMessageInterpolator())
                 .buildValidatorFactory()) {
             Validator validator = factory.getValidator();
-            Set<ConstraintViolation<Object>> validationResults = validator.validate(instance);
 
-            validationResults.stream().map(this::mapViolationToResult)
+            Set<ConstraintViolation<Object>> defaultValidationResults = validator.validate(instance);
+            defaultValidationResults.stream()
+                    .map(this::mapViolationToResult)
                     .forEach(validationResult::addIssue);
         }
-
     }
 
-    private KlumValidationIssue mapViolationToResult(ConstraintViolation<Object> objectConstraintViolation) {
-        return new KlumValidationIssue(validationResult.getBreadcrumbPath(), null, objectConstraintViolation.getMessage(), null, Validate.Level.ERROR);
+    private KlumValidationIssue mapViolationToResult(ConstraintViolation<Object> violation) {
+        Validate.Level level = violation.getConstraintDescriptor().getPayload()
+                .stream()
+                .map(Level::getLevelForPayload)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder())
+                .orElse(Validate.Level.ERROR);
+        return new KlumValidationIssue(
+                validationResult.getBreadcrumbPath(),
+                violation.getPropertyPath().toString(),
+                violation.getMessage(),
+                null,
+                level);
     }
 }

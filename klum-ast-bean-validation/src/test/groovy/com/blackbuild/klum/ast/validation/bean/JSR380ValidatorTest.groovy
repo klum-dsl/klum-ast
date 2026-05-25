@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.validation.bean
 import com.blackbuild.groovy.configdsl.transform.Validate
 import com.blackbuild.klum.ast.util.AbstractRuntimeTest
 import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.validation.KlumValidationResult
 import com.blackbuild.klum.ast.validation.SingleObjectValidationHandler
 import spock.lang.Issue
 
@@ -43,13 +44,13 @@ class JSR380ValidatorTest extends AbstractRuntimeTest {
         ''')
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         noExceptionThrown()
     }
 
-    void "simple validation with JBV 2.0 annotations"() {
+    void "simple validation with JBV 3.0 annotations"() {
         given:
         createInstance('''
             package pk
@@ -65,7 +66,7 @@ import jakarta.validation.constraints.Min
         ''')
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
@@ -73,7 +74,7 @@ import jakarta.validation.constraints.Min
         when:
         createInstance()
         instance.value = 200
-        validate(instance)
+        validateX(instance)
 
         then:
         noExceptionThrown()
@@ -103,7 +104,7 @@ import jakarta.validation.constraints.Min
         createInstanceOf("pk.Bar")
 
         when:
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
@@ -111,7 +112,7 @@ import jakarta.validation.constraints.Min
         when: "only parent value satisfied"
         createInstanceOf("pk.Bar")
         instance.value = 200
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
@@ -119,7 +120,7 @@ import jakarta.validation.constraints.Min
         when: "only child value satisfied"
         createInstanceOf("pk.Bar")
         instance.value2 = 200
-        validate(instance)
+        validateX(instance)
 
         then:
         thrown(KlumValidationException)
@@ -128,15 +129,42 @@ import jakarta.validation.constraints.Min
         createInstanceOf("pk.Bar")
         instance.value = 200
         instance.value2 = 200
-        validate(instance)
+        validateX(instance)
 
         then:
         noExceptionThrown()
     }
 
+    void "simple validation different levels"() {
+        given:
+        createInstance('''
+            package pk
 
-    private static void validate(Object instance) {
+            import jakarta.validation.constraints.Min
+
+            @DSL
+            class Foo extends TestObject {
+                @Min(value = 20L, payload = Level.WARNING)
+                int value
+            }
+        ''')
+
+        when:
+        def result = validate(instance)
+
+        then:
+        result.has(Validate.Level.WARNING)
+        result.issues.size() == 1
+        result.issues.first().member == "value"
+    }
+
+    private static void validateX(Object instance) {
         def validator = new SingleObjectValidationHandler(instance)
-        validator.execute().throwOn(Validate.Level.ERROR);
+        validator.execute().throwOn(Validate.Level.ERROR)
+    }
+
+    private static KlumValidationResult validate(Object instance) {
+        def validator = new SingleObjectValidationHandler(instance)
+        return validator.execute()
     }
 }
