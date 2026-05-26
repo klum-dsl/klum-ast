@@ -7,8 +7,8 @@ description = "Java Bean Validation extension"
 
 dependencies {
     api project(':klum-ast-runtime')
-
-    api 'org.hibernate.validator:hibernate-validator:8.0.3.Final'
+    api 'jakarta.validation:jakarta.validation-api:3.0.2'
+    implementation 'org.hibernate.validator:hibernate-validator:8.0.3.Final'
 
     sharedTests project(':klum-ast')
     // just to make intellij happy, base classes are actually included as sources
