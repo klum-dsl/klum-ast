@@ -78,14 +78,7 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
     protected abstract void addDependencies();
 
     protected void lockDependencyVersions() {
-        project.getConfigurations().configureEach(configuration ->
-                configuration.getResolutionStrategy().eachDependency(details -> {
-                    if ("com.blackbuild.klum.ast".equals(details.getRequested().getGroup())) {
-                        details.useVersion(version);
-                        details.because("klum-ast version must match plugin version");
-                    }
-                })
-        );
+        project.getDependencies().add("api", project.getDependencies().platform("com.blackbuild.klum.ast:klum-ast-bom:" + version));
     }
 
     private void configurePublishing() {

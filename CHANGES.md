@@ -11,6 +11,7 @@
   - Deprecation checks now run in the new early validation phase and check only for manually set values, not values created by later phases
   - new annotation `@Notify` to raise issues if a field is set or unset in the early validation phase.
   - new module: klum-ast-bean-validation to provide Bean Validation integration (JSR380). (see [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation#Validation-levels-and-JSR380) [#395](https://github.com/klum-dsl/klum-ast/issues/395))
+- Added a bom with all module versions (`com.blackbuild.klum.ast:klum-ast-bom`) for easier dependency management. Note that this BOM is already applied by the gradle plugins
 
 ## Bugfixes
 - `StructureUtil.getPathOfFieldContaining()` and therefore `@Role` fields ignored fields where the value was actually a subclass of the field type.

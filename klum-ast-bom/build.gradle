@@ -1,0 +1,25 @@
+plugins {
+    id "klum-ast.base-conventions"
+    id "java-platform"
+}
+
+description = "klum-ast-bom"
+
+def thisProject = project
+
+rootProject.allprojects {subproject ->
+    subproject.pluginManager.withPlugin("java-library") {
+        thisProject.dependencies.constraints {
+            println "adding constraint $subproject to $thisProject"
+            api subproject
+        }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.javaPlatform)
+        }
+    }
+}

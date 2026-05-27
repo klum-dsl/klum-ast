@@ -74,6 +74,7 @@ include 'klum-ast-runtime'
 include 'klum-ast-jackson'
 include 'klum-ast-gradle-plugin'
 include 'klum-ast-bean-validation'
+include 'klum-ast-bom'
 include 'code-coverage-report'
 
 

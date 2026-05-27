@@ -28,8 +28,6 @@ import org.gradle.api.NonNullApi;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
 
-import java.util.Map;
-
 @NonNullApi
 public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
@@ -44,8 +42,8 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
     }
 
     protected void addDependencies() {
-        project.getDependencies().add("compileOnly", Map.of("group","com.blackbuild.klum.ast", "name", "klum-ast"));
-        project.getDependencies().add("api", Map.of("group", "com.blackbuild.klum.ast", "name", "klum-ast-runtime"));
+        project.getDependencies().add("compileOnly", "com.blackbuild.klum.ast:klum-ast");
+        project.getDependencies().add("api", "com.blackbuild.klum.ast:klum-ast-runtime");
     }
 
     @Override

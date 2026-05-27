@@ -1,35 +1,10 @@
 plugins {
-    id "java-library"
-    id 'groovy'
     id 'signing'
     id 'maven-publish'
     id 'com.github.hierynomus.license'
 }
 
 group = rootProject.group
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
-    }
-    withJavadocJar()
-    withSourcesJar()
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs << '-parameters'
-}
-
-dependencies {
-    compileOnly libs.jb.anno
-    compileOnly libs.groovy.v2
-
-    testImplementation libs.jb.anno
-    testImplementation 'uk.org.webcompere:system-stubs-core:2.1.8'
-
-    testRuntimeOnly libs.bundles.spockRuntime
-    testRuntimeOnly libs.jpl
-}
 
 publishing.publications.configureEach {
     suppressPomMetadataWarningsFor('testFixturesApiElements')
@@ -74,7 +49,6 @@ afterEvaluate {
         }
     }
 }
-
 
 license {
     header = rootProject.file("LICENSE")

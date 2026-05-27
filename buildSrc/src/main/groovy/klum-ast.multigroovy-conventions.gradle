@@ -1,5 +1,5 @@
 plugins {
-    id "klum-ast.base-conventions"
+    id "klum-ast.java-conventions"
     id 'jvm-test-suite'
 }
 
