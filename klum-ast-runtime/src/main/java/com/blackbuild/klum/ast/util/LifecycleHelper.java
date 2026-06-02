@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2015-2025 Stephan Pauxberger
+ * Copyright (c) 2015-2026 Stephan Pauxberger
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,12 @@ public class LifecycleHelper {
         // static only
     }
 
+    /**
+     * Executes all methods annotated with the given annotation on the rw instance of the proxy.
+     * Also executes all closures annotated with the given annotation.
+     * @param proxy the proxy for which the lifecycle methods should be executed
+     * @param annotation the annotation that marks the lifecycle methods and closures
+     */
     public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         Object rw = proxy.getRwInstance();
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
@@ -56,6 +62,11 @@ public class LifecycleHelper {
         executeLifecycleClosures(proxy, annotation);
     }
 
+    /**
+     * Executes all closures annotated with the given annotation on the DSL instance of the proxy.
+     * @param proxy The proxy for which the lifecycle closures should be executed
+     * @param annotation the annotation that marks the lifecycle closures
+     */
     public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), annotation)
                 .filter(field -> field.getType().equals(Closure.class))
