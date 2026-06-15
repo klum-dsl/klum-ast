@@ -633,6 +633,43 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
     }
 
+    @Issue("415")
+    def "method in validation class"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                class Validation {
+                    def stringLength() {
+                        assert value1.length() < value2.length()
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value1 "abc"
+            value2 "bl"
+        }
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        clazz.Create.With {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
     def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''

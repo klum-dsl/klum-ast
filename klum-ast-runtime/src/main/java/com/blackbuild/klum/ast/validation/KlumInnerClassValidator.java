@@ -24,31 +24,42 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.util.KlumSchemaException;
+import com.blackbuild.klum.ast.util.LifecycleHelper;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Optional;
 
-/**
- * Validator that validates {@link com.blackbuild.groovy.configdsl.transform.Validate} annotations on methods of the instance.
- */
-public class KlumMethodAnnotationsValidator extends KlumLayeredAnnotationsValidator {
+public class KlumInnerClassValidator extends KlumAnnotationsValidator {
 
     @Override
-    protected void doValidateLayer() {
-        for (Method m : currentLayer.getDeclaredMethods()) {
-            if (!m.isAnnotationPresent(Validate.class)) continue;
-            validateCustomMethod(m).ifPresent(validationResult::addIssue);
+    protected void doValidateInstance() {
+        LifecycleHelper.getLifecycleClasses(instance.getClass(), Validate.class).forEach(this::validateInnerClass);
+    }
+
+    private void validateInnerClass(Class<?> validatorClass) {
+        try {
+            Object validatorInstance = validatorClass.getConstructor(instance.getClass()).newInstance(instance);
+            Arrays.stream(validatorClass.getMethods())
+                    .filter(method -> LifecycleHelper.isValidLifecycleClassMethod(method, Validate.class))
+                    .forEach(method -> validateMethod(validatorInstance, method));
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new KlumSchemaException(e);
         }
+
     }
 
-    private Optional<KlumValidationIssue> validateCustomMethod(Method method) {
+    private void validateMethod(Object validatorInstance, Method method) {
         Validate.Level level = getValidateAnnotationOrDefault(method).level();
-        return withExceptionCheck(
-                method.getName() + "()",
+        Optional<KlumValidationIssue> issue = withExceptionCheck(
+                validatorInstance.getClass().getSimpleName() + "#" + method.getName() + "()",
                 level,
-                () -> InvokerHelper.invokeMethod(instance, method.getName(), null)
+                () -> InvokerHelper.invokeMethod(validatorInstance, method.getName(), null)
         );
-    }
 
+        issue.ifPresent(validationResult::addIssue);
+    }
 }

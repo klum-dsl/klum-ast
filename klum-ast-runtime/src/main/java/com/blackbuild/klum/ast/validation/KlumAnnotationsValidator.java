@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.DslHelper;
 
 import java.lang.reflect.AnnotatedElement;
 import java.util.Optional;
@@ -33,27 +32,7 @@ import java.util.Optional;
 public abstract class KlumAnnotationsValidator implements InstanceValidator {
     protected Object instance;
     protected String breadcrumbPath;
-    protected boolean classHasValidateAnnotation;
-    protected Class<?> currentType;
     protected KlumValidationResult validationResult;
-
-    @Override
-    public void validateInstance(Object instance, KlumValidationResult validationResult) {
-        this.instance = instance;
-        this.breadcrumbPath = validationResult.getBreadcrumbPath();
-        this.validationResult = validationResult;
-
-        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateType);
-    }
-
-    private void validateType(Class<?> type) {
-        currentType = type;
-        classHasValidateAnnotation = type.isAnnotationPresent(Validate.class);
-        doValidateLayer();
-    }
-
-    protected abstract void doValidateLayer();
-
 
     protected Optional<KlumValidationIssue> withExceptionCheck(String memberName, Validate.Level level, Runnable runnable) {
         try {
@@ -74,4 +53,15 @@ public abstract class KlumAnnotationsValidator implements InstanceValidator {
         if (validate != null) return validate;
         return Validate.DefaultImpl.INSTANCE;
     }
+
+    @Override
+    public void validateInstance(Object instance, KlumValidationResult validationResult) {
+        this.instance = instance;
+        this.breadcrumbPath = validationResult.getBreadcrumbPath();
+        this.validationResult = validationResult;
+
+        doValidateInstance();
+    }
+
+    protected abstract void doValidateInstance();
 }

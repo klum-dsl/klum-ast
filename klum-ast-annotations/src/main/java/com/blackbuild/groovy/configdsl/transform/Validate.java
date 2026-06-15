@@ -98,14 +98,28 @@ import java.lang.annotation.*;
  * thrown(IllegalStateException)
  * </code></pre>
  * <p>Validation methods should not change the state of an object, use {@link PostApply} or {@link PostCreate} for that.</p>
- * <p>When using validation on a method or a class, neither a {@link #message()} nor a {@link #value()} must be given.</p>
+ * <p>When placing Validate on a method or a class, neither a {@link #message()} nor a {@link #value()} must be given.</p>
+ *
+ * <h2>On a validation class</h2>
+ * <p>When placed on a non-static inner class of a model class, all public, non-static, and parameterless methods
+ * of that class are considered validation methods. This includes validation classes of super classes of the current class,
+ * as long as they are <b>not</b> inherited by a current validation class.</p>
+ * <p>Validation classes offer some distinct advantages over validation methods:</p>
+ * <ul>
+ *     <li>they do not pollute the interface of the model class</li>
+ *     <li>they can inherit logic from common parent classes</li>
+ *     <li>when working on source code, they can be folded as a whole in modern IDEs</li>
+ *     <li>They can be used to group validations logically and by level</li>
+ * </ul>
  *
  * <h1>Order of validation</h1>
  * When validating an object, the following order is executed.
  * <ul>
  *     <li>Validation of the superclass, if the superclass is also a model class</li>
  *     <li>validation of all fields</li>
- *     <li>custom validation methods</li>
+ *     <li>validation methods</li>
+ *     <li>validator classes</li>
+ *     <li>validation provided by plugins (like bean validation)</li>
  * </ul>
  *
  * <p>Using the {@link #level()} member, the validation can be designated as information/warning only.</p>
@@ -205,6 +219,8 @@ public @interface Validate {
     class DefaultImpl implements Validate {
 
         public static final Validate INSTANCE = new DefaultImpl();
+
+        private DefaultImpl() {}
 
         @Override
         public Class<? extends Closure> value() {

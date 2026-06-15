@@ -21,23 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.util.DslHelper;
 
-/**
- *
- */
-public class CleanupPhase extends VisitingPhaseAction {
-    public CleanupPhase() {
-        super(DefaultKlumPhase.COMPLETE);
-    }
+public abstract class KlumLayeredAnnotationsValidator extends KlumAnnotationsValidator {
+    protected Class<?> currentLayer;
+    protected boolean classHasValidateAnnotation;
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        KlumInstanceProxy.getProxyFor(element).cleanup();
+    protected void doValidateInstance() {
+        DslHelper.getDslHierarchyOf(instance.getClass()).forEach(this::validateLayer);
     }
+
+    private void validateLayer(Class<?> layer) {
+        currentLayer = layer;
+        classHasValidateAnnotation = layer.isAnnotationPresent(Validate.class);
+        doValidateLayer();
+    }
+
+    protected abstract void doValidateLayer();
+
+
 }
