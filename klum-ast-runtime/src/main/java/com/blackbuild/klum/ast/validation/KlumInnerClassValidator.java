@@ -42,7 +42,7 @@ public class KlumInnerClassValidator extends KlumAnnotationsValidator {
 
     private void validateInnerClass(Class<?> validatorClass) {
         try {
-            Object validatorInstance = validatorClass.getConstructor(instance.getClass()).newInstance(instance);
+            Object validatorInstance = validatorClass.getConstructor(validatorClass.getDeclaringClass()).newInstance(instance);
             Arrays.stream(validatorClass.getMethods())
                     .filter(method -> LifecycleHelper.isValidLifecycleClassMethod(method, Validate.class))
                     .forEach(method -> validateMethod(validatorInstance, method));

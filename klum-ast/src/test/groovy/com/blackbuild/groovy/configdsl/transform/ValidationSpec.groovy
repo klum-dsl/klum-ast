@@ -670,6 +670,112 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
     }
 
+    @Issue("415")
+    def "methods in validation classes of parent classes are executed as well"() {
+        given:
+        createClass('''
+            @DSL class Parent {
+                String parentValue
+                
+                @Validate class ParentValidation {
+                    def parentValidation() {
+                        assert parentValue != null
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation {
+                    def childValidation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        when:
+        Child.Create.With {
+            parentValue "parent"
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            parentValue "parent"
+        }
+
+        then:
+        e = thrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "if inner validation class extends parent's inner validation class, only child classes validator is executed"() {
+        given:
+        createClass('''
+            @DSL class Parent {
+                @Validate class ParentValidation {
+                    def validation() {
+                        assert false
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    def validation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        when:
+        Parent.Create.One()
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "placement of validate annotation is verified"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate static class Validation {
+        def validation() {}
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
     def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''

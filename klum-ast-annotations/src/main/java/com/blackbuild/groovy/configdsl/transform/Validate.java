@@ -132,6 +132,7 @@ import java.lang.annotation.*;
 @KlumCastValidated
 @NumberOfParameters(0)
 @KlumCastValidator("com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean")
+@KlumCastValidator("com.blackbuild.klum.ast.validation.ValidateAnnotationCheck")
 @Documented
 public @interface Validate {
 
