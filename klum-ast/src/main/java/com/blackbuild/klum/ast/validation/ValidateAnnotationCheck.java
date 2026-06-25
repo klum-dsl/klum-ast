@@ -24,14 +24,16 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
+import com.blackbuild.klum.cast.checks.impl.ValidationException;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
+    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) throws ValidationException {
         if (target instanceof ClassNode) {
             if (target instanceof InnerClassNode) checkOnInnerClass((InnerClassNode) target);
             else checkOnOuterClass((ClassNode) target);
@@ -40,26 +42,33 @@ public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
         } else if (target instanceof FieldNode) {
             checkOnField((FieldNode) target);
         } else {
-            throw new IllegalStateException("@Validate can only be used on (inner) classes, methods or fields!");
+            throw new ValidationException("@Validate can only be used on (inner) classes, methods or fields!");
         }
     }
 
-    private void checkOnField(FieldNode target) {
+    private void checkOnField(FieldNode target) throws ValidationException {
         if (target.isStatic())
-            throw new IllegalStateException("@Validate can only be used on non-static fields!");
+            throw new ValidationException("@Validate can only be used on non-static fields!");
     }
 
-    private void checkOnMethod(MethodNode target) {
+    private void checkOnMethod(MethodNode target) throws ValidationException {
         if (target.isStatic())
-            throw new IllegalStateException("@Validate can only be used on non-static methods!");
+            throw new ValidationException("@Validate can only be used on non-static methods!");
     }
 
-    private void checkOnOuterClass(ClassNode target) {
+    private void checkOnOuterClass(ClassNode target) throws ValidationException {
         // empty
     }
 
-    private void checkOnInnerClass(InnerClassNode target) {
+    private void checkOnInnerClass(InnerClassNode target) throws ValidationException {
         if ((target.getModifiers() & Opcodes.ACC_STATIC) != 0)
-            throw new IllegalStateException("@Validate can only be used on non-static inner classes!");
+            throw new ValidationException("@Validate can only be used on non-static inner classes!");
+        List<ConstructorNode> constructors = target.getDeclaredConstructors();
+
+        if (constructors.size() > 1)
+            throw new ValidationException("@Validate can only be used on inner classes with a maximum of one constructor!", constructors.get(1));
+
+        if (constructors.size() == 1 && constructors.get(0).getParameters().length > 0)
+            throw new ValidationException("@Validate can only be used on inner classes with a no-argument constructor!", constructors.get(0));
     }
 }

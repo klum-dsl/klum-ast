@@ -776,6 +776,37 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("415")
+    def "Inner class validation must not have a constructor"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate class Validation {
+        Validation(String value) {
+        
+        }
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate class Validation {
+        Validation() {
+        
+        }
+    }
+}
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''
