@@ -807,6 +807,112 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("415")
+    def "abstract inner class validators CAN have a constructor"() {
+        when:
+        createClass('''
+            @DSL class Parent {
+                String name
+            
+                @Validate abstract class ParentValidation {
+                    final int minimum
+                    
+                    ParentValidation(int minimum) {
+                        this.minimum = minimum
+                    }
+                
+                    def validation() {
+                        assert name.length() > minimum
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    ChildValidation() {
+                        super(5)
+                    }
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        Parent.Create.With {
+            name "abc"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            name "abc"
+        }
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            name "abcdef"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "Abstract Inner validation class is allowed, but not called"() {
+        when:
+        createClass('''
+            @DSL class Parent {
+                @Validate abstract class ParentValidation {
+                    def validation() {
+                        assert false
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    def validation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        Parent.Create.One()
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.One()
+
+        then:
+        thrown(KlumValidationException)
+    }
+
     def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''

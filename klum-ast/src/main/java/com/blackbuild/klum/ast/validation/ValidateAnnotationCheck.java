@@ -29,6 +29,7 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Modifier;
 import java.util.List;
 
 public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
@@ -65,10 +66,12 @@ public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
             throw new ValidationException("@Validate can only be used on non-static inner classes!");
         List<ConstructorNode> constructors = target.getDeclaredConstructors();
 
-        if (constructors.size() > 1)
-            throw new ValidationException("@Validate can only be used on inner classes with a maximum of one constructor!", constructors.get(1));
+        if (!Modifier.isAbstract(target.getModifiers())) {
+            if (constructors.size() > 1)
+                throw new ValidationException("@Validate can only be used on inner classes with a maximum of one constructor!", constructors.get(1));
 
-        if (constructors.size() == 1 && constructors.get(0).getParameters().length > 0)
-            throw new ValidationException("@Validate can only be used on inner classes with a no-argument constructor!", constructors.get(0));
+            if (constructors.size() == 1 && constructors.get(0).getParameters().length > 0)
+                throw new ValidationException("@Validate can only be used on inner classes with a no-argument constructor!", constructors.get(0));
+        }
     }
 }
