@@ -1,9 +1,9 @@
 Resulting objects can be automatically be validated. This is controlled via the `@Validate` annotation.
 
 # On classes
-`@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e. all not explicitly marked fields are validated
+`@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
 against Groovy truth
- (i.e. numbers must be non-zero, collections and Strings non-empty, and other objects not null).
+ (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).
    
 # On fields
 The `@Validate` annotation controls validation of a single field. If the annotation is not present, the presence on the class  
@@ -150,12 +150,106 @@ Additionally, there are methods to provide an explicit object to report the issu
 
 The member name is optional, if not provided, a generic `<none>` is used. Also note that there is no three argument version of `addIssueTo`, to prevent argument confusion.
 
-# Validation of inner objects
+# On inner classes
+
+`@Validate` can also be placed on non-static inner classes, making the class a validation class. All public parameterless methods
+in the class are considered validation methods, like above. 
+
+This allows encapsuling validation logic in a separate class, preventing further pollution of the model class when working with the source (in the final class file, validation methods are downgraded to protected methods).
+
+During actual validation, each non-abstract inner validation class is instantiated and the validation methods are executed.
+
+There can be an unlimited number of inner validation classes, and validation classes of parent model classes are also instantiated during validation if they are not overridden by a child's validation class.
+
+```groovy
+@DSL
+class Server {
+    String host
+    int port
+
+    @Validate
+    class Checks {
+        void hostMustBeSet() {
+            assert host
+        }
+
+        void portMustBeInRange() {
+            assert port in 1..65535
+        }
+    }
+}
+```
+
+The inner class can also define a shared validation level for all methods, which can be overridden by the method level:
+
+```groovy
+@DSL
+class Job {
+    String owner
+    String ticket
+
+    @Validate(level = Validate.Level.WARNING)
+    class Warnings {
+        void ownerShouldBeSet() {
+            assert owner
+        }
+
+        @Validate(level = Validate.Level.ERROR)
+        void ticketShouldBeSet() {
+            assert ticket
+        }
+    }
+}
+```
+
+Validation inheritance also works with inner validation classes. In this case, the validation methods of the parent class are executed by the child validation class (unless overridden by the child class):
+
+```groovy
+@DSL
+class BaseComponent {
+    String id
+
+    @Validate
+    class Checks {
+        void idMustBeSet() {
+            assert id
+        }
+    }
+}
+
+@DSL
+class WebComponent extends BaseComponent {
+    String endpoint
+
+    @Validate
+    class Checks extends BaseComponent.Checks {
+        void endpointMustBeSet() {
+            assert endpoint
+        }
+    }
+}
+```
+## custom issues on inner classes
+
+For convenience, validation classes can inherit from `ValidatorBase`, which provides convenience methods to add issues for the outer instance. These map to `Validator` static methods. The methods available are:
+
+* `addError(message)`
+* `addErrorToMember(message, member)`
+* `addIssue(message, level)`
+* `addIssueToMember(message, member, level)`
+* `addWarning(message)`
+* `addWarningToMember(message, member)`
+* `suppressFurtherIssuesOn(member)`
+* `suppressAllFurtherIssues()`
+* `suppressFurtherIssuesOn(member, level)`
+* `suppressAllFurtherIssues(level)`
+
+# Validation of nested objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
 phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e., validation for
 the complete model tree runs immediately before the initial create method returns.
 
-This means that inner objects can make use of the complete model tree (provided they have an owner field).
+This means that nested objects can make use of the complete model tree (provided they have an owner field).
 
 ```groovy
 @DSL

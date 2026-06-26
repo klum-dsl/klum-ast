@@ -38,11 +38,11 @@ import static org.codehaus.groovy.runtime.typehandling.DefaultTypeTransformation
 /**
  * Validator that validates {@link Validate} annotations on fields of the instance.
  */
-public class KlumFieldAnnotationsValidator extends KlumAnnotationsValidator {
+public class KlumFieldAnnotationsValidator extends KlumLayeredAnnotationsValidator {
 
     @Override
     protected void doValidateLayer() {
-        for (Field field : currentType.getDeclaredFields()) {
+        for (Field field : currentLayer.getDeclaredFields()) {
             if (!isNotExplicitlyIgnored(field)) continue;
             validateField(field).ifPresent(validationResult::addIssue);
         }

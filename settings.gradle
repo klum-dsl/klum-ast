@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
-            version("klum-cast", "0.1.0")
+            version("klum-cast", "0.3.1")
             library("klum-cast-compile", "com.blackbuild.klum.cast", "klum-cast-compile").versionRef("klum-cast")
             library("klum-cast-annotations", "com.blackbuild.klum.cast", "klum-cast-annotations").versionRef("klum-cast")
 

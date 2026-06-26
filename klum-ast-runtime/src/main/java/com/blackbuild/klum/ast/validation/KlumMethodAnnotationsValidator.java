@@ -32,11 +32,11 @@ import java.util.Optional;
 /**
  * Validator that validates {@link com.blackbuild.groovy.configdsl.transform.Validate} annotations on methods of the instance.
  */
-public class KlumMethodAnnotationsValidator extends KlumAnnotationsValidator {
+public class KlumMethodAnnotationsValidator extends KlumLayeredAnnotationsValidator {
 
     @Override
     protected void doValidateLayer() {
-        for (Method m : currentType.getDeclaredMethods()) {
+        for (Method m : currentLayer.getDeclaredMethods()) {
             if (!m.isAnnotationPresent(Validate.class)) continue;
             validateCustomMethod(m).ifPresent(validationResult::addIssue);
         }

@@ -633,6 +633,372 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
     }
 
+    @Issue("415")
+    def "method in validation class"() {
+        given:
+        createClass('''
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate
+                class Validation {
+                    def stringLength() {
+                        assert value1.length() < value2.length()
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value1 "abc"
+            value2 "bl"
+        }
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        clazz.Create.With {
+            value1 "b"
+            value2 "bla"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "methods in validation classes of parent classes are executed as well"() {
+        given:
+        createClass('''
+            @DSL class Parent {
+                String parentValue
+                
+                @Validate class ParentValidation {
+                    def parentValidation() {
+                        assert parentValue != null
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation {
+                    def childValidation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        when:
+        Child.Create.With {
+            parentValue "parent"
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            parentValue "parent"
+        }
+
+        then:
+        e = thrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "if inner validation class extends parent's inner validation class, only child classes validator is executed"() {
+        given:
+        createClass('''
+            @DSL class Parent {
+                @Validate class ParentValidation {
+                    def validation() {
+                        assert false
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    def validation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        when:
+        Parent.Create.One()
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "placement of validate annotation is verified"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate static class Validation {
+        def validation() {}
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("415")
+    def "Validate.level can be used on inner classes, but not on top level classes"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+    }
+}
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        createClass '''
+@Validate(level = Validate.Level.WARNING) 
+@DSL class Foo {
+    class Validation {
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("415")
+    def "Validate.level on inner classes is used for its methods"() {
+        given:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+        def failAlways() {
+            assert false : "mööp"
+        }
+    }
+}
+        '''
+        instance = Foo.Create.One()
+
+        when:
+        def validationResults = getValidationResult(instance)
+
+        then:
+        noExceptionThrown()
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.issues.size() == 1
+        validationResults.message == '''<root>($/Foo.One):
+- WARNING #Validation.failAlways(): java.lang.AssertionError: mööp. Expression: false'''
+
+    }
+
+    @Issue("415")
+    def "Validate.level on inner class methods override inner class levels"() {
+        given:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+        @Validate(level =  Validate.Level.INFO)
+        def failAlwaysInfo() {
+            assert false : "mööp"
+        }
+        def failAlwaysDefault() {
+            assert false : "mööp"
+        }
+    }
+}
+        '''
+        instance = Foo.Create.One()
+
+        when:
+        def validationResults = getValidationResult(instance)
+
+        then:
+        noExceptionThrown()
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.issues.size() == 2
+        validationResults.message == '''<root>($/Foo.One):
+- WARNING #Validation.failAlwaysDefault(): java.lang.AssertionError: mööp. Expression: false
+- INFO #Validation.failAlwaysInfo(): java.lang.AssertionError: mööp. Expression: false'''
+
+    }
+
+    @Issue("415")
+    def "Inner class validation must not have a constructor"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate class Validation {
+        Validation(String value) {
+        
+        }
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate class Validation {
+        Validation() {
+        
+        }
+    }
+}
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("415")
+    def "abstract inner class validators CAN have a constructor"() {
+        when:
+        createClass('''
+            @DSL class Parent {
+                String name
+            
+                @Validate abstract class ParentValidation {
+                    final int minimum
+                    
+                    ParentValidation(int minimum) {
+                        this.minimum = minimum
+                    }
+                
+                    def validation() {
+                        assert name.length() > minimum
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    ChildValidation() {
+                        super(5)
+                    }
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        Parent.Create.With {
+            name "abc"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            name "abc"
+        }
+
+        then:
+        thrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            name "abcdef"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
+    @Issue("415")
+    def "Abstract Inner validation class is allowed, but not called"() {
+        when:
+        createClass('''
+            @DSL class Parent {
+                @Validate abstract class ParentValidation {
+                    def validation() {
+                        assert false
+                    }
+                }
+            }
+                        
+            @DSL
+            class Child extends Parent {
+                String childValue
+
+                @Validate class ChildValidation extends Parent.ParentValidation {
+                    def validation() {
+                        assert childValue != null
+                    }
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        Parent.Create.One()
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.With {
+            childValue "child"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+
+        when:
+        Child.Create.One()
+
+        then:
+        thrown(KlumValidationException)
+    }
+
     def "exceptions in validation method are wrapped in KlumValidationExceptions"() {
         given:
         createClass('''
@@ -1055,6 +1421,45 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         notThrown(KlumValidationException)
     }
+
+    @Issue("415")
+    def "custom issues in validation inner classes"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.validation.ValidatorBase
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate class Validation extends ValidatorBase {
+                    def aCustomIssue() {
+                        if (value1.length() > value2.length())
+                            addError("There has been as disturbance in the force")
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value1 "bla"
+            value2 "ab"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("- ERROR #Validation.aCustomIssue(): There has been as disturbance in the force")
+
+        when:
+        clazz.Create.With {
+            value1 "bl"
+            value2 "abc"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
 
     @Issue("395")
     def "custom issues can override member name"() {
