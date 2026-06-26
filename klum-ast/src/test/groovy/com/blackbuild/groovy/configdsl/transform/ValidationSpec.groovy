@@ -826,7 +826,7 @@ class ValidationSpec extends AbstractDSLSpec {
         validationResults.maxLevel == Validate.Level.WARNING
         validationResults.issues.size() == 1
         validationResults.message == '''<root>($/Foo.One):
-- WARNING #Validation#failAlways(): java.lang.AssertionError: mööp. Expression: false'''
+- WARNING #Validation.failAlways(): java.lang.AssertionError: mööp. Expression: false'''
 
     }
 
@@ -857,8 +857,8 @@ class ValidationSpec extends AbstractDSLSpec {
         validationResults.maxLevel == Validate.Level.WARNING
         validationResults.issues.size() == 2
         validationResults.message == '''<root>($/Foo.One):
-- WARNING #Validation#failAlwaysDefault(): java.lang.AssertionError: mööp. Expression: false
-- INFO #Validation#failAlwaysInfo(): java.lang.AssertionError: mööp. Expression: false'''
+- WARNING #Validation.failAlwaysDefault(): java.lang.AssertionError: mööp. Expression: false
+- INFO #Validation.failAlwaysInfo(): java.lang.AssertionError: mööp. Expression: false'''
 
     }
 
@@ -1421,6 +1421,45 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         notThrown(KlumValidationException)
     }
+
+    @Issue("415")
+    def "custom issues in validation inner classes"() {
+        given:
+        createClass('''import com.blackbuild.klum.ast.validation.ValidatorBase
+            @DSL
+            class Foo {
+                String value1
+                String value2
+
+                @Validate class Validation extends ValidatorBase {
+                    def aCustomIssue() {
+                        if (value1.length() > value2.length())
+                            addError("There has been as disturbance in the force")
+                    }
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.With {
+            value1 "bla"
+            value2 "ab"
+        }
+
+        then:
+        def e = thrown(KlumValidationException)
+        e.message.contains("- ERROR #Validation.aCustomIssue(): There has been as disturbance in the force")
+
+        when:
+        clazz.Create.With {
+            value1 "bl"
+            value2 "abc"
+        }
+
+        then:
+        notThrown(KlumValidationException)
+    }
+
 
     @Issue("395")
     def "custom issues can override member name"() {

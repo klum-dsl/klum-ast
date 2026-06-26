@@ -229,8 +229,20 @@ class WebComponent extends BaseComponent {
     }
 }
 ```
+## custom issues on inner classes
 
+For convenience, validation classes can inherit from `ValidatorBase`, which provides convenience methods to add issues for the outer instance. These map to `Validator` static methods. The methods available are:
 
+* `addError(message)`
+* `addErrorToMember(message, member)`
+* `addIssue(message, level)`
+* `addIssueToMember(message, member, level)`
+* `addWarning(message)`
+* `addWarningToMember(message, member)`
+* `suppressFurtherIssuesOn(member)`
+* `suppressAllFurtherIssues()`
+* `suppressFurtherIssuesOn(member, level)`
+* `suppressAllFurtherIssues(level)`
 
 # Validation of nested objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant

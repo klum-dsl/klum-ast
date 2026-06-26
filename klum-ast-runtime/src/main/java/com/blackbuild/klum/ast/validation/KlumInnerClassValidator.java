@@ -55,7 +55,7 @@ public class KlumInnerClassValidator extends KlumAnnotationsValidator {
     private void validateMethod(Object validatorInstance, Method method) {
         Validate.Level level = getValidationLevelForMethod(method);
         Optional<KlumValidationIssue> issue = withExceptionCheck(
-                validatorInstance.getClass().getSimpleName() + "#" + method.getName() + "()",
+                validatorInstance.getClass().getSimpleName() + "." + method.getName() + "()",
                 level,
                 () -> InvokerHelper.invokeMethod(validatorInstance, method.getName(), null)
         );
