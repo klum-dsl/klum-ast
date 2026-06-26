@@ -53,7 +53,7 @@ public class KlumInnerClassValidator extends KlumAnnotationsValidator {
     }
 
     private void validateMethod(Object validatorInstance, Method method) {
-        Validate.Level level = getValidateAnnotationOrDefault(method).level();
+        Validate.Level level = getValidationLevelForMethod(method);
         Optional<KlumValidationIssue> issue = withExceptionCheck(
                 validatorInstance.getClass().getSimpleName() + "#" + method.getName() + "()",
                 level,
@@ -61,5 +61,13 @@ public class KlumInnerClassValidator extends KlumAnnotationsValidator {
         );
 
         issue.ifPresent(validationResult::addIssue);
+    }
+
+    private Validate.Level getValidationLevelForMethod(Method method) {
+        Validate validate = method.getAnnotation(Validate.class);
+
+        if (validate != null) return validate.level();
+
+        return getValidateAnnotationOrDefault(method.getDeclaringClass()).level();
     }
 }

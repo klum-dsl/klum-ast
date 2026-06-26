@@ -37,7 +37,7 @@ public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) throws ValidationException {
         if (target instanceof ClassNode) {
             if (target instanceof InnerClassNode) checkOnInnerClass((InnerClassNode) target);
-            else checkOnOuterClass((ClassNode) target);
+            else checkOnOuterClass(annotationToCheck);
         } else if (target instanceof MethodNode) {
             checkOnMethod((MethodNode) target);
         } else if (target instanceof FieldNode) {
@@ -57,8 +57,9 @@ public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
             throw new ValidationException("@Validate can only be used on non-static methods!");
     }
 
-    private void checkOnOuterClass(ClassNode target) throws ValidationException {
-        // empty
+    private void checkOnOuterClass(AnnotationNode annotationToCheck) throws ValidationException {
+        if (annotationToCheck.getMember("level") != null)
+            throw new ValidationException("@Validate.level is not allowed on top level classes!");
     }
 
     private void checkOnInnerClass(InnerClassNode target) throws ValidationException {

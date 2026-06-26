@@ -152,9 +152,8 @@ public @interface Validate {
 
     /**
      * Defines the severity of the validation problem. Default is {@link Level#ERROR}. This can be used to create
-     * Warning or Info messages instead of errors.
+     * Warning or Info messages instead of errors. Cannot be used on top level classes.
      */
-    @NotOn(ElementType.TYPE)
     Level level() default Level.ERROR;
 
     /**

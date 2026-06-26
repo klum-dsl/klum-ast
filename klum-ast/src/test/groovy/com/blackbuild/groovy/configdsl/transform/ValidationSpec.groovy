@@ -777,6 +777,92 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("415")
+    def "Validate.level can be used on inner classes, but not on top level classes"() {
+        when:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+    }
+}
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        createClass '''
+@Validate(level = Validate.Level.WARNING) 
+@DSL class Foo {
+    class Validation {
+    }
+}
+        '''
+
+        then:
+        thrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue("415")
+    def "Validate.level on inner classes is used for its methods"() {
+        given:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+        def failAlways() {
+            assert false : "mööp"
+        }
+    }
+}
+        '''
+        instance = Foo.Create.One()
+
+        when:
+        def validationResults = getValidationResult(instance)
+
+        then:
+        noExceptionThrown()
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.issues.size() == 1
+        validationResults.message == '''<root>($/Foo.One):
+- WARNING #Validation#failAlways(): java.lang.AssertionError: mööp. Expression: false'''
+
+    }
+
+    @Issue("415")
+    def "Validate.level on inner class methods override inner class levels"() {
+        given:
+        createClass '''
+@DSL class Foo {
+    @Validate(level = Validate.Level.WARNING) 
+    class Validation {
+        @Validate(level =  Validate.Level.INFO)
+        def failAlwaysInfo() {
+            assert false : "mööp"
+        }
+        def failAlwaysDefault() {
+            assert false : "mööp"
+        }
+    }
+}
+        '''
+        instance = Foo.Create.One()
+
+        when:
+        def validationResults = getValidationResult(instance)
+
+        then:
+        noExceptionThrown()
+        validationResults.maxLevel == Validate.Level.WARNING
+        validationResults.issues.size() == 2
+        validationResults.message == '''<root>($/Foo.One):
+- WARNING #Validation#failAlwaysDefault(): java.lang.AssertionError: mööp. Expression: false
+- INFO #Validation#failAlwaysInfo(): java.lang.AssertionError: mööp. Expression: false'''
+
+    }
+
+    @Issue("415")
     def "Inner class validation must not have a constructor"() {
         when:
         createClass '''
