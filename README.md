@@ -7,13 +7,15 @@ Turn your models into supermodels!
 
 [![klum logo](img/klumlogo.png)](https://github.com/klum-dsl/klum-ast)
 
-# Breaking changes
+# Breaking changes and version overview
 
 I have finally released 2.0.0 and 2.1.0. Both are based on the same major changes, including runtime dependencies, modularization, etc.
 
 Users of 1.2.0 (or lower) should take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
 
-2.1.0 does not introduce new features but drops all methods that were deprecated in 2.0.0.
+2.1.0 does not introduce new features but drops all methods deprecated in 2.0.0.
+
+2.2 introduces a lot new validation features (see [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation)) and will be the last version of the 2.x series.
 
 2.x will be the last version of KlumAST that supports Groovy 2.x. The next major version will require Groovy 3.x and Java 17.
 
