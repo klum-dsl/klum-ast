@@ -9,7 +9,7 @@ plugins {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
     withJavadocJar()
     withSourcesJar()
@@ -19,9 +19,14 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-parameters'
 }
 
+tasks.withType(GroovyCompile).configureEach {
+    groovyOptions.optimizationOptions.groovydoc = true
+    groovyOptions.parameters = true
+}
+
 dependencies {
     compileOnly libs.jb.anno
-    compileOnly libs.groovy.v2
+    compileOnly libs.groovy.v3
 
     testImplementation libs.jb.anno
     testImplementation 'uk.org.webcompere:system-stubs-core:2.1.8'

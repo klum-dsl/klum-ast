@@ -22,12 +22,12 @@ dependencyResolutionManagement {
 
     versionCatalogs {
         libs {
-            version("groovy-v2", "2.4.21")
-            version("groovy-v3", "3.0.21")
-            version("groovy-v4", "4.0.21")
-            library('groovy-v2', 'org.codehaus.groovy', 'groovy-all').versionRef("groovy-v2")
+            version("groovy-v3", "3.0.25")
+            version("groovy-v4", "4.0.32")
+            version("groovy-v5", "5.0.6")
             library('groovy-v3', 'org.codehaus.groovy', 'groovy-all').versionRef("groovy-v3")
             library('groovy-v4', 'org.apache.groovy', 'groovy-all').versionRef("groovy-v4")
+            library('groovy-v5', 'org.apache.groovy', 'groovy-all').versionRef("groovy-v5")
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
@@ -35,11 +35,9 @@ dependencyResolutionManagement {
             library("klum-cast-compile", "com.blackbuild.klum.cast", "klum-cast-compile").versionRef("klum-cast")
             library("klum-cast-annotations", "com.blackbuild.klum.cast", "klum-cast-annotations").versionRef("klum-cast")
 
-            version("spock-g2", "1.3-groovy-2.4")
-            version("spock-g3", "2.3-groovy-3.0")
-            version("spock-g4", "2.3-groovy-4.0")
-
-            library("spock-g2", "org.spockframework", "spock-core").versionRef("spock-g2")
+            version("spock-g3", "2.4-groovy-3.0")
+            version("spock-g4", "2.4-groovy-4.0")
+            version("spock-g5", "2.4-groovy-5.0")
 
             library("spock-g3", "org.spockframework", "spock-core").versionRef("spock-g3")
             library("spock-junit4-g3", "org.spockframework", "spock-junit4").versionRef("spock-g3")
@@ -47,18 +45,21 @@ dependencyResolutionManagement {
             library("spock-g4", "org.spockframework", "spock-core").versionRef("spock-g4")
             library("spock-junit4-g4", "org.spockframework", "spock-junit4").versionRef("spock-g4")
 
-            bundle("spock-groovy-v2", ["spock-g2", "groovy-v2"])
+            library("spock-g5", "org.spockframework", "spock-core").versionRef("spock-g5")
+            library("spock-junit4-g5", "org.spockframework", "spock-junit4").versionRef("spock-g5")
+
             bundle("spock-groovy-v3", ["spock-g3", "spock-junit4-g3", "groovy-v3"])
             bundle("spock-groovy-v4", ["spock-g4", "spock-junit4-g4", "groovy-v4"])
+            bundle("spock-groovy-v5", ["spock-g5", "spock-junit4-g5", "groovy-v5"])
 
             library "bytebuddy", "net.bytebuddy:byte-buddy:1.9.3"
             library "objenesis", "org.objenesis:objenesis:2.6"
 
-            library "jpl", "org.junit.platform:junit-platform-launcher:1.9.0"
+            library "jpl", "org.junit.platform:junit-platform-launcher:1.9.2"
 
             bundle "spockRuntime", ["bytebuddy", "objenesis"]
 
-            version("annodocimal", "0.6.5")
+            version("annodocimal", "0.7.0")
             library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
             library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
             library("annodocimal-gradle-plugin", "com.blackbuild.annodocimal", "anno-docimal-gradle-plugin").versionRef("annodocimal")

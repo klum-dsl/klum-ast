@@ -61,11 +61,12 @@ class AbstractDSLSpec extends Specification {
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
-        def outputDirectory = new File("build/test-classes/$GroovySystem.version/${getClass().simpleName}/$safeFilename")
+        def outputDirectory = new File ("build/test-classes/$GroovySystem.shortVersion/${getClass().simpleName}/$safeFilename")
         outputDirectory.deleteDir()
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
         compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
+        compilerConfiguration.parameters = true
         BreadcrumbCollector.getInstance(specificationContext.currentIteration.name)
     }
 

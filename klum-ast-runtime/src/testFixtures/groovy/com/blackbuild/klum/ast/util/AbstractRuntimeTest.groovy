@@ -51,9 +51,11 @@ abstract class AbstractRuntimeTest extends Specification {
 
         compilerConfiguration = new CompilerConfiguration()
         compilerConfiguration.addCompilationCustomizers(importCustomizer)
+        compilerConfiguration.parameters = true
+        compilerConfiguration.optimizationOptions.groovydoc = Boolean.TRUE
         loader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(), compilerConfiguration)
         Thread.currentThread().contextClassLoader = loader
-        def outputDirectory = new File("build/test-classes/${getClass().simpleName}/$safeFilename")
+        def outputDirectory = new File("build/test-classes/$GroovySystem.shortVersion/${getClass().simpleName}/$safeFilename")
         outputDirectory.deleteDir()
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
