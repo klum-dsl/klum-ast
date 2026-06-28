@@ -1,3 +1,8 @@
+# 3.0.0
+
+- Support for Groovy 2 has been dropped, support for Groovy 5 has been added
+- Minimum Java version is now 17
+
 # 2.2.0
 - Breaking change: Dropped manualValidation() support
 - Minor Breaking change: `toString()` methods are not created anymore. If needed, they can still be generated using the default Groovy `@ToString` annotation. 
