@@ -9,6 +9,8 @@ Turn your models into supermodels!
 
 # Breaking changes and version overview
 
+3.0 is currently in development to be released very soon, dropping support for Groovy 2.x. and Java 11.
+
 I have finally released 2.0.0 and 2.1.0. Both are based on the same major changes, including runtime dependencies, modularization, etc.
 
 Users of 1.2.0 (or lower) should take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).

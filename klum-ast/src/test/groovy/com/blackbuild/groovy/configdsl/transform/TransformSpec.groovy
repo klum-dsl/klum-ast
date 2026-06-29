@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
+//file:noinspection GroovyVariableNotAssigned
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumModelException
@@ -2139,7 +2140,7 @@ import org.codehaus.groovy.control.CompilePhase
         createClass '''
             @DSL class Foo {
                 @Field(FieldType.IGNORED)
-                Map<Class<? extends Hint>, ? extends Hint> hints = [:]
+                Map<Class<? extends Hint>, Hint> hints = [:]
                 
                 @Mutator
                 void hint(Hint hint) {

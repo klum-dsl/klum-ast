@@ -4,14 +4,14 @@ plugins {
 }
 
 dependencies {
-    testImplementation libs.bundles.spock.groovy.v2
+    testImplementation libs.bundles.spock.groovy.v3
 }
 
 configurations {
     sharedTests
 }
 
-configurations.matching { it.name in ["testImplementation", "groovy3TestsImplementation", "groovy4TestsImplementation"]}.configureEach {
+configurations.matching { it.name in ["testImplementation", "groovy4TestsImplementation", "groovy5TestsImplementation"]}.configureEach {
     extendsFrom(configurations.sharedTests)
 }
 
@@ -45,8 +45,8 @@ testing {
 
             }
         }
-        groovy3Tests(JvmTestSuite)
         groovy4Tests(JvmTestSuite)
+        groovy5Tests(JvmTestSuite)
     }
 }
 
@@ -57,6 +57,6 @@ tasks.withType(GroovyCompile).configureEach {
 }
 
 tasks.named('check') {
-    dependsOn(testing.suites.groovy3Tests)
     dependsOn(testing.suites.groovy4Tests)
+    dependsOn(testing.suites.groovy5Tests)
 }

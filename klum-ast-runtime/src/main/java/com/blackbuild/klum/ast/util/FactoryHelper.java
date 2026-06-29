@@ -283,6 +283,8 @@ public class FactoryHelper extends GroovyObjectSupport {
         GroovyClassLoader gLoader = new GroovyClassLoader(loader != null ? loader : Thread.currentThread().getContextClassLoader());
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
         compilerConfiguration.setScriptBaseClass(DelegatingScript.class.getName());
+        compilerConfiguration.setParameters(true);
+        compilerConfiguration.getOptimizationOptions().put("groovydoc", Boolean.TRUE);
         return new GroovyShell(gLoader, compilerConfiguration);
     }
 
