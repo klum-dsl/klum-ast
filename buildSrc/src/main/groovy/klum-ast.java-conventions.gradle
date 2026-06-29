@@ -27,6 +27,7 @@ tasks.withType(GroovyCompile).configureEach {
 dependencies {
     compileOnly libs.jb.anno
     compileOnly libs.groovy.v3
+    compileOnly platform(libs.groovy.v3.bom)
 
     testImplementation libs.jb.anno
     testImplementation 'uk.org.webcompere:system-stubs-core:2.1.8'
