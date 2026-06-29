@@ -27,11 +27,15 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.plugins.GroovyPlugin;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.testing.Test;
 
 public class GroovyDependenciesPlugin implements Plugin<Project> {
 
+    public static final String GROOVY_CONFIGURATION = "groovy";
     protected Configuration groovy;
     protected Configuration spock;
     protected Project project;
@@ -64,7 +68,7 @@ public class GroovyDependenciesPlugin implements Plugin<Project> {
 
     private void createConfigurations(Project project) {
         ConfigurationContainer configurations = project.getConfigurations();
-        groovy = configurations.create("groovy", c -> {
+        groovy = configurations.create(GROOVY_CONFIGURATION, c -> {
             c.setVisible(false);
             c.setCanBeConsumed(false);
             c.setCanBeResolved(true);
@@ -78,33 +82,31 @@ public class GroovyDependenciesPlugin implements Plugin<Project> {
             c.setCanBeConsumed(false);
             c.setCanBeResolved(true);
             c.setDescription("The spock version used for testing.");
+            c.extendsFrom(groovy);
         });
 
         configurations.named("testImplementation", c -> c.extendsFrom(spock));
     }
 
     protected void addGroovyDefaultDependencies() {
-        groovy.defaultDependencies(d -> {
-                    if (groovyDependencies.getGroovyVersionDependency().isPresent())
-                        d.add(project.getDependencies().create(groovyDependencies.getGroovyVersionDependency().get()));
-                }
-        );
+        DependencyHandler dependencyHandler = project.getDependencies();
+
+        Provider<Dependency> groovyBomProvider = groovyDependencies.getGroovyBomDependency().map(dependencyHandler::platform).orElse((Dependency) null);
+        Provider<Dependency> groovyProvider = groovyDependencies.getGroovyVersionDependency().map(dependencyHandler::create).orElse((Dependency) null);
+
+        dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyBomProvider);
+        dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyProvider);
     }
 
     protected void addSpockDefaultDependencies() {
         spock.defaultDependencies(d -> {
                     if (groovyDependencies.getSpockVersionDependency().isPresent())
                         d.add(project.getDependencies().create(groovyDependencies.getSpockVersionDependency().get()));
-                    if (groovyDependencies.getGroovyVersionDependency().isPresent())
-                        d.add(project.getDependencies().create(groovyDependencies.getGroovyVersionDependency().get()));
                 }
         );
     }
 
     protected void configureTestTasks() {
-        project.getTasks().withType(Test.class).configureEach(test -> {
-            if (groovyDependencies.getGroovyVersionDependency().isPresent() && !groovyDependencies.getSpockVersionDependency().get().contains("groovy-2.4"))
-                test.useJUnitPlatform();
-        });
+        project.getTasks().withType(Test.class).configureEach(Test::useJUnitPlatform);
     }
 }

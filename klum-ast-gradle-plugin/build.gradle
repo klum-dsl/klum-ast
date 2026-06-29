@@ -3,6 +3,7 @@ plugins {
     id "klum-ast.jacoco-conventions"
     id 'com.gradle.plugin-publish'
     id 'java-gradle-plugin'
+    id 'groovy'
 }
 
 description = "KlumAST Gradle Plugins"
@@ -59,6 +60,10 @@ processResources {
 
 test {
     useJUnitPlatform()
+
+    inputs.files(
+            project(":klum-ast").tasks.named("jar")
+    )
 }
 
 publishing {

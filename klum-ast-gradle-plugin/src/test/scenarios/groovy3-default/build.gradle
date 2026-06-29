@@ -1,0 +1,27 @@
+import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
+
+plugins {
+    id 'com.blackbuild.convention.groovy'
+    id 'groovy'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+groovyDependencies {
+    groovyVersion = GroovyVersion.GROOVY_3
+}
+
+tasks.check {
+    doLast {
+        def result = configurations.groovy.incoming.resolutionResult
+        def actual = result.allComponents
+                .findAll { it.id instanceof ModuleComponentIdentifier }
+                .collect { id -> "$id.id.group:$id.id.module:$id.id.version" as String }
+                .toSet()
+
+        assert actual == ["org.codehaus.groovy:groovy-bom:3.0.25", "org.codehaus.groovy:groovy:3.0.25"] as Set
+    }
+}

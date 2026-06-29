@@ -25,15 +25,17 @@ package com.blackbuild.klum.ast.gradle.convention;
 
 public enum GroovyVersion {
 
-    GROOVY_3("org.codehaus.groovy:groovy-all:3.0.25", "org.spockframework:spock-core:2.4-groovy-3.0"),
-    GROOVY_4("org.apache.groovy:groovy-all:4.0.32", "org.spockframework:spock-core:2.4-groovy-4.0"),
-    GROOVY_5("org.apache.groovy:groovy-all:5.0.6", "org.spockframework:spock-core:2.4-groovy-5.0");
+    GROOVY_3("org.codehaus.groovy:groovy-bom:3.0.25", "org.codehaus.groovy:groovy:3.0.25", "org.spockframework:spock-core:2.4-groovy-3.0"),
+    GROOVY_4("org.apache.groovy:groovy-bom:4.0.32", "org.apache.groovy:groovy:4.0.32", "org.spockframework:spock-core:2.4-groovy-4.0"),
+    GROOVY_5("org.apache.groovy:groovy-bom:5.0.6", "org.apache.groovy:groovy:5.0.6", "org.spockframework:spock-core:2.4-groovy-5.0");
 
 
     private final String spockDependency;
+    private final String groovyBom;
     private final String groovyDependency;
 
-    GroovyVersion(String groovyDependency, String spockDependency) {
+    GroovyVersion(String groovyBom, String groovyDependency, String spockDependency) {
+        this.groovyBom = groovyBom;
         this.groovyDependency = groovyDependency;
         this.spockDependency = spockDependency;
     }
@@ -44,5 +46,9 @@ public enum GroovyVersion {
 
     public String getSpockDependency() {
         return spockDependency;
+    }
+
+    public String getGroovyBom() {
+        return groovyBom;
     }
 }

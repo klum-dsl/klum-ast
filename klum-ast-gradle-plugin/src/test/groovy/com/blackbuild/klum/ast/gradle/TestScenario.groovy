@@ -21,37 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.gradle.convention;
+package com.blackbuild.klum.ast.gradle
 
-import org.gradle.api.provider.Property;
-import org.gradle.api.provider.Provider;
+/**
+ * Simple data structure to makle scenario tests better to use
+ */
+class TestScenario {
 
-public interface GroovyDependenciesExtension {
+    String name
+    File sourceDir
+    File projectDir
 
-    Property<String> getGroovyBom();
-
-    Property<String> getGroovy();
-
-    Property<String> getSpock();
-
-    Property<GroovyVersion> getGroovyVersion();
-
-    default Provider<String> getGroovyVersionDependency() {
-        return getGroovyVersion().map(GroovyVersion::getGroovyDependency).orElse(getGroovy());
+    TestScenario(String name, File scenarioRoot, File testProjectsRoot) {
+        this.name = name
+        sourceDir = new File(scenarioRoot, name)
+        projectDir = new File(testProjectsRoot, this.name)
     }
 
-    default Provider<String> getGroovyBomDependency() {
-        return getGroovyVersion().map(GroovyVersion::getGroovyBom).orElse(getGroovyBom());
+    List<String> getTasks() {
+        return ["check"]
     }
 
-    default Provider<String> getSpockVersionDependency() {
-        return getGroovyVersion().map(GroovyVersion::getSpockDependency).orElse(getSpock());
-    }
+    TestScenario prepareScenario() {
+        projectDir.deleteDir()
+        projectDir.mkdirs()
+        sourceDir.eachFileRecurse { file ->
+            if (file.isFile()) {
+                File targetFile = new File(projectDir, sourceDir.relativePath(file))
+                targetFile.parentFile.mkdirs()
+                targetFile.text = file.text
+            }
+        }
+        def settingsFile = new File(projectDir, "settings.gradle")
+        if (!settingsFile.exists())
+            settingsFile.text = "rootProject.name = '$name'"
 
-    default void copyFrom(GroovyDependenciesExtension other) {
-        getGroovy().convention(other.getGroovy());
-        getSpock().convention(other.getSpock());
-        getGroovyBom().convention(other.getGroovyBom());
-        getGroovyVersion().convention(other.getGroovyVersion());
+        return this
     }
 }

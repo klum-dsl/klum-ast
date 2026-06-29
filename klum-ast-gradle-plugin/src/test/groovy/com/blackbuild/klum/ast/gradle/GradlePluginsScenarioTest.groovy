@@ -21,37 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.gradle.convention;
+package com.blackbuild.klum.ast.gradle
 
-import org.gradle.api.provider.Property;
-import org.gradle.api.provider.Provider;
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
+import spock.lang.Shared
+import spock.lang.Specification
 
-public interface GroovyDependenciesExtension {
+class GradlePluginsScenarioTest extends Specification {
 
-    Property<String> getGroovyBom();
+    @Shared File scenarioRoot = new File("src/test/scenarios").absoluteFile
+    @Shared File target = new File("build/test-scenarios").absoluteFile
 
-    Property<String> getGroovy();
+    TestScenario scenario
 
-    Property<String> getSpock();
+    def "test scenario #name"(String name) {
+        given:
+        scenario = new TestScenario(name, scenarioRoot, target).prepareScenario()
 
-    Property<GroovyVersion> getGroovyVersion();
+        when:
+        def result = runTask()
 
-    default Provider<String> getGroovyVersionDependency() {
-        return getGroovyVersion().map(GroovyVersion::getGroovyDependency).orElse(getGroovy());
+        then:
+        noExceptionThrown()
+
+        where:
+        name << scenarioRoot.listFiles().findAll { it.isDirectory() }.collect { it.name }
     }
 
-    default Provider<String> getGroovyBomDependency() {
-        return getGroovyVersion().map(GroovyVersion::getGroovyBom).orElse(getGroovyBom());
-    }
-
-    default Provider<String> getSpockVersionDependency() {
-        return getGroovyVersion().map(GroovyVersion::getSpockDependency).orElse(getSpock());
-    }
-
-    default void copyFrom(GroovyDependenciesExtension other) {
-        getGroovy().convention(other.getGroovy());
-        getSpock().convention(other.getSpock());
-        getGroovyBom().convention(other.getGroovyBom());
-        getGroovyVersion().convention(other.getGroovyVersion());
+    protected BuildResult runTask() {
+        return GradleRunner.create()
+                .withProjectDir(scenario.projectDir)
+                .withArguments(scenario.tasks)
+                .withDebug(true)
+                .withPluginClasspath()
+                .forwardOutput()
+                .build()
     }
 }
