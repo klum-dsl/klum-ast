@@ -16,12 +16,17 @@ groovyDependencies {
 
 tasks.check {
     doLast {
-        def result = configurations.groovy.incoming.resolutionResult
-        def actual = result.allComponents
-                .findAll { it.id instanceof ModuleComponentIdentifier }
-                .collect { id -> "$id.id.group:$id.id.module:$id.id.version" as String }
-                .toSet()
-
-        assert actual == ["org.codehaus.groovy:groovy-bom:3.0.25", "org.codehaus.groovy:groovy:3.0.25"] as Set
+        assertConfigurationContains("groovy", "org.codehaus.groovy:groovy-bom:3.0.25", "org.codehaus.groovy:groovy:3.0.25")
+        assertConfigurationContains("spock", "org.spockframework:spock-core:2.4-groovy-3.0")
     }
+}
+
+void assertConfigurationContains(String configName, String... dependencies) {
+    def result = configurations.getByName(configName).incoming.resolutionResult
+    def actual = result.allComponents
+            .findAll { it.id instanceof ModuleComponentIdentifier }
+            .collect { id -> "$id.id.group:$id.id.module:$id.id.version" as String }
+            .toSet()
+
+    assert actual.containsAll(dependencies)
 }

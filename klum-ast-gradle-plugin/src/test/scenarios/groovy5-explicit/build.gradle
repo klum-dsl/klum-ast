@@ -1,5 +1,3 @@
-import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
-
 plugins {
     id 'com.blackbuild.convention.groovy'
     id 'groovy'
@@ -11,13 +9,15 @@ repositories {
 }
 
 groovyDependencies {
-    groovyVersion = GroovyVersion.GROOVY_4
+    groovy = "org.apache.groovy:groovy:5.0.5"
+    spock = "org.spockframework:spock-core:2.4-groovy-5.0"
 }
 
 tasks.check {
+    dependsOn "dependencies"
     doLast {
-        assertConfigurationContains("groovy", "org.apache.groovy:groovy-bom:4.0.32", "org.apache.groovy:groovy:4.0.32")
-        assertConfigurationContains("spock", "org.spockframework:spock-core:2.4-groovy-4.0")
+        assertConfigurationContains("groovy", "org.apache.groovy:groovy:5.0.5")
+        assertConfigurationContains("spock", "org.spockframework:spock-core:2.4-groovy-5.0")
     }
 }
 

@@ -52,7 +52,7 @@ class GradlePluginsScenarioTest extends Specification {
     protected BuildResult runTask() {
         return GradleRunner.create()
                 .withProjectDir(scenario.projectDir)
-                .withArguments(scenario.tasks)
+                .withArguments(scenario.tasks + ["--stacktrace"])
                 .withDebug(true)
                 .withPluginClasspath()
                 .forwardOutput()

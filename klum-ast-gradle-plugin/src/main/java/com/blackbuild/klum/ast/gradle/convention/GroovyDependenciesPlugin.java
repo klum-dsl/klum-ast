@@ -91,8 +91,8 @@ public class GroovyDependenciesPlugin implements Plugin<Project> {
     protected void addGroovyDefaultDependencies() {
         DependencyHandler dependencyHandler = project.getDependencies();
 
-        Provider<Dependency> groovyBomProvider = groovyDependencies.getGroovyBomDependency().map(dependencyHandler::platform).orElse((Dependency) null);
-        Provider<Dependency> groovyProvider = groovyDependencies.getGroovyVersionDependency().map(dependencyHandler::create).orElse((Dependency) null);
+        Provider<Dependency> groovyBomProvider = groovyDependencies.getGroovyBomDependency().map(dependencyHandler::platform);
+        Provider<Dependency> groovyProvider = groovyDependencies.getGroovyVersionDependency().map(dependencyHandler::create);
 
         dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyBomProvider);
         dependencyHandler.addProvider(GROOVY_CONFIGURATION, groovyProvider);
