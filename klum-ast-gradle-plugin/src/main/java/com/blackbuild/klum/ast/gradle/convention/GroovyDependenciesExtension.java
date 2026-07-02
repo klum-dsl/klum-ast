@@ -26,29 +26,29 @@ package com.blackbuild.klum.ast.gradle.convention;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 
-public interface GroovyDependenciesExtension {
+public abstract class GroovyDependenciesExtension {
 
-    Property<String> getGroovyBom();
+    public abstract Property<String> getGroovyBom();
 
-    Property<String> getGroovy();
+    public abstract Property<String> getGroovy();
 
-    Property<String> getSpock();
+    public abstract Property<String> getSpock();
 
-    Property<GroovyVersion> getGroovyVersion();
+    public abstract Property<GroovyVersion> getGroovyVersion();
 
-    default Provider<String> getGroovyVersionDependency() {
+    public Provider<String> getGroovyVersionDependency() {
         return getGroovyVersion().map(GroovyVersion::getGroovyDependency).orElse(getGroovy());
     }
 
-    default Provider<String> getGroovyBomDependency() {
+    public Provider<String> getGroovyBomDependency() {
         return getGroovyVersion().map(GroovyVersion::getGroovyBom).orElse(getGroovyBom());
     }
 
-    default Provider<String> getSpockVersionDependency() {
+    public Provider<String> getSpockVersionDependency() {
         return getGroovyVersion().map(GroovyVersion::getSpockDependency).orElse(getSpock());
     }
 
-    default void copyFrom(GroovyDependenciesExtension other) {
+    public void copyFrom(GroovyDependenciesExtension other) {
         getGroovy().convention(other.getGroovy());
         getSpock().convention(other.getSpock());
         getGroovyBom().convention(other.getGroovyBom());
