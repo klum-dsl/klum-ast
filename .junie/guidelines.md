@@ -16,7 +16,7 @@ KlumAST is a multi-module Gradle project with the following modules:
 
 ### Building the Project
 
-The project uses Gradle as its build system. It requires Java 11 or higher.
+The project uses Gradle as its build system. It requires Java 17 or higher.
 
 ```bash
 # Build the entire project
@@ -31,15 +31,16 @@ The project uses Gradle as its build system. It requires Java 11 or higher.
 
 ### Multi-Groovy Testing
 
-The project is designed to be compatible with multiple Groovy versions (2.x, 3.x, and 4.x). The build system is configured to test against all supported Groovy versions:
+The project is designed to be compatible with multiple Groovy versions (3.0, 4.0 and 5.0). The build system is configured to test against all supported Groovy versions:
 
 ```bash
 # Run tests for all Groovy versions
 ./gradlew check
 
 # Run tests for a specific Groovy version
-./gradlew :klum-ast:groovy3Tests
+./gradlew :klum-ast:test
 ./gradlew :klum-ast:groovy4Tests
+./gradlew :klum-ast:groovy5Tests
 ```
 
 ## Testing Information
@@ -104,7 +105,7 @@ Tests can be run using Gradle:
 ./gradlew test --tests com.blackbuild.groovy.configdsl.transform.MyTest
 
 # Run tests for a specific Groovy version
-./gradlew groovy3Tests
+./gradlew groovy4Tests
 ```
 
 ### Scenario-Based Testing
@@ -155,7 +156,7 @@ The project uses the nebula-release plugin for releases:
 
 ### Compatibility
 
-- Maintain compatibility with Groovy 2.x, 3.x, and 4.x
+- Maintain compatibility with Groovy 3.0, 4.0 and 5.0
 - Test against all supported Groovy versions
 - Document all changes in CHANGES.md, breaking changes addionally in Migration.md
 

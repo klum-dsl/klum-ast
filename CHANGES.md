@@ -2,6 +2,8 @@
 
 - Support for Groovy 2 has been dropped, support for Groovy 5 has been added
 - Minimum Java version is now 17
+- Only include base groovy module instead of groovy-all in gradle plugins
+- Gradle plugins now support versions as strings ("5", "5.0" or "5.0.5") or int (5) instead of the GroovyVersion enum, which is deprecated. 
 
 # 2.2.0
 - Breaking change: Dropped manualValidation() support
