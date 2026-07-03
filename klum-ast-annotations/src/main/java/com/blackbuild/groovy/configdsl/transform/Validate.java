@@ -112,7 +112,7 @@ import java.lang.annotation.*;
  *     <li>They can be used to group validations logically and by level</li>
  * </ul>
  *
- * <h1>Order of validation</h1>
+ * <h2>Order of validation</h2>
  * When validating an object, the following order is executed.
  * <ul>
  *     <li>Validation of the superclass, if the superclass is also a model class</li>
