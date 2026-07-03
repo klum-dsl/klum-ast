@@ -21,25 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.gradle;
+package com.blackbuild.klum.ast.gradle
 
-import org.gradle.api.Action;
-import org.gradle.api.provider.MapProperty;
-import org.gradle.api.tasks.Nested;
+/**
+ * Simple data structure to makle scenario tests better to use
+ */
+class TestScenario {
 
-public abstract class KlumModelExtension extends KlumExtension {
+    String name
+    File sourceDir
+    File projectDir
 
-    @Nested
-    public abstract SchemaDependencies getSchemas();
-
-    public abstract MapProperty<String, String> getTopLevelScripts();
-
-    public void topLevelScript(String modelType, String script) {
-        getTopLevelScripts().put(modelType, script);
+    TestScenario(String name, File scenarioRoot, File testProjectsRoot) {
+        this.name = name
+        sourceDir = new File(scenarioRoot, name)
+        projectDir = new File(testProjectsRoot, this.name)
     }
 
-    public void schemas(Action<? super SchemaDependencies> action) {
-        action.execute(getSchemas());
+    List<String> getTasks() {
+        return ["check"]
     }
 
+    TestScenario prepareScenario() {
+        projectDir.deleteDir()
+        projectDir.mkdirs()
+        sourceDir.eachFileRecurse { file ->
+            if (file.isFile()) {
+                File targetFile = new File(projectDir, sourceDir.relativePath(file))
+                targetFile.parentFile.mkdirs()
+                targetFile.text = file.text
+            }
+        }
+        def settingsFile = new File(projectDir, "settings.gradle")
+        if (!settingsFile.exists())
+            settingsFile.text = "rootProject.name = '$name'"
+
+        return this
+    }
 }

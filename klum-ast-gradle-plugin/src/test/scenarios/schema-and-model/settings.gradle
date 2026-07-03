@@ -1,0 +1,12 @@
+rootProject.name = "schema-and-model"
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+}
+
+
+include "schema"
+include "model"

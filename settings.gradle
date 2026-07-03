@@ -25,9 +25,13 @@ dependencyResolutionManagement {
             version("groovy-v3", "3.0.25")
             version("groovy-v4", "4.0.32")
             version("groovy-v5", "5.0.6")
-            library('groovy-v3', 'org.codehaus.groovy', 'groovy-all').versionRef("groovy-v3")
-            library('groovy-v4', 'org.apache.groovy', 'groovy-all').versionRef("groovy-v4")
-            library('groovy-v5', 'org.apache.groovy', 'groovy-all').versionRef("groovy-v5")
+            library('groovy-v3', 'org.codehaus.groovy', 'groovy').versionRef("groovy-v3")
+            library('groovy-v4', 'org.apache.groovy', 'groovy').versionRef("groovy-v4")
+            library('groovy-v5', 'org.apache.groovy', 'groovy').versionRef("groovy-v5")
+
+            library('groovy-v3-bom', 'org.codehaus.groovy', 'groovy-bom').versionRef("groovy-v3")
+            library('groovy-v4-bom', 'org.apache.groovy', 'groovy-bom').versionRef("groovy-v4")
+            library('groovy-v5-bom', 'org.apache.groovy', 'groovy-bom').versionRef("groovy-v5")
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 

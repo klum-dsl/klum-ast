@@ -23,9 +23,35 @@
  */
 package com.blackbuild.klum.ast.gradle;
 
+import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesExtension;
 import com.blackbuild.klum.ast.gradle.convention.GroovyVersion;
 import org.gradle.api.provider.Property;
 
-public interface KlumExtension {
-    Property<GroovyVersion> getGroovyVersion();
+public abstract class KlumExtension {
+    protected abstract Property<String> getGroovyVersionInternal();
+
+    /**
+     * @deprecated use {@link GroovyDependenciesExtension#setGroovyVersion(String)} or {@link GroovyDependenciesExtension#setGroovyVersion(int)} instead
+     * @param version version to use
+     */
+    @Deprecated(since = "3.0.0", forRemoval = true)
+    public void setGroovyVersion(GroovyVersion version) {
+        getGroovyVersionInternal().set(version.getVersionString());
+    }
+
+    /**
+     * Set the groovy version to use. This can be major, major and minor or a full version string. (5, 5.0, 5.0.6)
+     * @param version the version to use
+     */
+    public void setGroovyVersion(String version) {
+        getGroovyVersionInternal().set(version);
+    }
+
+    /**
+     * Set the groovy version to use (major version only).
+     * @param version the version to use
+     */
+    public void setGroovyVersion(int version) {
+        getGroovyVersionInternal().set(String.valueOf(version));
+    }
 }

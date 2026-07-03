@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.gradle;
 
 import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesExtension;
 import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesPlugin;
-import com.blackbuild.klum.ast.gradle.convention.GroovyVersion;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -48,7 +47,7 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
         this.project = project;
         version = PluginHelper.determineOwnVersion();
         registerExtension();
-        extension.getGroovyVersion().convention(GroovyVersion.GROOVY_3);
+        extension.getGroovyVersionInternal().convention("3");
         configureGroovyAndJava();
         addDependentPlugins();
         lockDependencyVersions();
@@ -69,7 +68,7 @@ public abstract class AbstractKlumPlugin<T extends KlumExtension> implements Plu
         Project rootProject = project.getRootProject();
         if (rootProject == project || !rootProject.getPlugins().hasPlugin(GroovyDependenciesPlugin.class)) {
             GroovyDependenciesExtension dependenciesExtension = project.getExtensions().getByType(GroovyDependenciesExtension.class);
-            dependenciesExtension.getGroovyVersion().convention(extension.getGroovyVersion());
+            dependenciesExtension.getGroovyVersionInternal().convention(extension.getGroovyVersionInternal());
         }
     }
 

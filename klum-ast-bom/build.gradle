@@ -10,7 +10,6 @@ def thisProject = project
 rootProject.allprojects {subproject ->
     subproject.pluginManager.withPlugin("java-library") {
         thisProject.dependencies.constraints {
-            println "adding constraint $subproject to $thisProject"
             api subproject
         }
     }

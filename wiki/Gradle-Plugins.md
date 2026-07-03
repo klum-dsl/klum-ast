@@ -4,7 +4,7 @@ KlumAST provides some Gradle plugins to make the setup of a Klum project easier.
 
 This plugin is not specific to Klum and might be extracted to a separate project in the future. It basically sets the necessary dependencies for Groovy as well as a matching version of the Spock Framework.
 
-The version can be set directly via two properties, or - more conveniently - via a single enum property:
+The version can be set directly via java.lang.Deprecated string or int property:
 
 ```groovy
 import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
@@ -15,18 +15,18 @@ plugins {
 }
 
 groovyDependencies {
-    groovyVersion = GroovyVersion.GROOVY_24 // or GROOVY_3 or GROOVY_4
+    groovyVersion = 3 // or "5.0.5"
 }
 ```
 
-Note that the plugin does **not** apply the groovy plugin, it only reacts to its presence.
+Note that the plugin does **not** apply the groovy plugin; it only reacts to its presence.
 
 Applying the plugin (provided the Groovy plugin is also applied) does the following thing:
 
-- Create two additional configurations, `groovy` and `spock`, which are used to declare the dependencies on Groovy and Spock
-- Adding default dependencies dependening on the value of groovyVersion (or specifically 'groovy' and 'spock' parameters).
-- linking those configurations to the `compileOnly` and `testImplementation` configurations
-- Configure all test tasks with `useJunitPlatform()` if the Groovy version is different from 2.4
+- Create two additional configurations, `groovy` and `spock`, which are used to declare the dependencies on Groovy and Spock, linking those configurations to the `compileOnly` and `testImplementation` configurations
+- Setting the matching Groovy BOM as 'platform' as well as the main Groovy module as dependencies in `groovy` and the matching spock dependency in `spock` 
+- Configure all test tasks with `useJunitPlatform()` 
+- Spock dependencies can be skipped with "skipSpock = true"
 
 If the plugin is applied to a child project, it will inherit the configured Groovy versions from the root project, if applicable (even if the Groovy plugin is not applied to the root project). That way, the Groovy version can be set in a single place. In a klum project, this is usually the only situation where the convention plugin needs to be used directly, as the other two plugins will apply it automatically.
 
@@ -71,12 +71,12 @@ A simple model project can look like:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-model' version "2.0.0"
+    id 'com.blackbuild.klum-ast-model' version "3.0.0"
     id "maven-publish"
 }
 
 klumModel {
-    groovyVersion = GroovyVersion.GROOVY_3 // default
+    groovyVersion = "3" // default
     schemas {
         schema "my-group:my-schema:1.0"
     }
@@ -95,11 +95,11 @@ Root:
 import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
 
 plugins {
-    id 'com.blackbuild.convention.groovy' version '2.0.0'
+    id 'com.blackbuild.convention.groovy' version '3.0.0'
 }
 
 groovyDependencies {
-    groovyVersion = GroovyVersion.GROOVY_24
+    groovyVersion = "3"
 }
 ```
 

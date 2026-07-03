@@ -21,25 +21,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.gradle;
+package com.blackbuild.klum.ast.gradle
 
-import org.gradle.api.Action;
-import org.gradle.api.provider.MapProperty;
-import org.gradle.api.tasks.Nested;
+import org.gradle.testkit.runner.BuildResult
+import org.gradle.testkit.runner.GradleRunner
+import spock.lang.Shared
+import spock.lang.Specification
 
-public abstract class KlumModelExtension extends KlumExtension {
+class GradlePluginsScenarioTest extends Specification {
 
-    @Nested
-    public abstract SchemaDependencies getSchemas();
+    @Shared File scenarioRoot = new File("src/test/scenarios").absoluteFile
+    @Shared File target = new File("build/test-scenarios").absoluteFile
 
-    public abstract MapProperty<String, String> getTopLevelScripts();
+    TestScenario scenario
 
-    public void topLevelScript(String modelType, String script) {
-        getTopLevelScripts().put(modelType, script);
+    def "test scenario #name"(String name) {
+        given:
+        scenario = new TestScenario(name, scenarioRoot, target).prepareScenario()
+
+        when:
+        def result = runTask()
+
+        then:
+        noExceptionThrown()
+
+        where:
+        name << scenarioRoot.listFiles().findAll { it.isDirectory() }.collect { it.name }
     }
 
-    public void schemas(Action<? super SchemaDependencies> action) {
-        action.execute(getSchemas());
+    protected BuildResult runTask() {
+        return GradleRunner.create()
+                .withProjectDir(scenario.projectDir)
+                .withArguments(scenario.tasks + ["--stacktrace"])
+                .withDebug(true)
+                .withPluginClasspath()
+                .forwardOutput()
+                .build()
     }
-
 }
