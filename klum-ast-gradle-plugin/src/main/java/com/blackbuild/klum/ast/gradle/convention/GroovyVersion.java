@@ -23,6 +23,10 @@
  */
 package com.blackbuild.klum.ast.gradle.convention;
 
+/**
+ * @deprecated use {@link GroovyDependenciesExtension#setGroovyVersion(String)} or {@link GroovyDependenciesExtension#setGroovyVersion(int)} instead
+ */
+@Deprecated(since = "3.0.0", forRemoval = true)
 public enum GroovyVersion {
 
     GROOVY_3("org.codehaus.groovy:groovy-bom:3.0.25", "org.codehaus.groovy:groovy:3.0.25", "org.spockframework:spock-core:2.4-groovy-3.0"),
@@ -50,5 +54,9 @@ public enum GroovyVersion {
 
     public String getGroovyBom() {
         return groovyBom;
+    }
+
+    public String getVersionString() {
+        return name().substring(7);
     }
 }

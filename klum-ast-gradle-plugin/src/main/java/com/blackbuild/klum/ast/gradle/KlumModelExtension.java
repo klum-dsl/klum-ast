@@ -27,18 +27,18 @@ import org.gradle.api.Action;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.tasks.Nested;
 
-public interface KlumModelExtension extends KlumExtension {
+public abstract class KlumModelExtension extends KlumExtension {
 
     @Nested
-    SchemaDependencies getSchemas();
+    public abstract SchemaDependencies getSchemas();
 
-    MapProperty<String, String> getTopLevelScripts();
+    public abstract MapProperty<String, String> getTopLevelScripts();
 
-    default void topLevelScript(String modelType, String script) {
+    public void topLevelScript(String modelType, String script) {
         getTopLevelScripts().put(modelType, script);
     }
 
-    default void schemas(Action<? super SchemaDependencies> action) {
+    public void schemas(Action<? super SchemaDependencies> action) {
         action.execute(getSchemas());
     }
 

@@ -10,21 +10,32 @@ repositories {
 
 groovyDependencies {
     groovyVersion("5.0.5")
+    skipSpock()
 }
 
 tasks.check {
     doLast {
         assertConfigurationContains("groovy", "org.apache.groovy:groovy:5.0.5", "org.apache.groovy:groovy-bom:5.0.5")
-        assertConfigurationContains("spock", "org.spockframework:spock-core:2.4-groovy-5.0")
+        assertConfigurationDoesNotContain("spock", "org.spockframework:spock-core:2.4-groovy-5.0")
     }
 }
 
 void assertConfigurationContains(String configName, String... dependencies) {
+    def actual = getConfigurationDependencies(configName)
+    assert actual.containsAll(dependencies)
+}
+
+void assertConfigurationDoesNotContain(String configName, String... dependencies) {
+    def actual = getConfigurationDependencies(configName)
+    dependencies.each {
+        assert !actual.contains(it)
+    }
+}
+
+Set<String> getConfigurationDependencies(String configName) {
     def result = configurations.getByName(configName).incoming.resolutionResult
-    def actual = result.allComponents
+    return result.allComponents
             .findAll { it.id instanceof ModuleComponentIdentifier }
             .collect { id -> "$id.id.group:$id.id.module:$id.id.version" as String }
             .toSet()
-
-    assert actual.containsAll(dependencies)
 }
