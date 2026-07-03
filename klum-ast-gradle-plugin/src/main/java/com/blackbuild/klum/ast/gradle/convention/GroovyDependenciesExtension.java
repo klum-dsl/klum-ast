@@ -32,7 +32,8 @@ import java.util.regex.Pattern;
 
 public abstract class GroovyDependenciesExtension {
 
-    protected GroovyDependenciesExtension() {
+    @SuppressWarnings("java:S5993")
+    public GroovyDependenciesExtension() {
         getUseSpock().convention(true);
     }
 
@@ -56,6 +57,7 @@ public abstract class GroovyDependenciesExtension {
         return getGroovyVersionInternal().map(Version::fromString).map(Version::getGroovyBom);
     }
 
+    @SuppressWarnings("java:S5411")
     public Provider<String> getSpockVersionDependency() {
         // if skipSpock is true, return null, otherwise return the spock dependency
         return getUseSpock().flatMap(value -> value ? getGroovyVersionInternal() : null).map(Version::fromString).map(Version::getSpockDependency);
