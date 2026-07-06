@@ -1,3 +1,6 @@
+# 3.0.1
+- New annodocimal version, ignores irrelevant inner class entries in class files
+
 # 3.0.0
 
 - Support for Groovy 2 has been dropped, support for Groovy 5 has been added
