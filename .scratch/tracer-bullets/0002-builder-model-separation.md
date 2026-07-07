@@ -1,18 +1,21 @@
-# Builder → Immutable model separation (RWBuilder)
+# Tracer-bullet: Builder / Model separation (0002)
 
-Short: Implement an explicit `RWBuilder` generated type for each model and produce a final immutable `Model` instance in a new Phase after of `POST_TREE`. 
+Related ADR: docs/adr/0002-phase-contracts-and-builder-model.md
 
-Why: Eliminates user confusion about mutable RW objects, prevents post-creation mutations from silently corrupting state, and makes the runtime model easier to reason about and serialize.
+Summary
+- Begin separating generated Builder (RWBuilder) types from immutable Model types. Provide a small compatibility adapter so existing call sites keep working while generation migrates.
 
-Acceptance criteria:
-- Generated code emits `RWBuilder` and `Model` types; runtime tests demonstrate immutability of `Model` instances.
-- Model instance is the same name as the original class annotated with DSL; all non transient fields are final
-- Model instance has a constructor with all fields, constructor should be protected and only used by the builder.
-- Creation flows should be working without changes
-- Documentation updated and a migration guide produced.
+Acceptance criteria
+- Tracer-bullet file describing the change and owner.
+- Minimal runtime prototype: KlumBuilder interface and an adapter that wraps existing RW instances.
+- Small unit test that verifies the adapter behavior.
 
-Scope & plan:
-1. Design the codegen changes: rename RW → RWBuilder and generate immutable Model class skeletons.
-2. Implement simple migration shim mapping old factory methods to RWBuilder.
-3. Add tests verifying builders mutate and final models are immutable (no setters for non-transient fields).
+Owner: @stephan
 
+Plan (small vertical slice)
+1. Add KlumBuilder interface and KlumBuilderAdapter that wraps KlumRwObject.
+2. Add a Spock unit test asserting adapter returns underlying RW instance.
+3. Create tracer-bullet issue/PR for follow-up work to implement real generated builders and compatibility layer.
+
+Notes
+- This is intentionally tiny: compatibility adapter + test to show feasibility.
