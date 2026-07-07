@@ -29,15 +29,15 @@ import com.blackbuild.klum.ast.KlumRwObject;
  * Compatibility adapter that exposes an existing KlumRwObject as a builder.
  * Prototype only: build() returns the underlying RW instance.
  */
-public class KlumBuilderAdapter implements KlumBuilder<Object> {
-    private final KlumRwObject rw;
+public class KlumBuilderAdapter<T extends KlumRwObject> implements KlumBuilder<T> {
+    private final T rw;
 
-    public KlumBuilderAdapter(KlumRwObject rw) {
+    public KlumBuilderAdapter(T rw) {
         this.rw = rw;
     }
 
     @Override
-    public Object build() {
+    public T build() {
         return rw;
     }
 }
