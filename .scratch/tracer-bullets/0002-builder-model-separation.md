@@ -1,12 +1,14 @@
 # Builder → Immutable model separation (RWBuilder)
 
-Short: Implement an explicit `RWBuilder` generated type for each model and produce a final immutable `Model` instance at the end of `POST_TREE`. Provide migration shims so existing generated entrypoints remain functional for one major release.
+Short: Implement an explicit `RWBuilder` generated type for each model and produce a final immutable `Model` instance in a new Phase after of `POST_TREE`. 
 
 Why: Eliminates user confusion about mutable RW objects, prevents post-creation mutations from silently corrupting state, and makes the runtime model easier to reason about and serialize.
 
 Acceptance criteria:
 - Generated code emits `RWBuilder` and `Model` types; runtime tests demonstrate immutability of `Model` instances.
-- Backwards compatibility shims preserve the API for common creation flows for at least one major release.
+- Model instance is the same name as the original class annotated with DSL; all non transient fields are final
+- Model instance has a constructor with all fields, constructor should be protected and only used by the builder.
+- Creation flows should be working without changes
 - Documentation updated and a migration guide produced.
 
 Scope & plan:

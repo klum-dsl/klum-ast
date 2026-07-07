@@ -19,6 +19,10 @@ This repository is modularised into a set of focused subprojects. The main modul
 
 Agents should treat the repo as a single-context project: one `CONTEXT.md` at the root and `docs/adr/` for ADRs.
 
+## Tests
+
+Test are done via the Spock Framework. Most important tests are in the klum-ast module, which tests the DSL transformation and runtime behavior. The other modules have their own tests for module-specific functionality.
+
 ## Domain glossary
 
 These terms are sourced from the project wiki and consolidated here. Use these canonical terms when writing issues, ADRs or code comments.
