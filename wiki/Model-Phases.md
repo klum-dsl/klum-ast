@@ -39,7 +39,7 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 # Phase Details
 
 ## ApplyLater (1)
-The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument.
+The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument outside of any running phase.
 
 ## Early Validation (5)
 
@@ -66,16 +66,16 @@ by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure
 
 ## Default (25)
 
-The Default phase is used to set default values for non-DSL fields. See [Default Values](Default-Values.md) for details. As will all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
+The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. This includes `@DefaultValues` as well as `@Default` field, delegate and code defaults. As with all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
 
 ## PostTree (30)
 
 The PostTree phase allows executing actions on a completely realized model tree. This can be used
 to create interlinking between objects that are too complex for AutoLink/AutoCreate.
 
-## Validation (50-60)
+## Validation (50)
 
-Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins only collect validation problems but do not throw exceptions. This is handled by the Verify phase.
+Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins only collect validation problems but do not throw exceptions. This is handled by the Verify phase. The ordinal band 51-60 is free for plugin-provided validation phases.
 
 ## Verify (80)
 
@@ -98,7 +98,7 @@ If an exception is thrown in any Phase, the exception is wrapped in a `KlumExcep
 # applyLater methods
 
 RW classes also provide `applyLater` methods that can be used to register actions to be executed in arbitrary phases. If no phase is specified,
-the action is executed in the `ApplyLater` phase. 
+the action is executed directly after the current phase if called from within a phase; otherwise it is executed in the `ApplyLater` phase. 
 
 ApplyLater closures on templates are not executed but are copied along with the other template values to the created object. 
 This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.

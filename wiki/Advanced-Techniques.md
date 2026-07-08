@@ -114,7 +114,7 @@ Note that in Groovy any single abstract method interface (functional interface)
 can be replaced with a closure:
 
 ```groovy
-ValueProvider.create() {
+ValueProvider.Create.With {
     name "Blub"
     
     descriptionProvider { "Value: $name: $it.name -> $it.value" }
@@ -144,7 +144,7 @@ The description provider could also be a Closure itself:
     }
 }
 
-ValueProvider.create() {
+ValueProvider.Create.With {
     name "Blub"
     
     descriptionProvider { "Value: $name: $it.name -> $it.value" }
@@ -165,7 +165,7 @@ other annotations (of ElementType METHOD and/or FIELD). If the target
 annotation is placed on a (virtual) field of the schema, all annotation members
 of the target annotation are copied to the generated setter or single element adder. They will become parameter annotations of the single method parameter. See Javadoc for details.
 
-For our closure field, there is a pre-implemented annotation, `@ParameterAnnotation.ClosureHints`,
+For our closure field, there is a pre-implemented annotation, `@ParameterAnnotation.ClosureHint`,
 that contains members for both relevant annotation types. Our example 
 can be improved with:
 
@@ -174,7 +174,7 @@ can be improved with:
     
     String name
  
-    @ParameterAnnotation.ClosureHints(params=@ClosureParams(value=FromString, options="Map<String,Object>"))   
+    @ParameterAnnotation.ClosureHint(params=@ClosureParams(value=FromString, options="Map<String,Object>"))   
     Closure<String> descriptionProvider
       
     String getDescription(Map<String, String> environment) {

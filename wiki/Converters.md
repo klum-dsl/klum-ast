@@ -69,11 +69,11 @@ import java.time.Instant@DSL class Foo {
     
     @Converter
     static Bar readFromString(String string) {
-        return create(birthday: SimpleDateFormat.dateInstance.parse(string))
+        return Create.With(birthday: SimpleDateFormat.dateInstance.parse(string))
     }
 
     static Bar fromLong(long value) {
-        return create(birthday: new Date(value))
+        return Create.With(birthday: new Date(value))
     }
 }
 ```
@@ -82,7 +82,7 @@ results in the additional methods being created in `Foo`:
 
 ```groovy
 Bar bar(long value) {
-    bar(Bar.create(birthday: new Date(value)))
+    bar(Bar.Create.With(birthday: new Date(value)))
 }
 Bar bar(String value) {
     bar(birthday: SimpleDateFormat.dateInstance.parse(string))
@@ -94,7 +94,7 @@ lead to unexpected results.
 
 # Factory classes
 
-Additional factory classes can be declared using the `@Constructors` annotation, either for a complete
+Additional factory classes can be declared using the `@Converters` annotation, either for a complete
 dsl class or for a single field. 
 
 By default, all valid factory methods (i.e. public static methods returning the expected type or
@@ -118,7 +118,7 @@ class BarUtil {
     
     @Converter
     static Bar readFromString(String string) {
-        return create(birthday: SimpleDateFormat.dateInstance.parse(string))
+        return new Bar(birthday: SimpleDateFormat.dateInstance.parse(string))
     }
 }
 ```
@@ -129,6 +129,6 @@ a key field is prepended to the parameters list.
 ## Customization
 
 The `@Converters` annotation contains a couple of customization options useful
-for classes of third-party libraries. Using `includeMethods`, `excludeMethods` and `excludeDefaultMethods`
+for classes of third-party libraries. Using `includeMethods`, `excludeMethods` and `excludeDefaultPrefixes`
 the selection of valid factories can be customized, using `includeConstructors` all constructors of the
 target class are made into converter methods as well.

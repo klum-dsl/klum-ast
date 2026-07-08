@@ -1,5 +1,5 @@
 Fields (of non DSL-types) can be annotated with `@Default` to designate a default value, which is set in the default phase in case the value is not
-Groovy Truth. `@Default` supports three different members (only one at a time), which result in different return values
+Groovy Truth. Booleans are the exception here: a `false` boolean is not treated as empty and is therefore not re-defaulted. `@Default` supports three different members (only one at a time), which result in different return values
 being returned. The default value is coerced to the correct result type.
 
 Note that the behavior was different before 2.0. Previously, the getter was modified so that the default value was 
@@ -21,7 +21,7 @@ class Config {
 Usage:
 
 ```groovy
-def config = Config.create {
+def config = Config.Create.With {
     name 'Hans'
 }
 
@@ -53,7 +53,7 @@ class Element {
 Usage:
 
 ```groovy
-def container = Container.create {
+def container = Container.Create.With {
     name 'cont'
     element {}
 }
@@ -80,7 +80,7 @@ class Config {
 Usage:
 
 ```groovy
-def config = Config.create {
+def config = Config.Create.With {
     name 'Hans'
 }
 

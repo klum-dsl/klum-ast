@@ -3,8 +3,8 @@
 The system includes a simple mechanism for configuring default values (as part of the instance creation, not in the classes):
 
 Templates are regular instances of DSL objects, which will usually be assigned to a local variable. Applying a template means
- that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, deep copies 
- will be created. 
+ that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, new collection / map instances
+ will be created; contained DSL objects are copied recursively, while simple values are linked. 
  
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
  templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
@@ -28,7 +28,7 @@ Templates are also correctly applied when using inheritance, i.e. if a template 
 it is also applied when creating child class instances. Child template values can override parent templates. For examples
 see the test cases in TemplateSpec.
 
-Template specific methods are pooled in the `Templates` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
+Template specific methods are pooled in the `Template` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
 
 As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and or configuration
 closure, or by using the `Template.CreateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
@@ -152,9 +152,9 @@ Config.Create.With {
 }
 ```
 
-# Templates.WithAll()
+# Template.WithAll()
 
-`Templates.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
+`Template.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
 
 - a List of template objects, which are applied to their respective classes (templates for abstract classes are applied
 to the real class)
@@ -177,7 +177,7 @@ Environment.Template.With(defaultEnvironment) {
 One can also write:
 
 ```groovy
-Config.Templates.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
+Config.Template.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
     Config.Create.With {
         // ...                    
     }
@@ -186,7 +186,7 @@ Config.Templates.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
 
 or, using anonymous templates:
 ```groovy
-Config.Templates.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
+Config.Template.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linux', arch: 'x64'], (Host) : [user: 'deploy']) {
     Config.Create.With {
         // ...                    
     }
@@ -235,7 +235,7 @@ def childTemplate = Child.Template.Create {
     name "child-template" // overrides parent template value
 }
 
-Child.Templates.WithAll([parentTemplate, childTemplate]) {
+Child.Template.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.One()
 
   assert c.name == "child-template"
@@ -270,7 +270,7 @@ def childTemplate = Child.Template.Create {
     names "child" // replaces parent template value
 }
 
-Child.Templates.WithAll([parentTemplate, childTemplate]) {
+Child.Template.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.With {
     name "explicit" // replaces template value
   }

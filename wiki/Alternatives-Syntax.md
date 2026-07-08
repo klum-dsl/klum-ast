@@ -35,7 +35,7 @@ class ChildElement extends Element {
 instead of
 
 ```groovy
-Config.create {
+Config.Create.With {
   elements {
     element(SubElement, "bla") {}
     element(ChildElement, "bli") {}
@@ -46,7 +46,7 @@ Config.create {
 You could also write:
 
 ```groovy
-Config.create {
+Config.Create.With {
   elements {
     subElement("bla") {}
     childElement("bli") {}
@@ -102,7 +102,7 @@ class ChildElement extends Element {
 allows:
 
 ```groovy
-Config.create {
+Config.Create.With {
   elements {
     subby("bla") {}
     child("bli") {}

@@ -124,7 +124,7 @@ Directories are compiled in lexical order, and then the `assert.groovy` file is 
 
 - Use 4 spaces for indentation
 - Follow standard Groovy coding conventions
-- Include license header in all source files
+- Include license header in all source files, license header can be automatically added with `./gradlew licenseFormat`
 - Use descriptive method and variable names
 
 ### AST Transformation Development

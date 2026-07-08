@@ -57,8 +57,8 @@ class MyModel {
 }
 ```
 
-Any failed validation is wrapped in a `KlumValidationProblem`, all 
-problems of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
+Any failed validation is represented by a `KlumValidationIssue`, all
+issues of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
 
 # `@Required` and `@Optional`
 
@@ -107,7 +107,7 @@ Likewise, `@Optional` is a convenient alias for `@Validate(Validate.Ignore)`, to
 
 # On methods
 
-`@Validate` can also be used on parameterless methods. In this case, the method is executed during the validation phase. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
+`@Validate` can also be used on methods. In this case, any method carrying the annotation is executed during the validation phase; private methods work as well, but `static` methods are forbidden at compile time. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
 
 ## Custom issues
 
@@ -152,7 +152,7 @@ The member name is optional, if not provided, a generic `<none>` is used. Also n
 
 # On inner classes
 
-`@Validate` can also be placed on non-static inner classes, making the class a validation class. All public parameterless methods
+`@Validate` can also be placed on non-static inner classes, making the class a validation class. All public, non-static, parameterless methods
 in the class are considered validation methods, like above. 
 
 This allows encapsuling validation logic in a separate class, preventing further pollution of the model class when working with the source (in the final class file, validation methods are downgraded to protected methods).
@@ -280,7 +280,7 @@ class Component {
 
 Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
 
-Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`.
+Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`. That exception contains a `List<KlumValidationResult>`, each of which contains the `KlumValidationIssue`s for a single object.
 
 # Validation levels
 

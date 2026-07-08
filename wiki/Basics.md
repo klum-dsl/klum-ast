@@ -53,13 +53,13 @@ If the class contains an static inner class named 'Factory' of the appropriate t
 to such a class, this class is used as a base
 for the generated factory instead. This allows adding additional methods to the factory.
 
-Additionally, an `apply` method is created, which takes single closure and applies it to an existing object.
+Additionally, an `apply` method is created, which applies optional named parameters and an optional closure to an existing object and returns the configured instance.
  
 ```groovy
-def void apply(Closure c)
+def <ThisClass> apply(Map values = [:], Closure c = null)
 ```
 
-Both `apply` and `Create.With` also support named parameters, allowing to set values in a concise way. Every map element of
+Both `apply` and `Create.With` support named parameters, allowing to set values in a concise way. Every map element of
 the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
 
 
@@ -92,8 +92,9 @@ Lifecycle methods must not be `private`. They will be automatically be made prot
 ## copyFrom() method
 
 Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
-object over to this objects, excluding key and owner fields. This is done recursively, i.e. nested DSL objects are
-copied as well.
+object over to this objects, excluding key, owner and `@Role` fields, as well as fields marked `FieldType.TRANSIENT`
+or `FieldType.IGNORED`. Copying is further governed by `@Overwrite` / the configured `OverwriteStrategy`. This is done
+recursively, i.e. nested DSL objects are copied as well.
 
 ## equals() method
 

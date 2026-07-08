@@ -7,7 +7,7 @@ KlumAST provides optional integration for Jackson in the optional `klum-ast-jack
 
 This provides helpers for serialization and deserialization of Klum objects:
 
-- Using `KlumAnnotationIntrospector`, Owner field are automatically ignored during serialization (they are _not_ converted into back references, since this would usually be done during deserialization anyway)
+- Using `KlumAnnotationIntrospector`, Owner fields, `@Role`-annotated members and members whose name contains `$` are automatically ignored during serialization (they are _not_ converted into back references, since this would usually be done during deserialization anyway)
 - SettableKlumBeanProperty handles the setting of properties via the proxy object
 - KlumValueInstantiator handles instantiating Keyed Objects via the factory helper
 - All enhancements are packaged into a Jackson module (KlumAstModule)
