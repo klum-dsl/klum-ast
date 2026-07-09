@@ -6,7 +6,7 @@ Since 0.16, KlumAST supports convenience factory methods that allow reading a co
 proper type, for example:
 
 ```groovy
-MyConfig.create {
+MyConfig.Create.With {
   value("bla")
 }
 ```
@@ -79,7 +79,7 @@ result in the following:
 assert config.value == "blub"
 ```
 
-`createFrom()` can also take an optional classloader as last parameter:
+`Create.From()` can also take an optional classloader as last parameter:
 
 ```groovy
 Config.Create.From(content, Config.class.classLoader)

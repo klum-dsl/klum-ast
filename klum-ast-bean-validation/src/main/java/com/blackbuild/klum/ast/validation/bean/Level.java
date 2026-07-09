@@ -29,11 +29,11 @@ import jakarta.validation.Payload;
 import java.util.Map;
 
 /**
- * Mapping interface for validation levels. Since JSR380 has no direct concept of levels, we use groups to simulate levels.
- * However, groups need to be interfaces. Use the inner classes of this class as group in your validation annotations.
+ * Mapping interface for validation levels. Since JSR380 has no direct concept of levels, we use payloads to simulate levels.
+ * Use the inner classes of this class as payload in your validation annotations.
  *
  * <pre><code>
- * {@literal @}Min(value = 20L, groups = Level.INFO)
+ * {@literal @}Min(value = 20L, payload = Level.INFO)
  * int value
  * </code></pre>
  */

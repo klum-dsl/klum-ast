@@ -21,7 +21,7 @@ class MavenProject extends Project{
     List<String> mvnOpts
 }
 
-Config.create {
+Config.Create.With {
     project(MavenProject) {
         name "demo"
         mvnOpts "a", "b"
@@ -47,7 +47,7 @@ class MavenProject extends Project{
     List<String> mvnOpts
 }
 
-Config.create {
+Config.Create.With {
     project(MavenProject, "demo") {
         mvnOpts "a", "b"
     }

@@ -16,7 +16,7 @@ It is strongly advised to first update to 2.0 and the to 2.1.
 
 ## Validation now throws KlumValidationException
 
-which wraps single `KlumVisitorExceptions` for each failed validation. Previously, an AssertionError was thrown, so calling code might need to be adjusted.
+which wraps `KlumValidationResult`s for the validated objects, each containing the relevant `KlumValidationIssue`s. Previously, an AssertionError was thrown, so calling code might need to be adjusted.
 
 ## multiple inner create calls on the same field (or key in a map field) now stack instead of replacing
 

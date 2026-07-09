@@ -36,12 +36,13 @@ For Gradle, setup is similar:
 
 ```groovy
 dependencies {
-  compileOnly 'org.codehaus.groovy:groovy-all:2.4.12'
+  compileOnly 'org.apache.groovy:groovy:4.0.32'
   compileOnly 'com.blackbuild.klum.ast:klum-ast:<version>'
   implementation 'com.blackbuild.klum.ast:klum-ast-runtime:<version>'
   ...
 }
 ```
+Groovy 3.x uses `org.codehaus.groovy` coordinates, while Groovy 4.x and 5.x use `org.apache.groovy`.
 Note that in most cases, the setup can be made a lot easier with the help of the Klum Gradle Plugins, see [[Gradle Plugins]].
 
 # Project setup
@@ -80,7 +81,8 @@ model (which is usually the case), the model can make use of the new `Create.Fro
 ### Consumer
 
 The consuming projects (Docalot, Jenkins Pipeline, etc.) in itself have a dependency on the model jar. The can instantiate
-the main model by using `<MainSchemaClass>.Create.FromClasspath()` or `<MainSchemaClass>.Create.From(<ConfigurationModelClass>)`.
+the main model by using `<MainSchemaClass>.Create.FromClasspath()` or one of the `<MainSchemaClass>.Create.From(...)`
+variants for a script class, URL, text or classloader-backed source.
 
 ## Schema - Consumer
 

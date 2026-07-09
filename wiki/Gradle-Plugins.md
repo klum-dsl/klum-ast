@@ -4,7 +4,7 @@ KlumAST provides some Gradle plugins to make the setup of a Klum project easier.
 
 This plugin is not specific to Klum and might be extracted to a separate project in the future. It basically sets the necessary dependencies for Groovy as well as a matching version of the Spock Framework.
 
-The version can be set directly via java.lang.Deprecated string or int property:
+The version can be set directly via a String or int property:
 
 ```groovy
 import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
@@ -42,7 +42,7 @@ This plugin is used in schema projects (as well as `api` as defined by [Layer3])
 - adds the necessary dependencies for KlumAST itself:
   - `klum-ast` as compileOnly dependency
   - `klum-ast-runtime` as api dependency
-  - both dependencies use the same version as the plugin itself
+  - both dependencies are added without explicit versions; the version is enforced by importing the `klum-ast-bom` platform at the plugin's version
 
 This means that a fully working schema project can be set up with the following minimal build.gradle:
 
@@ -64,7 +64,7 @@ This plugin is used in model projects. It does the following things:
 - activates source code jars (no javadoc, since this would make no sense)
 - if `maven-publish` plugin is applied, configures the publication
 - adds the `com.blackbuild.convention.groovy` plugin, which configures Groovy and spock dependencies, version can be set via the `klumModel` extension (defaulting to Groovy 3). If the configured project is not the root project **and** the root project has the `com.blackbuild.convention.groovy` plugin applied, the version will be inherited from the root project instead.
-- Adds a schema configuration, inherited by the api configuration, that can be use to declare dependencies on schema projects. 
+- Adds a `schemas` configuration, inherited by the api configuration, that can be use to declare dependencies on schema projects. 
 - Creates a model descriptor for every entry in klumModel.topLevelScripts to be consumed by Create.FromClasspath.
 
 A simple model project can look like:

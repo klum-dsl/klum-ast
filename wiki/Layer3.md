@@ -129,8 +129,8 @@ environment("dev") {
 }
 ```
 
-By default, these factories are entirely optional (like collection factories), but can be made mandatory by using 
-`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package. This makes the interface cleaner by removing all cluster field methods from the rw-interface (i.e., code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
+By default, these factories are entirely optional (like collection factories). Using 
+`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package, makes all cluster field methods on the rw-interface `protected`, so they are only reachable from inside the factory (i.e., code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
 
 The Environment base class contains method to access the actual applications as a Map:
 
@@ -177,7 +177,7 @@ Map<String, Application> getApplications() {
 }
 ```
 
-If the annotated method return `Map<String, Collection<X>>`, `ClusterModel.getPropertyMapList` will be used instead.
+If the annotated method return `Map<String, Collection<X>>`, `ClusterModel.getCollectionsOfType` will be used instead.
 
 Most ClusterModel methods have an additional parameter to filter the return values, which is usually one of the following:
 
@@ -260,6 +260,7 @@ Let's say that a monitoring microservice is used by multiple applications in the
 Using the schema layer with `@AutoCreate`, the monitoring service could automatically be created.
 
 ```groovy
+@DSL
 abstract class MonitoredApplication extends Application {
   @AutoCreate
   MonitoringService monitoring
@@ -271,7 +272,7 @@ the database field of the monitoring service to the database of its owner:
 
 ```groovy
 class MonitoringService extends Microservice {
-  @Owner MonitoresApplication application
+  @Owner MonitoredApplication application
   @LinkTo Database database
 }
 ```

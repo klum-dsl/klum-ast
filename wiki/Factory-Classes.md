@@ -4,7 +4,7 @@ placed on the model class as a static field named `Create` allowing the convenie
 
 This factory is by default a subclass of:
 
-- `KlumFactory` for abstrct classes
+- `KlumFactory` for abstract classes
 - `KlumFactory.Keyed` for keyed classes
 - `KlumFactory.Unkeyed` for unkeyed classes
 
@@ -88,7 +88,7 @@ Foo.Create.With {
             sickname "Blabby"
         }
         bazWithNickname("Bazzy") // factory method
-        fromScript(MyScript) // default factory method
+        From(MyScript) // default factory method
     }
 }
 ```

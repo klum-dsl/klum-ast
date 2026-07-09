@@ -47,7 +47,7 @@ A config object can be created with the following dsl:
 def github = "http://github.com"
 
 
-def config = Config.create {
+def config = Config.Create.With {
 
     debugMode true
     

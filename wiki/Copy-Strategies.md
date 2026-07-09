@@ -55,6 +55,8 @@ If the collection consists of DSL objects, those objects are copied (i.e. new ob
 
 The strategy is determined in exactly the same way as for single object fields, but using the `@Overwrite.Collection` annotation instead.
 
+The default strategy is `REPLACE`.
+
 The strategy can be one of the following:
 
 ### INHERIT
@@ -69,13 +71,13 @@ The donor's collection is added to the target's collection. The order is determi
 
 The target's collection is replaced by the donor's collection's elements, but only if the donor's collection is not empty.
 
+### SET_IF_EMPTY
+
+The donor's collection is added to the target's collection, but only if the target's collection is empty.
+
 ### ALWAYS_REPLACE
 
 The target's collection is replaced by the donor's collection's elements, even if the donor's collection is empty. This can be used to clear a collection with a default value using a template. This strategy should be used only sparingly, and almost always only on specific fields as opposed to classes or packages.
-
-### MERGE -> not implemented yet
-
-Since we have no way of determining matching elements, this is not yet implemented.
 
 Note that if the collection field of the donor is `null` instead of an empty collection, the target's collection is always left untouched. Also note that in order to set a collection to null, the setter syntax must be used instead of the usual methods.
 
@@ -125,7 +127,7 @@ All entries in the donor's map whose keys are not present in the target's map ar
 
 # Nested Annotations
 
-Nested Annotations can be used to give meaningful names to a couple of strategies. For example, the `HelmOverwrite` annotation is a nested annotation that sets the strategy to `MERGE` for single object fields, `REPLACE` for collections and `MERGE_VALUES` for maps, resembling the way helm merges value files.
+Nested Annotations can be used to give meaningful names to a couple of strategies. For example, the `HelmOverwrite` annotation is a nested annotation that sets the strategy to `MERGE` for single object fields, `ALWAYS_REPLACE` for collections and `MERGE_VALUES` for maps, resembling the way helm merges value files.
 
 It is defined as follows:
 
@@ -149,4 +151,4 @@ The `@Overwrite` annotation as well as nested annotations can contain an additio
 `OverwriteStrategy.Missing`, which controls the handling of fields in the donor that are not present in the target
 object. This can either be `FAIL` (the default) or `IGNORE`.
 
-Note that since this is checked on the target object, it does nothing when being put a field.
+Note that `Overwrite.Missing` itself can only be used on annotation types. Since the missing-strategy is checked on the target class, it is resolved from the target class (including its `@Overwrite`, package and superclasses), not from a field.
