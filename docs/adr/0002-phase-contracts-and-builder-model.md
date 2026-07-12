@@ -2,7 +2,7 @@
 
 Date: 2026-07-07
 
-Status: Proposed
+Status: Superseded by ADR 0003
 
 ## Context
 
@@ -43,4 +43,3 @@ We will take a coordinated incremental approach:
 - Create tracer-bullet issues for each item above and assign owners.
 - Implement the runtime guard and unit tests first (low-risk, high-value).
 - Start an experimental branch implementing Builder→Model separation with migration shims and compatibility tests.
-
