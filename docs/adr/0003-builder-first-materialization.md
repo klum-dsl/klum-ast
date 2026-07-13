@@ -4,6 +4,10 @@ Date: 2026-07-12
 
 Status: Accepted
 
+Sub-decisions:
+
+- [0003a — Template recipe companions and Builder-producing converters](0003a-template-recipe-companions-and-builder-converters.md)
+
 ## Context
 
 The generated `RW` class currently mutates an already allocated DSL Object throughout creation. This leaves completed objects mutable through generated `apply` methods and `KlumInstanceProxy`, while also conflating construction state with model state. A new design must retain cyclic `LINK` relationships, templates, Jackson deserialization, lifecycle callbacks, and model validation without exposing mutation after construction.
