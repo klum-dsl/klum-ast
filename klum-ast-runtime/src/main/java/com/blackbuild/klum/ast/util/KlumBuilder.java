@@ -37,7 +37,6 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
-import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
@@ -45,9 +44,14 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
-import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -917,61 +921,63 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     private static Closure<?> dehydrateRecipeClosure(Closure<?> closure) {
         Closure<?> dehydrated = closure.dehydrate();
-        if (retainsBuilder(dehydrated, Collections.newSetFromMap(new IdentityHashMap<>())))
+        try {
+            return copySerializableRecipeClosure(dehydrated);
+        } catch (BuilderCaptureException exception) {
             throw new KlumModelException("Template applyLater closures must not capture a Builder; "
                     + "use the closure delegate so the recipe can run against each fresh Builder");
-        return dehydrated;
+        } catch (IOException | ClassNotFoundException exception) {
+            throw new KlumModelException("Template applyLater closures and their captured values must be serializable", exception);
+        }
     }
 
-    private static boolean retainsBuilder(Object value, Set<Object> visited) {
-        if (value == null)
-            return false;
-        if (value instanceof KlumBuilder)
-            return true;
-        if (isBuilderCaptureLeaf(value) || !visited.add(value))
-            return false;
-        if (value instanceof Reference)
-            return retainsBuilder(((Reference<?>) value).get(), visited);
-        if (value instanceof Map)
-            return ((Map<?, ?>) value).entrySet().stream()
-                    .anyMatch(entry -> retainsBuilder(entry.getKey(), visited) || retainsBuilder(entry.getValue(), visited));
-        if (value instanceof Iterable) {
-            for (Object member : (Iterable<?>) value) {
-                if (retainsBuilder(member, visited))
-                    return true;
-            }
-            return false;
-        }
-        if (value.getClass().isArray()) {
-            for (int index = 0; index < Array.getLength(value); index++) {
-                if (retainsBuilder(Array.get(value, index), visited))
-                    return true;
-            }
-            return false;
+    private static Closure<?> copySerializableRecipeClosure(Closure<?> closure)
+            throws IOException, ClassNotFoundException {
+        ByteArrayOutputStream serialized = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new BuilderRejectingObjectOutputStream(serialized)) {
+            output.writeObject(closure);
         }
 
-        for (Class<?> layer = value.getClass(); layer != null && layer != Object.class; layer = layer.getSuperclass()) {
-            for (Field field : layer.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers()) || !field.trySetAccessible())
-                    continue;
-                try {
-                    if (retainsBuilder(field.get(value), visited))
-                        return true;
-                } catch (IllegalAccessException exception) {
-                    throw new KlumModelException("Could not inspect a template closure capture", exception);
-                }
-            }
+        ClassLoader closureLoader = closure.getClass().getClassLoader();
+        try (ObjectInputStream input = new RecipeObjectInputStream(
+                new ByteArrayInputStream(serialized.toByteArray()), closureLoader)) {
+            return (Closure<?>) input.readObject();
         }
-        return false;
     }
 
-    private static boolean isBuilderCaptureLeaf(Object value) {
-        return value instanceof CharSequence
-                || value instanceof Number
-                || value instanceof Boolean
-                || value instanceof Character
-                || value instanceof Enum
-                || value instanceof Class;
+    private static final class BuilderRejectingObjectOutputStream extends ObjectOutputStream {
+        private BuilderRejectingObjectOutputStream(ByteArrayOutputStream output) throws IOException {
+            super(output);
+            enableReplaceObject(true);
+        }
+
+        @Override
+        protected Object replaceObject(Object object) throws IOException {
+            if (object instanceof KlumBuilder)
+                throw new BuilderCaptureException();
+            return object;
+        }
+    }
+
+    private static final class RecipeObjectInputStream extends ObjectInputStream {
+        private final ClassLoader classLoader;
+
+        private RecipeObjectInputStream(ByteArrayInputStream input, ClassLoader classLoader) throws IOException {
+            super(input);
+            this.classLoader = classLoader;
+        }
+
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass descriptor) throws IOException, ClassNotFoundException {
+            try {
+                return Class.forName(descriptor.getName(), false, classLoader);
+            } catch (ClassNotFoundException ignored) {
+                return super.resolveClass(descriptor);
+            }
+        }
+    }
+
+    private static final class BuilderCaptureException extends IOException {
     }
 
     private static Closure<?> cloneClosure(Closure<?> closure) {

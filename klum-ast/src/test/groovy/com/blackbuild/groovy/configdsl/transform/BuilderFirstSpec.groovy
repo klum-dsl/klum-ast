@@ -200,9 +200,10 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         when:
+        def suffix = "!"
         def template = clazz.Create.Template {
             applyLater {
-                result name.toUpperCase()
+                result name.toUpperCase() + suffix
             }
         }
         def proxy = KlumModelProxy.getProxyFor(template)
@@ -221,7 +222,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.result == "FRESH"
+        instance.result == "FRESH!"
     }
 
     def "template recipes reject applyLater closures that capture a Builder"() {
@@ -247,6 +248,30 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         KlumModelException error = thrown()
         error.message.contains("must not capture a Builder")
         error.message.contains("delegate")
+    }
+
+    def "template recipes reject Builders hidden in serializable closure captures"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class IndirectCapturingRecipe {
+                String value
+            }
+        '''
+
+        when:
+        clazz.Create.Template {
+            def capturedBuilder = new java.util.concurrent.atomic.AtomicReference(delegate)
+            applyLater {
+                value capturedBuilder.get().modelType.simpleName
+            }
+        }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains("must not capture a Builder")
     }
 
     def "materialization resolves self and cyclic Builder relationships"() {
