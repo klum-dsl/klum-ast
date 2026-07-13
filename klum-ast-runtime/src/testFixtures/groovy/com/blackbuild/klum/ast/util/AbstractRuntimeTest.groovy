@@ -105,6 +105,10 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
         return InvokerHelper.invokeConstructorOf(getClass(className), args)
     }
 
+    def newBuilderOf(String modelName) {
+        return newInstanceOf(modelName + '$_RW', [null] as Object[])
+    }
+
     def createClass(@Language("groovy") String code) {
         clazz = loader.parseClass(code)
     }
