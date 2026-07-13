@@ -523,6 +523,9 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
             String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
             if (existingValue != null) {
+                if (explicitType && !type.isAssignableFrom(existingValue.getModelType()))
+                    throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
+                            existingValue.getModelType().getName(), type.getName()));
                 if (!Objects.equals(effectiveKey, existingValue.getNullableKey()))
                     throw new KlumModelException(format("Key mismatch: %s != %s", effectiveKey, existingValue.getNullableKey()));
                 existingValue.increaseBreadcrumbQuantifier();
@@ -555,14 +558,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private void callSetterOrMethod(String fieldOrMethodName, Object value) {
-        if (DslHelper.getField(modelType, fieldOrMethodName).isPresent())
+        boolean hasStorageField = DslHelper.getCachedField(getClass(), fieldOrMethodName).isPresent();
+        if (hasStorageField)
             setInstanceAttribute(fieldOrMethodName, value);
         else {
             InvokerHelper.invokeMethod(this, fieldOrMethodName, value);
             if (value instanceof KlumBuilder)
                 virtualChildren.add((KlumBuilder<?>) value);
         }
-        Object storedValue = DslHelper.getField(modelType, fieldOrMethodName).isPresent()
+        Object storedValue = hasStorageField
                 ? getInstanceAttribute(fieldOrMethodName)
                 : value;
         setModelPathOfInnerBuilder(storedValue, fieldOrMethodName);
@@ -627,6 +631,9 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             KlumBuilder<?> existing = ((Map<String, KlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
             if (existing != null) {
+                if (explicitType && !type.isAssignableFrom(existing.getModelType()))
+                    throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
+                            existing.getModelType().getName(), type.getName()));
                 existing.apply(namedParams, body);
                 return (T) existing;
             }
@@ -647,8 +654,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     private <K, V> void doAddElementToMap(String fieldName, K key, V value) {
         Field schemaField = getModelField(fieldName);
-        key = determineKeyFromMappingClosure(fieldName, value, key);
         Object keySource = value instanceof KlumBuilder ? value : normalizeRelationshipValueIfNecessary(schemaField, value);
+        key = determineKeyFromMappingClosure(fieldName, keySource, key);
         if (key == null && DslHelper.isKeyed(DslHelper.getClassFromType(DslHelper.getElementType(schemaField))))
             key = (K) ((KlumBuilder<?>) keySource).getKey();
         if (key == null)
@@ -673,14 +680,18 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
-        Object closureArgument = element instanceof KlumBuilder && ((KlumBuilder<?>) element).isSealed()
-                ? ((KlumBuilder<?>) element).getCompletedModel()
-                : element;
         return DslHelper.getOptionalFieldAnnotation(modelType, fieldName, com.blackbuild.groovy.configdsl.transform.Field.class)
                 .map(com.blackbuild.groovy.configdsl.transform.Field::keyMapping)
                 .filter(DslHelper::isClosure)
-                .map(value -> (K) ClosureHelper.invokeClosure((Class<? extends Closure<Object>>) value, closureArgument))
+                .map(value -> (K) normalizeMappedBuilderClass(
+                        ClosureHelper.invokeClosure((Class<? extends Closure<Object>>) value, element), element))
                 .orElse(defaultValue);
+    }
+
+    private Object normalizeMappedBuilderClass(Object mappedKey, Object element) {
+        if (element instanceof KlumBuilder && mappedKey == element.getClass())
+            return ((KlumBuilder<?>) element).getModelType();
+        return mappedKey;
     }
 
     @SafeVarargs

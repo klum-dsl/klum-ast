@@ -27,11 +27,13 @@ import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.ast.util.BreadCrumbVerbInterceptor;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.LanguageHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.control.SourceUnit;
 import org.jetbrains.annotations.Nullable;
@@ -86,6 +88,14 @@ public class DslAstHelper {
     public static ClassNode getRwClassOf(ClassNode classNode) {
         if (!isDSLObject(classNode))
             return null;
+
+        // DSL interfaces have no generated concrete Builder of their own. Relationship
+        // fields still hold the common Builder abstraction until a concrete subtype is chosen.
+        if (classNode.isInterface())
+            return GenericsUtils.makeClassSafeWithGenerics(
+                    ClassHelper.make(KlumBuilder.class),
+                    new GenericsType(classNode.getPlainNodeReference())
+            );
 
         ClassNode result = classNode.redirect().getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
 

@@ -59,7 +59,7 @@ public class FieldAstValidator extends KlumCastCheck<Annotation> {
     }
 
     protected void extraValidateMethod(MethodNode target) {
-        if (getFieldType(target) == FieldType.LINK)
+        if (getFieldType(target) == FieldType.LINK && annotationToCheck.getMember("defaultImpl") != null)
             throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
         validateDefaultImpl(target.getParameters()[0].getType());
     }

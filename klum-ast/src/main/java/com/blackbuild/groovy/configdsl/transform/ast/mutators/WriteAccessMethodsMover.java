@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
@@ -89,6 +90,8 @@ public class WriteAccessMethodsMover {
     private static void retargetVirtualFieldParameter(MethodNode method) {
         AnnotationNode fieldAnnotation = getAnnotation(method, DSL_FIELD_ANNOTATION);
         if (fieldAnnotation == null || method.getParameters().length != 1)
+            return;
+        if (DslAstHelper.getFieldType(method) == FieldType.LINK)
             return;
 
         Parameter parameter = method.getParameters()[0];
