@@ -47,6 +47,7 @@ import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
@@ -193,7 +194,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     /** Called by generated model constructors for non-relationship fields. */
     public final Object $snapshotField(String fieldName) {
         Field schemaField = getModelField(fieldName);
-        return snapshot(getInstanceAttribute(fieldName), schemaField.getType());
+        Object value = getInstanceAttribute(fieldName);
+        return isMutableTransient(schemaField) ? value : snapshot(value, schemaField.getType());
     }
 
     /** Called by generated internal relationship assignment code. */
@@ -207,18 +209,22 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         if (value instanceof Map) {
             Map<Object, Object> mapped = newMapSnapshotSource((Map<?, ?>) value, schemaField.getType());
             ((Map<?, ?>) value).forEach((key, member) -> mapped.put(key, completedValue(member)));
-            return makeMapReadOnly(mapped, schemaField.getType());
+            return isMutableTransient(schemaField) ? mapped : makeMapReadOnly(mapped, schemaField.getType());
         }
         if (value instanceof Collection) {
             Collection<Object> mapped = newCollectionSnapshotSource((Collection<?>) value, schemaField.getType());
             ((Collection<?>) value).forEach(member -> mapped.add(completedValue(member)));
-            return makeCollectionReadOnly(mapped, schemaField.getType());
+            return isMutableTransient(schemaField) ? mapped : makeCollectionReadOnly(mapped, schemaField.getType());
         }
         throw new KlumModelException(format("Relationship field %s.%s contains unsupported value %s", modelType.getName(), fieldName, value.getClass().getName()));
     }
 
     private static Object completedValue(Object value) {
         return value instanceof KlumBuilder ? ((KlumBuilder<?>) value).getCompletedModel() : value;
+    }
+
+    private static boolean isMutableTransient(Field field) {
+        return DslHelper.getKlumFieldType(field) == FieldType.TRANSIENT || Modifier.isTransient(field.getModifiers());
     }
 
     private static Object snapshot(Object value, Class<?> declaredType) {

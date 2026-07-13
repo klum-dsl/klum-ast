@@ -56,20 +56,20 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     private void setDirectOwners(KlumBuilder<?> builder, Object value) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isNotTransitive)
-                .filter(field -> getOwnerType(field).isInstance(value))
+                .filter(field -> isExpectedOwnerType(getOwnerType(field), value))
                 .filter(field -> isUnset(builder, field))
                 .forEach(field -> setOwnerFieldValue(builder, value, field));
 
         DslHelper.getMethodsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isNotTransitive)
-                .filter(method -> getOwnerType(method).isInstance(value))
+                .filter(method -> isExpectedOwnerType(getOwnerType(method), value))
                 .forEach(method -> callOwnerMethod(builder, value, method));
     }
 
     private void setRoles(KlumBuilder<?> builder, Object container) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Role.class)
                 .filter(field -> isUnset(builder, field))
-                .filter(field -> field.getAnnotation(Role.class).value().isInstance(container))
+                .filter(field -> isExpectedOwnerType(field.getAnnotation(Role.class).value(), container))
                 .forEach(field -> setRole(
                         builder,
                         container,
@@ -77,7 +77,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
                 );
 
         DslHelper.getMethodsAnnotatedWith(builder.getClass(), Role.class)
-                .filter(method -> method.getAnnotation(Role.class).value().isInstance(container))
+                .filter(method -> isExpectedOwnerType(method.getAnnotation(Role.class).value(), container))
                 .forEach(method -> setRole(
                         builder,
                         container,
@@ -164,6 +164,13 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
             return ((Field) target).getType();
         else
             return ((Method) target).getParameterTypes()[0];
+    }
+
+    private static boolean isExpectedOwnerType(Class<?> expectedType, Object candidate) {
+        if (expectedType.isInstance(candidate))
+            return true;
+        return candidate instanceof KlumBuilder
+                && expectedType.isAssignableFrom(((KlumBuilder<?>) candidate).getModelType());
     }
 
 }

@@ -103,8 +103,8 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
     }
 
     private void autoCreateClusterFields(KlumBuilder<?> element) {
-
-        ClusterModel.getMethodsAnnotatedWithStream(element, Map.class, Cluster.class)
+        DslHelper.getMethodsAnnotatedWith(element.getModelType(), Cluster.class)
+                .filter(method -> Map.class.isAssignableFrom(method.getReturnType()))
                 .filter(clusterField -> clusterField.isAnnotationPresent(AutoCreate.class))
                 .forEach(clusterMethod -> autoCreateElementsForCluster(element, clusterMethod));
     }

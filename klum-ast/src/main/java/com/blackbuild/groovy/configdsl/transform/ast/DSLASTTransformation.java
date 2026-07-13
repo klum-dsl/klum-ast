@@ -56,6 +56,7 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
+import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -100,6 +101,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String RW_CLASS_SUFFIX = "$_RW";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
+    public static final String BUILDER_ANNOTATION_CLOSURE_METADATA_KEY =
+            DSLASTTransformation.class.getName() + ".builderAnnotationClosure";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String FACTORY_FIELD_NAME = "Create";
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
@@ -134,6 +137,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         implementMarkerInterfaces();
 
         checkFieldNames();
+        rejectCompletedModelApplyMethods();
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
@@ -147,6 +151,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         convertValidationClosures();
         moveMutatorsToRWClass();
         createOwnerClosureMethods();
+        retargetBuilderAnnotationClosures();
 
         finalizeModelFields();
         createMaterializationMethods();
@@ -175,6 +180,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void checkFieldNames() {
         annotatedClass.getFields().forEach(this::warnIfInvalid);
+    }
+
+    private void rejectCompletedModelApplyMethods() {
+        annotatedClass.getDeclaredMethods("apply").forEach(method ->
+                addCompileError("DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.", method));
     }
 
     private void warnIfInvalid(FieldNode fieldNode) {
@@ -241,6 +251,71 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         builderFields.values().forEach(this::retargetAnnotationClosuresToBuilder);
     }
 
+    private void retargetBuilderAnnotationClosures() {
+        CodeVisitorSupport visitor = new CodeVisitorSupport() {
+            @Override
+            public void visitVariableExpression(VariableExpression expression) {
+                FieldNode target = rwClass.getField(expression.getName());
+                Variable accessed = expression.getAccessedVariable();
+                if (target != null && (accessed instanceof FieldNode || accessed instanceof DynamicVariable)) {
+                    expression.setAccessedVariable(target);
+                    expression.setType(target.getType());
+                }
+                super.visitVariableExpression(expression);
+            }
+
+            @Override
+            public void visitPropertyExpression(PropertyExpression expression) {
+                super.visitPropertyExpression(expression);
+                String propertyName = expression.getPropertyAsString();
+                ClassNode receiverType = expression.getObjectExpression().getType();
+                FieldNode target = propertyName != null && receiverType != null
+                        ? receiverType.getField(propertyName)
+                        : null;
+                if (target != null)
+                    expression.setType(target.getType());
+            }
+
+            @Override
+            public void visitClosureExpression(ClosureExpression expression) {
+                for (Parameter parameter : expression.getParameters()) {
+                    if (isDSLObject(parameter.getType()))
+                        parameter.setType(getRwClassOf(parameter.getType()).getPlainNodeReference());
+                }
+                super.visitClosureExpression(expression);
+            }
+        };
+
+        rwClass.getFields().stream()
+                .flatMap(field -> field.getAnnotations().stream())
+                .flatMap(annotation -> annotation.getMembers().values().stream())
+                .forEach(expression -> retargetAnnotationExpression(expression, visitor));
+        rwClass.getMethods().stream()
+                .flatMap(method -> method.getAnnotations().stream())
+                .flatMap(annotation -> annotation.getMembers().values().stream())
+                .forEach(expression -> retargetAnnotationExpression(expression, visitor));
+
+        annotatedClass.getAnnotations().stream()
+                .flatMap(annotation -> annotation.getMembers().values().stream())
+                .forEach(expression -> retargetAnnotationExpression(expression, visitor));
+    }
+
+    private void retargetAnnotationExpression(Expression expression, CodeVisitorSupport visitor) {
+        expression.visit(visitor);
+        if (!(expression instanceof ClosureExpression closure)) return;
+        closure.putNodeMetaData(BUILDER_ANNOTATION_CLOSURE_METADATA_KEY, Boolean.TRUE);
+
+        // Depending on the active Groovy transforms, an annotation closure may already carry an inferred
+        // source-model return type here. The late model verifier repeats this correction after static type
+        // checking as well, preventing class generation from casting a Builder result back to that model.
+        ClassNode inferredReturnType = closure.getNodeMetaData(StaticTypesMarker.INFERRED_RETURN_TYPE);
+        if (isDSLObject(inferredReturnType))
+            closure.putNodeMetaData(
+                    StaticTypesMarker.INFERRED_RETURN_TYPE,
+                    getRwClassOf(inferredReturnType).getPlainNodeReference()
+            );
+    }
+
     private void retargetAnnotationClosuresToBuilder(FieldNode builderField) {
         CodeVisitorSupport visitor = new CodeVisitorSupport() {
             @Override
@@ -302,11 +377,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     field
             );
             return;
-        }
-        if (isMap(field.getType())) {
-            ClassNode keyType = getKeyTypeForMap(field.getType());
-            if (getFieldType(field) != FieldType.TRANSIENT && keyType != null && !STRING_TYPE.equals(keyType))
-                addCompileError("Map keys in DSL Objects must be Strings.", field);
         }
     }
 

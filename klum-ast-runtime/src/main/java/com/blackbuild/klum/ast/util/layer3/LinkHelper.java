@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.klum.ast.util.ClosureHelper;
+import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
@@ -55,7 +56,8 @@ public class LinkHelper {
 
     static void autoLink(KlumBuilder<?> container, String fieldName) {
         Field field = container.getField(fieldName);
-        LinkTo linkTo = new LinkToWrapper(field);
+        Field schemaField = DslHelper.getField(container.getModelType(), fieldName).orElse(field);
+        LinkTo linkTo = new LinkToWrapper(schemaField);
         autoLink(container, field, linkTo);
     }
 

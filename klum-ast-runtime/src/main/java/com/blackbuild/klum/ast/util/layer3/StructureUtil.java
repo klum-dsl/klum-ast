@@ -440,8 +440,8 @@ public class StructureUtil {
 
         @Override
         public Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
-            if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
+            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(element))) return Action.SKIP;
+            if (element.getClass().getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
             return Action.HANDLE;
         }
 
