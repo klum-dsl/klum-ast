@@ -31,10 +31,11 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Legacy untyped visitor base retained only to give existing plugins migration guidance.
  *
- * @deprecated extend {@link BuilderVisitingPhaseAction} before INSTANTIATE or
- * {@link ModelVisitingPhaseAction} afterward
+ * @deprecated since 4.0; extend {@link BuilderVisitingPhaseAction} before
+ * INSTANTIATE or {@link ModelVisitingPhaseAction} afterward
  */
-@Deprecated(forRemoval = true)
+@Deprecated(since = "4.0", forRemoval = true)
+@SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
 public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
     protected VisitingPhaseAction(KlumPhase phase) {

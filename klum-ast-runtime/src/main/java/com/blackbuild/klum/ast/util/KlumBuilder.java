@@ -72,7 +72,7 @@ import static java.lang.String.format;
  * <p>Generated Builders inherit this class and own every mutable value until
  * the graph is materialized. A completed model never retains its Builder.</p>
  */
-@SuppressWarnings({"unused", "unchecked"}) // methods are called from generated code
+@SuppressWarnings({"unused", "unchecked", "java:S100"}) // $-prefixed methods are collision-resistant generated-code ABI hooks
 public abstract class KlumBuilder<M> extends GroovyObjectSupport implements KlumRwObject, Serializable {
 
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";

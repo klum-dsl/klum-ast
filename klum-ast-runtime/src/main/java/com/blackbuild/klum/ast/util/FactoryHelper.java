@@ -57,6 +57,7 @@ import java.util.function.Supplier;
 public class FactoryHelper extends GroovyObjectSupport {
 
     public static final String MODEL_CLASS_KEY = "model-class";
+    private static final String TYPE_HINT = "@type";
 
     static {
         BreadCrumbVerbInterceptor.registerClass(FactoryHelper.class);
@@ -100,10 +101,12 @@ public class FactoryHelper extends GroovyObjectSupport {
         return createBuilder(type, null, null, true);
     }
 
+    @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
     static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
         return createRecipeBuilder(declaredType, recipe, keyHint, template, null);
     }
 
+    @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
     static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template,
                                               String breadcrumbPathExtension) {
         Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
@@ -118,7 +121,7 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     private static Class<?> effectiveRecipeType(Class<?> declaredType, Object recipe) {
         if (recipe instanceof Map)
-            return deduceClass(declaredType, (String) ((Map<?, ?>) recipe).get("@type"));
+            return deduceClass(declaredType, (String) ((Map<?, ?>) recipe).get(TYPE_HINT));
 
         Class<?> recipeType = recipe instanceof KlumBuilder
                 ? ((KlumBuilder<?>) recipe).getModelType()
@@ -158,6 +161,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return builder;
     }
 
+    @SuppressWarnings("java:S1452") // completed models retain their runtime-generated Builder type
     static KlumBuilder<?> wrapCompletedModel(Object model) {
         if (!DslHelper.isDslObject(model))
             throw new KlumModelException("Only completed DSL Objects can be wrapped");
@@ -493,7 +497,7 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {
-        Class<T> effectiveType = deduceClass(type, (String) configMap.get("@type"));
+        Class<T> effectiveType = deduceClass(type, (String) configMap.get(TYPE_HINT));
         String key = keyFromMap(effectiveType, configMap);
         return doCreate(key, () -> createBuilder(effectiveType, key), builder -> builder.copyFrom(configMap));
     }
@@ -505,7 +509,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * mutating callbacks run again after restoration and may therefore be non-idempotent.</p>
      */
     public static <T> T createFromSerializedState(Class<T> type, Map<String, Object> serializedState) {
-        Class<T> effectiveType = deduceClass(type, (String) serializedState.get("@type"));
+        Class<T> effectiveType = deduceClass(type, (String) serializedState.get(TYPE_HINT));
         String key = keyFromMap(effectiveType, serializedState);
         return BreadcrumbCollector.withBreadcrumb(null, null, key, () ->
                 PhaseDriver.withBuilderLifecycle(

@@ -40,6 +40,8 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 /** Creates mutable Builder accessors and read-only completed-model accessors. */
 class PropertyAccessors {
+    private static final String VALUE_PARAMETER = "value";
+
     private final DSLASTTransformation transformation;
     private final List<PropertyNode> modelPropertiesToReplace = new ArrayList<>();
 
@@ -75,8 +77,8 @@ class PropertyAccessors {
         createMethod(DslAstHelper.getSetterName(fieldName))
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
-                .param(builderField.getType(), "value")
-                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX("value"))))
+                .param(builderField.getType(), VALUE_PARAMETER)
+                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
                 .addTo(transformation.rwClass);
 
         // Existing completed values enter through KlumBuilder, which seals LINK targets.
@@ -84,8 +86,8 @@ class PropertyAccessors {
             createMethod(DslAstHelper.getSetterName(fieldName))
                     .mod(visibility)
                     .returning(ClassHelper.VOID_TYPE)
-                    .param(modelField.getType(), "value")
-                    .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX("value"))))
+                    .param(modelField.getType(), VALUE_PARAMETER)
+                    .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
                     .addTo(transformation.rwClass);
     }
 

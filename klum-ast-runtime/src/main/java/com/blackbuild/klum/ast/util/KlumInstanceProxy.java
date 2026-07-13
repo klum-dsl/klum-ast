@@ -35,9 +35,12 @@ import java.util.Map;
  *
  * <p>New runtime code belongs on {@link KlumBuilder} or {@link KlumModelProxy}.
  * Looking up this adapter for a completed model is intentionally rejected.</p>
+ *
+ * @deprecated since 4.0; use {@link KlumBuilder} for construction state and
+ * {@link KlumModelProxy} for completed-model companion state
  */
-@Deprecated
-@SuppressWarnings("unused")
+@Deprecated(since = "4.0", forRemoval = true)
+@SuppressWarnings({"unused", "java:S1133", "java:S1452"}) // compatibility adapter until its documented 4.x removal
 public final class KlumInstanceProxy {
 
     /** Legacy generated-layout constants retained while #394 is unresolved. */

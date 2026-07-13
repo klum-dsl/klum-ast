@@ -82,6 +82,16 @@ import static org.codehaus.groovy.transform.EqualsAndHashCodeASTTransformation.c
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class DSLASTTransformation extends AbstractASTTransformation {
 
+    private static final String MODEL_TYPE_PARAMETER = "modelType";
+    private static final String BUILDER_PARAMETER = "builder";
+    private static final String MATERIALIZATION_TOKEN_PARAMETER = "materializationToken";
+    private static final String ADD_ELEMENT_TO_COLLECTION = "addElementToCollection";
+    private static final String ADD_ELEMENT_TO_MAP = "addElementToMap";
+    private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
+    private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
+    private static final String CONFIGURATION_CLOSURE_DOCUMENTATION = "the closure to configure the new element";
+    private static final String ELEMENTS_TO_ADD_DOCUMENTATION = "the elements to add";
+
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
     public static final ClassNode VALIDATE_ANNOTATION = make(Validate.class);
@@ -467,16 +477,16 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createBuilderConstructors() {
         BlockStatement internalBody = new BlockStatement();
         if (dslParent == null)
-            internalBody.addStatement(ctorSuperS(args(varX("modelType"))));
+            internalBody.addStatement(ctorSuperS(args(varX(MODEL_TYPE_PARAMETER))));
         else
-            internalBody.addStatement(ctorSuperS(args(varX("modelType"), varX("key"))));
+            internalBody.addStatement(ctorSuperS(args(varX(MODEL_TYPE_PARAMETER), varX("key"))));
 
         if (keyField != null && keyField.getOwner().equals(annotatedClass))
             internalBody.addStatement(assignS(attrX(varX("this"), constX(keyField.getName())), varX("key")));
 
         rwClass.addConstructor(
                 ACC_PROTECTED,
-                params(param(makeClassSafe(Class.class), "modelType"), param(STRING_TYPE, "key")),
+                params(param(makeClassSafe(Class.class), MODEL_TYPE_PARAMETER), param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 internalBody
         );
@@ -492,13 +502,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createModelConstructor() {
         BlockStatement body = new BlockStatement();
         if (dslParent != null)
-            body.addStatement(ctorSuperS(args(varX("builder"), varX("materializationToken"))));
+            body.addStatement(ctorSuperS(args(varX(BUILDER_PARAMETER), varX(MATERIALIZATION_TOKEN_PARAMETER))));
         else {
             body.addStatement(ctorSuperS());
             body.addStatement(stmt(callX(
                     classX(KLUM_BUILDER),
                     "$requireMaterializationToken",
-                    args(varX("materializationToken"))
+                    args(varX(MATERIALIZATION_TOKEN_PARAMETER))
             )));
         }
 
@@ -507,21 +517,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 return;
             body.addStatement(assignS(
                     attrX(varX("this"), constX(modelField.getName())),
-                    castX(modelField.getType(), callX(varX("builder"), "$snapshotField", args(constX(modelField.getName()))))
+                    castX(modelField.getType(), callX(varX(BUILDER_PARAMETER), "$snapshotField", args(constX(modelField.getName()))))
             ));
         });
 
         if (dslParent == null)
             body.addStatement(assignS(
                     attrX(varX("this"), constX(KlumModelProxy.NAME_IN_MODEL)),
-                    ctorX(MODEL_PROXY, args(varX("this"), callX(varX("builder"), "exportModelState")))
+                    ctorX(MODEL_PROXY, args(varX("this"), callX(varX(BUILDER_PARAMETER), "exportModelState")))
             ));
 
         annotatedClass.addConstructor(
                 ACC_PROTECTED | ACC_SYNTHETIC,
                 params(
-                        param(rwClass.getPlainNodeReference(), "builder"),
-                        param(MATERIALIZATION_TOKEN, "materializationToken")
+                        param(rwClass.getPlainNodeReference(), BUILDER_PARAMETER),
+                        param(MATERIALIZATION_TOKEN, MATERIALIZATION_TOKEN_PARAMETER)
                 ),
                 NO_EXCEPTIONS,
                 body
@@ -854,7 +864,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values", "The values to add")
                 .addTo(rwClass);
 
-        createProxyMethod(elementName, "addElementToCollection")
+        createProxyMethod(elementName, ADD_ELEMENT_TO_COLLECTION)
                 .optional()
                 .mod(visibility)
                 .returning(elementType)
@@ -897,8 +907,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
                                 .p("The newly created Builder is configured by the optional values and closure.")
-                                .param("values", "the optional parameters")
-                                .param("closure", "the closure to configure the new element"))
+                                .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
+                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -917,8 +927,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
                                 .p("The newly created Builder is configured by the optional values and closure.")
-                                .param("values", "the optional parameters")
-                                .param("closure", "the closure to configure the new element"))
+                                .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
+                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -943,7 +953,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
                 .constantParam(fieldName)
-                .arrayParam(storedElementType, "values", "the elements to add")
+                .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
@@ -952,10 +962,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
                 .constantParam(fieldName)
-                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, storedElementType), "values", "the elements to add")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, storedElementType), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
 
-        createProxyMethod(methodName, "addElementToCollection")
+        createProxyMethod(methodName, ADD_ELEMENT_TO_COLLECTION)
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
@@ -968,7 +978,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         // Keep a model-typed compatibility overload so completed composition inputs
         // fail with KlumBuilder's LINK migration guidance instead of MissingMethodException.
         if (!linkField) {
-            createProxyMethod(methodName, "addElementToCollection")
+            createProxyMethod(methodName, ADD_ELEMENT_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1046,7 +1056,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .addTo(rwClass);
         }
 
-        createProxyMethod(singleElementMethod, "addElementToMap")
+        createProxyMethod(singleElementMethod, ADD_ELEMENT_TO_MAP)
                 .optional()
                 .mod(visibility)
                 .returning(valueType)
@@ -1097,8 +1107,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
                                 .p("The newly created Builder is configured by the optional values and closure.")
-                                .param("values", "the optional parameters")
-                                .param("closure", "the closure to configure the new element"))
+                                .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
+                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -1117,8 +1127,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
                                 .p("The newly created Builder is configured by the optional values and closure.")
-                                .param("values", "the optional parameters")
-                                .param("closure", "the closure to configure the new element"))
+                                .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
+                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -1143,7 +1153,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
                 .constantParam(fieldName)
-                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(storedElementType)), "values", "the elements to add")
+                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(storedElementType)), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
         createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
@@ -1151,10 +1161,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .linkToField(fieldNode)
                 .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
                 .constantParam(fieldName)
-                .arrayParam(storedElementType, "values", "the elements to add")
+                .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
 
-        createProxyMethod(methodName, "addElementToMap")
+        createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
                 .optional()
                 .mod(visibility)
                 .returning(storedElementType)
@@ -1167,7 +1177,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         // See the corresponding collection overload above.
         if (!linkField) {
-            createProxyMethod(methodName, "addElementToMap")
+            createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .returning(elementType)
@@ -1320,18 +1330,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
+        createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
+        createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(Integer_TYPE, "phase")
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
+        createProxyMethod(APPLY_LATER, SCHEDULE_APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .param(make(DefaultKlumPhase.class), "phase")
                 .delegatingClosureParam(rwClass, null, null)

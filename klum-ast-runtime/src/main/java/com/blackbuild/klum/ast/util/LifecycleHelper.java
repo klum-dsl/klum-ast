@@ -67,8 +67,11 @@ public class LifecycleHelper {
         executeLifecycleClosures(builder, annotation);
     }
 
-    /** @deprecated construction lifecycle state now belongs to {@link KlumBuilder}. */
-    @Deprecated
+    /**
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     */
+    @Deprecated(since = "4.0", forRemoval = true)
+    @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
     public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         executeLifecycleMethods(proxy.getBuilder(), annotation);
     }
@@ -85,8 +88,11 @@ public class LifecycleHelper {
                 .forEach(name -> executeLifecycleClosure(builder, name));
     }
 
-    /** @deprecated construction lifecycle state now belongs to {@link KlumBuilder}. */
-    @Deprecated
+    /**
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     */
+    @Deprecated(since = "4.0", forRemoval = true)
+    @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
     public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         executeLifecycleClosures(proxy.getBuilder(), annotation);
     }
