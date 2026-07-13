@@ -127,4 +127,68 @@ class JsonExportSpec extends AbstractDSLSpec {
         deserialized == instance
     }
 
+    def "deserialization restores Builders before lifecycle materialization and validation"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.util.KlumBuilder
+
+            @DSL
+            class Root {
+                static List<String> events = []
+
+                String name = "initializer"
+                Child child
+
+                @PostCreate
+                void afterCreate() {
+                    assert this instanceof KlumBuilder
+                    events << "postCreate:$name".toString()
+                    name += "-post"
+                }
+
+                @PostApply
+                void afterApply() {
+                    assert this instanceof KlumBuilder
+                    events << "postApply:$name".toString()
+                    name += "-apply"
+                }
+
+                @PostTree
+                void afterTree() {
+                    events << "postTree:$name:${child instanceof KlumBuilder}".toString()
+                }
+
+                @Validate
+                void validateModel() {
+                    assert !(this instanceof KlumBuilder)
+                    events << "validate:$name:${getClass().simpleName}".toString()
+                }
+            }
+
+            @DSL
+            class Child {
+                String value
+                @Owner Root parent
+            }
+        ''')
+        def Root = clazz
+
+        when:
+        def deserialized = mapper.readValue('{"name":"json","child":{"value":"nested"}}', Root)
+
+        then:
+        deserialized.name == "json-post-apply"
+        deserialized.child.value == "nested"
+        deserialized.child.parent.is(deserialized)
+        Root.events == [
+                "postCreate:json",
+                "postApply:json-post",
+                "postTree:json-post-apply:true",
+                "validate:json-post-apply:Root"
+        ]
+        !deserialized.metaClass.respondsTo(deserialized, "apply", Closure)
+    }
+
 }

@@ -98,7 +98,9 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
         Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
-        String key = keyHint == null ? recipeKey(effectiveType, recipe) : keyHint.toString();
+        String key = recipeKey(effectiveType, recipe);
+        if (key == null && keyHint != null)
+            key = keyHint.toString();
         KlumBuilder<?> builder = createBuilder(effectiveType, key);
         if (template)
             builder.markAsTemplate();
@@ -288,31 +290,6 @@ public class FactoryHelper extends GroovyObjectSupport {
         apply.accept(builder);
     }
 
-    static <T> T createInstance(Class<T> type, String key) {
-        return createInstance(type, key, null);
-    }
-
-    static <T> T createInstance(Class<T> type, String key, String breadCrumbPathExtension) {
-        if (!DslHelper.isInstantiable(type))
-            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
-        if (key == null && DslHelper.isKeyed(type))
-            return createInstanceWithNullArg(type);
-        //noinspection unchecked
-        T result = (T) InvokerHelper.invokeConstructorOf(type, key);
-        KlumInstanceProxy instanceProxy = KlumInstanceProxy.getProxyFor(result);
-        if (breadCrumbPathExtension != null)
-            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadCrumbPathExtension);
-        else if (BreadcrumbCollector.hasInstance())
-            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
-        instanceProxy.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
-        return result;
-    }
-
-    private static <T> T createInstanceWithNullArg(Class<T> type) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{null});
-    }
-
     /**
      * Creates a new instance of the given type using the provided values, key and config closure.
      * <p>
@@ -449,11 +426,6 @@ public class FactoryHelper extends GroovyObjectSupport {
         });
     }
 
-    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, args);
-    }
-
     /**
      * Creates a template of the given type by reading the given resource, compiling it into a delegating script
      * and applying it to a newly created instance.
@@ -497,10 +469,6 @@ public class FactoryHelper extends GroovyObjectSupport {
         });
     }
 
-    public static <T> T createAsStub(Class<T> type, String key) {
-        return createInstance(type, key);
-    }
-
     private static String extractKeyFromUrl(URL url) {
         return extractKeyFromFilename(Paths.get(url.getPath()).getFileName().toString());
     }
@@ -516,19 +484,39 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {
-        return BreadcrumbCollector.withBreadcrumb(() -> {
-            String keyFromMap = DslHelper.getKeyField(type)
-                    .map(Field::getName)
-                    .map(configMap::get)
-                    .map(Object::toString)
-                    .orElse(null);
-            String typeFromMap = (String) configMap.get("@type");
-            Class<T> effectiveType = deduceClass(type, typeFromMap);
+        Class<T> effectiveType = deduceClass(type, (String) configMap.get("@type"));
+        String key = keyFromMap(effectiveType, configMap);
+        return doCreate(key, () -> createBuilder(effectiveType, key), builder -> builder.copyFrom(configMap));
+    }
 
-            T result = createInstance(effectiveType, keyFromMap);
-            CopyHandler.copyToFrom(result, configMap);
-            return result;
-        });
+    /**
+     * Restores serialized field state into a Builder and then runs the complete lifecycle.
+     *
+     * <p>This ordering is the explicitly provisional Jackson policy from issue #428:
+     * mutating callbacks run again after restoration and may therefore be non-idempotent.</p>
+     */
+    public static <T> T createFromSerializedState(Class<T> type, Map<String, Object> serializedState) {
+        Class<T> effectiveType = deduceClass(type, (String) serializedState.get("@type"));
+        String key = keyFromMap(effectiveType, serializedState);
+        return BreadcrumbCollector.withBreadcrumb(null, null, key, () ->
+                PhaseDriver.withBuilderLifecycle(
+                        () -> createBuilder(effectiveType, key),
+                        builder -> {
+                            builder.copyFromTemplate();
+                            builder.copyFrom(serializedState);
+                            LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
+                            LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
+                        }
+                )
+        );
+    }
+
+    private static String keyFromMap(Class<?> type, Map<String, Object> values) {
+        return DslHelper.getKeyField(type)
+                .map(Field::getName)
+                .map(values::get)
+                .map(Object::toString)
+                .orElse(null);
     }
 
     private static <T> Class<T> deduceClass(Class<T> baseType, String typeHint) {
