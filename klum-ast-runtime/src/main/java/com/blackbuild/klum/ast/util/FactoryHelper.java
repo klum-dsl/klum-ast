@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -78,7 +79,10 @@ public class FactoryHelper extends GroovyObjectSupport {
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
             Class<? extends KlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
-            KlumBuilder<T> builder = (KlumBuilder<T>) builderType.getDeclaredConstructor(String.class).newInstance(key);
+            Constructor<? extends KlumBuilder<?>> constructor = builderType.getDeclaredConstructor(String.class);
+            if (!constructor.trySetAccessible())
+                throw new KlumModelException("Cannot access generated Builder constructor for " + type.getName());
+            KlumBuilder<T> builder = (KlumBuilder<T>) constructor.newInstance(key);
             if (breadcrumbPathExtension != null)
                 builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadcrumbPathExtension);
             else if (BreadcrumbCollector.hasInstance())

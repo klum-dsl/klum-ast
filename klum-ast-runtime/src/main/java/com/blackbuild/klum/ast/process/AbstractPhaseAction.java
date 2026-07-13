@@ -66,6 +66,11 @@ public abstract class AbstractPhaseAction implements PhaseAction {
 
     protected abstract void doExecute();
 
+    /** Allows a phase implementation to replace the lifecycle root without exposing that mutation publicly. */
+    protected final void replaceRootObject(Object rootObject) {
+        PhaseDriver.getInstance().replaceRootObject(rootObject);
+    }
+
     protected boolean isUnset(Map.Entry<String, Object> entry) {
         return isEmpty(entry.getValue());
     }

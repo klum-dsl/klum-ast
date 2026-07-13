@@ -469,7 +469,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
 
         rwClass.addConstructor(
-                ACC_PUBLIC,
+                ACC_PROTECTED,
                 params(param(STRING_TYPE, "key")),
                 NO_EXCEPTIONS,
                 block(ctorThisS(args(classX(annotatedClass), varX("key"))))
@@ -525,25 +525,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         builderFields.forEach((modelField, builderField) -> {
             if (getFieldType(modelField) == FieldType.BUILDER || !isRelationshipField(modelField))
                 return;
-            String assignmentMethod = "$klum$assignRelationship$" + modelField.getName();
-            ClassNode relationshipType = modelField.getType().getPlainNodeReference();
-
-            annotatedClass.addMethod(new MethodNode(
-                    assignmentMethod,
-                    ACC_SYNTHETIC,
-                    VOID_TYPE,
-                    params(param(relationshipType, "value")),
-                    NO_EXCEPTIONS,
-                    block(assignS(
-                            attrX(varX("this"), constX(modelField.getName())),
-                            varX("value")
-                    ))
-            ));
-
             method.statement(stmt(callX(
-                    castX(annotatedClass.getPlainNodeReference(), callThisX("getCompletedModel")),
-                    assignmentMethod,
-                    args(castX(relationshipType, callThisX("$materializeRelationship", args(constX(modelField.getName())))))
+                    varX("this"),
+                    "$assignMaterializedRelationship",
+                    args(constX(modelField.getName()))
             )));
         });
         method.addTo(rwClass);

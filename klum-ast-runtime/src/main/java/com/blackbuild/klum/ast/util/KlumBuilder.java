@@ -151,11 +151,18 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     /**
      * Materializes a complete Builder graph in two passes so cycles and self links are preserved.
      */
-    public static Object materializeGraph(KlumBuilder<?> root) {
+    static Object materializeGraph(KlumBuilder<?> root) {
         List<KlumBuilder<?>> graph = collectGraph(root);
         graph.forEach(KlumBuilder::allocateModel);
         graph.forEach(KlumBuilder::$assignRelationships);
         return root.getCompletedModel();
+    }
+
+    /** Internal Builder hook that assigns one completed relationship without exposing a model mutator. */
+    protected final void $assignMaterializedRelationship(String fieldName) {
+        CachedField target = DslHelper.getCachedField(completedModel.getClass(), fieldName)
+                .orElseThrow(() -> new MissingPropertyException(fieldName, completedModel.getClass()));
+        target.setProperty(completedModel, $materializeRelationship(fieldName));
     }
 
     private static List<KlumBuilder<?>> collectGraph(KlumBuilder<?> root) {
@@ -287,7 +294,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata, applyLaterClosures);
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata,
+                template ? dehydrateApplyLaterClosures(applyLaterClosures) : Collections.emptyMap());
     }
 
     public static final class ModelState implements Serializable {
@@ -399,7 +407,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private static boolean acceptsCompletedRelationship(Field schemaField) {
-        return DslHelper.isLink(schemaField) || schemaField.isAnnotationPresent(Owner.class);
+        return DslHelper.isLink(schemaField);
     }
 
     private KlumModelException completedRelationshipInputError(Field schemaField) {
@@ -870,6 +878,14 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
+        return copy;
+    }
+
+    private static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
+        Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
+        source.forEach((phase, closures) -> copy.put(phase, closures.stream()
+                .map(Closure::dehydrate)
+                .collect(Collectors.toList())));
         return copy;
     }
 

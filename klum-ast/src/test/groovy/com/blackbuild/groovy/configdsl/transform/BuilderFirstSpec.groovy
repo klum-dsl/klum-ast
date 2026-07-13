@@ -104,6 +104,114 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         constructorError.message.contains("DSL Objects cannot declare constructors")
     }
 
+    def "Builder allocation and graph materialization are not public construction entrypoints"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class FactoryOnlyModel {
+                String value
+            }
+        '''
+
+        expect:
+        rwClazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
+        !Modifier.isPublic(KlumBuilder.getDeclaredMethod("materializeGraph", KlumBuilder).modifiers)
+    }
+
+    def "completed models expose no generated relationship assignment method"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Parent {
+                Child child
+            }
+
+            @DSL
+            class Child {
+                String name
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            child { name "child" }
+        }
+
+        then:
+        instance.child.name == "child"
+        clazz.declaredMethods*.name.every { !it.startsWith('$klum$assignRelationship$') }
+    }
+
+    def "completed Owner inputs cannot be introduced as aggregation targets"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Parent {
+                String name
+            }
+
+            @DSL
+            class Child {
+                @Owner Parent parent
+            }
+        '''
+        def Parent = clazz
+        def Child = getClass("pk.Child")
+        def completedParent = Parent.Create.With { name "completed" }
+
+        when:
+        Child.Create.With {
+            ((KlumBuilder) delegate).setInstanceAttribute("parent", completedParent)
+        }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains("only supported for LINK relationships")
+    }
+
+    def "model companions do not retain Builder-backed applyLater closures"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Recipe {
+                String name
+                String result
+            }
+        '''
+
+        when:
+        def template = clazz.Create.Template {
+            applyLater {
+                result name.toUpperCase()
+            }
+        }
+        def proxy = KlumModelProxy.getProxyFor(template)
+        def closuresField = KlumModelProxy.getDeclaredField("applyLaterClosures")
+        closuresField.accessible = true
+        Closure stored = closuresField.get(proxy).values().first().first()
+
+        then:
+        stored.owner == null
+        stored.delegate == null
+        stored.thisObject == null
+
+        when: "the dehydrated recipe is copied into a fresh Builder"
+        instance = clazz.Template.With(template) {
+            clazz.Create.With { name "fresh" }
+        }
+
+        then:
+        instance.result == "FRESH"
+    }
+
     def "materialization resolves self and cyclic Builder relationships"() {
         given:
         createClass '''

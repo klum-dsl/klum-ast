@@ -21,9 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process;
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.process.AbstractPhaseAction;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
 
 /** Materializes the completed DSL Object graph and switches the phase root. */
 public final class InstantiatePhase extends AbstractPhaseAction {
@@ -37,6 +39,6 @@ public final class InstantiatePhase extends AbstractPhaseAction {
         Object root = PhaseDriver.getInstance().getRootObject();
         if (!(root instanceof KlumBuilder))
             throw new IllegalStateException("INSTANTIATE requires a Builder root");
-        PhaseDriver.getInstance().replaceRootObject(KlumBuilder.materializeGraph((KlumBuilder<?>) root));
+        replaceRootObject(KlumBuilder.materializeGraph((KlumBuilder<?>) root));
     }
 }
