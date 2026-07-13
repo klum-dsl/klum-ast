@@ -24,194 +24,37 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.util
 
-
 import spock.lang.Subject
+
+import java.lang.reflect.Modifier
 
 class KlumInstanceProxyTest extends AbstractRuntimeTest {
 
-    @Subject KlumInstanceProxy proxy
-
-    void "getKey returns the correct key for inherited classes"() {
+    def "compatibility adapter only exposes Builder identity and template context"() {
         given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo implements KlumModelObject {
-                @Key String name
-            }
-            @DSL
-            class Bar extends Foo {
-            }
-        ''')
-
-        expect:
-        DslHelper.getKeyField(getClass("pk.Bar")).get().getName() == "name"
-
-    }
-
-    def "inherited instanceProperties"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-            }
-            @DSL
-            class Bar extends Foo {
-                String child
-            }
-
-            abstract class FooBuilder<T> extends KlumBuilder<T> {
-                String name
-
-                FooBuilder(Class<T> modelType) {
-                    super(modelType)
-                }
-            }
-
-            class BarBuilder extends FooBuilder<Bar> {
-                String child
-
-                BarBuilder() {
-                    super(Bar)
-                }
-
-                @Override
-                protected Class<Bar> $modelImplementationType() {
-                    return Bar
-                }
-            }
-        ''')
+        def builder = new TestRuntimeBuilder<TestObject>(TestObject)
 
         when:
-        instance = newInstanceOf("pk.BarBuilder")
-        instance.name = "myName"
-        instance.child = "myChild"
-        proxy = new KlumInstanceProxy(instance as GroovyObject)
+        def proxy = KlumInstanceProxy.getProxyFor(builder)
 
         then:
-        proxy.getInstanceProperty("name") == "myName"
-        proxy.getInstanceProperty("child") == "myChild"
+        proxy.DSLInstance.is(builder)
+        proxy.builder.is(builder)
+        proxy.currentTemplates == [:]
+
+        and: "the public adapter API contains no construction or mutation operations"
+        KlumInstanceProxy.declaredMethods
+                .findAll { Modifier.isPublic(it.modifiers) && !it.synthetic }
+                *.name as Set == ["getProxyFor", "getDSLInstance", "getCurrentTemplates"] as Set
     }
 
-    def "invoke via getProperty"() {
-        given:
-        createClass('''
-            package pk
-            
-            @DSL
-            class Foo {
-                String name 
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String child
-            }
-
-            abstract class FooBuilder<T> extends KlumBuilder<T> {
-                final KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-                String name
-
-                FooBuilder(Class<T> modelType) {
-                    super(modelType)
-                }
-                
-                String getName() {
-                    $proxy.getInstanceProperty('name')
-                }
-            }
-
-            class BarBuilder extends FooBuilder<Bar> {
-                String child
-
-                BarBuilder() {
-                    super(Bar)
-                }
-                
-                String getChild() {
-                    $proxy.getInstanceProperty('child')
-                }
-
-                @Override
-                protected Class<Bar> $modelImplementationType() {
-                    return Bar
-                }
-            }
-        ''')
-
+    def "completed model lookup fails with migration guidance"() {
         when:
-        instance = newInstanceOf("pk.BarBuilder")
-        instance.name = "myName"
-        instance.child = "myChild"
+        KlumInstanceProxy.getProxyFor(new TestObject())
 
         then:
-        instance.name == "myName"
-        instance.child == "myChild"
+        KlumException failure = thrown()
+        failure.message.contains("Builder-only")
+        failure.message.contains("KlumModelProxy")
     }
-
-    def "Field can be set via various methods"() {
-        given:
-        createClass('''
-            package pk
-
-            @SuppressWarnings('UnnecessaryQualifiedReference')
-            @DSL
-            class Foo {
-                String provider
-                
-                @Field(key = { provider })
-                Object viaProvider
-
-                @Field(key = com.blackbuild.groovy.configdsl.transform.Field.FieldName)
-                Object byFieldName
-                
-                @Field
-                Object noKeyMember
-
-                Object noFieldAnnotation
-            }
-
-            class FooBuilder extends KlumBuilder<Foo> {
-                String provider
-
-                @Field(key = { provider })
-                Object viaProvider
-
-                @Field(key = com.blackbuild.groovy.configdsl.transform.Field.FieldName)
-                Object byFieldName
-
-                @Field
-                Object noKeyMember
-
-                Object noFieldAnnotation
-
-                FooBuilder() {
-                    super(Foo)
-                }
-
-                @Override
-                protected Class<Foo> $modelImplementationType() {
-                    return Foo
-                }
-            }
-         ''')
-
-        when:
-        instance = newInstanceOf("pk.FooBuilder")
-        instance.provider = "bar"
-        proxy = new KlumInstanceProxy(instance)
-
-        then:
-        proxy.resolveKeyForFieldFromAnnotation("viaProvider", proxy.getField("viaProvider")).get() == "bar"
-        proxy.resolveKeyForFieldFromAnnotation("byFieldName", proxy.getField("byFieldName")).get() == "byFieldName"
-        !proxy.resolveKeyForFieldFromAnnotation("noKeyMember", proxy.getField("noKeyMember")).isPresent()
-        !proxy.resolveKeyForFieldFromAnnotation("noFieldAnnotation", proxy.getField("noFieldAnnotation")).isPresent()
-    }
-
-
-    // TODO: List of Lists, mixed dsl / non dsl elements
 }

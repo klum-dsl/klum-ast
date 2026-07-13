@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumModelException;
 import com.blackbuild.klum.ast.util.KlumModelProxy;
 import groovy.lang.Closure;

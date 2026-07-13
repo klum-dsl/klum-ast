@@ -35,7 +35,6 @@ import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
@@ -94,7 +93,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
-    public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
     public static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
     public static final ClassNode MODEL_PROXY = make(KlumModelProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
@@ -910,7 +908,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (!linkField) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(defaultImpl)) {
-                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
+                createProxyMethod(methodName, KlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -930,7 +928,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
-                createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
+                createProxyMethod(methodName, KlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -949,7 +947,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(rwClass);
             }
 
-            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
+            createProxyMethod(fieldName, KlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1149,7 +1147,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(rwClass);
             }
 
-            createProxyMethod(fieldName, KlumInstanceProxy.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
+            createProxyMethod(fieldName, KlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)

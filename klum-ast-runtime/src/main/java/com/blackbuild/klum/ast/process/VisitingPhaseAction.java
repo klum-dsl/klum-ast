@@ -23,11 +23,8 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
-import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,15 +58,5 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
     }
 
     protected abstract void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer);
-
-    protected void withCurrentTemplates(Object element, Runnable runnable) {
-        TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
-            @Override
-            public Void call() {
-                runnable.run();
-                return null;
-            }
-        });
-    }
 
 }

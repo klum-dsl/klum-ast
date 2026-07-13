@@ -16,7 +16,7 @@ The closure receivers, child values, mutators, and lifecycle callbacks through `
 
 - Replace direct construction with generated factories. A DSL Object may not declare client constructors.
 - Move post-construction `model.apply { ... }` calls into the original `Create.With { ... }` callback, a template, or another factory input. Completed models expose no `apply` method.
-- Stop calling `KlumInstanceProxy.getProxyFor(model)`. The compatibility adapter accepts Builders only; completed-object technical state belongs to `KlumModelProxy` and normal public utilities.
+- Stop calling `KlumInstanceProxy.getProxyFor(model)`. The narrow compatibility adapter accepts Builders only and retains only Builder identity plus read-only template-context inspection; construction operations live on `KlumBuilder`. Completed-object technical state belongs to `KlumModelProxy` and normal public utilities.
 - Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` from inside a parent construction callback or from a nested converter/factory: that starts a second lifecycle and cannot produce composition owned by the first. Use the generated child method on the parent Builder instead.
 - Pass an existing completed DSL Object only to a `FieldType.LINK` relationship. Completed objects cannot become newly owned composition. Use a template when an existing object is intended as a reusable recipe; applying it rehydrates fresh Builders.
 

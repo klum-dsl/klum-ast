@@ -23,7 +23,6 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.InnerClassNode;
@@ -36,7 +35,6 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createG
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
-import static org.codehaus.groovy.ast.ClassHelper.make;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
 public abstract class AbstractFactoryBuilder {
@@ -82,11 +80,6 @@ public abstract class AbstractFactoryBuilder {
                 )
         );
         DslAstHelper.registerAsVerbProvider(collectionFactory);
-
-        MethodBuilder.createProtectedMethod("get$proxy")
-                .returning(make(KlumInstanceProxy.class))
-                .doReturn(callX(classX(make(KlumInstanceProxy.class)), "getProxyFor", args(varX("rw"))))
-                .addTo(collectionFactory);
 
         collectionFactory.addAnnotation(createGeneratedAnnotation(getClass()));
         targetClass.getModule().addClass(collectionFactory);

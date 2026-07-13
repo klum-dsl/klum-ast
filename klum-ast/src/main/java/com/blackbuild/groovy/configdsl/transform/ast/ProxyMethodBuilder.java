@@ -29,7 +29,6 @@ import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
@@ -56,7 +55,6 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private static final ClassNode FACTORY_HELPER_TYPE = make(FactoryHelper.class);
     private static final ClassNode TEMPLATE_MANAGER_TYPE = make(TemplateManager.class);
-    private static final ClassNode KLUM_INSTANCE_PROXY_TYPE = make(KlumInstanceProxy.class);
     private static final ClassNode KLUM_BUILDER_TYPE = make(KlumBuilder.class);
 
     private final String proxyMethodName;
