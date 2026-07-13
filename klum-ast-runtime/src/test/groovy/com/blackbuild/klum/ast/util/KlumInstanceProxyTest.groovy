@@ -63,10 +63,31 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
             class Bar extends Foo {
                 String child
             }
+
+            abstract class FooBuilder<T> extends KlumBuilder<T> {
+                String name
+
+                FooBuilder(Class<T> modelType) {
+                    super(modelType)
+                }
+            }
+
+            class BarBuilder extends FooBuilder<Bar> {
+                String child
+
+                BarBuilder() {
+                    super(Bar)
+                }
+
+                @Override
+                protected Bar $createModel() {
+                    throw new UnsupportedOperationException()
+                }
+            }
         ''')
 
         when:
-        instance = newInstanceOf("pk.Bar")
+        instance = newInstanceOf("pk.BarBuilder")
         instance.name = "myName"
         instance.child = "myChild"
         proxy = new KlumInstanceProxy(instance as GroovyObject)
@@ -81,28 +102,49 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         createClass('''
             package pk
             
+            @DSL
             class Foo {
-                final KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
                 String name 
+            }
+
+            @DSL
+            class Bar extends Foo {
+                String child
+            }
+
+            abstract class FooBuilder<T> extends KlumBuilder<T> {
+                final KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+                String name
+
+                FooBuilder(Class<T> modelType) {
+                    super(modelType)
+                }
                 
                 String getName() {
                     $proxy.getInstanceProperty('name')
                 }
             }
 
-            @DSL
-            class Bar extends Foo {
+            class BarBuilder extends FooBuilder<Bar> {
                 String child
+
+                BarBuilder() {
+                    super(Bar)
+                }
                 
                 String getChild() {
                     $proxy.getInstanceProperty('child')
+                }
+
+                @Override
+                protected Bar $createModel() {
+                    throw new UnsupportedOperationException()
                 }
             }
         ''')
 
         when:
-        instance = newInstanceOf("pk.Bar")
+        instance = newInstanceOf("pk.BarBuilder")
         instance.name = "myName"
         instance.child = "myChild"
 
@@ -132,10 +174,34 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
 
                 Object noFieldAnnotation
             }
+
+            class FooBuilder extends KlumBuilder<Foo> {
+                String provider
+
+                @Field(key = { provider })
+                Object viaProvider
+
+                @Field(key = com.blackbuild.groovy.configdsl.transform.Field.FieldName)
+                Object byFieldName
+
+                @Field
+                Object noKeyMember
+
+                Object noFieldAnnotation
+
+                FooBuilder() {
+                    super(Foo)
+                }
+
+                @Override
+                protected Foo $createModel() {
+                    throw new UnsupportedOperationException()
+                }
+            }
          ''')
 
         when:
-        instance = newInstanceOf("pk.Foo")
+        instance = newInstanceOf("pk.FooBuilder")
         instance.provider = "bar"
         proxy = new KlumInstanceProxy(instance)
 
