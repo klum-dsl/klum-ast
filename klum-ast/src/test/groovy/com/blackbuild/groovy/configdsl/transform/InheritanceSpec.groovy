@@ -756,7 +756,7 @@ class InheritanceSpec extends AbstractDSLSpec {
 
         then:
         MultipleCompilationErrorsException error = thrown()
-        error.message.contains("Implicit super constructor Inner() is undefined")
+        error.message.contains("Non-DSL subclasses cannot extend DSL Objects")
 
     }
 

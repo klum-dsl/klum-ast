@@ -138,6 +138,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         checkFieldNames();
         rejectCompletedModelApplyMethods();
         rejectClientConstructors();
+        rejectNonDslSubclasses();
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
@@ -198,6 +199,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         sourceUnit,
                         "DSL Objects cannot declare constructors; use the generated factory and configure its Builder.",
                         constructor
+                ));
+    }
+
+    private void rejectNonDslSubclasses() {
+        sourceUnit.getAST().getClasses().stream()
+                .filter(candidate -> candidate != annotatedClass)
+                .filter(candidate -> candidate.getSuperClass() != null)
+                .filter(candidate -> candidate.getSuperClass().redirect().equals(annotatedClass.redirect()))
+                .filter(candidate -> !isDSLObject(candidate))
+                .forEach(candidate -> addCompileError(
+                        sourceUnit,
+                        "Non-DSL subclasses cannot extend DSL Objects; annotate " + candidate.getName() + " with @DSL.",
+                        candidate
                 ));
     }
 
