@@ -432,6 +432,14 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return this;
     }
 
+    public Object apply(Map<String, ?> values) {
+        return apply(values, null);
+    }
+
+    public Object apply(Closure<?> body) {
+        return apply(null, body);
+    }
+
     public void applyOnly(Map<String, ?> values, Closure<?> body) {
         assertMutable();
         applyNamedParameters(values);

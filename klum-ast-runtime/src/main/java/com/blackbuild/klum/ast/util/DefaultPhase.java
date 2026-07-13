@@ -119,11 +119,16 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
     }
 
     private static @NotNull Class<?> determineTargetType(String field, Object value, KlumBuilder<?> builder, Class<?> fieldType) {
+        if ("apply".equals(field) && isClosureType(value))
+            return Closure.class;
         Class<?> methodArgument = isClosureType(value) ? (Class<?>) value : value.getClass();
-        MetaMethod exactlyMatchingSetter = builder.getMetaClass().getMetaMethod(field, new Object[]{methodArgument});
+        List<MetaMethod> compatibleSetters = builder.getMetaClass().getMetaMethods().stream()
+                .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
+                .filter(metaMethod -> metaMethod.getParameterTypes()[0].getTheClass().isAssignableFrom(methodArgument))
+                .collect(toList());
 
-        if (exactlyMatchingSetter != null)
-            fieldType = exactlyMatchingSetter.getParameterTypes()[0].getTheClass();
+        if (compatibleSetters.size() == 1)
+            fieldType = compatibleSetters.get(0).getParameterTypes()[0].getTheClass();
 
         if (fieldType == null) {
                 fieldType = determineTargetTypeFromSingleSetterOrField(field, builder);
