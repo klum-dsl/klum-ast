@@ -76,6 +76,8 @@ public class CopyHandler {
                         String donorBreadcrumbRoot) {
         if (!(target instanceof KlumBuilder))
             throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
+        if (donor == null)
+            throw new KlumModelException("Copy donor must not be null");
         this.target = (KlumBuilder<?>) target;
         this.donor = donor;
         this.rehydratedRecipes = rehydratedRecipes;
@@ -85,8 +87,7 @@ public class CopyHandler {
     }
 
     public void doCopy() {
-        if (donor != null)
-            rehydratedRecipes.putIfAbsent(donor, target);
+        rehydratedRecipes.putIfAbsent(donor, target);
         if (donor instanceof Map)
             doCopyFromMap();
         else

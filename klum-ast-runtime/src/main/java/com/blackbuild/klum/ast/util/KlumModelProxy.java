@@ -51,10 +51,11 @@ public final class KlumModelProxy implements Serializable {
 
     public static final String NAME_IN_MODEL = "$proxy";
 
+    @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private final GroovyObject model;
     private final String breadcrumbPath;
     private String modelPath;
-    private final Map<String, Object> metadata;
+    private final Map<String, Serializable> metadata;
     private final Map<Integer, List<Closure<?>>> applyLaterClosures;
     private final Set<Class<?>> executedValidators = new HashSet<>();
 
@@ -101,6 +102,16 @@ public final class KlumModelProxy implements Serializable {
         return metadata.containsKey(key);
     }
 
+    /**
+     * Returns technical metadata serialized with this completed DSL Object and its companion.
+     * Metadata values are required to be {@link Serializable} so a value accepted here cannot
+     * make later model serialization fail.
+     *
+     * @param key metadata key
+     * @param type expected value type
+     * @return the stored value, or {@code null} if no value is stored
+     * @throws KlumException if the stored value is not of the requested type
+     */
     public <T> T getMetaData(String key, Class<T> type) {
         Object value = metadata.get(key);
         if (value == null)
@@ -110,8 +121,23 @@ public final class KlumModelProxy implements Serializable {
         return type.cast(value);
     }
 
+    /**
+     * Stores technical metadata that is serialized with the completed DSL Object.
+     *
+     * @param key metadata key
+     * @param value a serializable value, or {@code null}
+     * @throws KlumException if {@code value} is not serializable
+     */
     public void setMetaData(String key, Object value) {
-        metadata.put(key, value);
+        metadata.put(key, requireSerializableMetadataValue(key, value));
+    }
+
+    static Serializable requireSerializableMetadataValue(String key, Object value) {
+        if (value == null)
+            return null;
+        if (!(value instanceof Serializable serializable))
+            throw new KlumException(format("Metadata value for key '%s' must be Serializable", key));
+        return serializable;
     }
 
     Map<Integer, List<Closure<?>>> getApplyLaterClosures() {

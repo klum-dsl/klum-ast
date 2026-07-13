@@ -28,6 +28,15 @@ import spock.lang.Issue
 
 class CopyHandlerTest extends AbstractRuntimeTest {
 
+    def "copying rejects a null donor immediately"() {
+        when:
+        CopyHandler.copyToFrom(new TestRuntimeBuilder<TestObject>(TestObject), null)
+
+        then:
+        KlumModelException failure = thrown()
+        failure.message.contains("Copy donor must not be null")
+    }
+
     @Issue("36")
     def "copy from creates copies of nested DSL objects"() {
         given:

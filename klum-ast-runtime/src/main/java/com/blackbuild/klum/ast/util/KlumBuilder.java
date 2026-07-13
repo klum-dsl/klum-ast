@@ -80,6 +80,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP = "addElementsFromScriptsToMap";
 
     private final Class<M> modelType;
+    @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private M completedModel;
     private boolean sealed;
     private boolean template;
@@ -87,8 +88,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private String breadcrumbPath;
     private String modelPath;
     private int breadcrumbQuantifier = 1;
-    private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
-    private final Map<String, Object> metadata = new HashMap<>();
+    private transient Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
+    private final Map<String, Serializable> metadata = new HashMap<>();
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
     private final List<KlumBuilder<?>> virtualChildren = new ArrayList<>();
 
@@ -333,10 +334,10 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     public static final class ModelState implements Serializable {
         private final String breadcrumbPath;
         private final String modelPath;
-        private final Map<String, Object> metadata;
+        private final Map<String, Serializable> metadata;
         private final Map<Integer, List<Closure<?>>> applyLaterClosures;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Object> metadata,
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata,
                            Map<Integer, List<Closure<?>>> applyLaterClosures) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
@@ -352,7 +353,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return modelPath;
         }
 
-        public Map<String, Object> getMetadata() {
+        public Map<String, Serializable> getMetadata() {
             return metadata;
         }
 
@@ -860,7 +861,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public Map<Class<?>, Object> getCurrentTemplates() {
-        return currentTemplates;
+        return currentTemplates == null ? Collections.emptyMap() : currentTemplates;
     }
 
     public void applyLater(Closure<?> closure) {
@@ -1051,6 +1052,16 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return metadata.containsKey(key);
     }
 
+    /**
+     * Returns construction metadata that will be transferred to the completed model companion.
+     * Metadata values are required to be {@link Serializable} so companion serialization cannot
+     * fail later because of an unsupported value.
+     *
+     * @param key metadata key
+     * @param type expected value type
+     * @return the stored value, or {@code null} if no value is stored
+     * @throws KlumException if the stored value is not of the requested type
+     */
     public <T> T getMetaData(String key, Class<T> type) {
         Object value = metadata.get(key);
         if (value == null)
@@ -1060,8 +1071,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return type.cast(value);
     }
 
+    /**
+     * Stores construction metadata for transfer to the completed model companion.
+     *
+     * @param key metadata key
+     * @param value a serializable value, or {@code null}
+     * @throws KlumException if {@code value} is not serializable
+     */
     public void setMetaData(String key, Object value) {
-        metadata.put(key, value);
+        metadata.put(key, KlumModelProxy.requireSerializableMetadataValue(key, value));
     }
 
     public void setModelPath(String path) {

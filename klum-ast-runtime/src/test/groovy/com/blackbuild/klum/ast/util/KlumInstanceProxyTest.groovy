@@ -30,6 +30,26 @@ import java.lang.reflect.Modifier
 
 class KlumInstanceProxyTest extends AbstractRuntimeTest {
 
+    def "Builder and model companion metadata reject non-serializable values immediately"() {
+        given:
+        def builder = new TestRuntimeBuilder<TestObject>(TestObject)
+        def companion = KlumModelProxy.getProxyFor(new TestObject())
+
+        when: "construction metadata is set"
+        builder.setMetaData("invalid", new Object())
+
+        then:
+        KlumException builderFailure = thrown()
+        builderFailure.message == "Metadata value for key 'invalid' must be Serializable"
+
+        when: "completed-model metadata is set"
+        companion.setMetaData("invalid", new Object())
+
+        then:
+        KlumException companionFailure = thrown()
+        companionFailure.message == "Metadata value for key 'invalid' must be Serializable"
+    }
+
     def "compatibility adapter only exposes Builder identity and template context"() {
         given:
         def builder = new TestRuntimeBuilder<TestObject>(TestObject)
