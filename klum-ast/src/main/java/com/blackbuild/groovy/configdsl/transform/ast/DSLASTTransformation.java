@@ -421,7 +421,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                             + "'. Use List, Set, SortedSet/NavigableSet, Map, SortedMap/NavigableMap, or EnumSet.",
                     field
             );
-            return;
         }
     }
 
@@ -467,9 +466,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass.removeField(field.getName());
                 continue;
             }
-            if (getFieldType(field) == FieldType.TRANSIENT || (field.getModifiers() & ACC_TRANSIENT) != 0)
-                continue;
-            if (!isRelationshipField(field))
+            if (getFieldType(field) != FieldType.TRANSIENT
+                    && (field.getModifiers() & ACC_TRANSIENT) == 0
+                    && !isRelationshipField(field))
                 field.setModifiers(field.getModifiers() | ACC_FINAL);
         }
     }
