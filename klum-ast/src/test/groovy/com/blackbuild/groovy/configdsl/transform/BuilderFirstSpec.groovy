@@ -29,6 +29,7 @@ import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.PendingFeature
 
 import java.lang.reflect.Modifier
 
@@ -739,7 +740,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         !first.items.first().is(second.items.first())
     }
 
-    def "nested completed-model factories fail with Builder migration guidance"() {
+    @PendingFeature(reason = "ADR 0004: source-visible DSL Object converters still lack hidden Builder-producing twins")
+    def "source factory converters create composition through child Builders"() {
         given:
         createClass '''
             package pk
@@ -763,10 +765,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         clazz.Create.With { child "nested" }
 
         then:
-        KlumModelException error = thrown()
-        error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
-        error.message.contains("owning Builder's generated relationship methods")
-        error.message.contains("LINK fields")
+        instance.child.value == "nested"
     }
 
     def "completed model companions survive Java serialization"() {

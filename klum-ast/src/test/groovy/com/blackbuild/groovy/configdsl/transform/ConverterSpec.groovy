@@ -24,9 +24,9 @@
 //file:noinspection GrDeprecatedAPIUsage
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.util.KlumModelException
 import groovy.time.TimeCategory
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 import java.time.Duration
 
@@ -106,7 +106,8 @@ class ConverterSpec extends AbstractDSLSpec {
         TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
-    def "DSL converter closures cannot materialize nested completed models"() {
+    @PendingFeature(reason = "ADR 0004: DSL Object converter closures still materialize models instead of producing child Builders")
+    def "generated converter for dsl field"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -129,11 +130,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bar.value.time == 123L
     }
 
-    def "keyed DSL converter closures cannot materialize nested completed models"() {
+    @PendingFeature(reason = "ADR 0004: keyed DSL Object converter closures still materialize models instead of producing child Builders")
+    def "generated converter for keyed dsl field"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -157,8 +158,7 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bar.value.time == 123L
     }
 
     def "allow converter methods for map fields"() {
@@ -224,7 +224,8 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
-    def "DSL converter factories cannot materialize nested completed models"() {
+    @PendingFeature(reason = "ADR 0004: source factory converters still call root factories instead of hidden Builder-producing twins")
+    def "converter factory for dsl field"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -250,11 +251,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bar.birthday.time == 123L
     }
 
-    def "DSL converter factories with default values cannot materialize nested completed models"() {
+    @PendingFeature(reason = "ADR 0004: source factory converters with default arguments still lack Builder-producing twins")
+    def "converter factory for dsl field with default values"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -282,8 +283,8 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException defaultError = thrown()
-        nestedFactoryGuidance(defaultError)
+        instance.bar.birthday.time == 123L
+        instance.bar.token == "dummy"
 
         when:
         instance = clazz.Create.With {
@@ -291,11 +292,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException explicitError = thrown()
-        nestedFactoryGuidance(explicitError)
+        instance.bar.token == "flummy"
     }
 
-    def "keyed DSL converter factories cannot materialize nested completed models"() {
+    @PendingFeature(reason = "ADR 0004: keyed source factory converters still call root factories instead of Builder-producing twins")
+    def "converter factory for keyed dsl field"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -322,11 +323,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bar.birthday.time == 123L
     }
 
-    def "keyed DSL converter factories cannot materialize nested list composition"() {
+    @PendingFeature(reason = "ADR 0004: list relationship converters still call model-returning factories instead of Builder-producing twins")
+    def "converter factory for keyed dsl list"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -353,11 +354,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bars.first().birthday.time == 123L
     }
 
-    def "keyed DSL converter factories cannot materialize nested map composition"() {
+    @PendingFeature(reason = "ADR 0004: map relationship converters still call model-returning factories instead of Builder-producing twins")
+    def "converter factory for keyed dsl map"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -384,8 +385,7 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bars.bla.birthday.time == 123L
     }
 
     def "converter classes in Converters annotation"() {
@@ -577,7 +577,8 @@ class Other<E> {
     }
 
     @Issue(["300", "319"])
-    def "completed-model custom factory methods are rejected inside collection Builder lifecycles"() {
+    @PendingFeature(reason = "ADR 0004 / #319: collection-local custom factories still lack Builder-producing projections")
+    def "methods of the factory are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -619,8 +620,8 @@ import java.time.Duration
         }
 
         then:
-        KlumModelException singleError = thrown()
-        nestedFactoryGuidance(singleError)
+        noExceptionThrown()
+        instance.bars.size() == 1
 
         when:
         instance = create("Foo") {
@@ -630,12 +631,13 @@ import java.time.Duration
         }
 
         then:
-        KlumModelException multipleError = thrown()
-        nestedFactoryGuidance(multipleError)
+        noExceptionThrown()
+        instance.bars.size() == 2
     }
 
     @Issue(["300", "319"])
-    def "completed-model custom factory methods are rejected inside map Builder lifecycles"() {
+    @PendingFeature(reason = "ADR 0004 / #319: map-local custom factories still lack Builder-producing projections")
+    def "methods of the factory are included in collection factories for maps"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -678,8 +680,8 @@ import java.time.Duration
         }
 
         then:
-        KlumModelException singleError = thrown()
-        nestedFactoryGuidance(singleError)
+        noExceptionThrown()
+        instance.bars.size() == 1
 
         when:
         instance = create("Foo") {
@@ -689,12 +691,13 @@ import java.time.Duration
         }
 
         then:
-        KlumModelException multipleError = thrown()
-        nestedFactoryGuidance(multipleError)
+        noExceptionThrown()
+        instance.bars.size() == 2
     }
 
     @Issue("300")
-    def "completed-model abstract factory methods are rejected inside collection Builder lifecycles"() {
+    @PendingFeature(reason = "ADR 0004: abstract element factories still lack subtype-preserving Builder-producing projections")
+    def "methods of the factory of abstract classes are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -747,15 +750,67 @@ import java.time.Duration
         }
 
         then:
-        KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        instance.bars.size() == 2
+        instance.bars[0].name == "Baz"
+        instance.bars[0].nickname == "Bazzy"
+        instance.bars[1].name == "Bla"
+        instance.bars[1].sickname == "Blabby"
     }
 
-    private static boolean nestedFactoryGuidance(KlumModelException error) {
-        assert error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
-        assert error.message.contains("owning Builder's generated relationship methods")
-        return true
+    @Issue(["198", "319"])
+    @PendingFeature(reason = "ADR 0004: collection-local From(DelegatingScript) still calls the root materializing factory")
+    def "collection-local From creates a child Builder from a delegating script"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                List<Bar> bars
+            }
+
+            @DSL class Bar {
+                Date birthday
+            }
+        '''
+        def scriptClass = createSecondaryClass '''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            birthday new Date(123L)
+        '''
+
+        when:
+        instance = create("Foo") {
+            bars {
+                From(scriptClass)
+            }
+        }
+
+        then:
+        instance.bars*.birthday*.time == [123L]
     }
 
+    @Issue("198")
+    @PendingFeature(reason = "ADR 0004: direct collection script methods still call root From instead of producing child Builders")
+    def "direct collection script methods create children from delegating scripts"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                List<Bar> bars
+            }
+
+            @DSL class Bar {
+                Date birthday
+            }
+        '''
+        def scriptClass = createSecondaryClass '''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            birthday new Date(123L)
+        '''
+
+        when:
+        instance = create("Foo") {
+            bars scriptClass
+        }
+
+        then:
+        instance.bars*.birthday*.time == [123L]
+    }
 
 }
