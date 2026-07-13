@@ -29,12 +29,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents an action that is executed in a phase. The action is executed for each element in the model.
+ * Legacy untyped visitor base retained only to give existing plugins migration guidance.
+ *
+ * @deprecated extend {@link BuilderVisitingPhaseAction} before INSTANTIATE or
+ * {@link ModelVisitingPhaseAction} afterward
  */
+@Deprecated(forRemoval = true)
 public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
     protected VisitingPhaseAction(KlumPhase phase) {
         super(phase);
+        throw new UnsupportedOperationException("VisitingPhaseAction no longer supports state-changing traversal; "
+                + "extend BuilderVisitingPhaseAction before INSTANTIATE or ModelVisitingPhaseAction afterward");
     }
 
     /**

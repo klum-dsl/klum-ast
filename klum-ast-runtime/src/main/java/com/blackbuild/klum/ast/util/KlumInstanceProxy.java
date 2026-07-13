@@ -26,6 +26,8 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.GroovyObject;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -85,6 +87,6 @@ public final class KlumInstanceProxy {
 
     /** Read-only compatibility for code that inspected the active Builder template context. */
     public Map<Class<?>, Object> getCurrentTemplates() {
-        return builder.getCurrentTemplates();
+        return Collections.unmodifiableMap(new LinkedHashMap<>(builder.getCurrentTemplates()));
     }
 }

@@ -33,6 +33,8 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
     def "compatibility adapter only exposes Builder identity and template context"() {
         given:
         def builder = new TestRuntimeBuilder<TestObject>(TestObject)
+        def template = new TestObject()
+        builder.setCurrentTemplates([(TestObject): template])
 
         when:
         def proxy = KlumInstanceProxy.getProxyFor(builder)
@@ -40,12 +42,19 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         then:
         proxy.DSLInstance.is(builder)
         proxy.builder.is(builder)
-        proxy.currentTemplates == [:]
+        proxy.currentTemplates == [(TestObject): template]
 
         and: "the public adapter API contains no construction or mutation operations"
         KlumInstanceProxy.declaredMethods
                 .findAll { Modifier.isPublic(it.modifiers) && !it.synthetic }
                 *.name as Set == ["getProxyFor", "getDSLInstance", "getCurrentTemplates"] as Set
+
+        when: "a compatibility caller tries to mutate the reported template context"
+        proxy.currentTemplates.clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+        builder.currentTemplates == [(TestObject): template]
     }
 
     def "completed model lookup fails with migration guidance"() {

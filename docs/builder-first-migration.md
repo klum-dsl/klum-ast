@@ -28,7 +28,7 @@ Standalone root factories still return completed models. A custom factory or con
 - Non-relationship, non-transient model fields are final. `FieldType.TRANSIENT` (and Java `transient`) fields remain mutable.
 - Model collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`. Concrete and custom collection declarations fail schema compilation.
 - Sorted snapshots retain their comparator. `EnumSet` getters return defensive copies. Simple Values are retained rather than deep-copied.
-- Pre-materialization custom phases extend `BuilderVisitingPhaseAction`; post-materialization phases extend `ModelVisitingPhaseAction`.
+- Pre-materialization custom phases extend `BuilderVisitingPhaseAction`; post-materialization phases extend `ModelVisitingPhaseAction`. Constructing the legacy untyped `VisitingPhaseAction` is rejected with migration guidance.
 - Provisional validation issues raised during Builder phases transfer to the completed model. Each `InstanceValidator` executes at most once per completed model.
 
 The current generated Builder spelling and layout are implementation details. Do not add a public dependency on them: issue #394 will decide the final generated type name and whether it is nested or top-level.
