@@ -42,8 +42,8 @@ public enum FieldType {
 
     /**
      * <p>Designates a field as transient. Transient fields are not formally part of the model, but can be used to
-     * store additional, changeable state directly inside the model. Transient fields can be accessed directly,
-     * without using {@code apply} or a mutator method. The are ignored for the purpose of hashCode or equals.</p>
+     * store additional, changeable state directly inside the model. Transient fields remain mutable on completed DSL
+     * Objects and are ignored for the purpose of hashCode or equals.</p>
      *
      * <p>As opposed to the {@code transient} keyword of Java / Groovy, {@code FieldType.TRANSIENT} fields **will** be part of serialization
      * by default.</p>
@@ -51,16 +51,16 @@ public enum FieldType {
     TRANSIENT,
 
     /**
-     * <p>Designates that no accessor methods should be created at all, i.e. the regular setters are still part of the
-     * RW model and can only be accessed from inside a mutator. Not that the automatic initialization of empty collections /
+     * <p>Designates that no accessor methods should be created at all. The field remains available to generated Builder
+     * code and can be accessed from inside a mutator. Note that automatic initialization of empty collections /
      * maps is not active for these fields as well, so you need to make sure the field is initialized.</p>
      */
     IGNORED,
 
     /**
-     * Builder fields are the opposite of protected fields. They create public setter and dsl methods,
-     * but the field itself is protected. This is useful for helper fields that are not part of the
-     * public model, but are used in later phases to help construct the model (for example the
+     * Builder fields are construction-only state. They exist on the generated Builder, with public setter and DSL methods,
+     * but are omitted from the completed DSL Object. This is useful for helper fields used by later construction phases
+     * to produce model state (for example the
      * {@link com.blackbuild.klum.ast.util.layer3.annotations.LinkTo} annotation).
      */
     BUILDER,

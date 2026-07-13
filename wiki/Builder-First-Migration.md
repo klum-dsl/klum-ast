@@ -1,6 +1,6 @@
 # Builder-first construction migration
 
-KlumAST 4.0 changes DSL Object creation from “allocate a model, then mutate it” to “configure Builders, then materialize an immutable model graph.” The authoritative design is [issue #416](https://github.com/klum-dsl/klum-ast/issues/416) and [ADR 0003](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0003-builder-first-materialization.md).
+KlumAST 4.0 changes DSL Object creation from “allocate a model, then mutate it” to “configure Builders, then materialize a structurally immutable completed model graph.” The authoritative design is [issue #416](https://github.com/klum-dsl/klum-ast/issues/416) and [ADR 0003](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0003-builder-first-materialization.md).
 
 Existing factory-oriented DSL scripts remain the supported construction style:
 
@@ -39,8 +39,8 @@ The current generated Builder spelling and layout are implementation details. Do
 
 Templates remain client-facing DSL Object recipes. Every application copies the recipe into a fresh Builder graph, so ownership and lifecycle callbacks belong to the recipient construction.
 
-A Template `applyLater` recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local variable or holder is rejected because a completed recipe must not retain construction state. Other captured recipe values must be serializable so the detached recipe remains serializable.
+A Template `applyLater` recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local variable or holder is rejected because a completed recipe must not retain construction state. The complete graph of other captured recipe values must be serializable so the detached recipe remains serializable.
 
-The completed Model companion is serialized with the model and retains breadcrumb, model-path, metadata, and validation state. Builder-only state is not serialized. Technical metadata values must be `Serializable`; setter calls reject other values immediately. Direct client access to companion internals is not yet a finalized API—[issue #390](https://github.com/klum-dsl/klum-ast/issues/390) tracks the supported entry point and user documentation required before the 4.0 API freeze.
+The completed Model companion is serialized with the model and retains breadcrumb, model-path, metadata, and validation state. Builder-only state is not serialized. The complete object graph of a technical metadata value must be serializable and is checked when stored; callers must not later mutate an accepted value to contain non-serializable state. Direct client access to companion internals is not yet a finalized API—[issue #390](https://github.com/klum-dsl/klum-ast/issues/390) tracks the supported entry point and user documentation required before the 4.0 API freeze.
 
 Jackson restores serialized fields into Builders, then runs the normal lifecycle, graph materialization, and validation. This policy is explicitly provisional: lifecycle-derived values may be recomputed, and [issue #428](https://github.com/klum-dsl/klum-ast/issues/428) will decide the long-term persisted-versus-recomputed behavior.

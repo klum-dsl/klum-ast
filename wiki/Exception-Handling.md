@@ -32,7 +32,9 @@ bars {
 }
 ```
 
-NOTE: Besides being part of the exception, the breadcrumb-path is also stored in the KlumInstanceProxy of the generated object. 
+Besides being part of the exception, the breadcrumb path is transferred from the Builder into the completed object's
+serializable Model companion. Use public exception and path utilities rather than `KlumInstanceProxy`, which is now a
+Builder-only compatibility adapter.
 
 ## KlumSchemaException
 

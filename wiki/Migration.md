@@ -20,6 +20,9 @@ It is strongly advised to first update to 2.0 and the to 2.1.
 
 # to 2.0
 
+The sections below describe historical migration steps and may show APIs, such as completed-model `apply`, that were
+subsequently removed in 4.0. Apply the historical migration first, then follow [[Builder First Migration]].
+
 ## Validation now throws KlumValidationException
 
 which wraps `KlumValidationResult`s for the validated objects, each containing the relevant `KlumValidationIssue`s. Previously, an AssertionError was thrown, so calling code might need to be adjusted.

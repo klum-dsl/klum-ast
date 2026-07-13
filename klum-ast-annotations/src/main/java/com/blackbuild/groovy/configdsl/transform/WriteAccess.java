@@ -29,8 +29,8 @@ import java.lang.annotation.*;
 
 
 /**
- * Meta-annotation to mark annotations that mark methods that change the model.
- * WriteAccess marked methods are moved into the RW class during compilation.
+ * Meta-annotation for annotations that mark construction-time methods. Methods marked through {@code WriteAccess} are
+ * moved into the generated Builder during compilation and are not exposed on completed DSL Objects.
  */
 @Target(ElementType.ANNOTATION_TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -8,8 +8,7 @@ KlumAST provides optional integration for Jackson in the optional `klum-ast-jack
 This provides helpers for serialization and deserialization of Klum objects:
 
 - Using `KlumAnnotationIntrospector`, Owner fields, `@Role`-annotated members and members whose name contains `$` are automatically ignored during serialization (they are _not_ converted into back references, since this would usually be done during deserialization anyway)
-- `KlumValueInstantiator` creates generated Builders rather than partially initialized DSL Objects
-- `SettableKlumBeanProperty` restores serialized fields into those Builders
+- the module's internal `KlumDeserializer` reads JSON object state and restores it through generated Builders rather than partially initialized DSL Objects
 - after binding, the normal lifecycle, graph materialization, validation, and verification pipeline produces the completed DSL Object
 - All enhancements are packaged into a Jackson module (KlumAstModule)
 
@@ -55,4 +54,7 @@ ObjectMapper mapper = new ObjectMapper().registerModule(new KlumAstModule());
 
 # Extend
 
-It is also possible to extend KlumAstModule and/or one of the other class to further customize the behaviour.
+`KlumAstModule` can be subclassed to customize module registration. The Builder-backed deserializer is intentionally an
+internal implementation detail while issue #428 finalizes the persisted-versus-recomputed policy; it is not currently a
+supported direct extension point. The public `KlumValueInstantiator` and `SettableKlumBeanProperty` classes from earlier
+versions have been removed.

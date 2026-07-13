@@ -32,10 +32,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation can be used to mark a closure method to be delegating to an RW class. This works
- * similar to {@code DelegatesTo}, but since the RW class does not yet exist during parsing of the schema, it
- * is not possible to simply write {@code {@link groovy.lang.DelegatesTo}(MyClass._RW)}. Can take an optional
- * value of the target class whose RW class should be delegated to.
+ * Marks a closure parameter as delegating to a generated Builder. This works similarly to {@code DelegatesTo}, but the
+ * Builder does not yet exist while the schema is parsed and its concrete generated name is not public API. The annotation
+ * name is retained for compatibility with the former RW implementation. An optional value selects the DSL Object whose
+ * Builder receives the closure.
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
@@ -43,8 +43,7 @@ import java.lang.annotation.Target;
 public @interface DelegatesToRW {
 
     /**
-     * The type to which the closure argument should delegate. If not set, the type owning the method
-     * is taken.
+     * The DSL Object whose generated Builder receives the closure. If not set, the type owning the method is used.
      */
     Class<?> value() default Undefined.class;
 

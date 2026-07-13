@@ -1,49 +1,14 @@
-# Delegation Hints (Gradle extensions)
-Methods accepting closures are automatically annotated with correct
-`@DelegatesTo` annotations, allowing modern IDEs to infer the available
-methods automatically.
+# Delegation hints for Builder closures
 
-There might be situations, however, when it is necessary to delegate
-to an RW instance. For example, the `configure` method for a Gradle class
-`Configurable` is basically the same as the Klum `apply` method.
+Generated methods accepting configuration closures receive the appropriate `@DelegatesTo` metadata automatically, so
+modern IDEs can infer the available Builder methods.
 
-In order to use a Klum model as a convenient syntax for extensions, one
-needs simply to apply the interface to the model:
+Schema-defined Mutators sometimes accept and forward their own configuration closures. The generated Builder type does
+not exist when that source method is parsed, and its final public name and location are intentionally still undecided.
+Use `@DelegatesToRW` in that case. Despite its compatibility-era name, the annotation points the IDE and static type
+checker at the generated Builder, not at a mutable completed DSL Object.
 
-```groovy
-@DSL
-class AggregatorExtension implements Configurable<AggregatorExtension>{
-    AggregatorExtension configure(Closure closure) {
-        return apply(closure)
-    }
-// ...
-}
-```
-
-This works but lacks any form of IDE support for the extension in the
-build.gradle script.
-
-Unfortunately, one can also not simply use `@DelegatesTo(AggregatorExtension._RW)`
-Because the RW class is not yet existent when the class is parsed (also, the
-naming of the RW class is (yet) an implementation detail).
-
-By using the new `@DelegatesToRW` annotation, the appropriate IDE hints
-are created:
-
-```groovy
-@DSL
-class AggregatorExtension implements Configurable<AggregatorExtension>{
-    @Override
-    AggregatorExtension configure(@DelegatesToRW Closure closure) {
-        return apply(closure)
-    }
-// ...
-}
-```
-
-`@DelegatesToRW` can take an optional argument to point to a different RW class. That way it is
-possible to define templates in the schema as opposed to the model (without the need to 
-introduce subclasses):
+The optional annotation value selects the DSL Object whose Builder receives the closure:
 
 ```groovy
 @DSL
@@ -62,6 +27,10 @@ class Container {
 // ...
 }
 ```
+
+Here both Mutators execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
+`@DelegatesToRW` does not add a completed-model `apply` or `configure` path; APIs that need to configure a DSL Object must
+participate in factory/Builder construction.
 
 # Behaviour models: Parameter Hints
 
@@ -197,4 +166,3 @@ DSL by completely omitting the closure parameter.
 As a rule of thumb: When only `@ClosureParams` is needed, one should use
 SAM interfaces, when delegate mechanisms can be used to enhance the dsl,
 Closures with ParameterAnnotations should be used instead.
-

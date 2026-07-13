@@ -9,17 +9,16 @@ Turn your models into supermodels!
 
 # Breaking changes and version overview
 
-3.0 is currently in development to be released very soon, dropping support for Groovy 2.x. and Java 11.
+4.0 is currently in development as a breaking Builder-first release. Generated factories now configure Builders and
+materialize structurally immutable completed DSL Objects before validation. See the
+[Builder-first migration guide](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration).
 
-I have finally released 2.0.0 and 2.1.0. Both are based on the same major changes, including runtime dependencies, modularization, etc.
+3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
 
 Users of 1.2.0 (or lower) should take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
 
-2.1.0 does not introduce new features but drops all methods deprecated in 2.0.0.
-
-2.2 introduces a lot new validation features (see [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation)) and will be the last version of the 2.x series.
-
-2.x will be the last version of KlumAST that supports Groovy 2.x. The next major version will require Groovy 3.x and Java 17.
+2.2 was the final 2.x feature release and introduced the current validation model. See
+[Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation) and the historical sections of the migration guide.
 
 # What is KlumAST?
 
@@ -98,6 +97,4 @@ def config = Config.Create.With {
 }
 ```
 
-Find more details in our [wiki](https://github.com/klum-dsl/klum-ast/wiki)
-
-Factory construction now uses a Builder-first lifecycle and returns completed, structurally immutable DSL Objects. See the [Builder-first migration guide](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration) for lifecycle details and breaking API changes.
+Find more details in our [wiki](https://github.com/klum-dsl/klum-ast/wiki).

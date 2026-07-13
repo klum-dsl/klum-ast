@@ -16,7 +16,7 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 - Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template `applyLater` recipes are detached from their defining Builder; captured values must be serializable and captured Builders are rejected.
 - Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.
-- Jackson now restores fields into Builders and runs the normal lifecycle, materialization, and validation pipeline. This persisted-versus-recomputed policy remains provisional pending [#428](https://github.com/klum-dsl/klum-ast/issues/428).
+- Jackson now restores fields into Builders through the module's internal `KlumDeserializer` and runs the normal lifecycle, materialization, and validation pipeline. The former public `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes have been removed. This persisted-versus-recomputed policy remains provisional pending [#428](https://github.com/klum-dsl/klum-ast/issues/428).
 
 # 3.0.1
 - New annodocimal version, ignores irrelevant inner class entries in class files

@@ -4,6 +4,10 @@ Date: 2026-07-13
 
 Status: Accepted
 
+Implementation status: Deferred. PR #429 records this follow-up design but implements ADR 0003 only; in particular, the
+separate Template companion, the `applyLater < INSTANTIATE` boundary check, and Builder-producing converter protocol below
+are not yet runtime contracts.
+
 Parent decision: [ADR 0003 — Builder-first materialization of DSL Objects](0003-builder-first-materialization.md)
 
 ## Context

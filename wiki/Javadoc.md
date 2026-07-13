@@ -1,33 +1,37 @@
-# JavaDoc for models
+# Javadoc for models
 
-By using the [AnnoDocimal](https://github.com/blackbuild/anno-docimal) library, natural javadocs for the generated models can be created. For the created RW instances and factory methods these are taken from the base classes of klum-ast-runtime, partially adapted and extended.
+KlumAST uses the [AnnoDocimal](https://github.com/blackbuild/anno-docimal) library to generate natural Javadocs for
+factories and generated Builders. Their base documentation comes from the corresponding classes and methods in
+`klum-ast-runtime`, especially `KlumBuilder`, and is adapted to each generated method.
 
-For self created methods, the javadoc is taken from the method itself.
+For schema-defined methods, the Javadoc is taken from the method itself.
 
 ## Templating
 
-The javadoc of KlumInstanceProxy in particular uses templates to reduce boilerplate code, which can be use to further customize the generated javadoc.
+The Javadocs of Builder base methods use templates to reduce boilerplate and customize the generated overloads.
 
 Example:
 
-The javadoc of the createSingleChild method in KlumInstanceProxy is used for all generated methods to add single new DSL object to a collection:
+For example, `KlumBuilder.createSingleChild` supplies documentation for generated methods that create or configure a
+single child Builder:
 
 ```java
     /**
-     * Creates a new '{{singleElementName}}' {{param:type?with the given type}} and adds it to the '{{fieldName}}' collection.
-     * The newly created element will be configured by the optional parameters values and closure.
+     * Creates a new '{{fieldName}}' Builder {{param:type?with the given type}} or configures the existing Builder.
+     * The resulting Builder is configured by the optional values and closure.
      * @param namedParams the optional parameters
-     * @param fieldOrMethodName the name of the collection to add the new element to
-     * @param type the type of the new element
-     * @param key the key to use for the new element
-     * @param body the closure to configure the new element
-     * @param <T> the type of the newly created element
-     * @return the newly created element
+     * @param fieldOrMethodName the name of the field to set or Builder method to call
+     * @param type the model type of the new Builder
+     * @param key the key to use for the new Builder
+     * @param body the closure used to configure the Builder
+     * @param <T> the generated Builder type
+     * @return the newly created or existing Builder
      */
-public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, String key, Closure<T> body)
+public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type,
+                               boolean explicitType, String key, Closure<T> body)
 ```
 
-For a single field , more than on method is created, i.e.:
+For a single field, more than one method is generated. For example:
 
 ```groovy
 import java.lang.reflect.Field
@@ -41,16 +45,23 @@ class MyModel {
 
 would create the following adder methods for the child field (provided child is keyless):
 
-- child(Map<String, Object> namedParams, Closure<Child> body)
-- child(Map<String, Object> namedParams)
-- child(Closure<Child> body)
-- child()
-- child(Map<String, Object> namedParams, Class<T extends Child) type, Closure<Child> body)
+- `child(Map<String, Object> namedParams, Closure body)`
+- `child(Map<String, Object> namedParams)`
+- `child(Closure body)`
+- `child()`
+- `child(Map<String, Object> namedParams, Class<? extends Child> type, Closure body)`
 
-Using annodocimal, all param tags of the unused parameters of the respective method will be dropped. The main text of the method java doc will be used as a template, where the `{{..}}` placeholder will be replace by the actual values:
+The closure delegate and return type are the generated child Builder. Its concrete spelling is deliberately omitted here
+because [issue #394](https://github.com/klum-dsl/klum-ast/issues/394) will decide the public generated-type name and
+location.
 
-- `{{singleElementName}}` will be replaced by the name of a single element, which defaults to the field name with a trailing 's' removed (which would be wrong in this chase). Since we have an explicit `Field.members` set, this is used instead.
+AnnoDocimal drops parameter tags for arguments omitted by a generated overload. The main text is a template in which
+`{{...}}` placeholders are replaced with actual values:
+
+- `{{fieldName}}` is replaced by the field name.
 - `{{param:type?with the given type}}` is an optional text block, it will only be set, if the parameter type is present in the actual method.
-- `{{fieldName}}` will be replaced by the name of the field.
 
-For more details, see AnnoDocimal documentation.
+Collection and map element methods additionally use `{{singleElementName}}`, which defaults to the field name with a
+trailing `s` removed. An explicit `Field.members` value overrides that default.
+
+For more details, see the AnnoDocimal documentation.
