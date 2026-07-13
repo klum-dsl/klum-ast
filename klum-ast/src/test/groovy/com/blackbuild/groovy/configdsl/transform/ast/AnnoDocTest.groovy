@@ -28,6 +28,7 @@ package com.blackbuild.groovy.configdsl.transform.ast
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.util.KlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
@@ -71,8 +72,7 @@ class AnnoDocTest extends AbstractDSLSpec {
     }
 
     String rwMethodDoc(String methodName, Class... params) {
-        def methodNode = getMethod(rwClassNode, methodName, params)
-        return ASTExtractor.extractDocumentation(methodNode)
+        return rwClazz.getMethod(methodName, params).getAnnotation(AnnoDoc)?.value()
     }
 
     String creatorDoc(String methodName, Class... params) {
@@ -98,7 +98,11 @@ class AnnoDocTest extends AbstractDSLSpec {
         return ASTExtractor.extractDocumentation(classNode)
     }
 
-    def "javadoc for class taken from proxied methods"() {
+    String rwClassDoc() {
+        return ASTExtractor.extractDocumentation(rwClassNode)
+    }
+
+    def "javadoc reflects the model and Builder API split"() {
         when:
         createClass("dummy/Foo.groovy", '''
 package dummy 
@@ -113,58 +117,11 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 
         then:
         classDoc() == '''This is a class'''
-        methodDoc("apply") == """Applies the given named params and the closure to this proxy's object.
-<p>
-Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
-The closure will be executed against the instance's RW object.
-</p>
-<p>
-Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
-</p>
-@param closure Closure to be executed against the instance.
-@return the object itself"""
-
-        methodDoc("apply", Closure) == """Applies the given named params and the closure to this proxy's object.
-<p>
-Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
-The closure will be executed against the instance's RW object.
-</p>
-<p>
-Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
-</p>
-@param closure Closure to be executed against the instance.
-@return the object itself"""
-
-        methodDoc("apply", Map) == """Applies the given named params and the closure to this proxy's object.
-<p>
-Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
-The closure will be executed against the instance's RW object.
-</p>
-<p>
-Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
-</p>
-@param values Map of String to Object which will be translated into Method calls
-@param closure Closure to be executed against the instance.
-@return the object itself"""
-
-        methodDoc("apply", Map, Closure) == """Applies the given named params and the closure to this proxy's object.
-<p>
-Both params are optional. The map will be converted into a series of method calls, with the key being the method name and the value the single method argument.
-The closure will be executed against the instance's RW object.
-</p>
-<p>
-Note that explicit calls to apply() are usually not necessary, as apply is part of the creation of an object.
-</p>
-@param values Map of String to Object which will be translated into Method calls
-@param closure Closure to be executed against the instance.
-@return the object itself"""
-
-        methodDoc("apply", Map) == rwMethodDoc("apply", Map)
-        methodDoc("apply", Closure) == rwMethodDoc("apply", Closure)
-        methodDoc("apply", Map, Closure) == rwMethodDoc("apply", Map, Closure)
-
-        rwMethodDoc("copyFrom", clazz) == """Copies all non null / non empty elements from target to this.
-@param template The template to apply"""
+        rwClassDoc() == "The generated Builder for dummy.Foo."
+        !clazz.declaredMethods*.name.contains("apply")
+        rwClazz.getMethod("apply", Map).declaringClass == KlumBuilder
+        rwMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
+@param template the recipe to apply"""
 
     }
 
@@ -241,22 +198,22 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
             }''')
 
         then:
-        rwMethodDoc("bar", Closure) == """Creates a new 'bar' and adds it to the 'bars' collection.
+        rwMethodDoc("bar", Closure) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
 <p>
-The newly created element will be configured by the optional parameters values and closure.
+The newly created Builder is configured by the optional values and closure.
 </p>
 @param closure the closure to configure the new element
-@return the newly created element"""
-        rwMethodDoc("bar", Map) == """Creates a new 'bar' and adds it to the 'bars' collection.
+@return the newly created Builder"""
+        rwMethodDoc("bar", Map) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
 <p>
-The newly created element will be configured by the optional parameters values and closure.
+The newly created Builder is configured by the optional values and closure.
 </p>
 @param values the optional parameters
 @param closure the closure to configure the new element
-@return the newly created element""" // closures has a default value, so during ast it is a single method
-        rwMethodDoc("bars", getArrayClass("dummy.Bar")) == """Adds one or more existing 'bar' to the 'bars' collection.
+@return the newly created Builder""" // closures has a default value, so during ast it is a single method
+        rwMethodDoc("bars", getArrayClass("dummy.Bar\$_RW")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 @param values the elements to add"""
-        rwMethodDoc("bars", Iterable) == """Adds one or more existing 'bar' to the 'bars' collection.
+        rwMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 @param values the elements to add"""
 
     }
@@ -303,12 +260,12 @@ The newly created element will be configured by the optional parameters values a
             ''')
 
         then:
-        rwMethodDoc("berry", Closure) == """Creates a new 'berry' and adds it to the 'berries' collection.
+        rwMethodDoc("berry", Closure) == """Creates a new 'berry' Builder and adds it to the Builder's 'berries' collection.
 <p>
-The newly created element will be configured by the optional parameters values and closure.
+The newly created Builder is configured by the optional values and closure.
 </p>
 @param closure the closure to configure the new element
-@return the newly created element"""
+@return the newly created Builder"""
     }
 
     def "documentation with template tags"() {
@@ -330,12 +287,12 @@ The newly created element will be configured by the optional parameters values a
             ''')
 
         then:
-        rwMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' and adds it to the 'Yummy Berries' collection.
+        rwMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' Builder and adds it to the Builder's 'Yummy Berries' collection.
 <p>
-The newly created element will be configured by the optional parameters values and closure.
+The newly created Builder is configured by the optional values and closure.
 </p>
 @param closure the closure to configure the new element
-@return the newly created element"""
+@return the newly created Builder"""
     }
 
     Class<?> getArrayClass(String className) {
