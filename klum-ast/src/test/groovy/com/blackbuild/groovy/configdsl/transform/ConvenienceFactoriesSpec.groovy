@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumValidationException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -601,7 +602,7 @@ class ConvenienceFactoriesSpec extends AbstractDSLSpec {
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/198")
-    def "multiple convenience factory calls for lists"() {
+    def "completed-model script factories cannot create list composition in a Builder lifecycle"() {
         given:
         createClass '''
 package model
@@ -639,12 +640,12 @@ Element.Create.With(name: "second-from-script")
         }
 
         then:
-        instance.elements[0].name == "first-from-script"
-        instance.elements[1].name == "second-from-script"
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/198")
-    def "multiple convenience factory calls for maps"() {
+    def "completed-model script factories cannot create map composition in a Builder lifecycle"() {
         given:
         createClass '''
 package model
@@ -683,8 +684,14 @@ Element.Create.With("b", name: "second-from-script")
         }
 
         then:
-        instance.elements.a.name == "first-from-script"
-        instance.elements.b.name == "second-from-script"
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
+    }
+
+    private static boolean nestedFactoryGuidance(KlumModelException error) {
+        assert error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
+        assert error.message.contains("owning Builder's generated relationship methods")
+        return true
     }
 
 }

@@ -24,6 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -221,7 +222,7 @@ class ChildElement extends Element {
 
     @SuppressWarnings('GroovyAssignabilityCheck')
     @Issue("270")
-    def "factory methods are used for alternative methods"() {
+    def "completed-model alternative factories cannot create composition in a Builder lifecycle"() {
         given:
         createClass('''
 package pk
@@ -263,15 +264,9 @@ class SubElement extends Element {
         }
 
         then:
-        instance.elements.size() == 1
-        instance.elements.BLUB.class.simpleName == "SubElement"
-        instance.elements.BLUB.name == "BLUB"
-        instance.elements.BLUB.role == "blub5"
-
-        and:
-        instance.moreElements[0].class.simpleName == "SubElement"
-        instance.moreElements[0].name == "BLI"
-        instance.moreElements[0].role == "bli3"
+        KlumModelException error = thrown()
+        error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
+        error.message.contains("owning Builder's generated relationship methods")
     }
 
     def "alternative methods can get custom names"() {

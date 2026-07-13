@@ -24,6 +24,7 @@
 //file:noinspection GrDeprecatedAPIUsage
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumModelException
 import groovy.time.TimeCategory
 import spock.lang.Issue
 
@@ -105,7 +106,7 @@ class ConverterSpec extends AbstractDSLSpec {
         TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
-    def "generated converter for dsl field"() {
+    def "DSL converter closures cannot materialize nested completed models"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -128,10 +129,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.value.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
-    def "generated converter for keyed dsl field"() {
+    def "keyed DSL converter closures cannot materialize nested completed models"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -155,7 +157,8 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.value.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
     def "allow converter methods for map fields"() {
@@ -221,7 +224,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
-    def "converter factory for dsl field"() {
+    def "DSL converter factories cannot materialize nested completed models"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -247,10 +250,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.birthday.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
-    def "converter factory for dsl field with default values"() {
+    def "DSL converter factories with default values cannot materialize nested completed models"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -278,8 +282,8 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.birthday.time == 123L
-        instance.bar.token == "dummy"
+        KlumModelException defaultError = thrown()
+        nestedFactoryGuidance(defaultError)
 
         when:
         instance = clazz.Create.With {
@@ -287,10 +291,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.token == "flummy"
+        KlumModelException explicitError = thrown()
+        nestedFactoryGuidance(explicitError)
     }
 
-    def "converter factory for keyed dsl field"() {
+    def "keyed DSL converter factories cannot materialize nested completed models"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -317,10 +322,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bar.birthday.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
-    def "converter factory for keyed dsl list"() {
+    def "keyed DSL converter factories cannot materialize nested list composition"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -338,7 +344,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", getRwClass("Bar"))
         rwClazz.getMethod("bar", String, long)
 
         when:
@@ -347,10 +353,11 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars.first().birthday.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
-    def "converter factory for keyed dsl map"() {
+    def "keyed DSL converter factories cannot materialize nested map composition"() {
         when:
         createClass '''
             @DSL class Foo {
@@ -368,7 +375,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", getRwClass("Bar"))
         rwClazz.getMethod("bar", String, long)
 
         when:
@@ -377,7 +384,8 @@ class ConverterSpec extends AbstractDSLSpec {
         }
 
         then:
-        instance.bars.bla.birthday.time == 123L
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
     def "converter classes in Converters annotation"() {
@@ -569,7 +577,7 @@ class Other<E> {
     }
 
     @Issue(["300", "319"])
-    def "methods of the factory are included in collection factories"() {
+    def "completed-model custom factory methods are rejected inside collection Builder lifecycles"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -597,7 +605,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', Duration)
         hasMethod(barsFactory, 'WithAges', Duration[])
@@ -611,8 +619,8 @@ import java.time.Duration
         }
 
         then:
-        noExceptionThrown()
-        instance.bars.size() == 1
+        KlumModelException singleError = thrown()
+        nestedFactoryGuidance(singleError)
 
         when:
         instance = create("Foo") {
@@ -622,12 +630,12 @@ import java.time.Duration
         }
 
         then:
-        noExceptionThrown()
-        instance.bars.size() == 2
+        KlumModelException multipleError = thrown()
+        nestedFactoryGuidance(multipleError)
     }
 
     @Issue(["300", "319"])
-    def "methods of the factory are included in collection factories for maps"() {
+    def "completed-model custom factory methods are rejected inside map Builder lifecycles"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -656,7 +664,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', String, Duration)
         hasMethod(barsFactory, 'WithAges', Map)
@@ -670,8 +678,8 @@ import java.time.Duration
         }
 
         then:
-        noExceptionThrown()
-        instance.bars.size() == 1
+        KlumModelException singleError = thrown()
+        nestedFactoryGuidance(singleError)
 
         when:
         instance = create("Foo") {
@@ -681,12 +689,12 @@ import java.time.Duration
         }
 
         then:
-        noExceptionThrown()
-        instance.bars.size() == 2
+        KlumModelException multipleError = thrown()
+        nestedFactoryGuidance(multipleError)
     }
 
     @Issue("300")
-    def "methods of the factory of abstract classes are included in collection factories"() {
+    def "completed-model abstract factory methods are rejected inside collection Builder lifecycles"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
 
@@ -739,13 +747,15 @@ import java.time.Duration
         }
 
         then:
-        instance.bars.size() == 2
-        instance.bars[0].name == "Baz"
-        instance.bars[0].nickname == "Bazzy"
-        instance.bars[1].name == "Bla"
-        instance.bars[1].sickname == "Blabby"
+        KlumModelException error = thrown()
+        nestedFactoryGuidance(error)
     }
 
+    private static boolean nestedFactoryGuidance(KlumModelException error) {
+        assert error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
+        assert error.message.contains("owning Builder's generated relationship methods")
+        return true
+    }
 
 
 }
