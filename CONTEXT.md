@@ -33,17 +33,21 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 - Builder
 
-  A Builder is the generated, mutable construction-time counterpart of a DSL Object. It replaces the former `RW` class and is normally reached only through generated factory methods and DSL scripts; client code consumes the resulting DSL Object. Builders are not used to apply changes to an already created DSL Object.
+  A Builder is the generated, mutable construction-time counterpart of a DSL Object. It is normally reached only through generated factory methods and DSL scripts; client code consumes the resulting DSL Object. Builders are not used to apply changes to an already created DSL Object.
 
   Mutating lifecycle callbacks, including `@PostTree`, operate on the Builder. `@Validate` callbacks operate on the completed DSL Object.
 
-  Closure-based child creation returns a child Builder. Builder overloads may also accept an already completed DSL Object, in which case they return that completed object.
+  Closure-based child creation returns a child Builder. An already completed DSL Object is accepted only as an aggregation `LINK` target and appears during construction as a sealed Builder wrapper; it never becomes owned composition.
 
   `FieldType.BUILDER` is construction-only state: it exists on the Builder and is omitted from the completed DSL Object.
 
   Source field initializers execute when a Builder is created. Materialization copies their resulting values and never re-evaluates initializer code.
 
   Completed DSL Objects preserve cyclic relationships, including `LINK` relationships. Their object graph may therefore require internal-only assignment during materialization after the Builders have completed their lifecycle.
+
+- RW
+
+  RW is the deprecated name for the generated mutable construction counterpart now called a Builder. Reserve RW for migration and compatibility discussions; `KlumRwObject` is a temporary marker, not a construction capability.
 
 - Materialization
 
@@ -57,7 +61,7 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Builders may hold provisional validation issues from `EARLY_VALIDATE` and lifecycle callbacks. Materialization transfers those issues to the Model companion.
 
-  The Model companion is serializable with its DSL Object, preserving breadcrumbs and validation results. Builder-only construction state is not serialized.
+  The Model companion is serializable with its DSL Object, preserving breadcrumbs and validation results. Technical metadata is serialized companion state and must have a fully serializable object graph when stored; Builder-only construction state is not serialized.
 
 - Construction API
 
@@ -72,6 +76,10 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   A Construction session is the scope of one root Builder lifecycle. Every owned child Builder joins that session and the
   resulting composition graph is Materialized together; root Materialization is never nested inside another session.
 
+- Root factory
+
+  A Root factory owns a complete Construction session and returns a completed DSL Object. It is distinct from a Builder-producing factory used to add owned composition inside an active session.
+
 - Builder-producing factory
 
   A Builder-producing factory creates an unsealed child Builder inside an active Construction session. `Create.AsBuilder`
@@ -81,9 +89,9 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Deserialization restores serializable DSL Object fields into Builders, then follows the normal lifecycle through Materialization and validation. The restored result may differ if a mutating lifecycle callback is non-idempotent; this behavior is provisional and will be revisited in [#428](https://github.com/klum-dsl/klum-ast/issues/428).
 
-- Templates
+- Template
 
-  A Template is a client-facing DSL Object used as a reusable construction recipe. Applying a Template copies its composition into fresh Builders, which then participate in the recipient's lifecycle. This is the intentional exception to the rule that ordinary completed DSL Objects are not rehydrated.
+  A Template is an explicitly designated client-facing DSL Object used as a reusable construction recipe; an ordinary completed model is never inferred to be a Template from context. Applying a Template copies its composition into fresh Builders in the recipient's lifecycle rather than adopting the Template as a relationship target.
 
 - Collections
 

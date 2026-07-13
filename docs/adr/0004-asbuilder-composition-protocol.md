@@ -4,6 +4,8 @@ Date: 2026-07-13
 
 Status: Accepted
 
+Tracking issue: [#431 — Implement ADR 0004: add AsBuilder composition protocol](https://github.com/klum-dsl/klum-ast/issues/431)
+
 Implementation status: Deferred from PR #429. That PR implements ADR 0003 but intentionally leaves DSL Object converters,
 collection-local factory projections, and other nested factory-oriented composition incompatible with the Builder-first
 model. The desired contracts remain executable as reasoned `@PendingFeature` tests. See the

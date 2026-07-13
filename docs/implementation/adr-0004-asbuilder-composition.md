@@ -4,6 +4,8 @@ This document is the pickup package for implementing
 [ADR 0004 — `AsBuilder` composition and Builder-producing factory projections](../adr/0004-asbuilder-composition-protocol.md).
 It records the investigation performed on PR #429 so the follow-up can begin from confirmed evidence instead of repeating
 repository archaeology. ADR 0003 and ADR 0004 remain authoritative when this document describes implementation options.
+Implementation is tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431), which is blocked by #416 until
+PR #429 merges.
 
 Source positions below refer to PR #429 commit `0171fe54` unless a symbol name is given. Prefer the symbol when later edits
 move a line.
@@ -17,7 +19,7 @@ following remain true:
 - desired compatibility behavior is represented by reasoned `@PendingFeature` tests rather than rewritten as intended
   rejection behavior;
 - the PR, migration guide, and changelog explicitly identify the temporary incompatibility;
-- the follow-up tracks issues #198, #270, #300, and #319 as affected established behavior and does not claim them preserved;
+- issue #431 tracks issues #198, #270, #300, and #319 as affected established behavior and does not claim them preserved;
 - root materialization inside an active lifecycle remains rejected until a Builder-producing path exists;
 - ADR 0004 is resolved, or the compatibility removal is explicitly accepted, before the 4.0 API is finalized.
 
