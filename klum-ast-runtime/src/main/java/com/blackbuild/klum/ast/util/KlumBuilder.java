@@ -37,6 +37,7 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
@@ -52,6 +53,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -941,8 +943,61 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         ClassLoader closureLoader = closure.getClass().getClassLoader();
         try (ObjectInputStream input = new RecipeObjectInputStream(
                 new ByteArrayInputStream(serialized.toByteArray()), closureLoader)) {
-            return (Closure<?>) input.readObject();
+            Closure<?> detached = (Closure<?>) input.readObject();
+            if (retainsBuilder(detached, Collections.newSetFromMap(new IdentityHashMap<>())))
+                throw new BuilderCaptureException();
+            return detached;
         }
+    }
+
+    private static boolean retainsBuilder(Object value, Set<Object> visited) {
+        if (value == null)
+            return false;
+        if (value instanceof KlumBuilder)
+            return true;
+        if (isBuilderCaptureLeaf(value) || !visited.add(value))
+            return false;
+        if (value instanceof Reference)
+            return retainsBuilder(((Reference<?>) value).get(), visited);
+        if (value instanceof Map)
+            return ((Map<?, ?>) value).entrySet().stream()
+                    .anyMatch(entry -> retainsBuilder(entry.getKey(), visited) || retainsBuilder(entry.getValue(), visited));
+        if (value instanceof Iterable) {
+            for (Object member : (Iterable<?>) value) {
+                if (retainsBuilder(member, visited))
+                    return true;
+            }
+            return false;
+        }
+        if (value.getClass().isArray()) {
+            for (int index = 0; index < Array.getLength(value); index++) {
+                if (retainsBuilder(Array.get(value, index), visited))
+                    return true;
+            }
+            return false;
+        }
+
+        for (Class<?> layer = value.getClass(); layer != null && layer != Object.class; layer = layer.getSuperclass()) {
+            for (Field field : layer.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || !field.trySetAccessible())
+                    continue;
+                try {
+                    if (retainsBuilder(field.get(value), visited))
+                        return true;
+                } catch (IllegalAccessException exception) {
+                    throw new KlumModelException("Could not verify a detached template closure", exception);
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBuilderCaptureLeaf(Object value) {
+        return value instanceof CharSequence
+                || value instanceof Number
+                || value instanceof Boolean
+                || value instanceof Character
+                || value instanceof Class;
     }
 
     private static final class BuilderRejectingObjectOutputStream extends ObjectOutputStream {

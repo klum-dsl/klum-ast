@@ -34,6 +34,12 @@ import java.lang.reflect.Modifier
 
 class BuilderFirstSpec extends AbstractDSLSpec {
 
+    private enum BuilderHolder {
+        INSTANCE
+
+        Object value
+    }
+
     def "factory configures a Builder and returns a completed model"() {
         given:
         createClass '''
@@ -272,6 +278,34 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         then:
         KlumModelException error = thrown()
         error.message.contains("must not capture a Builder")
+    }
+
+    def "template recipes reject Builders hidden in enum singleton captures"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class EnumCapturingRecipe {
+                String value
+            }
+        '''
+
+        when:
+        clazz.Create.Template {
+            BuilderHolder.INSTANCE.value = delegate
+            def capturedHolder = BuilderHolder.INSTANCE
+            applyLater {
+                value capturedHolder.value.modelType.simpleName
+            }
+        }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains("must not capture a Builder")
+
+        cleanup:
+        BuilderHolder.INSTANCE.value = null
     }
 
     def "materialization resolves self and cyclic Builder relationships"() {
