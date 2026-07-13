@@ -345,6 +345,12 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             this.applyLaterClosures = copyApplyLaterClosures(applyLaterClosures);
         }
 
+        private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
+            Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
+            source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
+            return copy;
+        }
+
         public String getBreadcrumbPath() {
             return breadcrumbPath;
         }
@@ -572,32 +578,42 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, boolean explicitType, String key, Closure<T> body) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
-            KlumBuilder<?> existingValue = null;
-            Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(modelType, fieldOrMethodName);
-            if (fieldOrMethod.isEmpty()) {
-                fieldOrMethod = DslHelper.getVirtualSetter(getClass(), fieldOrMethodName, type);
-                if (fieldOrMethod.isEmpty())
-                    throw new KlumModelException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, modelType));
-            } else {
-                existingValue = getInstanceAttribute(fieldOrMethodName);
-            }
-
-            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
-            if (existingValue != null) {
-                if (explicitType && !type.isAssignableFrom(existingValue.getModelType()))
-                    throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
-                            existingValue.getModelType().getName(), type.getName()));
-                if (!Objects.equals(effectiveKey, existingValue.getNullableKey()))
-                    throw new KlumModelException(format("Key mismatch: %s != %s", effectiveKey, existingValue.getNullableKey()));
-                existingValue.increaseBreadcrumbQuantifier();
-                existingValue.apply(namedParams, body);
-                return (T) existingValue;
-            }
+            ChildTarget target = resolveSingleChildTarget(fieldOrMethodName, type);
+            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, target.member()).orElse(key);
+            if (target.existingBuilder() != null)
+                return configureExistingChild(target.existingBuilder(), type, explicitType, effectiveKey, namedParams, body);
 
             KlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, effectiveKey, namedParams, body);
             callSetterOrMethod(fieldOrMethodName, created);
             return (T) created;
         });
+    }
+
+    private ChildTarget resolveSingleChildTarget(String fieldOrMethodName, Class<?> type) {
+        Optional<Field> field = DslHelper.getField(modelType, fieldOrMethodName);
+        if (field.isPresent())
+            return new ChildTarget(field.get(), getInstanceAttribute(fieldOrMethodName));
+
+        AnnotatedElement virtualSetter = DslHelper.getVirtualSetter(getClass(), fieldOrMethodName, type)
+                .orElseThrow(() -> new KlumModelException(format(
+                        "Neither field nor single argument method named %s with type %s found in %s",
+                        fieldOrMethodName, type, modelType)));
+        return new ChildTarget(virtualSetter, null);
+    }
+
+    private <T> T configureExistingChild(KlumBuilder<?> existingBuilder, Class<T> type, boolean explicitType,
+                                         String effectiveKey, Map<String, Object> namedParams, Closure<T> body) {
+        if (explicitType && !type.isAssignableFrom(existingBuilder.getModelType()))
+            throw new KlumModelException(format("Type mismatch: %s is not compatible with %s",
+                    existingBuilder.getModelType().getName(), type.getName()));
+        if (!Objects.equals(effectiveKey, existingBuilder.getNullableKey()))
+            throw new KlumModelException(format("Key mismatch: %s != %s", effectiveKey, existingBuilder.getNullableKey()));
+        existingBuilder.increaseBreadcrumbQuantifier();
+        existingBuilder.apply(namedParams, body);
+        return (T) existingBuilder;
+    }
+
+    private record ChildTarget(AnnotatedElement member, KlumBuilder<?> existingBuilder) {
     }
 
     /**
@@ -906,12 +922,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         source.forEach((phase, closures) -> closures.forEach(closure -> doScheduleApplyLater(phase, cloneClosure(closure))));
     }
 
-    private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
-        Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
-        source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
-        return copy;
-    }
-
     private static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, closures.stream()
@@ -956,26 +966,35 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return true;
         if (isBuilderCaptureLeaf(value) || !visited.add(value))
             return false;
-        if (value instanceof Reference)
-            return retainsBuilder(((Reference<?>) value).get(), visited);
-        if (value instanceof Map)
-            return ((Map<?, ?>) value).entrySet().stream()
+        if (value instanceof Reference<?> reference)
+            return retainsBuilder(reference.get(), visited);
+        if (value instanceof Map<?, ?> map)
+            return map.entrySet().stream()
                     .anyMatch(entry -> retainsBuilder(entry.getKey(), visited) || retainsBuilder(entry.getValue(), visited));
-        if (value instanceof Iterable) {
-            for (Object member : (Iterable<?>) value) {
-                if (retainsBuilder(member, visited))
-                    return true;
-            }
-            return false;
-        }
-        if (value.getClass().isArray()) {
-            for (int index = 0; index < Array.getLength(value); index++) {
-                if (retainsBuilder(Array.get(value, index), visited))
-                    return true;
-            }
-            return false;
-        }
+        if (value instanceof Iterable<?> iterable)
+            return iterableRetainsBuilder(iterable, visited);
+        if (value.getClass().isArray())
+            return arrayRetainsBuilder(value, visited);
+        return fieldsRetainBuilder(value, visited);
+    }
 
+    private static boolean iterableRetainsBuilder(Iterable<?> values, Set<Object> visited) {
+        for (Object member : values) {
+            if (retainsBuilder(member, visited))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean arrayRetainsBuilder(Object array, Set<Object> visited) {
+        for (int index = 0; index < Array.getLength(array); index++) {
+            if (retainsBuilder(Array.get(array, index), visited))
+                return true;
+        }
+        return false;
+    }
+
+    private static boolean fieldsRetainBuilder(Object value, Set<Object> visited) {
         for (Class<?> layer = value.getClass(); layer != null && layer != Object.class; layer = layer.getSuperclass()) {
             for (Field field : layer.getDeclaredFields()) {
                 if (Modifier.isStatic(field.getModifiers()) || !field.trySetAccessible())
