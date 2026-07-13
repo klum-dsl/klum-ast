@@ -808,7 +808,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "locally applied templates using map"() {
         given:
         createClass('''
@@ -863,7 +863,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         instance.value == null
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "locally applied templates with map"() {
         given:
         createClass('''
@@ -969,7 +969,7 @@ class TemplatesSpec extends AbstractDSLSpec {
         bar.name == 'DefaultName'
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "parent child collections with map"() {
         given:
         createClass('''

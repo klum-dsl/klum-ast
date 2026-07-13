@@ -320,7 +320,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    @Ignore
+    @Ignore("A Builder mutator cannot call an unannotated protected helper retained on a separately compiled model superclass")
     def "Calling a protected non mutator method from a subclass mutator method"() {
         given:
         createClass('''
@@ -362,7 +362,7 @@ class MutatorsSpec extends AbstractDSLSpec {
        bar.called == true
     }
 
-    @Ignore
+    @Ignore("Manual verifier sandbox with no behavioral assertion; retained only for local AST debugging")
     def "for debug only"() {
         when:
         createClass('''

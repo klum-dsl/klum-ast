@@ -314,7 +314,6 @@ class RWClassSpec extends AbstractDSLSpec {
     }
 
     @Issue("99")
-    //@Ignore("Obsolete with owner phases")
     def "config closures for inner objects have access to their owner field with static type checking enabled"() {
         given:
         createClass('''

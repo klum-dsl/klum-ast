@@ -12,3 +12,6 @@ This repo uses the canonical triage label vocabulary. See `docs/agents/triage-la
 
 This repository uses a single-context layout: one `CONTEXT.md` at the repo root and `docs/adr/` for ADRs. See `docs/agents/domain.md` for the consumption rules.
 
+### Testing
+
+Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.

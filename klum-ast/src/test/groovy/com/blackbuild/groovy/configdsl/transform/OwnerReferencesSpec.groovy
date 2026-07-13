@@ -490,7 +490,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         secondFoo.bars[0].foo == aFoo
     }
 
-    @Ignore("Obsolete with owner phases")
+    @Ignore("Owner values are intentionally assigned in the OWNER phase after configuration closures")
     def "owner must be set before calling the closure"() {
         given:
         createClass('''

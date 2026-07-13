@@ -269,7 +269,7 @@ class TransformSpec extends AbstractDSLSpec {
         thrown(GroovyRuntimeException)
     }
 
-    @Ignore("Legacy feature")
+    @Ignore("Factory-created models no longer expose the legacy synthetic key accessor")
     def 'Key is reachable with get$Key()'() {
         given:
         createClass('''
@@ -2402,7 +2402,7 @@ import org.codehaus.groovy.control.CompilePhase
         instance.name == "Franz"
     }
 
-    @Ignore("obsolete")
+    @Ignore("Superseded behavior: @Field is valid only on setter-like methods, as asserted by the following rejection test")
     def "Annotated non setter methods work for dsl types"() {
         given:
         createClass '''

@@ -213,7 +213,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance.mapFoos["3"].called == 1
     }
 
-    @Ignore("Obsolete with switch to owner phases")
+    @Ignore("Owners are assigned in the OWNER phase after PostCreate, so PostCreate owner access is unsupported")
     def "PostCreate methods have access to any owner objects"() {
         given:
         createClass('''
