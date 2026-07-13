@@ -207,6 +207,8 @@ public class CopyHandler {
     @SuppressWarnings("java:S3776")
     private static <T> boolean isInstance(Class<T> type, Object result) {
         if (type.isInstance(result)) return true;
+        if (result instanceof KlumBuilder)
+            return type.isAssignableFrom(((KlumBuilder<?>) result).getModelType());
 
         if (type.isPrimitive()) {
             if (type == int.class) return result instanceof Integer;
@@ -243,7 +245,9 @@ public class CopyHandler {
     }
 
     private void replaceValue(Field field, Object templateValue) {
-        Object valueCopy = DslHelper.isRelationship(field)
+        Object valueCopy = templateValue == null
+                ? null
+                : DslHelper.isRelationship(field)
                 ? rehydrateDslRecipe(field.getType(), templateValue, null)
                 : copyValue(templateValue);
         target.setInstanceAttribute(field.getName(), valueCopy);
@@ -454,7 +458,7 @@ public class CopyHandler {
     }
 
     private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
-        if (value != null && !(value instanceof Map) && !elementType.isInstance(value))
+        if (value != null && !(value instanceof Map) && !isInstance(elementType, value))
             throw new KlumModelException("Element " + value + " in " + field + " is not of expected type " + elementType);
     }
 
