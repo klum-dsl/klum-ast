@@ -29,6 +29,7 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.*;
+import groovy.transform.Undefined;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -273,7 +274,7 @@ public class DslHelper {
     public static <T> Optional<Method> getVirtualSetter(Class<?> rwType, String methodName, Class<T> type) {
         List<Method> methods = getMethodsAnnotatedWith(rwType, FIELD_ANNOTATION)
                 .filter(method -> method.getName().equals(methodName))
-                .filter(method -> method.getParameterTypes()[0].isAssignableFrom(type))
+                .filter(method -> virtualSetterAccepts(method.getParameterTypes()[0], type))
                 .collect(Collectors.toList());
 
         if (methods.isEmpty())
@@ -283,6 +284,13 @@ public class DslHelper {
             return Optional.of(methods.get(0));
 
         throw new KlumSchemaException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
+    }
+
+    private static boolean virtualSetterAccepts(Class<?> parameterType, Class<?> modelType) {
+        if (parameterType.isAssignableFrom(modelType))
+            return true;
+        return KlumBuilder.class.isAssignableFrom(parameterType)
+                && parameterType.isAssignableFrom(GeneratedBuilderSupport.builderTypeFor(modelType));
     }
 
     public static Object getAttributeValue(String name, Object instance) {
@@ -350,14 +358,19 @@ public class DslHelper {
 
     /** Returns whether a schema field represents a direct or collection-valued DSL relationship. */
     public static boolean isRelationship(@NotNull Field field) {
-        if (isDslType(field.getType()))
-            return true;
-        if (!Collection.class.isAssignableFrom(field.getType()) && !Map.class.isAssignableFrom(field.getType()))
-            return false;
+        Class<?> valueType = field.getType();
         try {
-            return isDslType(getElementType(field));
+            if (Collection.class.isAssignableFrom(field.getType()) || Map.class.isAssignableFrom(field.getType()))
+                valueType = getClassFromType(getElementType(field));
         } catch (IllegalArgumentException ignored) {
             return false;
         }
+        com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation =
+                field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (fieldAnnotation != null && fieldAnnotation.defaultImpl() != Undefined.class)
+            valueType = fieldAnnotation.defaultImpl();
+        else if (valueType.isAnnotationPresent(DSL.class))
+            valueType = FactoryHelper.getTypeOrDefaultType(valueType);
+        return isDslType(valueType);
     }
 }

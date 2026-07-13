@@ -81,6 +81,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
     private final Map<String, Object> metadata = new HashMap<>();
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
+    private final List<KlumBuilder<?>> virtualChildren = new ArrayList<>();
 
     protected KlumBuilder(Class<M> modelType) {
         this.modelType = Objects.requireNonNull(modelType);
@@ -189,6 +190,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
                     values.add(getInstanceAttribute(field.getName()));
             }
         }
+        values.addAll(virtualChildren);
         return values;
     }
 
@@ -547,8 +549,11 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private void callSetterOrMethod(String fieldOrMethodName, Object value) {
         if (DslHelper.getField(modelType, fieldOrMethodName).isPresent())
             setInstanceAttribute(fieldOrMethodName, value);
-        else
+        else {
             InvokerHelper.invokeMethod(this, fieldOrMethodName, value);
+            if (value instanceof KlumBuilder)
+                virtualChildren.add((KlumBuilder<?>) value);
+        }
         Object storedValue = DslHelper.getField(modelType, fieldOrMethodName).isPresent()
                 ? getInstanceAttribute(fieldOrMethodName)
                 : value;

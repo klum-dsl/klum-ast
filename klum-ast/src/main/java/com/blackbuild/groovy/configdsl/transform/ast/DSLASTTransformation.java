@@ -397,23 +397,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private ClassNode getBuilderFieldType(FieldNode field) {
         ClassNode type = field.getType();
-        if (isDSLObject(type))
-            return getRwClassOf(type).getPlainNodeReference();
-        if (isCollection(type)) {
-            ClassNode elementType = getElementTypeForCollection(type);
-            if (isDSLObject(elementType))
-                return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(elementType).getPlainNodeReference()));
-        }
-        if (isMap(type)) {
-            ClassNode valueType = getElementTypeForMap(type);
-            if (isDSLObject(valueType))
+        ClassNode effectiveValueType = getEffectiveFieldValueType(field);
+        if (!isCollection(type) && !isMap(type) && isDSLObject(effectiveValueType))
+            return getRwClassOf(effectiveValueType).getPlainNodeReference();
+        if (isCollection(type) && isDSLObject(effectiveValueType))
+            return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(effectiveValueType).getPlainNodeReference()));
+        if (isMap(type) && isDSLObject(effectiveValueType))
                 return makeClassSafeWithGenerics(
                         type,
                         new GenericsType(getKeyTypeForMap(type)),
-                        new GenericsType(getRwClassOf(valueType).getPlainNodeReference())
+                        new GenericsType(getRwClassOf(effectiveValueType).getPlainNodeReference())
                 );
-        }
         return type.getPlainNodeReference();
+    }
+
+    private ClassNode getEffectiveFieldValueType(FieldNode field) {
+        ClassNode declaredValueType;
+        if (isCollection(field.getType()))
+            declaredValueType = getElementTypeForCollection(field.getType());
+        else if (isMap(field.getType()))
+            declaredValueType = getElementTypeForMap(field.getType());
+        else
+            declaredValueType = field.getType();
+        return getDefaultImplOfFieldOrMethod(field, declaredValueType);
     }
 
     FieldNode getBuilderField(FieldNode modelField) {
@@ -421,13 +427,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private boolean isRelationshipField(FieldNode field) {
-        if (isDSLObject(field.getType()))
-            return true;
-        if (isCollection(field.getType()))
-            return isDSLObject(getElementTypeForCollection(field.getType()));
-        if (isMap(field.getType()))
-            return isDSLObject(getElementTypeForMap(field.getType()));
-        return false;
+        return isDSLObject(getEffectiveFieldValueType(field));
     }
 
     private void finalizeModelFields() {
