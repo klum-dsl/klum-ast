@@ -6,7 +6,7 @@ Status: Accepted
 
 Sub-decisions:
 
-- [0003a — Template recipe companions and Builder-producing converters](0003a-template-recipe-companions-and-builder-converters.md)
+- [0004 — Template recipe companions and Builder-producing converters](0004-template-recipe-companions-and-builder-converters.md)
 
 ## Context
 
