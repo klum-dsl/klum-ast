@@ -11,6 +11,7 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Completed collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`; unsupported concrete or custom declarations now fail schema compilation.
 - Split construction and completed-model state between `KlumBuilder` and `KlumModelProxy`. `KlumInstanceProxy` is now a deprecated Builder-only compatibility adapter, and `VisitingPhaseAction` is replaced by state-specific Builder and Model variants.
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
+- Known compatibility gap: collection-local creator projections, direct `DelegatingScript` collection creation, and DSL Object converters that call model-returning factories currently fail rather than produce owned child Builders. Their target behavior is retained as pending tests and specified by [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md); use generated child closure methods until the `Create.AsBuilder` follow-up lands.
 
 ## Templates, serialization, and Jackson
 

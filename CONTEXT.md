@@ -67,6 +67,16 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Completed DSL Objects do not expose `apply`; configuration is Builder-only.
 
+- Construction session
+
+  A Construction session is the scope of one root Builder lifecycle. Every owned child Builder joins that session and the
+  resulting composition graph is Materialized together; root Materialization is never nested inside another session.
+
+- Builder-producing factory
+
+  A Builder-producing factory creates an unsealed child Builder inside an active Construction session. `Create.AsBuilder`
+  is the explicit composition protocol, while standalone root factories return completed DSL Objects.
+
 - Deserialization
 
   Deserialization restores serializable DSL Object fields into Builders, then follows the normal lifecycle through Materialization and validation. The restored result may differ if a mutating lifecycle callback is non-idempotent; this behavior is provisional and will be revisited in [#428](https://github.com/klum-dsl/klum-ast/issues/428).

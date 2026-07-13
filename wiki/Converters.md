@@ -76,9 +76,9 @@ Foo.Create.With {
 ```
 
 An independently completed converter result remains valid as a root result or when explicitly passed to an aggregation
-`LINK`; it is not valid as new composition. [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-template-recipe-companions-and-builder-converters.md)
-records the future `Create.AsBuilder` protocol and source-compatible adaptation for recognizable classic converters
-without committing to the final generated Builder type name or placement.
+`LINK`; it is not valid as new composition. [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)
+records the future `Create.AsBuilder` composition protocol, Builder-producing collection projections, and source-compatible
+adaptation for recognizable classic converters without committing to the final generated Builder type name or placement.
 
 Note that having more than one factory with the same parameters might
 lead to unexpected results.
