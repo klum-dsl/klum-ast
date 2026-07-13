@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.validation.Validator
@@ -118,6 +119,17 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         expect:
         rwClazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
         !Modifier.isPublic(KlumBuilder.getDeclaredMethod("materializeGraph", KlumBuilder).modifiers)
+
+        when: "same-package or subclass code tries to invoke the internal model constructor"
+        def builder = FactoryHelper.createBuilder(clazz, null)
+        def constructor = clazz.getDeclaredConstructor(rwClazz, KlumBuilder.MaterializationToken)
+        constructor.accessible = true
+        constructor.newInstance(builder, null)
+
+        then:
+        def failure = thrown(ReflectiveOperationException)
+        failure.cause instanceof KlumModelException
+        failure.cause.message.contains("internal materialization")
     }
 
     def "completed models expose no generated relationship assignment method"() {
@@ -210,6 +222,31 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         then:
         instance.result == "FRESH"
+    }
+
+    def "template recipes reject applyLater closures that capture a Builder"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class CapturingRecipe {
+                String value
+            }
+        '''
+
+        when:
+        clazz.Create.Template {
+            def capturedBuilder = delegate
+            applyLater {
+                value capturedBuilder.modelType.simpleName
+            }
+        }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains("must not capture a Builder")
+        error.message.contains("delegate")
     }
 
     def "materialization resolves self and cyclic Builder relationships"() {

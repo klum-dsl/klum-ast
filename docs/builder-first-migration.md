@@ -37,6 +37,8 @@ The current generated Builder spelling and layout are implementation details. Do
 
 Templates remain client-facing DSL Object recipes. Every application copies the recipe into a fresh Builder graph, so ownership and lifecycle callbacks belong to the recipient construction.
 
+An `applyLater` recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local variable is rejected when the template is materialized, because a completed recipe must not retain construction state.
+
 The completed model companion is serialized with the model and retains breadcrumb, model-path, and validation state. Builder-only state is not serialized.
 
 Jackson restores serialized fields into Builders, then runs the normal lifecycle, graph materialization, and validation. This policy is explicitly provisional: lifecycle-derived values may be recomputed, and issue #428 will decide the long-term persisted-versus-recomputed behavior.

@@ -39,8 +39,8 @@ class TestObject implements KlumModelObject {
         }
 
         @Override
-        protected TestObject $createModel() {
-            throw new UnsupportedOperationException("Test-only model companion state carrier")
+        protected Class<TestObject> $modelImplementationType() {
+            return TestObject
         }
     }
 }

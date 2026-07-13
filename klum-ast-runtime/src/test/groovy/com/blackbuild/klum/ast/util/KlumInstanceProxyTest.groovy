@@ -80,8 +80,8 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
                 }
 
                 @Override
-                protected Bar $createModel() {
-                    throw new UnsupportedOperationException()
+                protected Class<Bar> $modelImplementationType() {
+                    return Bar
                 }
             }
         ''')
@@ -137,8 +137,8 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
                 }
 
                 @Override
-                protected Bar $createModel() {
-                    throw new UnsupportedOperationException()
+                protected Class<Bar> $modelImplementationType() {
+                    return Bar
                 }
             }
         ''')
@@ -194,8 +194,8 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
                 }
 
                 @Override
-                protected Foo $createModel() {
-                    throw new UnsupportedOperationException()
+                protected Class<Foo> $modelImplementationType() {
+                    return Foo
                 }
             }
          ''')

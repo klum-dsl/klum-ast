@@ -108,6 +108,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
+    static final ClassNode MATERIALIZATION_TOKEN = make(KlumBuilder.MaterializationToken.class);
     public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
@@ -479,9 +480,15 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createModelConstructor() {
         BlockStatement body = new BlockStatement();
         if (dslParent != null)
-            body.addStatement(ctorSuperS(args(varX("builder"))));
-        else
+            body.addStatement(ctorSuperS(args(varX("builder"), varX("materializationToken"))));
+        else {
             body.addStatement(ctorSuperS());
+            body.addStatement(stmt(callX(
+                    classX(KLUM_BUILDER),
+                    "$requireMaterializationToken",
+                    args(varX("materializationToken"))
+            )));
+        }
 
         builderFields.forEach((modelField, builderField) -> {
             if (getFieldType(modelField) == FieldType.BUILDER || isRelationshipField(modelField))
@@ -499,20 +506,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             ));
 
         annotatedClass.addConstructor(
-                ACC_PROTECTED,
-                params(param(rwClass.getPlainNodeReference(), "builder")),
+                ACC_PROTECTED | ACC_SYNTHETIC,
+                params(
+                        param(rwClass.getPlainNodeReference(), "builder"),
+                        param(MATERIALIZATION_TOKEN, "materializationToken")
+                ),
                 NO_EXCEPTIONS,
                 body
         );
     }
 
     private void createModelAllocationHook() {
-        MethodBuilder method = createProtectedMethod("$createModel")
-                .returning(annotatedClass.getPlainNodeReference());
-        if (isAbstract(annotatedClass))
-            method.doReturn(callX(varX("this"), "$instantiateSyntheticModel", args(classX(modelImplementationClass))));
-        else
-            method.doReturn(ctorX(modelImplementationClass, args(varX("this"))));
+        MethodBuilder method = createProtectedMethod("$modelImplementationType")
+                .returning(makeClassSafe(Class.class))
+                .doReturn(classX(modelImplementationClass));
         method.addTo(rwClass);
     }
 

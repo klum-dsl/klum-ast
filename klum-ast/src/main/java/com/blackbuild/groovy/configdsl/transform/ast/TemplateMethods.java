@@ -109,9 +109,12 @@ class TemplateMethods {
 
         templateClass.addConstructor(
                 ACC_SYNTHETIC | ACC_PROTECTED,
-                params(param(rwClass.getPlainNodeReference(), "builder")),
+                params(
+                        param(rwClass.getPlainNodeReference(), "builder"),
+                        param(DSLASTTransformation.MATERIALIZATION_TOKEN, "materializationToken")
+                ),
                 CommonAstHelper.NO_EXCEPTIONS,
-                block(ctorSuperS(args(varX("builder"))))
+                block(ctorSuperS(args(varX("builder"), varX("materializationToken"))))
         );
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();

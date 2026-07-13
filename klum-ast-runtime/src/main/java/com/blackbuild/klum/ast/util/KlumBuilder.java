@@ -37,6 +37,7 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
+import groovy.lang.Reference;
 import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
@@ -46,8 +47,10 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -83,6 +86,17 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
     private final List<KlumBuilder<?>> virtualChildren = new ArrayList<>();
 
+    private static final MaterializationToken MATERIALIZATION_TOKEN = new MaterializationToken();
+
+    /**
+     * Unforgeable capability required by generated model constructors.
+     * The type is public solely so generated classes in arbitrary packages can use it in an internal signature.
+     */
+    public static final class MaterializationToken {
+        private MaterializationToken() {
+        }
+    }
+
     protected KlumBuilder(Class<M> modelType) {
         this.modelType = Objects.requireNonNull(modelType);
     }
@@ -114,23 +128,35 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         sealed = true;
     }
 
-    /** Allocates the completed object for this Builder. Generated code implements this hook. */
-    protected abstract M $createModel();
+    /** Identifies the generated model implementation. Allocation remains private to graph materialization. */
+    protected abstract Class<? extends M> $modelImplementationType();
 
     /**
-     * Instantiates a synthetic model implementation without exposing its Builder constructor to clients.
-     * Abstract DSL types use this path for their internal template implementation.
+     * Validates the capability passed through a generated model constructor chain.
+     * Client calls can name the token type but cannot obtain the required instance.
      */
-    protected final M $instantiateSyntheticModel(Class<? extends M> implementationType) {
+    public static void $requireMaterializationToken(MaterializationToken token) {
+        if (token != MATERIALIZATION_TOKEN)
+            throw new KlumModelException("DSL Objects can only be constructed by internal materialization");
+    }
+
+    private M instantiateModel() {
+        Class<? extends M> implementationType = Objects.requireNonNull(
+                $modelImplementationType(), "Generated Builder returned no model implementation type");
         Constructor<?> constructor = Arrays.stream(implementationType.getDeclaredConstructors())
-                .filter(candidate -> candidate.getParameterCount() == 1)
+                .filter(candidate -> candidate.getParameterCount() == 2)
                 .filter(candidate -> candidate.getParameterTypes()[0].isInstance(this))
+                .filter(candidate -> candidate.getParameterTypes()[1] == MaterializationToken.class)
                 .findFirst()
                 .orElseThrow(() -> new KlumModelException("No internal Builder constructor found for " + implementationType.getName()));
         try {
             if (!constructor.trySetAccessible())
                 throw new KlumModelException("Cannot access internal Builder constructor for " + implementationType.getName());
-            return (M) constructor.newInstance(this);
+            return (M) constructor.newInstance(this, MATERIALIZATION_TOKEN);
+        } catch (InvocationTargetException exception) {
+            if (exception.getCause() instanceof RuntimeException)
+                throw (RuntimeException) exception.getCause();
+            throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception.getCause());
         } catch (ReflectiveOperationException exception) {
             throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception);
         }
@@ -144,7 +170,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     final void allocateModel() {
         if (completedModel != null)
             return;
-        completedModel = Objects.requireNonNull($createModel(), "Generated Builder returned no model");
+        completedModel = Objects.requireNonNull(instantiateModel(), "Generated Builder returned no model");
         sealed = true;
     }
 
@@ -884,9 +910,68 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, closures.stream()
-                .map(Closure::dehydrate)
+                .map(KlumBuilder::dehydrateRecipeClosure)
                 .collect(Collectors.toList())));
         return copy;
+    }
+
+    private static Closure<?> dehydrateRecipeClosure(Closure<?> closure) {
+        Closure<?> dehydrated = closure.dehydrate();
+        if (retainsBuilder(dehydrated, Collections.newSetFromMap(new IdentityHashMap<>())))
+            throw new KlumModelException("Template applyLater closures must not capture a Builder; "
+                    + "use the closure delegate so the recipe can run against each fresh Builder");
+        return dehydrated;
+    }
+
+    private static boolean retainsBuilder(Object value, Set<Object> visited) {
+        if (value == null)
+            return false;
+        if (value instanceof KlumBuilder)
+            return true;
+        if (isBuilderCaptureLeaf(value) || !visited.add(value))
+            return false;
+        if (value instanceof Reference)
+            return retainsBuilder(((Reference<?>) value).get(), visited);
+        if (value instanceof Map)
+            return ((Map<?, ?>) value).entrySet().stream()
+                    .anyMatch(entry -> retainsBuilder(entry.getKey(), visited) || retainsBuilder(entry.getValue(), visited));
+        if (value instanceof Iterable) {
+            for (Object member : (Iterable<?>) value) {
+                if (retainsBuilder(member, visited))
+                    return true;
+            }
+            return false;
+        }
+        if (value.getClass().isArray()) {
+            for (int index = 0; index < Array.getLength(value); index++) {
+                if (retainsBuilder(Array.get(value, index), visited))
+                    return true;
+            }
+            return false;
+        }
+
+        for (Class<?> layer = value.getClass(); layer != null && layer != Object.class; layer = layer.getSuperclass()) {
+            for (Field field : layer.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || !field.trySetAccessible())
+                    continue;
+                try {
+                    if (retainsBuilder(field.get(value), visited))
+                        return true;
+                } catch (IllegalAccessException exception) {
+                    throw new KlumModelException("Could not inspect a template closure capture", exception);
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isBuilderCaptureLeaf(Object value) {
+        return value instanceof CharSequence
+                || value instanceof Number
+                || value instanceof Boolean
+                || value instanceof Character
+                || value instanceof Enum
+                || value instanceof Class;
     }
 
     private static Closure<?> cloneClosure(Closure<?> closure) {

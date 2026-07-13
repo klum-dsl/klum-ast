@@ -31,7 +31,7 @@ class TestRuntimeBuilder<M> extends KlumBuilder<M> {
     }
 
     @Override
-    protected M $createModel() {
-        return null
+    protected Class<? extends M> $modelImplementationType() {
+        return modelType
     }
 }
