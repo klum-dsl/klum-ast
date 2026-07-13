@@ -19,6 +19,7 @@ The closure receivers, child values, mutators, and lifecycle callbacks through `
 - Replace direct construction with generated factories. Completed DSL Objects are not client-constructed.
 - Move post-construction `model.apply { ... }` calls into the original `Create.With { ... }` callback, a Template, or another factory input. Completed models expose no generated `apply` method.
 - Stop calling `KlumInstanceProxy.getProxyFor(model)`. The deprecated compatibility adapter accepts Builders only. Completed-object technical state belongs to the Model companion and supported public utilities.
+- Treat `KlumRwObject` as a deprecated generated-layout marker only. Builders no longer expose the former `getDSLInstance()` or `getRwInstance()` identity aliases; use the Builder directly during construction. [Issue #394](https://github.com/klum-dsl/klum-ast/issues/394) owns removal of the redundant marker declaration together with the final generated Builder layout.
 - Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` from inside a parent construction callback or from a nested converter: that starts a second lifecycle. Use the generated child method on the parent Builder instead.
 - Pass an existing completed DSL Object only to a `FieldType.LINK` relationship. Completed objects cannot become newly owned composition. Use a Template when an existing object is intended as a reusable recipe; applying it rehydrates fresh Builders.
 

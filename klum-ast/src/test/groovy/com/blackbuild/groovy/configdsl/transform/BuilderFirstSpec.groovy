@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.KlumRwObject
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.KlumModelException
@@ -80,6 +81,31 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         clazz.declaredFields*.name.contains("scratch") == false
         clazz.methods*.name.contains("apply") == false
         clazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
+    }
+
+    def "legacy RW marker remains deprecated without leaking RW identity aliases into Builders"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class CompatibilitySurface {
+                String value
+            }
+        '''
+
+        expect: "the marker remains temporarily assignable for external compatibility"
+        KlumRwObject.isAssignableFrom(rwClazz)
+        rwClazz.interfaces.contains(KlumRwObject)
+        KlumRwObject.getAnnotation(Deprecated).forRemoval()
+
+        and: "the new Builder API does not carry identity aliases from KlumInstanceProxy"
+        !rwClazz.methods*.name.contains("getDSLInstance")
+        !rwClazz.methods*.name.contains("getRwInstance")
+
+        and: "the one runtime dynamic invocation seam uses Builder vocabulary and package visibility"
+        !KlumBuilder.declaredMethods*.name.contains("invokeRwMethod")
+        !Modifier.isPublic(KlumBuilder.getDeclaredMethod("invokeBuilderMethod", String, Object[]).modifiers)
     }
 
     def "completed models reject source mutation and construction entrypoints"() {

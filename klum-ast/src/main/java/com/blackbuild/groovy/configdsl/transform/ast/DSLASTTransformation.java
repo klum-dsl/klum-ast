@@ -245,6 +245,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new PropertyAccessors(this).invoke();
     }
 
+    @SuppressWarnings({"deprecation", "removal"}) // direct legacy marker preserves the generated shape until #394
     private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
         ClassNode builderBase = parentRW != null

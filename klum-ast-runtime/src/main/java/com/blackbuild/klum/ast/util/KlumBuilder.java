@@ -71,8 +71,13 @@ import static java.lang.String.format;
  *
  * <p>Generated Builders inherit this class and own every mutable value until
  * the graph is materialized. A completed model never retains its Builder.</p>
+ *
+ * <p>The deprecated {@link KlumRwObject} marker is retained temporarily for
+ * integrations migrating from the former RW layout and its
+ * {@link KlumInstanceProxy} compatibility adapter. New code should identify
+ * construction values through {@code KlumBuilder} directly.</p>
  */
-@SuppressWarnings({"unused", "unchecked", "java:S100"}) // $-prefixed methods are collision-resistant generated-code ABI hooks
+@SuppressWarnings({"unused", "unchecked", "java:S100", "deprecation", "removal"}) // legacy marker plus generated-code ABI hooks
 public abstract class KlumBuilder<M> extends GroovyObjectSupport implements KlumRwObject, Serializable {
 
     public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
@@ -366,14 +371,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         public Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
             return applyLaterClosures;
         }
-    }
-
-    public Object getDSLInstance() {
-        return this;
-    }
-
-    public Object getRwInstance() {
-        return this;
     }
 
     public <T> T getInstanceAttribute(String attributeName) {
@@ -829,7 +826,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script)));
     }
 
-    public Object invokeRwMethod(String methodName, Object... args) {
+    Object invokeBuilderMethod(String methodName, Object... args) {
         return InvokerHelper.invokeMethod(this, methodName, args);
     }
 

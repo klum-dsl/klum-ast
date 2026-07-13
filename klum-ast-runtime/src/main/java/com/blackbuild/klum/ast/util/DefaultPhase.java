@@ -110,7 +110,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
 
         try {
             Object castedValue = castTo(value, targetType);
-            builder.invokeRwMethod(field, castedValue);
+            builder.invokeBuilderMethod(field, castedValue);
         } catch (Exception e) {
             throw new KlumSchemaException(format("Could not convert default value from annotation %s.%s to target type %s",
                     valuesAnnotation.annotationType().getName(), field, targetType.getName()), e);
