@@ -318,4 +318,80 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         KlumModelException error = thrown()
         error.message.contains("only supported for LINK relationships")
     }
+
+    def "ownership is established between Builders and materialized as model relationships"() {
+        given:
+        createClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.util.KlumBuilder
+
+            @DSL
+            class Root {
+                String name
+                Middle middle
+            }
+
+            @DSL
+            class Middle {
+                @Owner Root parent
+                Leaf leaf
+            }
+
+            @DSL
+            class Leaf {
+                static boolean lifecycleSawBuilders
+
+                @Owner Middle parent
+                @Owner(transitive = true) Root root
+                String ownerName
+
+                @PostTree
+                void readOwners() {
+                    lifecycleSawBuilders = parent instanceof KlumBuilder && root instanceof KlumBuilder
+                    ownerName = root.name
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            name "root"
+            middle {
+                leaf()
+            }
+        }
+
+        then:
+        instance.middle.parent.is(instance)
+        instance.middle.leaf.parent.is(instance.middle)
+        instance.middle.leaf.root.is(instance)
+        instance.middle.leaf.ownerName == "root"
+        getClass("Leaf").lifecycleSawBuilders
+    }
+
+    def "only TRANSIENT model state remains publicly mutable"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class MutableTransient {
+                String stable = "stable"
+
+                @Field(FieldType.TRANSIENT)
+                String runtimeState = "initial"
+            }
+        '''
+
+        when:
+        instance = clazz.Create.One()
+        instance.runtimeState = "changed"
+
+        then:
+        instance.runtimeState == "changed"
+        Modifier.isFinal(clazz.getDeclaredField("stable").modifiers)
+        !Modifier.isFinal(clazz.getDeclaredField("runtimeState").modifiers)
+        clazz.methods*.name.contains("setStable") == false
+    }
 }

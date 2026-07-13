@@ -64,11 +64,12 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
 
             autoCreateClusterFields(element);
 
-            LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
+            LifecycleHelper.executeLifecycleMethods(element, AutoCreate.class);
         });
     }
 
-    private void autoCreate(Object element, Field field, AutoCreate autoCreate) {
+    private void autoCreate(KlumBuilder<?> element, Field builderField, AutoCreate autoCreate) {
+        Field field = element.getModelField(builderField.getName());
         Map<String, Object> values = ClosureHelper.invokeClosure(autoCreate.value());
 
         String key = autoCreate.key();
@@ -93,19 +94,22 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
 
         Class<?> finalType = type;
         String finalKey = key;
-        Object autoCreated = BreadcrumbCollector.withFullPathOverride(getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate", () -> FactoryHelper.create(finalType, values, finalKey, null));
+        KlumBuilder<?> autoCreated = BreadcrumbCollector.withFullPathOverride(
+                getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate",
+                () -> FactoryHelper.createNestedBuilder(finalType, values, finalKey)
+        );
 
-        KlumInstanceProxy.getProxyFor(element).setSingleField(field.getName(), autoCreated);
+        element.setSingleField(field.getName(), autoCreated);
     }
 
-    private void autoCreateClusterFields(Object element) {
+    private void autoCreateClusterFields(KlumBuilder<?> element) {
 
         ClusterModel.getMethodsAnnotatedWithStream(element, Map.class, Cluster.class)
                 .filter(clusterField -> clusterField.isAnnotationPresent(AutoCreate.class))
                 .forEach(clusterMethod -> autoCreateElementsForCluster(element, clusterMethod));
     }
 
-    private void autoCreateElementsForCluster(Object element, Method clusterMethod) {
+    private void autoCreateElementsForCluster(KlumBuilder<?> element, Method clusterMethod) {
         Cluster cluster = clusterMethod.getAnnotation(Cluster.class);
         Class<? extends Annotation> filterAnnotation = cluster.value();
         Predicate<AnnotatedElement> clusterFilter = filterAnnotation != Cluster.Undefined.class ? elementToCheck -> elementToCheck.isAnnotationPresent(filterAnnotation) : elementToCheck -> true;

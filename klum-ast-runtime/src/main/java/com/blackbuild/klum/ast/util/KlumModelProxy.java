@@ -23,14 +23,19 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.GroovyObject;
 
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -112,5 +117,23 @@ public final class KlumModelProxy implements Serializable {
      */
     public boolean markValidatorExecuted(Class<?> validatorType) {
         return executedValidators.add(validatorType);
+    }
+
+    public Object getSingleOwner() {
+        Set<Object> owners = getOwners();
+        if (owners.size() > 1)
+            throw new KlumModelException("Object has more than one distinct owner");
+        return owners.stream().findFirst().orElse(null);
+    }
+
+    public Set<Object> getOwners() {
+        return DslHelper.getFieldsAnnotatedWith(model.getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
+                .filter(field -> !field.getAnnotation(Owner.class).root())
+                .map(Field::getName)
+                .map(name -> DslHelper.getFieldValue(model, name))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 }

@@ -24,13 +24,16 @@
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.CodeVisitorSupport;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.DynamicVariable;
 import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.Variable;
 import org.codehaus.groovy.ast.expr.VariableExpression;
 
@@ -39,6 +42,7 @@ import java.util.Optional;
 
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
  * Helper class to move mutating methods to RW class.
@@ -60,10 +64,20 @@ public class WriteAccessMethodsMover {
     static void moveMethodFromModelToRWClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
         ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        retargetOwnerParameters(method);
         retargetFieldVariables(method, rwClass);
         declaringClass.removeMethod(method);
         // if method is public, it will already have been added by delegateTo, replace it again
         CommonAstHelper.replaceMethod(rwClass, method);
+    }
+
+    private static void retargetOwnerParameters(MethodNode method) {
+        if (method.getAnnotations(make(Owner.class)).isEmpty())
+            return;
+        for (Parameter parameter : method.getParameters()) {
+            if (DslAstHelper.isDSLObject(parameter.getType()))
+                parameter.setType(DslAstHelper.getRwClassOf(parameter.getType()).getPlainNodeReference());
+        }
     }
 
     private static void retargetFieldVariables(MethodNode method, ClassNode rwClass) {

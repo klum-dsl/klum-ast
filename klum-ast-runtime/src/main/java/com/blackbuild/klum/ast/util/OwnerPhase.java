@@ -46,86 +46,85 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     @Override
     protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         if (container == null) return;
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        setDirectOwners(proxy, container);
-        setTransitiveOwners(proxy);
-        setRootOwners(proxy);
-        setRoles(proxy, container);
-        LifecycleHelper.executeLifecycleClosures(proxy, Owner.class);
+        setDirectOwners(element, container);
+        setTransitiveOwners(element);
+        setRootOwners(element);
+        setRoles(element, container);
+        LifecycleHelper.executeLifecycleClosures(element, Owner.class);
     }
 
-    private void setDirectOwners(KlumInstanceProxy proxy, Object value) {
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+    private void setDirectOwners(KlumBuilder<?> builder, Object value) {
+        DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isNotTransitive)
                 .filter(field -> getOwnerType(field).isInstance(value))
-                .filter(field -> isUnset(proxy, field))
-                .forEach(field -> setOwnerFieldValue(proxy, value, field));
+                .filter(field -> isUnset(builder, field))
+                .forEach(field -> setOwnerFieldValue(builder, value, field));
 
-        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+        DslHelper.getMethodsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isNotTransitive)
                 .filter(method -> getOwnerType(method).isInstance(value))
-                .forEach(method -> callOwnerMethod(proxy, value, method));
+                .forEach(method -> callOwnerMethod(builder, value, method));
     }
 
-    private void setRoles(KlumInstanceProxy proxy, Object container) {
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Role.class)
-                .filter(field -> isUnset(proxy, field))
+    private void setRoles(KlumBuilder<?> builder, Object container) {
+        DslHelper.getFieldsAnnotatedWith(builder.getClass(), Role.class)
+                .filter(field -> isUnset(builder, field))
                 .filter(field -> field.getAnnotation(Role.class).value().isInstance(container))
                 .forEach(field -> setRole(
-                        proxy,
+                        builder,
                         container,
-                        path -> proxy.setInstanceAttribute(field.getName(), path))
+                        path -> builder.setInstanceAttribute(field.getName(), path))
                 );
 
-        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Role.class)
+        DslHelper.getMethodsAnnotatedWith(builder.getClass(), Role.class)
                 .filter(method -> method.getAnnotation(Role.class).value().isInstance(container))
                 .forEach(method -> setRole(
-                        proxy,
+                        builder,
                         container,
-                        path -> proxy.getRwInstance().invokeMethod(method.getName(), path))
+                        path -> builder.invokeMethod(method.getName(), path))
                 );
     }
 
-    private void setRole(KlumInstanceProxy proxy, Object container, Consumer<@NotNull String> action) {
-        StructureUtil.getPathOfFieldContaining(container, proxy.getDSLInstance()).ifPresent(action);
+    private void setRole(KlumBuilder<?> builder, Object container, Consumer<@NotNull String> action) {
+        StructureUtil.getPathOfFieldContaining(container, builder).ifPresent(action);
     }
 
-    private void setTransitiveOwners(KlumInstanceProxy proxy) {
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+    private void setTransitiveOwners(KlumBuilder<?> builder) {
+        DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isTransitive)
-                .filter(field -> isUnset(proxy, field))
-                .forEach(field -> setSingleTransitiveOwner(proxy, field));
+                .filter(field -> isUnset(builder, field))
+                .forEach(field -> setSingleTransitiveOwner(builder, field));
 
-        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+        DslHelper.getMethodsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isTransitive)
-                .forEach(method -> callTransitiveOwnerMethod(proxy, method));
+                .forEach(method -> callTransitiveOwnerMethod(builder, method));
     }
 
-    private void setRootOwners(KlumInstanceProxy proxy) {
+    private void setRootOwners(KlumBuilder<?> builder) {
         Object root = PhaseDriver.getInstance().getRootObject();
 
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), Owner.class)
+        DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isRoot)
-                .filter(field -> isUnset(proxy, field))
-                .forEach(field -> setOwnerFieldValue(proxy, root, field));
+                .filter(field -> isUnset(builder, field))
+                .forEach(field -> setOwnerFieldValue(builder, root, field));
 
-        DslHelper.getMethodsAnnotatedWith(proxy.getRwInstance().getClass(), Owner.class)
+        DslHelper.getMethodsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isRoot)
-                .forEach(method -> callOwnerMethod(proxy, root, method));
+                .forEach(method -> callOwnerMethod(builder, root, method));
     }
 
-    private static boolean isUnset(KlumInstanceProxy proxy, Field field) {
-        return proxy.getInstanceAttribute(field.getName()) == null;
+    private static boolean isUnset(KlumBuilder<?> builder, Field field) {
+        return builder.getInstanceAttribute(field.getName()) == null;
     }
 
-    private static void callOwnerMethod(KlumInstanceProxy proxy, Object value, Method method) {
-        proxy.getRwInstance().invokeMethod(method.getName(), convertValue(method.getAnnotation(Owner.class), value));
+    private static void callOwnerMethod(KlumBuilder<?> builder, Object value, Method method) {
+        builder.invokeMethod(method.getName(), convertValue(method.getAnnotation(Owner.class), value));
     }
 
-    private static void setOwnerFieldValue(KlumInstanceProxy proxy, Object value, Field field) {
+    private static void setOwnerFieldValue(KlumBuilder<?> builder, Object value, Field field) {
         Object valueToSet = convertValue(field.getAnnotation(Owner.class), value);
         if (field.getType().isInstance(valueToSet))
-            proxy.setInstanceAttribute(field.getName(), valueToSet);
+            builder.setInstanceAttribute(field.getName(), valueToSet);
     }
 
     private static Object convertValue(Owner owner, Object originalValue) {
@@ -134,14 +133,14 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
         return originalValue;
     }
 
-    private void setSingleTransitiveOwner(KlumInstanceProxy proxy, Field field) {
-        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), getOwnerType(field))
-                .ifPresent(value -> setOwnerFieldValue(proxy, value, field));
+    private void setSingleTransitiveOwner(KlumBuilder<?> builder, Field field) {
+        StructureUtil.getAncestorOfType(builder, getOwnerType(field))
+                .ifPresent(value -> setOwnerFieldValue(builder, value, field));
     }
 
-    private void callTransitiveOwnerMethod(KlumInstanceProxy proxy, Method method) {
-        StructureUtil.getAncestorOfType(proxy.getDSLInstance(), getOwnerType(method))
-                .ifPresent(value -> callOwnerMethod(proxy, value, method));
+    private void callTransitiveOwnerMethod(KlumBuilder<?> builder, Method method) {
+        StructureUtil.getAncestorOfType(builder, getOwnerType(method))
+                .ifPresent(value -> callOwnerMethod(builder, value, method));
     }
 
     private boolean isTransitive(AnnotatedElement target) {

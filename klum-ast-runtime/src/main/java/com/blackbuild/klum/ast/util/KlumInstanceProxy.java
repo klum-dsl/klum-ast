@@ -42,7 +42,7 @@ import java.util.Set;
  * <p>New runtime code belongs on {@link KlumBuilder} or {@link KlumModelProxy}.
  * Looking up this adapter for a completed model is intentionally rejected.</p>
  */
-@Deprecated(forRemoval = true)
+@Deprecated
 @SuppressWarnings("unused")
 public final class KlumInstanceProxy {
 

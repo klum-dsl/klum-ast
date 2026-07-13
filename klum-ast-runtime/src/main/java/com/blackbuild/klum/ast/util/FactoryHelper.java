@@ -65,11 +65,11 @@ public class FactoryHelper extends GroovyObjectSupport {
         // static only
     }
 
-    static <T> KlumBuilder<T> createBuilder(Class<T> type, String key) {
+    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key) {
         return createBuilder(type, key, null);
     }
 
-    static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
+    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
         if (!DslHelper.isInstantiable(type))
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
@@ -84,6 +84,18 @@ public class FactoryHelper extends GroovyObjectSupport {
         } catch (ReflectiveOperationException e) {
             throw new KlumModelException("Could not instantiate generated Builder for " + type.getName(), e);
         }
+    }
+
+    /**
+     * Creates and configures a composition child without entering another phase lifecycle.
+     * The root Builder traversal will process and materialize it together with its owner.
+     */
+    public static <T> KlumBuilder<T> createNestedBuilder(Class<T> type, Map<String, ?> values, String key) {
+        KlumBuilder<T> builder = createBuilder(type, key);
+        builder.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
+        builder.apply(values, null);
+        return builder;
     }
 
     static KlumBuilder<?> wrapCompletedModel(Object model) {

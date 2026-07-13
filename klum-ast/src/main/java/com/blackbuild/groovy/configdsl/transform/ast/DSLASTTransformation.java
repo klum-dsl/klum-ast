@@ -192,7 +192,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
         ClassNode builderBase = parentRW != null
-                ? parentRW
+                ? parentRW.getPlainNodeReference()
                 : makeClassSafeWithGenerics(KLUM_BUILDER, new GenericsType(annotatedClass));
 
         rwClass = new InnerClassNode(
@@ -237,6 +237,37 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .filter(field -> !field.isStatic())
                 .filter(field -> !field.getName().startsWith("$"))
                 .forEach(this::moveSingleFieldStateToBuilder);
+        builderFields.values().forEach(this::retargetAnnotationClosuresToBuilder);
+    }
+
+    private void retargetAnnotationClosuresToBuilder(FieldNode builderField) {
+        CodeVisitorSupport visitor = new CodeVisitorSupport() {
+            @Override
+            public void visitVariableExpression(VariableExpression expression) {
+                FieldNode target = rwClass.getField(expression.getName());
+                Variable accessed = expression.getAccessedVariable();
+                if (target != null && (accessed instanceof FieldNode || accessed instanceof DynamicVariable)) {
+                    expression.setAccessedVariable(target);
+                    expression.setType(target.getType());
+                }
+                super.visitVariableExpression(expression);
+            }
+
+            @Override
+            public void visitPropertyExpression(PropertyExpression expression) {
+                super.visitPropertyExpression(expression);
+                String propertyName = expression.getPropertyAsString();
+                ClassNode receiverType = expression.getObjectExpression().getType();
+                FieldNode target = propertyName != null && receiverType != null
+                        ? receiverType.getField(propertyName)
+                        : null;
+                if (target != null)
+                    expression.setType(target.getType());
+            }
+        };
+        builderField.getAnnotations().stream()
+                .flatMap(annotation -> annotation.getMembers().values().stream())
+                .forEach(expression -> expression.visit(visitor));
     }
 
     private void moveSingleFieldStateToBuilder(FieldNode modelField) {
@@ -409,10 +440,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         builderFields.forEach((modelField, builderField) -> {
             if (getFieldType(modelField) == FieldType.BUILDER || !isRelationshipField(modelField))
                 return;
-            method.statement(assignS(
-                    attrX(castX(annotatedClass, callThisX("getCompletedModel")), constX(modelField.getName())),
-                    castX(modelField.getType(), callThisX("$materializeRelationship", args(constX(modelField.getName()))))
+            String assignmentMethod = "$klum$assignRelationship$" + modelField.getName();
+            ClassNode relationshipType = modelField.getType().getPlainNodeReference();
+
+            annotatedClass.addMethod(new MethodNode(
+                    assignmentMethod,
+                    ACC_SYNTHETIC,
+                    VOID_TYPE,
+                    params(param(relationshipType, "value")),
+                    NO_EXCEPTIONS,
+                    block(assignS(
+                            attrX(varX("this"), constX(modelField.getName())),
+                            varX("value")
+                    ))
             ));
+
+            method.statement(stmt(callX(
+                    castX(annotatedClass.getPlainNodeReference(), callThisX("getCompletedModel")),
+                    assignmentMethod,
+                    args(castX(relationshipType, callThisX("$materializeRelationship", args(constX(modelField.getName())))))
+            )));
         });
         method.addTo(rwClass);
     }

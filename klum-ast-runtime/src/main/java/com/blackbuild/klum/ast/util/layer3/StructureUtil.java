@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.util.layer3;
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
@@ -416,11 +416,14 @@ public class StructureUtil {
      */
     public static List<Object> getOwnerHierarchy(Object leaf) {
         List<Object> result = new ArrayList<>();
-        while (isDslObject(leaf)) {
+        while (leaf instanceof KlumBuilder || isDslObject(leaf)) {
             if (result.contains(leaf))
                 throw new KlumSchemaException("Object " + leaf + " has an owner cycle");
             result.add(leaf);
-            leaf = KlumInstanceProxy.getProxyFor(leaf).getSingleOwner();
+            if (leaf instanceof KlumBuilder)
+                leaf = ((KlumBuilder<?>) leaf).getSingleOwner();
+            else
+                leaf = KlumModelProxy.getProxyFor(leaf).getSingleOwner();
         }
         return result;
      }

@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.util.layer3;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoLink;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
@@ -47,7 +46,7 @@ public class AutoLinkPhase extends BuilderVisitingPhaseAction {
                 .filter(this::isUnset)
                 .forEach(entry -> LinkHelper.autoLink(element, entry.getKey()));
 
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoLink.class);
+        LifecycleHelper.executeLifecycleMethods(element, AutoLink.class);
     }
 
 }

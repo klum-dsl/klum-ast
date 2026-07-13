@@ -68,7 +68,7 @@ public class LifecycleHelper {
     }
 
     /** @deprecated construction lifecycle state now belongs to {@link KlumBuilder}. */
-    @Deprecated(forRemoval = true)
+    @Deprecated
     public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         executeLifecycleMethods(proxy.getBuilder(), annotation);
     }
@@ -86,7 +86,7 @@ public class LifecycleHelper {
     }
 
     /** @deprecated construction lifecycle state now belongs to {@link KlumBuilder}. */
-    @Deprecated(forRemoval = true)
+    @Deprecated
     public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
         executeLifecycleClosures(proxy.getBuilder(), annotation);
     }
