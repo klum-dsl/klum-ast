@@ -91,6 +91,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
     private static final String CONFIGURATION_CLOSURE_DOCUMENTATION = "the closure to configure the new element";
     private static final String ELEMENTS_TO_ADD_DOCUMENTATION = "the elements to add";
+    private static final String NEW_BUILDER_RETURN_DOCUMENTATION = "the newly created Builder";
+    private static final String NEW_BUILDER_CONFIGURATION_DOCUMENTATION = "The newly created Builder is configured by the optional values and closure.";
+    private static final String CLOSURE_PARAMETER = "closure";
+    private static final String ADDS_ONE_OR_MORE = "Adds one or more ";
+    private static final String COLLECTION_DOCUMENTATION_SUFFIX = " to the Builder's '{{fieldName}}' collection.";
+    private static final String MAP_DOCUMENTATION_SUFFIX = " to the Builder's '{{fieldName}}' map.";
 
     public static final ClassNode DSL_CONFIG_ANNOTATION = make(DSL.class);
     public static final ClassNode DSL_FIELD_ANNOTATION = make(Field.class);
@@ -903,12 +909,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, "the newly created Builder")
+                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
-                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + COLLECTION_DOCUMENTATION_SUFFIX)
+                                .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
-                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
+                                .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -923,12 +929,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, "the newly created Builder")
+                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
-                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + COLLECTION_DOCUMENTATION_SUFFIX)
+                                .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
-                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
+                                .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -951,7 +957,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
+                .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
@@ -960,7 +966,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
+                .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, storedElementType), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
@@ -970,7 +976,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .linkToField(fieldNode)
                 .returning(storedElementType)
-                .documentationTitle("Adds one " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
+                .documentationTitle("Adds one " + storedElementDescription + COLLECTION_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(storedElementType, "value")
                 .addTo(rwClass);
@@ -1103,12 +1109,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, "the newly created Builder")
+                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
-                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + MAP_DOCUMENTATION_SUFFIX)
+                                .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
-                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
+                                .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -1123,12 +1129,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType, "the newly created Builder")
+                        .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
-                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + MAP_DOCUMENTATION_SUFFIX)
+                                .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
-                                .param("closure", CONFIGURATION_CLOSURE_DOCUMENTATION))
+                                .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -1151,7 +1157,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
+                .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(storedElementType)), "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
@@ -1159,7 +1165,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
+                .documentationTitle(ADDS_ONE_OR_MORE + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .arrayParam(storedElementType, "values", ELEMENTS_TO_ADD_DOCUMENTATION)
                 .addTo(rwClass);
@@ -1169,7 +1175,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .mod(visibility)
                 .returning(storedElementType)
                 .linkToField(fieldNode)
-                .documentationTitle("Adds one " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
+                .documentationTitle("Adds one " + storedElementDescription + MAP_DOCUMENTATION_SUFFIX)
                 .constantParam(fieldName)
                 .constantParam(null)
                 .param(storedElementType, elementToAddVarName)
