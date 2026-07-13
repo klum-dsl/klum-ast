@@ -71,8 +71,8 @@ public final class KlumModelProxy implements Serializable {
      * Returns the companion for a completed DSL Object.
      */
     public static KlumModelProxy getProxyFor(Object target) {
-        if (target instanceof KlumModelProxy)
-            return (KlumModelProxy) target;
+        if (target instanceof KlumModelProxy modelProxy)
+            return modelProxy;
         if (!(target instanceof KlumModelObject))
             throw new KlumException(format("Object of type %s is not a completed DSL Object", target.getClass().getName()));
         KlumModelProxy proxy = DslHelper.getFieldValue(target, NAME_IN_MODEL);

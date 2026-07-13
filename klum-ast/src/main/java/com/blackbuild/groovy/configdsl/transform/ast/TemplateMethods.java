@@ -46,7 +46,6 @@ class TemplateMethods {
 
     public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
-    private final FieldNode keyField;
     private ClassNode templateClass;
     private final ClassNode dslAncestor;
     private final InnerClassNode rwClass;
@@ -54,7 +53,6 @@ class TemplateMethods {
     public TemplateMethods(DSLASTTransformation transformation) {
         annotatedClass = transformation.annotatedClass;
         rwClass = transformation.rwClass;
-        keyField = transformation.keyField;
         dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 

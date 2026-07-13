@@ -43,7 +43,6 @@ import java.util.Map;
 import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
 public class DefaultPhase extends BuilderVisitingPhaseAction {
 
@@ -125,7 +124,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         List<MetaMethod> compatibleSetters = builder.getMetaClass().getMetaMethods().stream()
                 .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
                 .filter(metaMethod -> metaMethod.getParameterTypes()[0].getTheClass().isAssignableFrom(methodArgument))
-                .collect(toList());
+                .toList();
 
         if (compatibleSetters.size() == 1)
             fieldType = compatibleSetters.get(0).getParameterTypes()[0].getTheClass();
@@ -143,7 +142,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
     private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, KlumBuilder<?> builder) {
         List<MetaMethod> matchingSetters = builder.getMetaClass().getMetaMethods().stream()
                 .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
-                .collect(toList());
+                .toList();
 
         if (matchingSetters.size() == 1)
             return matchingSetters.get(0).getParameterTypes()[0].getTheClass();

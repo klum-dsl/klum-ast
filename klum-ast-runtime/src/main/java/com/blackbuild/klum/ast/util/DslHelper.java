@@ -185,8 +185,8 @@ public class DslHelper {
 
     private static Optional<CachedField> getCachedFieldOfHierarchyLayer(Class<?> layer, String name) {
         MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
-        if (metaProperty instanceof MetaBeanProperty) {
-            CachedField cachedField = ((MetaBeanProperty) metaProperty).getField();
+        if (metaProperty instanceof MetaBeanProperty metaBeanProperty) {
+            CachedField cachedField = metaBeanProperty.getField();
             if (cachedField != null)
                 return Optional.of(cachedField);
         }

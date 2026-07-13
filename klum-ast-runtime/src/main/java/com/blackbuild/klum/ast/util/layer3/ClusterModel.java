@@ -234,7 +234,7 @@ public class ClusterModel {
         AnnotatedElement element = getAnnotatedElementForProperty(container, value);
         if (container instanceof KlumBuilder)
             element = DslHelper.getField(((KlumBuilder<?>) container).getModelType(), value.getName())
-                    .map(field -> (AnnotatedElement) field)
+                    .map(AnnotatedElement.class::cast)
                     .orElse(element);
 
         return Optional.of(element)

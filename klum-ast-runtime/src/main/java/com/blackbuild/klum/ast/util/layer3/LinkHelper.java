@@ -146,7 +146,7 @@ public class LinkHelper {
             throw new IllegalArgumentException(format("Class %s has no field of type %s (possibly with filter)", builder.getClass().getName(), type.getName()));
         if (matches.size() > 1)
             throw new IllegalArgumentException(format("Class %s has more than one field of type %s (%s) (possibly with filter)",
-                    builder.getClass().getName(), type.getName(), matches.stream().map(Field::getName).collect(Collectors.toList())));
+                    builder.getClass().getName(), type.getName(), matches.stream().map(Field::getName).toList()));
         return builder.getInstanceAttribute(matches.get(0).getName());
     }
 

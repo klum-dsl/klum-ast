@@ -676,39 +676,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .forEach(this::createSingleFieldSetterMethod);
     }
 
-    private void createKeyConstructor() {
-        boolean hasKeyedParent = !keyField.getOwner().equals(annotatedClass);
-
-        BlockStatement constructorBody = new BlockStatement();
-        if (hasKeyedParent) {
-            constructorBody.addStatement(ctorSuperS(args("key")));
-        } else {
-            constructorBody.addStatement(ctorSuperS());
-            constructorBody.addStatement(assignS(propX(varX("this"), keyField.getName()), varX("key")));
-        }
-
-        annotatedClass.addConstructor(
-                ACC_PUBLIC,
-                params(param(STRING_TYPE, "key")),
-                CommonAstHelper.NO_EXCEPTIONS,
-                constructorBody
-        );
-
-        if (!hasKeyedParent)
-            keyField.setModifiers(keyField.getModifiers() | ACC_FINAL);
-
-        ConstructorNode dummyConstructor = annotatedClass.addConstructor(
-                ACC_PROTECTED,
-                Parameter.EMPTY_ARRAY,
-                NO_EXCEPTIONS,
-                block(
-                        throwS(ctorX(make(UnsupportedOperationException.class), constX("empty constructor is only to satisfy IDEs")))
-                )
-        );
-
-        dummyConstructor.addAnnotation(new AnnotationNode(DEPRECATED_NODE));
-    }
-
     private void createCanonicalMethods() {
         if (!hasAnnotation(annotatedClass, EQUALS_HASHCODE_ANNOT)) {
             createHashCodeIfNotDefined();

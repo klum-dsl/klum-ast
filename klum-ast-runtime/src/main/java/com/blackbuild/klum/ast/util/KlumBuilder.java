@@ -161,8 +161,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
                 throw new KlumModelException("Cannot access internal Builder constructor for " + implementationType.getName());
             return (M) constructor.newInstance(this, MATERIALIZATION_TOKEN);
         } catch (InvocationTargetException exception) {
-            if (exception.getCause() instanceof RuntimeException)
-                throw (RuntimeException) exception.getCause();
+            if (exception.getCause() instanceof RuntimeException runtimeException)
+                throw runtimeException;
             throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception.getCause());
         } catch (ReflectiveOperationException exception) {
             throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception);
@@ -452,10 +452,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private static Collection<Object> newMutableCollectionLike(Collection<?> source) {
-        if (source instanceof SortedSet) {
-            TreeSet<Object> result = new TreeSet<>((Comparator<Object>) ((SortedSet<?>) source).comparator());
-            return result;
-        }
+        if (source instanceof SortedSet)
+            return new TreeSet<>((Comparator<Object>) ((SortedSet<?>) source).comparator());
         if (source instanceof Set)
             return new LinkedHashSet<>();
         return new ArrayList<>();
@@ -918,7 +916,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, closures.stream()
                 .map(KlumBuilder::dehydrateRecipeClosure)
-                .collect(Collectors.toList())));
+                .toList()));
         return copy;
     }
 

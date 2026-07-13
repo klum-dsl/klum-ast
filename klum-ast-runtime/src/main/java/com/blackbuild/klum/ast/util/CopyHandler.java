@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.blackbuild.klum.ast.util.DslHelper.getFactoryOf;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
 import static groovyjarjarasm.asm.Opcodes.*;
 
@@ -251,12 +250,15 @@ public class CopyHandler {
     }
 
     private void replaceValue(Field field, Object templateValue) {
-        Object valueCopy = templateValue == null
-                ? null
-                : DslHelper.isRelationship(field)
-                ? rehydrateDslRecipe(field.getType(), templateValue, null)
-                : copyValue(templateValue);
-        target.setInstanceAttribute(field.getName(), valueCopy);
+        target.setInstanceAttribute(field.getName(), copyValueForField(field, templateValue));
+    }
+
+    private Object copyValueForField(Field field, Object templateValue) {
+        if (templateValue == null)
+            return null;
+        if (DslHelper.isRelationship(field))
+            return rehydrateDslRecipe(field.getType(), templateValue, null);
+        return copyValue(templateValue);
     }
 
     @SuppressWarnings("unchecked")
