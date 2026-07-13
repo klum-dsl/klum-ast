@@ -24,20 +24,20 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.ModelVisitingPhaseAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public class CleanupPhase extends VisitingPhaseAction {
+public class CleanupPhase extends ModelVisitingPhaseAction {
     public CleanupPhase() {
         super(DefaultKlumPhase.COMPLETE);
     }
 
     @Override
     protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        KlumInstanceProxy.getProxyFor(element).cleanup();
+        // Completed models retain no Builder construction state.
     }
 }

@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import groovy.lang.Closure;
@@ -45,14 +45,14 @@ import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
-public class DefaultPhase extends VisitingPhaseAction {
+public class DefaultPhase extends BuilderVisitingPhaseAction {
 
     public DefaultPhase() {
         super(DefaultKlumPhase.DEFAULT);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
         setFieldsAnnotatedWithDefaultAnnotation(element);

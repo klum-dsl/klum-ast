@@ -1,0 +1,717 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast.util;
+
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.groovy.configdsl.transform.NoClosure;
+import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
+import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.KlumRwObject;
+import com.blackbuild.klum.ast.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.process.KlumPhase;
+import com.blackbuild.klum.ast.process.PhaseDriver;
+import groovy.lang.Closure;
+import groovy.lang.GroovyObjectSupport;
+import groovy.lang.MissingPropertyException;
+import groovy.lang.Script;
+import groovy.transform.Undefined;
+import org.codehaus.groovy.reflection.CachedField;
+import org.codehaus.groovy.runtime.InvokerHelper;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.Serializable;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Field;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static com.blackbuild.klum.ast.util.DslHelper.*;
+import static java.lang.String.format;
+
+/**
+ * Mutable construction-time counterpart of a DSL Object.
+ *
+ * <p>Generated Builders inherit this class and own every mutable value until
+ * the graph is materialized. A completed model never retains its Builder.</p>
+ */
+@SuppressWarnings({"unused", "unchecked"}) // methods are called from generated code
+public abstract class KlumBuilder<M> extends GroovyObjectSupport implements KlumRwObject, Serializable {
+
+    public static final String ADD_NEW_DSL_ELEMENT_TO_COLLECTION = "addNewDslElementToCollection";
+    public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION = "addElementsFromScriptsToCollection";
+    public static final String ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP = "addElementsFromScriptsToMap";
+
+    private final Class<M> modelType;
+    private M completedModel;
+    private boolean sealed;
+    private boolean template;
+
+    private String breadcrumbPath;
+    private String modelPath;
+    private int breadcrumbQuantifier = 1;
+    private Map<Class<?>, Object> currentTemplates = Collections.emptyMap();
+    private final Map<String, Object> metadata = new HashMap<>();
+    private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
+
+    protected KlumBuilder(Class<M> modelType) {
+        this.modelType = Objects.requireNonNull(modelType);
+    }
+
+    public final Class<M> getModelType() {
+        return modelType;
+    }
+
+    public final boolean isSealed() {
+        return sealed;
+    }
+
+    public final boolean isTemplate() {
+        return template;
+    }
+
+    public final void markAsTemplate() {
+        template = true;
+    }
+
+    public final M getCompletedModel() {
+        return completedModel;
+    }
+
+    public final void sealTo(M existingModel) {
+        if (!modelType.isInstance(existingModel))
+            throw new KlumModelException(format("Cannot seal Builder for %s to %s", modelType.getName(), existingModel.getClass().getName()));
+        completedModel = existingModel;
+        sealed = true;
+    }
+
+    /** Allocates the completed object for this Builder. Generated code implements this hook. */
+    protected abstract M $createModel();
+
+    /** Assigns relationship fields after every object in the graph was allocated. */
+    protected void $assignRelationships() {
+        // generated layers add their declared relationship assignments
+    }
+
+    final void allocateModel() {
+        if (completedModel != null)
+            return;
+        completedModel = Objects.requireNonNull($createModel(), "Generated Builder returned no model");
+        sealed = true;
+    }
+
+    /**
+     * Materializes a complete Builder graph in two passes so cycles and self links are preserved.
+     */
+    public static Object materializeGraph(KlumBuilder<?> root) {
+        List<KlumBuilder<?>> graph = collectGraph(root);
+        graph.forEach(KlumBuilder::allocateModel);
+        graph.forEach(KlumBuilder::$assignRelationships);
+        return root.getCompletedModel();
+    }
+
+    private static List<KlumBuilder<?>> collectGraph(KlumBuilder<?> root) {
+        Set<KlumBuilder<?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        List<KlumBuilder<?>> ordered = new ArrayList<>();
+        collectGraph(root, visited, ordered);
+        return ordered;
+    }
+
+    private static void collectGraph(KlumBuilder<?> builder, Set<KlumBuilder<?>> visited, List<KlumBuilder<?>> ordered) {
+        if (builder == null || builder.isSealed() || !visited.add(builder))
+            return;
+        ordered.add(builder);
+        builder.relationshipValues().forEach(value -> collectRelationshipValue(value, visited, ordered));
+    }
+
+    private static void collectRelationshipValue(Object value, Set<KlumBuilder<?>> visited, List<KlumBuilder<?>> ordered) {
+        if (value instanceof KlumBuilder) {
+            collectGraph((KlumBuilder<?>) value, visited, ordered);
+        } else if (value instanceof Collection) {
+            ((Collection<?>) value).forEach(member -> collectRelationshipValue(member, visited, ordered));
+        } else if (value instanceof Map) {
+            ((Map<?, ?>) value).values().forEach(member -> collectRelationshipValue(member, visited, ordered));
+        }
+    }
+
+    private List<Object> relationshipValues() {
+        List<Object> values = new ArrayList<>();
+        for (Class<?> layer : DslHelper.getDslHierarchyOf(modelType)) {
+            for (Field field : layer.getDeclaredFields()) {
+                if (DslHelper.isRelationship(field))
+                    values.add(getInstanceAttribute(field.getName()));
+            }
+        }
+        return values;
+    }
+
+    /** Called by generated model constructors for non-relationship fields. */
+    public final Object $snapshotField(String fieldName) {
+        Field schemaField = getModelField(fieldName);
+        return snapshot(getInstanceAttribute(fieldName), schemaField.getType());
+    }
+
+    /** Called by generated internal relationship assignment code. */
+    public final Object $materializeRelationship(String fieldName) {
+        Field schemaField = getModelField(fieldName);
+        Object value = getInstanceAttribute(fieldName);
+        if (value == null)
+            return null;
+        if (value instanceof KlumBuilder)
+            return ((KlumBuilder<?>) value).getCompletedModel();
+        if (value instanceof Map) {
+            Map<Object, Object> mapped = newMapSnapshotSource((Map<?, ?>) value, schemaField.getType());
+            ((Map<?, ?>) value).forEach((key, member) -> mapped.put(key, completedValue(member)));
+            return makeMapReadOnly(mapped, schemaField.getType());
+        }
+        if (value instanceof Collection) {
+            Collection<Object> mapped = newCollectionSnapshotSource((Collection<?>) value, schemaField.getType());
+            ((Collection<?>) value).forEach(member -> mapped.add(completedValue(member)));
+            return makeCollectionReadOnly(mapped, schemaField.getType());
+        }
+        throw new KlumModelException(format("Relationship field %s.%s contains unsupported value %s", modelType.getName(), fieldName, value.getClass().getName()));
+    }
+
+    private static Object completedValue(Object value) {
+        return value instanceof KlumBuilder ? ((KlumBuilder<?>) value).getCompletedModel() : value;
+    }
+
+    private static Object snapshot(Object value, Class<?> declaredType) {
+        if (value == null)
+            return null;
+        if (value instanceof EnumSet)
+            return ((EnumSet<?>) value).clone();
+        if (value instanceof Map) {
+            Map<Object, Object> copy = newMapSnapshotSource((Map<?, ?>) value, declaredType);
+            copy.putAll((Map<?, ?>) value);
+            return makeMapReadOnly(copy, declaredType);
+        }
+        if (value instanceof Collection) {
+            Collection<Object> copy = newCollectionSnapshotSource((Collection<?>) value, declaredType);
+            copy.addAll((Collection<?>) value);
+            return makeCollectionReadOnly(copy, declaredType);
+        }
+        return value;
+    }
+
+    private static Collection<Object> newCollectionSnapshotSource(Collection<?> source, Class<?> declaredType) {
+        if (NavigableSet.class.equals(declaredType) || SortedSet.class.equals(declaredType)) {
+            Comparator<Object> comparator = source instanceof SortedSet ? (Comparator<Object>) ((SortedSet<?>) source).comparator() : null;
+            return new TreeSet<>(comparator);
+        }
+        if (Set.class.equals(declaredType))
+            return new LinkedHashSet<>();
+        return new ArrayList<>();
+    }
+
+    private static Map<Object, Object> newMapSnapshotSource(Map<?, ?> source, Class<?> declaredType) {
+        if (NavigableMap.class.equals(declaredType) || SortedMap.class.equals(declaredType)) {
+            Comparator<Object> comparator = source instanceof SortedMap ? (Comparator<Object>) ((SortedMap<?, ?>) source).comparator() : null;
+            return new TreeMap<>(comparator);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private static Object makeCollectionReadOnly(Collection<?> copy, Class<?> declaredType) {
+        if (NavigableSet.class.equals(declaredType))
+            return Collections.unmodifiableNavigableSet((NavigableSet<?>) copy);
+        if (SortedSet.class.equals(declaredType))
+            return Collections.unmodifiableSortedSet((SortedSet<?>) copy);
+        if (Set.class.equals(declaredType))
+            return Collections.unmodifiableSet((Set<?>) copy);
+        return Collections.unmodifiableList((List<?>) copy);
+    }
+
+    private static Object makeMapReadOnly(Map<?, ?> copy, Class<?> declaredType) {
+        if (NavigableMap.class.equals(declaredType))
+            return Collections.unmodifiableNavigableMap((NavigableMap<?, ?>) copy);
+        if (SortedMap.class.equals(declaredType))
+            return Collections.unmodifiableSortedMap((SortedMap<?, ?>) copy);
+        return Collections.unmodifiableMap(copy);
+    }
+
+    public final ModelState exportModelState() {
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+    }
+
+    public static final class ModelState implements Serializable {
+        private final String breadcrumbPath;
+        private final String modelPath;
+        private final Map<String, Object> metadata;
+
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Object> metadata) {
+            this.breadcrumbPath = breadcrumbPath;
+            this.modelPath = modelPath;
+            this.metadata = new HashMap<>(metadata);
+        }
+
+        public String getBreadcrumbPath() {
+            return breadcrumbPath;
+        }
+
+        public String getModelPath() {
+            return modelPath;
+        }
+
+        public Map<String, Object> getMetadata() {
+            return metadata;
+        }
+    }
+
+    public Object getDSLInstance() {
+        return this;
+    }
+
+    public Object getRwInstance() {
+        return this;
+    }
+
+    public <T> T getInstanceAttribute(String attributeName) {
+        return (T) getCachedField(attributeName).getProperty(this);
+    }
+
+    public <T> T getInstanceAttributeOrGetter(String attributeName) {
+        Optional<CachedField> field = DslHelper.getCachedField(getClass(), attributeName);
+        if (field.isPresent())
+            return (T) field.get().getProperty(this);
+        return (T) InvokerHelper.getProperty(this, attributeName);
+    }
+
+    public Object getInstanceProperty(String name) {
+        return getInstanceAttributeOrGetter(name);
+    }
+
+    public void setInstanceAttribute(String name, Object value) {
+        Field schemaField = DslHelper.getField(modelType, name).orElse(null);
+        Object normalized = schemaField != null ? normalizeForField(schemaField, value) : value;
+        getCachedField(name).setProperty(this, normalized);
+    }
+
+    public Field getField(String name) {
+        return DslHelper.getField(getClass(), name)
+                .orElseThrow(() -> new MissingPropertyException(name, getClass()));
+    }
+
+    public Field getModelField(String name) {
+        return DslHelper.getField(modelType, name)
+                .orElseThrow(() -> new MissingPropertyException(name, modelType));
+    }
+
+    CachedField getCachedField(String name) {
+        return DslHelper.getCachedField(getClass(), name)
+                .orElseThrow(() -> new MissingPropertyException(name, getClass()));
+    }
+
+    private Object normalizeForField(Field schemaField, Object value) {
+        if (!DslHelper.isRelationship(schemaField) || value == null)
+            return value;
+        if (value instanceof Map) {
+            Map<Object, Object> result = newMutableMapLike((Map<?, ?>) value);
+            ((Map<?, ?>) value).forEach((key, member) -> result.put(key, normalizeRelationshipValue(schemaField, member)));
+            return result;
+        }
+        if (value instanceof Collection) {
+            Collection<Object> result = newMutableCollectionLike((Collection<?>) value);
+            ((Collection<?>) value).forEach(member -> result.add(normalizeRelationshipValue(schemaField, member)));
+            return result;
+        }
+        return normalizeRelationshipValue(schemaField, value);
+    }
+
+    private Object normalizeRelationshipValue(Field schemaField, Object value) {
+        if (value == null || value instanceof KlumBuilder)
+            return value;
+        if (!(value instanceof KlumModelObject))
+            throw new KlumModelException(format("Value for relationship %s.%s is neither a Builder nor a completed DSL Object", modelType.getName(), schemaField.getName()));
+        if (!DslHelper.isLink(schemaField) && !schemaField.isAnnotationPresent(Owner.class))
+            throw new KlumModelException(format("Completed DSL Object inputs are only supported for LINK relationships (%s.%s)", modelType.getName(), schemaField.getName()));
+        return FactoryHelper.wrapCompletedModel(value);
+    }
+
+    private static Collection<Object> newMutableCollectionLike(Collection<?> source) {
+        if (source instanceof SortedSet) {
+            TreeSet<Object> result = new TreeSet<>((Comparator<Object>) ((SortedSet<?>) source).comparator());
+            return result;
+        }
+        if (source instanceof Set)
+            return new LinkedHashSet<>();
+        return new ArrayList<>();
+    }
+
+    private static Map<Object, Object> newMutableMapLike(Map<?, ?> source) {
+        if (source instanceof SortedMap)
+            return new TreeMap<>((Comparator<Object>) ((SortedMap<?, ?>) source).comparator());
+        return new LinkedHashMap<>();
+    }
+
+    public Object apply(Map<String, ?> values, Closure<?> body) {
+        assertMutable();
+        applyOnly(values, body);
+        LifecycleHelper.executeLifecycleMethods(this, PostApply.class);
+        return this;
+    }
+
+    public void applyOnly(Map<String, ?> values, Closure<?> body) {
+        assertMutable();
+        applyNamedParameters(values);
+        applyClosure(body);
+    }
+
+    private void assertMutable() {
+        if (sealed)
+            throw new KlumModelException("A sealed Builder cannot be configured");
+    }
+
+    private void applyClosure(Closure<?> body) {
+        if (body == null)
+            return;
+        body.setDelegate(this);
+        body.setResolveStrategy(Closure.DELEGATE_ONLY);
+        body.call();
+    }
+
+    private void applyNamedParameters(Map<String, ?> values) {
+        if (values != null)
+            values.forEach((key, value) -> InvokerHelper.invokeMethod(this, key, value));
+    }
+
+    public void copyFrom(Object template) {
+        if (template != null)
+            CopyHandler.copyToFrom(this, template);
+    }
+
+    public Object getNullableKey() {
+        return DslHelper.getKeyField(modelType)
+                .map(Field::getName)
+                .map(this::getInstanceProperty)
+                .orElse(null);
+    }
+
+    Object getKey() {
+        return DslHelper.getKeyField(modelType)
+                .map(Field::getName)
+                .map(this::getInstanceProperty)
+                .orElseThrow(AssertionError::new);
+    }
+
+    public Object getSingleOwner() {
+        Set<Object> owners = getOwners();
+        if (owners.size() > 1)
+            throw new KlumModelException("Object has more than one distinct owner");
+        return owners.stream().findFirst().orElse(null);
+    }
+
+    public Set<Object> getOwners() {
+        return getFieldsAnnotatedWith(getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
+                .filter(field -> !field.getAnnotation(Owner.class).root())
+                .map(Field::getName)
+                .map(this::getInstanceProperty)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, boolean explicitType, String key, Closure<T> body) {
+        assertMutable();
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
+            KlumBuilder<?> existingValue = null;
+            Optional<? extends AnnotatedElement> fieldOrMethod = DslHelper.getField(modelType, fieldOrMethodName);
+            if (fieldOrMethod.isEmpty()) {
+                fieldOrMethod = DslHelper.getVirtualSetter(getClass(), fieldOrMethodName, type);
+                if (fieldOrMethod.isEmpty())
+                    throw new KlumModelException(format("Neither field nor single argument method named %s with type %s found in %s", fieldOrMethodName, type, modelType));
+            } else {
+                existingValue = getInstanceAttribute(fieldOrMethodName);
+            }
+
+            String effectiveKey = resolveKeyForFieldFromAnnotation(fieldOrMethodName, fieldOrMethod.get()).orElse(key);
+            if (existingValue != null) {
+                if (!Objects.equals(effectiveKey, existingValue.getNullableKey()))
+                    throw new KlumModelException(format("Key mismatch: %s != %s", effectiveKey, existingValue.getNullableKey()));
+                existingValue.increaseBreadcrumbQuantifier();
+                existingValue.apply(namedParams, body);
+                return (T) existingValue;
+            }
+
+            KlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, effectiveKey, namedParams, body);
+            callSetterOrMethod(fieldOrMethodName, created);
+            return (T) created;
+        });
+    }
+
+    public <T> T setSingleField(String fieldOrMethodName, T value) {
+        assertMutable();
+        return BreadcrumbCollector.withBreadcrumb(() -> {
+            callSetterOrMethod(fieldOrMethodName, value);
+            return value;
+        });
+    }
+
+    public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
+    }
+
+    private <T> T createObjectViaConverter(Class<?> converterType, String converterMethod, Object... args) {
+        if (converterMethod == null)
+            return (T) InvokerHelper.invokeConstructorOf(converterType, args);
+        return (T) InvokerHelper.invokeMethod(converterType, converterMethod, args);
+    }
+
+    private void callSetterOrMethod(String fieldOrMethodName, Object value) {
+        if (DslHelper.getField(modelType, fieldOrMethodName).isPresent())
+            setInstanceAttribute(fieldOrMethodName, value);
+        else
+            InvokerHelper.invokeMethod(this, fieldOrMethodName, value);
+    }
+
+    public <T> T addElementToCollection(String fieldName, T element) {
+        Field schemaField = getModelField(fieldName);
+        Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
+        Collection<Object> target = getInstanceAttribute(fieldName);
+        target.add(stored);
+        setModelPathOfInnerBuilder(stored, fieldName + "[" + target.size() + "]");
+        return element;
+    }
+
+    public <T> T addElementToCollectionViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
+        return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
+    }
+
+    public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
+            KlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
+            addElementToCollection(collectionName, created);
+            return (T) created;
+        });
+    }
+
+    private KlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
+        KlumBuilder<?> created = FactoryHelper.createBuilder(type, key);
+        created.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(created, PostCreate.class);
+        created.apply(namedParams, body);
+        return created;
+    }
+
+    public void addElementsToCollection(String fieldName, Object... elements) {
+        Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
+    }
+
+    public void addElementsToCollection(String fieldName, Iterable<?> elements) {
+        elements.forEach(element -> addElementToCollection(fieldName, element));
+    }
+
+    public <K, V> void addElementsToMap(String fieldName, Map<K, V> values) {
+        values.forEach((key, value) -> addElementToMap(fieldName, key, value));
+    }
+
+    public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
+        values.forEach(value -> addElementToMap(fieldName, null, value));
+    }
+
+    public void addElementsToMap(String fieldName, Object... values) {
+        Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
+    }
+
+    public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
+        return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
+            KlumBuilder<?> existing = ((Map<String, KlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);
+            if (existing != null) {
+                existing.apply(namedParams, body);
+                return (T) existing;
+            }
+            KlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
+            doAddElementToMap(mapName, key, created);
+            return (T) created;
+        });
+    }
+
+    public <K, V> V addElementToMap(String fieldName, K key, V value) {
+        doAddElementToMap(fieldName, key, value);
+        return value;
+    }
+
+    public <K, V> V addElementToMapViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, K key, Object... args) {
+        return addElementToMap(fieldOrMethodName, key, createObjectViaConverter(converterType, converterMethod, args));
+    }
+
+    private <K, V> void doAddElementToMap(String fieldName, K key, V value) {
+        Field schemaField = getModelField(fieldName);
+        key = determineKeyFromMappingClosure(fieldName, value, key);
+        Object keySource = value instanceof KlumBuilder ? value : normalizeRelationshipValueIfNecessary(schemaField, value);
+        if (key == null && DslHelper.isKeyed(DslHelper.getClassFromType(DslHelper.getElementType(schemaField))))
+            key = (K) ((KlumBuilder<?>) keySource).getKey();
+        if (key == null)
+            throw new IllegalArgumentException("Key is null");
+        Object stored = DslHelper.isRelationship(schemaField) ? keySource : forceCastClosure(value, DslHelper.getElementType(schemaField));
+        Map<K, Object> target = getInstanceAttribute(fieldName);
+        target.put(key, stored);
+        setModelPathOfInnerBuilder(stored, fieldName + "[" + key + "]");
+    }
+
+    private Object normalizeRelationshipValueIfNecessary(Field schemaField, Object value) {
+        return DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, value) : value;
+    }
+
+    private <V> V forceCastClosure(Object value, Type elementType) {
+        Class<V> effectiveType = (Class<V>) getClassFromType(elementType);
+        if (value instanceof Closure)
+            return castTo(value, effectiveType);
+        if (effectiveType.isInstance(value))
+            return (V) value;
+        throw new KlumModelException(format("Value is not of type %s", elementType));
+    }
+
+    private <K, V> K determineKeyFromMappingClosure(String fieldName, V element, K defaultValue) {
+        Object closureArgument = element instanceof KlumBuilder && ((KlumBuilder<?>) element).isSealed()
+                ? ((KlumBuilder<?>) element).getCompletedModel()
+                : element;
+        return DslHelper.getOptionalFieldAnnotation(modelType, fieldName, com.blackbuild.groovy.configdsl.transform.Field.class)
+                .map(com.blackbuild.groovy.configdsl.transform.Field::keyMapping)
+                .filter(DslHelper::isClosure)
+                .map(value -> (K) ClosureHelper.invokeClosure((Class<? extends Closure<Object>>) value, closureArgument))
+                .orElse(defaultValue);
+    }
+
+    @SafeVarargs
+    public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
+        Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script)));
+    }
+
+    @SafeVarargs
+    public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
+        Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
+        Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script)));
+    }
+
+    public Object invokeRwMethod(String methodName, Object... args) {
+        return InvokerHelper.invokeMethod(this, methodName, args);
+    }
+
+    public void copyFromTemplate() {
+        DslHelper.getDslHierarchyOf(modelType).forEach(this::copyFromTemplateLayer);
+    }
+
+    private void copyFromTemplateLayer(Class<?> layer) {
+        copyFrom(TemplateManager.getInstance().getTemplate(layer));
+    }
+
+    public Optional<String> resolveKeyForFieldFromAnnotation(String name, AnnotatedElement field) {
+        com.blackbuild.groovy.configdsl.transform.Field annotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (annotation == null)
+            return Optional.empty();
+        Class<?> keyMember = annotation.key();
+        if (keyMember == Undefined.class)
+            return Optional.empty();
+        if (keyMember == com.blackbuild.groovy.configdsl.transform.Field.FieldName.class)
+            return Optional.of(name);
+        String result = ClosureHelper.invokeClosureWithDelegateAsArgument((Class<? extends Closure<String>>) keyMember, this);
+        return Optional.of(result);
+    }
+
+    public String getBreadcrumbPath() {
+        if (breadcrumbQuantifier > 1)
+            return breadcrumbPath + "." + breadcrumbQuantifier;
+        return breadcrumbPath;
+    }
+
+    public void setBreadcrumbPath(String breadcrumbPath) {
+        if (this.breadcrumbPath != null)
+            throw new KlumModelException("Breadcrumb path already set to " + this.breadcrumbPath);
+        this.breadcrumbPath = Objects.requireNonNull(breadcrumbPath);
+    }
+
+    public void increaseBreadcrumbQuantifier() {
+        breadcrumbQuantifier++;
+    }
+
+    public void setCurrentTemplates(Map<Class<?>, Object> currentTemplates) {
+        this.currentTemplates = currentTemplates;
+    }
+
+    public Map<Class<?>, Object> getCurrentTemplates() {
+        return currentTemplates;
+    }
+
+    public void applyLater(Closure<?> closure) {
+        KlumPhase phase = PhaseDriver.getCurrentPhase();
+        if (phase == null)
+            phase = DefaultKlumPhase.APPLY_LATER;
+        applyLater(phase, closure);
+    }
+
+    public void applyLater(KlumPhase phase, Closure<?> closure) {
+        applyLater(phase.getNumber(), closure);
+    }
+
+    public void applyLater(Integer number, Closure<?> closure) {
+        applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
+        PhaseDriver.getInstance().registerApplyLaterPhase(number);
+    }
+
+    public void executeApplyLaterClosures(int phase) {
+        applyLaterClosures.getOrDefault(phase, Collections.emptyList()).forEach(closure -> applyOnly(null, closure));
+    }
+
+    public void cleanup() {
+        currentTemplates = Collections.emptyMap();
+    }
+
+    public boolean hasMetaData(String key) {
+        return metadata.containsKey(key);
+    }
+
+    public <T> T getMetaData(String key, Class<T> type) {
+        Object value = metadata.get(key);
+        if (value == null)
+            return null;
+        if (!type.isInstance(value))
+            throw new KlumException(format("Metadata value for key '%s' is not of type %s", key, type.getName()));
+        return type.cast(value);
+    }
+
+    public void setMetaData(String key, Object value) {
+        metadata.put(key, value);
+    }
+
+    public void setModelPath(String path) {
+        if (modelPath == null)
+            modelPath = path;
+    }
+
+    public String getModelPath() {
+        return modelPath;
+    }
+
+    private void setModelPathOfInnerBuilder(Object value, String pathSegment) {
+        if (modelPath != null && value instanceof KlumBuilder)
+            ((KlumBuilder<?>) value).setModelPath(modelPath + "." + pathSegment);
+    }
+}

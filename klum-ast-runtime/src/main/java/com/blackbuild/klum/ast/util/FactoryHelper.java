@@ -65,6 +65,41 @@ public class FactoryHelper extends GroovyObjectSupport {
         // static only
     }
 
+    static <T> KlumBuilder<T> createBuilder(Class<T> type, String key) {
+        return createBuilder(type, key, null);
+    }
+
+    static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
+        if (!DslHelper.isInstantiable(type))
+            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
+        try {
+            Class<? extends KlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
+            KlumBuilder<T> builder = (KlumBuilder<T>) builderType.getDeclaredConstructor(String.class).newInstance(key);
+            if (breadcrumbPathExtension != null)
+                builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadcrumbPathExtension);
+            else if (BreadcrumbCollector.hasInstance())
+                builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+            builder.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
+            return builder;
+        } catch (ReflectiveOperationException e) {
+            throw new KlumModelException("Could not instantiate generated Builder for " + type.getName(), e);
+        }
+    }
+
+    static KlumBuilder<?> wrapCompletedModel(Object model) {
+        if (!DslHelper.isDslObject(model))
+            throw new KlumModelException("Only completed DSL Objects can be wrapped");
+        Class<Object> modelType = (Class<Object>) model.getClass();
+        String key = DslHelper.getKeyField(modelType)
+                .map(Field::getName)
+                .map(name -> InvokerHelper.getProperty(model, name))
+                .map(Object::toString)
+                .orElse(null);
+        KlumBuilder<Object> builder = createBuilder(modelType, key);
+        builder.sealTo(model);
+        return builder;
+    }
+
     /**
      * Creates an instance of the given class by reading the model script class from the classpath.
      * <p>
@@ -167,30 +202,29 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
-        Consumer<KlumInstanceProxy> apply = proxy -> {
-            script.setDelegate(proxy.getRwInstance());
+        Consumer<KlumBuilder<T>> apply = builder -> {
+            script.setDelegate(builder);
             script.run();
-            LifecycleHelper.executeLifecycleMethods(proxy, PostApply.class);
+            LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
         };
 
         if (DslHelper.isKeyed(type))
-            return doCreate(key, () -> createInstance(type, key), apply);
+            return doCreate(key, () -> createBuilder(type, key), apply);
         else
-            return doCreate(null, () -> createInstance(type, null), apply);
+            return doCreate(null, () -> createBuilder(type, null), apply);
     }
 
-    private static <T> T doCreate(String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
+    private static <T> T doCreate(String key, Supplier<? extends KlumBuilder<T>> createBuilder, Consumer<KlumBuilder<T>> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
-                () -> PhaseDriver.withPhaseDriver(createInstance, object -> postCreate(apply, object))
+                () -> PhaseDriver.withBuilderLifecycle(createBuilder, builder -> postCreate(apply, builder))
         );
     }
 
-    private static <T> void postCreate(Consumer<KlumInstanceProxy> apply, T object) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(object);
-        proxy.copyFromTemplate();
-        LifecycleHelper.executeLifecycleMethods(proxy, PostCreate.class);
+    private static <T> void postCreate(Consumer<KlumBuilder<T>> apply, KlumBuilder<T> builder) {
+        builder.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
 
-        apply.accept(proxy);
+        apply.accept(builder);
     }
 
     static <T> T createInstance(Class<T> type, String key) {
@@ -234,7 +268,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return doCreate(key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
+        return doCreate(key, () -> createBuilder(type, key), builder -> builder.apply(values, body));
     }
 
     /**

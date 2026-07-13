@@ -24,7 +24,8 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoLink;
@@ -32,14 +33,14 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AutoLinkPhase extends VisitingPhaseAction {
+public class AutoLinkPhase extends BuilderVisitingPhaseAction {
 
     public AutoLinkPhase() {
         super(DefaultKlumPhase.AUTO_LINK);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         ClusterModel.getFieldsAnnotatedWith(element, LinkTo.class)
                 .entrySet()
                 .stream()

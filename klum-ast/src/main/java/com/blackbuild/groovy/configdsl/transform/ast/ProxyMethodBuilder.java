@@ -28,6 +28,7 @@ import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
 import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.klum.ast.util.FactoryHelper;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
@@ -56,6 +57,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     private static final ClassNode FACTORY_HELPER_TYPE = make(FactoryHelper.class);
     private static final ClassNode TEMPLATE_MANAGER_TYPE = make(TemplateManager.class);
     private static final ClassNode KLUM_INSTANCE_PROXY_TYPE = make(KlumInstanceProxy.class);
+    private static final ClassNode KLUM_BUILDER_TYPE = make(KlumBuilder.class);
 
     private final String proxyMethodName;
     private final Expression proxyTarget;
@@ -73,13 +75,13 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name, String proxyMethodName) {
-        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, proxyMethodName)
-                .targetType(KLUM_INSTANCE_PROXY_TYPE);
+        return new ProxyMethodBuilder(varX("this"), name, proxyMethodName)
+                .targetType(KLUM_BUILDER_TYPE);
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name) {
-        return new ProxyMethodBuilder(varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS), name, name)
-                .targetType(KLUM_INSTANCE_PROXY_TYPE);
+        return new ProxyMethodBuilder(varX("this"), name, name)
+                .targetType(KLUM_BUILDER_TYPE);
     }
 
     public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {

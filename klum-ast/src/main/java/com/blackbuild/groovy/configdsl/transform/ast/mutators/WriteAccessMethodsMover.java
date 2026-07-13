@@ -27,7 +27,12 @@ import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.CodeVisitorSupport;
+import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.DynamicVariable;
 import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Variable;
+import org.codehaus.groovy.ast.expr.VariableExpression;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -54,10 +59,26 @@ public class WriteAccessMethodsMover {
 
     static void moveMethodFromModelToRWClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
-        declaringClass.removeMethod(method);
         ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        retargetFieldVariables(method, rwClass);
+        declaringClass.removeMethod(method);
         // if method is public, it will already have been added by delegateTo, replace it again
         CommonAstHelper.replaceMethod(rwClass, method);
+    }
+
+    private static void retargetFieldVariables(MethodNode method, ClassNode rwClass) {
+        method.getCode().visit(new CodeVisitorSupport() {
+            @Override
+            public void visitVariableExpression(VariableExpression expression) {
+                Variable accessedVariable = expression.getAccessedVariable();
+                FieldNode builderField = rwClass.getField(expression.getName());
+                if (builderField != null && (accessedVariable instanceof FieldNode || accessedVariable instanceof DynamicVariable)) {
+                    expression.setAccessedVariable(builderField);
+                    expression.setType(builderField.getType());
+                }
+                super.visitVariableExpression(expression);
+            }
+        });
     }
 
     public void invoke() {

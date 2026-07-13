@@ -104,18 +104,12 @@ class TemplateMethods {
                 ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
                 newClass(annotatedClass));
 
-        if (keyField != null) {
-            templateClass.addConstructor(
-                    ACC_SYNTHETIC | ACC_PUBLIC,
-                    Parameter.EMPTY_ARRAY,
-                    CommonAstHelper.NO_EXCEPTIONS,
-                    block(
-                            ctorSuperS(args(constX(null)))
-                    )
-            );
-        }
-
-        templateClass.addField("$rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
+        templateClass.addConstructor(
+                ACC_SYNTHETIC | ACC_PROTECTED,
+                params(param(rwClass.getPlainNodeReference(), "builder")),
+                CommonAstHelper.NO_EXCEPTIONS,
+                block(ctorSuperS(args(varX("builder"))))
+        );
 
         List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
         if (abstractMethods != null)

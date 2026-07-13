@@ -23,20 +23,22 @@
  */
 package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.groovy.configdsl.transform.PostTree;
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+/**
+ * Single internal indirection for the provisional generated Builder layout.
+ * Issue #394 may replace this lookup without changing the construction model.
+ */
+final class GeneratedBuilderSupport {
 
-public class PostTreePhase extends BuilderVisitingPhaseAction {
-    public PostTreePhase() {
-        super(DefaultKlumPhase.POST_TREE);
+    private static final String CURRENT_SUFFIX = "$_RW";
+
+    private GeneratedBuilderSupport() {
     }
 
-    @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
+    static Class<? extends KlumBuilder<?>> builderTypeFor(Class<?> modelType) {
+        try {
+            return (Class<? extends KlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);
+        } catch (ClassNotFoundException e) {
+            throw new KlumModelException("No generated Builder found for " + modelType.getName(), e);
+        }
     }
-
 }

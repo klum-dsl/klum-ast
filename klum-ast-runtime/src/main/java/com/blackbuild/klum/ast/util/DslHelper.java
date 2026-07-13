@@ -64,6 +64,10 @@ public class DslHelper {
         return object instanceof KlumModelObject;
     }
 
+    public static boolean isBuilder(Object object) {
+        return object instanceof KlumBuilder;
+    }
+
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
         List<Class<?>> result = new ArrayList<>();
         while (isDslType(type)) {
@@ -305,11 +309,15 @@ public class DslHelper {
     }
 
     public static String getBreadcrumbPath(Object instance) {
-        return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
+        if (instance instanceof KlumBuilder)
+            return ((KlumBuilder<?>) instance).getBreadcrumbPath();
+        return KlumModelProxy.getProxyFor(instance).getBreadcrumbPath();
     }
 
     public static String getModelPath(Object instance) {
-        return KlumInstanceProxy.getProxyFor(instance).getModelPath();
+        if (instance instanceof KlumBuilder)
+            return ((KlumBuilder<?>) instance).getModelPath();
+        return KlumModelProxy.getProxyFor(instance).getModelPath();
     }
 
     public static String getModelAndBreadcrumbPath(Object instance) {
@@ -327,5 +335,18 @@ public class DslHelper {
 
     public static boolean isLink(@NotNull Field field) {
         return getKlumFieldType(field) == FieldType.LINK;
+    }
+
+    /** Returns whether a schema field represents a direct or collection-valued DSL relationship. */
+    public static boolean isRelationship(@NotNull Field field) {
+        if (isDslType(field.getType()))
+            return true;
+        if (!Collection.class.isAssignableFrom(field.getType()) && !Map.class.isAssignableFrom(field.getType()))
+            return false;
+        try {
+            return isDslType(getElementType(field));
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 }

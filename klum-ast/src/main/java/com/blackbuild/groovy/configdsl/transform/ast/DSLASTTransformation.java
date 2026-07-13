@@ -33,8 +33,10 @@ import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -92,6 +94,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
     public static final ClassNode INSTANCE_PROXY = make(KlumInstanceProxy.class);
+    public static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
+    public static final ClassNode MODEL_PROXY = make(KlumModelProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String RW_CLASS_SUFFIX = "$_RW";
@@ -109,6 +113,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     List<FieldNode> ownerFields;
     AnnotationNode dslAnnotation;
     InnerClassNode rwClass;
+    final Map<FieldNode, FieldNode> builderFields = new LinkedHashMap<>();
 
     @Override
     public void visit(ASTNode[] nodes, SourceUnit source) {
@@ -125,57 +130,39 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (isDSLObject(annotatedClass.getSuperClass()))
             dslParent = annotatedClass.getSuperClass();
 
-        if (keyField != null)
-            createKeyConstructor();
-        else
-            createExplicitEmptyConstructor();
-
         implementMarkerInterfaces();
 
         checkFieldNames();
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
-
+        moveSourceStateToBuilder();
+        createFieldDSLMethods();
         setPropertyAccessors();
-        createCanonicalMethods();
-        assertMembersNamesAreUnique();
-        makeClassSerializable();
         createApplyMethods();
         createTemplateMethods();
         createFactoryField();
-
-        createFieldDSLMethods();
         createClusterFactories();
         convertValidationClosures();
         moveMutatorsToRWClass();
-
         createOwnerClosureMethods();
 
-        delegateRwToModel();
+        finalizeModelFields();
+        createMaterializationMethods();
+        createCanonicalMethods();
+        assertMembersNamesAreUnique();
+        makeClassSerializable();
 
         runDelayedActions(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
+        new VariableScopeVisitor(sourceUnit, true).visitClass(rwClass);
     }
 
     private void implementMarkerInterfaces() {
         if (keyField != null) annotatedClass.addInterface(KLUM_KEYED_MODEL_OBJECT);
         else if (isAbstract(annotatedClass)) annotatedClass.addInterface(KLUM_MODEL_OBJECT);
         else annotatedClass.addInterface(KLUM_UNKEYED_MODEL_OBJECT);
-    }
-
-    private void createExplicitEmptyConstructor() {
-        annotatedClass.addConstructor(
-                ACC_PROTECTED,
-                Parameter.EMPTY_ARRAY,
-                NO_EXCEPTIONS,
-                block()
-        );
-    }
-
-    private void delegateRwToModel() {
-        new DelegateFromRwToModel(annotatedClass).invoke();
     }
 
     private void warnIfAFieldIsNamedOwner() {
@@ -204,41 +191,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
+        ClassNode builderBase = parentRW != null
+                ? parentRW
+                : makeClassSafeWithGenerics(KLUM_BUILDER, new GenericsType(annotatedClass));
 
         rwClass = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
-                parentRW != null ? parentRW : OBJECT_TYPE,
+                builderBase,
                 new ClassNode[] { make(Serializable.class), make(KlumRwObject.class) },
                 MixinNode.EMPTY_ARRAY);
-        AnnoDocUtil.addDocumentation(rwClass, "The mutator class for " + annotatedClass.getName() + ". Allows modifying the state.");
+        AnnoDocUtil.addDocumentation(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
         DslAstHelper.registerAsVerbProvider(rwClass);
 
-        rwClass.addField(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS, ACC_FINAL | ACC_PRIVATE | ACC_SYNTHETIC, newClass(annotatedClass), null);
-
-        BlockStatement block = new BlockStatement();
-        if (parentRW != null)
-            block.addStatement(ctorSuperS(varX("model")));
-        block.addStatement(assignS(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), varX("model")));
-
-        rwClass.addConstructor(
-                ACC_PROTECTED,
-                params(param(newClass(annotatedClass), "model")),
-                ClassNode.EMPTY_ARRAY,
-                block
-        );
-
-        MethodBuilder.createProtectedMethod("get$proxy")
-                .returning(make(KlumInstanceProxy.class))
-                .doReturn(propX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
-                .addTo(rwClass);
-
         annotatedClass.getModule().addClass(rwClass);
-        annotatedClass.addField(KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, ctorX(rwClass, varX("this")));
         if (dslParent == null)
-            annotatedClass.addField(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS, ACC_PUBLIC | ACC_SYNTHETIC | ACC_FINAL, INSTANCE_PROXY, ctorX(INSTANCE_PROXY, varX("this")));
+            annotatedClass.addField(KlumModelProxy.NAME_IN_MODEL, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, MODEL_PROXY, null);
 
         ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
         if (parentProxy == null)
@@ -247,21 +217,204 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             parentProxy.setRedirect(rwClass);
 
         rwClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
-
-        createCoercionMethod();
     }
 
-    private void createCoercionMethod() {
-        createPublicMethod("asType")
-                .returning(OBJECT_TYPE)
-                .param(makeClassSafe(Class.class), "type")
-                .statement(
-                        ifS(
-                                callX(varX("type"), "isAssignableFrom", classX(annotatedClass)),
-                                returnS(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS))
-                        )
-                )
+    private static final Set<String> SUPPORTED_COLLECTION_TYPES = Set.of(
+            List.class.getName(),
+            Set.class.getName(),
+            SortedSet.class.getName(),
+            NavigableSet.class.getName(),
+            Map.class.getName(),
+            SortedMap.class.getName(),
+            NavigableMap.class.getName(),
+            EnumSet.class.getName()
+    );
+
+    /** Moves every source initializer and mutable field value to the generated Builder. */
+    private void moveSourceStateToBuilder() {
+        new ArrayList<>(annotatedClass.getFields()).stream()
+                .filter(field -> field.getOwner().equals(annotatedClass))
+                .filter(field -> !field.isStatic())
+                .filter(field -> !field.getName().startsWith("$"))
+                .forEach(this::moveSingleFieldStateToBuilder);
+    }
+
+    private void moveSingleFieldStateToBuilder(FieldNode modelField) {
+        if (CommonAstHelper.isCollectionOrMap(modelField.getType())) {
+            validateSupportedCollectionDeclaration(modelField);
+            if (SUPPORTED_COLLECTION_TYPES.contains(modelField.getType().getName()))
+                initializeCollectionOrMap(modelField);
+        }
+
+        FieldNode builderField = new FieldNode(
+                modelField.getName(),
+                modelField.getModifiers() & ~ACC_FINAL,
+                getBuilderFieldType(modelField),
+                rwClass,
+                modelField.getInitialExpression()
+        );
+        builderField.addAnnotations(modelField.getAnnotations());
+        builderField.setSourcePosition(modelField);
+        rwClass.addField(builderField);
+        builderFields.put(modelField, builderField);
+
+        // Source code is evaluated exactly once, as part of Builder construction.
+        modelField.setInitialValueExpression(null);
+    }
+
+    private void validateSupportedCollectionDeclaration(FieldNode field) {
+        if (!SUPPORTED_COLLECTION_TYPES.contains(field.getType().getName())) {
+            addCompileError(
+                    "Unsupported collection declaration '" + field.getType().getName()
+                            + "'. Use List, Set, SortedSet/NavigableSet, Map, SortedMap/NavigableMap, or EnumSet.",
+                    field
+            );
+            return;
+        }
+        if (isMap(field.getType())) {
+            ClassNode keyType = getKeyTypeForMap(field.getType());
+            if (keyType != null && !STRING_TYPE.equals(keyType))
+                addCompileError("Map keys in DSL Objects must be Strings.", field);
+        }
+    }
+
+    private ClassNode getBuilderFieldType(FieldNode field) {
+        ClassNode type = field.getType();
+        if (isDSLObject(type))
+            return getRwClassOf(type).getPlainNodeReference();
+        if (isCollection(type)) {
+            ClassNode elementType = getElementTypeForCollection(type);
+            if (isDSLObject(elementType))
+                return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(elementType).getPlainNodeReference()));
+        }
+        if (isMap(type)) {
+            ClassNode valueType = getElementTypeForMap(type);
+            if (isDSLObject(valueType))
+                return makeClassSafeWithGenerics(
+                        type,
+                        new GenericsType(getKeyTypeForMap(type)),
+                        new GenericsType(getRwClassOf(valueType).getPlainNodeReference())
+                );
+        }
+        return type.getPlainNodeReference();
+    }
+
+    FieldNode getBuilderField(FieldNode modelField) {
+        return builderFields.get(modelField);
+    }
+
+    private boolean isRelationshipField(FieldNode field) {
+        if (isDSLObject(field.getType()))
+            return true;
+        if (isCollection(field.getType()))
+            return isDSLObject(getElementTypeForCollection(field.getType()));
+        if (isMap(field.getType()))
+            return isDSLObject(getElementTypeForMap(field.getType()));
+        return false;
+    }
+
+    private void finalizeModelFields() {
+        for (FieldNode field : new ArrayList<>(builderFields.keySet())) {
+            if (getFieldType(field) == FieldType.BUILDER) {
+                annotatedClass.getProperties().removeIf(property -> property.getField() == field);
+                annotatedClass.removeField(field.getName());
+                continue;
+            }
+            if (getFieldType(field) == FieldType.TRANSIENT || (field.getModifiers() & ACC_TRANSIENT) != 0)
+                continue;
+            if (!isRelationshipField(field))
+                field.setModifiers(field.getModifiers() | ACC_FINAL);
+        }
+    }
+
+    private void createMaterializationMethods() {
+        createBuilderConstructors();
+        createModelConstructor();
+        createModelAllocationHook();
+        createRelationshipAssignmentHook();
+    }
+
+    private void createBuilderConstructors() {
+        BlockStatement internalBody = new BlockStatement();
+        if (dslParent == null)
+            internalBody.addStatement(ctorSuperS(args(varX("modelType"))));
+        else
+            internalBody.addStatement(ctorSuperS(args(varX("modelType"), varX("key"))));
+
+        if (keyField != null && keyField.getOwner().equals(annotatedClass))
+            internalBody.addStatement(assignS(attrX(varX("this"), constX(keyField.getName())), varX("key")));
+
+        rwClass.addConstructor(
+                ACC_PROTECTED,
+                params(param(makeClassSafe(Class.class), "modelType"), param(STRING_TYPE, "key")),
+                NO_EXCEPTIONS,
+                internalBody
+        );
+
+        rwClass.addConstructor(
+                ACC_PUBLIC,
+                params(param(STRING_TYPE, "key")),
+                NO_EXCEPTIONS,
+                block(ctorThisS(args(classX(annotatedClass), varX("key"))))
+        );
+    }
+
+    private void createModelConstructor() {
+        BlockStatement body = new BlockStatement();
+        if (dslParent != null)
+            body.addStatement(ctorSuperS(args(varX("builder"))));
+        else
+            body.addStatement(ctorSuperS());
+
+        builderFields.forEach((modelField, builderField) -> {
+            if (getFieldType(modelField) == FieldType.BUILDER || isRelationshipField(modelField))
+                return;
+            body.addStatement(assignS(
+                    attrX(varX("this"), constX(modelField.getName())),
+                    castX(modelField.getType(), callX(varX("builder"), "$snapshotField", args(constX(modelField.getName()))))
+            ));
+        });
+
+        if (dslParent == null)
+            body.addStatement(assignS(
+                    attrX(varX("this"), constX(KlumModelProxy.NAME_IN_MODEL)),
+                    ctorX(MODEL_PROXY, args(varX("this"), callX(varX("builder"), "exportModelState")))
+            ));
+
+        annotatedClass.addConstructor(
+                ACC_PROTECTED,
+                params(param(rwClass.getPlainNodeReference(), "builder")),
+                NO_EXCEPTIONS,
+                body
+        );
+    }
+
+    private void createModelAllocationHook() {
+        ClassNode implementationType = annotatedClass;
+        if (isAbstract(annotatedClass))
+            implementationType = ClassHelper.makeWithoutCaching(annotatedClass.getName() + "$Template");
+
+        createProtectedMethod("$createModel")
+                .returning(annotatedClass)
+                .doReturn(ctorX(implementationType, args(varX("this"))))
                 .addTo(rwClass);
+    }
+
+    private void createRelationshipAssignmentHook() {
+        MethodBuilder method = createProtectedMethod("$assignRelationships")
+                .returning(VOID_TYPE);
+        if (dslParent != null)
+            method.statement(stmt(callSuperX("$assignRelationships")));
+
+        builderFields.forEach((modelField, builderField) -> {
+            if (getFieldType(modelField) == FieldType.BUILDER || !isRelationshipField(modelField))
+                return;
+            method.statement(assignS(
+                    attrX(castX(annotatedClass, callThisX("getCompletedModel")), constX(modelField.getName())),
+                    castX(modelField.getType(), callThisX("$materializeRelationship", args(constX(modelField.getName()))))
+            ));
+        });
+        method.addTo(rwClass);
     }
 
     private ClassNode getRwClassOfDslParent() {
@@ -562,8 +715,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createCollectionMethods(FieldNode fieldNode) {
-        initializeCollectionOrMap(fieldNode);
-
         ClassNode elementType = getElementTypeForCollection(fieldNode.getType());
 
         if (elementType == null) {
@@ -712,8 +863,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createMapMethods(FieldNode fieldNode) {
-        initializeCollectionOrMap(fieldNode);
-
         ClassNode valueType = getElementTypeForMap(fieldNode.getType());
 
         if (valueType == null) {
@@ -988,8 +1137,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     keyGetterName,
                     targetKeyField.getOriginType(),
                     keyProviderClosure,
-                    propX(varX("this"), KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS),
-                    propX(varX("this"), KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS)
+                    varX("this"),
+                    varX("this")
             ).addTo(rwClass);
 
             return callX(varX("this"), keyGetterName);
@@ -1004,13 +1153,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        createProxyMethod("apply")
-                .mod(ACC_PUBLIC)
-                .returning(newClass(annotatedClass), null)
-                .namedParams("values", null)
-                .delegatingClosureParam(rwClass, null)
-                .addTo(annotatedClass);
-
         createProxyMethod(APPLY_LATER)
                 .mod(ACC_PUBLIC)
                 .delegatingClosureParam(rwClass, null, null)

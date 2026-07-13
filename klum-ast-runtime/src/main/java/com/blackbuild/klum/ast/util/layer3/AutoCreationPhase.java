@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
@@ -45,14 +45,14 @@ import java.util.function.Predicate;
 import static com.blackbuild.klum.ast.util.DslHelper.*;
 import static java.lang.String.format;
 
-public class AutoCreationPhase extends VisitingPhaseAction {
+public class AutoCreationPhase extends BuilderVisitingPhaseAction {
 
     public AutoCreationPhase() {
         super(DefaultKlumPhase.AUTO_CREATE);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
                     .filter(entry -> entry.getValue() == null)

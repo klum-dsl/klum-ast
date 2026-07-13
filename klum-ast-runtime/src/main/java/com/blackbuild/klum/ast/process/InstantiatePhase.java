@@ -21,22 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util;
+package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.groovy.configdsl.transform.PostTree;
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 
-public class PostTreePhase extends BuilderVisitingPhaseAction {
-    public PostTreePhase() {
-        super(DefaultKlumPhase.POST_TREE);
+/** Materializes the completed DSL Object graph and switches the phase root. */
+public final class InstantiatePhase extends AbstractPhaseAction {
+
+    public InstantiatePhase() {
+        super(DefaultKlumPhase.INSTANTIATE);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
+    protected void doExecute() {
+        Object root = PhaseDriver.getInstance().getRootObject();
+        if (!(root instanceof KlumBuilder))
+            throw new IllegalStateException("INSTANTIATE requires a Builder root");
+        PhaseDriver.getInstance().replaceRootObject(KlumBuilder.materializeGraph((KlumBuilder<?>) root));
     }
-
 }

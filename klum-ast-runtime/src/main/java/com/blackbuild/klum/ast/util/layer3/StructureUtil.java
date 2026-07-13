@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import groovy.lang.PropertyValue;
@@ -89,6 +90,14 @@ public class StructureUtil {
      * @param visitor The visitor to invoke for each element
      */
     public static void visit(Object root, ModelVisitor visitor) {
+        visit(root, visitor, "<root>");
+    }
+
+    /**
+     * Explicit construction-state traversal used by pre-materialization phases.
+     * Sealed wrappers are filtered by {@code BuilderVisitingPhaseAction}.
+     */
+    public static void visitBuilders(KlumBuilder<?> root, ModelVisitor visitor) {
         visit(root, visitor, "<root>");
     }
 

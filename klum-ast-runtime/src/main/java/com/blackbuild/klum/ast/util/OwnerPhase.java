@@ -28,7 +28,7 @@ import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,13 +38,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 
-public class OwnerPhase extends VisitingPhaseAction {
+public class OwnerPhase extends BuilderVisitingPhaseAction {
     public OwnerPhase() {
         super(DefaultKlumPhase.OWNER);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         if (container == null) return;
         KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
         setDirectOwners(proxy, container);
