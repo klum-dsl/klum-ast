@@ -77,7 +77,7 @@ class PropertyAccessors {
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(builderField.getType(), "value")
-                .statement(assignS(attrX(varX("this"), constX(fieldName)), varX("value")))
+                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX("value"))))
                 .addTo(transformation.rwClass);
 
         // Existing completed values enter through KlumBuilder, which seals LINK targets.

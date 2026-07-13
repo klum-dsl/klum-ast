@@ -345,6 +345,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void setInstanceAttribute(String name, Object value) {
+        assertMutable();
         Field schemaField = DslHelper.getField(modelType, name).orElse(null);
         Object normalized = schemaField != null ? normalizeForField(schemaField, value) : value;
         getCachedField(name).setProperty(this, normalized);
