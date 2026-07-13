@@ -26,6 +26,8 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import com.blackbuild.klum.ast.util.KlumException
+import com.blackbuild.klum.ast.util.KlumModelProxy
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -736,6 +738,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         instance.apply {}
 
         then:
+        thrown(MissingMethodException)
         instance.value == "non-default"
 
     }
@@ -770,7 +773,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         instance.value == "DefaultValue"
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "locally applied templates using map"() {
         given:
         createClass('''
@@ -825,7 +828,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         instance.value == null
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "locally applied templates with map"() {
         given:
         createClass('''
@@ -931,7 +934,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         bar.name == 'DefaultName'
     }
 
-    @Ignore
+    @Ignore("WithAll(Map) accepts anonymous Map recipes only; completed DSL Object recipes belong in WithAll(Iterable)")
     def "parent child collections with map"() {
         given:
         createClass('''
@@ -1290,7 +1293,7 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
     }
 
     @Issue("368")
-    def "instance proxies store the currently active templates"() {
+    def "Builder compatibility proxies expose active templates only during construction"() {
         given:
         createClass('''
             package pk
@@ -1322,11 +1325,19 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         def instance = clazz.Create.With {
             name "Instance"
         }
-        def proxy = KlumInstanceProxy.getProxyFor(instance)
 
         then:
         instance.name == "Instance"
-        proxy.currentTemplates == [:]
+        instance.activeTemplatesDuringAutoCreate == [:]
+        KlumModelProxy.getProxyFor(instance).model.is(instance)
+
+        when: "the legacy proxy is looked up for a completed model"
+        KlumInstanceProxy.getProxyFor(instance)
+
+        then:
+        def migrationFailure = thrown(KlumException)
+        migrationFailure.message.contains("Builder-only")
+        migrationFailure.message.contains("KlumModelProxy")
 
         when:
         def templatesDuringCreation = null
@@ -1336,15 +1347,12 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
                 templatesDuringCreation = KlumInstanceProxy.getProxyFor(delegate).currentTemplates
             }
         }
-        proxy = KlumInstanceProxy.getProxyFor(instance)
-
         then:
         instance.name == "Overridden"
         templatesDuringCreation == [(clazz): template]
         instance.activeTemplatesDuringAutoCreate == [(clazz): template]
+        KlumModelProxy.getProxyFor(instance).model.is(instance)
 
-        and: "templates are cleared after the instance is created"
-        proxy.currentTemplates[clazz] == null
     }
 
     @Issue("376")

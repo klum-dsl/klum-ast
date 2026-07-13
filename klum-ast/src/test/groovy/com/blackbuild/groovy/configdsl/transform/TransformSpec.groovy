@@ -26,6 +26,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.util.KlumBuilder
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
 import org.codehaus.groovy.control.CompilePhase
@@ -44,7 +45,7 @@ import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
 @SuppressWarnings("GroovyAssignabilityCheck")
 class TransformSpec extends AbstractDSLSpec {
 
-    def "apply method is created"() {
+    def "apply methods exist only on Builders"() {
         when:
         createClass('''
             package pk
@@ -55,9 +56,12 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        clazz.metaClass.getMetaMethod("apply", Map, Closure) != null
-        clazz.metaClass.getMetaMethod("apply", Map) != null
-        clazz.metaClass.getMetaMethod("apply", Closure) != null
+        clazz.metaClass.getMetaMethod("apply", Map, Closure) == null
+        clazz.metaClass.getMetaMethod("apply", Map) == null
+        clazz.metaClass.getMetaMethod("apply", Closure) == null
+        rwClazz.metaClass.getMetaMethod("apply", Map, Closure) != null
+        rwClazz.metaClass.getMetaMethod("apply", Map) != null
+        rwClazz.metaClass.getMetaMethod("apply", Closure) != null
     }
 
     def "apply method allows named parameters"() {
@@ -73,8 +77,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.Create.With() {}
-        instance.apply(field: 'bla') {
+        instance = clazz.Create.With(field: 'bla') {
             another 12
         }
 
@@ -95,8 +98,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.Create.With() {}
-        instance.apply(value: 'bla') {}
+        instance = clazz.Create.With(value: 'bla') {}
 
         then:
         instance.values == ['bla']
@@ -114,8 +116,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.Create.With() {}
-        instance.apply(values: ['bla', 'blub']) {}
+        instance = clazz.Create.With(values: ['bla', 'blub']) {}
 
         then:
         instance.values == ['bla', 'blub']
@@ -243,7 +244,7 @@ class TransformSpec extends AbstractDSLSpec {
         instance.value == 'blub'
     }
 
-    def "constructor is created for keyed object"() {
+    def "keyed objects are created through their factory, not a client constructor"() {
         given:
         createClass('''
             package pk
@@ -255,14 +256,20 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance = clazz.newInstance("Klaus")
+        instance = clazz.Create.With("Klaus")
 
         then:
         noExceptionThrown()
         instance.name == "Klaus"
+
+        when:
+        clazz.newInstance("Dieter")
+
+        then:
+        thrown(GroovyRuntimeException)
     }
 
-    @Ignore("Legacy feature")
+    @Ignore("Factory-created models no longer expose the legacy synthetic key accessor")
     def 'Key is reachable with get$Key()'() {
         given:
         createClass('''
@@ -316,7 +323,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "simple member method"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 String value
@@ -324,7 +331,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply { value "Dieter" }
+        instance = clazz.Create.With { value "Dieter" }
 
         then:
         instance.value == "Dieter"
@@ -333,7 +340,7 @@ class TransformSpec extends AbstractDSLSpec {
     @Issue('#21')
     def "final fields are ignored"() {
         when:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 final String value = "bla"
@@ -344,7 +351,7 @@ class TransformSpec extends AbstractDSLSpec {
         notThrown MultipleCompilationErrorsException
     }
 
-    def "transient fields are ignored"() {
+    def "transient model fields remain mutable"() {
         given:
         createInstance('''
             @DSL
@@ -354,10 +361,10 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply { value "value" }
+        instance.value = "value"
 
         then:
-        thrown MissingMethodException
+        instance.value == "value"
     }
 
     @Issue('80')
@@ -418,13 +425,14 @@ class TransformSpec extends AbstractDSLSpec {
         instance.helpful == true
     }
 
-    def "simple member method for reusable config objects"() {
+    def "completed config objects can be reused as LINK targets"() {
         given:
         createClass('''
             package pk
 
             @DSL
             class Foo {
+                @Field(FieldType.LINK)
                 Bar inner
             }
 
@@ -465,7 +473,7 @@ class TransformSpec extends AbstractDSLSpec {
     @SuppressWarnings('GroovyVariableNotAssigned')
     def "create inner object via closure"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -481,26 +489,28 @@ class TransformSpec extends AbstractDSLSpec {
 
         when:
         def innerInstance
-        instance.apply {
+        instance = clazz.Create.With {
             innerInstance = inner {
                 name "Dieter"
             }
         }
 
         then:
-        innerInstance.class.name == 'pk.Bar'
+        innerInstance instanceof KlumBuilder
         instance.inner.name == "Dieter"
+        innerInstance.completedModel.is(instance.inner)
 
         and: "object should be returned by closure"
         innerInstance != null
 
         when: 'Allow named parameters'
-        instance.apply {
+        instance = clazz.Create.With {
             innerInstance = inner(name: 'Hans')
         }
 
         then:
         innerInstance.name == 'Hans'
+        innerInstance.completedModel.is(instance.inner)
     }
 
     def "create inner object via key and closure"() {
@@ -592,23 +602,8 @@ class TransformSpec extends AbstractDSLSpec {
 
         then:
         def e = thrown(KlumModelException)
-        e.message == "Key mismatch: Hans != Dieter, either use 'inner.apply()' to keep existing object or explicitly create and assign a new object. at \$/p.Foo.With/inner(Hans)"
-
-        when: "second apply with different key and explicit set"
-        def Bar = getClass("pk.Bar") // need a local variable, since propertyMissing of Test is not called with Delegate Only
-        instance = Foo.Create.With {
-            innerInstance = inner("Dieter") {
-                value 15
-            }
-            inner = Bar.Create.With("Hans") {
-                value 1
-            }
-        }
-
-        then:
-        !innerInstance.is(instance.inner)
-        instance.inner.name == "Hans"
-        instance.inner.value == 1
+        e.message.startsWith("Key mismatch: Hans != Dieter at ")
+        e.message.endsWith("/inner(Hans)")
     }
 
     @Issue("325")
@@ -662,7 +657,7 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.inner.value == 1
         innerInstance.is(secondInnerInstance)
-        instance.inner.is(innerInstance)
+        innerInstance.completedModel.is(instance.inner)
         instance.inner.getClass() == Bier
 
         when: "both applys use the same subclass"
@@ -678,13 +673,13 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         instance.inner.value == 1
         innerInstance.is(secondInnerInstance)
-        instance.inner.is(innerInstance)
+        innerInstance.completedModel.is(instance.inner)
         instance.inner.getClass() == Bier
     }
 
     def "create list of inner objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -699,26 +694,18 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar { name "Dieter" }
                 bar { name "Klaus"}
-            }
-        }
-
-        then:
-        instance.bars[0].name == "Dieter"
-        instance.bars[1].name == "Klaus"
-
-        when: 'Allow named parameters'
-        instance.apply {
-            bars {
                 bar(name: "Kurt")
                 bar(name: "Felix")
             }
         }
 
         then:
+        instance.bars[0].name == "Dieter"
+        instance.bars[1].name == "Klaus"
         instance.bars[2].name == "Kurt"
         instance.bars[3].name == "Felix"
     }
@@ -726,7 +713,7 @@ class TransformSpec extends AbstractDSLSpec {
     @Issue('#72')
     def "Outer closures are hidden"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -742,7 +729,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        clazz.Create.With {
             bars {
                 bar {
                     outerName "outer"
@@ -755,7 +742,7 @@ class TransformSpec extends AbstractDSLSpec {
         thrown(MissingMethodException)
 
         when:
-        instance.apply {
+        clazz.Create.With {
             bars {
                 outerName "outer"
                 bar {
@@ -771,7 +758,7 @@ class TransformSpec extends AbstractDSLSpec {
     @Issue('https://github.com/klum-dsl/klum-ast/issues/58')
     def "create set of inner objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -786,19 +773,10 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar { name "Dieter" }
                 bar { name "Klaus"}
-            }
-        }
-
-        then:
-        instance.bars*.name as Set == ["Dieter", "Klaus"] as Set
-
-        when: 'Allow named parameters'
-        instance.apply {
-            bars {
                 bar(name: "Kurt")
                 bar(name: "Felix")
             }
@@ -811,7 +789,7 @@ class TransformSpec extends AbstractDSLSpec {
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure should return the object"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -828,7 +806,7 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         def bar1
         def bar2
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar1 = bar { name "Dieter" }
                 bar2 = bar { name "Klaus"}
@@ -838,11 +816,13 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         bar1.name == "Dieter"
         bar2.name == "Klaus"
+        bar1.completedModel.is(instance.bars[0])
+        bar2.completedModel.is(instance.bars[1])
     }
 
     def "create list of named inner objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -858,7 +838,7 @@ class TransformSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar("Dieter") { url "1" }
                 bar("Klaus") { url "2" }
@@ -875,7 +855,7 @@ class TransformSpec extends AbstractDSLSpec {
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "inner list objects closure with named objects should return the created object"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -893,7 +873,7 @@ class TransformSpec extends AbstractDSLSpec {
         when:
         def bar1
         def bar2
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar1 = bar("Dieter") { url "1" }
                 bar2 = bar("Klaus") { url "2" }
@@ -903,6 +883,8 @@ class TransformSpec extends AbstractDSLSpec {
         then:
         bar1.name == "Dieter"
         bar2.name == "Klaus"
+        bar1.completedModel.is(instance.bars[0])
+        bar2.completedModel.is(instance.bars[1])
     }
 
     def "Bug: DSLField without value leads to NPE"() {
@@ -1033,7 +1015,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "simple list element"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1042,32 +1024,11 @@ class TransformSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:"add using list add"
-        instance.apply {
+        when: "all additions happen during one Builder lifecycle"
+        instance = clazz.Create.With {
             values "Dieter", "Klaus"
-        }
-
-        then:
-        instance.values == ["Dieter", "Klaus"]
-
-        when:"add using list add again"
-        instance.apply {
             values "Heinz"
-        }
-
-        then:"second call should add to previous values"
-        instance.values == ["Dieter", "Klaus", "Heinz"]
-
-        when:"add using single method"
-        instance.apply {
             value "singleadd"
-        }
-
-        then:
-        instance.values == ["Dieter", "Klaus", "Heinz", "singleadd"]
-
-        when:
-        instance.apply {
             values(["asList"])
         }
 
@@ -1077,7 +1038,7 @@ class TransformSpec extends AbstractDSLSpec {
 
     def "simple sorted set element"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1086,32 +1047,11 @@ class TransformSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:"add using list add"
-        instance.apply {
+        when: "all additions happen during one Builder lifecycle"
+        instance = clazz.Create.With {
             values "Dieter", "Klaus"
-        }
-
-        then:
-        instance.values == ["Dieter", "Klaus"] as Set
-
-        when:"add using list add again"
-        instance.apply {
             values "Heinz"
-        }
-
-        then:"second call should add to previous values"
-        instance.values == ["Dieter", "Heinz", "Klaus" ] as Set
-
-        when:"add using single method"
-        instance.apply {
             value "singleadd"
-        }
-
-        then:
-        instance.values == ["Dieter", "Heinz", "Klaus", "singleadd"] as Set
-
-        when:
-        instance.apply {
             values(["asList"])
         }
 
@@ -1121,8 +1061,8 @@ class TransformSpec extends AbstractDSLSpec {
 
     @Issue("249")
     def "enum set element"() {
-        when:
-        createInstance('''
+        given:
+        createClass('''
             package pk
 
 import org.codehaus.groovy.control.CompilePhase
@@ -1133,23 +1073,19 @@ import org.codehaus.groovy.control.CompilePhase
             }
         ''')
 
-        then:
-        noExceptionThrown()
-        instance.values instanceof EnumSet
-        instance.values.isEmpty()
-
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             values CompilePhase.CANONICALIZATION, CompilePhase.CLASS_GENERATION
         }
 
         then:
+        instance.values instanceof EnumSet
         instance.values == [CompilePhase.CANONICALIZATION, CompilePhase.CLASS_GENERATION] as Set
     }
 
     def "simple list element with different member name"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1160,7 +1096,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             values "Dieter", "Klaus"
             more "Heinz"
         }
@@ -1171,7 +1107,7 @@ import org.codehaus.groovy.control.CompilePhase
 
     def "with simple list element with singular name, element and group list methods have the same name"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1181,7 +1117,7 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             something "Dieter", "Klaus" // vararg adder
             something "Heinz" // single added
             something(["Franz"]) // List adder
@@ -1208,7 +1144,7 @@ import org.codehaus.groovy.control.CompilePhase
 
     def "simple map element"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1217,24 +1153,10 @@ import org.codehaus.groovy.control.CompilePhase
             }
         ''')
 
-        when:
-        instance.apply {
+        when: "all additions happen during one Builder lifecycle"
+        instance = clazz.Create.With {
             values name:"Dieter", time:"Klaus", "val bri":"bri"
-        }
-
-        then:
-        instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
-
-        when:
-        instance.apply {
             values name:"Maier", age:"15"
-        }
-
-        then:
-        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
-
-        when:
-        instance.apply {
             value("height", "14")
         }
 
@@ -1244,7 +1166,7 @@ import org.codehaus.groovy.control.CompilePhase
 
     def "simple sorted map element"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1253,24 +1175,10 @@ import org.codehaus.groovy.control.CompilePhase
             }
         ''')
 
-        when:
-        instance.apply {
+        when: "all additions happen during one Builder lifecycle"
+        instance = clazz.Create.With {
             values name:"Dieter", time:"Klaus", "val bri":"bri"
-        }
-
-        then:
-        instance.values == [name:"Dieter", time:"Klaus", "val bri":"bri"]
-
-        when:
-        instance.apply {
             values name:"Maier", age:"15"
-        }
-
-        then:
-        instance.values == [name:"Maier", time:"Klaus", "val bri":"bri", age: "15"]
-
-        when:
-        instance.apply {
             value("height", "14")
         }
 
@@ -1300,7 +1208,7 @@ import org.codehaus.groovy.control.CompilePhase
 
     def "create map of inner objects"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1316,26 +1224,18 @@ import org.codehaus.groovy.control.CompilePhase
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar("Dieter") { url "1" }
                 bar("Klaus") { url "2" }
-            }
-        }
-
-        then:
-        instance.bars.Dieter.url == "1"
-        instance.bars.Klaus.url == "2"
-
-        when: "named parameters"
-        instance.apply {
-            bars {
                 bar("Kurt", url: "3")
                 bar("Felix", url: "4")
             }
         }
 
         then:
+        instance.bars.Dieter.url == "1"
+        instance.bars.Klaus.url == "2"
         instance.bars.Kurt.url == "3"
         instance.bars.Felix.url == "4"
     }
@@ -1377,7 +1277,7 @@ import org.codehaus.groovy.control.CompilePhase
         instance.bars.Dieter.foo == "fromFirst"
         instance.bars.Dieter.bar == "fromSecond"
         firstApply.is(secondApply)
-        instance.bars.Dieter.is(firstApply)
+        firstApply.completedModel.is(instance.bars.Dieter)
     }
 
     @Issue("325")
@@ -1422,7 +1322,7 @@ import org.codehaus.groovy.control.CompilePhase
         instance.bars.Dieter.foo == "fromFirst"
         instance.bars.Dieter.bar == "fromSecond"
         firstApply.is(secondApply)
-        instance.bars.Dieter.is(firstApply)
+        firstApply.completedModel.is(instance.bars.Dieter)
         instance.bars.Dieter.getClass() == Bier
 
         when:
@@ -1456,14 +1356,14 @@ import org.codehaus.groovy.control.CompilePhase
         instance.bars.Dieter.foo == "fromFirst"
         instance.bars.Dieter.bar == "fromSecond"
         firstApply.is(secondApply)
-        instance.bars.Dieter.is(firstApply)
+        firstApply.completedModel.is(instance.bars.Dieter)
         instance.bars.Dieter.getClass() == Bier
     }
 
     @SuppressWarnings("GroovyVariableNotAssigned")
     def "creation of inner objects in map should return the create object"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -1481,7 +1381,7 @@ import org.codehaus.groovy.control.CompilePhase
         when:
         def bar1
         def bar2
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar1 = bar("Dieter") { url "1" }
                 bar2 = bar("Klaus") { url "2" }
@@ -1491,15 +1391,18 @@ import org.codehaus.groovy.control.CompilePhase
         then:
         bar1.url == "1"
         bar2.url == "2"
+        bar1.completedModel.is(instance.bars.Dieter)
+        bar2.completedModel.is(instance.bars.Klaus)
     }
 
     def "reusing of objects in closure"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
             class Foo {
+                @Field(FieldType.LINK)
                 List<Bar> bars
             }
 
@@ -1513,7 +1416,7 @@ import org.codehaus.groovy.control.CompilePhase
         }
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar(aBar)
             }
@@ -1521,6 +1424,7 @@ import org.codehaus.groovy.control.CompilePhase
 
         then:
         instance.bars[0].url == "welt"
+        instance.bars[0].is(aBar)
     }
 
     def "reusing adders return the added object"() {
@@ -1530,9 +1434,13 @@ import org.codehaus.groovy.control.CompilePhase
 
             @DSL
             class Foo {
+                @Field(FieldType.LINK)
                 Bar bar
+                @Field(FieldType.LINK)
                 List<Bar> listBars
+                @Field(FieldType.LINK)
                 List<KeyBar> listKeyBars
+                @Field(FieldType.LINK)
                 Map<String, KeyBar> mapKeyBars
                 List<Object> objects
                 Map<String, Object> mapObjects
@@ -1582,11 +1490,12 @@ import org.codehaus.groovy.control.CompilePhase
 
     def "reusing of map objects in closure"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
             class Foo {
+                @Field(FieldType.LINK)
                 Map<String, Bar> bars
             }
 
@@ -1601,7 +1510,7 @@ import org.codehaus.groovy.control.CompilePhase
         }
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bars {
                 bar(aBar)
             }
@@ -2134,46 +2043,34 @@ import org.codehaus.groovy.control.CompilePhase
     }
 
     @Issue('https://github.com/klum-dsl/klum-ast/issues/126')
-    def "Use case for IGNORED field"() {
-        // Note that the usecase itself is no longer valid, since we have custom keymappings
+    def "IGNORED fields can be managed by explicit Builder mutators"() {
         given:
         createClass '''
             @DSL class Foo {
                 @Field(FieldType.IGNORED)
-                Map<Class<? extends Hint>, Hint> hints = [:]
+                Map<Class<?>, String> hints = [:]
                 
                 @Mutator
-                void hint(Hint hint) {
-                    hints.put(hint.class, hint)
+                void hint(Class<?> type, String value) {
+                    hints.put(type, value)
                 }
                 
-                def <T extends Hint> T getHint(Class<T> type) {
-                    return hints[type] as T
+                String getHint(Class<?> type) {
+                    return hints[type]
                 }
-            }
-            
-            @DSL abstract class Hint {}
-            
-            @DSL class AHint extends Hint {
-                String value
-            }
-            @DSL class BHint extends Hint {
-                String otherValue
             }
         '''
 
         when:
-        def a = getClass("AHint").Create.With(value: "blub")
-        def b = getClass("BHint").Create.With(otherValue: "bli")
         instance = clazz.Create.With {
-            hint(a)
-            hint(b)
+            hint(String, "blub")
+            hint(Integer, "bli")
         }
 
         then:
         instance.hints.size() == 2
-        instance.getHint(getClass("AHint")).value == "blub"
-        instance.getHint(getClass("BHint")).otherValue == "bli"
+        instance.getHint(String) == "blub"
+        instance.getHint(Integer) == "bli"
 
     }
 
@@ -2309,7 +2206,7 @@ import org.codehaus.groovy.control.CompilePhase
         given:
         createClass '''
             @DSL class Foo {
-                @Field(keyMapping = { it.class })
+                @Field(value = FieldType.LINK, keyMapping = { it.class })
                 Map<Class<? extends Hint>, ? extends Hint> hints
                 
                 def <T extends Hint> T getHint(Class<T> type) {
@@ -2451,7 +2348,7 @@ import org.codehaus.groovy.control.CompilePhase
             @DSL class Foo {
                 String name
                 
-                @Field
+                @Field(FieldType.LINK)
                 void bar(Bar bar) {
                     this.name = bar.name
                 }
@@ -2505,7 +2402,7 @@ import org.codehaus.groovy.control.CompilePhase
         instance.name == "Franz"
     }
 
-    @Ignore("obsolete")
+    @Ignore("Superseded behavior: @Field is valid only on setter-like methods, as asserted by the following rejection test")
     def "Annotated non setter methods work for dsl types"() {
         given:
         createClass '''
@@ -2588,7 +2485,7 @@ import org.codehaus.groovy.control.CompilePhase
         closureParams.options() as List == ["Map<String,Object>"]
     }
 
-    def "Builder fields get protected getters in model"() {
+    def "Builder fields exist only on the generated Builder"() {
         when:
         createClass('''
             @DSL
@@ -2602,19 +2499,24 @@ import org.codehaus.groovy.control.CompilePhase
 
         then:
         rwClazz.getDeclaredMethod("value", String).getModifiers() & ACC_PUBLIC
-        clazz.getDeclaredMethod("getValue").getModifiers() & ACC_PROTECTED
         rwClazz.getDeclaredMethod("value2", String).getModifiers() & ACC_PUBLIC
-        clazz.getDeclaredMethod("getValue2").getModifiers() & ACC_PROTECTED
+        !clazz.declaredFields*.name.contains("value")
+        !clazz.declaredFields*.name.contains("value2")
+        clazz.metaClass.hasProperty(null, "value") == null
+        clazz.metaClass.hasProperty(null, "value2") == null
 
         when:
+        def builder
         instance = clazz.Create.With {
+            builder = delegate
             value "hallo"
             value2 "holla"
         }
 
         then:
-        instance.value == 'hallo'
-        instance.value2 == 'holla'
+        builder.value == 'hallo'
+        builder.value2 == 'holla'
+        builder.completedModel.is(instance)
     }
 
 }

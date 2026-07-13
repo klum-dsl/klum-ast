@@ -23,6 +23,8 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.DslHelper;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import groovy.lang.Closure;
 import groovy.lang.PropertyValue;
 import groovy.transform.stc.ClosureParams;
@@ -230,6 +232,10 @@ public class ClusterModel {
 
     private static Optional<ParameterizedType> getParameterizedTypeForProperty(Object container, PropertyValue value) {
         AnnotatedElement element = getAnnotatedElementForProperty(container, value);
+        if (container instanceof KlumBuilder)
+            element = DslHelper.getField(((KlumBuilder<?>) container).getModelType(), value.getName())
+                    .map(AnnotatedElement.class::cast)
+                    .orElse(element);
 
         return Optional.of(element)
                 .filter(Field.class::isInstance)
@@ -262,8 +268,17 @@ public class ClusterModel {
     @NotNull
     static Stream<PropertyValue> getPropertiesStream(Object container, Class<?> fieldType) {
         return getAllPropertiesStream(container)
-                .filter(it -> fieldType.isAssignableFrom(it.getType()) || it.getType().isPrimitive() && fieldType == Object.class)
+                .filter(it -> propertyTypeMatches(container, it, fieldType))
                 .filter(it -> hasField(container.getClass(), it.getName()));  // TODO Do we want to exclude getter only fields?
+    }
+
+    private static boolean propertyTypeMatches(Object container, PropertyValue property, Class<?> expectedType) {
+        Class<?> propertyType = property.getType();
+        if (container instanceof KlumBuilder)
+            propertyType = DslHelper.getField(((KlumBuilder<?>) container).getModelType(), property.getName())
+                    .map(Field::getType)
+                    .orElse(propertyType);
+        return expectedType.isAssignableFrom(propertyType) || propertyType.isPrimitive() && expectedType == Object.class;
     }
 
     @NotNull

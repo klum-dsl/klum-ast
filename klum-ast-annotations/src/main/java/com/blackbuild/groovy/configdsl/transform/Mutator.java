@@ -32,8 +32,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Designates a method as mutator. Mutators can change the state of a model instance and can only be
- * called inside a {@code create} / {@code apply} block. Technically, they are transferred to the RW class instance.
+ * Designates a method as a construction-time mutator. Mutators change Builder state and can be called only while a DSL
+ * Object is being configured by a factory, Template, or lifecycle callback. They are moved to the generated Builder and
+ * are not exposed on the completed DSL Object.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

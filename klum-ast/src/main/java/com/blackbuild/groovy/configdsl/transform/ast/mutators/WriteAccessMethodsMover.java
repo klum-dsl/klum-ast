@@ -23,17 +23,32 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
+import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.CodeVisitorSupport;
+import org.codehaus.groovy.ast.DynamicVariable;
+import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.Variable;
+import org.codehaus.groovy.ast.expr.VariableExpression;
 
 import java.util.ArrayList;
 import java.util.Optional;
 
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
+import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
+import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
+import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
  * Helper class to move mutating methods to RW class.
@@ -54,10 +69,56 @@ public class WriteAccessMethodsMover {
 
     static void moveMethodFromModelToRWClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
-        declaringClass.removeMethod(method);
         ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        retargetOwnerParameters(method);
+        retargetVirtualFieldParameter(method);
+        retargetFieldVariables(method, rwClass);
+        declaringClass.removeMethod(method);
         // if method is public, it will already have been added by delegateTo, replace it again
         CommonAstHelper.replaceMethod(rwClass, method);
+    }
+
+    private static void retargetOwnerParameters(MethodNode method) {
+        if (method.getAnnotations(make(Owner.class)).isEmpty())
+            return;
+        for (Parameter parameter : method.getParameters()) {
+            if (DslAstHelper.isDSLObject(parameter.getType()))
+                parameter.setType(DslAstHelper.getRwClassOf(parameter.getType()).getPlainNodeReference());
+        }
+    }
+
+    private static void retargetVirtualFieldParameter(MethodNode method) {
+        AnnotationNode fieldAnnotation = getAnnotation(method, DSL_FIELD_ANNOTATION);
+        if (fieldAnnotation == null || method.getParameters().length != 1)
+            return;
+        if (DslAstHelper.getFieldType(method) == FieldType.LINK)
+            return;
+
+        Parameter parameter = method.getParameters()[0];
+        ClassNode effectiveType = getNullSafeClassMember(fieldAnnotation, "defaultImpl", null);
+        if (effectiveType == null)
+            effectiveType = getNullSafeClassMember(
+                    getAnnotation(parameter.getType(), DSL_CONFIG_ANNOTATION),
+                    "defaultImpl",
+                    parameter.getType()
+            );
+        if (DslAstHelper.isDSLObject(effectiveType))
+            parameter.setType(DslAstHelper.getRwClassOf(effectiveType).getPlainNodeReference());
+    }
+
+    private static void retargetFieldVariables(MethodNode method, ClassNode rwClass) {
+        method.getCode().visit(new CodeVisitorSupport() {
+            @Override
+            public void visitVariableExpression(VariableExpression expression) {
+                Variable accessedVariable = expression.getAccessedVariable();
+                FieldNode builderField = rwClass.getField(expression.getName());
+                if (builderField != null && (accessedVariable instanceof FieldNode || accessedVariable instanceof DynamicVariable)) {
+                    expression.setAccessedVariable(builderField);
+                    expression.setType(builderField.getType());
+                }
+                super.visitVariableExpression(expression);
+            }
+        });
     }
 
     public void invoke() {

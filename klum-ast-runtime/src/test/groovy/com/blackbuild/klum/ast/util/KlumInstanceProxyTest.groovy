@@ -24,128 +24,80 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.util
 
-
 import spock.lang.Subject
+
+import java.lang.reflect.Modifier
 
 class KlumInstanceProxyTest extends AbstractRuntimeTest {
 
-    @Subject KlumInstanceProxy proxy
-
-    void "getKey returns the correct key for inherited classes"() {
+    def "Builder and model companion metadata reject non-serializable values immediately"() {
         given:
-        createClass('''
-            package pk
+        def builder = new TestRuntimeBuilder<TestObject>(TestObject)
+        def companion = KlumModelProxy.getProxyFor(new TestObject())
 
-            @DSL
-            class Foo implements KlumModelObject {
-                @Key String name
-            }
-            @DSL
-            class Bar extends Foo {
-            }
-        ''')
-
-        expect:
-        DslHelper.getKeyField(getClass("pk.Bar")).get().getName() == "name"
-
-    }
-
-    def "inherited instanceProperties"() {
-        given:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-            }
-            @DSL
-            class Bar extends Foo {
-                String child
-            }
-        ''')
-
-        when:
-        instance = newInstanceOf("pk.Bar")
-        instance.name = "myName"
-        instance.child = "myChild"
-        proxy = new KlumInstanceProxy(instance as GroovyObject)
+        when: "construction metadata is set"
+        builder.setMetaData("invalid", new Object())
 
         then:
-        proxy.getInstanceProperty("name") == "myName"
-        proxy.getInstanceProperty("child") == "myChild"
-    }
+        KlumException builderFailure = thrown()
+        builderFailure.message == "Metadata value for key 'invalid' must be Serializable"
 
-    def "invoke via getProperty"() {
-        given:
-        createClass('''
-            package pk
-            
-            class Foo {
-                final KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
-            
-                String name 
-                
-                String getName() {
-                    $proxy.getInstanceProperty('name')
-                }
-            }
-
-            @DSL
-            class Bar extends Foo {
-                String child
-                
-                String getChild() {
-                    $proxy.getInstanceProperty('child')
-                }
-            }
-        ''')
-
-        when:
-        instance = newInstanceOf("pk.Bar")
-        instance.name = "myName"
-        instance.child = "myChild"
+        when: "completed-model metadata is set"
+        companion.setMetaData("invalid", new Object())
 
         then:
-        instance.name == "myName"
-        instance.child == "myChild"
-    }
+        KlumException companionFailure = thrown()
+        companionFailure.message == "Metadata value for key 'invalid' must be Serializable"
 
-    def "Field can be set via various methods"() {
-        given:
-        createClass('''
-            package pk
-
-            @SuppressWarnings('UnnecessaryQualifiedReference')
-            @DSL
-            class Foo {
-                String provider
-                
-                @Field(key = { provider })
-                Object viaProvider
-
-                @Field(key = com.blackbuild.groovy.configdsl.transform.Field.FieldName)
-                Object byFieldName
-                
-                @Field
-                Object noKeyMember
-
-                Object noFieldAnnotation
-            }
-         ''')
-
-        when:
-        instance = newInstanceOf("pk.Foo")
-        instance.provider = "bar"
-        proxy = new KlumInstanceProxy(instance)
+        when: "a serializable construction container contains a non-serializable value"
+        builder.setMetaData("invalidGraph", new ArrayList([new Object()]))
 
         then:
-        proxy.resolveKeyForFieldFromAnnotation("viaProvider", proxy.getField("viaProvider")).get() == "bar"
-        proxy.resolveKeyForFieldFromAnnotation("byFieldName", proxy.getField("byFieldName")).get() == "byFieldName"
-        !proxy.resolveKeyForFieldFromAnnotation("noKeyMember", proxy.getField("noKeyMember")).isPresent()
-        !proxy.resolveKeyForFieldFromAnnotation("noFieldAnnotation", proxy.getField("noFieldAnnotation")).isPresent()
+        KlumException builderGraphFailure = thrown()
+        builderGraphFailure.message == "Metadata value for key 'invalidGraph' must have a fully Serializable object graph"
+
+        when: "a serializable completed-model container contains a non-serializable value"
+        companion.setMetaData("invalidGraph", new ArrayList([new Object()]))
+
+        then:
+        KlumException companionGraphFailure = thrown()
+        companionGraphFailure.message == "Metadata value for key 'invalidGraph' must have a fully Serializable object graph"
     }
 
+    def "compatibility adapter only exposes Builder identity and template context"() {
+        given:
+        def builder = new TestRuntimeBuilder<TestObject>(TestObject)
+        def template = new TestObject()
+        builder.setCurrentTemplates([(TestObject): template])
 
-    // TODO: List of Lists, mixed dsl / non dsl elements
+        when:
+        def proxy = KlumInstanceProxy.getProxyFor(builder)
+
+        then:
+        proxy.DSLInstance.is(builder)
+        proxy.builder.is(builder)
+        proxy.currentTemplates == [(TestObject): template]
+
+        and: "the public adapter API contains no construction or mutation operations"
+        KlumInstanceProxy.declaredMethods
+                .findAll { Modifier.isPublic(it.modifiers) && !it.synthetic }
+                *.name as Set == ["getProxyFor", "getDSLInstance", "getCurrentTemplates"] as Set
+
+        when: "a compatibility caller tries to mutate the reported template context"
+        proxy.currentTemplates.clear()
+
+        then:
+        thrown(UnsupportedOperationException)
+        builder.currentTemplates == [(TestObject): template]
+    }
+
+    def "completed model lookup fails with migration guidance"() {
+        when:
+        KlumInstanceProxy.getProxyFor(new TestObject())
+
+        then:
+        KlumException failure = thrown()
+        failure.message.contains("Builder-only")
+        failure.message.contains("KlumModelProxy")
+    }
 }

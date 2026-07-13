@@ -62,7 +62,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         instance.value == "b"
     }
 
-    @Ignore("Obsolete")
+    @Ignore("Synthetic undefaulted getters were removed when default evaluation moved to runtime state")
     def "undefaulted getter is created"() {
         given:
         createClass '''

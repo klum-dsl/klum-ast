@@ -38,6 +38,8 @@ import static java.lang.reflect.Modifier.isFinal;
 @SuppressWarnings("unused") // see Field
 public class FieldAstValidator extends KlumCastCheck<Annotation> {
 
+    private static final String DEFAULT_IMPL_MEMBER = "defaultImpl";
+
     private AnnotationNode annotationToCheck;
 
     @Override
@@ -59,15 +61,15 @@ public class FieldAstValidator extends KlumCastCheck<Annotation> {
     }
 
     protected void extraValidateMethod(MethodNode target) {
-        if (getFieldType(target) == FieldType.LINK)
+        if (getFieldType(target) == FieldType.LINK && annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) != null)
             throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
         validateDefaultImpl(target.getParameters()[0].getType());
     }
 
     private void validateDefaultImpl(ClassNode fieldType) {
-        if (annotationToCheck.getMember("defaultImpl") == null) return;
+        if (annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) == null) return;
 
-        @NotNull ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);
+        @NotNull ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, DEFAULT_IMPL_MEMBER, null);
 
         if (isFinal(fieldType.getModifiers()))
             throw new IllegalStateException(String.format(

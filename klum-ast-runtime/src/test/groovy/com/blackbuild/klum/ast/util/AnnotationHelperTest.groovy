@@ -198,7 +198,7 @@ import java.lang.annotation.*
         AnnotationHelper.getMostSpecificAnnotation(parent, MyAnnotation, { a -> !a.value().startsWith("_") }).get().value() == "parent-class"
     }
 
-    @Ignore("Need to find an elegant way to dynamically create a package-info.java file via groovy class loader")
+    @Ignore("The GroovyClassLoader fixture cannot currently emit a loadable package-info class")
     def "getMostSpecificAnnotation returns the inherited from the package"() {
         given:
         loader.parseClass('''

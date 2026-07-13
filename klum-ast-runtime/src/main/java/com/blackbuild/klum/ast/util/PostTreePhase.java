@@ -25,19 +25,18 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.PostTree;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class PostTreePhase extends VisitingPhaseAction {
+public class PostTreePhase extends BuilderVisitingPhaseAction {
     public PostTreePhase() {
         super(DefaultKlumPhase.POST_TREE);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        LifecycleHelper.executeLifecycleMethods(proxy, PostTree.class);
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        LifecycleHelper.executeLifecycleMethods(builder, PostTree.class);
     }
 
 }

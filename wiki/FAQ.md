@@ -70,5 +70,5 @@ tries to reduce the boilerplate code to a minimum by using Annotation controlled
  to auto generate it. The result is the best of both worlds: Faster, nicer and cleaner DSL classes on
 the developer side, ease of use on the user side.
 
-As an additional bonus, since KlumAST strongly separates RO and RW model parts, the API using an actually model
-does not even see the mutating parts of the model, making developing against a given DSL easier as well.
+As an additional bonus, KlumAST separates mutable construction Builders from completed DSL Objects. APIs consuming a
+completed model do not see generated mutation methods, making development against a given DSL easier as well.

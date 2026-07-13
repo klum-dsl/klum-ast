@@ -24,128 +24,85 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
-import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.PropertyNode;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
+import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 
+/** Creates mutable Builder accessors and read-only completed-model accessors. */
 class PropertyAccessors {
-    private final DSLASTTransformation dslastTransformation;
-    private final List<PropertyNode> propertiesToReplace = new ArrayList<>();
+    private static final String VALUE_PARAMETER = "value";
 
-    public PropertyAccessors(DSLASTTransformation dslastTransformation) {
-        this.dslastTransformation = dslastTransformation;
+    private final DSLASTTransformation transformation;
+    private final List<PropertyNode> modelPropertiesToReplace = new ArrayList<>();
+
+    PropertyAccessors(DSLASTTransformation transformation) {
+        this.transformation = transformation;
     }
 
-    public void invoke() {
-        getInstanceNonPropertyFields(dslastTransformation.annotatedClass).forEach(this::createPropertyForBuilderField);
-        getInstanceProperties(dslastTransformation.annotatedClass).forEach(this::adjustPropertyAccessorsForSingleField);
-
-        setAccessorsForOwnerFields();
-
-        if (dslastTransformation.keyField != null)
-            setAccessorsForSpecialField(dslastTransformation.keyField);
-
-        replaceProperties(dslastTransformation.annotatedClass, propertiesToReplace);
+    void invoke() {
+        transformation.builderFields.forEach(this::createBuilderAccessors);
+        transformation.annotatedClass.getProperties().stream()
+                .filter(property -> transformation.builderFields.containsKey(property.getField()))
+                .forEach(this::makeModelPropertyReadOnly);
+        replaceProperties(transformation.annotatedClass, modelPropertiesToReplace);
     }
 
-    private void createPropertyForBuilderField(FieldNode fieldNode) {
-        if (getFieldType(fieldNode) != FieldType.BUILDER)
-            return;
-        PropertyNode pNode = new PropertyNode(fieldNode, fieldNode.getModifiers(), returnS(varX(fieldNode.getName())), null);
-        propertiesToReplace.add(pNode);
-    }
+    private void createBuilderAccessors(FieldNode modelField, FieldNode builderField) {
+        String fieldName = modelField.getName();
+        int visibility = isProtected(modelField) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC;
 
-    private void adjustPropertyAccessorsForSingleField(PropertyNode pNode) {
-        if (dslastTransformation.shouldFieldBeIgnored(pNode.getField()))
-            return;
+        createMethod(getGetterName(fieldName))
+                .mod(visibility)
+                .returning(builderField.getType())
+                .doReturn(attrX(varX("this"), constX(fieldName)))
+                .addTo(transformation.rwClass);
 
-        if (getFieldType(pNode.getField()) == FieldType.BUILDER) {
-            pNode.getField().setModifiers(pNode.getField().getModifiers() & Opcodes.ACC_PROTECTED & ~Opcodes.ACC_PUBLIC);
-            if (pNode.isPublic()) {
-                dslastTransformation.annotatedClass.getProperties().remove(pNode);
-                pNode = new PropertyNode(
-                        pNode.getField(),
-                        pNode.getModifiers() & ~Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED,
-                        pNode.getGetterBlock(),
-                        pNode.getSetterBlock()
-                );
-            }
-        }
+        if (ClassHelper.boolean_TYPE.equals(builderField.getType()) || ClassHelper.Boolean_TYPE.equals(builderField.getType()))
+            createMethod(getBooleanGetterName(fieldName))
+                    .mod(visibility)
+                    .returning(builderField.getType())
+                    .doReturn(attrX(varX("this"), constX(fieldName)))
+                    .addTo(transformation.rwClass);
 
-        String fieldName = pNode.getName();
-        ClassNode fieldType = pNode.getType();
-
-        String getterName = getGetterName(fieldName);
-        String setterName = DslAstHelper.getSetterName(fieldName);
-        String rwSetterName = setterName + "$rw";
-
-        pNode.setGetterBlock(stmt(
-                callX(
-                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                        "getInstanceProperty",
-                        args(constX(fieldName))
-                )
-        ));
-
-        createPublicMethod(getterName)
-                .returning(fieldType)
-                .doReturn(callX(
-                        varX(KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS),
-                        "getInstanceAttribute",
-                        args(constX(fieldName)))
-                )
-                .addTo(dslastTransformation.rwClass);
-
-        createProtectedMethod(rwSetterName)
-                .mod(Opcodes.ACC_SYNTHETIC)
+        createMethod(DslAstHelper.getSetterName(fieldName))
+                .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
-                .param(fieldType, "value")
-                .statement(assignS(attrX(varX("this"), constX(fieldName)), varX("value")))
-                .addTo(dslastTransformation.annotatedClass);
+                .param(builderField.getType(), VALUE_PARAMETER)
+                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
+                .addTo(transformation.rwClass);
 
-        createMethod(setterName)
-                .mod(DslAstHelper.isProtected(pNode.getField()) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC)
-                .returning(ClassHelper.VOID_TYPE)
-                .param(fieldType, "value")
-                .statement(callX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), rwSetterName, args("value")))
-                .addTo(dslastTransformation.rwClass);
-
-        pNode.setSetterBlock(null);
-
-        propertiesToReplace.add(pNode);
+        // Existing completed values enter through KlumBuilder, which seals LINK targets.
+        if (!builderField.getType().equals(modelField.getType()))
+            createMethod(DslAstHelper.getSetterName(fieldName))
+                    .mod(visibility)
+                    .returning(ClassHelper.VOID_TYPE)
+                    .param(modelField.getType(), VALUE_PARAMETER)
+                    .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
+                    .addTo(transformation.rwClass);
     }
 
-    private void setAccessorsForOwnerFields() {
-        dslastTransformation.ownerFields.forEach(this::setAccessorsForSpecialField);
+    private void makeModelPropertyReadOnly(PropertyNode property) {
+        FieldNode field = property.getField();
+        if (getFieldType(field) == FieldType.BUILDER)
+            return;
+        if (getFieldType(field) == FieldType.TRANSIENT || (field.getModifiers() & Opcodes.ACC_TRANSIENT) != 0)
+            return;
+
+        if (field.getType().getName().equals(EnumSet.class.getName()))
+            property.setGetterBlock(returnS(castX(field.getType(), callX(attrX(varX("this"), constX(field.getName())), "clone"))));
+        else
+            property.setGetterBlock(returnS(attrX(varX("this"), constX(field.getName()))));
+        property.setSetterBlock(null);
+        modelPropertiesToReplace.add(property);
     }
-
-    private void setAccessorsForSpecialField(FieldNode fieldNode) {
-        String fieldName = fieldNode.getName();
-        PropertyNode property = dslastTransformation.annotatedClass.getProperty(fieldName);
-
-        if (property != null) {
-            property.setSetterBlock(null);
-            property.setGetterBlock(stmt(attrX(varX("this"), constX(fieldName))));
-            propertiesToReplace.add(property);
-        }
-
-        String ownerGetter = getGetterName(fieldName);
-        createPublicMethod(ownerGetter)
-                .returning(fieldNode.getType())
-                .doReturn(callX(varX(KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS), ownerGetter))
-                .addTo(dslastTransformation.rwClass);
-
-    }
-
 }

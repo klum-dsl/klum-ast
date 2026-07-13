@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.reflect
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import com.blackbuild.klum.ast.util.KlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.MethodNode
 import spock.lang.Specification
@@ -32,7 +32,7 @@ class AstReflectionBridgeTest extends Specification {
 
     def "correct parameter names are extracted"() {
         given:
-        MethodNode methodNode = ClassHelper.make(KlumInstanceProxy).getDeclaredMethods(KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
+        MethodNode methodNode = ClassHelper.make(KlumBuilder).getDeclaredMethods(KlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
 
         when:
         def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name

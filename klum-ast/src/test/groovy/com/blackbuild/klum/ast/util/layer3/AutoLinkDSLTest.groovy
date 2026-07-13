@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.groovy.configdsl.transform.NoClosure
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
 import spock.lang.Issue
 
@@ -580,7 +580,8 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
             }
         ''')
 
-        instance = create("tmp.Environment") {
+        def builder = FactoryHelper.createBuilder(getClass("tmp.Environment"), null)
+        builder.apply(null) {
             adminUser('admin')
             user("defaultUser")
             container() {
@@ -596,7 +597,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         })
 
         then:
-        LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance
+        LinkHelper.determineProviderObject(builder, linkTo).is(builder)
 
         when:
         linkTo = withDefaults(GroovyStub(LinkTo) {
@@ -604,7 +605,7 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         })
 
         then:
-        LinkHelper.determineProviderObject(KlumInstanceProxy.getProxyFor(instance), linkTo) == instance.container.service2
+        LinkHelper.determineProviderObject(builder, linkTo).is(builder.container.service2)
     }
 
     def "auto link collection"() {

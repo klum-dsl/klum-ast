@@ -48,6 +48,22 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     }
 
     @Override
+    public void visitClosureExpression(ClosureExpression expression) {
+        super.visitClosureExpression(expression);
+
+        if (!Boolean.TRUE.equals(expression.getNodeMetaData(
+                DSLASTTransformation.BUILDER_ANNOTATION_CLOSURE_METADATA_KEY)))
+            return;
+
+        ClassNode inferredReturnType = expression.getNodeMetaData(StaticTypesMarker.INFERRED_RETURN_TYPE);
+        if (DslAstHelper.isDSLObject(inferredReturnType))
+            expression.putNodeMetaData(
+                    StaticTypesMarker.INFERRED_RETURN_TYPE,
+                    DslAstHelper.getRwClassOf(inferredReturnType).getPlainNodeReference()
+            );
+    }
+
+    @Override
     public void visitPostfixExpression(PostfixExpression expression) {
         super.visitPostfixExpression(expression);
         Expression inner = expression.getExpression();

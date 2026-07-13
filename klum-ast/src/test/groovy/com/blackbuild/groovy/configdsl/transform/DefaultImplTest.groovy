@@ -30,7 +30,7 @@ class DefaultImplTest extends AbstractDSLSpec {
 
     def "interface with defaultImpl"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 @Field(defaultImpl = BarImpl)
@@ -48,7 +48,7 @@ class DefaultImplTest extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bar(value: "Dieter")
         }
 
@@ -59,7 +59,7 @@ class DefaultImplTest extends AbstractDSLSpec {
 
     def "List of interfaces with defaultImpl"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 @Field(defaultImpl = BarImpl)
@@ -77,7 +77,7 @@ class DefaultImplTest extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bar(value: "Dieter")
         }
 
@@ -88,7 +88,7 @@ class DefaultImplTest extends AbstractDSLSpec {
 
     def "Map of interfaces with defaultImpl"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 @Field(defaultImpl = BarImpl)
@@ -107,7 +107,7 @@ class DefaultImplTest extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bar("a", value: "Dieter")
         }
 
@@ -118,10 +118,10 @@ class DefaultImplTest extends AbstractDSLSpec {
 
     def "virtual setter with defaultImpl"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
-                @Field(FieldType.IGNORED) Bar myBar
+                @Field(defaultImpl = BarImpl) Bar myBar
                 @Field(defaultImpl = BarImpl)
                 void bar(Bar value) {
                     myBar = value
@@ -139,7 +139,7 @@ class DefaultImplTest extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bar(value: "Dieter")
         }
 
@@ -150,7 +150,7 @@ class DefaultImplTest extends AbstractDSLSpec {
 
     def "dsl interface with class defaultImpl"() {
         given:
-        createInstance('''
+        createClass('''
             @DSL
             class Foo {
                 Bar bar
@@ -168,7 +168,7 @@ class DefaultImplTest extends AbstractDSLSpec {
         ''')
 
         when:
-        instance.apply {
+        instance = clazz.Create.With {
             bar(value: "Dieter")
         }
 

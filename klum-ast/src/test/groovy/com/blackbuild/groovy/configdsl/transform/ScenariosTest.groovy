@@ -34,7 +34,7 @@ class ScenariosTest extends AbstractDSLSpec {
 
     @SuppressWarnings("UnnecessaryQualifiedReference")
     @Unroll("Scenario: #folder.name")
-    @IgnoreIf({ ScenariosTest.scenarios.isEmpty() })
+    @IgnoreIf(value = { ScenariosTest.scenarios.isEmpty() }, reason = "No scenario directories or .link fixtures are configured in src/test/scenarios")
     def "test compilation against real models in mock folder"() {
         given:
         incrementalLoader = new GroovyClassLoader()

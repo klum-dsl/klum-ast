@@ -1,4 +1,8 @@
-Copy Strategies handle how DSL objects are copied over to existing objects (using the `copyFrom` method). This is mainly used when creating objects from templates, but can also be used to copy objects in other scenarios (like merging multiple script files in a 'helm' line way).
+# Copy strategies
+
+Copy strategies control how `copyFrom` applies a donor recipe to the current mutable Builder. This is mainly used for
+Templates, but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
+means the Builder being configured; a completed DSL Object is never mutated.
 
 When copying an object to another, there are three distinct types of strategies: single object, collections and maps. The strategy can
 be configured on a class for all matching fields at once, or on a per-field basis.
@@ -13,8 +17,10 @@ Also, fields, the class or the package can be annotated with `@Overwrite` to app
 
 ## Single Object
 
-Single object strategies handle how a single object field is copied over from a donor object. The behaviour is slightly different for dsl and pojo objects. Pojo objects are always linked into the target object, i.e. target and donor share the same object instance (which is
-hopefully immutable), DSL objects are copied over, i.e. a new object is created and the fields are copied over (using that object type's overwrite strategies).
+Single object strategies handle how a single object field is copied from a donor recipe. The behaviour differs for DSL
+Objects and ordinary values. Ordinary values are retained, so donor and completed model share the same value instance.
+A DSL Object donor is treated as a recipe: its state is rehydrated into a fresh child Builder and copied using that DSL
+Object type's overwrite strategies. The completed donor object itself is never adopted as owned composition.
 
 The strategy is determined by checking in the following order and using the first match:
 
@@ -49,9 +55,12 @@ Merge is the default strategy. For non-DSL fields, this behaves exactly as `REPL
 
 ## Collections
 
-Collection strategies handle how a collection field is copied over from a donor object. The collection itself is never linked into the target (i.e. the target and donor always have separate collections), if a collection in the target exists, it is reused (and possibly cleared depending on the strategy). This also holds true for nested collections (List of Lists).
+Collection strategies handle how a collection field is copied from a donor recipe. The donor collection is never linked
+into the Builder. The Builder's mutable construction collection is reused and may be cleared depending on the strategy;
+materialization later publishes an independent read-only snapshot.
 
-If the collection consists of DSL objects, those objects are copied (i.e. new objects similar to those in the donor are created), simple objects are simply linked. 
+If the collection contains DSL Objects, each donor value is rehydrated into a fresh child Builder. Simple Values are
+retained. Collections of collections are not supported schema declarations.
 
 The strategy is determined in exactly the same way as for single object fields, but using the `@Overwrite.Collection` annotation instead.
 
@@ -89,9 +98,11 @@ MyObject.Create.With {
 
 ## Maps
 
-Map strategies handle how a map field is copied over from a donor object. The map itself is never linked into the target (i.e. the target and donor always have separate maps), if a map in the target exists, it is reused (and possibly cleared depending on the strategy). This also holds true for nested maps or collections (Map of Maps or Maps of Lists).
+Map strategies handle how a map field is copied from a donor recipe. The donor map is never linked into the Builder. The
+Builder's mutable map is reused and may be cleared depending on the strategy; materialization later publishes an
+independent read-only snapshot. Maps whose values are maps or collections are not supported schema declarations.
 
-As with collections, if the values are DSL objects, those objects are copied (i.e. new objects similar to those in the donor are created), simple objects are simply linked.
+As with collections, DSL Object values are rehydrated into fresh child Builders and Simple Values are retained.
 
 The strategies are as follows:
 

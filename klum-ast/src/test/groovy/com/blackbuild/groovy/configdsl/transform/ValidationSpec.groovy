@@ -535,7 +535,7 @@ class ValidationSpec extends AbstractDSLSpec {
         thrown(KlumValidationException)
     }
 
-    @Ignore("Legacy feature")
+    @Ignore("The unannotated doValidate convention was removed; explicit validation methods must use @Validate")
     def "explicit validation method"() {
         given:
         createClass('''
@@ -1358,7 +1358,6 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("145")
-    @IgnoreIf({ GroovySystem.version.startsWith("2.") })
     def "Deprecation message is extracted from javadoc if present"() {
         given:
         createClass('''
@@ -1544,7 +1543,7 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("406")
-    @PendingFeature
+    @PendingFeature(reason = "Issue #406: restricting validation issue APIs to lifecycle methods is not implemented")
     def "It is illegal to call addIssue/addError in non lifecycle methods"() {
         when:
         createClass('''

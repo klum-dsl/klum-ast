@@ -251,13 +251,14 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         String methodName = getShortNameFor(subclass);
         ClassNode subRwClass = getRwClassOf(subclass);
         ClassNode subClassSafe = newClass(subclass);
+        ClassNode subRwSafe = subRwClass.getPlainNodeReference();
 
         new ProxyMethodBuilder(varX("rw"), methodName, memberName)
                 .optional()
                 .targetType(rwClass)
                 .linkToField(fieldNode)
                 .mod(ACC_PUBLIC)
-                .returning(subClassSafe)
+                .returning(subRwSafe)
                 .namedParams("values", null)
                 .constantClassParam(subClassSafe)
                 .conditionalParam(STRING_TYPE, "key", keyType != null, null)

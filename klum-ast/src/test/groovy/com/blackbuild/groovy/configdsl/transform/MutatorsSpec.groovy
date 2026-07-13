@@ -276,7 +276,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "Calling a non mutator method from a mutator methods is allowed"() {
+    def "Calling a mutator helper from a mutator method is allowed"() {
         when:
         createClass('''
             package pk
@@ -289,6 +289,7 @@ class MutatorsSpec extends AbstractDSLSpec {
                 def mutate() {
                     nonmutate()
                 }
+                @Mutator
                 def nonmutate() {
                 }
             }
@@ -298,7 +299,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    def "Calling a protected non mutator method from a mutator methods is allowed"() {
+    def "Calling a protected mutator helper from a mutator method is allowed"() {
         when:
         createClass('''
             package pk
@@ -309,6 +310,7 @@ class MutatorsSpec extends AbstractDSLSpec {
                 def mutate() {
                     nonmutate()
                 }
+                @Mutator
                 protected nonmutate() {
                 }
             }
@@ -318,7 +320,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    @Ignore
+    @Ignore("A Builder mutator cannot call an unannotated protected helper retained on a separately compiled model superclass")
     def "Calling a protected non mutator method from a subclass mutator method"() {
         given:
         createClass('''
@@ -358,38 +360,6 @@ class MutatorsSpec extends AbstractDSLSpec {
 
        then:
        bar.called == true
-    }
-
-    @Ignore
-    def "for debug only"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                List<String> values
-                
-                def variousCalls() {
-                    name = "bli"
-                    this.name = "bli"
-                    values[0] = "bläh"
-                    this.values[0] = "bläh"
-                    values.add("blub")
-                    this.values.add("blub")
-                    doIt()
-                    this.doIt()
-                    def x = 5
-                    x = 3
-                }
-                
-                def doIt() {}
-            }
-        ''')
-
-        then:
-        true
     }
 
 }

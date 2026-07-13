@@ -67,8 +67,8 @@ class ValidatorTest extends AbstractRuntimeTest {
         then:
         noExceptionThrown()
 
-        when:
-        instance.name = null
+        when: "a fresh completed model is validated independently"
+        createInstance()
         validate(instance)
 
         then:

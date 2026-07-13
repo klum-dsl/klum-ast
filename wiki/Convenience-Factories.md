@@ -35,9 +35,16 @@ See the example projects for details.
 ## Script and delegating script for collections and maps
 
 For DSL element maps and collections, there is also a convenience method for creating multiple elements
-from a couple of script, each element in a single script. The generated method has the form 
-`<fieldName>(Class<? extends Script>...)` for both maps and collections, and allows Scripts as well 
-as delegating scripts. This allows for an easy way to split a bigger model into separate files:
+from a couple of scripts, each element in a single script. The generated method has the form
+`<fieldName>(Class<? extends Script>...)` for both maps and collections.
+
+The current 4.0 Builder-first implementation rejects these calls during the owning lifecycle. ADR 0004 will restore
+`DelegatingScript` inputs as Builder-producing recipes through `Create.AsBuilder`. A regular Script that returns a completed
+model is an opaque materializing program and remains top-level-only. Until the ADR 0004 follow-up lands, express collection
+composition through generated element closure methods. See
+[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
+
+The intended `DelegatingScript` behavior allows splitting a bigger model into separate files:
 
 With the DSL
 

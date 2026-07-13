@@ -29,6 +29,7 @@ import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.*;
+import groovy.transform.Undefined;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
@@ -62,6 +63,10 @@ public class DslHelper {
 
     public static boolean isDslObject(Object object) {
         return object instanceof KlumModelObject;
+    }
+
+    public static boolean isBuilder(Object object) {
+        return object instanceof KlumBuilder;
     }
 
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
@@ -180,9 +185,20 @@ public class DslHelper {
 
     private static Optional<CachedField> getCachedFieldOfHierarchyLayer(Class<?> layer, String name) {
         MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
-        if (!(metaProperty instanceof MetaBeanProperty)) return Optional.empty();
+        if (metaProperty instanceof MetaBeanProperty metaBeanProperty) {
+            CachedField cachedField = metaBeanProperty.getField();
+            if (cachedField != null)
+                return Optional.of(cachedField);
+        }
 
-        return Optional.ofNullable(((MetaBeanProperty) metaProperty).getField());
+        // Generated Builder relationship properties have model- and Builder-typed setter
+        // overloads. Groovy consequently exposes them as a MetaBeanProperty without an
+        // attached field, even though the generated field is present.
+        try {
+            return Optional.of(new CachedField(layer.getDeclaredField(name)));
+        } catch (NoSuchFieldException ignored) {
+            return Optional.empty();
+        }
     }
 
     // groovy 3 makes Field.field private, so we need a workaround
@@ -258,7 +274,7 @@ public class DslHelper {
     public static <T> Optional<Method> getVirtualSetter(Class<?> rwType, String methodName, Class<T> type) {
         List<Method> methods = getMethodsAnnotatedWith(rwType, FIELD_ANNOTATION)
                 .filter(method -> method.getName().equals(methodName))
-                .filter(method -> method.getParameterTypes()[0].isAssignableFrom(type))
+                .filter(method -> virtualSetterAccepts(method.getParameterTypes()[0], type))
                 .collect(Collectors.toList());
 
         if (methods.isEmpty())
@@ -268,6 +284,13 @@ public class DslHelper {
             return Optional.of(methods.get(0));
 
         throw new KlumSchemaException(format("Found more than one virtual setter matching %s(%s): %s", methodName, type.getName(), methods));
+    }
+
+    private static boolean virtualSetterAccepts(Class<?> parameterType, Class<?> modelType) {
+        if (parameterType.isAssignableFrom(modelType))
+            return true;
+        return KlumBuilder.class.isAssignableFrom(parameterType)
+                && parameterType.isAssignableFrom(GeneratedBuilderSupport.builderTypeFor(modelType));
     }
 
     public static Object getAttributeValue(String name, Object instance) {
@@ -305,11 +328,15 @@ public class DslHelper {
     }
 
     public static String getBreadcrumbPath(Object instance) {
-        return KlumInstanceProxy.getProxyFor(instance).getBreadcrumbPath();
+        if (instance instanceof KlumBuilder)
+            return ((KlumBuilder<?>) instance).getBreadcrumbPath();
+        return KlumModelProxy.getProxyFor(instance).getBreadcrumbPath();
     }
 
     public static String getModelPath(Object instance) {
-        return KlumInstanceProxy.getProxyFor(instance).getModelPath();
+        if (instance instanceof KlumBuilder)
+            return ((KlumBuilder<?>) instance).getModelPath();
+        return KlumModelProxy.getProxyFor(instance).getModelPath();
     }
 
     public static String getModelAndBreadcrumbPath(Object instance) {
@@ -327,5 +354,23 @@ public class DslHelper {
 
     public static boolean isLink(@NotNull Field field) {
         return getKlumFieldType(field) == FieldType.LINK;
+    }
+
+    /** Returns whether a schema field represents a direct or collection-valued DSL relationship. */
+    public static boolean isRelationship(@NotNull Field field) {
+        Class<?> valueType = field.getType();
+        try {
+            if (Collection.class.isAssignableFrom(field.getType()) || Map.class.isAssignableFrom(field.getType()))
+                valueType = getClassFromType(getElementType(field));
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+        com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation =
+                field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (fieldAnnotation != null && fieldAnnotation.defaultImpl() != Undefined.class)
+            valueType = fieldAnnotation.defaultImpl();
+        else if (valueType.isAnnotationPresent(DSL.class))
+            valueType = FactoryHelper.getTypeOrDefaultType(valueType);
+        return isDslType(valueType);
     }
 }

@@ -24,11 +24,18 @@
 package com.blackbuild.klum.ast;
 
 /**
- * Marker interface for rw instances for all Klum model objects.
- * <p>
- * This interface is used to identify objects that are part of the Klum model.
- * It does not define any methods or properties, serving purely as a marker.
- * </p>
+ * Legacy marker for generated mutable construction types formerly known as RW instances.
+ *
+ * <p>Generated Builders temporarily retain this marker for integrations compiled against
+ * the former generated layout. New construction code should target
+ * {@link com.blackbuild.klum.ast.util.KlumBuilder}; completed DSL Objects implement
+ * {@link KlumModelObject}. The deprecated
+ * {@link com.blackbuild.klum.ast.util.KlumInstanceProxy} remains the corresponding
+ * Builder-only compatibility adapter.</p>
+ *
+ * @deprecated since 4.0; use {@link com.blackbuild.klum.ast.util.KlumBuilder}. Removal of
+ * the legacy generated-type marker is coordinated with issue #394.
  */
+@Deprecated(since = "4.0", forRemoval = true)
 public interface KlumRwObject {
 }

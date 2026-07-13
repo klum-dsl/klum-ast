@@ -27,6 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 import com.blackbuild.klum.ast.process.DefaultKlumPhase
 import com.blackbuild.klum.ast.process.KlumPhase
 import com.blackbuild.klum.ast.process.PhaseDriver
+import com.blackbuild.klum.ast.util.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore
@@ -114,7 +115,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance.bar.foo.is(instance)
     }
 
-    def "reuse single dsl object sets owner reference if not set"() {
+    def "single dsl template creates a fresh owned object"() {
         given:
         createClass('''
             package pk
@@ -130,30 +131,23 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             }
         ''')
 
-        when:
-        def reuse = create("pk.Bar")
-
-        then:
-        reuse.foo == null
+        and:
+        def Bar = getClass("pk.Bar")
+        def recipe = Bar.Create.Template {}
 
         when:
-        instance = clazz.Create.With {
-            bar reuse
+        Bar.Template.With(recipe) {
+            instance = clazz.Create.With {
+                bar()
+            }
         }
 
         then:
-        reuse.foo.is(instance)
-
-        when:
-        def another = clazz.Create.With {
-            bar reuse
-        }
-
-        then: "still"
-        reuse.foo.is(instance)
+        !instance.bar.is(recipe)
+        instance.bar.foo.is(instance)
     }
 
-    def "using existing objects in list closure sets owner"() {
+    def "list templates create fresh owned objects"() {
         given:
         createClass('''
             package pk
@@ -168,16 +162,20 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Foo foo
             }
         ''')
-        def aBar = create("pk.Bar") {}
+        def Bar = getClass("pk.Bar")
+        def recipe = Bar.Create.Template {}
 
         when:
-        instance = clazz.Create.With {
-            bars {
-                bar aBar
+        Bar.Template.With(recipe) {
+            instance = clazz.Create.With {
+                bars {
+                    bar()
+                }
             }
         }
 
         then:
+        !instance.bars[0].is(recipe)
         instance.bars[0].foo.is(instance)
     }
 
@@ -204,15 +202,18 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 aBar = bar {}
             }
         }
+        aBar = instance.bars[0]
 
-        def otherInstance = clazz.Create.With {
+        clazz.Create.With {
             bars {
                 bar(aBar)
             }
         }
 
-        then: "bar's owner should still be the first object"
-        otherInstance.bars[0].foo.is(instance)
+        then: "a sealed Builder from a completed lifecycle cannot become new composition"
+        KlumModelException error = thrown()
+        error.message.contains("Completed DSL Object inputs are only supported for LINK relationships")
+        instance.bars[0].foo.is(instance)
     }
 
     def "reusing of existing objects in map closure does not set owner"() {
@@ -242,6 +243,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         instance = create("pk.Foo") {
             aBar = bar("Klaus") {}
         }
+        aBar = instance.bar
 
         create("pk.Fum") {
             bars {
@@ -250,11 +252,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
+        thrown(KlumModelException)
         aBar.outer.is(instance)
     }
 
 
-    def "using existing objects in map closure sets owner"() {
+    def "map templates create fresh owned objects"() {
         given:
         createClass('''
             package pk
@@ -270,16 +273,20 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Foo foo
             }
         ''')
-        def aBar = create("pk.Bar", "Klaus") {}
+        def Bar = getClass("pk.Bar")
+        def recipe = Bar.Create.Template {}
 
         when:
-        instance = clazz.Create.With {
-            bars {
-                bar(aBar)
+        Bar.Template.With(recipe) {
+            instance = clazz.Create.With {
+                bars {
+                    bar("Klaus")
+                }
             }
         }
 
         then:
+        !instance.bars.Klaus.is(recipe)
         instance.bars.Klaus.foo.is(instance)
     }
 
@@ -360,29 +367,24 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             }
         ''')
 
-        def aBar = create("pk.Bar") {}
+        instance = clazz.Create.With {
+            bar()
+        }
+        def aBar = instance.bars[0]
 
         when:
-        instance = clazz.Create.With {
+        clazz.Create.With {
             bar(aBar)
         }
 
         then:
-        aBar.foo.is(instance)
-
-
-        when:
-        def anotherInstance = clazz.Create.With {
-            bar(aBar)
-        }
-
-        then: "bar.owner is not replaced"
+        thrown(KlumModelException)
         aBar.foo.is(instance)
     }
 
     def "owner is not overridden in Maps"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -396,25 +398,27 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Foo foo
             }
         ''')
-        def aBar = create("pk.Bar", "Klaus") {}
+        def aBar
         def otherFoo = create("pk.Foo") {
-            bar(aBar)
+            aBar = bar("Klaus") {}
         }
+        aBar = otherFoo.bars.Klaus
 
         when:
-        instance.apply {
+        clazz.Create.With {
             bars {
                 bar(aBar)
             }
         }
 
         then:
-        instance.bars.Klaus.foo.is(otherFoo)
+        thrown(KlumModelException)
+        aBar.foo.is(otherFoo)
     }
 
     def "owner is not overridden in Lists"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -427,20 +431,22 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
                 @Owner Foo foo
             }
         ''')
-        def aBar = create("pk.Bar") {}
+        def aBar
         def otherFoo = create("pk.Foo") {
-            bar(aBar)
+            aBar = bar {}
         }
+        aBar = otherFoo.bars[0]
 
         when:
-        instance.apply {
+        clazz.Create.With {
             bars {
                 bar(aBar)
             }
         }
 
         then:
-        instance.bars[0].foo.is(otherFoo)
+        thrown(KlumModelException)
+        aBar.foo.is(otherFoo)
     }
 
 
@@ -456,6 +462,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class OtherOwner {
+                @Field(FieldType.LINK)
                 List<Bar> bars
             }
 
@@ -483,7 +490,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         secondFoo.bars[0].foo == aFoo
     }
 
-    @Ignore("Obsolete with owner phases")
+    @Ignore("Owner values are intentionally assigned in the OWNER phase after configuration closures")
     def "owner must be set before calling the closure"() {
         given:
         createClass('''
@@ -543,6 +550,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Moo {
+                @Field(FieldType.LINK)
                 Bar linkedBar
             }
 
@@ -554,10 +562,11 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def barInstance
+        def barBuilder
         instance = clazz.Create.With {
-            barInstance = bar {}
+            barBuilder = bar {}
         }
+        def barInstance = instance.bar
 
         then:
         barInstance.foo.is(instance)
@@ -570,7 +579,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         barInstance.foo.is(instance)
-        barInstance.moo.is(instance2)
+        barInstance.moo == null
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/171")
@@ -586,6 +595,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
             @DSL
             class Moo {
+                @Field(FieldType.LINK)
                 Bar linkedBar
             }
 
@@ -601,10 +611,12 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         ''')
 
         when:
-        def barInstance = create("pk.SubBar")
+        def SubBar = getClass("pk.SubBar")
+        def barBuilder
         instance = clazz.Create.With {
-            bar barInstance
+            barBuilder = bar(SubBar) {}
         }
+        def barInstance = instance.bar
 
         then:
         barInstance.foo.is(instance)
@@ -617,7 +629,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         then:
         barInstance.foo.is(instance)
-        barInstance.moo.is(instance2)
+        barInstance.moo == null
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/176")

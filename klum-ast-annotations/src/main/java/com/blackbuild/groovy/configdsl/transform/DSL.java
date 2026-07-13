@@ -85,13 +85,10 @@ import java.lang.annotation.Target;
  for the generated factory instead. This allows adding additional methods to the factory.</p>
 
 
- <p>Additionally, an {@code apply} method is created, which takes single closure and applies it to an existing object.</p>
+ <p>Completed DSL Objects expose no generated mutation method. Configuration is performed on a generated Builder through
+ factory callbacks, Templates, and pre-materialization lifecycle methods.</p>
 
- <pre><code>
- def void apply(Closure c)
- </code></pre>
-
- <p>Both {@code apply} and {@code create} also support named parameters, allowing to set values in a concise way. Every map element of
+ <p>{@code Create.With} also supports named parameters, allowing values to be set in a concise way. Every map element of
  the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):</p>
 
  <pre><code>
@@ -205,8 +202,9 @@ import java.lang.annotation.Target;
 
  <h3>Setters and closures for DSL-Object Fields</h3>
 
- <p>for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
- String parameter. Also, a regular setter method is created for reusing an existing object.</p>
+ <p>For each DSL Object composition field, a Builder closure method is generated. If the field is a keyed object, this
+ method has an additional String parameter. Existing completed objects are accepted only for {@link FieldType#LINK LINK}
+ aggregation fields.</p>
 
  <pre><code>
  {@literal @}DSL
@@ -227,13 +225,11 @@ import java.lang.annotation.Target;
  }
  </code></pre>
 
- <p>creates the following methods (in Config):</p>
+ <p>Conceptually creates the following Builder methods (the concrete generated Builder type is not public API):</p>
 
  <pre><code>
- def unkeyed(UnKeyed reuse) // reuse an exiting object
- Unkeyed unkeyed({@literal @}DelegatesTo(Unkeyed) Closure closure)
- def keyed(UnKeyed reuse) // reuse an exiting object
- Keyed keyed(String key, {@literal @}DelegatesTo(Unkeyed) Closure closure)
+ def unkeyed(Closure closure) // closure delegates to the generated UnKeyed Builder
+ def keyed(String key, Closure closure) // closure delegates to the generated Keyed Builder
  </code></pre>
 
  <p>Usage:</p>
@@ -247,25 +243,16 @@ import java.lang.annotation.Target;
    }
  }
 
- def objectForReuse = UnKeyed.Create.With { name = "reuse" }
-
- Config.Create.With {
-   unkeyed objectForReuse
- }
  </code></pre>
 
- <p>The closure methods return the created objects, so you can also do the following:</p>
+ <p>The closure methods return the child Builder, so construction-time configuration can be composed:</p>
 
  <pre><code>
- def objectForReuse
  Config.Create.With {
-   objectForReuse = unkeyed {
+   def childBuilder = unkeyed {
      name "other"
    }
- }
-
- Config.Create.With {
-   unkeyed objectForReuse
+   childBuilder.name "final"
  }
  </code></pre>
 
@@ -275,12 +262,9 @@ import java.lang.annotation.Target;
  name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
  keyed members to a list and to a map is identical (obviously, only keyed objects can be added to a map).</p>
 
- <p>The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
- In that case, <b>the owner field of the added object is only set, when it does not yet have an owner</b>.</p>
-
- <p>This syntax is especially useful for delegating the creation of objects into a separate method.</p>
-
- <p>As with simple objects, the inner closures return the existing object for reuse</p>
+ <p>Inner creators produce child Builders in the owning Builder's lifecycle and return those Builders for
+ construction-time composition. Completed DSL Objects can be added only to collections marked
+ {@link FieldType#LINK LINK}; they remain existing aggregation targets and are never re-owned.</p>
 
  <pre><code>
  {@literal @}DSL

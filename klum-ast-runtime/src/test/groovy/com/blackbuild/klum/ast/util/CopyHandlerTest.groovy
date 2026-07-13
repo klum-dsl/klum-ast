@@ -28,6 +28,15 @@ import spock.lang.Issue
 
 class CopyHandlerTest extends AbstractRuntimeTest {
 
+    def "copying rejects a null donor immediately"() {
+        when:
+        CopyHandler.copyToFrom(new TestRuntimeBuilder<TestObject>(TestObject), null)
+
+        then:
+        KlumModelException failure = thrown()
+        failure.message.contains("Copy donor must not be null")
+    }
+
     @Issue("36")
     def "copy from creates copies of nested DSL objects"() {
         given:
@@ -35,12 +44,9 @@ class CopyHandlerTest extends AbstractRuntimeTest {
             package pk
 
 import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.KlumModelObject
-
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
                 Inner inner
@@ -48,19 +54,29 @@ import com.blackbuild.klum.ast.KlumModelObject
             
             @DSL
             class Inner implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String value
-            } 
+            }
+
+            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+                String name
+                Inner$_RW inner
+                Outer$_RW(String key) { super(Outer) }
+            }
+
+            class Inner$_RW extends TestRuntimeBuilder<Inner> {
+                String value
+                Inner$_RW(String key) { super(Inner) }
+            }
          ''')
 
-        def inner = newInstanceOf("pk.Inner")
-        def outer = newInstanceOf("pk.Outer")
+        def inner = newBuilderOf("pk.Inner")
+        def outer = newBuilderOf("pk.Outer")
         inner.value = "bla"
         outer.inner = inner
         outer.name = "bli"
 
         when:
-        def copy = newInstanceOf("pk.Outer")
+        def copy = newBuilderOf("pk.Outer")
         CopyHandler.copyToFrom(copy, outer)
 
         then:
@@ -81,7 +97,6 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
                 List<Inner> inners = []
@@ -90,16 +105,27 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             
             @DSL
             class Inner implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String value
-            } 
+            }
+
+            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+                String name
+                List<Inner$_RW> inners = []
+                Map<String, Inner$_RW> mappedInners = [:]
+                Outer$_RW(String key) { super(Outer) }
+            }
+
+            class Inner$_RW extends TestRuntimeBuilder<Inner> {
+                String value
+                Inner$_RW(String key) { super(Inner) }
+            }
          ''')
 
-        def inner = newInstanceOf("pk.Inner")
-        def inner2 = newInstanceOf("pk.Inner")
-        def minner = newInstanceOf("pk.Inner")
-        def minner2 = newInstanceOf("pk.Inner")
-        def outer = newInstanceOf("pk.Outer")
+        def inner = newBuilderOf("pk.Inner")
+        def inner2 = newBuilderOf("pk.Inner")
+        def minner = newBuilderOf("pk.Inner")
+        def minner2 = newBuilderOf("pk.Inner")
+        def outer = newBuilderOf("pk.Outer")
         inner.value = "bla"
         inner2.value = "blu"
         minner.value = "mbla"
@@ -111,7 +137,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         outer.name = "bli"
 
         when:
-        def copy = newInstanceOf("pk.Outer")
+        def copy = newBuilderOf("pk.Outer")
         CopyHandler.copyToFrom(copy, outer)
 
         then:
@@ -143,15 +169,21 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
                 Map<String, List<String>> inners = [:]
                 List<List<String>> innerLists = []
             }
+
+            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+                String name
+                Map<String, List<String>> inners = [:]
+                List<List<String>> innerLists = []
+                Outer$_RW(String key) { super(Outer) }
+            }
          ''')
 
-        def outer = newInstanceOf("pk.Outer")
+        def outer = newBuilderOf("pk.Outer")
         outer.name = "bli"
         outer.inners.put "a", ["a1", "a2"]
         outer.inners.put "b", ["b1", "b2"]
@@ -159,7 +191,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         outer.innerLists.add(["b1", "b2"])
 
         when:
-        def copy = newInstanceOf("pk.Outer")
+        def copy = newBuilderOf("pk.Outer")
         CopyHandler.copyToFrom(copy, outer)
 
         then:
@@ -189,18 +221,24 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
                 Map<String, List<String>> inners = [:]
                 List<List<String>> innerLists = []
+            }
+
+            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+                String name
+                Map<String, List<String>> inners = [:]
+                List<List<String>> innerLists = []
+                Outer$_RW(String key) { super(Outer) }
             }
          ''')
 
         def outer = [name: "bli", inners: [a: ["a1", "a2"], b: ["b1", "b2"]], innerLists: [["a1", "a2"], ["b1", "b2"]]]
 
         when:
-        def copy = newInstanceOf("pk.Outer")
+        def copy = newBuilderOf("pk.Outer")
         CopyHandler.copyToFrom(copy, outer)
 
         then:
@@ -229,11 +267,17 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String name
                 
                 Inner inner
                 Dummy dummy
+            }
+
+            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+                String name
+                Inner inner
+                Dummy dummy
+                Outer$_RW(String key) { super(Outer) }
             }
             
             enum Dummy {
@@ -255,7 +299,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         def outer = [name: "bli", inner: "Hans Wurst", dummy: "BCD"]
 
         when:
-        def copy = newInstanceOf("pk.Outer")
+        def copy = newBuilderOf("pk.Outer")
         CopyHandler.copyToFrom(copy, outer)
 
         then:
@@ -276,19 +320,24 @@ import com.blackbuild.groovy.configdsl.transform.DSL
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class AClass implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
             }
+
+            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+                AClass$_RW(String key) { super(AClass) }
+            }
          ''')
 
-        def template = newInstanceOf("pk.AClass")
+        def template = newBuilderOf("pk.AClass")
         template.inners.put "a", "aFromTemplate"
         template.inners.put "b", "bFromTemplate"
         template.innerLists.add "aFromTemplate"
 
         when:
-        def receiver = newInstanceOf("pk.AClass")
+        def receiver = newBuilderOf("pk.AClass")
         receiver.inners.put "a", "aFromReceiver"
         receiver.inners.put "c", "cFromReceiver"
         receiver.innerLists.add "aFromReceiver"
@@ -320,19 +369,24 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             @Overwrite(collections = @Overwrite.Collection(OverwriteStrategy.Collection.REPLACE), 
                        maps = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES))
             class AClass implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
             }
+
+            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+                AClass$_RW(String key) { super(AClass) }
+            }
          ''')
 
-        def template = newInstanceOf("pk.AClass")
+        def template = newBuilderOf("pk.AClass")
         template.inners.put "a", "aFromTemplate"
         template.inners.put "b", "bFromTemplate"
         template.innerLists.add "aFromTemplate"
 
         when:
-        def receiver = newInstanceOf("pk.AClass")
+        def receiver = newBuilderOf("pk.AClass")
         receiver.inners.put "a", "aFromReceiver"
         receiver.inners.put "c", "cFromReceiver"
         receiver.innerLists.add "aFromReceiver"
@@ -363,26 +417,36 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             @DSL
             @Overwrite(missing = @Overwrite.Missing(OverwriteStrategy.Missing.IGNORE))
             class AClass implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
             }
 
             @DSL
             class BClass implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 Map<String, String> inners = [:]
                 List<String> otherLists = []
             }
+
+            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+                Map<String, String> inners = [:]
+                List<String> innerLists = []
+                AClass$_RW(String key) { super(AClass) }
+            }
+
+            class BClass$_RW extends TestRuntimeBuilder<BClass> {
+                Map<String, String> inners = [:]
+                List<String> otherLists = []
+                BClass$_RW(String key) { super(BClass) }
+            }
          ''')
 
-        def template = newInstanceOf("pk.BClass")
+        def template = newBuilderOf("pk.BClass")
         template.inners.put "a", "aFromTemplate"
         template.inners.put "b", "bFromTemplate"
         template.otherLists.add "aFromTemplate"
 
         when:
-        def receiver = newInstanceOf("pk.AClass")
+        def receiver = newBuilderOf("pk.AClass")
         receiver.inners.put "a", "aFromReceiver"
         receiver.inners.put "c", "cFromReceiver"
         receiver.innerLists.add "aFromReceiver"
@@ -406,22 +470,28 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class AClass implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 String normalField
                 @Field(FieldType.TRANSIENT)
                 String transientField
                 @Field(FieldType.IGNORED)
                 String ignoredField
             }
+
+            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+                String normalField
+                String transientField
+                String ignoredField
+                AClass$_RW(String key) { super(AClass) }
+            }
          ''')
 
-        def template = newInstanceOf("pk.AClass")
+        def template = newBuilderOf("pk.AClass")
         template.normalField = "normalFieldFromTemplate"
         template.transientField = "transientFieldFromTemplate"
         template.ignoredField = "ignoredFieldFromTemplate"
 
         when:
-        def receiver = newInstanceOf("pk.AClass")
+        def receiver = newBuilderOf("pk.AClass")
         CopyHandler.copyToFrom(receiver, template)
 
         then:
@@ -437,12 +507,9 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
             package pk
 
 import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.KlumModelObject
-
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Foo implements KlumModelObject {
-                KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
                 int number
                 byte byteNumber
                 short shortNumber
@@ -452,9 +519,21 @@ import com.blackbuild.klum.ast.KlumModelObject
                 boolean boolValue
                 char charValue
             }
+
+            class Foo$_RW extends TestRuntimeBuilder<Foo> {
+                int number
+                byte byteNumber
+                short shortNumber
+                long longNumber
+                float floatNumber
+                double doubleNumber
+                boolean boolValue
+                char charValue
+                Foo$_RW(String key) { super(Foo) }
+            }
          ''')
 
-        def donor = newInstanceOf("pk.Foo")
+        def donor = newBuilderOf("pk.Foo")
         donor.number = 42
         donor.byteNumber = 1
         donor.shortNumber = 2
@@ -465,7 +544,7 @@ import com.blackbuild.klum.ast.KlumModelObject
         donor.charValue = 'c'
 
         when:
-        def copy = newInstanceOf("pk.Foo")
+        def copy = newBuilderOf("pk.Foo")
         CopyHandler.copyToFrom(copy, donor)
 
         then:

@@ -23,19 +23,19 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class ApplyLaterPhase extends VisitingPhaseAction {
+class ApplyLaterPhase extends BuilderVisitingPhaseAction {
 
     ApplyLaterPhase(int phase) {
         super(new Phase(phase));
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        KlumInstanceProxy.getProxyFor(element).executeApplyLaterClosures(getPhaseNumber());
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+        builder.executeApplyLaterClosures(getPhaseNumber());
     }
 
     static class Phase implements KlumPhase {

@@ -218,7 +218,7 @@ class ConverterBuilder {
 
         checkForUnmatchedGenericPlaceholders(sourceMethod, genericsSpec);
 
-        ProxyMethodBuilder method = createProxyMethod(methodName, getProxyMethodName())
+        ProxyMethodBuilder method = createRuntimeProxyMethod()
                 .mod(ACC_PUBLIC)
                 .optional()
                 .returning(elementType)
@@ -247,6 +247,14 @@ class ConverterBuilder {
             }
         });
         method.addTo(rwClass);
+    }
+
+    private ProxyMethodBuilder createRuntimeProxyMethod() {
+        ClassNode modelBuilder = getRwClassOf(transformation.annotatedClass);
+        if (rwClass.equals(modelBuilder))
+            return createProxyMethod(methodName, getProxyMethodName());
+        return new ProxyMethodBuilder(org.codehaus.groovy.ast.tools.GeneralUtils.varX("rw"), methodName, getProxyMethodName())
+                .targetType(modelBuilder);
     }
 
     private void checkForUnmatchedGenericPlaceholders(MethodNode sourceMethod, Map<String, ClassNode> genericsSpec) {

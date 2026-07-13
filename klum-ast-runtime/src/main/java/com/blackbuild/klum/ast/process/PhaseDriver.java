@@ -23,7 +23,9 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumModelException;
+import com.blackbuild.klum.ast.util.KlumModelProxy;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -119,11 +121,35 @@ public class PhaseDriver {
         }
     }
 
+    /** Runs one complete Builder lifecycle and returns its completed model. */
+    public static <T> T withBuilderLifecycle(Supplier<? extends KlumBuilder<T>> generator, Consumer<KlumBuilder<T>> action) {
+        if (PhaseDriver.getInstance().activeObjectPointer > 0)
+            throw new KlumModelException("Cannot start an independent DSL Object factory while a Builder lifecycle is active. "
+                    + "Create composition through the owning Builder's generated relationship methods; "
+                    + "completed DSL Objects may only be created beforehand and assigned to LINK fields.");
+
+        Object oldInstance = PhaseDriver.getInstance().context.getInstance();
+        try {
+            KlumBuilder<T> builder = generator.get();
+            PhaseDriver.getInstance().context.setInstance(builder);
+            PhaseDriver.enter(builder);
+            action.accept(builder);
+            PhaseDriver.executeIfReady();
+            return (T) PhaseDriver.getInstance().rootObject;
+        } finally {
+            PhaseDriver.getInstance().context.setInstance(oldInstance);
+            PhaseDriver.leave();
+        }
+    }
+
     public static void enter(Object object) {
         PhaseDriver driver = getInstance();
         if (driver.activeObjectPointer == 0) {
             driver.rootObject = object;
-            KlumInstanceProxy.getProxyFor(object).setModelPath("<root>");
+            if (object instanceof KlumBuilder)
+                ((KlumBuilder<?>) object).setModelPath("<root>");
+            else
+                KlumModelProxy.getProxyFor(object).setModelPathIfAbsent("<root>");
         }
         driver.activeObjectPointer++;
     }
@@ -170,6 +196,10 @@ public class PhaseDriver {
 
     public Object getRootObject() {
         return rootObject;
+    }
+
+    void replaceRootObject(Object rootObject) {
+        this.rootObject = Objects.requireNonNull(rootObject);
     }
 
     public static class Context {

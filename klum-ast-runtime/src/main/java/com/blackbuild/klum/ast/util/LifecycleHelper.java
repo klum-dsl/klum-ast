@@ -51,8 +51,8 @@ public class LifecycleHelper {
      * @param proxy the proxy for which the lifecycle methods should be executed
      * @param annotation the annotation that marks the lifecycle methods and closures
      */
-    public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
-        Object rw = proxy.getRwInstance();
+    public static void executeLifecycleMethods(KlumBuilder<?> builder, Class<? extends Annotation> annotation) {
+        Object rw = builder;
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .map(Method::getName)
                 .distinct()
@@ -64,7 +64,16 @@ public class LifecycleHelper {
                         PhaseDriver.setCurrentMember(null);
                     }
                 });
-        executeLifecycleClosures(proxy, annotation);
+        executeLifecycleClosures(builder, annotation);
+    }
+
+    /**
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     */
+    @Deprecated(since = "4.0", forRemoval = true)
+    @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
+    public static void executeLifecycleMethods(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
+        executeLifecycleMethods(proxy.getBuilder(), annotation);
     }
 
     /**
@@ -72,22 +81,31 @@ public class LifecycleHelper {
      * @param proxy The proxy for which the lifecycle closures should be executed
      * @param annotation the annotation that marks the lifecycle closures
      */
-    public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
-        DslHelper.getFieldsAnnotatedWith(proxy.getDSLInstance().getClass(), annotation)
+    public static void executeLifecycleClosures(KlumBuilder<?> builder, Class<? extends Annotation> annotation) {
+        DslHelper.getFieldsAnnotatedWith(builder.getClass(), annotation)
                 .filter(field -> field.getType().equals(Closure.class))
                 .map(Field::getName)
-                .forEach(name -> executeLifecycleClosure(proxy, name));
+                .forEach(name -> executeLifecycleClosure(builder, name));
     }
 
-    private static void executeLifecycleClosure(KlumInstanceProxy proxy, String name) {
-        Closure<?> closure = proxy.getInstanceAttribute(name);
+    /**
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     */
+    @Deprecated(since = "4.0", forRemoval = true)
+    @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
+    public static void executeLifecycleClosures(KlumInstanceProxy proxy, Class<? extends Annotation> annotation) {
+        executeLifecycleClosures(proxy.getBuilder(), annotation);
+    }
+
+    private static void executeLifecycleClosure(KlumBuilder<?> builder, String name) {
+        Closure<?> closure = builder.getInstanceAttribute(name);
         try {
             PhaseDriver.setCurrentMember(name);
-            ClosureHelper.invokeClosureWithDelegateAsArgument(closure, proxy.getRwInstance());
+            ClosureHelper.invokeClosureWithDelegateAsArgument(closure, builder);
         } finally {
             PhaseDriver.setCurrentMember(null);
         }
-        proxy.setInstanceAttribute(name, null);
+        builder.setInstanceAttribute(name, null);
     }
 
     /**

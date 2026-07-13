@@ -41,6 +41,12 @@ This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
 When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular
 [Alternatives Syntax](Alternatives-Syntax.md), especially when using abstract classes.
 
+In the current 4.0 Builder-first implementation, model-returning creator methods are still projected but fail when invoked
+inside the owning Builder lifecycle. The intended compatibility behavior is specified by
+[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md): the local method
+will retain its familiar name while producing an unsealed child Builder through `Create.AsBuilder`. Until that follow-up
+lands, use the generated element closure method instead of a projected creator method.
+
 
 ```groovy
 @DSL class Foo {

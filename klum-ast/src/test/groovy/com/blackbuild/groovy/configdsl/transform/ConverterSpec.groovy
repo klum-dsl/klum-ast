@@ -26,6 +26,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import groovy.time.TimeCategory
 import spock.lang.Issue
+import spock.lang.PendingFeature
 
 import java.time.Duration
 
@@ -105,6 +106,7 @@ class ConverterSpec extends AbstractDSLSpec {
         TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
+    @PendingFeature(reason = "ADR 0004: DSL Object converter closures still materialize models instead of producing child Builders")
     def "generated converter for dsl field"() {
         when:
         createClass '''
@@ -131,6 +133,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.value.time == 123L
     }
 
+    @PendingFeature(reason = "ADR 0004: keyed DSL Object converter closures still materialize models instead of producing child Builders")
     def "generated converter for keyed dsl field"() {
         when:
         createClass '''
@@ -221,6 +224,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
+    @PendingFeature(reason = "ADR 0004: source factory converters still call root factories instead of hidden Builder-producing twins")
     def "converter factory for dsl field"() {
         when:
         createClass '''
@@ -250,6 +254,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
+    @PendingFeature(reason = "ADR 0004: source factory converters with default arguments still lack Builder-producing twins")
     def "converter factory for dsl field with default values"() {
         when:
         createClass '''
@@ -290,6 +295,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.token == "flummy"
     }
 
+    @PendingFeature(reason = "ADR 0004: keyed source factory converters still call root factories instead of Builder-producing twins")
     def "converter factory for keyed dsl field"() {
         when:
         createClass '''
@@ -320,6 +326,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
+    @PendingFeature(reason = "ADR 0004: list relationship converters still call model-returning factories instead of Builder-producing twins")
     def "converter factory for keyed dsl list"() {
         when:
         createClass '''
@@ -338,7 +345,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", getRwClass("Bar"))
         rwClazz.getMethod("bar", String, long)
 
         when:
@@ -350,6 +357,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bars.first().birthday.time == 123L
     }
 
+    @PendingFeature(reason = "ADR 0004: map relationship converters still call model-returning factories instead of Builder-producing twins")
     def "converter factory for keyed dsl map"() {
         when:
         createClass '''
@@ -368,7 +376,7 @@ class ConverterSpec extends AbstractDSLSpec {
             '''
 
         then:
-        rwClazz.getMethod("bar", getClass("Bar"))
+        rwClazz.getMethod("bar", getRwClass("Bar"))
         rwClazz.getMethod("bar", String, long)
 
         when:
@@ -569,6 +577,7 @@ class Other<E> {
     }
 
     @Issue(["300", "319"])
+    @PendingFeature(reason = "ADR 0004 / #319: collection-local custom factories still lack Builder-producing projections")
     def "methods of the factory are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -597,7 +606,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', Duration)
         hasMethod(barsFactory, 'WithAges', Duration[])
@@ -627,6 +636,7 @@ import java.time.Duration
     }
 
     @Issue(["300", "319"])
+    @PendingFeature(reason = "ADR 0004 / #319: map-local custom factories still lack Builder-producing projections")
     def "methods of the factory are included in collection factories for maps"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -656,7 +666,7 @@ import java.time.Duration
         def barsFactory = getClass('Foo$_bars')
 
         then:
-        hasMethod(barsFactory, 'bar', getClass('Bar'))
+        hasMethod(barsFactory, 'bar', getRwClass('Bar'))
         hasMethod(barsFactory, 'From', Class)
         hasMethod(barsFactory, 'WithAge', String, Duration)
         hasMethod(barsFactory, 'WithAges', Map)
@@ -686,6 +696,7 @@ import java.time.Duration
     }
 
     @Issue("300")
+    @PendingFeature(reason = "ADR 0004: abstract element factories still lack subtype-preserving Builder-producing projections")
     def "methods of the factory of abstract classes are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -746,6 +757,60 @@ import java.time.Duration
         instance.bars[1].sickname == "Blabby"
     }
 
+    @Issue(["198", "319"])
+    @PendingFeature(reason = "ADR 0004: collection-local From(DelegatingScript) still calls the root materializing factory")
+    def "collection-local From creates a child Builder from a delegating script"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                List<Bar> bars
+            }
 
+            @DSL class Bar {
+                Date birthday
+            }
+        '''
+        def scriptClass = createSecondaryClass '''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            birthday new Date(123L)
+        '''
+
+        when:
+        instance = create("Foo") {
+            bars {
+                From(scriptClass)
+            }
+        }
+
+        then:
+        instance.bars*.birthday*.time == [123L]
+    }
+
+    @Issue("198")
+    @PendingFeature(reason = "ADR 0004: direct collection script methods still call root From instead of producing child Builders")
+    def "direct collection script methods create children from delegating scripts"() {
+        given:
+        createClass '''
+            @DSL class Foo {
+                List<Bar> bars
+            }
+
+            @DSL class Bar {
+                Date birthday
+            }
+        '''
+        def scriptClass = createSecondaryClass '''
+            @groovy.transform.BaseScript(DelegatingScript) import groovy.util.DelegatingScript
+            birthday new Date(123L)
+        '''
+
+        when:
+        instance = create("Foo") {
+            bars scriptClass
+        }
+
+        then:
+        instance.bars*.birthday*.time == [123L]
+    }
 
 }

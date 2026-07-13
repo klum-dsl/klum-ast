@@ -352,7 +352,7 @@ import com.blackbuild.klum.ast.util.KlumFactory
     }
 
     @Issue("359")
-    def "convert map before creating nested instance"() {
+    def "nested maps do not start an independent child factory lifecycle"() {
         given:
         createClass '''
 import com.blackbuild.klum.ast.util.KlumFactory
@@ -387,10 +387,8 @@ import com.blackbuild.klum.ast.util.KlumFactory
         def person = Person.Create.FromMap(['firstName': 'Klaus', 'lastName': 'Müller', address: ['street': 'Hauptstraße', 'number': '12', 'city': 'München', 'zip': '80331']])
 
         then:
-        person.firstName == 'Klaus'
-        person.lastName == 'Müller'
-        person.address.street == 'Hauptstraße 12'
-        person.address.city == 'München 80331'
+        KlumModelException error = thrown()
+        error.message.contains("Field number is missing in target object")
     }
 
 }

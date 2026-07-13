@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.Default;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import groovy.lang.Closure;
@@ -43,37 +43,35 @@ import java.util.Map;
 import static com.blackbuild.klum.ast.util.ClosureHelper.*;
 import static com.blackbuild.klum.ast.util.DslHelper.castTo;
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 
-public class DefaultPhase extends VisitingPhaseAction {
+public class DefaultPhase extends BuilderVisitingPhaseAction {
 
     public DefaultPhase() {
         super(DefaultKlumPhase.DEFAULT);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
         setFieldsAnnotatedWithDefaultAnnotation(element);
         executeDefaultLifecycleMethods(element);
     }
 
-    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(Object element, Object container, String nameOfFieldInContainer) {
+    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(KlumBuilder<?> element, Object container, String nameOfFieldInContainer) {
         if (container == null) return;
         Field field = DslHelper.getField(container.getClass(), nameOfFieldInContainer).orElseThrow();
         AnnotationHelper.getMetaAnnotated(field, DefaultValues.class)
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
     }
 
-    private void setDefaultValuesFromDefaultValueAnnotationsOnType(Object element) {
-        DslHelper.getDslHierarchyOf(element.getClass()).stream()
+    private void setDefaultValuesFromDefaultValueAnnotationsOnType(KlumBuilder<?> element) {
+        DslHelper.getDslHierarchyOf(element.getModelType()).stream()
                 .flatMap(layer -> AnnotationHelper.getMetaAnnotated(layer, DefaultValues.class))
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
         }
 
-    private void setDefaultValuesFromAnnotation(Object element, Annotation valuesAnnotation) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
+    private void setDefaultValuesFromAnnotation(KlumBuilder<?> element, Annotation valuesAnnotation) {
         Map<String, Object> nonDefaultMembers = AnnotationHelper.getNonDefaultMembers(valuesAnnotation);
         if (nonDefaultMembers.containsKey("value")) {
             String valueTarget = valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).valueTarget();
@@ -81,24 +79,24 @@ public class DefaultPhase extends VisitingPhaseAction {
             nonDefaultMembers.put(valueTarget, mapping);
         }
 
-        nonDefaultMembers.forEach((field, value) -> setFieldToDefaultValue(field, value, proxy, valuesAnnotation));
+        nonDefaultMembers.forEach((field, value) -> setFieldToDefaultValue(field, value, element, valuesAnnotation));
     }
 
-    private static void setFieldToDefaultValue(String field, Object value, KlumInstanceProxy proxy, Annotation valuesAnnotation) {
+    private static void setFieldToDefaultValue(String field, Object value, KlumBuilder<?> builder, Annotation valuesAnnotation) {
 
         try {
-            if (!isEmpty(proxy.getInstanceAttribute(field))) return;
+            if (!isEmpty(builder.getInstanceAttribute(field))) return;
         } catch (MissingPropertyException e) {
             // ignore
         }
 
         Class<?> targetType = null;
         try {
-            targetType = determineTargetType(field, value, proxy, targetType);
+            targetType = determineTargetType(field, value, builder, targetType);
         } catch (MissingPropertyException e) {
             if (shouldIgnoreUnknownFields(valuesAnnotation)) return;
             throw new KlumSchemaException(format("Annotation %s defines a default value for '%s', but '%s' has no such field or virtual setter method.",
-                    valuesAnnotation.annotationType().getName(), field, proxy.getDSLInstance().getClass().getName()), e);
+                    valuesAnnotation.annotationType().getName(), field, builder.getModelType().getName()), e);
         }
 
         if (isClosureType(value)) {
@@ -107,27 +105,32 @@ public class DefaultPhase extends VisitingPhaseAction {
                 value = createClosureInstance((Class<? extends Closure<Object>>) value);
             else
                 //noinspection unchecked
-                value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, proxy.getDSLInstance());
+                value = invokeClosureWithDelegateAsArgument((Class<? extends Closure<Object>>) value, builder);
         }
 
         try {
             Object castedValue = castTo(value, targetType);
-            proxy.invokeRwMethod(field, castedValue);
+            builder.invokeBuilderMethod(field, castedValue);
         } catch (Exception e) {
             throw new KlumSchemaException(format("Could not convert default value from annotation %s.%s to target type %s",
                     valuesAnnotation.annotationType().getName(), field, targetType.getName()), e);
         }
     }
 
-    private static @NotNull Class<?> determineTargetType(String field, Object value, KlumInstanceProxy proxy, Class<?> fieldType) {
+    private static @NotNull Class<?> determineTargetType(String field, Object value, KlumBuilder<?> builder, Class<?> fieldType) {
+        if ("apply".equals(field) && isClosureType(value))
+            return Closure.class;
         Class<?> methodArgument = isClosureType(value) ? (Class<?>) value : value.getClass();
-        MetaMethod exactlyMatchingSetter = proxy.getRwInstance().getMetaClass().getMetaMethod(field, new Object[]{methodArgument});
+        List<MetaMethod> compatibleSetters = builder.getMetaClass().getMetaMethods().stream()
+                .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
+                .filter(metaMethod -> metaMethod.getParameterTypes()[0].getTheClass().isAssignableFrom(methodArgument))
+                .toList();
 
-        if (exactlyMatchingSetter != null)
-            fieldType = exactlyMatchingSetter.getParameterTypes()[0].getTheClass();
+        if (compatibleSetters.size() == 1)
+            fieldType = compatibleSetters.get(0).getParameterTypes()[0].getTheClass();
 
         if (fieldType == null) {
-                fieldType = determineTargetTypeFromSingleSetterOrField(field, proxy);
+                fieldType = determineTargetTypeFromSingleSetterOrField(field, builder);
         }
         return fieldType;
     }
@@ -136,22 +139,22 @@ public class DefaultPhase extends VisitingPhaseAction {
         return valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).ignoreUnknownFields();
     }
 
-    private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, KlumInstanceProxy proxy) {
-        List<MetaMethod> matchingSetters = proxy.getRwInstance().getMetaClass().getMetaMethods().stream()
+    private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, KlumBuilder<?> builder) {
+        List<MetaMethod> matchingSetters = builder.getMetaClass().getMetaMethods().stream()
                 .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
-                .collect(toList());
+                .toList();
 
         if (matchingSetters.size() == 1)
             return matchingSetters.get(0).getParameterTypes()[0].getTheClass();
         else
-            return proxy.getField(field).getType();
+            return builder.getField(field).getType();
     }
 
-    private static void executeDefaultLifecycleMethods(Object element) {
-        LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), Default.class);
+    private static void executeDefaultLifecycleMethods(KlumBuilder<?> element) {
+        LifecycleHelper.executeLifecycleMethods(element, Default.class);
     }
 
-    private void setFieldsAnnotatedWithDefaultAnnotation(Object element) {
+    private void setFieldsAnnotatedWithDefaultAnnotation(KlumBuilder<?> element) {
         ClusterModel.getFieldsAnnotatedWith(element, Default.class)
                 .entrySet()
                 .stream()
@@ -159,29 +162,28 @@ public class DefaultPhase extends VisitingPhaseAction {
                 .forEach(entry -> applyDefaultValue(element, entry.getKey()));
     }
 
-    private void applyDefaultValue(Object element, String fieldName) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(element);
-        Object defaultValue = getDefaultValue(proxy, fieldName);
-        proxy.setSingleField(fieldName, defaultValue);
+    private void applyDefaultValue(KlumBuilder<?> element, String fieldName) {
+        Object defaultValue = getDefaultValue(element, fieldName);
+        element.setSingleField(fieldName, defaultValue);
     }
 
     @SuppressWarnings({"OptionalGetWithoutIsPresent", "java:S3655"})
-    private Object getDefaultValue(KlumInstanceProxy proxy, String fieldName) {
-        Field field = DslHelper.getField(proxy.getDSLInstance().getClass(), fieldName).get();
+    private Object getDefaultValue(KlumBuilder<?> builder, String fieldName) {
+        Field field = DslHelper.getField(builder.getClass(), fieldName).get();
         Default defaultAnnotation = field.getAnnotation(Default.class);
         if (defaultAnnotation == null) return null;
         Class<?> fieldType = field.getType();
 
         if (!defaultAnnotation.field().isEmpty()) {
-            Object defaultValue = proxy.getInstanceProperty(defaultAnnotation.field());
+            Object defaultValue = builder.getInstanceProperty(defaultAnnotation.field());
             if (defaultValue != null)
                 return castTo(defaultValue, fieldType);
-            return getDefaultValue(proxy, defaultAnnotation.field()); // special case: cascade defaults
+            return getDefaultValue(builder, defaultAnnotation.field()); // special case: cascade defaults
         } else if (!defaultAnnotation.delegate().isEmpty()) {
-            Object delegationTarget = proxy.getInstanceProperty(defaultAnnotation.delegate());
+            Object delegationTarget = builder.getInstanceProperty(defaultAnnotation.delegate());
             return delegationTarget != null ? castTo(InvokerHelper.getProperty(delegationTarget, fieldName), fieldType) : null;
         } else {
-            return castTo(invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), proxy.getDSLInstance()), fieldType);
+            return castTo(invokeClosureWithDelegateAsArgument(defaultAnnotation.code(), builder), fieldType);
         }
     }
 

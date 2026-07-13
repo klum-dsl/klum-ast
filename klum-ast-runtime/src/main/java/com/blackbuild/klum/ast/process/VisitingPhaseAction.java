@@ -23,21 +23,25 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructureUtil;
-import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents an action that is executed in a phase. The action is executed for each element in the model.
+ * Legacy untyped visitor base retained only to give existing plugins migration guidance.
+ *
+ * @deprecated since 4.0; extend {@link BuilderVisitingPhaseAction} before
+ * INSTANTIATE or {@link ModelVisitingPhaseAction} afterward
  */
+@Deprecated(since = "4.0", forRemoval = true)
+@SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
 public abstract class VisitingPhaseAction extends AbstractPhaseAction implements ModelVisitor {
 
     protected VisitingPhaseAction(KlumPhase phase) {
         super(phase);
+        throw new UnsupportedOperationException("VisitingPhaseAction no longer supports state-changing traversal; "
+                + "extend BuilderVisitingPhaseAction before INSTANTIATE or ModelVisitingPhaseAction afterward");
     }
 
     /**
@@ -61,15 +65,5 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
     }
 
     protected abstract void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer);
-
-    protected void withCurrentTemplates(Object element, Runnable runnable) {
-        TemplateManager.doWithTemplates(KlumInstanceProxy.getProxyFor(element).getCurrentTemplates(), new Closure<Void>(null) {
-            @Override
-            public Void call() {
-                runnable.run();
-                return null;
-            }
-        });
-    }
 
 }

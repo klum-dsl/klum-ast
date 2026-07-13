@@ -40,6 +40,8 @@ public enum DefaultKlumPhase implements KlumPhase {
     AUTO_LINK(20),
     DEFAULT(25),
     POST_TREE(30),
+    /** Materializes the completed DSL Object graph from its Builders. */
+    INSTANTIATE(40),
     VALIDATE(50),
     VERIFY(80),
     COMPLETE(100);

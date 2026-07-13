@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
 import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate;
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
@@ -45,14 +45,14 @@ import java.util.function.Predicate;
 import static com.blackbuild.klum.ast.util.DslHelper.*;
 import static java.lang.String.format;
 
-public class AutoCreationPhase extends VisitingPhaseAction {
+public class AutoCreationPhase extends BuilderVisitingPhaseAction {
 
     public AutoCreationPhase() {
         super(DefaultKlumPhase.AUTO_CREATE);
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
                     .filter(entry -> entry.getValue() == null)
@@ -64,11 +64,12 @@ public class AutoCreationPhase extends VisitingPhaseAction {
 
             autoCreateClusterFields(element);
 
-            LifecycleHelper.executeLifecycleMethods(KlumInstanceProxy.getProxyFor(element), AutoCreate.class);
+            LifecycleHelper.executeLifecycleMethods(element, AutoCreate.class);
         });
     }
 
-    private void autoCreate(Object element, Field field, AutoCreate autoCreate) {
+    private void autoCreate(KlumBuilder<?> element, Field builderField, AutoCreate autoCreate) {
+        Field field = element.getModelField(builderField.getName());
         Map<String, Object> values = ClosureHelper.invokeClosure(autoCreate.value());
 
         String key = autoCreate.key();
@@ -93,19 +94,22 @@ public class AutoCreationPhase extends VisitingPhaseAction {
 
         Class<?> finalType = type;
         String finalKey = key;
-        Object autoCreated = BreadcrumbCollector.withFullPathOverride(getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate", () -> FactoryHelper.create(finalType, values, finalKey, null));
+        KlumBuilder<?> autoCreated = BreadcrumbCollector.withFullPathOverride(
+                getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate",
+                () -> FactoryHelper.createNestedBuilder(finalType, values, finalKey)
+        );
 
-        KlumInstanceProxy.getProxyFor(element).setSingleField(field.getName(), autoCreated);
+        element.setSingleField(field.getName(), autoCreated);
     }
 
-    private void autoCreateClusterFields(Object element) {
-
-        ClusterModel.getMethodsAnnotatedWithStream(element, Map.class, Cluster.class)
+    private void autoCreateClusterFields(KlumBuilder<?> element) {
+        DslHelper.getMethodsAnnotatedWith(element.getModelType(), Cluster.class)
+                .filter(method -> Map.class.isAssignableFrom(method.getReturnType()))
                 .filter(clusterField -> clusterField.isAnnotationPresent(AutoCreate.class))
                 .forEach(clusterMethod -> autoCreateElementsForCluster(element, clusterMethod));
     }
 
-    private void autoCreateElementsForCluster(Object element, Method clusterMethod) {
+    private void autoCreateElementsForCluster(KlumBuilder<?> element, Method clusterMethod) {
         Cluster cluster = clusterMethod.getAnnotation(Cluster.class);
         Class<? extends Annotation> filterAnnotation = cluster.value();
         Predicate<AnnotatedElement> clusterFilter = filterAnnotation != Cluster.Undefined.class ? elementToCheck -> elementToCheck.isAnnotationPresent(filterAnnotation) : elementToCheck -> true;

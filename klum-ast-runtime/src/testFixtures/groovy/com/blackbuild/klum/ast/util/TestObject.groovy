@@ -26,5 +26,21 @@ package com.blackbuild.klum.ast.util
 import com.blackbuild.klum.ast.KlumModelObject
 
 class TestObject implements KlumModelObject {
-    public KlumInstanceProxy $proxy = new KlumInstanceProxy(this)
+    public final KlumModelProxy $proxy
+
+    TestObject() {
+        def stateCarrier = new CompanionStateCarrier(getClass() as Class<TestObject>)
+        $proxy = new KlumModelProxy(this, stateCarrier.exportModelState())
+    }
+
+    private static final class CompanionStateCarrier extends KlumBuilder<TestObject> {
+        CompanionStateCarrier(Class<TestObject> modelType) {
+            super(modelType)
+        }
+
+        @Override
+        protected Class<TestObject> $modelImplementationType() {
+            return TestObject
+        }
+    }
 }

@@ -25,6 +25,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.CopyHandler
+import com.blackbuild.klum.ast.util.FactoryHelper
 import spock.lang.Issue
 import spock.lang.Unroll
 
@@ -43,6 +44,16 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
     public static final String ADD_MISSING = "ADD_MISSING"
     public static final String SET_IF_EMPTY = "SET_IF_EMPTY"
 
+    private static def builder(Class type, Map values = [:], Closure body = null) {
+        def result = FactoryHelper.createBuilder(type, null)
+        result.apply(values, body)
+        return result
+    }
+
+    private static def builder(Class type, Closure body) {
+        return builder(type, [:], body)
+    }
+
 
     def "copy single pojo #strategy"() {
         given:
@@ -59,8 +70,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Foo.Create.With(bar: targetBar)
-        def source = Foo.Create.With(bar: sourceBar)
+        def target = builder(Foo, [bar: targetBar])
+        def source = builder(Foo, [bar: sourceBar])
         CopyHandler.copyToFrom(target, source)
 
         then:
@@ -94,8 +105,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Foo.Create.With(bar: targetBar)
-        def source = Foo.Create.With(bar: sourceBar)
+        def target = builder(Foo, [bar: targetBar])
+        def source = builder(Foo, [bar: sourceBar])
         CopyHandler.copyToFrom(target, source)
 
         then:
@@ -134,12 +145,12 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Outer.Create.With {
+        def target = builder(Outer) {
             if (targetMap != null) {
                 inner(targetMap)
             }
         }
-        def source = Outer.Create.With {
+        def source = builder(Outer) {
             if (sourceMap != null) {
                 inner(sourceMap)
             }
@@ -189,8 +200,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Foo.Create.With(bars: targetBars)
-        def source = Foo.Create.With {
+        def target = builder(Foo, [bars: targetBars])
+        def source = builder(Foo) {
             // need to explicitly set null to overwrite the default empty collection
             bars = sourceBars
         }
@@ -235,8 +246,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Foo.Create.With(bars: targetBars)
-        def source = Foo.Create.With {
+        def target = builder(Foo, [bars: targetBars])
+        def source = builder(Foo) {
             bars = sourceBars
         }
         CopyHandler.copyToFrom(target, source)
@@ -290,12 +301,12 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         """
 
         when:
-        def target = Outer.Create.With {
+        def target = builder(Outer) {
             targetMap.each { key, value ->
                 inner(foo: value.foo, bar: value.bar, key)
             }
         }
-        def source = Outer.Create.With {
+        def source = builder(Outer) {
             sourceMap.each { key, value ->
                 inner(foo: value.foo, bar: value.bar, key)
             }

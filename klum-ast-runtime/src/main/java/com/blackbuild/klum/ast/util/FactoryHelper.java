@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -56,6 +57,7 @@ import java.util.function.Supplier;
 public class FactoryHelper extends GroovyObjectSupport {
 
     public static final String MODEL_CLASS_KEY = "model-class";
+    private static final String TYPE_HINT = "@type";
 
     static {
         BreadCrumbVerbInterceptor.registerClass(FactoryHelper.class);
@@ -63,6 +65,115 @@ public class FactoryHelper extends GroovyObjectSupport {
 
     private FactoryHelper() {
         // static only
+    }
+
+    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key) {
+        return createBuilder(type, key, null);
+    }
+
+    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
+        return createBuilder(type, key, breadcrumbPathExtension, false);
+    }
+
+    private static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension, boolean template) {
+        if (!template && !DslHelper.isInstantiable(type))
+            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
+        try {
+            Class<? extends KlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
+            Constructor<? extends KlumBuilder<?>> constructor = builderType.getDeclaredConstructor(String.class);
+            if (!constructor.trySetAccessible())
+                throw new KlumModelException("Cannot access generated Builder constructor for " + type.getName());
+            KlumBuilder<T> builder = (KlumBuilder<T>) constructor.newInstance(key);
+            if (breadcrumbPathExtension != null)
+                builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadcrumbPathExtension);
+            else if (BreadcrumbCollector.hasInstance())
+                builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
+            builder.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
+            if (template)
+                builder.markAsTemplate();
+            return builder;
+        } catch (ReflectiveOperationException e) {
+            throw new KlumModelException("Could not instantiate generated Builder for " + type.getName(), e);
+        }
+    }
+
+    private static <T> KlumBuilder<T> createTemplateBuilder(Class<T> type) {
+        return createBuilder(type, null, null, true);
+    }
+
+    @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
+    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
+        return createRecipeBuilder(declaredType, recipe, keyHint, template, null);
+    }
+
+    @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
+    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template,
+                                              String breadcrumbPathExtension) {
+        Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
+        String key = recipeKey(effectiveType, recipe);
+        if (key == null && keyHint != null)
+            key = keyHint.toString();
+        KlumBuilder<?> builder = createBuilder(effectiveType, key, breadcrumbPathExtension);
+        if (template)
+            builder.markAsTemplate();
+        return builder;
+    }
+
+    private static Class<?> effectiveRecipeType(Class<?> declaredType, Object recipe) {
+        if (recipe instanceof Map)
+            return deduceClass(declaredType, (String) ((Map<?, ?>) recipe).get(TYPE_HINT));
+
+        Class<?> recipeType = recipe instanceof KlumBuilder
+                ? ((KlumBuilder<?>) recipe).getModelType()
+                : recipe.getClass();
+        if (declaredType.isAssignableFrom(recipeType)
+                && DslHelper.isInstantiable(recipeType)
+                && GeneratedBuilderSupport.hasBuilderFor(recipeType))
+            return recipeType;
+        return deduceClass(declaredType, null);
+    }
+
+    private static String recipeKey(Class<?> effectiveType, Object recipe) {
+        return DslHelper.getKeyField(effectiveType)
+                .map(Field::getName)
+                .map(name -> recipeValue(recipe, name))
+                .map(Object::toString)
+                .orElse(null);
+    }
+
+    private static Object recipeValue(Object recipe, String name) {
+        if (recipe instanceof Map)
+            return ((Map<?, ?>) recipe).get(name);
+        if (recipe instanceof KlumBuilder)
+            return ((KlumBuilder<?>) recipe).getInstanceAttribute(name);
+        return DslHelper.getAttributeValue(name, recipe);
+    }
+
+    /**
+     * Creates and configures a composition child without entering another phase lifecycle.
+     * The root Builder traversal will process and materialize it together with its owner.
+     */
+    public static <T> KlumBuilder<T> createNestedBuilder(Class<T> type, Map<String, ?> values, String key) {
+        KlumBuilder<T> builder = createBuilder(type, key);
+        builder.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
+        builder.apply(values, null);
+        return builder;
+    }
+
+    @SuppressWarnings("java:S1452") // completed models retain their runtime-generated Builder type
+    static KlumBuilder<?> wrapCompletedModel(Object model) {
+        if (!DslHelper.isDslObject(model))
+            throw new KlumModelException("Only completed DSL Objects can be wrapped");
+        Class<Object> modelType = (Class<Object>) model.getClass();
+        String key = DslHelper.getKeyField(modelType)
+                .map(Field::getName)
+                .map(name -> InvokerHelper.getProperty(model, name))
+                .map(Object::toString)
+                .orElse(null);
+        KlumBuilder<Object> builder = createBuilder(modelType, key);
+        builder.sealTo(model);
+        return builder;
     }
 
     /**
@@ -167,55 +278,29 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
-        Consumer<KlumInstanceProxy> apply = proxy -> {
-            script.setDelegate(proxy.getRwInstance());
+        Consumer<KlumBuilder<T>> apply = builder -> {
+            script.setDelegate(builder);
             script.run();
-            LifecycleHelper.executeLifecycleMethods(proxy, PostApply.class);
+            LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
         };
 
         if (DslHelper.isKeyed(type))
-            return doCreate(key, () -> createInstance(type, key), apply);
+            return doCreate(key, () -> createBuilder(type, key), apply);
         else
-            return doCreate(null, () -> createInstance(type, null), apply);
+            return doCreate(null, () -> createBuilder(type, null), apply);
     }
 
-    private static <T> T doCreate(String key, Supplier<T> createInstance, Consumer<KlumInstanceProxy> apply) {
+    private static <T> T doCreate(String key, Supplier<? extends KlumBuilder<T>> createBuilder, Consumer<KlumBuilder<T>> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
-                () -> PhaseDriver.withPhaseDriver(createInstance, object -> postCreate(apply, object))
+                () -> PhaseDriver.withBuilderLifecycle(createBuilder, builder -> postCreate(apply, builder))
         );
     }
 
-    private static <T> void postCreate(Consumer<KlumInstanceProxy> apply, T object) {
-        KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(object);
-        proxy.copyFromTemplate();
-        LifecycleHelper.executeLifecycleMethods(proxy, PostCreate.class);
+    private static <T> void postCreate(Consumer<KlumBuilder<T>> apply, KlumBuilder<T> builder) {
+        builder.copyFromTemplate();
+        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
 
-        apply.accept(proxy);
-    }
-
-    static <T> T createInstance(Class<T> type, String key) {
-        return createInstance(type, key, null);
-    }
-
-    static <T> T createInstance(Class<T> type, String key, String breadCrumbPathExtension) {
-        if (!DslHelper.isInstantiable(type))
-            throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
-        if (key == null && DslHelper.isKeyed(type))
-            return createInstanceWithNullArg(type);
-        //noinspection unchecked
-        T result = (T) InvokerHelper.invokeConstructorOf(type, key);
-        KlumInstanceProxy instanceProxy = KlumInstanceProxy.getProxyFor(result);
-        if (breadCrumbPathExtension != null)
-            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath() + "/" + breadCrumbPathExtension);
-        else if (BreadcrumbCollector.hasInstance())
-            instanceProxy.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
-        instanceProxy.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
-        return result;
-    }
-
-    private static <T> T createInstanceWithNullArg(Class<T> type) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, new Object[]{null});
+        apply.accept(builder);
     }
 
     /**
@@ -234,7 +319,7 @@ public class FactoryHelper extends GroovyObjectSupport {
      * @return The created instance
      */
     public static <T> T create(Class<T> type, Map<String, ?> values, String key, Closure<?> body) {
-        return doCreate(key, () -> createInstance(type, key), proxy -> proxy.apply(values, body));
+        return doCreate(key, () -> createBuilder(type, key), builder -> builder.apply(values, body));
     }
 
     /**
@@ -344,41 +429,14 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            T result = createTemplateInstance(type);
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
+            KlumBuilder<T> builder = createTemplateBuilder(type);
+            builder.copyFromTemplate();
 
             DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
-            script.setDelegate(proxy.getRwInstance());
+            script.setDelegate(builder);
             script.run();
-            return result;
+            return (T) KlumBuilder.materializeGraph(builder);
         });
-    }
-
-    private static <T> T createTemplateInstance(Class<T> type) {
-        T result;
-        if (!DslHelper.isInstantiable(type))
-            result = createSyntheticTemplateInstance(type);
-        else if (DslHelper.isKeyed(type))
-            result = createInstanceWithNullArg(type);
-        else
-            result = createInstanceWithArgs(type);
-        KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
-        return result;
-    }
-
-    private static <T> T createSyntheticTemplateInstance(Class<T> type) {
-        try {
-            //noinspection unchecked
-            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            throw new KlumModelException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
-        }
-    }
-
-    static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
-        //noinspection unchecked
-        return (T) InvokerHelper.invokeConstructorOf(type, args);
     }
 
     /**
@@ -417,16 +475,11 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, Closure<?> closure) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            T result = createTemplateInstance(type);
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
-            proxy.applyOnly(values, closure);
-            return result;
+            KlumBuilder<T> builder = createTemplateBuilder(type);
+            builder.copyFromTemplate();
+            builder.applyOnly(values, closure);
+            return (T) KlumBuilder.materializeGraph(builder);
         });
-    }
-
-    public static <T> T createAsStub(Class<T> type, String key) {
-        return createInstance(type, key);
     }
 
     private static String extractKeyFromUrl(URL url) {
@@ -444,19 +497,39 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     public static <T> T createFromMap(Class<T> type, Map<String, Object> configMap) {
-        return BreadcrumbCollector.withBreadcrumb(() -> {
-            String keyFromMap = DslHelper.getKeyField(type)
-                    .map(Field::getName)
-                    .map(configMap::get)
-                    .map(Object::toString)
-                    .orElse(null);
-            String typeFromMap = (String) configMap.get("@type");
-            Class<T> effectiveType = deduceClass(type, typeFromMap);
+        Class<T> effectiveType = deduceClass(type, (String) configMap.get(TYPE_HINT));
+        String key = keyFromMap(effectiveType, configMap);
+        return doCreate(key, () -> createBuilder(effectiveType, key), builder -> builder.copyFrom(configMap));
+    }
 
-            T result = createInstance(effectiveType, keyFromMap);
-            CopyHandler.copyToFrom(result, configMap);
-            return result;
-        });
+    /**
+     * Restores serialized field state into a Builder and then runs the complete lifecycle.
+     *
+     * <p>This ordering is the explicitly provisional Jackson policy from issue #428:
+     * mutating callbacks run again after restoration and may therefore be non-idempotent.</p>
+     */
+    public static <T> T createFromSerializedState(Class<T> type, Map<String, Object> serializedState) {
+        Class<T> effectiveType = deduceClass(type, (String) serializedState.get(TYPE_HINT));
+        String key = keyFromMap(effectiveType, serializedState);
+        return BreadcrumbCollector.withBreadcrumb(null, null, key, () ->
+                PhaseDriver.withBuilderLifecycle(
+                        () -> createBuilder(effectiveType, key),
+                        builder -> {
+                            builder.copyFromTemplate();
+                            builder.copyFrom(serializedState);
+                            LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
+                            LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
+                        }
+                )
+        );
+    }
+
+    private static String keyFromMap(Class<?> type, Map<String, Object> values) {
+        return DslHelper.getKeyField(type)
+                .map(Field::getName)
+                .map(values::get)
+                .map(Object::toString)
+                .orElse(null);
     }
 
     private static <T> Class<T> deduceClass(Class<T> baseType, String typeHint) {

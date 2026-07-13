@@ -736,7 +736,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "NPE when non DSL subclass of DSL class is found"() {
+    def "non DSL subclasses cannot use internal model constructors"() {
         when:
         createClass('''
             package pk
@@ -755,7 +755,8 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        notThrown(GroovyBugError)
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains("Non-DSL subclasses cannot extend DSL Objects")
 
     }
 
@@ -774,7 +775,7 @@ class InheritanceSpec extends AbstractDSLSpec {
         ''')
 
         then:
-        noExceptionThrown()
+        notThrown(GroovyBugError)
     }
 
 

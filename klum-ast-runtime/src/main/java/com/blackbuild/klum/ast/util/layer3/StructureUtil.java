@@ -25,7 +25,8 @@ package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import groovy.lang.PropertyValue;
 import groovy.lang.Tuple2;
@@ -89,6 +90,14 @@ public class StructureUtil {
      * @param visitor The visitor to invoke for each element
      */
     public static void visit(Object root, ModelVisitor visitor) {
+        visit(root, visitor, "<root>");
+    }
+
+    /**
+     * Explicit construction-state traversal used by pre-materialization phases.
+     * Sealed wrappers are filtered by {@code BuilderVisitingPhaseAction}.
+     */
+    public static void visitBuilders(KlumBuilder<?> root, ModelVisitor visitor) {
         visit(root, visitor, "<root>");
     }
 
@@ -407,11 +416,14 @@ public class StructureUtil {
      */
     public static List<Object> getOwnerHierarchy(Object leaf) {
         List<Object> result = new ArrayList<>();
-        while (isDslObject(leaf)) {
+        while (leaf instanceof KlumBuilder || isDslObject(leaf)) {
             if (result.contains(leaf))
                 throw new KlumSchemaException("Object " + leaf + " has an owner cycle");
             result.add(leaf);
-            leaf = KlumInstanceProxy.getProxyFor(leaf).getSingleOwner();
+            if (leaf instanceof KlumBuilder)
+                leaf = ((KlumBuilder<?>) leaf).getSingleOwner();
+            else
+                leaf = KlumModelProxy.getProxyFor(leaf).getSingleOwner();
         }
         return result;
      }
@@ -428,8 +440,8 @@ public class StructureUtil {
 
         @Override
         public Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(container))) return Action.SKIP;
-            if (type.getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
+            if (ignoredTypes.stream().anyMatch(it -> it.isInstance(element))) return Action.SKIP;
+            if (element.getClass().getPackageName().startsWith("java.")) return Action.SKIP_SUBTREE;
             return Action.HANDLE;
         }
 

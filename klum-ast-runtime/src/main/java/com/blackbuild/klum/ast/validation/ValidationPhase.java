@@ -24,14 +24,14 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.process.VisitingPhaseAction;
+import com.blackbuild.klum.ast.process.ModelVisitingPhaseAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Phase Action that validates the model.
  */
-public class ValidationPhase extends VisitingPhaseAction {
+public class ValidationPhase extends ModelVisitingPhaseAction {
 
     public ValidationPhase() {
         super(DefaultKlumPhase.VALIDATE);

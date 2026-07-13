@@ -23,8 +23,11 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.KlumModelException
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Issue
 
 import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
@@ -156,9 +159,9 @@ class RWClassSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "RW class delegates to model"() {
+    def "Builder methods mutate construction state before materialization"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -166,20 +169,27 @@ class RWClassSpec extends AbstractDSLSpec {
                 @Field(FieldType.TRANSIENT) int count
                 String name = 'bla'
                 
+                @Mutator
                 void inc() {
                   count++
                 }
             }
         ''')
-        def rw = instance.$rw
-
         when:
-        rw.inc()
+        def builder
+        instance = clazz.Create.With {
+            builder = delegate
+            inc()
+        }
 
         then:
         noExceptionThrown()
+        builder instanceof KlumBuilder
+        builder.count == 1
+        builder.name == 'bla'
         instance.count == 1
-        rw.name == 'bla'
+        instance.name == 'bla'
+        builder.completedModel.is(instance)
     }
 
     def "RW class does have public setters for model, model does not"() {
@@ -206,9 +216,9 @@ class RWClassSpec extends AbstractDSLSpec {
         thrown(NoSuchMethodException)
     }
 
-    def "RW setter writes through to model"() {
+    def "Builder setter contributes to the completed model snapshot"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
@@ -216,18 +226,28 @@ class RWClassSpec extends AbstractDSLSpec {
                 String name
             }
         ''')
-        def rw = instance.$rw
-
         when:
-        rw.name = 'bla'
+        def builder
+        instance = clazz.Create.With {
+            builder = delegate
+            name = 'bla'
+        }
 
         then:
+        builder.name == 'bla'
+        instance.name == 'bla'
+
+        when: "the captured Builder is sealed after materialization"
+        builder.name = 'changed'
+
+        then:
+        thrown(KlumModelException)
         instance.name == 'bla'
     }
 
-    def "model.apply delegates to RW"() {
-        when:
-        createInstance('''
+    def "factory closures delegate to Builders and models expose no apply"() {
+        given:
+        createClass('''
             package pk
 
             @DSL
@@ -236,33 +256,40 @@ class RWClassSpec extends AbstractDSLSpec {
 ''')
         def Model$RW = getRwClass('pk.Model')
 
-        then:
-        instance.apply {
-            assert Model$RW.isInstance(delegate)
+        when:
+        def factoryDelegate
+        instance = clazz.Create.With {
+            factoryDelegate = delegate
         }
+
+        then:
+        Model$RW.isInstance(factoryDelegate)
+        instance.metaClass.getMetaMethod("apply", Closure) == null
     }
 
     @Issue("89")
-    def "RW instance can be coerced to model"() {
+    def "Builder exposes its completed model without coercion"() {
         given:
-        createInstance('''
+        createClass('''
             package pk
 
             @DSL
             class Model {
             }
 ''')
-        def rw = instance.$rw
+        def builder
+        instance = clazz.Create.With { builder = delegate }
 
         when:
-        def coerced = rw.asType(clazz)
+        builder.asType(clazz)
 
         then:
-        coerced == instance
+        thrown(GroovyCastException)
+        builder.completedModel.is(instance)
     }
 
     @Issue("225")
-    def "RW instance can be coerced to model superclass"() {
+    def "subclass Builder materializes a model assignable to its DSL superclass"() {
         given:
         createClass('''
             package pk
@@ -274,18 +301,19 @@ class RWClassSpec extends AbstractDSLSpec {
             class Impl extends Model {
             }
 ''')
-        instance = create("pk.Impl")
-        def rw = instance.$rw
+        def builder
+        instance = getClass("pk.Impl").Create.With { builder = delegate }
 
         when:
-        def coerced = rw.asType(getClass("pk.Model"))
+        builder.asType(getClass("pk.Model"))
 
         then:
-        coerced == instance
+        thrown(GroovyCastException)
+        getClass("pk.Model").isInstance(instance)
+        builder.completedModel.is(instance)
     }
 
     @Issue("99")
-    //@Ignore("Obsolete with owner phases")
     def "config closures for inner objects have access to their owner field with static type checking enabled"() {
         given:
         createClass('''
@@ -331,7 +359,7 @@ class RWClassSpec extends AbstractDSLSpec {
         instance.foo.childName == "parent::child"
     }
 
-    def "script allow delegation to RW class"() {
+    def "DelegatesToRW points to the generated Builder class"() {
         given:
         createClass('''
             package pk
@@ -339,7 +367,7 @@ class RWClassSpec extends AbstractDSLSpec {
             @DSL
             class Foo {
                 def configure(@DelegatesToRW Closure body) {
-                    apply(body)
+                    return body
                 }
             }
         ''')
