@@ -51,8 +51,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
          ''')
 
         when:
-        def target = Outer.Create.One()
-        CopyHandler.copyToFrom(target, [name: "bli", inner: [value: "bla", another: "blub"]])
+        def target = Outer.Create.FromMap([name: "bli", inner: [value: "bla", another: "blub"]])
 
         then:
         target.name == "bli"

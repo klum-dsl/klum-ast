@@ -234,6 +234,7 @@ class Outer {
     @Default(delegate = "defaults")
     String name
     
+    @Mutator
     Map<String, String> getDefaults() {
         return [name: "bla"]
     }
