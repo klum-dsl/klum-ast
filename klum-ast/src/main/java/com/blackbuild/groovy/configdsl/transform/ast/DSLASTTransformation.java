@@ -93,6 +93,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String ELEMENTS_TO_ADD_DOCUMENTATION = "the elements to add";
     private static final String NEW_BUILDER_RETURN_DOCUMENTATION = "the newly created Builder";
     private static final String NEW_BUILDER_CONFIGURATION_DOCUMENTATION = "The newly created Builder is configured by the optional values and closure.";
+    private static final String CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION = "Creates a new '{{singleElementName}}' Builder and adds it";
     private static final String CLOSURE_PARAMETER = "closure";
     private static final String ADDS_ONE_OR_MORE = "Adds one or more ";
     private static final String COLLECTION_DOCUMENTATION_SUFFIX = " to the Builder's '{{fieldName}}' collection.";
@@ -911,7 +912,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .linkToField(fieldNode)
                         .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + COLLECTION_DOCUMENTATION_SUFFIX)
+                                .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
@@ -931,7 +932,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .linkToField(fieldNode)
                         .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + COLLECTION_DOCUMENTATION_SUFFIX)
+                                .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
@@ -1111,7 +1112,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .linkToField(fieldNode)
                         .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + MAP_DOCUMENTATION_SUFFIX)
+                                .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
@@ -1131,7 +1132,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .linkToField(fieldNode)
                         .returning(elementRwType, NEW_BUILDER_RETURN_DOCUMENTATION)
                         .withDocumentation(doc -> doc
-                                .title("Creates a new '{{singleElementName}}' Builder and adds it" + MAP_DOCUMENTATION_SUFFIX)
+                                .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
