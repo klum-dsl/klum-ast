@@ -138,6 +138,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         checkFieldNames();
         rejectCompletedModelApplyMethods();
+        rejectClientConstructors();
         warnIfAFieldIsNamedOwner();
 
         createRWClass();
@@ -184,7 +185,21 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void rejectCompletedModelApplyMethods() {
         annotatedClass.getDeclaredMethods("apply").forEach(method ->
-                addCompileError("DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.", method));
+                addCompileError(
+                        sourceUnit,
+                        "DSL Objects cannot declare apply methods; configuration belongs to the generated Builder.",
+                        method
+                ));
+    }
+
+    private void rejectClientConstructors() {
+        annotatedClass.getDeclaredConstructors().stream()
+                .filter(constructor -> !constructor.isSynthetic())
+                .forEach(constructor -> addCompileError(
+                        sourceUnit,
+                        "DSL Objects cannot declare constructors; use the generated factory and configure its Builder.",
+                        constructor
+                ));
     }
 
     private void warnIfInvalid(FieldNode fieldNode) {

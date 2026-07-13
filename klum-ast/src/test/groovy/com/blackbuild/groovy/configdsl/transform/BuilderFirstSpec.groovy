@@ -71,6 +71,37 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         clazz.initializerCalls == 1
         clazz.declaredFields*.name.contains("scratch") == false
         clazz.methods*.name.contains("apply") == false
+        clazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
+    }
+
+    def "completed models reject source mutation and construction entrypoints"() {
+        when: "the schema declares an apply method"
+        createClass '''
+            package pk
+
+            @DSL
+            class ApplyingModel {
+                void apply(Closure body) {}
+            }
+        '''
+
+        then:
+        MultipleCompilationErrorsException applyError = thrown()
+        applyError.message.contains("DSL Objects cannot declare apply methods")
+
+        when: "the schema declares a client constructor"
+        createClass '''
+            package pk
+
+            @DSL
+            class ConstructedModel {
+                ConstructedModel(String value) {}
+            }
+        '''
+
+        then:
+        MultipleCompilationErrorsException constructorError = thrown()
+        constructorError.message.contains("DSL Objects cannot declare constructors")
     }
 
     def "materialization resolves self and cyclic Builder relationships"() {
