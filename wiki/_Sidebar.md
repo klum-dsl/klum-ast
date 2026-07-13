@@ -26,5 +26,5 @@
   * [[FAQ]]
   * [[Changelog]]
   * [[Migration]]
+  * [[Builder First Migration]]
   * [[Roadmap]]
-

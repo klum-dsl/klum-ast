@@ -100,4 +100,4 @@ def config = Config.Create.With {
 
 Find more details in our [wiki](https://github.com/klum-dsl/klum-ast/wiki)
 
-Factory construction now uses a Builder-first lifecycle and returns completed, structurally immutable DSL Objects. See the [Builder-first migration guide](docs/builder-first-migration.md) for lifecycle details and breaking API changes.
+Factory construction now uses a Builder-first lifecycle and returns completed, structurally immutable DSL Objects. See the [Builder-first migration guide](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration) for lifecycle details and breaking API changes.

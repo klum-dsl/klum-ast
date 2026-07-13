@@ -1,4 +1,6 @@
-Resulting objects can be automatically be validated. This is controlled via the `@Validate` annotation.
+Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
+to the completed Model companion during `INSTANTIATE`; `@Validate` methods and external `InstanceValidator`s then run on
+the completed object. Each `InstanceValidator` type is memoized once per completed model.
 
 # On classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
@@ -58,7 +60,9 @@ class MyModel {
 ```
 
 Any failed validation is represented by a `KlumValidationIssue`, all
-issues of a single object are collected in a `KlumValidationResult`. The result of each object is stored in the KlumInstanceProxy where it can be accessed via `Validator.getValidationResult(Object)` method.
+issues of a single object are collected in a `KlumValidationResult`. The result is stored in the completed object's Model
+companion and is accessed through the supported `Validator.getValidationResult(Object)` utility rather than through
+`KlumInstanceProxy`.
 
 # `@Required` and `@Optional`
 

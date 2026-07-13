@@ -47,47 +47,38 @@ Date payDay(int $date, int $month, $year) {
 
 The closures must return an instance of the field (or element) type.
 
+If that type is a DSL Object, returning a completed model from the closure cannot create owned composition in 4.0. The
+same Builder-lifecycle restriction described below for factory-method converters applies. Field converters for Simple
+Values are unaffected.
+
 # Factory Method converters
 
-For DSL elements / fields, converter methods can also be created in the class itself.
+For non-DSL values, factory-method converters continue to return the converted value and pass it to the Builder setter or
+adder.
 
-A converter method is a static (factory) method, returning an instance of the DSL class
-(or a subclass). Setters / adders are automatically created for all
-factory method of the target type.
+Completed-model converters require special care in 4.0. A static factory method returning a DSL Object is still discovered,
+but a generated relationship converter cannot call `Create.With` or `Create.One` while its owner's Builder lifecycle is
+active. That would create an independently materialized model and then attempt to adopt it as owned composition, so the
+call fails with guidance to use the owning Builder's generated relationship method.
 
 A factory method is either a method named `from*`, `of*`, `parse*` or (for non DSL methods) `create*` or explicitly 
 annotated with `@Converter`.
 
+Until the Builder-producing converter protocol is implemented, construct owned DSL Object relationships through the
+parent's normal closure method:
+
 ```groovy
-import java.text.SimpleDateFormat
-import java.time.Instant@DSL class Foo {
-    Bar bar
-}
-
-@DSL class Bar {
-    Date birthday
-    
-    @Converter
-    static Bar readFromString(String string) {
-        return Create.With(birthday: SimpleDateFormat.dateInstance.parse(string))
-    }
-
-    static Bar fromLong(long value) {
-        return Create.With(birthday: new Date(value))
+Foo.Create.With {
+    bar {
+        birthday new Date(123L)
     }
 }
 ```
 
-results in the additional methods being created in `Foo`:
-
-```groovy
-Bar bar(long value) {
-    bar(Bar.Create.With(birthday: new Date(value)))
-}
-Bar bar(String value) {
-    bar(birthday: SimpleDateFormat.dateInstance.parse(string))
-}
-```
+An independently completed converter result remains valid as a root result or when explicitly passed to an aggregation
+`LINK`; it is not valid as new composition. [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-template-recipe-companions-and-builder-converters.md)
+records the future `Create.AsBuilder` protocol and source-compatible adaptation for recognizable classic converters
+without committing to the final generated Builder type name or placement.
 
 Note that having more than one factory with the same parameters might
 lead to unexpected results.

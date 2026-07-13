@@ -1,6 +1,12 @@
 Migration Guide
 ---------------
 
+# to 4.0
+
+4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits.
+
+See the dedicated [[Builder First Migration]] guide for the complete migration checklist, compatibility breaks, Template behavior, and the explicitly provisional Jackson policy.
+
 # to 2.2
 
 `toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.

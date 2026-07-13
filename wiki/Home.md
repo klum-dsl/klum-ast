@@ -14,6 +14,8 @@ There are two main objectives for this project:
     - In IDEA this works by including a custom gdsl file (mostly working)
     - In Eclipse, inclusion of a custom dsld file is planned
 
+Generated factories configure a mutable Builder graph and return completed, structurally immutable DSL Objects. Lifecycle work through `POST_TREE` runs on Builders; materialization happens before validation. See [[Basics]], [[Model Phases]], and the [[Builder First Migration]] guide.
+
 ## Example
 
 Given the following config classes:
@@ -102,4 +104,3 @@ if (projectsWithoutClean) {
 
 
 Find more details on the following pages of this wiki.
-

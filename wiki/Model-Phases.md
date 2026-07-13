@@ -1,17 +1,19 @@
 Model Phases
 ============
 
-Model creation goes through several phases. These phases are local to the current Thread and thus, thus all submodels share the same phase even if created by distinct calls to `create` methods.
+Model creation goes through several phases in one Builder lifecycle. The phases are local to the current Thread. Owned
+submodels are created through the root's generated Builder methods and share that lifecycle; a nested root factory starts
+an independent lifecycle and cannot be adopted as composition.
 
 # Lifecycle annotations
 
 Many lifecycle phases have a designated annotation. Methods and/or fields annotated with these annotations are handled in the
 corresponding phase. Lifecycle annotations are annotations marked with the meta annotation `@WriteAccess(LIFECYCLE)`. Those 
-methods must be parameterless and not be private. Their visibility will be downgraded to `protected` and they will be moved to
-the RW class.
+methods must be parameterless and not be private. Their visibility is downgraded to `protected` and mutating lifecycle
+methods are moved to the generated Builder.
 
-In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner`). These closures will be executed
-in their respective phases, with the RW object as delegate (i.e., will behave as like `apply` closures).
+In addition to methods, fields of type `Closure` can also be annotated with lifecycle annotations (including `@Owner`).
+Before `INSTANTIATE`, these closures execute with the Builder as their delegate.
 
 The lifecycle annotations `@PostCreate` and `@PostApply` are special cases. These are not run as separate phases, but
 instead are part of the creation phase, and run for each object separately. 
@@ -21,15 +23,18 @@ a `@Default` field will only be handled if the field is not set yet, while a `@D
 
 # Creation
 
-The creation phase is started by the first call to any creation method in a thread. It consists of the actual instantiation of the model root as well as calling its apply methods. Creation of an object includes calling of `@PostCreate` and `@PostApply` methods (and closures) on that object.
+The creation phase starts with the first factory call in a thread. It creates and configures the root Builder and its owned
+Builder graph. Creating a Builder includes applying Templates, then calling `@PostCreate`, explicit configuration, and
+`@PostApply` methods and closures. No completed DSL Object exists yet.
 
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
 later phases.
 
 ## PhaseActions
 
-PhaseActions are the main execution point for phases. Usually, PhaseActions retrieve the root object from the PhaseDriver and 
-use it iterate through the model tree.
+PhaseActions are the main execution point for phases. Actions before materialization use
+`BuilderVisitingPhaseAction`; actions after materialization use `ModelVisitingPhaseAction`. The deprecated untyped
+`VisitingPhaseAction` must not be used across the boundary.
 
 PhaseActions are usually registered by using the Java ServiceLoader mechanism, so plugins can extend the functionality.
 
@@ -70,12 +75,22 @@ The Default phase is used to set default values. See [Default Values](Default-Va
 
 ## PostTree (30)
 
-The PostTree phase allows executing actions on a completely realized model tree. This can be used
+The PostTree phase allows executing actions on a completely configured Builder tree. This can be used
 to create interlinking between objects that are too complex for AutoLink/AutoCreate.
+
+## Instantiate (40)
+
+The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
+assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
+Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.
 
 ## Validation (50)
 
-Validates the correctness of the model according to the presence of the `@Validate` annotation. See [Validation](Validation.md) for details. The validation phase should (must) not change the model anymore. The validation phase as well as custom validation phases provided by plugins only collect validation problems but do not throw exceptions. This is handled by the Verify phase. The ordinal band 51-60 is free for plugin-provided validation phases.
+Validates the correctness of completed DSL Objects according to the presence of the `@Validate` annotation. See
+[Validation](Validation.md) for details. Validation must not mutate the model. Provisional issues collected from Builders
+are transferred during materialization, and each `InstanceValidator` runs at most once per completed object. The validation
+phase and custom validation phases only collect problems; the Verify phase throws. The ordinal band 51-60 is free for
+plugin-provided validation phases.
 
 ## Verify (80)
 
@@ -97,10 +112,11 @@ If an exception is thrown in any Phase, the exception is wrapped in a `KlumExcep
 
 # applyLater methods
 
-RW classes also provide `applyLater` methods that can be used to register actions to be executed in arbitrary phases. If no phase is specified,
+Builders provide `applyLater` methods that register deferred construction actions. If no phase is specified,
 the action is executed directly after the current phase if called from within a phase; otherwise it is executed in the `ApplyLater` phase. 
 
-ApplyLater closures on templates are not executed but are copied along with the other template values to the created object. 
+ApplyLater closures on Templates are not executed on the Template. They are detached as recipe state and replayed against
+each fresh recipient Builder. Captured Builders are rejected, and other captured values must be serializable.
 This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.
 
 ```groovy
@@ -149,4 +165,4 @@ causing it to run directly after the current phase has finished.
 }
 ```
 
-Note that this example could have been better realized in a parent's autolink method, removing the need for the applyLater closure. 
+Note that this example could have been better realized in a parent's autolink method, removing the need for the applyLater closure.

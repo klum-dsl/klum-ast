@@ -2,9 +2,9 @@
 
 The system includes a simple mechanism for configuring default values (as part of the instance creation, not in the classes):
 
-Templates are regular instances of DSL objects, which will usually be assigned to a local variable. Applying a template means
- that all non-null / non-empty fields in the template are copied over from template. For Lists and Maps, new collection / map instances
- will be created; contained DSL objects are copied recursively, while simple values are linked. 
+Templates are completed DSL Objects marked as reusable construction recipes. Applying a Template copies its non-null and
+non-empty values into a fresh Builder graph. Nested DSL Objects are rehydrated recursively, Collections are copied, and
+Simple Values are retained. A Template is never adopted directly as owned composition.
  
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
  templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
@@ -281,4 +281,7 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 
 # ApplyLater and templates
 
-As stated in [[Model Phases]], templates can also contain `applyLater` closures. These closures are not executed on the template, but copied to  created objects and executed in their `ApplyLater` phase (or any other explicitly called phase). 
+As stated in [[Model Phases]], Templates can contain `applyLater` closures. These actions are not executed on the Template;
+they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh
+Builder through its delegate. Capturing any Builder, even through a serializable holder, is rejected. Other captured values
+must be serializable so the Template recipe remains serializable with its companion state.

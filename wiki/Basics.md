@@ -12,7 +12,7 @@ DSL is used to designate a DSL/Model object, which is enriched using the AST tra
 
 The DSL annotation leads to the creation of a couple of useful methods.
 
-## Factory and `apply` methods
+## Factory construction
 
 Each instantiable DSL class gets a static field `Create` of either a subclass of `KlumFactory.Keyed` or
 `KlumFactory.Unkeyed`, which provides methods to create instances of the class; abstract classed get an
@@ -42,9 +42,9 @@ ConfigWithKey.Create.With('Dieter', a: 1, b: 2)
 ConfigWithKey.Create.With('Dieter', a: 1, b: 2) { c 3 }
 ConfigWithKey.Create.With('Dieter') { c 3 }
 ```
-The optional closure to the `With` method is used to set values on the created object. The `One` method is a shortcut for
+The optional closure to the `With` method configures the generated Builder. The `One` method is a shortcut for
 `With` without any given values, which makes a nicer syntax (`Config.Create.With()` seems a bit strange, 
-`Config.Create.One()` looks better).
+`Config.Create.One()` looks better). The factory materializes the completed DSL Object graph before returning it.
 
 __Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods 
 are now deprecated in will be removed in a future version.__
@@ -53,13 +53,10 @@ If the class contains an static inner class named 'Factory' of the appropriate t
 to such a class, this class is used as a base
 for the generated factory instead. This allows adding additional methods to the factory.
 
-Additionally, an `apply` method is created, which applies optional named parameters and an optional closure to an existing object and returns the configured instance.
- 
-```groovy
-def <ThisClass> apply(Map values = [:], Closure c = null)
-```
+Completed DSL Objects do not expose a generated `apply` method. All configuration belongs in a factory callback,
+a Template recipe, or a lifecycle callback before `INSTANTIATE`.
 
-Both `apply` and `Create.With` support named parameters, allowing to set values in a concise way. Every map element of
+`Create.With` supports named parameters, allowing values to be set concisely. Every map element of
 the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
 
 
@@ -83,18 +80,20 @@ There are also a couple of [[Convenience Factories]] to load a model into client
 
 Lifecycle methods can are methods annotated with [Lifecycle](Model-Phases.md) annotations like `@PostCreate` and `@PostApply`.
 These methods will be called automatically
-after the creation of the object (**after templates have been applied**) and after the call to the apply method, respectively.
+after Builder creation (**after templates have been applied**) and after explicit Builder configuration, respectively.
 
 Other lifecycle methods will be executed in the corresponding phase.
 
-Lifecycle methods must not be `private`. They will be automatically be made protected and moved to rw instance. 
+Lifecycle methods must not be `private`. They are moved to the generated Builder. Mutating lifecycle work through
+`POST_TREE` receives Builders; validation receives completed DSL Objects after `INSTANTIATE`.
 
 ## copyFrom() method
 
-Each DSLObject gets a `copyFrom()` method with its own class as parameter. This method copies fields from the given
-object over to this objects, excluding key, owner and `@Role` fields, as well as fields marked `FieldType.TRANSIENT`
+Each Builder gets a `copyFrom()` DSL method. This method copies fields from a DSL Object recipe into the current Builder,
+excluding key, owner and `@Role` fields, as well as fields marked `FieldType.TRANSIENT`
 or `FieldType.IGNORED`. Copying is further governed by `@Overwrite` / the configured `OverwriteStrategy`. This is done
-recursively, i.e. nested DSL objects are copied as well.
+recursively: nested Template composition is rehydrated into fresh Builders. Completed ordinary models are not adopted as
+owned composition.
 
 ## equals() method
 
@@ -110,8 +109,9 @@ reduced.
 ## Field setter
 ### Field setter for simple fields
 
-For each simple value field create an accessor named like the field, containing the field type as parameter. __Since 
-0.98, these methods are only usable inside of an `apply` or `create` block.__
+For each Simple Value field, the Builder gets an accessor named like the field and taking the field type as parameter.
+These methods are available only during factory, Template, or lifecycle configuration. Completed DSL Objects expose
+read-only accessors.
 
 ```groovy
 @DSL
@@ -201,8 +201,9 @@ Foo.Create.With {
 
 ### Setters and closures for DSL-Object Fields
     
-for each dsl-object field, a closure method is generated, if the field is a keyed object, this method has an additional
-String parameter. Also, a regular setter method is created for reusing an existing object.
+For each DSL Object composition field, a Builder closure method is generated. If the field is keyed, this method has an
+additional key parameter. The relationship field holds a child Builder during construction; the closure method returns
+that Builder so further construction-time configuration can be composed.
   
 ```groovy
 @DSL
@@ -223,13 +224,11 @@ class Keyed {
 }
 ```
     
-creates the following methods (in Config, only valid in `apply`/`create` blocks):
+conceptually creates the following Builder methods (the concrete generated Builder type and location are not public API):
 
 ```groovy
-def unkeyed(UnKeyed reuse) // reuse an exiting object
-Unkeyed unkeyed(@DelegatesTo(Unkeyed) Closure closure)
-def keyed(UnKeyed reuse) // reuse an exiting object
-Keyed keyed(String key, @DelegatesTo(Unkeyed) Closure closure)
+def unkeyed(@DelegatesTo(/* UnKeyed Builder */) Closure closure)
+def keyed(String key, @DelegatesTo(/* Keyed Builder */) Closure closure)
 ```
 
 Usage:
@@ -242,28 +241,21 @@ Config.Create.With {
         value "a Value"
     }
 }
-
-def objectForReuse = UnKeyed.Create.With { name = "reuse" }
-
-Config.Create.With {
-    unkeyed objectForReuse
-}
 ```
 
-The closure methods return the created objects, so you can also do the following:
+The closure methods return the child Builder during construction:
 
 ```groovy
-def objectForReuse
 Config.Create.With {
-    objectForReuse = unkeyed {
+    def childBuilder = unkeyed {
         name "other"
     }
-}
-
-Config.Create.With {
-    unkeyed objectForReuse
+    childBuilder.name "final"
 }
 ```
+
+An already completed DSL Object cannot be adopted as owned composition. Existing completed objects are accepted only by
+`FieldType.LINK` fields, where they remain aggregation targets and are not re-owned or mutated.
 
 #### Polymorphic DSL members
 
@@ -282,33 +274,15 @@ Config.Create.With {
 }
 ```
 
-This approach was the default one in earlier versions of the library and is still the nicest looking,
-but since the switch to read only models, code completion in the IDE does not work anymore. The code, however still works,
-but is not longer valid, although the IDE might report unknown methods.
+This keeps the subclass in the parent's Builder lifecycle. IDE presentation of the generated concrete Builder type is
+still being finalized together with its public name and placement.
 
-Current 1.2.0-rc versions include an experimental gdsl file that should solve this at least for
-IntelliJ idea.
+##### Existing completed values
 
-##### Reuse syntax
-
-By using an actual `create` call on the target type, the target object is first created and than applied to field-method:
-
-```groovy
-Config.Create.With {
-  main SubElement.Create.With {
-    ...
-  }
-}
-```
-
-There is, however one small differences in the timing with this approach. With the normal approach, the owner
-reference of the inner object is set __before__ the configuration closure is called, meaning that the closure can
-access the owner field or methods which use it. With the second approach, the owner is set __after__ the create closure
-is completed. In this case, it might make more sense to use an Owner method instead
-of an owner field.
-
-If you want a field to only use the reuse syntax ('link' type fields), you can annotate them
-with `@Field(LINK)`, which prevents the creation of generator methods, but still generates reuse setters.
+Starting `SubElement.Create.With` inside an active parent factory starts an independent lifecycle and cannot produce a
+newly owned child. Create polymorphic composition through the parent's typed child method instead. If the relationship is
+aggregation rather than composition, annotate it with `@Field(LINK)` and pass the independently completed object as its
+existing target.
 
 ### Virtual Fields
 
@@ -405,12 +379,9 @@ Collections of DSL-Objects are created using a nested closure. The name of the (
 name of the inner closures the element name (which defaults to field name minus a trailing 's'). The syntax for adding
 keyed members to a list and to a map is identical.
 
-The inner creator can also take an existing object instead of a closure, which adds that object to the collection.
-In that case, **owner fields of the added object are only set, when they have not yet been set**.
- 
-This syntax is especially useful for delegating the creation of objects into a separate method.
-
-As with simple objects, the inner closures return the existing object for reuse.
+Inner creators produce child Builders in the same lifecycle as the owning Builder. They return the created Builder so
+construction can be delegated or composed without materializing an intermediate DSL Object. Completed DSL Objects cannot
+be inserted into owned composition collections; a collection of existing aggregation targets must be marked `LINK`.
 
 ```groovy
 @DSL
@@ -432,13 +403,6 @@ class Keyed {
     String value
 }
 
-def objectForReuse = UnKeyed.Create.With { name "reuse" }
-def anotherObjectForReuse
-
-def createAnObject(String name, String value) {
-    Keyed.Create.With(name) { value(value) }
-}
-
 Config.Create.With {
     elements { // optional, but provides grouping and additional convenience features
         element {
@@ -447,20 +411,17 @@ Config.Create.With {
         element {
             name "another element"
         }
-        element objectForReuse
-        elements anotherObjectForReuse, aThirdObject
     }
     keyedElements {
-        anotherObjectForReuse = keyedElement ("klaus") {
+        def keyedBuilder = keyedElement("klaus") {
             value "a Value"
         }
+        keyedBuilder.value "final Value"
     }
     mapElements {
-        mapElement ("dieter") {
+        mapElement("dieter") {
             value "another"
         }
-        mapElement anotherObjectForReuse // owner is NOT changed
-        mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
     }
 }
 
@@ -472,15 +433,12 @@ Config.Create.With {
     element {
         name "another element"
     }
-    element objectForReuse
-    anotherObjectForReuse = keyedElement ("klaus") {
+    keyedElement("klaus") {
         value "a Value"
     }
-    mapElement ("dieter") {
+    mapElement("dieter") {
         value "another"
     }
-    mapElement anotherObjectForReuse // owner is NOT changed
-    mapElement createAnObject("Hans", "Franz") // owner is set to Config instance
 }
 ```
 
@@ -537,19 +495,13 @@ Also, a more powerful approach is available using the [[Alternatives Syntax]].
 
 ## On collections
 
-Although most examples in this wiki use `List`, basically any class implementing / sub interface of `Collection` can be 
-used instead. There are a couple of points to take note, however:
- 
-- The default Java Collection Framework interfaces (Collection, List, Set, SortedSet, Stack, Queue) work out of the box
-- When using a custom collection **class** or **interface**, in order for initial values to be provided, `List` must be 
-  coerced to your custom type, i.e. the code `[] as <YourType>` must be resolvable. This can be done by
-    - enhance the `List.asType()` method to handle your custom type
-    - in case of a custom class, provide a constructor taking an `Iterable` (or `Collection` or `List`) argument
-    
-However, it is strongly advised to only take the basic interfaces. If additional functionality is needed, it might make more
-sense to apply it using a decorator (for example using KlumWrap) after the object is constructed.
+Collection declarations must use one of the snapshot-safe supported types: `List`, `Set`,
+`SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, or `EnumSet`. Every custom Collection interface or class,
+and every other concrete Collection type, is rejected during schema compilation.
 
-For maps, **only `Map` and `SortedMap` is supported**.
+Builders keep mutable construction collections. Materialization publishes independent read-only snapshots, so neither a
+Builder collection nor an input collection can mutate the completed model afterward. Sorted collections preserve their
+comparator. `EnumSet` getters return defensive copies.
 
 **Be careful when using a simple `Set`.** Since Klum creates barebone hashcode implementations
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
@@ -561,8 +513,8 @@ The key annotation is used to designate a special key field, making the annotate
 following consequences:
 
 - no setter method is generated for the key field
-- a constructor using a single field of the key type is created (currently, only String is allowed)
-- factory and apply methods get an additional key parameter
+- the generated Builder receives the key during internal construction (currently, only String is allowed)
+- factory methods get an additional key parameter
 - only keyed classes are allowed as values in a Map
 
 # The @Owner annotation
@@ -594,10 +546,11 @@ def c = Config.Create.With {
 assert c.bar.outer === c
 ```
 
-The owner field will be set during the owner phase, meaning the owner is not set before the apply closure of the inner
-object is executed. This is a change of the behaviour in KlumAST 1.2, where the owner was set before the apply closure.
+The owner field is set during the Owner phase, so it is not available during the inner Builder's initial configuration
+closure.
 
-If the apply code needs to access the owner, the respective code must be moved to a lifecycle method or closure (Owner methods and closures are executed after owner fields, so Owner would be a natural replacement for this functionality).
+If configuration needs the owner, move that code to an Owner or later Builder lifecycle method or closure. Owner methods
+and closures run after owner fields have been assigned.
 
 __Because `owner` is a property of `Closure`, it is not advisable to name the Owner field (or any other field) actually `owner`,
 because it would be overshadowed in configuration closures.__
@@ -607,7 +560,7 @@ because it would be overshadowed in configuration closures.__
 Setter like methods (single parameter methods) can also be annotated with `@Owner. In that case,
 all matching Owner methods are called if the object is added to another DSL object (i.e. if
 the Container object ist assignable to the method parameter type). Owner methods are
-mutator methods and thus moved into the RW class.
+mutator methods and thus moved into the Builder.
 
 
 ## Transitive owners
@@ -731,24 +684,24 @@ are created as protected. This essentially means that they cannot be changed dir
 the DSL. They can only be changed via custom mutator (or lifecycle) methods or other setters.
 
 ## BUILDER
-'BUILDER' fields are not externally readable, but the dsl methods are created as public. This means
-that the field is not part of the visible model, but can bet use to set the actual fields in a 
-later phase. 
+`BUILDER` fields exist only on the generated Builder. Their DSL methods are public, but no corresponding field or getter
+is generated on the completed DSL Object. They are intended for construction-only state consumed by a later Builder phase.
 
 ## TRANSIENT
 `TRANSIENT` fields are similar in that they don't get dsl methods either. However, in contrast
-to all other fields, the retain a public setter in the model, taking them effectively
+to all other fields, they retain a public setter in the completed model, taking them effectively
 out of the [[Static Models]] concept. They can be used to add transient data that is not
 part of the model itself. Transient fields are ignored when checking for equality.
 
 ## IGNORED
 `IGNORED` fields get not DSL accessors at all. Their setters are still moved to the
-RW class. As with PROTECTED this means that these fields can effectively only be set
+Builder. As with PROTECTED this means that these fields can effectively only be set
 from inside lifecycle or mutator methods.
 
 ## LINK
-`LINK` fields only get the reuse methods, but no methods that actually create a new object
-on the fly.
+`LINK` fields model aggregation. They accept existing completed DSL Objects through sealed Builder wrappers but do not
+create or re-own those targets. All non-`LINK` DSL Object relationships are owned composition and must be created within
+the owner's Builder lifecycle.
 
 # DSL Interfaces
 As of version 1.2.0, interfaces can me marked with `@DSL` as well. No transformation will
