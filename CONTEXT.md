@@ -77,7 +77,7 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 - Collections
 
-  Collections use the supported interfaces `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`. Map keys are always `String`. Collection values can either be Simple Values or DSL-Objects. Collections of Collections are currently not supported.
+  Collections use the supported interfaces `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`. Map keys retain the schema's declared key type. Collection values can either be Simple Values or DSL-Objects. Collections of Collections are currently not supported.
 
   A collection field has two name properties: the collection name and the element name. The collection name defaults to the name of the field; the element name is the name of the field minus any trailing `s`. For example, a field named `roles` defaults to collection name `roles` and element name `role`. If the field name does not end with an `s`, the field name is reused as both collection and element name (e.g. `information -> information | information`). Collection name and element name can be customized via the `@Field` annotation.
 
