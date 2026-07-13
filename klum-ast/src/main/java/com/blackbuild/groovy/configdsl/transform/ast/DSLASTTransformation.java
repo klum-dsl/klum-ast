@@ -994,6 +994,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(storedElementType, "value")
                 .addTo(rwClass);
 
+        // Keep a model-typed compatibility overload so completed composition inputs
+        // fail with KlumBuilder's LINK migration guidance instead of MissingMethodException.
+        if (!linkField) {
+            createProxyMethod(methodName, "addElementToCollection")
+                    .optional()
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .returning(elementType)
+                    .documentationTitle("Rejects a completed '{{singleElementName}}' because composition must be built in this Builder lifecycle.")
+                    .constantParam(fieldName)
+                    .param(elementType, "value")
+                    .addTo(rwClass);
+        }
+
         createAlternativesClassFor(fieldNode);
 
         createConverterMethods(fieldNode, methodName, false);
@@ -1179,6 +1193,20 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .constantParam(null)
                 .param(storedElementType, elementToAddVarName)
                 .addTo(rwClass);
+
+        // See the corresponding collection overload above.
+        if (!linkField) {
+            createProxyMethod(methodName, "addElementToMap")
+                    .optional()
+                    .mod(visibility)
+                    .returning(elementType)
+                    .linkToField(fieldNode)
+                    .documentationTitle("Rejects a completed '{{singleElementName}}' because composition must be built in this Builder lifecycle.")
+                    .constantParam(fieldName)
+                    .constantParam(null)
+                    .param(elementType, elementToAddVarName)
+                    .addTo(rwClass);
+        }
 
         createAlternativesClassFor(fieldNode);
         createConverterMethods(fieldNode, methodName, false);
