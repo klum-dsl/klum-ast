@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.GroovyObject;
-import org.codehaus.groovy.runtime.InvokerHelper;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -66,7 +65,10 @@ public final class KlumModelProxy implements Serializable {
             return (KlumModelProxy) target;
         if (!(target instanceof KlumModelObject))
             throw new KlumException(format("Object of type %s is not a completed DSL Object", target.getClass().getName()));
-        return (KlumModelProxy) InvokerHelper.getAttribute(target, NAME_IN_MODEL);
+        KlumModelProxy proxy = DslHelper.getFieldValue(target, NAME_IN_MODEL);
+        if (proxy == null)
+            throw new KlumException(format("Completed DSL Object %s has no model companion", target.getClass().getName()));
+        return proxy;
     }
 
     public GroovyObject getModel() {

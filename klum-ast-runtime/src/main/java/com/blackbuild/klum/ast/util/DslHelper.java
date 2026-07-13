@@ -184,9 +184,20 @@ public class DslHelper {
 
     private static Optional<CachedField> getCachedFieldOfHierarchyLayer(Class<?> layer, String name) {
         MetaProperty metaProperty = InvokerHelper.getMetaClass(layer).getMetaProperty(name);
-        if (!(metaProperty instanceof MetaBeanProperty)) return Optional.empty();
+        if (metaProperty instanceof MetaBeanProperty) {
+            CachedField cachedField = ((MetaBeanProperty) metaProperty).getField();
+            if (cachedField != null)
+                return Optional.of(cachedField);
+        }
 
-        return Optional.ofNullable(((MetaBeanProperty) metaProperty).getField());
+        // Generated Builder relationship properties have model- and Builder-typed setter
+        // overloads. Groovy consequently exposes them as a MetaBeanProperty without an
+        // attached field, even though the generated field is present.
+        try {
+            return Optional.of(new CachedField(layer.getDeclaredField(name)));
+        } catch (NoSuchFieldException ignored) {
+            return Optional.empty();
+        }
     }
 
     // groovy 3 makes Field.field private, so we need a workaround

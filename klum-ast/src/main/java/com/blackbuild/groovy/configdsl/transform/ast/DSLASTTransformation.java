@@ -395,7 +395,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             implementationType = ClassHelper.makeWithoutCaching(annotatedClass.getName() + "$Template");
 
         createProtectedMethod("$createModel")
-                .returning(annotatedClass)
+                .returning(annotatedClass.getPlainNodeReference())
                 .doReturn(ctorX(implementationType, args(varX("this"))))
                 .addTo(rwClass);
     }
@@ -768,7 +768,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
+        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
 
         FieldNode fieldKey = getKeyField(dslBaseType);
 
@@ -785,7 +785,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementType)
+                        .returning(elementRwType)
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -800,7 +800,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementType)
+                        .returning(elementRwType)
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -944,7 +944,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String methodName = getElementNameForCollectionField(fieldNode);
         String fieldName = fieldNode.getName();
 
-        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl);
+        ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (getFieldType(fieldNode) != FieldType.LINK) {
@@ -953,7 +953,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementType)
+                        .returning(elementRwType)
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -968,7 +968,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementType)
+                        .returning(elementRwType)
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -1044,7 +1044,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         FieldNode targetTypeKeyField = getKeyField(dslBaseType);
         String targetKeyFieldName = targetTypeKeyField != null ? targetTypeKeyField.getName() : null;
-        ClassNode targetRwType = DslAstHelper.getRwClassOf(defaultImpl);
+        ClassNode targetRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
 
         Expression keyProvider = getStaticKeyExpression(fieldNode);
         boolean needKeyParameter = targetTypeKeyField != null && keyProvider == null;
@@ -1056,7 +1056,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetFieldType)
+                    .returning(targetRwType)
                     .namedParams("values")
                     .constantParam(fieldName)
                     .constantClassParam(defaultImpl)
@@ -1071,7 +1071,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
-                    .returning(targetFieldType)
+                    .returning(targetRwType)
                     .namedParams("values")
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)

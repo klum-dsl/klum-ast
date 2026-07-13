@@ -72,9 +72,10 @@ public abstract class AbstractFactoryBuilder {
 
     protected void createInnerClass(String name) {
         collectionFactory = new InnerClassNode(targetClass, targetClass.getName() + "$_" + name, ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
-        collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, rwClass, null);
+        ClassNode builderType = rwClass.getPlainNodeReference();
+        collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, builderType, null);
         collectionFactory.addConstructor(ACC_PUBLIC,
-                params(param(rwClass, "rw")),
+                params(param(builderType, "rw")),
                 CommonAstHelper.NO_EXCEPTIONS,
                 block(
                         assignS(propX(varX("this"), "rw"), varX("rw"))
@@ -84,11 +85,10 @@ public abstract class AbstractFactoryBuilder {
 
         MethodBuilder.createProtectedMethod("get$proxy")
                 .returning(make(KlumInstanceProxy.class))
-                .doReturn(propX(varX("rw"), KlumInstanceProxy.NAME_OF_PROXY_FIELD_IN_MODEL_CLASS))
+                .doReturn(callX(classX(make(KlumInstanceProxy.class)), "getProxyFor", args(varX("rw"))))
                 .addTo(collectionFactory);
 
         collectionFactory.addAnnotation(createGeneratedAnnotation(getClass()));
         targetClass.getModule().addClass(collectionFactory);
     }
 }
-
