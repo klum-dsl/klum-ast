@@ -23,8 +23,9 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
 import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.util.KlumModelException;
 import com.blackbuild.klum.ast.util.KlumModelProxy;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
@@ -123,6 +124,11 @@ public class PhaseDriver {
 
     /** Runs one complete Builder lifecycle and returns its completed model. */
     public static <T> T withBuilderLifecycle(Supplier<? extends KlumBuilder<T>> generator, Consumer<KlumBuilder<T>> action) {
+        if (PhaseDriver.getInstance().activeObjectPointer > 0)
+            throw new KlumModelException("Cannot start an independent DSL Object factory while a Builder lifecycle is active. "
+                    + "Create composition through the owning Builder's generated relationship methods; "
+                    + "completed DSL Objects may only be created beforehand and assigned to LINK fields.");
+
         Object oldInstance = PhaseDriver.getInstance().context.getInstance();
         try {
             KlumBuilder<T> builder = generator.get();

@@ -535,6 +535,36 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         !first.items.first().is(second.items.first())
     }
 
+    def "nested completed-model factories fail with Builder migration guidance"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class FactoryRoot {
+                FactoryChild child
+            }
+
+            @DSL
+            class FactoryChild {
+                String value
+
+                static FactoryChild fromString(String value) {
+                    return FactoryChild.Create.With(value: value)
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.With { child "nested" }
+
+        then:
+        KlumModelException error = thrown()
+        error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
+        error.message.contains("owning Builder's generated relationship methods")
+        error.message.contains("LINK fields")
+    }
+
     def "completed model companions survive Java serialization"() {
         given:
         createClass '''
