@@ -23,8 +23,9 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.util.KlumModelException
 
-import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor
+import static com.blackbuild.klum.ast.util.KlumModelProxy.getProxyFor
 
 class ModelPathTest extends AbstractDSLSpec {
 
@@ -104,8 +105,7 @@ class ModelPathTest extends AbstractDSLSpec {
         def KeyedValue = getClass('KeyedValue')
 
         when:
-        instance = Model.Create.With {
-            level2(Level2.Create.With {
+        def recipe = Level2.Create.Template {
                 level3 ()
                 level3Element()
                 level3Element()
@@ -113,7 +113,11 @@ class ModelPathTest extends AbstractDSLSpec {
                 keyedValue('second') {}
                 keyedMapValue('mapFirst') {}
                 keyedMapValue('map-second') {}
-            })
+        }
+        Level2.Template.With(recipe) {
+            instance = Model.Create.With {
+                level2()
+            }
         }
 
         then:
@@ -128,7 +132,7 @@ class ModelPathTest extends AbstractDSLSpec {
         getProxyFor(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
-    def "model path is set correctly when using nested Create.With in Converter"() {
+    def "completed converter results cannot become nested composition"() {
         given:
         createClass '''import java.util.logging.Level
 @DSL class Model {
@@ -142,7 +146,7 @@ class ModelPathTest extends AbstractDSLSpec {
     Map<String, KeyedValue> keyedMapValue
     
     static Level2 fromString(String ignored) {
-        return Level2.Create.With {
+        return Level2.Create.Template {
             level3 ()
             level3Element()
             level3Element()
@@ -174,15 +178,8 @@ class ModelPathTest extends AbstractDSLSpec {
         }
 
         then:
-        getProxyFor(instance).modelPath == '<root>'
-        getProxyFor(instance.level2).modelPath == '<root>.level2'
-        getProxyFor(instance.level2.level3).modelPath == '<root>.level2.level3'
-        getProxyFor(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
-        getProxyFor(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
-        getProxyFor(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
-        getProxyFor(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
-        getProxyFor(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
-        getProxyFor(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
+        KlumModelException error = thrown()
+        error.message.contains("Completed DSL Object inputs are only supported for LINK relationships (Model.level2)")
     }
 
     def "model path is set correctly when using nested Create.With in Factory"() {
@@ -193,7 +190,15 @@ class ModelPathTest extends AbstractDSLSpec {
     
     static Model fromString(String string) {
         return Model.Create.With {
-            level2(string)
+            level2 {
+                level3 ()
+                level3Element()
+                level3Element()
+                keyedValue('first') {}
+                keyedValue('second') {}
+                keyedMapValue('mapFirst') {}
+                keyedMapValue('map-second') {}
+            }
         }
     }
 }
@@ -205,7 +210,7 @@ class ModelPathTest extends AbstractDSLSpec {
     Map<String, KeyedValue> keyedMapValue
     
     static Level2 fromString(String ignored) {
-        return Level2.Create.With {
+        return Level2.Create.Template {
             level3 ()
             level3Element()
             level3Element()

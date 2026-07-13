@@ -56,6 +56,7 @@ public class CopyHandler {
     private final KlumBuilder<?> target;
     private final Object donor;
     private final Map<Object, KlumBuilder<?>> rehydratedRecipes;
+    private final String donorBreadcrumbRoot;
 
     /**
      * Copies properties from the donor to the target object. Copying is done according to the annotations on the target object's class and
@@ -64,19 +65,23 @@ public class CopyHandler {
      * @param donor the object to copy from
      */
     public static void copyToFrom(Object target, Object donor) {
-        new CopyHandler(target, donor, new IdentityHashMap<>()).doCopy();
+        new CopyHandler(target, donor, new IdentityHashMap<>(), null).doCopy();
     }
 
     public CopyHandler(Object target, Object donor) {
-        this(target, donor, new IdentityHashMap<>());
+        this(target, donor, new IdentityHashMap<>(), null);
     }
 
-    private CopyHandler(Object target, Object donor, Map<Object, KlumBuilder<?>> rehydratedRecipes) {
+    private CopyHandler(Object target, Object donor, Map<Object, KlumBuilder<?>> rehydratedRecipes,
+                        String donorBreadcrumbRoot) {
         if (!(target instanceof KlumBuilder))
             throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
         this.target = (KlumBuilder<?>) target;
         this.donor = donor;
         this.rehydratedRecipes = rehydratedRecipes;
+        this.donorBreadcrumbRoot = donorBreadcrumbRoot != null
+                ? donorBreadcrumbRoot
+                : breadcrumbPathOf(donor);
     }
 
     public void doCopy() {
@@ -442,10 +447,21 @@ public class CopyHandler {
         if (existing != null)
             return existing;
 
-        KlumBuilder<?> builder = FactoryHelper.createRecipeBuilder(declaredType, recipe, keyHint, target.isTemplate());
+        KlumBuilder<?> builder = FactoryHelper.createRecipeBuilder(
+                declaredType,
+                recipe,
+                keyHint,
+                target.isTemplate(),
+                breadcrumbExtensionFor(recipe)
+        );
         rehydratedRecipes.put(recipe, builder);
         builder.copyFromTemplate();
-        new CopyHandler(builder, recipe, rehydratedRecipes).doCopy();
+        new CopyHandler(
+                builder,
+                recipe,
+                rehydratedRecipes,
+                donorBreadcrumbRoot
+        ).doCopy();
         builder.copyApplyLaterClosuresFrom(recipe);
         if (!target.isTemplate())
             LifecycleHelper.executeLifecycleMethods(builder, com.blackbuild.groovy.configdsl.transform.PostCreate.class);
@@ -453,8 +469,31 @@ public class CopyHandler {
     }
 
     private void copyNested(Object nestedTarget, Object nestedDonor) {
-        new CopyHandler(nestedTarget, nestedDonor, rehydratedRecipes).doCopy();
+        new CopyHandler(
+                nestedTarget,
+                nestedDonor,
+                rehydratedRecipes,
+                donorBreadcrumbRoot
+        ).doCopy();
         ((KlumBuilder<?>) nestedTarget).copyApplyLaterClosuresFrom(nestedDonor);
+    }
+
+    private String breadcrumbExtensionFor(Object recipe) {
+        String recipePath = breadcrumbPathOf(recipe);
+        if (recipePath == null || donorBreadcrumbRoot == null || !recipePath.startsWith(donorBreadcrumbRoot))
+            return null;
+        String relativePath = recipePath.substring(donorBreadcrumbRoot.length());
+        if (relativePath.startsWith("/"))
+            relativePath = relativePath.substring(1);
+        return relativePath.isEmpty() ? null : "{" + relativePath + "}";
+    }
+
+    private static String breadcrumbPathOf(Object value) {
+        if (value instanceof KlumBuilder)
+            return ((KlumBuilder<?>) value).getBreadcrumbPath();
+        if (value != null && DslHelper.isDslObject(value))
+            return KlumModelProxy.getProxyFor(value).getBreadcrumbPath();
+        return null;
     }
 
     private static void assertCorrectType(Field field, Object value, Class<?> elementType) {

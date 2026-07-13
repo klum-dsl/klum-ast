@@ -41,6 +41,7 @@ import groovy.lang.Script;
 import groovy.transform.Undefined;
 import org.codehaus.groovy.reflection.CachedField;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
@@ -539,7 +540,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
         Collection<Object> target = getInstanceAttribute(fieldName);
         target.add(stored);
-        setModelPathOfInnerBuilder(stored, fieldName + "[" + target.size() + "]");
+        setModelPathOfInnerBuilder(stored, fieldName + "[" + (target.size() - 1) + "]");
         return element;
     }
 
@@ -622,7 +623,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         Object stored = DslHelper.isRelationship(schemaField) ? keySource : forceCastClosure(value, DslHelper.getElementType(schemaField));
         Map<K, Object> target = getInstanceAttribute(fieldName);
         target.put(key, stored);
-        setModelPathOfInnerBuilder(stored, fieldName + "[" + key + "]");
+        setModelPathOfInnerBuilder(stored, fieldName + "." + toGPath(key));
     }
 
     private Object normalizeRelationshipValueIfNecessary(Field schemaField, Object value) {
@@ -790,8 +791,10 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void setModelPath(String path) {
-        if (modelPath == null)
-            modelPath = path;
+        if (modelPath != null)
+            return;
+        modelPath = path;
+        propagateModelPathToComposition();
     }
 
     public String getModelPath() {
@@ -801,5 +804,32 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private void setModelPathOfInnerBuilder(Object value, String pathSegment) {
         if (modelPath != null && value instanceof KlumBuilder)
             ((KlumBuilder<?>) value).setModelPath(modelPath + "." + pathSegment);
+    }
+
+    private void propagateModelPathToComposition() {
+        for (Class<?> layer : DslHelper.getDslHierarchyOf(modelType)) {
+            for (Field field : layer.getDeclaredFields()) {
+                if (!DslHelper.isRelationship(field) || DslHelper.isOwner(field) || DslHelper.isLink(field))
+                    continue;
+                propagateModelPath(getInstanceAttribute(field.getName()), modelPath + "." + field.getName());
+            }
+        }
+    }
+
+    private static void propagateModelPath(Object value, String path) {
+        if (value instanceof KlumBuilder) {
+            ((KlumBuilder<?>) value).setModelPath(path);
+        } else if (value instanceof Collection) {
+            int index = 0;
+            for (Object member : (Collection<?>) value)
+                propagateModelPath(member, path + "[" + index++ + "]");
+        } else if (value instanceof Map) {
+            ((Map<?, ?>) value).forEach((key, member) -> propagateModelPath(member, path + "." + toGPath(key)));
+        }
+    }
+
+    private static String toGPath(Object value) {
+        String text = String.valueOf(value);
+        return Utilities.isJavaIdentifier(text) ? text : InvokerHelper.inspect(text);
     }
 }

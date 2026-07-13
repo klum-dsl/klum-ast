@@ -97,11 +97,16 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
+        return createRecipeBuilder(declaredType, recipe, keyHint, template, null);
+    }
+
+    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template,
+                                              String breadcrumbPathExtension) {
         Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
         String key = recipeKey(effectiveType, recipe);
         if (key == null && keyHint != null)
             key = keyHint.toString();
-        KlumBuilder<?> builder = createBuilder(effectiveType, key);
+        KlumBuilder<?> builder = createBuilder(effectiveType, key, breadcrumbPathExtension);
         if (template)
             builder.markAsTemplate();
         return builder;
