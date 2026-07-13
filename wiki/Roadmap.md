@@ -19,7 +19,12 @@ I do not plan release additional features for 2.x
 
 As with 2.1, this will be released soon after 2.0 (and 2.1) and will only consist of dropping Groovy 2 support.
 
-# 3.x -> New Features (unplanned)
+# 4.0 -> New Features (unplanned)
+
+Some heavier features that might break compatibility, like Model/Builder separation, a clean cleint facing API, Layer 3 improvements and overall clean up.
+
+This might include some smaller quality of life improvements, like better error messages, better documentation and more examples.
+
 
 
 
