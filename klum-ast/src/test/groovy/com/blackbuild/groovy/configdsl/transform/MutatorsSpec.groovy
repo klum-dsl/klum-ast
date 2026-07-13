@@ -276,7 +276,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         thrown(MultipleCompilationErrorsException)
     }
 
-    def "Calling a non mutator method from a mutator methods is allowed"() {
+    def "Calling a mutator helper from a mutator method is allowed"() {
         when:
         createClass('''
             package pk
@@ -289,6 +289,7 @@ class MutatorsSpec extends AbstractDSLSpec {
                 def mutate() {
                     nonmutate()
                 }
+                @Mutator
                 def nonmutate() {
                 }
             }
@@ -298,7 +299,7 @@ class MutatorsSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
-    def "Calling a protected non mutator method from a mutator methods is allowed"() {
+    def "Calling a protected mutator helper from a mutator method is allowed"() {
         when:
         createClass('''
             package pk
@@ -309,6 +310,7 @@ class MutatorsSpec extends AbstractDSLSpec {
                 def mutate() {
                     nonmutate()
                 }
+                @Mutator
                 protected nonmutate() {
                 }
             }
