@@ -231,16 +231,18 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private static Object snapshot(Object value, Class<?> declaredType) {
         if (value == null)
             return null;
+        if (value instanceof KlumBuilder)
+            return ((KlumBuilder<?>) value).getCompletedModel();
         if (value instanceof EnumSet)
             return ((EnumSet<?>) value).clone();
         if (value instanceof Map) {
             Map<Object, Object> copy = newMapSnapshotSource((Map<?, ?>) value, declaredType);
-            copy.putAll((Map<?, ?>) value);
+            ((Map<?, ?>) value).forEach((key, member) -> copy.put(key, completedValue(member)));
             return makeMapReadOnly(copy, declaredType);
         }
         if (value instanceof Collection) {
             Collection<Object> copy = newCollectionSnapshotSource((Collection<?>) value, declaredType);
-            copy.addAll((Collection<?>) value);
+            ((Collection<?>) value).forEach(member -> copy.add(completedValue(member)));
             return makeCollectionReadOnly(copy, declaredType);
         }
         return value;
@@ -378,13 +380,31 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private Object normalizeRelationshipValue(Field schemaField, Object value) {
-        if (value == null || value instanceof KlumBuilder)
+        if (value == null)
             return value;
+        if (value instanceof KlumBuilder) {
+            KlumBuilder<?> builderValue = (KlumBuilder<?>) value;
+            if (builderValue.isSealed() && !acceptsCompletedRelationship(schemaField))
+                throw completedRelationshipInputError(schemaField);
+            return value;
+        }
         if (!(value instanceof KlumModelObject))
             throw new KlumModelException(format("Value for relationship %s.%s is neither a Builder nor a completed DSL Object", modelType.getName(), schemaField.getName()));
-        if (!DslHelper.isLink(schemaField) && !schemaField.isAnnotationPresent(Owner.class))
-            throw new KlumModelException(format("Completed DSL Object inputs are only supported for LINK relationships (%s.%s)", modelType.getName(), schemaField.getName()));
+        if (!acceptsCompletedRelationship(schemaField))
+            throw completedRelationshipInputError(schemaField);
         return FactoryHelper.wrapCompletedModel(value);
+    }
+
+    private static boolean acceptsCompletedRelationship(Field schemaField) {
+        return DslHelper.isLink(schemaField) || schemaField.isAnnotationPresent(Owner.class);
+    }
+
+    private KlumModelException completedRelationshipInputError(Field schemaField) {
+        return new KlumModelException(format(
+                "Completed DSL Object inputs are only supported for LINK relationships (%s.%s)",
+                modelType.getName(),
+                schemaField.getName()
+        ));
     }
 
     private static Collection<Object> newMutableCollectionLike(Collection<?> source) {
