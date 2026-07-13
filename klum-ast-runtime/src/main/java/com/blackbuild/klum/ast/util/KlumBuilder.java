@@ -426,6 +426,12 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return new LinkedHashMap<>();
     }
 
+    /**
+     * Applies named values and a configuration closure to this Builder.
+     * @param values named values translated into Builder method calls
+     * @param body closure executed against this Builder
+     * @return this Builder
+     */
     public Object apply(Map<String, ?> values, Closure<?> body) {
         assertMutable();
         applyOnly(values, body);
@@ -465,6 +471,10 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             values.forEach((key, value) -> InvokerHelper.invokeMethod(this, key, value));
     }
 
+    /**
+     * Copies all non-null/non-empty recipe values from the template to this Builder.
+     * @param template the recipe to apply
+     */
     public void copyFrom(Object template) {
         if (template != null) {
             CopyHandler.copyToFrom(this, template);
@@ -509,6 +519,17 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Creates a new '{{fieldName}}' Builder {{param:type?with the given type}} or configures the existing Builder.
+     * The resulting Builder is configured by the optional values and closure.
+     * @param namedParams the optional parameters
+     * @param fieldOrMethodName the name of the field to set or Builder method to call
+     * @param type the model type of the new Builder
+     * @param key the key to use for the new Builder
+     * @param body the closure used to configure the Builder
+     * @param <T> the generated Builder type
+     * @return the newly created or existing Builder
+     */
     public <T> T createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName, Class<T> type, boolean explicitType, String key, Closure<T> body) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
@@ -540,6 +561,13 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         });
     }
 
+    /**
+     * Sets '{{fieldName}}' on this Builder, or calls a Builder method with that name.
+     * @param fieldOrMethodName the field or method name
+     * @param value the value to set
+     * @param <T> the value type
+     * @return the supplied value
+     */
     public <T> T setSingleField(String fieldOrMethodName, T value) {
         assertMutable();
         return BreadcrumbCollector.withBreadcrumb(() -> {
@@ -573,6 +601,13 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         setModelPathOfInnerBuilder(storedValue, fieldOrMethodName);
     }
 
+    /**
+     * Adds an existing '{{singleElementName}}' to the Builder's '{{fieldName}}' collection.
+     * @param fieldName the collection field name
+     * @param element the element to add
+     * @param <T> the element type
+     * @return the added element
+     */
     public <T> T addElementToCollection(String fieldName, T element) {
         Field schemaField = getModelField(fieldName);
         Object stored = DslHelper.isRelationship(schemaField) ? normalizeRelationshipValue(schemaField, element) : forceCastClosure(element, DslHelper.getElementType(schemaField));
@@ -586,6 +621,17 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return addElementToCollection(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
 
+    /**
+     * Creates a new '{{singleElementName}}' Builder {{param:type?with the given type}} and adds it to the Builder's '{{fieldName}}' collection.
+     * The newly created Builder is configured by the optional values and closure.
+     * @param namedParams the optional parameters
+     * @param collectionName the collection field name
+     * @param type the model type of the new Builder
+     * @param key the key to use for the new Builder
+     * @param body the closure used to configure the Builder
+     * @param <T> the generated Builder type
+     * @return the newly created Builder
+     */
     public <T> T addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             KlumBuilder<?> created = createNewBuilderFromParamsAndClosure(type, key, namedParams, body);
@@ -608,10 +654,20 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return created;
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' values to the Builder's '{{fieldName}}' collection.
+     * @param fieldName the collection field name
+     * @param elements the elements to add
+     */
     public void addElementsToCollection(String fieldName, Object... elements) {
         Arrays.stream(elements).forEach(element -> addElementToCollection(fieldName, element));
     }
 
+    /**
+     * Adds one or more existing '{{singleElementName}}' values to the Builder's '{{fieldName}}' collection.
+     * @param fieldName the collection field name
+     * @param elements the elements to add
+     */
     public void addElementsToCollection(String fieldName, Iterable<?> elements) {
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
@@ -628,6 +684,17 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         Arrays.stream(values).forEach(value -> addElementToMap(fieldName, null, value));
     }
 
+    /**
+     * Creates a new '{{singleElementName}}' Builder {{param:type?with the given type}} and adds it to the Builder's '{{fieldName}}' map.
+     * The newly created Builder is configured by the optional values and closure.
+     * @param namedParams the optional parameters
+     * @param mapName the map field name
+     * @param type the model type of the new Builder
+     * @param key the key to use for the new Builder
+     * @param body the closure used to configure the Builder
+     * @param <T> the generated Builder type
+     * @return the newly created Builder
+     */
     public <T> T addNewDslElementToMap(Map<String, Object> namedParams, String mapName, Class<? extends T> type, boolean explicitType, String key, Closure<T> body) {
         return BreadcrumbCollector.withBreadcrumb(null, explicitType ? shortNameFor(type) : null, key, () -> {
             KlumBuilder<?> existing = ((Map<String, KlumBuilder<?>>) getInstanceAttributeOrGetter(mapName)).get(key);

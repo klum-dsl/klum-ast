@@ -89,12 +89,14 @@ class TemplateMethods {
     private void copyFromMethods() {
         createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
-                .param(newClass(dslAncestor), "template", null)
+                .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
+                .param(newClass(dslAncestor), "template", "the recipe to apply")
                 .addTo(rwClass);
         ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
         createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
-                .param(mapOfStringsAndObjects, "template", null)
+                .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
+                .param(mapOfStringsAndObjects, "template", "the recipe to apply")
                 .addTo(rwClass);
      }
 

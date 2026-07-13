@@ -901,6 +901,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
+        boolean linkField = getFieldType(fieldNode) == FieldType.LINK;
+        ClassNode storedElementType = linkField ? elementType : elementRwType;
+        String storedElementDescription = linkField
+                ? "completed '{{singleElementName}}' LINK targets"
+                : "'{{singleElementName}}' Builders";
 
         FieldNode fieldKey = getKeyField(dslBaseType);
 
@@ -910,14 +915,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (getFieldType(fieldNode) != FieldType.LINK) {
+        if (!linkField) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, KlumInstanceProxy.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType)
+                        .returning(elementRwType, "the newly created Builder")
+                        .withDocumentation(doc -> doc
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
+                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .param("values", "the optional parameters")
+                                .param("closure", "the closure to configure the new element"))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -932,7 +942,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType)
+                        .returning(elementRwType, "the newly created Builder")
+                        .withDocumentation(doc -> doc
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' collection.")
+                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .param("values", "the optional parameters")
+                                .param("closure", "the closure to configure the new element"))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -955,25 +970,28 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values")
+                .arrayParam(storedElementType, "values", "the elements to add")
                 .addTo(rwClass);
 
         createProxyMethod(fieldName, "addElementsToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
                 .constantParam(fieldName)
-                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, elementType), "values")
+                .param(GenericsUtils.makeClassSafeWithGenerics(Iterable.class, storedElementType), "values", "the elements to add")
                 .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToCollection")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
-                .returning(elementType)
+                .returning(storedElementType)
+                .documentationTitle("Adds one " + storedElementDescription + " to the Builder's '{{fieldName}}' collection.")
                 .constantParam(fieldName)
-                .param(elementType, "value")
+                .param(storedElementType, "value")
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
@@ -1077,15 +1095,25 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
+        boolean linkField = getFieldType(fieldNode) == FieldType.LINK;
+        ClassNode storedElementType = linkField ? elementType : elementRwType;
+        String storedElementDescription = linkField
+                ? "completed '{{singleElementName}}' LINK targets"
+                : "'{{singleElementName}}' Builders";
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
-        if (getFieldType(fieldNode) != FieldType.LINK) {
+        if (!linkField) {
             if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, "addNewDslElementToMap")
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType)
+                        .returning(elementRwType, "the newly created Builder")
+                        .withDocumentation(doc -> doc
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
+                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .param("values", "the optional parameters")
+                                .param("closure", "the closure to configure the new element"))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .constantClassParam(defaultImpl)
@@ -1100,7 +1128,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
-                        .returning(elementRwType)
+                        .returning(elementRwType, "the newly created Builder")
+                        .withDocumentation(doc -> doc
+                                .title("Creates a new '{{singleElementName}}' Builder and adds it to the Builder's '{{fieldName}}' map.")
+                                .p("The newly created Builder is configured by the optional values and closure.")
+                                .param("values", "the optional parameters")
+                                .param("closure", "the closure to configure the new element"))
                         .namedParams("values")
                         .constantParam(fieldName)
                         .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -1123,25 +1156,28 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
                 .constantParam(fieldName)
-                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(elementType)), "values")
+                .param(makeClassSafeWithGenerics(CommonAstHelper.COLLECTION_TYPE, new GenericsType(storedElementType)), "values", "the elements to add")
                 .addTo(rwClass);
         createProxyMethod(fieldName, "addElementsToMap")
                 .optional()
                 .mod(visibility)
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one or more " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
                 .constantParam(fieldName)
-                .arrayParam(elementType, "values")
+                .arrayParam(storedElementType, "values", "the elements to add")
                 .addTo(rwClass);
 
         createProxyMethod(methodName, "addElementToMap")
                 .optional()
                 .mod(visibility)
-                .returning(elementType)
+                .returning(storedElementType)
                 .linkToField(fieldNode)
+                .documentationTitle("Adds one " + storedElementDescription + " to the Builder's '{{fieldName}}' map.")
                 .constantParam(fieldName)
                 .constantParam(null)
-                .param(elementType, elementToAddVarName)
+                .param(storedElementType, elementToAddVarName)
                 .addTo(rwClass);
 
         createAlternativesClassFor(fieldNode);
