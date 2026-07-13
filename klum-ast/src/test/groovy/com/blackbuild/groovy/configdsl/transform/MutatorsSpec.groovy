@@ -362,36 +362,4 @@ class MutatorsSpec extends AbstractDSLSpec {
        bar.called == true
     }
 
-    @Ignore("Manual verifier sandbox with no behavioral assertion; retained only for local AST debugging")
-    def "for debug only"() {
-        when:
-        createClass('''
-            package pk
-
-            @DSL
-            class Foo {
-                String name
-                List<String> values
-                
-                def variousCalls() {
-                    name = "bli"
-                    this.name = "bli"
-                    values[0] = "bläh"
-                    this.values[0] = "bläh"
-                    values.add("blub")
-                    this.values.add("blub")
-                    doIt()
-                    this.doIt()
-                    def x = 5
-                    x = 3
-                }
-                
-                def doIt() {}
-            }
-        ''')
-
-        then:
-        true
-    }
-
 }

@@ -18,7 +18,7 @@ configurations.matching { it.name in ["testImplementation", "groovy4TestsImpleme
 testing {
     suites {
         test {
-            useJUnit()
+            useSpock(libs.versions.spock.g3)
         }
 
         withType(JvmTestSuite).matching { it.name.startsWith("groovy") }.configureEach {
