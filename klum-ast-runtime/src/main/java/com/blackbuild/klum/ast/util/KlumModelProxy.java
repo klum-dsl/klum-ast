@@ -29,6 +29,9 @@ import com.blackbuild.klum.ast.KlumModelObject;
 import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -104,8 +107,8 @@ public final class KlumModelProxy implements Serializable {
 
     /**
      * Returns technical metadata serialized with this completed DSL Object and its companion.
-     * Metadata values are required to be {@link Serializable} so a value accepted here cannot
-     * make later model serialization fail.
+     * The complete metadata value graph is checked for Java serialization when stored. Callers
+     * must not subsequently mutate an accepted value so it contains non-serializable state.
      *
      * @param key metadata key
      * @param type expected value type
@@ -125,8 +128,8 @@ public final class KlumModelProxy implements Serializable {
      * Stores technical metadata that is serialized with the completed DSL Object.
      *
      * @param key metadata key
-     * @param value a serializable value, or {@code null}
-     * @throws KlumException if {@code value} is not serializable
+     * @param value a value whose complete object graph is serializable, or {@code null}
+     * @throws KlumException if {@code value} or anything reachable from it is not serializable
      */
     public void setMetaData(String key, Object value) {
         metadata.put(key, requireSerializableMetadataValue(key, value));
@@ -137,7 +140,17 @@ public final class KlumModelProxy implements Serializable {
             return null;
         if (!(value instanceof Serializable serializable))
             throw new KlumException(format("Metadata value for key '%s' must be Serializable", key));
+        verifySerializableGraph(key, serializable);
         return serializable;
+    }
+
+    private static void verifySerializableGraph(String key, Serializable value) {
+        try (ObjectOutputStream output = new ObjectOutputStream(OutputStream.nullOutputStream())) {
+            output.writeObject(value);
+        } catch (IOException exception) {
+            throw new KlumException(format(
+                    "Metadata value for key '%s' must have a fully Serializable object graph", key), exception);
+        }
     }
 
     Map<Integer, List<Closure<?>>> getApplyLaterClosures() {

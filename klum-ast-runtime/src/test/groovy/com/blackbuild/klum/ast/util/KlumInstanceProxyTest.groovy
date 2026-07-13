@@ -48,6 +48,20 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         then:
         KlumException companionFailure = thrown()
         companionFailure.message == "Metadata value for key 'invalid' must be Serializable"
+
+        when: "a serializable construction container contains a non-serializable value"
+        builder.setMetaData("invalidGraph", new ArrayList([new Object()]))
+
+        then:
+        KlumException builderGraphFailure = thrown()
+        builderGraphFailure.message == "Metadata value for key 'invalidGraph' must have a fully Serializable object graph"
+
+        when: "a serializable completed-model container contains a non-serializable value"
+        companion.setMetaData("invalidGraph", new ArrayList([new Object()]))
+
+        then:
+        KlumException companionGraphFailure = thrown()
+        companionGraphFailure.message == "Metadata value for key 'invalidGraph' must have a fully Serializable object graph"
     }
 
     def "compatibility adapter only exposes Builder identity and template context"() {

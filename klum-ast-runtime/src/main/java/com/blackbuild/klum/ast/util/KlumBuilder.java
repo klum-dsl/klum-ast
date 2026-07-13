@@ -1071,8 +1071,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     /**
      * Returns construction metadata that will be transferred to the completed model companion.
-     * Metadata values are required to be {@link Serializable} so companion serialization cannot
-     * fail later because of an unsupported value.
+     * The complete metadata value graph is checked for Java serialization when stored. Callers
+     * must not subsequently mutate an accepted value so it contains non-serializable state.
      *
      * @param key metadata key
      * @param type expected value type
@@ -1092,8 +1092,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      * Stores construction metadata for transfer to the completed model companion.
      *
      * @param key metadata key
-     * @param value a serializable value, or {@code null}
-     * @throws KlumException if {@code value} is not serializable
+     * @param value a value whose complete object graph is serializable, or {@code null}
+     * @throws KlumException if {@code value} or anything reachable from it is not serializable
      */
     public void setMetaData(String key, Object value) {
         metadata.put(key, KlumModelProxy.requireSerializableMetadataValue(key, value));
