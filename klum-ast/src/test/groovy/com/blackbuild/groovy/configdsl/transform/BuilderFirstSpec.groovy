@@ -25,6 +25,8 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.util.KlumModelProxy
+import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
 import java.lang.reflect.Modifier
@@ -393,5 +395,153 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         Modifier.isFinal(clazz.getDeclaredField("stable").modifiers)
         !Modifier.isFinal(clazz.getDeclaredField("runtimeState").modifiers)
         clazz.methods*.name.contains("setStable") == false
+    }
+
+    def "provisional Builder issues transfer before completed model validators run once"() {
+        given:
+        createClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.validation.Validator
+
+            @DSL
+            class ValidatedModel {
+                static Class validationReceiver
+                static int validationCalls
+
+                @Deprecated
+                String legacy
+
+                @PostTree
+                void reportProvisionalIssue() {
+                    Validator.addIssue("reported while building", Validate.Level.WARNING)
+                }
+
+                @Validate
+                void validateCompletedModel() {
+                    validationReceiver = this.class
+                    validationCalls++
+                    assert !(this instanceof KlumBuilder)
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With { legacy "used" }
+        def result = Validator.getValidationResult(instance)
+
+        then:
+        clazz.validationReceiver == clazz
+        clazz.validationCalls == 1
+        result.issues*.message.contains("reported while building")
+        result.issues*.message.any { it.contains("deprecated") }
+
+        when: "the internal completed-model validation handler is invoked again"
+        def handlerClass = Class.forName("com.blackbuild.klum.ast.validation.SingleObjectValidationHandler")
+        def constructor = handlerClass.getDeclaredConstructor(Object)
+        constructor.accessible = true
+        def execute = handlerClass.getDeclaredMethod("execute")
+        execute.accessible = true
+        execute.invoke(constructor.newInstance(instance))
+
+        then: "each InstanceValidator implementation remains memoized"
+        clazz.validationCalls == 1
+    }
+
+    def "templates rehydrate nested DSL recipes into fresh Builder graphs"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class RecipeRoot {
+                RecipeChild child
+
+                @Field(members = "item")
+                List<RecipeChild> items
+            }
+
+            @DSL
+            class RecipeChild {
+                String name
+                int postCreateCalls
+
+                @PostCreate
+                void initialize() {
+                    postCreateCalls++
+                }
+            }
+        '''
+        def RecipeRoot = clazz
+
+        and: "template construction records values without running lifecycle callbacks"
+        def recipe = RecipeRoot.Create.Template {
+            child { name "single" }
+            item { name "listed" }
+        }
+
+        expect:
+        recipe.child.postCreateCalls == 0
+        recipe.items.first().postCreateCalls == 0
+
+        when:
+        def first
+        def second
+        RecipeRoot.Template.With(recipe) {
+            first = RecipeRoot.Create.One()
+            second = RecipeRoot.Create.One()
+        }
+
+        then: "each application owns an independent, fully initialized graph"
+        first.child.name == "single"
+        first.items*.name == ["listed"]
+        first.child.postCreateCalls == 1
+        first.items.first().postCreateCalls == 1
+        !first.child.is(recipe.child)
+        !first.items.first().is(recipe.items.first())
+        !first.child.is(second.child)
+        !first.items.first().is(second.items.first())
+    }
+
+    def "completed model companions survive Java serialization"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class SerializableModel {
+                String name
+                List<String> values
+            }
+        '''
+        instance = clazz.Create.With {
+            name "serialized"
+            values "one", "two"
+        }
+        KlumModelProxy.getProxyFor(instance).setMetaData("marker", "preserved")
+
+        when:
+        def bytes = new ByteArrayOutputStream()
+        new ObjectOutputStream(bytes).withCloseable { it.writeObject(instance) }
+        def dynamicLoader = loader
+        def restored = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray())) {
+            @Override
+            protected Class<?> resolveClass(ObjectStreamClass descriptor) {
+                try {
+                    return dynamicLoader.loadClass(descriptor.name)
+                } catch (ClassNotFoundException ignored) {
+                    return super.resolveClass(descriptor)
+                }
+            }
+        }.withCloseable { it.readObject() }
+
+        then:
+        restored.name == "serialized"
+        restored.values == ["one", "two"]
+        def companion = KlumModelProxy.getProxyFor(restored)
+        companion.model.is(restored)
+        companion.modelPath == "<root>"
+        companion.getMetaData("marker", String) == "preserved"
     }
 }

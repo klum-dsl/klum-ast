@@ -45,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -112,6 +113,25 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     /** Allocates the completed object for this Builder. Generated code implements this hook. */
     protected abstract M $createModel();
+
+    /**
+     * Instantiates a synthetic model implementation without exposing its Builder constructor to clients.
+     * Abstract DSL types use this path for their internal template implementation.
+     */
+    protected final M $instantiateSyntheticModel(Class<? extends M> implementationType) {
+        Constructor<?> constructor = Arrays.stream(implementationType.getDeclaredConstructors())
+                .filter(candidate -> candidate.getParameterCount() == 1)
+                .filter(candidate -> candidate.getParameterTypes()[0].isInstance(this))
+                .findFirst()
+                .orElseThrow(() -> new KlumModelException("No internal Builder constructor found for " + implementationType.getName()));
+        try {
+            if (!constructor.trySetAccessible())
+                throw new KlumModelException("Cannot access internal Builder constructor for " + implementationType.getName());
+            return (M) constructor.newInstance(this);
+        } catch (ReflectiveOperationException exception) {
+            throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception);
+        }
+    }
 
     /** Assigns relationship fields after every object in the graph was allocated. */
     protected void $assignRelationships() {
@@ -256,18 +276,21 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata, applyLaterClosures);
     }
 
     public static final class ModelState implements Serializable {
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Object> metadata;
+        private final Map<Integer, List<Closure<?>>> applyLaterClosures;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Object> metadata) {
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Object> metadata,
+                           Map<Integer, List<Closure<?>>> applyLaterClosures) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
             this.metadata = new HashMap<>(metadata);
+            this.applyLaterClosures = copyApplyLaterClosures(applyLaterClosures);
         }
 
         public String getBreadcrumbPath() {
@@ -280,6 +303,10 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
         public Map<String, Object> getMetadata() {
             return metadata;
+        }
+
+        public Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
+            return applyLaterClosures;
         }
     }
 
@@ -401,8 +428,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void copyFrom(Object template) {
-        if (template != null)
+        if (template != null) {
             CopyHandler.copyToFrom(this, template);
+            copyApplyLaterClosuresFrom(template);
+        }
+    }
+
+    /** Internal target used by generated typed copyFrom overloads. */
+    public void copyFromRecipe(Object template) {
+        copyFrom(template);
     }
 
     public Object getNullableKey() {
@@ -488,6 +522,10 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             setInstanceAttribute(fieldOrMethodName, value);
         else
             InvokerHelper.invokeMethod(this, fieldOrMethodName, value);
+        Object storedValue = DslHelper.getField(modelType, fieldOrMethodName).isPresent()
+                ? getInstanceAttribute(fieldOrMethodName)
+                : value;
+        setModelPathOfInnerBuilder(storedValue, fieldOrMethodName);
     }
 
     public <T> T addElementToCollection(String fieldName, T element) {
@@ -513,9 +551,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     private KlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
         KlumBuilder<?> created = FactoryHelper.createBuilder(type, key);
+        if (template)
+            created.markAsTemplate();
         created.copyFromTemplate();
-        LifecycleHelper.executeLifecycleMethods(created, PostCreate.class);
-        created.apply(namedParams, body);
+        if (template)
+            created.applyOnly(namedParams, body);
+        else {
+            LifecycleHelper.executeLifecycleMethods(created, PostCreate.class);
+            created.apply(namedParams, body);
+        }
         return created;
     }
 
@@ -661,19 +705,57 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void applyLater(Closure<?> closure) {
+        scheduleApplyLater(closure);
+    }
+
+    public void scheduleApplyLater(Closure<?> closure) {
         KlumPhase phase = PhaseDriver.getCurrentPhase();
         if (phase == null)
             phase = DefaultKlumPhase.APPLY_LATER;
-        applyLater(phase, closure);
+        doScheduleApplyLater(phase.getNumber(), closure);
     }
 
     public void applyLater(KlumPhase phase, Closure<?> closure) {
-        applyLater(phase.getNumber(), closure);
+        scheduleApplyLater(phase, closure);
+    }
+
+    public void scheduleApplyLater(KlumPhase phase, Closure<?> closure) {
+        doScheduleApplyLater(phase.getNumber(), closure);
     }
 
     public void applyLater(Integer number, Closure<?> closure) {
+        scheduleApplyLater(number, closure);
+    }
+
+    public void scheduleApplyLater(Integer number, Closure<?> closure) {
+        doScheduleApplyLater(number, closure);
+    }
+
+    private void doScheduleApplyLater(Integer number, Closure<?> closure) {
         applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
-        PhaseDriver.getInstance().registerApplyLaterPhase(number);
+        if (!template)
+            PhaseDriver.getInstance().registerApplyLaterPhase(number);
+    }
+
+    void copyApplyLaterClosuresFrom(Object recipe) {
+        Map<Integer, List<Closure<?>>> source;
+        if (recipe instanceof KlumBuilder)
+            source = ((KlumBuilder<?>) recipe).applyLaterClosures;
+        else if (recipe instanceof KlumModelObject)
+            source = KlumModelProxy.getProxyFor(recipe).getApplyLaterClosures();
+        else
+            return;
+        source.forEach((phase, closures) -> closures.forEach(closure -> doScheduleApplyLater(phase, cloneClosure(closure))));
+    }
+
+    private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
+        Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
+        source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
+        return copy;
+    }
+
+    private static Closure<?> cloneClosure(Closure<?> closure) {
+        return (Closure<?>) closure.clone();
     }
 
     public void executeApplyLaterClosures(int phase) {

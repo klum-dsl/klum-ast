@@ -113,6 +113,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     List<FieldNode> ownerFields;
     AnnotationNode dslAnnotation;
     InnerClassNode rwClass;
+    ClassNode modelImplementationClass;
     final Map<FieldNode, FieldNode> builderFields = new LinkedHashMap<>();
 
     @Override
@@ -304,7 +305,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
         if (isMap(field.getType())) {
             ClassNode keyType = getKeyTypeForMap(field.getType());
-            if (keyType != null && !STRING_TYPE.equals(keyType))
+            if (getFieldType(field) != FieldType.TRANSIENT && keyType != null && !STRING_TYPE.equals(keyType))
                 addCompileError("Map keys in DSL Objects must be Strings.", field);
         }
     }
@@ -421,14 +422,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createModelAllocationHook() {
-        ClassNode implementationType = annotatedClass;
+        MethodBuilder method = createProtectedMethod("$createModel")
+                .returning(annotatedClass.getPlainNodeReference());
         if (isAbstract(annotatedClass))
-            implementationType = ClassHelper.makeWithoutCaching(annotatedClass.getName() + "$Template");
-
-        createProtectedMethod("$createModel")
-                .returning(annotatedClass.getPlainNodeReference())
-                .doReturn(ctorX(implementationType, args(varX("this"))))
-                .addTo(rwClass);
+            method.doReturn(callX(varX("this"), "$instantiateSyntheticModel", args(classX(modelImplementationClass))));
+        else
+            method.doReturn(ctorX(modelImplementationClass, args(varX("this"))));
+        method.addTo(rwClass);
     }
 
     private void createRelationshipAssignmentHook() {
@@ -576,7 +576,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createTemplateMethods() {
-        new TemplateMethods(this).invoke();
+        modelImplementationClass = new TemplateMethods(this).invoke();
     }
 
     private void createOwnerClosureMethods() {
@@ -1200,18 +1200,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private void createApplyMethods() {
-        createProxyMethod(APPLY_LATER)
+        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
                 .mod(ACC_PUBLIC)
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod(APPLY_LATER)
+        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
                 .mod(ACC_PUBLIC)
                 .param(Integer_TYPE, "phase")
                 .delegatingClosureParam(rwClass, null, null)
                 .addTo(rwClass);
 
-        createProxyMethod(APPLY_LATER)
+        createProxyMethod(APPLY_LATER, "scheduleApplyLater")
                 .mod(ACC_PUBLIC)
                 .param(make(DefaultKlumPhase.class), "phase")
                 .delegatingClosureParam(rwClass, null, null)

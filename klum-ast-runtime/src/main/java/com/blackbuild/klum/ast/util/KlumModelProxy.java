@@ -26,15 +26,17 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
+import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -53,6 +55,7 @@ public final class KlumModelProxy implements Serializable {
     private final String breadcrumbPath;
     private String modelPath;
     private final Map<String, Object> metadata;
+    private final Map<Integer, List<Closure<?>>> applyLaterClosures;
     private final Set<Class<?>> executedValidators = new HashSet<>();
 
     public KlumModelProxy(GroovyObject model, KlumBuilder.ModelState state) {
@@ -60,6 +63,7 @@ public final class KlumModelProxy implements Serializable {
         this.breadcrumbPath = state.getBreadcrumbPath();
         this.modelPath = state.getModelPath();
         this.metadata = new HashMap<>(state.getMetadata());
+        this.applyLaterClosures = new HashMap<>(state.getApplyLaterClosures());
     }
 
     /**
@@ -108,6 +112,10 @@ public final class KlumModelProxy implements Serializable {
 
     public void setMetaData(String key, Object value) {
         metadata.put(key, value);
+    }
+
+    Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
+        return applyLaterClosures;
     }
 
     /**

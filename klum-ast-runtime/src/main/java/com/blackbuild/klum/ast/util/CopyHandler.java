@@ -38,13 +38,13 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static com.blackbuild.klum.ast.util.DslHelper.getFactoryOf;
 import static com.blackbuild.klum.ast.util.DslHelper.isDslType;
-import static com.blackbuild.klum.ast.util.KlumInstanceProxy.getProxyFor;
 import static groovyjarjarasm.asm.Opcodes.*;
 
 /**
@@ -53,9 +53,9 @@ import static groovyjarjarasm.asm.Opcodes.*;
  */
 public class CopyHandler {
 
-    private final Object target;
-    private final KlumInstanceProxy proxy;
+    private final KlumBuilder<?> target;
     private final Object donor;
+    private final Map<Object, KlumBuilder<?>> rehydratedRecipes;
 
     /**
      * Copies properties from the donor to the target object. Copying is done according to the annotations on the target object's class and
@@ -64,16 +64,24 @@ public class CopyHandler {
      * @param donor the object to copy from
      */
     public static void copyToFrom(Object target, Object donor) {
-        new CopyHandler(target, donor).doCopy();
+        new CopyHandler(target, donor, new IdentityHashMap<>()).doCopy();
     }
 
     public CopyHandler(Object target, Object donor) {
-        this.target = target;
-        proxy = getProxyFor(target);
+        this(target, donor, new IdentityHashMap<>());
+    }
+
+    private CopyHandler(Object target, Object donor, Map<Object, KlumBuilder<?>> rehydratedRecipes) {
+        if (!(target instanceof KlumBuilder))
+            throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
+        this.target = (KlumBuilder<?>) target;
         this.donor = donor;
+        this.rehydratedRecipes = rehydratedRecipes;
     }
 
     public void doCopy() {
+        if (donor != null)
+            rehydratedRecipes.putIfAbsent(donor, target);
         if (donor instanceof Map)
             doCopyFromMap();
         else
@@ -87,12 +95,15 @@ public class CopyHandler {
     }
 
     private void doCopyFromObject() {
-        DslHelper.getDslHierarchyOf(donor.getClass()).forEach(this::copyFromLayer);
+        Class<?> donorType = donor instanceof KlumBuilder
+                ? ((KlumBuilder<?>) donor).getModelType()
+                : donor.getClass();
+        DslHelper.getDslHierarchyOf(donorType).forEach(this::copyFromLayer);
     }
 
     private void copyFromLayer(Class<?> layer) {
         for (Field field : layer.getDeclaredFields()) {
-            if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_FINAL | ACC_TRANSIENT)) != 0) continue;
+            if ((field.getModifiers() & (ACC_SYNTHETIC | ACC_TRANSIENT | ACC_STATIC)) != 0) continue;
             String name = field.getName();
 
             doCopyNamedElement(name);
@@ -103,7 +114,7 @@ public class CopyHandler {
         if (name.startsWith("$")) return;
         if (name.startsWith("@")) return;
 
-        Optional<Field> optionalField = DslHelper.getField(target.getClass(), name);
+        Optional<Field> optionalField = DslHelper.getField(target.getModelType(), name);
 
         if (optionalField.isEmpty())
             handleMissingFieldInTarget(name);
@@ -145,7 +156,7 @@ public class CopyHandler {
 
     private void copyFromSingleField(Field field) {
         String fieldName = field.getName();
-        Object currentValue = proxy.getInstanceAttribute(fieldName);
+        Object currentValue = target.getInstanceAttribute(fieldName);
         Object templateValue = getTemplateValue(fieldName, field.getType());
 
         OverwriteStrategy.Single strategy = getSingleStrategy(field);
@@ -167,7 +178,7 @@ public class CopyHandler {
                     if (currentValue == null || !isDslType(field.getType()))
                         replaceValue(field, templateValue);
                     else
-                        CopyHandler.copyToFrom(currentValue, templateValue);
+                        copyNested(currentValue, templateValue);
                 }
                 break;
             case INHERIT:
@@ -180,8 +191,10 @@ public class CopyHandler {
         Object result;
         if (donor instanceof Map)
             result = ((Map<String, Object>) donor).get(fieldName);
+        else if (donor instanceof KlumBuilder)
+            result = ((KlumBuilder<?>) donor).getInstanceAttribute(fieldName);
         else
-            result = getProxyFor(donor).getInstanceAttribute(fieldName);
+            result = DslHelper.getAttributeValue(fieldName, donor);
         if (result != null && !(result instanceof Map) && !isInstance(type, result)) {
             if (result instanceof String)
                 return coerceString((String) result, type);
@@ -230,13 +243,10 @@ public class CopyHandler {
     }
 
     private void replaceValue(Field field, Object templateValue) {
-        Object valueCopy;
-        if (templateValue instanceof Map) {
-            valueCopy = getFactoryOf(field.getType()).FromMap((Map<String, Object>) templateValue);
-        } else {
-            valueCopy = copyValue(templateValue);
-        }
-        proxy.setInstanceAttribute(field.getName(), valueCopy);
+        Object valueCopy = DslHelper.isRelationship(field)
+                ? rehydrateDslRecipe(field.getType(), templateValue, null)
+                : copyValue(templateValue);
+        target.setInstanceAttribute(field.getName(), valueCopy);
     }
 
     @SuppressWarnings("unchecked")
@@ -244,7 +254,7 @@ public class CopyHandler {
         if (templateValue == null)
             return null;
         if (isDslType(templateValue.getClass()))
-            return getProxyFor(templateValue).cloneInstance();
+            throw new KlumModelException("DSL Object recipes require a target field type");
         if (templateValue instanceof Collection)
             return (T) createCopyOfCollection((Collection<Object>) templateValue);
         if (templateValue instanceof Map)
@@ -264,7 +274,7 @@ public class CopyHandler {
 
     private void copyFromMapField(Field field) {
         String fieldName = field.getName();
-        Map<Object,Object> currentValues = proxy.getInstanceAttribute(fieldName);
+        Map<Object,Object> currentValues = target.getInstanceAttribute(fieldName);
         Map<Object,Object> templateValues = (Map<Object, Object>) getTemplateValue(fieldName, field.getType());
 
         if (templateValues == null)
@@ -316,7 +326,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            currentValues.computeIfAbsent(key, k -> copyValue(value));
+                currentValues.computeIfAbsent(key, k -> copyFieldValue(valueType, value, key));
         }
     }
 
@@ -329,9 +339,9 @@ public class CopyHandler {
             assertCorrectType(field, value, valueType);
             Object currentValue = currentValues.get(key);
             if (currentValue == null)
-                currentValues.put(key, copyValue(value));
+                currentValues.put(key, copyFieldValue(valueType, value, key));
             else
-                CopyHandler.copyToFrom(currentValue, value);
+                copyNested(currentValue, value);
         }
     }
 
@@ -341,7 +351,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            currentValues.put(key, copyValue(value));
+            currentValues.put(key, copyFieldValue(valueType, value, key));
         }
     }
 
@@ -376,7 +386,7 @@ public class CopyHandler {
 
     private void copyFromCollectionField(Field field) {
         String fieldName = field.getName();
-        Collection<Object> currentValue = proxy.getInstanceAttribute(fieldName);
+        Collection<Object> currentValue = target.getInstanceAttribute(fieldName);
         Collection<Object> templateValue = (Collection<Object>) getTemplateValue(fieldName, field.getType());
 
         if (templateValue == null) return;
@@ -411,8 +421,36 @@ public class CopyHandler {
         Class<?> elementType = DslHelper.getClassFromType(DslHelper.getElementType(field));
         for (Object value : templateValue) {
             assertCorrectType(field, value, elementType);
-            currentValue.add(copyValue(value));
+            currentValue.add(copyFieldValue(elementType, value, null));
         }
+    }
+
+    private Object copyFieldValue(Class<?> declaredType, Object value, Object keyHint) {
+        if (value == null)
+            return null;
+        if (DslHelper.isDslType(declaredType))
+            return rehydrateDslRecipe(declaredType, value, keyHint);
+        return copyValue(value);
+    }
+
+    private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint) {
+        KlumBuilder<?> existing = rehydratedRecipes.get(recipe);
+        if (existing != null)
+            return existing;
+
+        KlumBuilder<?> builder = FactoryHelper.createRecipeBuilder(declaredType, recipe, keyHint, target.isTemplate());
+        rehydratedRecipes.put(recipe, builder);
+        builder.copyFromTemplate();
+        new CopyHandler(builder, recipe, rehydratedRecipes).doCopy();
+        builder.copyApplyLaterClosuresFrom(recipe);
+        if (!target.isTemplate())
+            LifecycleHelper.executeLifecycleMethods(builder, com.blackbuild.groovy.configdsl.transform.PostCreate.class);
+        return builder;
+    }
+
+    private void copyNested(Object nestedTarget, Object nestedDonor) {
+        new CopyHandler(nestedTarget, nestedDonor, rehydratedRecipes).doCopy();
+        ((KlumBuilder<?>) nestedTarget).copyApplyLaterClosuresFrom(nestedDonor);
     }
 
     private static void assertCorrectType(Field field, Object value, Class<?> elementType) {
@@ -431,10 +469,10 @@ public class CopyHandler {
     }
 
     private OverwriteStrategy.Missing getMissingStrategy() {
-        Overwrite.Missing annotation = AnnotationHelper.getNestedAnnotation(target.getClass(), Overwrite.Missing.class);
+        Overwrite.Missing annotation = AnnotationHelper.getNestedAnnotation(target.getModelType(), Overwrite.Missing.class);
         if (annotation != null && annotation.value() != OverwriteStrategy.Missing.INHERIT)
             return annotation.value();
-        return AnnotationHelper.getMostSpecificAnnotation(target.getClass(), Overwrite.class, o -> o.missing().value() != OverwriteStrategy.Missing.INHERIT)
+        return AnnotationHelper.getMostSpecificAnnotation(target.getModelType(), Overwrite.class, o -> o.missing().value() != OverwriteStrategy.Missing.INHERIT)
                 .map(Overwrite::missing)
                 .map(Overwrite.Missing::value)
                 .orElse(OverwriteStrategy.Missing.FAIL);

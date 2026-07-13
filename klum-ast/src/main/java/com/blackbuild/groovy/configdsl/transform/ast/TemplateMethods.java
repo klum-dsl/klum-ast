@@ -58,10 +58,11 @@ class TemplateMethods {
         dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
     }
 
-    public void invoke() {
+    public ClassNode invoke() {
         createImplementationForAbstractClassIfNecessary();
         copyFromMethods();
         createTemplateField();
+        return templateClass;
     }
 
     private void createTemplateField() {
@@ -86,12 +87,12 @@ class TemplateMethods {
     }
 
     private void copyFromMethods() {
-        createProxyMethod(COPY_FROM)
+        createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
                 .param(newClass(dslAncestor), "template", null)
                 .addTo(rwClass);
         ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
-        createProxyMethod(COPY_FROM)
+        createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
                 .param(mapOfStringsAndObjects, "template", null)
                 .addTo(rwClass);

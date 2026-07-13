@@ -41,4 +41,13 @@ final class GeneratedBuilderSupport {
             throw new KlumModelException("No generated Builder found for " + modelType.getName(), e);
         }
     }
+
+    static boolean hasBuilderFor(Class<?> modelType) {
+        try {
+            modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);
+            return true;
+        } catch (ClassNotFoundException ignored) {
+            return false;
+        }
+    }
 }

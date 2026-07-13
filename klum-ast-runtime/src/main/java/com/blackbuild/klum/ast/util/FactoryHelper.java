@@ -70,7 +70,11 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
-        if (!DslHelper.isInstantiable(type))
+        return createBuilder(type, key, breadcrumbPathExtension, false);
+    }
+
+    private static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension, boolean template) {
+        if (!template && !DslHelper.isInstantiable(type))
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
             Class<? extends KlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
@@ -80,10 +84,55 @@ public class FactoryHelper extends GroovyObjectSupport {
             else if (BreadcrumbCollector.hasInstance())
                 builder.setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
             builder.setCurrentTemplates(TemplateManager.getInstance().getCurrentTemplates());
+            if (template)
+                builder.markAsTemplate();
             return builder;
         } catch (ReflectiveOperationException e) {
             throw new KlumModelException("Could not instantiate generated Builder for " + type.getName(), e);
         }
+    }
+
+    private static <T> KlumBuilder<T> createTemplateBuilder(Class<T> type) {
+        return createBuilder(type, null, null, true);
+    }
+
+    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
+        Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
+        String key = keyHint == null ? recipeKey(effectiveType, recipe) : keyHint.toString();
+        KlumBuilder<?> builder = createBuilder(effectiveType, key);
+        if (template)
+            builder.markAsTemplate();
+        return builder;
+    }
+
+    private static Class<?> effectiveRecipeType(Class<?> declaredType, Object recipe) {
+        if (recipe instanceof Map)
+            return deduceClass(declaredType, (String) ((Map<?, ?>) recipe).get("@type"));
+
+        Class<?> recipeType = recipe instanceof KlumBuilder
+                ? ((KlumBuilder<?>) recipe).getModelType()
+                : recipe.getClass();
+        if (declaredType.isAssignableFrom(recipeType)
+                && DslHelper.isInstantiable(recipeType)
+                && GeneratedBuilderSupport.hasBuilderFor(recipeType))
+            return recipeType;
+        return deduceClass(declaredType, null);
+    }
+
+    private static String recipeKey(Class<?> effectiveType, Object recipe) {
+        return DslHelper.getKeyField(effectiveType)
+                .map(Field::getName)
+                .map(name -> recipeValue(recipe, name))
+                .map(Object::toString)
+                .orElse(null);
+    }
+
+    private static Object recipeValue(Object recipe, String name) {
+        if (recipe instanceof Map)
+            return ((Map<?, ?>) recipe).get(name);
+        if (recipe instanceof KlumBuilder)
+            return ((KlumBuilder<?>) recipe).getInstanceAttribute(name);
+        return DslHelper.getAttributeValue(name, recipe);
     }
 
     /**
@@ -390,36 +439,14 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            T result = createTemplateInstance(type);
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
+            KlumBuilder<T> builder = createTemplateBuilder(type);
+            builder.copyFromTemplate();
 
             DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
-            script.setDelegate(proxy.getRwInstance());
+            script.setDelegate(builder);
             script.run();
-            return result;
+            return (T) KlumBuilder.materializeGraph(builder);
         });
-    }
-
-    private static <T> T createTemplateInstance(Class<T> type) {
-        T result;
-        if (!DslHelper.isInstantiable(type))
-            result = createSyntheticTemplateInstance(type);
-        else if (DslHelper.isKeyed(type))
-            result = createInstanceWithNullArg(type);
-        else
-            result = createInstanceWithArgs(type);
-        KlumInstanceProxy.getProxyFor(result).setBreadcrumbPath(BreadcrumbCollector.getInstance().getFullPath());
-        return result;
-    }
-
-    private static <T> T createSyntheticTemplateInstance(Class<T> type) {
-        try {
-            //noinspection unchecked
-            return (T) type.getClassLoader().loadClass(type.getName() + "$Template").getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            throw new KlumModelException(String.format("Could new instantiate synthetic template class, is %s a KlumDSL Object?", type), e);
-        }
     }
 
     static <T> T createInstanceWithArgs(Class<T> type, Object... args) {
@@ -463,11 +490,10 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, Closure<?> closure) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            T result = createTemplateInstance(type);
-            KlumInstanceProxy proxy = KlumInstanceProxy.getProxyFor(result);
-            proxy.copyFromTemplate();
-            proxy.applyOnly(values, closure);
-            return result;
+            KlumBuilder<T> builder = createTemplateBuilder(type);
+            builder.copyFromTemplate();
+            builder.applyOnly(values, closure);
+            return (T) KlumBuilder.materializeGraph(builder);
         });
     }
 
