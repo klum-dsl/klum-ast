@@ -7,6 +7,10 @@ Status: Accepted
 Sub-decisions:
 
 - [0004 — AsBuilder composition and Builder-producing factory projections](0004-asbuilder-composition-protocol.md)
+- [0005 — Generated DSL support namespace and public Builder capabilities](0005-generated-dsl-support-api.md)
+- [0006 — Completed DSL Object support facade](0006-completed-object-support.md)
+- [0007 — Jackson deserialization as configuration replay](0007-jackson-configuration-replay.md)
+- [0008 — State-typed declarative phase registration](0008-phase-registration.md)
 
 ## Context
 
@@ -36,10 +40,13 @@ Composition is built in one Builder lifecycle. A completed DSL Object may be use
 
 Builder relationship fields uniformly hold Builders. An externally completed DSL Object is represented by an immediately sealed Builder with a one-way reference to that object; pre-materialization lifecycle code therefore works with Builder state, not arbitrary completed-model methods.
 
-Jackson deserialization restores all serializable fields into Builders, then runs normal lifecycle, materialization, and validation. This provisional choice may alter results if mutating lifecycle callbacks are non-idempotent; revisit it in #428. Potential diagnostics for mutable Simple Values are tracked in #427. Phase guards are outside this ADR and remain tracked by #281.
+Jackson deserialization initially restored all serializable fields into Builders. ADR 0007 replaces that provisional policy
+with configuration replay. Potential diagnostics for mutable Simple Values are tracked in #427. General phase guards are
+outside this ADR and remain tracked by #281; ADR 0008 defines only the plugin registration SPI.
 
 ## Consequences
 
 This is a documented breaking change. Completed DSL Objects no longer expose generated `apply`, direct construction is unsupported for clients, and direct completed-model access through `KlumInstanceProxy` is rejected. Existing factory-oriented client code remains the supported path. The change aligns with the removal tracked by #323 and the broader generated-base-helper cleanup in #331, while enabling lifecycle-class work in #420.
 
-The generated Builder's final name and whether generated types are nested or top-level remain intentionally undecided pending #394. That issue must be resolved or rejected before this change is released.
+ADR 0005 resolves the formerly deferred #394 naming/layout boundary as the top-level `Foo_DSL` namespace. ADR 0006 defines
+the separate completed-object facade; neither changes this ADR's Builder-first state boundary.

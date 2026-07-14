@@ -163,32 +163,36 @@ callers. Calls between adaptable methods in the twin must target other twins, no
 Do not project these as usable collection composition methods. Require an explicit `AsBuilder`/`KlumBuilder<T>` contract,
 an explicitly marked Template recipe, or use as a root/aggregation `LINK` result. Never materialize and copy the result.
 
-## Suggested implementation slices and commit order
+## Tracer-bullet slices and dependency order
 
 Each slice should start by removing `@PendingFeature` from only the focused target test and making it green.
 
-1. **Extract child preparation without behavior change.** Move the common Template, `PostCreate`, apply, and `PostApply`
-   sequence out of `KlumBuilder.createNewBuilderFromParamsAndClosure` and `FactoryHelper.createFromDelegatingScript`. Keep
-   root return values unchanged.
-2. **Introduce construction-session-aware `AsBuilder`.** Provide the stable `KlumBuilder<T>` runtime method, active-session
-   requirement, session association, and generated covariant override through the existing generated-type indirection.
-   Test calls outside a session and cross-session adoption errors.
-3. **Adapt framework-owned inputs.** Add Builder paths for configuration, `FromMap`, `DelegatingScript`, text, File, and URL.
-   Keep regular materializing Scripts explicitly rejected. Verify lifecycle callbacks execute exactly once.
-4. **Route collection projections.** Change `AlternativesClassBuilder.createDelegateFactoryMethod` so supported projected
-   methods call Builder-producing counterparts and return Builders or Collections/Maps of Builders. Preserve keys,
-   comparators where relevant, breadcrumbs, owner paths, and map key mappings.
-5. **Route direct script collection methods.** Replace `addElementsFromScriptsToCollection/Map` calls to root `From` with the
-   Builder path and narrow or validate the accepted Script category.
-6. **Generate source-visible Builder twins.** Extend converter/custom factory transformation, including default parameters,
-   keyed values, recursive custom method calls, Collection/Map results, and concrete subtype alternatives. Provide a
-   source-retention hint for truthful explicit Builder contracts and IDE substitution.
-7. **Filter opaque projections.** Do not generate composition methods that can only return completed models. Emit clear
-   migration guidance at the nearest useful compile-time or invocation boundary without rejecting unrelated root usage.
-8. **Finish Template consequences.** Introduce `KlumTemplateProxy`/`TemplateRecipeState`, graph-aware Template identity, and
-   the `applyLater < INSTANTIATE` invariant. Move persisted modifying actions out of ordinary Model companions.
-9. **Update public documentation and release notes.** Document `AsBuilder`, converter authoring, collection projections,
-   opaque-script behavior, Template identity, and migration examples in the wiki and `CHANGES.md`.
+### [AB-1 — Active-session `AsBuilder` vertical slice](https://github.com/klum-dsl/klum-ast/issues/436)
+
+Extract one child-preparation path shared by closure creation and `FactoryHelper`, introduce the opaque
+`ConstructionSession` token, and make `Create.AsBuilder` work for `With`, `One`, `FromMap`, and `DelegatingScript` in one
+owned relationship. The slice is complete when the child joins the root lifecycle, `PostCreate`/configuration/`PostApply`
+run once, root factories still return completed models, and outside-session or cross-session calls fail clearly.
+
+### [AB-2 — Generated projections and hidden twins](https://github.com/klum-dsl/klum-ast/issues/437)
+
+Route collection, map, Cluster, direct delegating-script, converter, and custom factory composition through
+`$klum$asBuilder$<name>` twins. Project concrete `Foo_DSL.Builder` types from generics, preserve multi-result container
+semantics, link twins through AST metadata, and omit opaque projections with catalog-backed dynamic diagnostics. This slice
+depends on AB-1 and ADR 0005's public type namespace.
+
+### [AB-3 — Template companion and copy-source protocol](https://github.com/klum-dsl/klum-ast/issues/438)
+
+Introduce `KlumObjectCompanion`, `KlumTemplateProxy`, and immutable `TemplateRecipeState`; move deferred actions out of
+`KlumModelProxy`; mark every owned Template node; reject Template relationship assignment; and implement value-only Model,
+recipe Template, and ephemeral same-session Builder copy sources. Enforce `applyLater < INSTANTIATE` at the lowest scheduler
+with the accepted `KlumModelException` diagnostic. This slice depends on AB-1 and coordinates with ADR 0006.
+
+### AB-4 — Public guidance and compatibility closure
+
+Enable every ADR 0004 pending contract, retain explicit regular-Script/opaque-producer rejection coverage, update generated
+documentation, wiki migration/navigation, and `CHANGES.md`, then run Groovy 3/4/5 and the aggregate build. This slice depends
+on AB-2 and AB-3.
 
 Do not combine all source transformations in one commit. Single-result built-ins, direct script collections, multi-result
 custom factories, and explicit converter contracts have distinct failure modes and should remain independently revertible.
@@ -226,20 +230,20 @@ Use Groovy 3 `test` as the focused baseline. Because the implementation changes 
 transformation, run `groovy4Tests` and `groovy5Tests` after each completed transformation slice where practical and always
 at final handoff.
 
-## Open implementation choices
+## Resolved implementation choices
 
-These choices are not permission to change the ADR's semantic boundary:
+- infer concrete projection types from `KlumBuilder<T>` generics; do not add a hint annotation;
+- use a narrower opaque `ConstructionSession`, not `PhaseDriver.Context`;
+- name twins `$klum$asBuilder$<originalName>` and link them through AST metadata;
+- omit unadaptable methods from public surfaces and retain an internal omission catalog for dynamic diagnostics;
+- generate composition-specific AnnoDoc on `Foo_DSL` stubs and no public documentation on twins;
+- return concrete Collection/Map containers of Builders and attach the same batch to the owner;
+- use the sealed internal `KlumObjectCompanion` with final Model and Template variants;
+- accept ordinary models as value-only copy sources and same-session unsealed Builders as ephemeral recipe sources;
+- reject every `applyLater` phase greater than or equal to 40 immediately.
 
-- the name and source-retention shape of the compiler hint used to request generated concrete Builder types;
-- whether the active construction session is represented by `PhaseDriver.Context` or a narrower internal capability;
-- the internal naming scheme for hidden Builder-producing twins;
-- how an unadaptable collection projection is omitted while still providing the best static/dynamic migration diagnostic;
-- how generated Groovy documentation presents a collection-local method whose familiar name now returns a Builder;
-- whether Collection/Map-producing twins return concrete containers of Builders or stream results directly into an owning
-  relationship sink.
-
-The public generated Builder name and nested/top-level layout remain owned by #394. General phase guards remain #281;
-mutable Simple Value diagnostics remain #427; Jackson's persisted-versus-recomputed policy remains provisional under #428.
+General phase guards remain #281 and mutable Simple Value diagnostics remain #427. Jackson persistence is decided separately
+by ADR 0007.
 
 ## Completion criteria
 

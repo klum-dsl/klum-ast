@@ -1,6 +1,8 @@
 # Provisional 4.0 issue slate
 
-This release view is derived from the complete [open issue index](issue-index.md), not from the outdated version plan in `wiki/Roadmap.md`. The current policy baseline is README/CHANGES, the Builder-first migration guide, accepted ADRs 0003/0004, and current source/tests.
+This release view is derived from the complete [open issue index](issue-index.md), not from the outdated version plan in
+`wiki/Roadmap.md`. The policy baseline is README/CHANGES, the Builder-first migration guide, accepted ADRs 0003–0008, and
+current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define the remaining 4.0 boundary.
 
 ## Release thesis
 
@@ -16,21 +18,24 @@ This release view is derived from the complete [open issue index](issue-index.md
 
 | Issue | Why it blocks 4.0 | Required evidence before release | Dependencies / ordering |
 |---|---|---|---|
-| #394 — final generated Builder layout | ADR 0003 explicitly leaves the Builder's public name/location and `KlumRwObject` removal undecided. Shipping `$_RW` plus a deliberately redundant marker would accidentally freeze an implementation detail. | Decision recorded in an ADR or accepted issue comment; generated-interface tests updated; GDSL/AnnoDoc/delegate targets updated; migration and CHANGES updated; Groovy 3/4/5 AST lanes pass. | Decide **before** finalizing #431 generated covariant `AsBuilder` signatures and before #390 documents stable entry points. |
-| #390 — stable companion entry API | `KlumModelProxy.getProxyFor` is public but the migration guide says client access is not finalized. Breadcrumb/model paths, metadata, validation state, and validator memoization need a supported surface or explicit internal status. | Enumerated supported operations; stable facade or explicit supported `KlumModelProxy` API; internal members hidden/deprecated as appropriate; wiki/Javadoc/migration examples; serialization tests. | Coordinate with #394 naming and #431's separate Template companion. Avoid exposing Template recipe internals. |
-| #428 — deserialization lifecycle semantics | Current Jackson behavior persists fields and reruns mutating lifecycle callbacks, which is explicitly provisional. The three candidate policies can produce different completed models and validation results. | Maintainer chooses one contract; ADR/wiki/CHANGES updated; `KlumDeserializer` and `JsonExportSpec` cover persisted, derived, owner/link, validation, and non-idempotent lifecycle behavior; Groovy 3/4/5 module lanes pass. | Can be decided in parallel with #394, but implementation/docs must land after/with any #431 Template deserialization implications. |
-| #431 — implement ADR 0004 | PR #429 intentionally regressed established collection factory/converter behavior from #198/#270/#300/#319. ADR 0004 is accepted and pending tests record the target. Releasing without it would make temporary incompatibilities permanent and leave Template recipe state on ordinary Model companions. | All reasoned `@PendingFeature` cases enabled; `Create.AsBuilder`, framework-owned inputs, projections/twins, opaque-producer rejection, lifecycle counts, ownership/cycles, Template identity/state, and `applyLater < INSTANTIATE` covered; docs/CHANGES/ADR status current; Groovy 3/4/5 and aggregate build pass. | Implement after #394's type-layout decision or keep generated type indirection isolated until that decision lands. Must respect #428 policy and feed #390's public/internal companion split. |
+| #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is an adoption gate for DSL-3 and may run in parallel. |
+| #390 — ADR 0006 completed Object support | Decision is complete, but direct proxy/metadata access remains exposed and clients lack the supported Java facade. | [#435 OS-1](https://github.com/klum-dsl/klum-ast/issues/435), OS-2, and OS-3: root/subtree facade, structure, stored validation, proxy lockdown, serialization, and Java-first docs. | Coordinate OS-2 with #438's common companion split. |
+| #428 + #251 — ADR 0007 configuration replay | Decision is complete, but raw Map restoration still duplicates derived state and ignores resolved property naming. | [#439 JSON-1](https://github.com/klum-dsl/klum-ast/issues/439), [#440 JSON-2](https://github.com/klum-dsl/klum-ast/issues/440), and JSON-3: property-aware binding, one lifecycle, LINK identity, customization, Template rejection, migration/CHANGES, Groovy 3/4/5. | #439 may start independently; #440's Template/reference integration aligns with #438. |
+| #431 — finalized ADR 0004 | The confirmed regressions and ordinary-model Template state remain in current source. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436), [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437), [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438), and AB-4: active session, projections/twins, Template state/copy sources, strict applyLater boundary, compatibility closure. | #437 depends on #433/#436; #438 coordinates with #390/#428; AB-4 waits for both. |
 
 ### Recommended must-item sequence
 
 ```text
-#394 generated type decision
-        ├──> #431 Builder-producing composition
-        └──> #390 stable companion/facade ──┐
-#428 deserialization policy ────────────────┴──> release documentation + full compatibility lanes
+#433 DSL-1 ────────────────> #437 AB-2 ──┐
+#436 AB-1 ──────────────────────────────┤
+#435 OS-1 ──> #390 OS-2 <──> #438 AB-3 ├──> documentation + full compatibility lanes
+#439 JSON-1 ──> #440 JSON-2 <─ #438 AB-3 ┘
+#434 DSL-G ──> #394 DSL-3
 ```
 
-#394 is first because #431 must generate truthful concrete Builder return/delegate types, and #390 must not document a facade around names about to change. #428 can be decided concurrently, but its final implementation must be checked against Template companion work in #431.
+The decisions are no longer blockers; the shown implementation seams are. The generated namespace must exist before
+projected Builder signatures, while Model/Template companion changes and facade lockdown must share one internal boundary.
+Jackson property binding can proceed independently until Template/LINK serialization integration.
 
 ## 4.0 nice-to-have
 
@@ -41,7 +46,6 @@ These improve confidence or polish at the new public boundary but have a safe de
 | #201 — parameter names | Improves IDE/static-call clarity for newly frozen generated factories/Builders. | Relationship parameters already use the key field name; missing work is consistency/collision coverage, not runtime correctness. |
 | #205 — missing-method diagnostics | Reduces migration pain when users typo Builder DSL methods. | Needs a current 4.0 reproduction; existing targeted lifecycle/adoption diagnostics already cover known Builder-first failures. |
 | #240 — existing `@EqualsAndHashCode` exclusions | Protects equality from owner/transient/technical fields after companion generation changed. | Reproduce first: Groovy may already ignore synthetic `$proxy`. Defer if no current failing case exists. |
-| #251 — renamed Jackson properties | Fixes a real raw-map deserializer limitation. | Jackson remains documented beta and #428 can explicitly preserve this known limitation for 4.0; do not claim renamed-property support. |
 | #282 — real/virtual field naming conflicts | Prevents ambiguous generated Builder methods before API freeze. | No reported current reproduction; collection member collisions are already checked. |
 | #371 — shadowed hierarchy fields | Could expose a real materialization/owner/default bug in the new Builder hierarchy. | Body contains no reproducer. A compile-time rejection can move to 4.1 if focused 4.0 hierarchy tests show no corruption. |
 | #383 — generated getter Javadocs | Keeps public Builder/model accessor docs aligned with the migration. | Documentation-only; existing generated mutator/factory docs already cover the core Builder wording. |
@@ -83,7 +87,8 @@ Before closing #411, ask whether the maintainer still wants a separately named/p
 - #391: What modules/packages are to be changed, and is this a 4.x compatibility task or a 5.0 namespace redesign?
 - #399: Provide a current PostCreate reproduction and the exact expected breadcrumb; the old lifecycle architecture no longer applies unchanged.
 
-The four 4.0 must issues also require maintainer decisions, but they already have enough evidence to remain release blockers rather than `needs-info` candidates.
+The 4.0 architecture decisions are complete in ADRs 0004–0007. Their issues remain release blockers because implementation,
+compatibility evidence, and user-facing migration work are still outstanding, not because maintainer intent is unknown.
 
 ## Compatibility gate for release
 

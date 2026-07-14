@@ -122,7 +122,7 @@ For #314, the model implementer supplies a seed value, such as a Vault secret pa
 
 **Follow-up authorization:** After the read-only inventory, the maintainer explicitly confirmed these conclusions and authorized updates to the two issue descriptions and the local curation documents. No issues were closed, labeled, or assigned.
 
-## Targeted maintainer questions
+## Targeted maintainer questions from the initial inventory
 
 These questions are deliberately narrower than “please provide more information.”
 
@@ -139,4 +139,81 @@ These questions are deliberately narrower than “please provide more informatio
 
 ## Follow-up after maintainer review
 
-Once the maintainer answers, update the provisional rows and release slate first. Only a later, explicitly authorized phase should modify GitHub labels, post AI-triage comments, close duplicates/completed issues, or create agent briefs.
+Questions 1–3 and 9 were answered in the 2026-07-14 grilling session and are superseded by D-12 through D-17 below.
+The remaining questions stay open. GitHub mutations still require the repository normalization workflow.
+
+## 2026-07-14 architecture grilling decisions
+
+The maintainer answered questions 1–3, 9, and the phase-registration follow-up. ADRs 0004–0008 and their implementation
+plans are authoritative; the concise curation consequences follow.
+
+### D-12 — One top-level generated DSL namespace
+
+**Decision:** #394 uses `Foo_DSL` with nested public `Factory`, `Builder`, Builder Collection factories, and Builder Cluster
+factories. `Foo.Create` is typed to that factory. Clients may name but not implement the interfaces. IntelliJ completion is
+served by truthful AnnoDocimal IDE source mirrors. `KlumBuilder<T>` narrows to a public capability interface;
+`KlumRwObject`/`$_RW` leave the canonical API. `@DelegatesToBuilder` replaces deprecated `@DelegatesToRW`.
+
+**Adoption constraint added 2026-07-14:** The AnnoDocimal sources are IDE-only mirrors of AST-generated interfaces. The
+Gradle plugin must generate and expose them automatically to the IDE without adding them to compilation, packaging,
+publication, or downstream build inputs. The exact Gradle/IDE task-model mechanism remains open and receives its own DSL-G
+tracer bullet; ADR 0005 is not adoption-complete until that mechanism is proven.
+
+### D-13 — Completed-object support, not companion access
+
+**Decision:** #390 provides `KlumObjectSupport.of(object)` for any completed root or subtree, with direct object/breadcrumb/
+model-path access and grouped Java-first structure and stored-validation helpers. `KlumModelProxy` and raw metadata become
+strictly internal. A generic plugin extension accessor and model-specific generated support methods are deferred.
+
+### D-14 — ADR 0004 implementation choices are closed
+
+**Decision:** Use an opaque `ConstructionSession`; infer generated Builder projection types from generics; generate
+`$klum$asBuilder$<name>` twins linked through AST metadata; omit opaque projections from public stubs with catalog-backed
+dynamic diagnostics; generate projection-specific documentation; and return concrete Collection/Map containers of
+Builders. No compiler hint, owner sink, or `PhaseDriver.Context` capability is introduced.
+
+### D-15 — Template identity is narrow; copy sources are broad
+
+**Decision:** A sealed internal `KlumObjectCompanion` has Model and Template variants. Template identity is persistent and
+graph-aware, recipe state is immutable and Java-serializable, ordinary models retain no deferred actions, and Jackson
+rejects Templates. Copy operations accept ordinary models as value-only sources, marked Templates as value-plus-recipe
+sources, and same-session unsealed Builders as ephemeral value-plus-pending-action sources without converting them into
+Templates. Sealed/cross-session Builders are rejected.
+
+### D-16 — applyLater stops at materialization
+
+**Decision:** The lowest scheduler immediately throws `KlumModelException` for every phase number at or after
+`INSTANTIATE` (40), including Template replay. There is no warning, clamping, or compatibility exception.
+
+### D-17 — Jackson persists configuration intent
+
+**Decision:** #428 chooses public Builder configuration plus one normal lifecycle, not completed state. Binding uses resolved
+Jackson property definitions, makes present values authoritative, recursively populates owned Builders, and requires
+explicit identity/reference handling for `LINK`. This absorbs #251's renamed-property requirement into the 4.0 contract.
+Templates are rejected and breaking JSON changes are acceptable.
+
+### D-18 — Keep a narrow declarative phase SPI
+
+**Decision:** #305 remains desired for later 4.x as a state-typed `PhaseRegistration` ServiceLoader SPI with stable IDs,
+fresh actions, numeric phase authority, equal-phase dependencies, deterministic validation, and a deprecated legacy action
+adapter. A schema `@CustomPhase` annotation is deferred rather than assumed from the old issue title or ADR 0002.
+
+## 2026-07-14 confirmed GitHub normalization
+
+After exact-body review and maintainer confirmation, milestone 4.0 was created and the canonical issues were normalized:
+#394/ADR 0005, #390/ADR 0006, #431/ADR 0004, #428 plus #251/ADR 0007, and #305/ADR 0008. The following implementation-ready
+tracer bullets were created:
+
+- #433 — DSL-1 generated namespace and IDE source mirror;
+- #434 — DSL-G IDE-only Gradle mirror lifecycle;
+- #435 — OS-1 completed-object provenance and structure;
+- #436 — AB-1 active-session `AsBuilder`;
+- #437 — AB-2 projections and hidden twins;
+- #438 — AB-3 Template companion and materialization boundary;
+- #439 — JSON-1 resolved-property configuration replay;
+- #440 — JSON-2 identity-safe `LINK` and Jackson customization;
+- #441 — PH-1 state-typed phase registration and dependency-graph foundation.
+
+No issues were closed or assigned, and no projects or GitHub dependency relationships were changed. Independently created
+#432 was discovered during the refresh and recorded as untriaged rather than folded into ADR 0006 or #402 without a new
+maintainer decision.
