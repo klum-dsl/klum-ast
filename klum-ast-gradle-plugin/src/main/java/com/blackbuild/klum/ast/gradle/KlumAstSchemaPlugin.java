@@ -25,10 +25,11 @@ package com.blackbuild.klum.ast.gradle;
 
 import com.blackbuild.annodocimal.plugin.AnnoDocimalPlugin;
 import org.gradle.api.NonNullApi;
+import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
-import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
@@ -59,20 +60,21 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
         java.withJavadocJar();
 
         SourceSet main = java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-        TaskProvider<CreateKlumDslSourceMirrors> mirrors = project.getTasks().register(
+        Provider<Directory> mirrorDirectory =
+                project.getLayout().getBuildDirectory().dir("generated/sources/klum-dsl-ide/main");
+        project.getTasks().register(
                 "createKlumDslSourceMirrors",
                 CreateKlumDslSourceMirrors.class,
                 task -> {
                     task.setGroup("klum");
                     task.setDescription("Refreshes IDE-only AnnoDocimal source mirrors for generated Foo_DSL namespaces.");
                     task.classes(main.getOutput().getClassesDirs());
-                    task.getOutputDirectory().convention(
-                            project.getLayout().getBuildDirectory().dir("generated/sources/klum-dsl-ide/main"));
+                    task.getOutputDirectory().convention(mirrorDirectory);
                 });
 
         IdeaModel moduleIdea = project.getExtensions().getByType(IdeaModel.class);
-        moduleIdea.getModule().getSourceDirs().add(mirrors.get().getOutputDirectory().get().getAsFile());
-        moduleIdea.getModule().getGeneratedSourceDirs().add(mirrors.get().getOutputDirectory().get().getAsFile());
+        moduleIdea.getModule().getSourceDirs().add(mirrorDirectory.get().getAsFile());
+        moduleIdea.getModule().getGeneratedSourceDirs().add(mirrorDirectory.get().getAsFile());
 
         project.getTasks().named("javadoc", Javadoc.class, task -> task.exclude("**/*_DSL.java"));
     }

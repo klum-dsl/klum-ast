@@ -37,6 +37,11 @@ This plugin is used in schema projects (as well as `api` as defined by [Layer3])
 - applies the annodocimal plugin for generating documentation
 - applies Groovy and JavaLibrary plugins
 - activates source code and javadoc jars
+- registers `createKlumDslSourceMirrors` to refresh AnnoDocimal source mirrors for generated `Foo_DSL` support
+  namespaces. Run this task after schema changes, using the qualified task path such as
+  `./gradlew :schema:createKlumDslSourceMirrors` in a multi-project build. It compiles the real generated interfaces first
+  when necessary and exposes the mirror directory to IntelliJ as a generated source root. The mirrors are IDE metadata;
+  they are not compiled, packaged, published, or added to downstream classpaths.
 - if `maven-publish` plugin is applied, configures the publication
 - adds the `com.blackbuild.convention.groovy` plugin, which configures Groovy and spock dependencies, version can be set via the `klumSchema` extension (defaulting to Groovy 3). If the configured project is not the root project **and** the root project has the `com.blackbuild.convention.groovy` plugin applied, the version will be inherited from the root project instead.
 - adds the necessary dependencies for KlumAST itself:

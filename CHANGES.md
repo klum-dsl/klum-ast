@@ -13,6 +13,9 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Deprecated the legacy `KlumRwObject` marker. Generated Builders retain it temporarily for integration compatibility, but
   no longer expose the redundant `getDSLInstance()` or `getRwInstance()` identity aliases. [ADR 0005](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0005-generated-dsl-support-api.md)
   records its accepted removal and the future `Foo_DSL` interface layout under [#394](https://github.com/klum-dsl/klum-ast/issues/394).
+- Added `createKlumDslSourceMirrors` to the schema Gradle plugin. Run it after schema changes to compile the real
+  `Foo_DSL` interfaces and refresh their AnnoDocimal IDE source mirrors without compiling, packaging, publishing, or
+  propagating the mirrors themselves ([#434](https://github.com/klum-dsl/klum-ast/issues/434)).
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
 - Known compatibility gap: collection-local creator projections, direct `DelegatingScript` collection creation, and DSL Object converters that call model-returning factories currently fail rather than produce owned child Builders. Their target behavior is retained as pending tests and specified by [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md), with implementation tracked by [#431](https://github.com/klum-dsl/klum-ast/issues/431); use generated child closure methods until the `Create.AsBuilder` follow-up lands.
 
