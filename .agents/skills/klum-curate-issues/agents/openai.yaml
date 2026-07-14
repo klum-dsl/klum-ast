@@ -1,0 +1,4 @@
+interface:
+  display_name: "Curate KlumAST Issues"
+  short_description: "Inventory and cluster KlumAST issues safely"
+  default_prompt: "Use $klum-curate-issues to inventory and classify the open KlumAST issues."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Map KlumAST Architecture"
+  short_description: "Build the reusable KlumAST architecture map"
+  default_prompt: "Use $klum-map-architecture to refresh the KlumAST architecture map."
