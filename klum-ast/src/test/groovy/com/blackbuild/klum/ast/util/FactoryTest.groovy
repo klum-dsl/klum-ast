@@ -53,7 +53,8 @@ abstract class AbstractWithDefaultImpl {}
         def factoryField = getClass(className).getField("Create")
 
         then:
-        factoryType.isAssignableFrom(factoryField.type)
+        factoryField.type == getClass(className + '_DSL$Factory')
+        factoryType.isAssignableFrom(factoryField.get(null).class)
 
         when:
         KlumFactory factory = getClass(className).Create

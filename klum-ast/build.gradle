@@ -18,6 +18,7 @@ dependencies {
     api libs.annodocimal.global.ast
     api libs.klum.cast.compile
 
+    sharedTests libs.annodocimal.gradle.plugin
     testFixturesCompileOnly libs.bundles.spock.groovy.v3
     testFixturesCompileOnly libs.jb.anno
 }
@@ -29,4 +30,3 @@ publishing {
         }
     }
 }
-

@@ -178,6 +178,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
 
         runDelayedActions(annotatedClass);
+        GeneratedDslSupport.complete(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
         new VariableScopeVisitor(sourceUnit, true).visitClass(rwClass);
@@ -248,9 +249,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     @SuppressWarnings({"deprecation", "removal"}) // direct legacy marker preserves the generated shape until #394
     private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
-        ClassNode builderBase = parentRW != null
-                ? parentRW.getPlainNodeReference()
-                : makeClassSafeWithGenerics(KLUM_BUILDER, new GenericsType(annotatedClass));
+        ClassNode builderBase;
+        if (parentRW != null) {
+            builderBase = parentRW.getPlainNodeReference();
+            GenericsType[] parentGenerics = annotatedClass.getUnresolvedSuperClass(false).getGenericsTypes();
+            if (parentGenerics != null) {
+                builderBase.setGenericsTypes(parentGenerics);
+                builderBase.setUsingGenerics(true);
+            }
+        } else {
+            builderBase = makeClassSafeWithGenerics(KLUM_BUILDER, new GenericsType(annotatedClass));
+        }
 
         rwClass = new InnerClassNode(
                 annotatedClass,
@@ -262,6 +271,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         AnnoDocUtil.addDocumentation(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
         DslAstHelper.registerAsVerbProvider(rwClass);
+        if (annotatedClass.getGenericsTypes() != null)
+            rwClass.setGenericsTypes(annotatedClass.getGenericsTypes());
 
         annotatedClass.getModule().addClass(rwClass);
         if (dslParent == null)
@@ -274,6 +285,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             parentProxy.setRedirect(rwClass);
 
         rwClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        GeneratedDslSupport.create(annotatedClass, rwClass);
     }
 
     private static final Set<String> SUPPORTED_COLLECTION_TYPES = Set.of(
@@ -1375,7 +1387,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
                     ctorSuperS(classX(annotatedClass)));
 
-        overrideClosureMethods(factoryClass, defaultImpl);
+        overrideFactoryMethods(factoryClass, defaultImpl);
 
         annotatedClass.getModule().addClass(factoryClass);
 
@@ -1390,6 +1402,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         AnnoDocUtil.addDocumentation(factoryField, "The factory for creating instances of " + annotatedClass.getName());
         factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         factoryClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        GeneratedDslSupport.linkFactory(annotatedClass, factoryClass);
+        factoryField.setType(GeneratedDslSupport.of(annotatedClass).getFactoryInterface());
         annotatedClass.addField(factoryField);
     }
 
@@ -1413,15 +1427,57 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return factoryBase;
     }
 
-    private void overrideClosureMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {
-        ClassNode currentLevel = factoryClass.getSuperClass();
+    private void overrideFactoryMethods(InnerClassNode factoryClass, ClassNode defaultImpl) {
+        Map<String, ClassNode> genericsSpec = new LinkedHashMap<>();
+        ClassNode currentLevel = factoryClass;
 
-        while (currentLevel != null && factoryClass.isDerivedFrom(KLUM_FACTORY)) {
-            for (MethodNode methodNode : currentLevel.getMethods()) {
-                overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode);
-            }
-            currentLevel = currentLevel.getSuperClass();
+        while (currentLevel != null && (currentLevel.equals(KLUM_FACTORY) || currentLevel.isDerivedFrom(KLUM_FACTORY))) {
+            genericsSpec = createGenericsSpec(currentLevel, genericsSpec);
+            ClassNode declaringClass = currentLevel;
+            Map<String, ClassNode> currentSpec = genericsSpec;
+            currentLevel.getMethods().stream()
+                    .filter(method -> method.getDeclaringClass().redirect().equals(declaringClass.redirect()))
+                    .filter(MethodNode::isPublic)
+                    .filter(method -> !method.isStatic())
+                    .filter(method -> !method.isFinal())
+                    .map(method -> correctFactoryMethod(currentSpec, method))
+                    .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
+            currentLevel = currentLevel.getUnresolvedSuperClass();
         }
+    }
+
+    private static MethodNode correctFactoryMethod(Map<String, ClassNode> genericsSpec, MethodNode source) {
+        MethodNode corrected = correctToGenericsSpec(genericsSpec, source);
+        AnnoDocUtil.addDocumentation(corrected, ASTExtractor.extractDocumentation(source, null));
+        return corrected;
+    }
+
+    private void overrideFactoryMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
+        Parameter[] sourceParameters = methodNode.getParameters();
+        if (sourceParameters.length > 0 && sourceParameters[sourceParameters.length - 1].getType().equals(CLOSURE_TYPE)) {
+            overrideUndelegatedClosureMethod(factoryClass, defaultImpl, methodNode);
+            return;
+        }
+
+        Parameter[] parameters = cloneFactoryParameters(methodNode);
+        if (factoryClass.getDeclaredMethod(methodNode.getName(), parameters) != null)
+            return;
+
+        Statement body = methodNode.getReturnType().equals(VOID_TYPE)
+                ? stmt(callSuperX(methodNode.getName(), args(parameters)))
+                : returnS(callSuperX(methodNode.getName(), args(parameters)));
+        MethodNode override = new MethodNode(
+                methodNode.getName(),
+                methodNode.getModifiers(),
+                methodNode.getReturnType(),
+                parameters,
+                methodNode.getExceptions(),
+                body
+        );
+        override.setGenericsTypes(methodNode.getGenericsTypes());
+        String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
+        AnnoDocUtil.addDocumentation(override, originalDocumentation);
+        factoryClass.addMethod(override);
     }
 
     private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {
@@ -1443,11 +1499,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             return;
         }
 
-        Parameter[] parameters = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode);
+        Parameter[] parameters = cloneFactoryParameters(methodNode);
         Parameter closureParam = parameters[parameters.length - 1];
 
         AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO_ANNOTATION);
-        delegatesTo.setMember("value", classX(rwClass));
+        ClassNode publicBuilder = GeneratedDslSupport.of(annotatedClass).getBuilderInterface();
+        delegatesTo.setMember("value", classX(publicBuilder));
         delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
         closureParam.addAnnotation(delegatesTo);
 
@@ -1464,6 +1521,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
         if (existing == null)
             factoryClass.addMethod(newMethod);
+    }
+
+    private static Parameter[] cloneFactoryParameters(MethodNode source) {
+        Parameter[] sourceParameters = source.getParameters();
+        Parameter[] result = new Parameter[sourceParameters.length];
+        for (int index = 0; index < sourceParameters.length; index++) {
+            Parameter parameter = sourceParameters[index];
+            Parameter clone = new Parameter(parameter.getType(), parameter.getName(), parameter.getInitialExpression());
+            copyAnnotationsFromSourceToTarget(parameter, clone, Collections.emptyList());
+            result[index] = clone;
+        }
+        return result;
     }
 
 
