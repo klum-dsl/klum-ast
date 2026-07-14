@@ -25,7 +25,7 @@ klum-ast-bom           -- constrains subprojects that apply `java-library`
 | `klum-ast-runtime` | Runtime deep module behind generated methods: root factories, Builder state, phase driver, materialization, templates/copying, validation, breadcrumbs/model paths, owner/link/default phases, and structure traversal. Generated schema bytecode depends on it. | `api`: annotations. Phase actions and validators are extended through Java `ServiceLoader`. | [`KlumBuilder.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/KlumBuilder.java), [`FactoryHelper.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/FactoryHelper.java), [`PhaseDriver.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/process/PhaseDriver.java), [`StructureUtil.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/layer3/StructureUtil.java) |
 | `klum-ast-jackson` | Jackson adapter. Auto-registers `KlumAstModule`, ignores owner/role/technical fields, reads JSON objects into maps, and restores them through `FactoryHelper.createFromSerializedState` and the normal Builder lifecycle. | `api`: runtime and Jackson Databind. | [`KlumAstModule.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumAstModule.java), [`KlumDeserializer.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumDeserializer.java), [`JsonExportSpec.groovy`](../../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/JsonExportSpec.groovy) |
 | `klum-ast-bean-validation` | Validation adapter. Registers `JSR380Validator` as an `InstanceValidator`; maps Jakarta violations and `Level` payloads into Klum validation issues. | `api`: runtime and Jakarta Validation; `implementation`: Hibernate Validator. | [`JSR380Validator.java`](../../../klum-ast-bean-validation/src/main/java/com/blackbuild/klum/ast/validation/bean/JSR380Validator.java), [`Level.java`](../../../klum-ast-bean-validation/src/main/java/com/blackbuild/klum/ast/validation/bean/Level.java), [`JSR380ValidatorTest.groovy`](../../../klum-ast-bean-validation/src/test/groovy/com/blackbuild/klum/ast/validation/bean/JSR380ValidatorTest.groovy) |
-| `klum-ast-gradle-plugin` | Build adapter with three plugin interfaces: `com.blackbuild.klum-ast-schema`, `com.blackbuild.klum-ast-model`, and `com.blackbuild.convention.groovy`. Schema projects receive compile-only `klum-ast`, API `klum-ast-runtime`, AnnoDocimal, sources/Javadoc, and the BOM. Model projects expose schema dependencies and generate `META-INF/klum-model` descriptors. The convention plugin selects Groovy/Spock 3, 4, or 5. | Gradle interfaces plus AnnoDocimal plugin. Published Klum coordinates are added by name, not project dependencies. | [`AbstractKlumPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/AbstractKlumPlugin.java), [`KlumAstSchemaPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.java), [`KlumAstModelPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstModelPlugin.java), [`GroovyDependenciesPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/convention/GroovyDependenciesPlugin.java) |
+| `klum-ast-gradle-plugin` | Build adapter with three plugin interfaces: `com.blackbuild.klum-ast-schema`, `com.blackbuild.klum-ast-model`, and `com.blackbuild.convention.groovy`. Schema projects receive compile-only `klum-ast`, API `klum-ast-runtime`, AnnoDocimal, sources/Javadoc, the BOM, and the explicit IDE source-mirror refresh lifecycle. Model projects expose schema dependencies and generate `META-INF/klum-model` descriptors. The convention plugin selects Groovy/Spock 3, 4, or 5. | Gradle interfaces plus AnnoDocimal plugin. Published Klum coordinates are added by name, not project dependencies. | [`AbstractKlumPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/AbstractKlumPlugin.java), [`KlumAstSchemaPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.java), [`KlumAstModelPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstModelPlugin.java), [`GroovyDependenciesPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/convention/GroovyDependenciesPlugin.java) |
 | `klum-ast-bom` | Version-alignment platform. Adds constraints for every subproject that applies `java-library`; it has no behavior. | Gradle platform constraints only. | [`build.gradle`](../../../klum-ast-bom/build.gradle) |
 
 ## Generated schema interface
@@ -47,10 +47,10 @@ these interfaces. Current `$_RW`, `KlumRwObject`, `@DelegatesToRW`, and `KlumIns
 pending ADR 0005 implementation. Completed objects use `KlumObjectSupport`; direct `KlumModelProxy` access is not supported
 by ADR 0006, although current source still exposes it.
 
-ADR 0005 also requires AnnoDocimal `Foo_DSL` source mirrors to be IDE-only metadata. The current schema Gradle plugin applies
-AnnoDocimal and enables source/Javadoc variants but has no Klum-specific generation/IDE-model seam. Mirror output must not
-enter a Java/Groovy SourceSet, compiler input, source JAR, publication, or downstream build input; the exact Gradle wiring
-remains an implementation decision and adoption gate.
+ADR 0005 also requires AnnoDocimal `Foo_DSL` source mirrors to be IDE-only metadata. DSL-G adds a cacheable
+`createKlumDslSourceMirrors` task and registers its output only as an IDEA generated source root. Developers run the task
+explicitly after schema changes; it compiles the real contract first. Mirror output does not enter a Java/Groovy SourceSet,
+compiler input, source JAR, publication, classpath, or downstream build input.
 
 ## Lifecycle and state boundary
 
@@ -111,7 +111,8 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0002](../../adr/0002-phase-contracts-and-builder-model.md) is historical and **Superseded**; do not infer its opt-in rollout or phase-registration DSL exists.
 - [ADR 0003](../../adr/0003-builder-first-materialization.md) is **Accepted** and describes the implemented Builder-first/materialization boundary.
 - [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted target behavior but not implemented**. The confirmed failure paths and pending tests are indexed in [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
-- [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; it is not implemented.
+- [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; only DSL-G's Gradle
+  mirror lifecycle is implemented.
 - [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`; it is not implemented.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) accepts configuration replay; it is not implemented.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
@@ -121,7 +122,8 @@ Confirmed deferred gaps, not current capabilities:
 - `Create.AsBuilder`, Builder-producing collection projections, and hidden Builder twins for source converters/custom factories do not exist yet; reasoned `@PendingFeature` tests record the target. Regular opaque scripts returning completed models remain top-level-only.
 - Template recipe state still resides in `KlumModelProxy`; the ADR 0004 `KlumTemplateProxy`/`TemplateRecipeState` split is a target.
 - The ADR 0004 rule rejecting `applyLater` at phase 40 or later is not enforced by the current scheduler.
-- Generated `Foo_DSL` layout (#394), completed-object support (#390), and Jackson configuration replay (#428/#251) are
-  decided but not implemented. Declarative phase registration (#305) is decided and deferred to later 4.x.
+- Generated `Foo_DSL` AST layout (#394), completed-object support (#390), and Jackson configuration replay (#428/#251)
+  are decided but not implemented. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
+  registration (#305) is decided and deferred to later 4.x.
 
 **Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `KlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.

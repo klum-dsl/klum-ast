@@ -10,10 +10,10 @@ declare deprecated `KlumRwObject`. Root and relationship factories are other inn
 class metadata, but IntelliJ same-project completion consumes generated sources and cannot receive a separately generated
 source stub for an inner class of existing `Foo`. `@DelegatesToRW` and its transformation keep RW vocabulary public.
 
-`KlumAstSchemaPlugin` currently applies `AnnoDocimalPlugin` and enables normal source/Javadoc variants, but it registers no
-Klum-specific IDE-mirror task or IDE-only generated source root. A mirror `Foo_DSL` source cannot be placed in a normal
-`SourceSet`: the AST transformation already emits the real interface with that binary name, so compiling the mirror would
-create a duplicate type and could make IDE metadata change production output.
+`KlumAstSchemaPlugin` applies `AnnoDocimalPlugin` and enables normal source/Javadoc variants. DSL-G now adds the dedicated
+`createKlumDslSourceMirrors` task and IntelliJ-only model wiring described below. A mirror `Foo_DSL` source cannot be placed
+in a normal `SourceSet`: the AST transformation emits the real interface with that binary name, so compiling the mirror
+would create a duplicate type and could make IDE metadata change production output.
 
 ## Affected seams
 
@@ -43,25 +43,41 @@ retaining only the promised source alias.
 
 ### DSL-3 — Generated-source distribution and documentation
 
-Deliver the selected Gradle/IDE integration from DSL-G, verify a same-project schema and Java consumer fixture, document
-which interfaces clients may name but not implement, update migration navigation and `CHANGES.md`, and run Groovy 3/4/5
-plus Gradle plugin scenarios. The generated mirror directory must remain absent from Java/Groovy compilation, source JARs,
-published variants, and downstream task inputs.
+Exercise the DSL-G Gradle/IDE integration against the actual DSL-1 namespace, verify a same-project schema and Java
+consumer fixture, document which interfaces clients may name but not implement, update migration navigation and
+`CHANGES.md`, and run Groovy 3/4/5 plus Gradle plugin scenarios. The generated mirror directory must remain absent from
+Java/Groovy compilation, source JARs, published variants, and downstream task inputs.
 
-### [DSL-G — Prove an IDE-only Gradle source-mirror lifecycle](https://github.com/klum-dsl/klum-ast/issues/434)
+### [DSL-G — IDE-only Gradle source-mirror lifecycle](https://github.com/klum-dsl/klum-ast/issues/434)
 
-Prototype and choose how the schema plugin generates AnnoDocimal `Foo_DSL` mirrors and exposes them during Gradle IDE
-import without adding them to a production `SourceSet`. The mechanism may use a dedicated task plus IDE model wiring or
-another Gradle-supported metadata seam; it must not rely on a manually run build. Record the chosen task graph/model seam
-in this plan or a successor ADR before DSL-3 implements it.
+DSL-G selects a compiled-contract-to-IDE-mirror lifecycle:
 
-The prototype must prove:
+1. `compileGroovy`/`compileJava` produce the real AST-generated `Foo_DSL.class` contract once, without any mirror source on
+   their source path or classpath.
+2. The cacheable `createKlumDslSourceMirrors` task consumes the main classes directories, selects only top-level
+   `**/*_DSL.class` files, and invokes AnnoDocimal's `AnnoDocGenerator` into
+   `build/generated/sources/klum-dsl-ide/main`. It clears its output before generation so removed namespaces cannot leave
+   stale mirrors.
+3. `KlumAstSchemaPlugin` applies Gradle's built-in `idea` plugin and adds that output directory only to the IDEA module's
+   source and generated-source directory sets. Developers run `createKlumDslSourceMirrors` explicitly after schema
+   changes. A clean import registers the generated root without compiling the schema; the next explicit refresh populates
+   it through the compiler-to-mirror path.
+4. The output is deliberately absent from every Gradle `SourceSet`. No compile, classes, test, archive, publication,
+   configuration, classpath, or downstream edge points to the mirror task or directory. The ordinary AnnoDocimal Javadoc
+   source tree excludes `**/*_DSL.java`, so the generated namespace is not consumed as Javadoc input there either.
 
-- a clean IDE import sees the mirror source and documentation;
-- `compileGroovy`/`compileJava` never receive the mirror directory and produce the real interface only once;
-- `classes`, tests, source JARs, publication variants, and downstream projects do not consume the mirror;
-- repeated builds, configuration cache/build cache where supported, and deletion/regeneration are deterministic;
-- no compile → mirror → compile task cycle is introduced.
+The resulting graph is one-way: compile → IDE mirror. There is no mirror → compile edge and therefore no
+compile → mirror → compile cycle. A multi-project TestKit fixture pins the clean IDEA metadata, explicit refresh behavior,
+AnnoDoc preservation, task ordering, archive/publication/classpath exclusions, downstream isolation, stable output hash,
+stale-output cleanup, and build-cache restoration after deleting the mirror directory.
+
+Gradle's configuration cache is not currently an end-to-end supported lane for schema compilation: AnnoDocimal 0.7.1
+adds a `GroovyCompile.doFirst` action that captures the Gradle `Project`, which Gradle 8.14.4 reports as configuration-cache
+serialization problems. The TestKit fixture records that limitation with `--configuration-cache-problems=warn`. The new
+mirror task itself uses declared inputs/outputs and injected filesystem operations; build-cache reuse is proven. Re-test
+strict configuration-cache storage when [AnnoDocimal #35](https://github.com/blackbuild/anno-docimal/issues/35) removes the
+captured-project compiler action and makes its filtered stub task reusable; Klum can then replace the temporary local task
+implementation without changing this lifecycle.
 
 ## Compatibility
 
@@ -76,7 +92,7 @@ generated interfaces, and `KlumRwObject` are unsupported 4.0 breaks. Generated i
 | truthful Java/Groovy signatures and hidden implementation linkage | DSL-1 |
 | narrow `KlumBuilder`, remove RW marker, annotation migration | DSL-2 |
 | IntelliJ generated-source completion and AnnoDoc | DSL-3 |
-| IDE-only Gradle generation without compilation or packaging | DSL-G, DSL-3 |
+| IDE mirrors excluded from compilation and packaging | DSL-G, DSL-3 |
 | wiki/migration/CHANGES and all Groovy lanes | DSL-3 |
 
 ## Risks
@@ -85,6 +101,7 @@ Groovy AST owner/nesting rules, inherited DSL Objects, default parameters, and g
 Groovy versions. Stubs must be tested against compiled bytecode to prevent two public truths. No client implementation or
 subclassing contract may leak from Java interface visibility.
 
-The Gradle integration is the principal unresolved adoption risk. Standard generated-source registration usually makes a
-directory a compile input, which is forbidden here. Generating mirrors from compiled bytecode may also create an IDE-sync
-or task-cycle problem. DSL-G must resolve that mechanism before ADR 0005 can be considered implementable end to end.
+The Gradle integration is no longer an unresolved adoption risk: DSL-G selects an IDEA-only generated root plus an
+explicit, one-way compile → mirror refresh task. The remaining delivery risk is validating that DSL-1's real `Foo_DSL`
+bytecode carries the complete nested AnnoDoc surface expected by the mirror generator. Configuration-cache support also
+remains gated on AnnoDocimal removing its captured-project `GroovyCompile` action.

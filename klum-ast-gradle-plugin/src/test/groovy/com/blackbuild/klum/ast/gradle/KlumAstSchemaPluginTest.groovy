@@ -28,7 +28,10 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.SourceSet
 import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.plugins.ide.idea.model.IdeaModel
 import spock.lang.Specification
 
 class KlumAstSchemaPluginTest extends Specification {
@@ -44,12 +47,15 @@ class KlumAstSchemaPluginTest extends Specification {
     def "basic plugin configuration"() {
         given:
         project = ProjectBuilder.builder().build()
+        boolean mirrorTaskRealized = false
+        project.tasks.withType(CreateKlumDslSourceMirrors).configureEach { mirrorTaskRealized = true }
 
         when:
         project.getPluginManager().apply(KlumAstSchemaPlugin)
 
         then:
         project.plugins.hasPlugin(AnnoDocimalPlugin)
+        project.plugins.hasPlugin(IdeaPlugin)
         project.plugins.hasPlugin(JavaLibraryPlugin)
         project.plugins.hasPlugin(GroovyPlugin)
 
@@ -63,6 +69,24 @@ class KlumAstSchemaPluginTest extends Specification {
         then:
         project.configurations.sourcesElements
         project.configurations.javadocElements
+
+        and:
+        def mirrors = project.tasks.named("createKlumDslSourceMirrors", CreateKlumDslSourceMirrors)
+        !mirrorTaskRealized
+
+        when:
+        def mirrorTask = mirrors.get()
+
+        then:
+        mirrorTaskRealized
+        def mirrorDirectory = mirrorTask.outputDirectory.get().asFile
+        def main = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+        def idea = project.extensions.getByType(IdeaModel)
+        mirrorTask.group == 'klum'
+        !main.java.sourceDirectories.files.contains(mirrorDirectory)
+        !main.groovy.sourceDirectories.files.contains(mirrorDirectory)
+        idea.module.sourceDirs.contains(mirrorDirectory)
+        idea.module.generatedSourceDirs.contains(mirrorDirectory)
     }
 
     def "publications are created if maven publish is applied"() {
