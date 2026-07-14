@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    implementation project(':schema')
+}
+
+tasks.register('assertKlumDslDownstreamIsolation') {
+    doLast {
+        def mirror = project(':schema').layout.buildDirectory.dir('generated/sources/klum-dsl-ide/main').get().asFile.canonicalFile
+        def containsMirror = { files -> files.files*.canonicalFile.contains(mirror) }
+        def checks = [
+                'compileClasspath': containsMirror(configurations.compileClasspath),
+                'runtimeClasspath': containsMirror(configurations.runtimeClasspath),
+                'testCompileClasspath': containsMirror(configurations.testCompileClasspath),
+                'testRuntimeClasspath': containsMirror(configurations.testRuntimeClasspath)
+        ]
+        checks.each { name, consumed ->
+            println "downstream.${name}=${consumed}"
+            assert !consumed
+        }
+    }
+}

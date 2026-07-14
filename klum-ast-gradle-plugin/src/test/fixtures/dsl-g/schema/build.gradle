@@ -1,0 +1,79 @@
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.plugins.ide.idea.model.IdeaModel
+
+plugins {
+    id 'com.blackbuild.klum-ast-schema'
+    id 'maven-publish'
+}
+
+// The fixture supplies a synthetic AST output and does not need unpublished Klum artifacts on its compiler classpath.
+configurations.api.dependencies.clear()
+configurations.compileOnly.dependencies.clear()
+
+tasks.named('compileJava') {
+    classpath = files()
+}
+
+tasks.named('compileGroovy') {
+    source(fileTree('compiler-input'))
+    classpath = files()
+    groovyClasspath = configurations.groovy
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'fixture'
+            url = layout.buildDirectory.dir('repository')
+        }
+    }
+}
+
+tasks.register('assertKlumDslIdeModel') {
+    doLast {
+        def mirror = project.layout.buildDirectory.dir('generated/sources/klum-dsl-ide/main').get().asFile.canonicalFile
+        def idea = project.extensions.getByType(IdeaModel)
+        println "idea.source=${idea.module.sourceDirs*.canonicalFile.contains(mirror)}"
+        println "idea.generated=${idea.module.generatedSourceDirs*.canonicalFile.contains(mirror)}"
+        println "idea.mirrorExists=${mirror.exists()}"
+        assert idea.module.sourceDirs*.canonicalFile.contains(mirror)
+        assert idea.module.generatedSourceDirs*.canonicalFile.contains(mirror)
+        assert !mirror.exists()
+    }
+}
+
+tasks.register('assertKlumDslIsolation') {
+    doLast {
+        def java = project.extensions.getByType(JavaPluginExtension)
+        def main = java.sourceSets.main
+        def mirror = project.layout.buildDirectory.dir('generated/sources/klum-dsl-ide/main').get().asFile.canonicalFile
+        def containsMirror = { files ->
+            files.files.any {
+                def candidate = it.canonicalFile
+                candidate == mirror || candidate.path.startsWith(mirror.path + File.separator)
+            }
+        }
+        def mirrorTask = tasks.named('createKlumDslSourceMirrors').get()
+        def checks = [
+                'sourceSet.java'       : containsMirror(main.java.sourceDirectories),
+                'sourceSet.groovy'     : containsMirror(main.groovy.sourceDirectories),
+                'compileJava.source'   : containsMirror(tasks.compileJava.source),
+                'compileJava.classpath': containsMirror(tasks.compileJava.classpath),
+                'compileGroovy.source' : containsMirror(tasks.compileGroovy.source),
+                'compileGroovy.classpath': containsMirror(tasks.compileGroovy.classpath),
+                'classes.dependency'   : tasks.classes.taskDependencies.getDependencies(tasks.classes).contains(mirrorTask),
+                'test.dependency'      : tasks.test.taskDependencies.getDependencies(tasks.test).contains(mirrorTask),
+                'sourcesJar.source'    : containsMirror(tasks.sourcesJar.source),
+                'javadoc.source'       : containsMirror(tasks.javadoc.source),
+                'jar.source'           : containsMirror(tasks.jar.source),
+                'runtimeClasspath'     : containsMirror(main.runtimeClasspath),
+                'testClasspath'        : containsMirror(java.sourceSets.test.runtimeClasspath),
+                'publication.artifact' : publishing.publications.mavenJava.artifacts*.file*.canonicalFile.contains(mirror),
+                'outgoing.artifact'    : configurations.collectMany { it.outgoing.artifacts.files.files }*.canonicalFile.contains(mirror)
+        ]
+        checks.each { name, consumed ->
+            println "isolation.${name}=${consumed}"
+            assert !consumed
+        }
+    }
+}

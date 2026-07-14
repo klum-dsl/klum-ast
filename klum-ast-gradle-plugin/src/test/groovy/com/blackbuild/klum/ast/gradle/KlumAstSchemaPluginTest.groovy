@@ -28,7 +28,10 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.SourceSet
 import org.gradle.testfixtures.ProjectBuilder
+import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.plugins.ide.idea.model.IdeaModel
 import spock.lang.Specification
 
 class KlumAstSchemaPluginTest extends Specification {
@@ -50,6 +53,7 @@ class KlumAstSchemaPluginTest extends Specification {
 
         then:
         project.plugins.hasPlugin(AnnoDocimalPlugin)
+        project.plugins.hasPlugin(IdeaPlugin)
         project.plugins.hasPlugin(JavaLibraryPlugin)
         project.plugins.hasPlugin(GroovyPlugin)
 
@@ -63,6 +67,17 @@ class KlumAstSchemaPluginTest extends Specification {
         then:
         project.configurations.sourcesElements
         project.configurations.javadocElements
+
+        and:
+        def mirrors = project.tasks.named("createKlumDslSourceMirrors", CreateKlumDslSourceMirrors).get()
+        def mirrorDirectory = mirrors.outputDirectory.get().asFile
+        def main = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+        def idea = project.extensions.getByType(IdeaModel)
+        mirrors.group == 'klum'
+        !main.java.sourceDirectories.files.contains(mirrorDirectory)
+        !main.groovy.sourceDirectories.files.contains(mirrorDirectory)
+        idea.module.sourceDirs.contains(mirrorDirectory)
+        idea.module.generatedSourceDirs.contains(mirrorDirectory)
     }
 
     def "publications are created if maven publish is applied"() {

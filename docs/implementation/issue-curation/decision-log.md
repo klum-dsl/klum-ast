@@ -154,10 +154,10 @@ factories. `Foo.Create` is typed to that factory. Clients may name but not imple
 served by truthful AnnoDocimal IDE source mirrors. `KlumBuilder<T>` narrows to a public capability interface;
 `KlumRwObject`/`$_RW` leave the canonical API. `@DelegatesToBuilder` replaces deprecated `@DelegatesToRW`.
 
-**Adoption constraint added 2026-07-14:** The AnnoDocimal sources are IDE-only mirrors of AST-generated interfaces. The
-Gradle plugin must generate and expose them automatically to the IDE without adding them to compilation, packaging,
-publication, or downstream build inputs. The exact Gradle/IDE task-model mechanism remains open and receives its own DSL-G
-tracer bullet; ADR 0005 is not adoption-complete until that mechanism is proven.
+**Adoption constraint added 2026-07-14 and refined after the DSL-G prototype:** The AnnoDocimal sources are IDE-only
+mirrors of AST-generated interfaces. The Gradle plugin exposes the mirror directory as an IDEA generated source root and
+provides an explicit refresh task that compiles the real contract first. Automatic refresh during clean IDE import is not
+required. Mirrors remain absent from compilation, packaging, publication, classpaths, and downstream build inputs.
 
 ### D-13 — Completed-object support, not companion access
 

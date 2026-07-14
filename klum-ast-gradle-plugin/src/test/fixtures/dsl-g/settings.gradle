@@ -1,0 +1,8 @@
+rootProject.name = 'dsl-g-fixture'
+include 'schema', 'consumer'
+
+buildCache {
+    local {
+        directory = new File(rootDir, 'local-build-cache')
+    }
+}
