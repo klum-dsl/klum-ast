@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill a KlumAST Issue"
+  short_description: "Resolve issue decisions with the maintainer"
+  default_prompt: "Use $klum-grill-issue to interview me about this KlumAST issue cluster."

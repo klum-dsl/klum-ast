@@ -45,6 +45,14 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Completed DSL Objects preserve cyclic relationships, including `LINK` relationships. Their object graph may therefore require internal-only assignment during materialization after the Builders have completed their lifecycle.
 
+- Generated DSL support namespace
+
+  `Foo_DSL` is the top-level generated namespace for the public build-time interfaces of DSL Object `Foo`. It contains
+  `Factory`, `Builder`, and the Builder's Collection/Cluster factory interfaces. Clients and extensions may name these
+  interfaces in signatures but must not construct, implement, or subclass them. Generated implementations remain hidden.
+  AnnoDocimal source mirrors exist only for IDE completion; Gradle must not compile, package, or expose them as downstream
+  build inputs.
+
 - RW
 
   RW is the deprecated name for the generated mutable construction counterpart now called a Builder. Reserve RW for migration and compatibility discussions; `KlumRwObject` is a temporary marker, not a construction capability.
@@ -55,13 +63,22 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Plugin phase actions use explicit traversal interfaces: `BuilderVisitingPhaseAction` before Materialization and `ModelVisitingPhaseAction` after it.
 
-- Model companion
+- Object companion
 
-  A Model companion is the private state associated with a completed DSL Object, including its breadcrumb/model path and validation metadata. It is distinct from the Builder-side proxy and does not provide construction-time mutation. It records which Instance Validators have executed for the DSL Object, so each validator runs at most once for that completed object.
+  An Object companion is private framework state associated with a DSL Object. Ordinary completed objects use an internal
+  Model companion for provenance, validation, and validator memoization. Marked Templates use a distinct Template companion
+  for identity and immutable recipe state. The common internal abstraction exposes only object identity and paths.
 
   Builders may hold provisional validation issues from `EARLY_VALIDATE` and lifecycle callbacks. Materialization transfers those issues to the Model companion.
 
-  The Model companion is serializable with its DSL Object, preserving breadcrumbs and validation results. Technical metadata is serialized companion state and must have a fully serializable object graph when stored; Builder-only construction state is not serialized.
+  The Model companion is serializable with its DSL Object, preserving breadcrumbs and validation results. Raw technical
+  metadata is internal rather than a client extension seam. Builder-only construction state is not serialized.
+
+- Object support
+
+  `KlumObjectSupport<T>.of(object)` is the supported Java-first facade for any completed DSL Object or subtree. It exposes
+  the object, construction breadcrumb, structural model path, grouped composition structure traversal, and stored
+  validation results without exposing the internal companion.
 
 - Construction API
 
@@ -87,11 +104,23 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 - Deserialization
 
-  Deserialization restores serializable DSL Object fields into Builders, then follows the normal lifecycle through Materialization and validation. The restored result may differ if a mutating lifecycle callback is non-idempotent; this behavior is provisional and will be revisited in [#428](https://github.com/klum-dsl/klum-ast/issues/428).
+  Jackson deserialization replays persisted public Builder configuration into a fresh Builder graph, then follows the
+  normal lifecycle once through Materialization, validation, and verification. Lifecycle-derived values are recomputed and
+  are not persistence inputs. Owned values are nested configuration; `LINK` values require explicit identity/reference
+  handling. Templates are not Jackson values.
 
 - Template
 
-  A Template is an explicitly designated client-facing DSL Object used as a reusable construction recipe; an ordinary completed model is never inferred to be a Template from context. Applying a Template copies its composition into fresh Builders in the recipient's lifecycle rather than adopting the Template as a relationship target.
+  A Template is an explicitly designated client-facing DSL Object used as a reusable construction recipe; an ordinary
+  completed model is never inferred to be a Template from context. Applying a Template copies its composition and replays
+  its immutable recipe state into fresh Builders in the recipient's lifecycle. Templates cannot be relationship values,
+  including `LINK` targets.
+
+- Phase registration
+
+  Plugin phases use state-typed Builder or Model registrations with stable IDs, numeric phases, and optional equal-phase
+  before/after dependencies. Numeric order and the `INSTANTIATE` boundary remain authoritative. Schema-authored custom
+  phase annotations are not currently part of the contract.
 
 - Collections
 

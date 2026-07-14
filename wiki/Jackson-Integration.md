@@ -12,10 +12,11 @@ This provides helpers for serialization and deserialization of Klum objects:
 - after binding, the normal lifecycle, graph materialization, validation, and verification pipeline produces the completed DSL Object
 - All enhancements are packaged into a Jackson module (KlumAstModule)
 
-The deserialization policy is explicitly provisional pending [issue #428](https://github.com/klum-dsl/klum-ast/issues/428).
-Mutating lifecycle callbacks run after restoration and may recompute or overwrite serialized derived values, so those
-callbacks should currently be idempotent. The long-term persisted-versus-recomputed contract will be decided before this
-integration leaves beta.
+The current raw-state implementation is transitional. [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
+accepts configuration replay as the stable target: persisted public Builder inputs are bound through resolved Jackson
+properties and one normal lifecycle recomputes derived values. [Issue #428](https://github.com/klum-dsl/klum-ast/issues/428)
+tracks that implementation, including renamed properties from #251 and explicit `LINK` identity. Until it lands, mutating
+lifecycle callbacks should remain idempotent and existing JSON may change.
 
 # Usage
 
@@ -54,7 +55,7 @@ ObjectMapper mapper = new ObjectMapper().registerModule(new KlumAstModule());
 
 # Extend
 
-`KlumAstModule` can be subclassed to customize module registration. The Builder-backed deserializer is intentionally an
-internal implementation detail while issue #428 finalizes the persisted-versus-recomputed policy; it is not currently a
-supported direct extension point. The public `KlumValueInstantiator` and `SettableKlumBeanProperty` classes from earlier
-versions have been removed.
+`KlumAstModule` can be subclassed to customize module registration. The Builder-backed deserializer remains an internal
+implementation detail; ADR 0007 defines property/value customization and an explicit type-level custom deserializer as the
+supported escape hatches. The public `KlumValueInstantiator` and `SettableKlumBeanProperty` classes from earlier versions
+have been removed.

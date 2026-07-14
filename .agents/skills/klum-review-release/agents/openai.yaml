@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review the KlumAST Release"
+  short_description: "Reconcile the KlumAST 4.0 release scope"
+  default_prompt: "Use $klum-review-release to review the current KlumAST 4.0 release state."

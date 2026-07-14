@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement a KlumAST Issue"
+  short_description: "Implement one approved KlumAST issue slice"
+  default_prompt: "Use $klum-implement-issue to implement this approved KlumAST issue."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Normalize KlumAST Issues"
+  short_description: "Apply confirmed issue curation decisions"
+  default_prompt: "Use $klum-normalize-issues to draft the confirmed GitHub issue updates."

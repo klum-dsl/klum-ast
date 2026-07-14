@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan a KlumAST Design"
+  short_description: "Turn issue clusters into ADRs and tracer bullets"
+  default_prompt: "Use $klum-plan-design to plan this cross-cutting KlumAST change."

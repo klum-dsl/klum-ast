@@ -10,7 +10,9 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Relationship fields hold Builders during construction. Existing completed DSL Objects are accepted only as aggregation `LINK` targets; owned composition stays within one Builder lifecycle.
 - Completed collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`; unsupported concrete or custom declarations now fail schema compilation.
 - Split construction and completed-model state between `KlumBuilder` and `KlumModelProxy`. `KlumInstanceProxy` is now a deprecated Builder-only compatibility adapter, and `VisitingPhaseAction` is replaced by state-specific Builder and Model variants.
-- Deprecated the legacy `KlumRwObject` marker pending [#394](https://github.com/klum-dsl/klum-ast/issues/394). Generated Builders retain it temporarily for integration compatibility, but no longer expose the redundant `getDSLInstance()` or `getRwInstance()` identity aliases.
+- Deprecated the legacy `KlumRwObject` marker. Generated Builders retain it temporarily for integration compatibility, but
+  no longer expose the redundant `getDSLInstance()` or `getRwInstance()` identity aliases. [ADR 0005](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0005-generated-dsl-support-api.md)
+  records its accepted removal and the future `Foo_DSL` interface layout under [#394](https://github.com/klum-dsl/klum-ast/issues/394).
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
 - Known compatibility gap: collection-local creator projections, direct `DelegatingScript` collection creation, and DSL Object converters that call model-returning factories currently fail rather than produce owned child Builders. Their target behavior is retained as pending tests and specified by [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md), with implementation tracked by [#431](https://github.com/klum-dsl/klum-ast/issues/431); use generated child closure methods until the `Create.AsBuilder` follow-up lands.
 
@@ -18,7 +20,10 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 - Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template `applyLater` recipes are detached from their defining Builder; captured values must be serializable and captured Builders are rejected.
 - Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.
-- Jackson now restores fields into Builders through the module's internal `KlumDeserializer` and runs the normal lifecycle, materialization, and validation pipeline. The former public `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes have been removed. This persisted-versus-recomputed policy remains provisional pending [#428](https://github.com/klum-dsl/klum-ast/issues/428).
+- Jackson now restores fields into Builders through the module's internal `KlumDeserializer` and runs the normal lifecycle,
+  materialization, and validation pipeline. The former public `KlumValueInstantiator` and `SettableKlumBeanProperty`
+  extension classes have been removed. This raw-state implementation is transitional; [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
+  records configuration replay as the accepted #428/#251 target.
 
 # 3.0.1
 - New annodocimal version, ignores irrelevant inner class entries in class files
