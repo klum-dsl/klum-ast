@@ -315,10 +315,11 @@ assert db.dml.role == "dml"
 assert db.monitoring.role == "monitoring"
 ```
 
-That way some kind of environment checker can, for example, validate that all non ddl users have the correct privileges:
+That way some kind of environment checker can, for example, use [[Completed Object Support]] to validate that all non
+ddl users have the correct privileges:
 
 ```groovy
-StructureUtil.deepFind(model, DbUser).each { path, user ->
+KlumObjectSupport.of(model).getStructure().findAll(DbUser).each { path, user ->
     if (user.role != "ddl")
       assertNoDdlPrivileges(user, path)
 
@@ -326,4 +327,3 @@ StructureUtil.deepFind(model, DbUser).each { path, user ->
 ```
 
 Note that this check should not be done during standard model validation because it requires access to the actual database.
-

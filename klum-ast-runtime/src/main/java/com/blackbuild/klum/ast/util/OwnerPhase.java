@@ -29,7 +29,8 @@ import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
+import com.blackbuild.klum.ast.util.layer3.BuilderStructureSupport;
+import com.blackbuild.klum.ast.util.layer3.StructuralPath;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -86,7 +87,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     }
 
     private void setRole(KlumBuilder<?> builder, Object container, Consumer<@NotNull String> action) {
-        StructureUtil.getPathOfFieldContaining(container, builder).ifPresent(action);
+        StructuralPath.getPathOfFieldContaining(container, builder).ifPresent(action);
     }
 
     private void setTransitiveOwners(KlumBuilder<?> builder) {
@@ -134,12 +135,12 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     }
 
     private void setSingleTransitiveOwner(KlumBuilder<?> builder, Field field) {
-        StructureUtil.getAncestorOfType(builder, getOwnerType(field))
+        BuilderStructureSupport.getAncestorOfType(builder, getOwnerType(field))
                 .ifPresent(value -> setOwnerFieldValue(builder, value, field));
     }
 
     private void callTransitiveOwnerMethod(KlumBuilder<?> builder, Method method) {
-        StructureUtil.getAncestorOfType(builder, getOwnerType(method))
+        BuilderStructureSupport.getAncestorOfType(builder, getOwnerType(method))
                 .ifPresent(value -> callOwnerMethod(builder, value, method));
     }
 

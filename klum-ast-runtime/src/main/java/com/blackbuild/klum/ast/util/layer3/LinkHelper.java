@@ -154,7 +154,7 @@ public class LinkHelper {
         if (linkTo.provider() != NoClosure.class)
             return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), builder);
         if (linkTo.providerType() != Object.class)
-            return StructureUtil.getOwnerHierarchy(builder).stream()
+            return BuilderStructureSupport.getOwnerHierarchy(builder).stream()
                     .filter(KlumBuilder.class::isInstance)
                     .map(KlumBuilder.class::cast)
                     .filter(candidate -> linkTo.providerType().isAssignableFrom(candidate.getModelType()))
@@ -180,7 +180,7 @@ public class LinkHelper {
 
         if (owner == providerObject) return null;
 
-        return StructureUtil.getPathOfSingleField(owner, builder)
+        return StructuralPath.getPathOfSingleField(owner, builder)
                 .map(it -> it + linkTo.nameSuffix())
                 .map(it -> getMetaPropertyOrMapKey(providerObject, it))
                 .orElse(null);

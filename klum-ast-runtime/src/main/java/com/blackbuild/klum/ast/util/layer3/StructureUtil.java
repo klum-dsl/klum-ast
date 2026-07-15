@@ -23,32 +23,27 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumObjectSupport;
 import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
-import groovy.lang.PropertyValue;
-import groovy.lang.Tuple2;
-import org.codehaus.groovy.runtime.InvokerHelper;
-import org.codehaus.groovy.runtime.StringGroovyMethods;
-import org.codehaus.groovy.tools.Utilities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import static com.blackbuild.klum.ast.util.DslHelper.isDslObject;
-import static java.util.function.Predicate.not;
 
 /**
- * Utility class for working with data structures. Provides methods to iterate through data structures and find
- * specific ancestors or GPath expressions.
+ * Legacy static compatibility adapter for structure traversal and paths.
+ *
+ * @deprecated since 4.0; use {@code KlumObjectSupport.of(completedObject).getStructure()} for completed DSL Objects.
  */
+@Deprecated(since = "4.0", forRemoval = false)
+@SuppressWarnings("java:S1133") // retained as a source-compatible adapter during the completed-object migration
 public class StructureUtil {
 
     private StructureUtil() {
@@ -63,7 +58,7 @@ public class StructureUtil {
      * @return the uncapitalized named of the class.
      */
     public static String toDefaultFieldName(Class<?> type) {
-        return StringGroovyMethods.uncapitalize(type.getSimpleName());
+        return StructuralPath.toDefaultFieldName(type);
     }
 
     /**
@@ -90,7 +85,15 @@ public class StructureUtil {
      * @param visitor The visitor to invoke for each element
      */
     public static void visit(Object root, ModelVisitor visitor) {
-        visit(root, visitor, "<root>");
+        if (isCompletedDslObject(root)) {
+            KlumObjectSupport.of(root).getStructure().visit(visitor);
+            return;
+        }
+        if (root instanceof KlumBuilder<?> builder) {
+            BuilderStructureSupport.visit(builder, visitor);
+            return;
+        }
+        CompositionTraversal.visit(root, visitor, "<root>");
     }
 
     /**
@@ -98,7 +101,7 @@ public class StructureUtil {
      * Sealed wrappers are filtered by {@code BuilderVisitingPhaseAction}.
      */
     public static void visitBuilders(KlumBuilder<?> root, ModelVisitor visitor) {
-        visit(root, visitor, "<root>");
+        BuilderStructureSupport.visit(root, visitor);
     }
 
     /**
@@ -109,45 +112,15 @@ public class StructureUtil {
      * @param path The path representation of the root element.
      */
     public static void visit(Object root, ModelVisitor visitor, String path) {
-        doVisit(root, visitor, new ArrayList<>(), path, null, null);
-    }
-
-    private static void doVisit(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        if (element == null) return;
-        if (element instanceof Collection)
-            doVisitCollection((Collection<?>) element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
-        else if (element instanceof Map)
-            doVisitMap((Map<?, ?>) element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
-        else
-            doVisitObject(element, visitor, alreadyVisited, path, container, nameOfFieldInContainer);
-    }
-
-    private static void doVisitObject(Object element, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        ModelVisitor.Action action = visitor.shouldVisit(path, element, container, nameOfFieldInContainer);
-        if (action == ModelVisitor.Action.SKIP) return;
-        if (alreadyVisited.stream().anyMatch(v -> v == element)) return;
-        try {
-            visitor.visit(path, element, container, nameOfFieldInContainer);
-        } catch (KlumVisitorException e) {
-            throw e;
-        } catch (KlumException e) {
-            throw new KlumVisitorException("Error visiting " + path + ": " + e.getMessage(), element, e);
-        } catch (Exception e) {
-            throw new KlumVisitorException("Error visiting " + path, element, e);
+        if (isCompletedDslObject(root)) {
+            KlumObjectSupport.of(root).getStructure().visit(visitor, path);
+            return;
         }
-        alreadyVisited.add(element);
-
-        if (action == ModelVisitor.Action.SKIP_SUBTREE) return;
-        getNonIgnoredProperties(element).forEach((name, value) -> doVisit(value, visitor, alreadyVisited, path + "." + name, element, name));
-    }
-
-    private static void doVisitMap(Map<?, ?> map, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        map.forEach((key, value) -> doVisit(value, visitor, alreadyVisited,path + "." + toGPath(key), container, nameOfFieldInContainer));
-    }
-
-    private static void doVisitCollection(Collection<?> collection, ModelVisitor visitor, List<Object> alreadyVisited, String path, Object container, String nameOfFieldInContainer) {
-        AtomicInteger index = new AtomicInteger();
-        collection.forEach(member -> doVisit(member, visitor, alreadyVisited, path + "[" + index.getAndIncrement() + "]", container, nameOfFieldInContainer));
+        if (root instanceof KlumBuilder<?> builder) {
+            BuilderStructureSupport.visit(builder, visitor, path);
+            return;
+        }
+        CompositionTraversal.visit(root, visitor, path);
     }
 
     /**
@@ -183,38 +156,15 @@ public class StructureUtil {
      * @return a map of strings to objects
      */
     public static <T> Map<String, T> deepFind(Object container, Class<T> type, List<Class<?>> ignoredTypes, String path) {
+        if (isCompletedDslObject(container) && ignoredTypes.isEmpty())
+            return KlumObjectSupport.of(container).getStructure().findAll(type, path);
         DeepFindVisitor<T> visitor = new DeepFindVisitor<>(type, ignoredTypes);
         visit(container, visitor, path);
         return visitor.result;
     }
 
     static String toGPath(Object value) {
-        String text = value.toString();
-        return Utilities.isJavaIdentifier(text) ? text : InvokerHelper.inspect(text);
-    }
-
-    static Map<String, Object> getNonIgnoredProperties(Object container) {
-        Map<String, Object> result = new HashMap<>();
-        Class<?> type = container.getClass();
-
-        while (type != null) {
-            addNonIgnoredProperties(container, type, result);
-            type = type.getSuperclass();
-        }
-
-        return result;
-    }
-
-    private static void addNonIgnoredProperties(Object container, Class<?> type, Map<String, Object> result) {
-        Arrays.stream(type.getDeclaredFields())
-                .filter(it -> !it.getName().contains("$"))
-                .filter(it -> !Modifier.isStatic(it.getModifiers()))
-                .filter(it -> !it.isSynthetic())
-                .filter(not(DslHelper::isOwner))
-                .filter(not(DslHelper::isLink))
-                .forEach(it -> result.put(
-                        it.getName(),
-                        DslHelper.getFieldValue(container,it.getName())));
+        return StructuralPath.toGPath(value);
     }
 
     /**
@@ -226,63 +176,30 @@ public class StructureUtil {
      * @return The name of the field containing the child object, or an empty Optional if the object is not contained in a field.
      */
     public static Optional<String> getPathOfFieldContaining(Object container, @NotNull Object child) {
-        Optional<String> singleValuePath = getPathOfSingleField(container, child);
-        if (singleValuePath.isPresent()) return singleValuePath;
-
-        Optional<String> collectionPath = getPathOfCollectionMember(container, child);
-        if (collectionPath.isPresent()) return collectionPath;
-
-        return getPathOfMapMember(container, child);
+        return StructuralPath.getPathOfFieldContaining(container, child);
     }
 
     @NotNull
     static Optional<String> getPathOfMapMember(Object container, @NotNull Object child) {
-        //noinspection unchecked
-        return ClusterModel.getPropertiesStream(container, Map.class)
-                .filter(it -> ClusterModel.isMapOf(container, it, child.getClass()))
-                .map(it -> new Tuple2<Object, Optional<String>>(it.getName(), findKeyForValue((Map<String, Object>) it.getValue(), child)))
-                .filter(it -> it.getSecond().isPresent())
-                .map(it -> toGPath(it.getFirst()) + "." + toGPath(it.getSecond().get()))
-                .findFirst();
+        return StructuralPath.getPathOfMapMember(container, child);
     }
 
     @NotNull
     static Optional<String> getPathOfCollectionMember(Object container, @NotNull Object child) {
-        return ClusterModel.getPropertiesStream(container, Collection.class)
-                .filter(it -> ClusterModel.isCollectionOf(container, it, child.getClass()))
-                .map(it -> new Tuple2<>(it.getName(), getIndexInCollection((Collection<?>) it.getValue(), child)))
-                .filter(it -> it.getSecond() != -1)
-                .map(it -> toGPath(it.getFirst()) + "[" + it.getSecond() + "]")
-                .findFirst();
+        return StructuralPath.getPathOfCollectionMember(container, child);
     }
 
     @NotNull
     static Optional<String> getPathOfSingleField(Object container, @NotNull Object child) {
-        return ClusterModel.getPropertiesStream(container, Object.class)
-                .filter(it -> it.getValue() == child)
-                .map(PropertyValue::getName)
-                .map(StructureUtil::toGPath)
-                .findFirst();
+        return StructuralPath.getPathOfSingleField(container, child);
     }
 
     static int getIndexInCollection(Collection<?> container, Object child) {
-        if (container instanceof List)
-            return ((List<?>) container).indexOf(child);
-
-        int index = 0;
-        for (Object element: container) {
-            if (element == child)
-                return index;
-            index++;
-        }
-        return -1;
+        return StructuralPath.getIndexInCollection(container, child);
     }
 
     static <K, V> Optional<K> findKeyForValue(Map<K, V> map, @NotNull V value) {
-        return map.entrySet().stream()
-                .filter(it -> it.getValue() == value)
-                .map(Map.Entry::getKey)
-                .findFirst();
+        return StructuralPath.findKeyForValue(map, value);
     }
 
     /**
@@ -307,6 +224,8 @@ public class StructureUtil {
      * @return The full path of the object.
      */
     public static @NotNull String getFullPath(@NotNull Object leaf, @Nullable String rootPath) {
+        if (isCompletedDslObject(leaf))
+            return KlumObjectSupport.of(leaf).getStructure().getFullPath(rootPath);
         return createPath(leaf, null, rootPath);
     }
 
@@ -354,6 +273,8 @@ public class StructureUtil {
      * @return The path from the container to the child object
      */
     public static String getRelativePath(Object container, Object child, String rootPath) {
+        if (isCompletedDslObject(container) && isCompletedDslObject(child))
+            return KlumObjectSupport.of(container).getStructure().getRelativePath(child, rootPath);
         return createPath(child, container::equals, rootPath);
     }
 
@@ -379,6 +300,11 @@ public class StructureUtil {
      * @return The path from the container to the child object
      */
     public static String getRelativePath(Class<?> containerType, Object child, String rootPath) {
+        if (isCompletedDslObject(child)) {
+            Object container = KlumObjectSupport.of(child).getStructure().getAncestorOfType(containerType)
+                    .orElseThrow(() -> new IllegalArgumentException("Could not find matching ancestor"));
+            return KlumObjectSupport.of(container).getStructure().getRelativePath(child, rootPath);
+        }
         return createPath(child, containerType::isInstance, rootPath);
     }
 
@@ -391,6 +317,8 @@ public class StructureUtil {
      * @param <T> The type of ancestor to be found
      */
     public static <T> Optional<T> getAncestorOfType(Object child, Class<T> type) {
+        if (isCompletedDslObject(child))
+            return KlumObjectSupport.of(child).getStructure().getAncestorOfType(type);
         //noinspection unchecked
         return (Optional<T>) getOwnerHierarchy(child).stream()
                 .filter(type::isInstance)
@@ -398,14 +326,7 @@ public class StructureUtil {
     }
 
     public static Deque<String> hierarchyToPath(List<Object> hierarchy) {
-        Deque<String> result = new ArrayDeque<>();
-        for (int i = hierarchy.size() - 1;  i > 0; i--) {
-            Object owner = hierarchy.get(i);
-            Object child = hierarchy.get(i - 1);
-            String path = getPathOfFieldContaining(owner, child).orElseThrow(() -> new IllegalStateException("Object " + owner + " does not contain " + child));
-            result.add(path);
-        }
-        return result;
+        return StructuralPath.hierarchyToPath(hierarchy);
     }
 
     /**
@@ -415,6 +336,10 @@ public class StructureUtil {
      * @return The owner hierarchy of the leaf object
      */
     public static List<Object> getOwnerHierarchy(Object leaf) {
+        if (isCompletedDslObject(leaf))
+            return KlumObjectSupport.of(leaf).getStructure().getOwnerHierarchy();
+        if (leaf instanceof KlumBuilder<?> builder)
+            return BuilderStructureSupport.getOwnerHierarchy(builder);
         List<Object> result = new ArrayList<>();
         while (leaf instanceof KlumBuilder || isDslObject(leaf)) {
             if (result.contains(leaf))
@@ -427,6 +352,17 @@ public class StructureUtil {
         }
         return result;
      }
+
+    private static boolean isCompletedDslObject(Object value) {
+        if (!isDslObject(value))
+            return false;
+        try {
+            KlumModelProxy.getProxyFor(value);
+            return true;
+        } catch (KlumException ignored) {
+            return false;
+        }
+    }
 
     private static class DeepFindVisitor<T> implements ModelVisitor {
         private final List<Class<?>> ignoredTypes;

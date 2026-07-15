@@ -25,8 +25,8 @@ package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.TemplateManager;
+import com.blackbuild.klum.ast.util.layer3.BuilderStructureSupport;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,7 +45,7 @@ public abstract class BuilderVisitingPhaseAction extends AbstractPhaseAction imp
         Object root = PhaseDriver.getInstance().getRootObject();
         if (!(root instanceof KlumBuilder))
             throw new IllegalStateException("Builder phase " + getPhase().getDisplayName() + " received a completed model");
-        StructureUtil.visitBuilders((KlumBuilder<?>) root, this);
+        BuilderStructureSupport.visit((KlumBuilder<?>) root, this);
     }
 
     @Override

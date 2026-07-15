@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3
 
 import com.blackbuild.klum.ast.util.AbstractRuntimeTest
+import com.blackbuild.klum.ast.util.layer3.ModelVisitor.Action
 import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
@@ -182,6 +183,37 @@ import com.blackbuild.klum.ast.KlumModelObject
         then:
         visitor.visited.size() == 1
         visitor.visited[0].is(container.child)
+    }
+
+    def "composition traversal is identity-cycle-safe independently of its state adapter"() {
+        given:
+        createClass '''
+            class Node {
+                Node child
+            }
+        '''
+        def root = newInstanceOf("Node")
+        def child = newInstanceOf("Node")
+        root.child = child
+        child.child = root
+        def paths = []
+        def visitor = new ModelVisitor() {
+            @Override
+            Action shouldVisit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
+                return Action.HANDLE
+            }
+
+            @Override
+            void visit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
+                paths << path
+            }
+        }
+
+        when:
+        CompositionTraversal.visit(root, visitor, '<root>')
+
+        then:
+        paths == ['<root>', '<root>.child']
     }
     
 }

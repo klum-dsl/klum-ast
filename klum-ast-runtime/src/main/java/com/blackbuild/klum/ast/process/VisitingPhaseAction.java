@@ -23,8 +23,11 @@
  */
 package com.blackbuild.klum.ast.process;
 
+import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumObjectSupport;
+import com.blackbuild.klum.ast.util.layer3.BuilderStructureSupport;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,7 +53,12 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
     @Override
     protected void doExecute() {
         Object root = PhaseDriver.getInstance().getRootObject();
-        StructureUtil.visit(root, this);
+        if (root instanceof KlumBuilder<?> builder)
+            BuilderStructureSupport.visit(builder, this);
+        else if (root instanceof KlumModelObject)
+            KlumObjectSupport.of(root).getStructure().visit(this);
+        else
+            throw new IllegalStateException("Visiting phase received an unsupported root object");
     }
 
     @Override

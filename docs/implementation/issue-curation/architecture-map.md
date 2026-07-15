@@ -113,7 +113,8 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted target behavior but not implemented**. The confirmed failure paths and pending tests are indexed in [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
 - [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; only DSL-G's Gradle
   mirror lifecycle is implemented.
-- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`; it is not implemented.
+- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 provenance and composition
+  structure support is implemented; OS-2 stored-validation support and companion lockdown remain planned.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) accepts configuration replay; it is not implemented.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
 
@@ -122,8 +123,9 @@ Confirmed deferred gaps, not current capabilities:
 - `Create.AsBuilder`, Builder-producing collection projections, and hidden Builder twins for source converters/custom factories do not exist yet; reasoned `@PendingFeature` tests record the target. Regular opaque scripts returning completed models remain top-level-only.
 - Template recipe state still resides in `KlumModelProxy`; the ADR 0004 `KlumTemplateProxy`/`TemplateRecipeState` split is a target.
 - The ADR 0004 rule rejecting `applyLater` at phase 40 or later is not enforced by the current scheduler.
-- Generated `Foo_DSL` AST layout (#394), completed-object support (#390), and Jackson configuration replay (#428/#251)
-  are decided but not implemented. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
-  registration (#305) is decided and deferred to later 4.x.
+- Generated `Foo_DSL` AST layout (#394) and Jackson configuration replay (#428/#251) are decided but not implemented.
+  Completed-object support (#390) has its OS-1 provenance/structure slice implemented; OS-2 validation and proxy-lockdown
+  work remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase registration (#305) is
+  decided and deferred to later 4.x.
 
 **Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `KlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.

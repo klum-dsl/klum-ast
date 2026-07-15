@@ -6,8 +6,10 @@ Status: Accepted
 
 Tracking issue: [#390 — Stable Entry object for internal methods](https://github.com/klum-dsl/klum-ast/issues/390)
 
-Implementation status: Planned. Current utilities and the public-looking `KlumModelProxy.getProxyFor` expose an incomplete
-and overly powerful boundary. See the [implementation plan](../implementation/adr-0006-completed-object-support.md).
+Implementation status: OS-1 provenance and structure support is implemented in [#435](https://github.com/klum-dsl/klum-ast/issues/435).
+OS-2 validation support and companion lockdown, and OS-3 documentation closure, remain planned. Current utilities and the
+public-looking `KlumModelProxy.getProxyFor` still expose an incomplete and overly powerful boundary. See the
+[implementation plan](../implementation/adr-0006-completed-object-support.md).
 
 Parent decision: [ADR 0003 — Builder-first materialization of DSL Objects](0003-builder-first-materialization.md)
 
