@@ -140,6 +140,7 @@ These questions are deliberately narrower than “please provide more informatio
 ## Follow-up after maintainer review
 
 Questions 1–3 and 9 were answered in the 2026-07-14 grilling session and are superseded by D-12 through D-17 below.
+Question 5 was answered in the 2026-07-15 grilling session and is superseded by D-19 below.
 The remaining questions stay open. GitHub mutations still require the repository normalization workflow.
 
 ## 2026-07-14 architecture grilling decisions
@@ -198,6 +199,33 @@ Templates are rejected and breaking JSON changes are acceptable.
 fresh actions, numeric phase authority, equal-phase dependencies, deterministic validation, and a deprecated legacy action
 adapter. A schema `@CustomPhase` annotation is deferred rather than assumed from the old issue title or ADR 0002.
 
+### D-19 — Finalize Java modules and handwritten packages in 4.0
+
+**Decision:** #391 is a 4.0 release requirement. Remove `com.blackbuild.groovy.configdsl` without compatibility aliases,
+eliminate split packages, consolidate schema vocabulary under `com.blackbuild.klum.ast`, and export only a positive
+runtime allowlist centered on `com.blackbuild.klum.ast.runtime` and `.runtime.validation`. Layer 3 remains the canonical
+API–Schema–Model modeling pattern but is not a package/module boundary. No general third-party extension SPI is promised;
+shipped adapters may use qualified exports.
+
+Keep the existing artifact set, Maven coordinates, BOM, and Gradle plugin IDs. The stable module names are
+`com.blackbuild.klum.ast.annotations`, `.runtime`, `.compiler`, `.jackson`, and `.validation.bean`; the Gradle plugin remains
+a build adapter outside JPMS. Classpath use remains supported. Modular schema packages use documented qualified `opens`;
+their `module-info.java` remains user-owned, while the schema plugin validates it and provides actionable remediation.
+
+**Feasibility gate:** Before mass movement, one candidate artifact set must compile and run a named schema with Groovy 3,
+4, and 5, including AST generation, lifecycle, service loading, Jackson, Bean Validation, published descriptor inspection,
+and separate classpath coverage. Groovy's module name changes from `org.codehaus.groovy` in 3 to `org.apache.groovy` in
+4/5, so failure returns the module design for maintainer review rather than authorizing `--add-reads` or broad export
+workarounds. #450 and `blackbuild/anno-docimal#36` coordinate upstream prerequisites.
+
+**Compatibility:** This is an intentional source/binary break requiring schema and consumer recompilation. No legacy
+package aliases, reflection-free generated access redesign, artifact split, or Java-serialization compatibility shim is
+included. Java-serialized 3.x graphs are not 4.0 migration inputs. The proven prototype must feed a dedicated ADR,
+tracer-bullet implementation plan, and complete import migration map before implementation.
+
+**Follow-ups:** #453 investigates whether any supported extension mechanisms are justified; #454 sharpens Layer 3
+documentation and reconciles open #356. Neither issue broadens #391 by default.
+
 ## 2026-07-14 confirmed GitHub normalization
 
 After exact-body review and maintainer confirmation, milestone 4.0 was created and the canonical issues were normalized:
@@ -217,3 +245,11 @@ tracer bullets were created:
 No issues were closed or assigned, and no projects or GitHub dependency relationships were changed. Independently created
 #432 was discovered during the refresh and recorded as untriaged rather than folded into ADR 0006 or #402 without a new
 maintainer decision.
+
+## 2026-07-15 package/module normalization
+
+After evidence-led grilling and exact-body confirmation, #391 was retitled, assigned to milestone 4.0, labelled as an
+enhancement and breaking change, and rewritten with the D-19 contract and prototype gate. #453 and #454 were created as
+unmilestoned `needs-triage` investigations for extension mechanisms and Layer 3 documentation. Upstream
+`blackbuild/anno-docimal#36` was created and linked through #450. No issue was closed or assigned, and no project or native
+dependency relationship changed.

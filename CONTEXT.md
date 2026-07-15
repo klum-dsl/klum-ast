@@ -128,6 +128,12 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   before/after dependencies. Numeric order and the `INSTANTIATE` boundary remain authoritative. Schema-authored custom
   phase annotations are not currently part of the contract.
 
+- Layer 3 model
+
+  A Layer 3 model is a modeling pattern that separates a generic consumer-facing API layer, a domain-specific Schema
+  layer, and configured Model instances. Cluster projection is specialized support for this pattern; lifecycle, linking,
+  ownership, defaults, and traversal are general KlumAST capabilities rather than defining Layer 3 features.
+
 - Collections
 
   Collections use the supported interfaces `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`. Map keys retain the schema's declared key type. Collection values can either be Simple Values or DSL-Objects. Collections of Collections are currently not supported.

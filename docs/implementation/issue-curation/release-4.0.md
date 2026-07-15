@@ -12,12 +12,14 @@ current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define th
 2. completed DSL Objects have no construction-time mutation path;
 3. the generated Builder layout and stable client entry points are intentional rather than accidental;
 4. completed-model companion and deserialization behavior are documented contracts rather than provisional implementation details;
-5. Java 17 and Groovy 3/4/5 remain supported.
+5. the handwritten package surface and Java module identities are intentional rather than accidental;
+6. Java 17 and Groovy 3/4/5 remain supported.
 
 ## 4.0 must
 
 | Issue | Why it blocks 4.0 | Required evidence before release | Dependencies / ordering |
 |---|---|---|---|
+| #391 — Java modules and final packages | Shipping the legacy `configdsl` namespace, split packages, or broad accidental exports would freeze the wrong handwritten interface and force another major break later. | One artifact set proven as named modules with Groovy 3/4/5 plus classpath fixtures; stable module names; qualified schema opening; no split/legacy packages; positive export allowlists; schema-plugin validation; ADR, tracer-bullet plan, import map, migration/CHANGES. | #450 and `blackbuild/anno-docimal#36` feed the mandatory prototype. The prototype precedes the ADR and mass package movement; #394 remains the separate generated-interface boundary. |
 | #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is an adoption gate for DSL-3 and may run in parallel. |
 | #390 — ADR 0006 completed Object support | Decision is complete, but direct proxy/metadata access remains exposed and clients lack the supported Java facade. | [#435 OS-1](https://github.com/klum-dsl/klum-ast/issues/435), OS-2, and OS-3: root/subtree facade, structure, stored validation, proxy lockdown, serialization, and Java-first docs. | Coordinate OS-2 with #438's common companion split. |
 | #428 + #251 — ADR 0007 configuration replay | Decision is complete, but raw Map restoration still duplicates derived state and ignores resolved property naming. | [#439 JSON-1](https://github.com/klum-dsl/klum-ast/issues/439), [#440 JSON-2](https://github.com/klum-dsl/klum-ast/issues/440), and JSON-3: property-aware binding, one lifecycle, LINK identity, customization, Template rejection, migration/CHANGES, Groovy 3/4/5. | #439 may start independently; #440's Template/reference integration aligns with #438. |
@@ -33,13 +35,14 @@ current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define th
 #434 DSL-G ──> #394 DSL-3
 ```
 
-The decisions are no longer blockers; the shown implementation seams are. The generated namespace must exist before
+The Builder-first decisions are no longer blockers; the shown implementation seams are. #391 additionally requires a
+module-path feasibility proof before its package ADR can be finalized. The generated namespace must exist before
 projected Builder signatures, while Model/Template companion changes and facade lockdown must share one internal boundary.
 Jackson property binding can proceed independently until Template/LINK serialization integration.
 
 ## 4.0 nice-to-have
 
-These improve confidence or polish at the new public boundary but have a safe deferral path. They are not permission to expand the release until the four must items are complete.
+These improve confidence or polish at the new public boundary but have a safe deferral path. They are not permission to expand the release until the five must items are complete.
 
 | Issue | Release value | Deferral safety / evidence |
 |---|---|---|
@@ -84,11 +87,11 @@ Before closing #411, ask whether the maintainer still wants a separately named/p
 ## Issues requiring maintainer input before any disposition
 
 - #142: Is arbitrary annotation injection still a desired extension seam after Jackson moved to `KlumAnnotationIntrospector`, and if so which generated targets/retention rules are required?
-- #391: What modules/packages are to be changed, and is this a 4.x compatibility task or a 5.0 namespace redesign?
 - #399: Provide a current PostCreate reproduction and the exact expected breadcrumb; the old lifecycle architecture no longer applies unchanged.
 
-The 4.0 architecture decisions are complete in ADRs 0004–0007. Their issues remain release blockers because implementation,
-compatibility evidence, and user-facing migration work are still outstanding, not because maintainer intent is unknown.
+The Builder-first architecture decisions are complete in ADRs 0004–0007. #391's maintainer intent is also confirmed, but
+its dedicated package/module ADR follows the mandatory cross-Groovy prototype. These issues remain release blockers because
+implementation, compatibility evidence, and user-facing migration work are still outstanding.
 
 ## Compatibility gate for release
 
