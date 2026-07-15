@@ -25,9 +25,10 @@
 package com.blackbuild.klum.ast.jackson
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
 import spock.lang.PendingFeature
 
@@ -339,6 +340,93 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         ]
     }
 
+    def "owned collection and map configuration preserves declared container semantics"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class OwnedContainers {
+                List<ContainedValue> values
+                Set<ContainedValue> valueSet
+                SortedSet<ContainedValue> sortedValues
+                SortedMap<String, KeyedValue> keyedValues
+            }
+
+            @DSL
+            class ContainedValue {
+                String value
+
+                @Owner
+                OwnedContainers owner
+            }
+
+            @DSL
+            class KeyedValue {
+                @Key
+                String id
+
+                String value
+
+                @Owner
+                OwnedContainers owner
+            }
+        ''')
+
+        when:
+        def deserialized = mapper.readValue('''{
+            "values":[{"value":"list"}],
+            "valueSet":[{"value":"set"}],
+            "sortedValues":[],
+            "keyedValues":{"alpha":{"value":"map"}}
+        }''', clazz)
+
+        then:
+        deserialized.values*.value == ["list"]
+        deserialized.values.every { it.owner.is(deserialized) }
+        deserialized.valueSet*.value as Set == ["set"] as Set
+        deserialized.valueSet.every { it.owner.is(deserialized) }
+        deserialized.sortedValues instanceof SortedSet
+        deserialized.sortedValues.empty
+        deserialized.keyedValues instanceof SortedMap
+        deserialized.keyedValues.alpha.id == "alpha"
+        deserialized.keyedValues.alpha.value == "map"
+        deserialized.keyedValues.alpha.owner.is(deserialized)
+    }
+
+    def "owned containers reject a JSON #shape shape"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class ShapedContainers {
+                List<ShapedValue> values
+                Map<String, ShapedValue> keyedValues
+            }
+
+            @DSL
+            class ShapedValue {
+                @Key
+                String id
+
+                String value
+            }
+        ''')
+
+        when:
+        mapper.readValue(json, clazz)
+
+        then:
+        thrown(JsonMappingException)
+
+        where:
+        shape                | json
+        "object for a list"  | '{"values":{}}'
+        "array for a map"    | '{"keyedValues":[]}'
+        "scalar list member" | '{"values":["not-an-object"]}'
+    }
+
     def "explicit type-level custom deserializer opts out of Klum configuration replay"() {
         given:
         createClass('''
@@ -393,7 +481,7 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         mapper.writeValueAsString(template)
 
         then:
-        thrown(com.fasterxml.jackson.databind.JsonMappingException)
+        thrown(JsonMappingException)
     }
 
     def "Klum field types define the configurable persistence surface"() {

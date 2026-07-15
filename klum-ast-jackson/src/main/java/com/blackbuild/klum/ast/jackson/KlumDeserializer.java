@@ -25,6 +25,8 @@ package com.blackbuild.klum.ast.jackson;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.DslHelper;
@@ -40,16 +42,17 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +61,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -88,8 +92,8 @@ final class KlumDeserializer extends StdDeserializer<Object> {
         ObjectNode configuration = readObject(parser, context);
         try {
             return replay(configuration, parser, context);
-        } catch (ReplayFailure failure) {
-            throw failure.getIOException();
+        } catch (UncheckedIOException failure) {
+            throw failure.getCause();
         } catch (RuntimeException exception) {
             throw JsonMappingException.from(parser, "Could not replay configuration for " + modelType.getName()
                     + " through its Builder lifecycle", exception);
@@ -97,10 +101,7 @@ final class KlumDeserializer extends StdDeserializer<Object> {
     }
 
     private static ObjectNode readObject(JsonParser parser, DeserializationContext context) throws IOException {
-        com.fasterxml.jackson.databind.JsonNode node = context.readTree(parser);
-        if (node.getNodeType() != JsonNodeType.OBJECT)
-            return (ObjectNode) context.handleUnexpectedToken(ObjectNode.class, parser);
-        return (ObjectNode) node;
+        return (ObjectNode) context.readTree(parser);
     }
 
     private Object replay(ObjectNode configuration, JsonParser source, DeserializationContext context) {
@@ -115,13 +116,13 @@ final class KlumDeserializer extends StdDeserializer<Object> {
     private void configure(KlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
                            JsonParser source, DeserializationContext context) {
         builder.setCurrentTemplates(Collections.emptyMap());
-        LifecycleHelper.executeLifecycleMethods(builder, com.blackbuild.groovy.configdsl.transform.PostCreate.class);
+        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
         configuration.fields()
                 .forEachRemaining(entry -> bind(builder, entry.getKey(), entry.getValue(), properties, source, context));
-        LifecycleHelper.executeLifecycleMethods(builder, com.blackbuild.groovy.configdsl.transform.PostApply.class);
+        LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
     }
 
-    private void bind(KlumBuilder<?> builder, String externalName, com.fasterxml.jackson.databind.JsonNode node,
+    private void bind(KlumBuilder<?> builder, String externalName, JsonNode node,
                       ResolvedProperties properties, JsonParser source, DeserializationContext context) {
         ResolvedProperty property = properties.bindable().get(externalName);
         if (property == null) {
@@ -130,28 +131,30 @@ final class KlumDeserializer extends StdDeserializer<Object> {
             handleUnknown(builder, externalName, node, source, context);
             return;
         }
-        try (JsonParser valueParser = node.traverse(source.getCodec())) {
-            valueParser.nextToken();
+        try {
             Object value = DslHelper.isRelationship(property.schemaField())
                     && !DslHelper.isLink(property.schemaField())
                     ? readOwnedValue(node, property, source, context)
-                    : readSimpleValue(valueParser, property, context);
+                    : readSimpleValue(node, source, property, context);
             builder.setSingleField(property.internalName(), value);
         } catch (IOException exception) {
-            throw new ReplayFailure(exception);
+            throw new UncheckedIOException(exception);
         }
     }
 
-    private static Object readSimpleValue(JsonParser valueParser, ResolvedProperty property,
+    private static Object readSimpleValue(JsonNode node, JsonParser source, ResolvedProperty property,
                                           DeserializationContext context) throws IOException {
-        JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
-                property.type(), property.beanProperty());
-        return valueParser.currentToken() == JsonToken.VALUE_NULL
-                ? valueDeserializer.getNullValue(context)
-                : valueDeserializer.deserialize(valueParser, context);
+        try (JsonParser valueParser = node.traverse(source.getCodec())) {
+            valueParser.nextToken();
+            JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
+                    property.type(), property.beanProperty());
+            return valueParser.currentToken() == JsonToken.VALUE_NULL
+                    ? valueDeserializer.getNullValue(context)
+                    : valueDeserializer.deserialize(valueParser, context);
+        }
     }
 
-    private Object readOwnedValue(com.fasterxml.jackson.databind.JsonNode node, ResolvedProperty property,
+    private Object readOwnedValue(JsonNode node, ResolvedProperty property,
                                   JsonParser source, DeserializationContext context) throws IOException {
         if (node.isNull())
             return null;
@@ -162,7 +165,7 @@ final class KlumDeserializer extends StdDeserializer<Object> {
         return readOwnedBuilder(node, property.type().getRawClass(), null, source, context);
     }
 
-    private Map<Object, Object> readOwnedMap(com.fasterxml.jackson.databind.JsonNode node, ResolvedProperty property,
+    private Map<Object, Object> readOwnedMap(JsonNode node, ResolvedProperty property,
                                              JsonParser source, DeserializationContext context) throws IOException {
         if (!node.isObject())
             throw JsonMappingException.from(source, "Expected an object for owned map property "
@@ -181,7 +184,7 @@ final class KlumDeserializer extends StdDeserializer<Object> {
         return result;
     }
 
-    private Collection<Object> readOwnedCollection(com.fasterxml.jackson.databind.JsonNode node,
+    private Collection<Object> readOwnedCollection(JsonNode node,
                                                    ResolvedProperty property, JsonParser source,
                                                    DeserializationContext context) throws IOException {
         if (!node.isArray())
@@ -193,12 +196,12 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                 ? new LinkedHashSet<>()
                 : new ArrayList<>();
         Class<?> childType = property.type().getContentType().getRawClass();
-        for (com.fasterxml.jackson.databind.JsonNode element : node)
+        for (JsonNode element : node)
             result.add(readOwnedBuilder(element, childType, null, source, context));
         return result;
     }
 
-    private KlumBuilder<?> readOwnedBuilder(com.fasterxml.jackson.databind.JsonNode node, Class<?> childType,
+    private KlumBuilder<?> readOwnedBuilder(JsonNode node, Class<?> childType,
                                             Object keyHint, JsonParser source,
                                             DeserializationContext context) throws IOException {
         if (node.isNull())
@@ -213,13 +216,13 @@ final class KlumDeserializer extends StdDeserializer<Object> {
         return child;
     }
 
-    private void handleUnknown(KlumBuilder<?> builder, String externalName, com.fasterxml.jackson.databind.JsonNode node,
+    private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node,
                                JsonParser source, DeserializationContext context) {
         try (JsonParser valueParser = node.traverse(source.getCodec())) {
             valueParser.nextToken();
             context.handleUnknownProperty(valueParser, this, builder, externalName);
         } catch (IOException exception) {
-            throw new ReplayFailure(exception);
+            throw new UncheckedIOException(exception);
         }
     }
 
@@ -235,7 +238,7 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                     : Optional.empty();
             Stream<String> names = Stream.concat(
                     Stream.of(definition.getName()),
-                    aliasesFor(definition, context).map(com.fasterxml.jackson.databind.PropertyName::getSimpleName)
+                    aliasesFor(definition, context).map(PropertyName::getSimpleName)
             );
             if (resolved.isPresent())
                 names.forEach(name -> bindable.put(name, resolved.get()));
@@ -263,13 +266,13 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                 : namingStrategy.nameForField(context.getConfig(), field, field.getName()));
     }
 
-    private static Stream<com.fasterxml.jackson.databind.PropertyName> aliasesFor(
+    private static Stream<PropertyName> aliasesFor(
             BeanPropertyDefinition property, DeserializationContext context) {
         return Stream.of(property.getPrimaryMember(), property.getField(), property.getGetter(), property.getSetter())
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .distinct()
                 .flatMap(member -> Optional.ofNullable(context.getAnnotationIntrospector().findPropertyAliases(member)).stream())
-                .flatMap(java.util.Collection::stream);
+                .flatMap(Collection::stream);
     }
 
     private Optional<ResolvedProperty> toResolvedProperty(Class<?> currentType, BeanPropertyDefinition property) {
@@ -325,16 +328,4 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                                       boolean ignoreUnknown) {
     }
 
-    private static final class ReplayFailure extends RuntimeException {
-        private final IOException ioException;
-
-        private ReplayFailure(IOException ioException) {
-            super(ioException);
-            this.ioException = ioException;
-        }
-
-        private IOException getIOException() {
-            return ioException;
-        }
-    }
 }
