@@ -42,4 +42,7 @@ Update only what the behavior requires:
 
 Run the applicable code review against the issue branch base, commit its fixes, then review and improve the commit sequence under `docs/agents/commits.md`. Re-run the required checks after rewriting history.
 
+When responding to pull-request review feedback, push the resulting changes and post the consolidated disposition required
+by `docs/agents/pull-requests.md`, including addressed and intentionally unchanged observations plus validation evidence.
+
 Finish with changed behavior, affected modules, tests and results, documentation changes, compatibility implications, commit-history review, and remaining follow-ups. Finish only when every acceptance criterion has evidence, the final documentation matches the branch state unless explicitly excluded, and the worktree contains no unrelated edits.
