@@ -1252,6 +1252,11 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         }
     }
 
+    void refreshModelPaths() {
+        if (modelPath != null)
+            propagateModelPathToComposition();
+    }
+
     private static void propagateModelPath(Object value, String path) {
         if (value instanceof KlumBuilder) {
             ((KlumBuilder<?>) value).setModelPath(path);

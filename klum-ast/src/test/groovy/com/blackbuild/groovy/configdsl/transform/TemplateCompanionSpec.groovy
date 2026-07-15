@@ -162,6 +162,9 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
             }
             external existingLink
         }
+        def rehydrated = clazz.Create.With {
+            copyFrom template
+        }
 
         then:
         TemplateManager.isTemplate(template)
@@ -173,7 +176,14 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
         TemplateManager.isTemplate(template.mappedNodes.mapped.leaf)
 
         and:
+        DslHelper.getModelPath(template) == "<root>"
+        DslHelper.getModelPath(template.primary) == "<root>.primary"
+        DslHelper.getModelPath(template.children.first()) == "<root>.children[0]"
+        DslHelper.getModelPath(template.mappedNodes.mapped) == "<root>.mappedNodes.mapped"
+
+        and:
         template.external.is(existingLink)
+        rehydrated.external.is(existingLink)
         !TemplateManager.isTemplate(existingLink)
         KlumModelProxy.getProxyFor(existingLink).object.is(existingLink)
     }
@@ -230,6 +240,84 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
 
         where:
         field << ["direct", "nodes", "mappedNodes", "linked"]
+    }
+
+    def "owned Template cycles rehydrate with ordinary identity ownership lifecycle and validation"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class CycleRoot {
+                CycleNode node
+            }
+
+            @DSL
+            class CycleNode {
+                static int postCreateCalls
+                static int postApplyCalls
+                static int validationCalls
+
+                String name
+                @Owner CycleRoot owner
+
+                @Field(FieldType.LINK)
+                CycleNode peer
+
+                @PostCreate
+                void afterCreate() {
+                    postCreateCalls++
+                }
+
+                @PostApply
+                void afterApply() {
+                    postApplyCalls++
+                }
+
+                @Validate
+                void validateCompletedNode() {
+                    assert owner != null
+                    assert peer.is(this)
+                    validationCalls++
+                }
+            }
+        '''
+        def Node = getClass("pk.CycleNode")
+
+        when:
+        def template = clazz.Template.Create {
+            node {
+                KlumBuilder nodeBuilder = delegate
+                name "cyclic"
+                nodeBuilder.setInstanceAttribute("peer", nodeBuilder)
+            }
+        }
+
+        then:
+        TemplateManager.isTemplate(template)
+        TemplateManager.isTemplate(template.node)
+        template.node.peer.is(template.node)
+        template.node.owner == null
+        Node.postCreateCalls == 0
+        Node.postApplyCalls == 0
+        Node.validationCalls == 0
+        DslHelper.getModelPath(template.node) == "<root>.node"
+
+        when:
+        instance = clazz.Create.With {
+            copyFrom template
+        }
+
+        then:
+        !TemplateManager.isTemplate(instance)
+        !TemplateManager.isTemplate(instance.node)
+        instance.node.peer.is(instance.node)
+        instance.node.owner.is(instance)
+        Node.postCreateCalls == 1
+        Node.postApplyCalls == 1
+        Node.validationCalls == 1
+        DslHelper.getModelPath(instance.node) == "<root>.node"
+        !instance.node.is(template.node)
     }
 
     def "Java serialization preserves Template graph identity and recipe replay without construction state"() {

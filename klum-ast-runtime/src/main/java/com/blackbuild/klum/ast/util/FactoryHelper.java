@@ -100,7 +100,9 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> KlumBuilder<T> createTemplateBuilder(Class<T> type) {
-        return createBuilder(type, null, null, true);
+        KlumBuilder<T> builder = createBuilder(type, null, null, true);
+        builder.setModelPath("<root>");
+        return builder;
     }
 
     @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
