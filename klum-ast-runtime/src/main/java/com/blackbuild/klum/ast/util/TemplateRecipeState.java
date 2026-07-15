@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.util;
 import groovy.lang.Closure;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -39,7 +38,7 @@ final class TemplateRecipeState implements Serializable {
     private TemplateRecipeState(Map<Integer, List<Closure<?>>> actions) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         actions.forEach((phase, closures) -> copy.put(phase, List.copyOf(closures)));
-        this.actions = Collections.unmodifiableMap(copy);
+        this.actions = Map.copyOf(copy);
     }
 
     static TemplateRecipeState capture(Map<Integer, List<Closure<?>>> actions) {

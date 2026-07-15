@@ -23,6 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
+import com.blackbuild.klum.ast.process.ConstructionSession
 import com.blackbuild.klum.ast.util.DslHelper
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.KlumModelException
@@ -229,5 +230,85 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
 
         where:
         field << ["direct", "nodes", "mappedNodes", "linked"]
+    }
+
+    def "Java serialization preserves Template graph identity and recipe replay without construction state"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class SerializableTemplate {
+                String name
+                String result
+                SerializableTemplateChild child
+            }
+
+            @DSL
+            class SerializableTemplateChild {
+                String value
+                String result
+            }
+        '''
+        def suffix = "!"
+        def template = clazz.Template.Create {
+            name "root"
+            applyLater {
+                result = name.toUpperCase() + suffix
+            }
+            child {
+                value "child"
+                applyLater {
+                    result = value.toUpperCase()
+                }
+            }
+        }
+
+        when:
+        def bytes = new ByteArrayOutputStream()
+        new ObjectOutputStream(bytes).withCloseable { it.writeObject(template) }
+        def dynamicLoader = loader
+        def restored = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray())) {
+            @Override
+            protected Class<?> resolveClass(ObjectStreamClass descriptor) {
+                try {
+                    return dynamicLoader.loadClass(descriptor.name)
+                } catch (ClassNotFoundException ignored) {
+                    return super.resolveClass(descriptor)
+                }
+            }
+        }.withCloseable { input ->
+            input.objectInputFilter = { info ->
+                Class<?> serializedType = info.serialClass()
+                if (serializedType != null && (KlumBuilder.isAssignableFrom(serializedType)
+                        || ConstructionSession.isAssignableFrom(serializedType)
+                        || serializedType == TreeMap
+                        || serializedType == ArrayList)) {
+                    return ObjectInputFilter.Status.REJECTED
+                }
+                return ObjectInputFilter.Status.UNDECIDED
+            } as ObjectInputFilter
+            input.readObject()
+        }
+
+        then:
+        TemplateManager.isTemplate(restored)
+        TemplateManager.isTemplate(restored.child)
+        restored.name == "root"
+        restored.child.value == "child"
+
+        when:
+        def result = clazz.Template.With(restored) {
+            clazz.Create.One()
+        }
+
+        then:
+        result.name == "root"
+        result.result == "ROOT!"
+        result.child.value == "child"
+        result.child.result == "CHILD"
+        !result.child.is(restored.child)
+        !TemplateManager.isTemplate(result)
+        !TemplateManager.isTemplate(result.child)
     }
 }
