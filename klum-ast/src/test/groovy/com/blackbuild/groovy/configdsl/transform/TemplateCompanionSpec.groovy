@@ -24,6 +24,8 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.DslHelper
+import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.util.KlumObjectCompanion
 import com.blackbuild.klum.ast.util.KlumTemplateProxy
@@ -109,5 +111,123 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
         !TemplateManager.isTemplate(templateBuilder)
         !TemplateManager.isTemplate(null)
         !TemplateManager.isTemplate([value: "data"])
+    }
+
+    def "Template materialization marks the complete owned graph but preserves an ordinary LINK target"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class TemplateRoot {
+                TemplateNode primary
+
+                @Field(members = "node")
+                List<TemplateNode> children
+
+                @Field(members = "mappedNode")
+                Map<String, TemplateNode> mappedNodes
+
+                @Field(FieldType.LINK)
+                TemplateNode external
+            }
+
+            @DSL
+            class TemplateNode {
+                @Key String name
+                TemplateLeaf leaf
+            }
+
+            @DSL
+            class TemplateLeaf {
+                String value
+            }
+        '''
+        def Node = getClass("pk.TemplateNode")
+        def existingLink = Node.Create.With("external") {}
+
+        when:
+        def template = clazz.Template.Create {
+            primary("primary") {
+                leaf { value "direct" }
+            }
+            children {
+                node("listed") {
+                    leaf { value "list" }
+                }
+            }
+            mappedNode("mapped") {
+                leaf { value "map" }
+            }
+            external existingLink
+        }
+
+        then:
+        TemplateManager.isTemplate(template)
+        TemplateManager.isTemplate(template.primary)
+        TemplateManager.isTemplate(template.primary.leaf)
+        TemplateManager.isTemplate(template.children.first())
+        TemplateManager.isTemplate(template.children.first().leaf)
+        TemplateManager.isTemplate(template.mappedNodes.mapped)
+        TemplateManager.isTemplate(template.mappedNodes.mapped.leaf)
+
+        and:
+        template.external.is(existingLink)
+        !TemplateManager.isTemplate(existingLink)
+        KlumModelProxy.getProxyFor(existingLink).object.is(existingLink)
+    }
+
+    def "completed Templates are rejected from the #field relationship"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class RelationshipRoot {
+                RelationshipNode direct
+
+                @Field(members = "node")
+                List<RelationshipNode> nodes
+
+                Map<String, RelationshipNode> mappedNodes
+
+                @Field(FieldType.LINK)
+                RelationshipNode linked
+            }
+
+            @DSL
+            class RelationshipNode {
+                @Key String name
+            }
+        '''
+        def Node = getClass("pk.RelationshipNode")
+        def template = Node.Template.Create {}
+
+        when:
+        clazz.Create.With {
+            KlumBuilder builder = delegate
+            switch (field) {
+                case "direct":
+                    builder.setInstanceAttribute(field, template)
+                    break
+                case "nodes":
+                    builder.addElementToCollection(field, template)
+                    break
+                case "mappedNodes":
+                    builder.addElementToMap(field, "template", template)
+                    break
+                case "linked":
+                    builder.setInstanceAttribute(field, template)
+                    break
+            }
+        }
+
+        then:
+        KlumModelException failure = thrown()
+        failure.message.startsWith("Cannot use a Template as relationship value pk.RelationshipRoot.$field. " +
+                "Rehydrate it with Template.With, copyFrom, or another Template/copy API so a fresh Builder graph is created.")
+
+        where:
+        field << ["direct", "nodes", "mappedNodes", "linked"]
     }
 }

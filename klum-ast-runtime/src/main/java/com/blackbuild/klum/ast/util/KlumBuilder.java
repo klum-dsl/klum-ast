@@ -451,6 +451,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return value;
         if (value instanceof KlumBuilder) {
             KlumBuilder<?> builderValue = (KlumBuilder<?>) value;
+            if (builderValue.isSealed() && TemplateManager.isTemplate(builderValue.getCompletedModel()))
+                throw templateRelationshipInputError(schemaField);
             if (builderValue.isSealed() && !acceptsCompletedRelationship(schemaField))
                 throw completedRelationshipInputError(schemaField);
             if (!builderValue.isSealed())
@@ -459,6 +461,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         }
         if (!(value instanceof KlumModelObject))
             throw new KlumModelException(format("Value for relationship %s.%s is neither a Builder nor a completed DSL Object", modelType.getName(), schemaField.getName()));
+        if (TemplateManager.isTemplate(value))
+            throw templateRelationshipInputError(schemaField);
         if (!acceptsCompletedRelationship(schemaField))
             throw completedRelationshipInputError(schemaField);
         return FactoryHelper.wrapCompletedModel(value);
@@ -471,6 +475,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private KlumModelException completedRelationshipInputError(Field schemaField) {
         return new KlumModelException(format(
                 "Completed DSL Object inputs are only supported for LINK relationships (%s.%s)",
+                modelType.getName(),
+                schemaField.getName()
+        ));
+    }
+
+    private KlumModelException templateRelationshipInputError(Field schemaField) {
+        return new KlumModelException(format(
+                "Cannot use a Template as relationship value %s.%s. "
+                        + "Rehydrate it with Template.With, copyFrom, or another Template/copy API so a fresh Builder graph is created.",
                 modelType.getName(),
                 schemaField.getName()
         ));
