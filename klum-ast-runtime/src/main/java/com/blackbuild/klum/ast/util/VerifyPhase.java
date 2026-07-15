@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.klum.ast.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.validation.Validator;
 
 /**
  * Phase Action that validates the model.
@@ -41,7 +40,7 @@ public class VerifyPhase extends AbstractPhaseAction {
 
     @Override
     protected void doExecute() {
-        Validator.verifyStructure(PhaseDriver.getInstance().getRootObject());
+        KlumObjectSupport.of(PhaseDriver.getInstance().getRootObject()).getValidation().verify();
     }
 
     @Override

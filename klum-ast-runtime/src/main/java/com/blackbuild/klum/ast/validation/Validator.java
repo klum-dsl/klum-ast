@@ -26,11 +26,9 @@ package com.blackbuild.klum.ast.validation;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.*;
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,11 +50,12 @@ public class Validator {
      *
      * @param instance the instance to validate the structure of. Must be a DSL object.
      * @return a list of {@link KlumValidationResult} containing validation errors.
+     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().getResults()}
      */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings("java:S1133") // source-compatible OS-2 migration adapter
     public static List<KlumValidationResult> getValidationResultsFromStructure(Object instance) {
-        ValidationResultCollector visitor = new ValidationResultCollector();
-        KlumObjectSupport.of(instance).getStructure().visit(visitor);
-        return visitor.aggregatedErrors;
+        return KlumObjectSupport.of(instance).getValidation().getResults();
     }
 
     /**
@@ -66,9 +65,12 @@ public class Validator {
      * @param instance the instance to validate the structure of. Must be a DSL object.
      * @return a list of {@link KlumValidationResult} containing validation errors.
      * @throws KlumValidationException if validation errors are found with a level equal or worse than the given level.
+     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().verify()}
      */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings("java:S1133") // source-compatible OS-2 migration adapter
     public static List<KlumValidationResult> verifyStructure(Object instance) throws KlumValidationException {
-        return verifyStructure(instance, getFailLevel());
+        return KlumObjectSupport.of(instance).getValidation().verify();
     }
 
     /**
@@ -78,24 +80,12 @@ public class Validator {
      * @param failLevel the minimum encountered level to result in an exception.
      * @return a list of {@link KlumValidationResult} containing validation errors.
      * @throws KlumValidationException if validation errors are found with a level equal or worse than the given level.
+     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().verify(failLevel)}
      */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings("java:S1133") // source-compatible OS-2 migration adapter
     public static List<KlumValidationResult> verifyStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
-        ValidationResultCollector visitor = new ValidationResultCollector();
-        KlumObjectSupport.of(instance).getStructure().visit(visitor);
-        KlumValidationResult.throwOn(visitor.aggregatedErrors, failLevel);
-        return visitor.aggregatedErrors;
-    }
-
-    static class ValidationResultCollector implements ModelVisitor {
-
-        private final List<KlumValidationResult> aggregatedErrors = new ArrayList<>();
-
-        @Override
-        public void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-            KlumValidationResult result = getValidationResult(element);
-            if (result != null && result.has(Validate.Level.INFO))
-                aggregatedErrors.add(result);
-        }
+        return KlumObjectSupport.of(instance).getValidation().verify(failLevel);
     }
 
     /**
@@ -104,7 +94,10 @@ public class Validator {
      *
      * @param instance the instance to validate
      * @return a {@link KlumValidationResult} containing validation errors
+     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().getResult()} for a completed DSL Object
      */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings("java:S1133") // source-compatible OS-2 migration adapter
     public static KlumValidationResult getValidationResult(Object instance) {
         return doGetValidationResult(instance);
     }
@@ -241,7 +234,7 @@ public class Validator {
     private static KlumValidationResult doGetValidationResult(Object instance) {
         if (instance instanceof KlumBuilder)
             return ((KlumBuilder<?>) instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
-        return KlumModelProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+        return KlumObjectSupport.of(instance).getValidation().getResult();
     }
 
     private static KlumValidationResult doGetOrCreateValidationResult(Object instance) {

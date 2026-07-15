@@ -26,14 +26,97 @@ package com.blackbuild.groovy.configdsl.transform
 import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.util.KlumException
+import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor
 import com.blackbuild.klum.ast.util.layer3.StructureUtil
+import com.blackbuild.klum.ast.validation.KlumValidationResult
 import org.jetbrains.annotations.NotNull
 
 import javax.tools.ToolProvider
 import java.lang.reflect.Modifier
 
 class KlumObjectSupportSpec extends AbstractDSLSpec {
+
+    def "validation support reads stored root and subtree results without rerunning validation"() {
+        given:
+        createClass '''
+            @DSL class Root {
+                static int validationCalls
+
+                @Required(level = Validate.Level.WARNING)
+                String name
+                Child child
+
+                @Validate
+                void countValidation() {
+                    validationCalls++
+                }
+            }
+
+            @DSL class Child {
+                static int validationCalls
+
+                @Required(level = Validate.Level.WARNING)
+                String value
+
+                @Validate
+                void countValidation() {
+                    validationCalls++
+                }
+            }
+        '''
+        instance = Root.Create.With { child {} }
+        def support = KlumObjectSupport.of(instance)
+        def childSupport = KlumObjectSupport.of(instance.child)
+        def storedRootResult = support.validation.result
+        def storedChildResult = childSupport.validation.result
+        def rootIssues = storedRootResult.issues.toList()
+        def childIssues = storedChildResult.issues.toList()
+
+        when:
+        def result = support.validation.result
+        def results = support.validation.results
+        def subtreeResults = childSupport.validation.results
+        def verified = support.validation.verify()
+        compileJavaConsumer('''
+            import com.blackbuild.groovy.configdsl.transform.Validate;
+            import com.blackbuild.klum.ast.util.KlumObjectSupport;
+            import com.blackbuild.klum.ast.validation.KlumValidationResult;
+            import java.util.List;
+
+            public final class JavaObjectSupportConsumer {
+                public static void inspect(Root root) {
+                    KlumObjectSupport.Validation<Root> validation = KlumObjectSupport.of(root).getValidation();
+                    KlumValidationResult result = validation.getResult();
+                    List<KlumValidationResult> results = validation.getResults();
+                    List<KlumValidationResult> verified = validation.verify();
+                    validation.verify(Validate.Level.WARNING);
+                }
+            }
+        ''')
+
+        then:
+        result.is(storedRootResult)
+        results == [storedRootResult, storedChildResult]
+        subtreeResults == [storedChildResult]
+        verified == results
+        Root.validationCalls == 1
+        Child.validationCalls == 1
+        storedRootResult.issues.toList() == rootIssues
+        storedChildResult.issues.toList() == childIssues
+
+        when:
+        support.validation.verify(Validate.Level.WARNING)
+
+        then:
+        def error = thrown(KlumValidationException)
+        error.validationResults == results
+        Root.validationCalls == 1
+        Child.validationCalls == 1
+        support.validation.result.is(storedRootResult)
+        storedRootResult.issues.toList() == rootIssues
+        storedChildResult.issues.toList() == childIssues
+    }
 
     def "Java callers use explicit completed-object getters for a root and subtree without proxy access"() {
         given:
