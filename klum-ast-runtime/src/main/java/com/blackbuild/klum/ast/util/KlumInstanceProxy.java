@@ -33,11 +33,11 @@ import java.util.Map;
 /**
  * Builder-only compatibility adapter for code written against the former RW proxy.
  *
- * <p>New runtime code belongs on {@link KlumBuilder} or {@link KlumModelProxy}.
+ * <p>New construction code belongs on {@link KlumBuilder}; completed-model inspection uses {@link KlumObjectSupport}.
  * Looking up this adapter for a completed model is intentionally rejected.</p>
  *
  * @deprecated since 4.0; use {@link KlumBuilder} for construction state and
- * {@link KlumModelProxy} for completed-model companion state
+ * {@link KlumObjectSupport} for completed-model inspection
  */
 @Deprecated(since = "4.0", forRemoval = true)
 @SuppressWarnings({"unused", "java:S1133", "java:S1452"}) // compatibility adapter until its documented 4.x removal
@@ -77,7 +77,7 @@ public final class KlumInstanceProxy {
     private static KlumException completedModelLookupFailure(Object target) {
         return new KlumException("KlumInstanceProxy is Builder-only; completed DSL Object "
                 + target.getClass().getName()
-                + " must use KlumModelProxy for model metadata or a generated factory for construction");
+                + " must use KlumObjectSupport for supported inspection or a generated factory for construction");
     }
 
     protected GroovyObject getRwInstance() {

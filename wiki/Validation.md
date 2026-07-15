@@ -61,8 +61,7 @@ class MyModel {
 
 Any failed validation is represented by a `KlumValidationIssue`, all
 issues of a single object are collected in a `KlumValidationResult`. The result is stored in the completed object's Model
-companion and is accessed through the supported `Validator.getValidationResult(Object)` utility rather than through
-`KlumInstanceProxy`.
+companion and is accessed through `KlumObjectSupport.of(object).getValidation().getResult()` rather than through a proxy.
 
 # `@Required` and `@Optional`
 
@@ -292,7 +291,9 @@ There are different levels for validation problems: INFO, WARNING, DEPRECATION, 
 
 Usually, validation problems are considered errors, but you can use the `level` parameter of the `@Validate` (or `@Required`) annotation to change this. 
 
-In the normal case, only errors lead to a `KlumValidationException` being thrown, but all validation problems are collected in the `KlumValidationResult` and can be accessed via the `Validator.getValidationResult(Object)`.
+In the normal case, only errors lead to a `KlumValidationException` being thrown, but all validation problems are collected
+in `KlumValidationResult` objects. Use `KlumObjectSupport.of(object).getValidation().getResult()` for one object or
+`getResults()` for its owned subtree.
 
 The level on which the validation causes an exception can be overridden by the `klum.validation.failOnLevel` system property.
 
@@ -344,7 +345,9 @@ The actual check against the fail level is done in the Verify phase. This allows
 
 # Skipping verification
 
-By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still executed, and the results can be extracted from the instances using the `Validator.getValidationResultsFromStructure(Object)` method (or `verifyStructure(Object)` can be used to run the verification later and throw an exception as needed). 
+By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still
+executed. Read the stored results through `KlumObjectSupport.of(object).getValidation().getResults()`, or call `verify()`
+later to apply the configured failure level without rerunning validators.
 
 # JSR380 validation
 

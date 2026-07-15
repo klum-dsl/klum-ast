@@ -23,7 +23,7 @@ Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility
 
 ### Issue implementation commits
 
-Implement issues on a new, dedicated issue branch using small, reasoned commits. Agents may create commits there without asking. Review and, when necessary, rewrite the local commit sequence before handoff. See `docs/agents/commits.md`.
+Implement issues on a new, dedicated issue branch using small, reasoned commits. Agents may create commits there without asking. Review and, when necessary, rewrite the local commit sequence before first publication or review; preserve reviewed commits and add review fixes as follow-up commits. See `docs/agents/commits.md`.
 
 ### Pull requests and releases
 

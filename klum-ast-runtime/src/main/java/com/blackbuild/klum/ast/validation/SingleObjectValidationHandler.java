@@ -24,8 +24,7 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.DslHelper;
-import com.blackbuild.klum.ast.util.KlumModelProxy;
+import com.blackbuild.klum.ast.util.InternalKlumObjectSupport;
 
 import java.util.ServiceLoader;
 
@@ -46,16 +45,7 @@ class SingleObjectValidationHandler {
     }
 
     public KlumValidationResult getOrCreateValidationResult() {
-        KlumValidationResult existingResult = KlumModelProxy.getProxyFor(instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
-
-        if (existingResult != null) {
-            return existingResult;
-        }
-
-        String breadcrumbPath = DslHelper.getModelAndBreadcrumbPath(instance);
-        KlumValidationResult validationIssues = new KlumValidationResult(breadcrumbPath);
-        KlumModelProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, validationIssues);
-        return validationIssues;
+        return InternalKlumObjectSupport.getOrCreateValidationResult(instance);
     }
 
     public KlumValidationResult execute() {
@@ -69,9 +59,8 @@ class SingleObjectValidationHandler {
 
     private KlumValidationResult validateInstance() {
         KlumValidationResult validationResult = getOrCreateValidationResult();
-        KlumModelProxy modelProxy = KlumModelProxy.getProxyFor(instance);
         ServiceLoader.load(InstanceValidator.class).forEach(handler -> {
-            if (modelProxy.markValidatorExecuted(handler.getClass()))
+            if (InternalKlumObjectSupport.markValidatorExecuted(instance, handler.getClass()))
                 handler.validateInstance(instance, validationResult);
         });
         return validationResult;

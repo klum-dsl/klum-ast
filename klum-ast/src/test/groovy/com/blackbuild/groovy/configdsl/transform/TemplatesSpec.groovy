@@ -27,7 +27,7 @@ package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumInstanceProxy
 import com.blackbuild.klum.ast.util.KlumException
-import com.blackbuild.klum.ast.util.KlumModelProxy
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -1364,7 +1364,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         then:
         instance.name == "Instance"
         instance.activeTemplatesDuringAutoCreate == [:]
-        KlumModelProxy.getProxyFor(instance).model.is(instance)
+        KlumObjectSupport.of(instance).object.is(instance)
 
         when: "the legacy proxy is looked up for a completed model"
         KlumInstanceProxy.getProxyFor(instance)
@@ -1372,7 +1372,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         then:
         def migrationFailure = thrown(KlumException)
         migrationFailure.message.contains("Builder-only")
-        migrationFailure.message.contains("KlumModelProxy")
+        migrationFailure.message.contains("KlumObjectSupport")
 
         when:
         def templatesDuringCreation = null
@@ -1387,7 +1387,7 @@ import com.blackbuild.klum.ast.util.KlumInstanceProxy
         instance.name == "Overridden"
         templatesDuringCreation == [(clazz): template]
         instance.activeTemplatesDuringAutoCreate == [(clazz): template]
-        KlumModelProxy.getProxyFor(instance).model.is(instance)
+        KlumObjectSupport.of(instance).object.is(instance)
     }
 
     @Issue("376")

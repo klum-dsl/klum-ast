@@ -19,6 +19,8 @@ Use this checklist for any pull request that changes public behavior, compatibil
 
 ## Review feedback follow-up
 
+- Preserve the commits that formed the reviewed revision. Address feedback with additive follow-up commits according to
+  `docs/agents/commits.md`; do not amend or otherwise rewrite pre-review commits unless the maintainer explicitly asks.
 - A request to address pull-request review feedback also authorizes one consolidated follow-up comment on that pull
   request after the resulting changes have been pushed. Do not wait for a separate request to post it.
 - Account for every review observation: identify addressed items and the relevant change or commit; identify intentionally

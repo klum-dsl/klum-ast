@@ -47,9 +47,9 @@ import static java.lang.String.format;
  * <p>This companion deliberately contains no construction-time mutation API and
  * never retains the Builder that created the model.</p>
  */
-public final class KlumModelProxy implements KlumObjectCompanion {
+final class KlumModelProxy implements KlumObjectCompanion {
 
-    public static final String NAME_IN_MODEL = "$proxy";
+    static final String NAME_IN_MODEL = KlumObjectCompanion.NAME_IN_MODEL;
 
     @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
     private final GroovyObject model;
@@ -58,7 +58,7 @@ public final class KlumModelProxy implements KlumObjectCompanion {
     private final Map<String, Serializable> metadata;
     private final Set<Class<?>> executedValidators = new HashSet<>();
 
-    public KlumModelProxy(GroovyObject model, KlumBuilder.ModelState state) {
+    KlumModelProxy(GroovyObject model, KlumBuilder.ModelState state) {
         this.model = model;
         this.breadcrumbPath = state.getBreadcrumbPath();
         this.modelPath = state.getModelPath();
@@ -68,7 +68,7 @@ public final class KlumModelProxy implements KlumObjectCompanion {
     /**
      * Returns the companion for a completed DSL Object.
      */
-    public static KlumModelProxy getProxyFor(Object target) {
+    static KlumModelProxy getProxyFor(Object target) {
         KlumObjectCompanion companion = KlumTemplateProxy.companionFor(target);
         if (companion instanceof KlumModelProxy modelProxy)
             return modelProxy;
@@ -97,12 +97,12 @@ public final class KlumModelProxy implements KlumObjectCompanion {
         return modelPath;
     }
 
-    public void setModelPathIfAbsent(String path) {
+    void setModelPathIfAbsent(String path) {
         if (modelPath == null)
             modelPath = path;
     }
 
-    public boolean hasMetaData(String key) {
+    boolean hasMetaData(String key) {
         return metadata.containsKey(key);
     }
 
@@ -116,7 +116,7 @@ public final class KlumModelProxy implements KlumObjectCompanion {
      * @return the stored value, or {@code null} if no value is stored
      * @throws KlumException if the stored value is not of the requested type
      */
-    public <T> T getMetaData(String key, Class<T> type) {
+    <T> T getMetaData(String key, Class<T> type) {
         Object value = metadata.get(key);
         if (value == null)
             return null;
@@ -132,7 +132,7 @@ public final class KlumModelProxy implements KlumObjectCompanion {
      * @param value a value whose complete object graph is serializable, or {@code null}
      * @throws KlumException if {@code value} or anything reachable from it is not serializable
      */
-    public void setMetaData(String key, Object value) {
+    void setMetaData(String key, Object value) {
         metadata.put(key, requireSerializableMetadataValue(key, value));
     }
 
@@ -159,18 +159,18 @@ public final class KlumModelProxy implements KlumObjectCompanion {
      *
      * @return true only for the first execution of the validator type
      */
-    public boolean markValidatorExecuted(Class<?> validatorType) {
+    boolean markValidatorExecuted(Class<?> validatorType) {
         return executedValidators.add(validatorType);
     }
 
-    public Object getSingleOwner() {
+    Object getSingleOwner() {
         Set<Object> owners = getOwners();
         if (owners.size() > 1)
             throw new KlumModelException("Object has more than one distinct owner");
         return owners.stream().findFirst().orElse(null);
     }
 
-    public Set<Object> getOwners() {
+    Set<Object> getOwners() {
         return DslHelper.getFieldsAnnotatedWith(model.getClass(), Owner.class)
                 .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
                 .filter(field -> !field.getAnnotation(Owner.class).transitive())

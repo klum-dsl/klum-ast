@@ -35,7 +35,6 @@ import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
-import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.KlumObjectCompanion;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
@@ -305,7 +304,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         annotatedClass.getModule().addClass(rwClass);
         if (dslParent == null)
-            annotatedClass.addField(KlumModelProxy.NAME_IN_MODEL, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, OBJECT_COMPANION, null);
+            annotatedClass.addField(KlumObjectCompanion.NAME_IN_MODEL, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, OBJECT_COMPANION, null);
 
         ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
         if (parentProxy == null)
@@ -571,7 +570,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (dslParent == null)
             body.addStatement(assignS(
-                    attrX(varX("this"), constX(KlumModelProxy.NAME_IN_MODEL)),
+                    attrX(varX("this"), constX(KlumObjectCompanion.NAME_IN_MODEL)),
                     callX(varX(BUILDER_PARAMETER), "$createCompanion", args(varX("this")))
             ));
 

@@ -3,7 +3,7 @@
 This plan implements [ADR 0006](../adr/0006-completed-object-support.md) for canonical issue
 [#390](https://github.com/klum-dsl/klum-ast/issues/390).
 
-## Current behavior and failure
+## Original behavior and failure
 
 `KlumModelProxy.getProxyFor` is publicly callable and exposes breadcrumb/model paths, raw metadata, validation state, and
 Template-era deferred closures. `DslHelper`, `StructureUtil`, and validation handlers expose only fragments of the intended
@@ -25,7 +25,7 @@ Add `KlumObjectSupport.of(object)` with `getObject`, both path getters, and `get
 hierarchy, composition-only cycle-safe visit/find-all, and relative paths. Make existing `StructureUtil` delegate where
 compatible. Demonstrate Java use against both a root and subtree without exposing the companion.
 
-### OS-2 — Stored validation facade and proxy lockdown
+### OS-2 — Stored validation facade and proxy lockdown — Implemented
 
 Add `getValidation()` with target/subtree result access and non-rerunning `verify` operations. Move supported callers off
 `KlumModelProxy`, internalize its lookup and raw metadata, and add migration diagnostics/deprecations where source

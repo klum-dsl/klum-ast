@@ -27,8 +27,8 @@ import com.blackbuild.klum.ast.process.ConstructionSession
 import com.blackbuild.klum.ast.util.DslHelper
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.util.KlumObjectCompanion
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.util.KlumTemplateProxy
 import com.blackbuild.klum.ast.util.TemplateManager
 
@@ -63,17 +63,17 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
 
         and:
         KlumObjectCompanion.sealed
-        KlumObjectCompanion.permittedSubclasses as Set == [KlumModelProxy, KlumTemplateProxy] as Set
+        KlumObjectCompanion.permittedSubclasses*.simpleName as Set == ['KlumModelProxy', 'KlumTemplateProxy'] as Set
         KlumObjectCompanion.declaredMethods*.name as Set == [
                 'getObject',
                 'getBreadcrumbPath',
                 'getModelPath'
         ] as Set
-        Modifier.isFinal(KlumModelProxy.modifiers)
+        Modifier.isFinal(Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').modifiers)
         Modifier.isFinal(KlumTemplateProxy.modifiers)
 
         and:
-        modelCompanion.class == KlumModelProxy
+        modelCompanion.class.simpleName == 'KlumModelProxy'
         modelCompanion.object.is(model)
         modelCompanion.breadcrumbPath == DslHelper.getBreadcrumbPath(model)
         modelCompanion.modelPath == DslHelper.getModelPath(model)
@@ -185,7 +185,7 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
         template.external.is(existingLink)
         rehydrated.external.is(existingLink)
         !TemplateManager.isTemplate(existingLink)
-        KlumModelProxy.getProxyFor(existingLink).object.is(existingLink)
+        KlumObjectSupport.of(existingLink).object.is(existingLink)
     }
 
     def "completed Templates are rejected from the #field relationship"() {

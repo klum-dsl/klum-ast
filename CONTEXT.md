@@ -82,8 +82,8 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   Completed-model phase traversal uses this helper directly, while Builder phases use a separate internal Builder structure
   helper. The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
-  OS-2 adds the stored-validation helper (`getValidation`) and moves remaining completed-model validation readers away from
-  companion access. It must read existing results only: it never reruns validators or mutates lifecycle issue state.
+  Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators
+  or mutating lifecycle issue state. Completed-model validation readers do not access the companion directly.
 
 - Construction API
 
@@ -127,6 +127,12 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   Plugin phases use state-typed Builder or Model registrations with stable IDs, numeric phases, and optional equal-phase
   before/after dependencies. Numeric order and the `INSTANTIATE` boundary remain authoritative. Schema-authored custom
   phase annotations are not currently part of the contract.
+
+- Layer 3 model
+
+  A Layer 3 model is a modeling pattern that separates a generic consumer-facing API layer, a domain-specific Schema
+  layer, and configured Model instances. Cluster projection is specialized support for this pattern; lifecycle, linking,
+  ownership, defaults, and traversal are general KlumAST capabilities rather than defining Layer 3 features.
 
 - Collections
 
