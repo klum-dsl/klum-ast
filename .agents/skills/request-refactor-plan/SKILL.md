@@ -17,7 +17,7 @@ This skill will be invoked when the user wants to create a refactor request. You
 
 6. Look in the codebase to check for test coverage of this area of the codebase. If there is insufficient test coverage, ask the user what their plans for testing are.
 
-7. Break the implementation into a plan of tiny commits. Remember Martin Fowler's advice to "make each refactoring step as small as possible, so that you can always see the program working."
+7. Read `docs/agents/commits.md`, then break the implementation into small, self-contained commits that expose the reasoning in dependency order. Keep every TDD cycle red-to-green within one commit and prefer a working state at every boundary.
 
 8. Create a GitHub issue with the refactor plan. Use the following template for the issue description:
 
@@ -33,7 +33,7 @@ The solution to the problem, from the developer's perspective.
 
 ## Commits
 
-A LONG, detailed implementation plan. Write the plan in plain English, breaking down the implementation into the tiniest commits possible. Each commit should leave the codebase in a working state.
+A LONG, detailed implementation plan. Write the plan in plain English as small, self-contained commits in reasoning order. For each commit, state both the change and why it is the next step. Follow `docs/agents/commits.md`: every TDD commit ends green; other commits should normally leave the codebase working, with a temporarily broken boundary reserved for a materially clearer sequence.
 
 ## Decision Document
 

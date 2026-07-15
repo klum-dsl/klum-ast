@@ -9,9 +9,11 @@ Deliver one approved behavior slice without silently making new architecture dec
 
 ## Load the contract
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/testing.md`, `docs/agents/pull-requests.md`, the canonical issue, architecture map, linked ADRs, implementation plan, and wiki contract. Confirm the requested slice and its acceptance criteria before editing.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/testing.md`, `docs/agents/commits.md`, `docs/agents/pull-requests.md`, the canonical issue, architecture map, linked ADRs, implementation plan, and wiki contract. Confirm the requested slice and its acceptance criteria before editing.
 
 Stop and report a decision conflict when the requested behavior contradicts an ADR, Builder-first lifecycle invariant, generated/public contract, or confirmed issue. Route unresolved design back to `$klum-grill-issue` or `$klum-plan-design`.
+
+Create a new branch dedicated to the issue from the agreed base, or confirm the current branch was newly created for this issue. Commit completed reasoning steps without asking, following `docs/agents/commits.md`; every TDD commit must complete its red-to-green cycle.
 
 ## Implement at the correct seam
 
@@ -38,4 +40,6 @@ Update only what the behavior requires:
 - implemented release change in `CHANGES.md`
 - canonical issue/PR links according to `docs/agents/pull-requests.md`
 
-Finish with changed behavior, affected modules, tests and results, documentation changes, compatibility implications, and remaining follow-ups. Finish only when every acceptance criterion has evidence and the worktree contains no unrelated edits.
+Run the applicable code review against the issue branch base, commit its fixes, then review and improve the commit sequence under `docs/agents/commits.md`. Re-run the required checks after rewriting history.
+
+Finish with changed behavior, affected modules, tests and results, documentation changes, compatibility implications, commit-history review, and remaining follow-ups. Finish only when every acceptance criterion has evidence, the final documentation matches the branch state unless explicitly excluded, and the worktree contains no unrelated edits.

@@ -16,6 +16,10 @@ This repository uses a single-context layout: one `CONTEXT.md` at the repo root 
 
 Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.
 
+### Issue implementation commits
+
+Implement issues on a new, dedicated issue branch using small, reasoned commits. Agents may create commits there without asking. Review and, when necessary, rewrite the local commit sequence before handoff. See `docs/agents/commits.md`.
+
 ### Pull requests and releases
 
 User-facing documentation is maintained in `wiki/`. Pull requests with user-visible changes must keep the relevant wiki pages, migration navigation, `CHANGES.md`, linked issues, and SonarCloud findings in sync. See `docs/agents/pull-requests.md`.

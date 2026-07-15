@@ -9,7 +9,7 @@ Turn confirmed issue intent into durable decisions and independently verifiable 
 
 ## Establish authority
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/domain.md`, the architecture map, canonical issues, every relevant ADR and implementation note, `wiki/Builder-First-Migration.md`, affected source, and executable specifications.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/domain.md`, `docs/agents/commits.md`, the architecture map, canonical issues, every relevant ADR and implementation note, `wiki/Builder-First-Migration.md`, affected source, and executable specifications.
 
 Classify the work:
 
@@ -31,6 +31,7 @@ The implementation document must contain:
 - affected modules and important source/generated seams
 - compatibility and migration constraints
 - thin vertical implementation slices in dependency order
+- reasoned commit boundaries within each slice, following `docs/agents/commits.md`
 - executable acceptance coverage for each slice
 - documentation and release-note work
 - risks, open questions, and issue-to-slice mapping
