@@ -89,11 +89,10 @@ public class Validator {
     }
 
     /**
-     * Retrieves the validation result for the given instance, either from the proxy or by performing a lenient validation.
-     * This method is useful when you want to check the validation results without throwing an exception.
+     * Retrieves the validation result already stored for the given instance without executing validators.
      *
-     * @param instance the instance to validate
-     * @return a {@link KlumValidationResult} containing validation errors
+     * @param instance the instance whose stored validation result is requested
+     * @return the stored {@link KlumValidationResult}, or {@code null} when none was recorded
      * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().getResult()} for a completed DSL Object
      */
     @Deprecated(forRemoval = true)

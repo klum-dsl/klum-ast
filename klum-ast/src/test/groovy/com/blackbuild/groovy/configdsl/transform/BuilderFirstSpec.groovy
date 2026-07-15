@@ -244,8 +244,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         KlumObjectSupport.of(instance).object.is(instance)
         !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredFields*.name.contains("applyLaterClosures")
         !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredMethods*.name.contains("getApplyLaterClosures")
-        !KlumBuilder.ModelState.declaredFields*.name.contains("applyLaterClosures")
-        !KlumBuilder.ModelState.declaredMethods*.name.contains("getApplyLaterClosures")
+        !KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredFields*.name.contains("applyLaterClosures")
+        !KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredMethods*.name.contains("getApplyLaterClosures")
     }
 
     def "Template recipe actions replay into fresh Builders"() {

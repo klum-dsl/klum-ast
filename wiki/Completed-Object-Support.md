@@ -48,7 +48,7 @@ ensures that object graphs remain safe even when DSL types override `equals`.
 
 ## Stored validation
 
-`getValidation().getResult()` returns the result already stored for the target object. `getResults()` reads issue-bearing
+`getValidation().getResult()` returns the result already stored for the target object. `getResults()` reads all stored
 results from the target's owned composition subtree. `verify()` uses the configured failure level, while `verify(level)`
 uses the supplied level. These operations only inspect lifecycle results: they do not execute `InstanceValidator`s, create
 results, or mutate recorded issues.

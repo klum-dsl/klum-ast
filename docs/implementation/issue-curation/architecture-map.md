@@ -128,8 +128,8 @@ Confirmed deferred gaps, not current capabilities:
 - ADR 0004 AB-1/AB-2/AB-3 are implemented. Regular opaque scripts returning completed models remain top-level-only, and
   #431 retains final compatibility closure.
 - Generated `Foo_DSL` AST layout (#394) and Jackson configuration replay (#428/#251) are decided but not implemented.
-  Completed-object support (#390) has its OS-1 provenance/structure slice implemented; OS-2 validation and proxy-lockdown
-  work remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase registration (#305) is
-  decided and deferred to later 4.x.
+  Completed-object support (#390) has its OS-1 provenance/structure and OS-2 validation/proxy-lockdown slices implemented;
+  OS-3 compatibility closure remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
+  registration (#305) is decided and deferred to later 4.x.
 
 **Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `KlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.

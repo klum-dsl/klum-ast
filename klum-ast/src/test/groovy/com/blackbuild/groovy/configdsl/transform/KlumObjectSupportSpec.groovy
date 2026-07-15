@@ -93,6 +93,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     def "completed companion lookup and raw metadata are not client API"() {
         given:
         Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
+        Class<?> modelStateClass = KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }
 
         expect:
         !Modifier.isPublic(modelProxyClass.modifiers)
@@ -102,6 +103,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         ['hasMetaData', 'getMetaData', 'setMetaData'].every { methodName ->
             KlumBuilder.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
         }
+        !Modifier.isPublic(KlumBuilder.getDeclaredMethod('exportModelState').modifiers)
+        !Modifier.isPublic(modelStateClass.modifiers)
+        !Modifier.isPublic(modelStateClass.getDeclaredMethod('getMetadata').modifiers)
 
         and: 'Java source receives an immediate migration diagnostic instead of companion access'
         compileJavaConsumerFails('''
@@ -124,6 +128,17 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 }
             }
         ''', 'getMetaData(String,Class<T>) is not public')
+
+        and: 'the materialization state carrier cannot bypass that lockdown'
+        compileJavaConsumerFails('''
+            import com.blackbuild.klum.ast.util.KlumBuilder;
+
+            public final class JavaObjectSupportConsumer {
+                public static Object inspect(KlumBuilder<?> builder) {
+                    return builder.exportModelState();
+                }
+            }
+        ''', 'exportModelState() is not public')
     }
 
     def "validation support reads stored root and subtree results without rerunning validation"() {
@@ -135,6 +150,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 @Required(level = Validate.Level.WARNING)
                 String name
                 Child child
+                CleanChild clean
 
                 @Validate
                 void countValidation() {
@@ -153,12 +169,26 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                     validationCalls++
                 }
             }
+
+            @DSL class CleanChild {
+                static int validationCalls
+                String value
+
+                @Validate
+                void countValidation() {
+                    validationCalls++
+                }
+            }
         '''
-        instance = Root.Create.With { child {} }
+        instance = Root.Create.With {
+            child {}
+            clean { value 'valid' }
+        }
         def support = KlumObjectSupport.of(instance)
         def childSupport = KlumObjectSupport.of(instance.child)
         def storedRootResult = support.validation.result
         def storedChildResult = childSupport.validation.result
+        def storedCleanResult = KlumObjectSupport.of(instance.clean).validation.result
         def rootIssues = storedRootResult.issues.toList()
         def childIssues = storedChildResult.issues.toList()
 
@@ -186,11 +216,13 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         then:
         result.is(storedRootResult)
-        results == [storedRootResult, storedChildResult]
+        results == [storedRootResult, storedChildResult, storedCleanResult]
         subtreeResults == [storedChildResult]
         verified == results
         Root.validationCalls == 1
         Child.validationCalls == 1
+        CleanChild.validationCalls == 1
+        storedCleanResult.issues.empty
         storedRootResult.issues.toList() == rootIssues
         storedChildResult.issues.toList() == childIssues
 
@@ -202,6 +234,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         error.validationResults == results
         Root.validationCalls == 1
         Child.validationCalls == 1
+        CleanChild.validationCalls == 1
         support.validation.result.is(storedRootResult)
         storedRootResult.issues.toList() == rootIssues
         storedChildResult.issues.toList() == childIssues
@@ -418,22 +451,14 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     }
 
     private void compileJavaConsumer(String source) {
-        File sourceFile = new File(tempFolder.root, 'JavaObjectSupportConsumer.java')
-        sourceFile.text = source.stripIndent()
-        String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
-                .join(File.pathSeparator)
-        int result = ToolProvider.systemJavaCompiler.run(
-                null,
-                null,
-                null,
-                '-classpath', classpath,
-                '-d', compilerConfiguration.targetDirectory.absolutePath,
-                sourceFile.absolutePath
-        )
-        assert result == 0
+        assertJavaCompilation(source, null)
     }
 
     private void compileJavaConsumerFails(String source, String expectedDiagnostic) {
+        assertJavaCompilation(source, expectedDiagnostic)
+    }
+
+    private void assertJavaCompilation(String source, String expectedDiagnostic) {
         File sourceFile = new File(tempFolder.root, 'JavaObjectSupportConsumer.java')
         sourceFile.text = source.stripIndent()
         String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
@@ -447,7 +472,11 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 '-d', compilerConfiguration.targetDirectory.absolutePath,
                 sourceFile.absolutePath
         )
-        assert result != 0
-        assert errors.toString().contains(expectedDiagnostic)
+        if (expectedDiagnostic == null) {
+            assert result == 0: errors.toString()
+        } else {
+            assert result != 0
+            assert errors.toString().contains(expectedDiagnostic)
+        }
     }
 }

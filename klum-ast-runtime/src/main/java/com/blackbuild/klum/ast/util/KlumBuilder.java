@@ -349,7 +349,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return Collections.unmodifiableMap(copy);
     }
 
-    public final ModelState exportModelState() {
+    final ModelState exportModelState() {
         return new ModelState(getBreadcrumbPath(), modelPath, metadata);
     }
 
@@ -368,7 +368,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         return new KlumModelProxy(model, exportModelState());
     }
 
-    public static final class ModelState implements Serializable {
+    static final class ModelState implements Serializable {
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Serializable> metadata;
@@ -379,15 +379,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             this.metadata = new HashMap<>(metadata);
         }
 
-        public String getBreadcrumbPath() {
+        String getBreadcrumbPath() {
             return breadcrumbPath;
         }
 
-        public String getModelPath() {
+        String getModelPath() {
             return modelPath;
         }
 
-        public Map<String, Serializable> getMetadata() {
+        Map<String, Serializable> getMetadata() {
             return metadata;
         }
 

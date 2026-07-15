@@ -122,14 +122,14 @@ public final class KlumObjectSupport<T> {
         }
 
         /**
-         * Returns stored validation results containing issues for this object and its owned composition subtree.
+         * Returns stored validation results for this object and its owned composition subtree.
          * Owner and {@code LINK} fields are not followed.
          */
         public List<KlumValidationResult> getResults() {
             List<KlumValidationResult> results = new ArrayList<>();
             KlumObjectSupport.of(object).getStructure().visit((path, element, container, nameOfFieldInContainer) -> {
                 KlumValidationResult result = KlumObjectSupport.of(element).getValidation().getResult();
-                if (result != null && result.has(Validate.Level.INFO))
+                if (result != null)
                     results.add(result);
             });
             return List.copyOf(results);
