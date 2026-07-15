@@ -5,10 +5,14 @@ This plan implements [ADR 0007](../adr/0007-jackson-configuration-replay.md) for
 
 ## Current behavior and failure
 
-`KlumDeserializer` reads an object into `Map<String,Object>` and calls `FactoryHelper.createFromSerializedState`. That path
-replays all serializable fields through Builder copy semantics, so renamed/aliased properties are not resolved through
-Jackson metadata and lifecycle-derived values can be restored then transformed again. `KlumAnnotationIntrospector` ignores
-framework fields but does not define the full writable-configuration contract. `LINK` identity behavior is not explicit.
+Before JSON-1, `KlumDeserializer` read an object into `Map<String,Object>` and called
+`FactoryHelper.createFromSerializedState`. That path replayed all serializable fields through Builder copy semantics, so
+renamed/aliased properties were not resolved through Jackson metadata and lifecycle-derived values could be restored then
+transformed again.
+
+JSON-1 now buffers JSON object tokens, resolves effective `BeanPropertyDefinition` metadata, and binds only the public
+configurable Builder surface between `PostCreate` and `PostApply`. Owned values recursively allocate Builders in the same
+Construction session. `LINK` identity behavior remains JSON-2 scope.
 
 ## Affected seams
 
@@ -21,10 +25,14 @@ framework fields but does not define the full writable-configuration contract. `
 
 ### [JSON-1 — Property-aware configuration replay](https://github.com/klum-dsl/klum-ast/issues/439)
 
+Status: Implemented.
+
 For one DSL Object with a renamed scalar, alias, initializer, derived lifecycle value, and owned child, resolve
 `BeanPropertyDefinition`s, allocate one Builder graph, bind only present public configuration inputs between PostCreate and
 PostApply, and run the lifecycle once. Prove missing/present/null/empty replacement semantics, unknown-property policy, and
-Template rejection. This resolves #251's core renamed-property failure.
+Template rejection. This resolves #251's core renamed-property failure. The property replay behavior is implemented;
+completed Template rejection remains executable pending coverage blocked by
+[#438](https://github.com/klum-dsl/klum-ast/issues/438), because completed models do not yet retain stable Template identity.
 
 ### [JSON-2 — Identity-safe LINK and advanced property customization](https://github.com/klum-dsl/klum-ast/issues/440)
 
@@ -42,7 +50,8 @@ replay and the breaking JSON boundary, update migration navigation and `CHANGES.
 ## Compatibility
 
 Existing serialized JSON is not guaranteed to deserialize identically. There is no per-instance provenance migration.
-Templates and inline LINK graphs fail loudly. A type-level custom deserializer remains the explicit escape hatch.
+Inline LINK graphs remain unsupported pending JSON-2. Templates remain unsupported Jackson values, but reliable rejection
+is blocked by #438's companion separation. A type-level custom deserializer remains the explicit escape hatch.
 
 ## Acceptance map
 

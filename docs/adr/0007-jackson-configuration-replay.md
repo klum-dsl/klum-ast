@@ -9,8 +9,9 @@ Tracking issues:
 - [#428 — Decide deserialization lifecycle semantics](https://github.com/klum-dsl/klum-ast/issues/428)
 - [#251 — Jackson deserialization does not work with renamed properties](https://github.com/klum-dsl/klum-ast/issues/251)
 
-Implementation status: Planned. The current deserializer binds a raw Map and restores all serializable fields. See the
-[implementation plan](../implementation/adr-0007-jackson-configuration-replay.md).
+Implementation status: JSON-1 property-aware configuration replay is implemented by
+[#439](https://github.com/klum-dsl/klum-ast/issues/439). LINK identity and the advanced customization boundary remain
+planned as JSON-2. See the [implementation plan](../implementation/adr-0007-jackson-configuration-replay.md).
 
 Parent decisions:
 

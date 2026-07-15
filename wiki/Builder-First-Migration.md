@@ -122,7 +122,15 @@ accepts `KlumObjectSupport.of(object)` as the future Java-first path/structure/v
 `KlumModelProxy` plus raw metadata internal. Until #390 implements that boundary, do not build new integrations on direct
 proxy or metadata access.
 
-The current Jackson implementation restores raw serialized state into Builders. [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
-accepts configuration replay as the 4.0 target: persist public Builder inputs, bind resolved Jackson properties, and run
-one normal lifecycle so derived values are recomputed. #428/#251 track implementation; existing JSON remains beta and may
-change.
+Jackson now replays public Builder configuration through resolved property metadata. Missing input preserves source
+initializers and later defaults; present values, `null`, and containers replace current Builder state authoritatively between
+`PostCreate` and `PostApply`. Derived output must be `PROTECTED`, ignored, or explicitly Jackson read-only so the single
+normal lifecycle recomputes it instead of restoring it.
+
+Rename migrated JSON with `@JsonAlias` while keeping the new `@JsonProperty` name canonical. Configured naming strategies,
+mixins, ignore/access rules, and unknown-property policy are resolved by Jackson. Ambient Templates, `@Overwrite`, and
+`copyFrom` no longer affect JSON input. See [[Jackson Integration]] and
+[ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md).
+
+`LINK` identity/forward references remain #440 scope. Marked Templates remain unsupported Jackson values, but reliable
+rejection depends on #438's stable completed Template identity; do not serialize Templates in the interim.
