@@ -3,9 +3,11 @@ Migration Guide
 
 # to 4.0
 
-4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits.
+4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship or JSON values, and deferred Builder actions cannot be scheduled at phase 40 or later.
 
-See the dedicated [[Builder First Migration]] guide for the complete migration checklist, compatibility breaks, Template behavior, and Jackson configuration-replay migration.
+See the dedicated [[Builder First Migration]] guide for the complete migration checklist and compatibility breaks, plus
+[[Templates]], [[Copy Strategies]], and [[Model Phases]] for materialization boundaries and [[Jackson Integration]] for
+configuration-replay migration.
 
 # to 2.2
 

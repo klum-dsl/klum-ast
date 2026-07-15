@@ -5,6 +5,16 @@ The system includes a simple mechanism for configuring default values (as part o
 Templates are completed DSL Objects marked as reusable construction recipes. Applying a Template copies its non-null and
 non-empty values into a fresh Builder graph. Nested DSL Objects are rehydrated recursively, Collections are copied, and
 Simple Values are retained. A Template is never adopted directly as owned composition.
+
+Template identity is persistent and graph-wide. Every owned node created by `Template.Create` is marked as a Template and
+keeps its breadcrumb and model path; a completed object supplied to a `FieldType.LINK` field remains the same ordinary
+model. Templates cannot be assigned directly to any relationship, including `LINK`: apply them through `Template.With`,
+`copyFrom`, or another Template/copy API so KlumAST can build a fresh owned graph.
+
+Deferred `applyLater` actions live only in immutable Template recipe state, never in ordinary completed models. Recipe
+closures are detached and their captured graph is checked when the Template materializes. Captured Builders and
+non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
+Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
  
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
  templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
@@ -65,7 +75,9 @@ def c2 = Config.Create.With(copyFrom: template) {
 }
 ```
 
-In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. 
+In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. A marked
+Template contributes both values and recipe actions. An ordinary completed model contributes values only. See
+[[Copy Strategies#copy-source-protocol]] for the complete copy-source rules.
 
 # Template.With()
  

@@ -44,8 +44,12 @@ KlumAST with `@Grab`, but the complete standalone-script setup will be documente
 | `Create.AsBuilder` reports no active session, a different session, or a completed session | Use it only inside the active root construction and attach the returned Builder before that construction finishes. |
 | An omitted Builder-producing projection is reported | Replace the call with the generated relationship method, return an explicit `KlumBuilder<Foo>`, or make the recognizable factory path source-visible to schema compilation. |
 | `Create.AsBuilder.From` rejects a regular `Script` | Use a `DelegatingScript` as the nested configuration recipe, or run the materializing Script as a root with `Create.From`. |
+| A Template is rejected as a relationship value | Do not assign a marked Template, including to `LINK`. Rehydrate it through `Template.With`, `copyFrom`, or another Template/copy API. |
+| `copyFrom` rejects a sealed or cross-session Builder | Use a completed model for a value-only copy, a marked Template for value-plus-recipe replay, or an unsealed `Create.AsBuilder` result from the same active Construction session. |
+| `applyLater` rejects phase 40 or later | Schedule Builder mutation below `INSTANTIATE`, or move completed-model work into a `ModelVisitingPhaseAction`. |
+| Jackson rejects a marked Template | Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions. |
 | A generated `apply` method is missing on a completed model | Move the changes into the original `Create.With` callback, a Template, or another factory input. |
-| Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use supported completed-object utilities as they become available. |
+| Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. |
 
 ### 3. Run the full model test suite
 
@@ -70,6 +74,11 @@ graph and the completed model graph.
 - Pass an existing completed DSL Object only to a `FieldType.LINK` relationship. Completed objects cannot become newly owned
   composition. Use a Template when an existing object is intended as a reusable recipe; applying it rehydrates fresh
   Builders.
+- Treat copy sources by identity: ordinary models and Maps are value-only, marked Templates add immutable recipe replay,
+  and only same-session unsealed Builders add an ephemeral snapshot of pending actions. Never use a sealed or cross-session
+  Builder as a live recipe.
+- Keep deferred Builder actions below phase 40. `applyLater` and `scheduleApplyLater` now fail immediately at
+  `INSTANTIATE` or later, including during Template replay.
 
 ## How Builder-first construction works
 
@@ -113,14 +122,20 @@ as a second definition of the AST-generated interfaces.
 
 ## Templates, serialization, and Jackson
 
-Templates remain client-facing DSL Object recipes. Every application copies the recipe into a fresh Builder graph, so ownership and lifecycle callbacks belong to the recipient construction.
+Templates remain client-facing DSL Object recipes. Every owned node created in Template mode has persistent Template
+identity, while pre-existing ordinary `LINK` targets retain their identity. Every application copies the recipe into a
+fresh ordinary Builder graph, so ownership, paths, lifecycle callbacks, and validation belong to the recipient construction.
 
-A Template `applyLater` recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local variable or holder is rejected because a completed recipe must not retain construction state. The complete graph of other captured recipe values must be serializable so the detached recipe remains serializable.
+A Template `applyLater` recipe must address the fresh Builder through its closure delegate. Capturing a Builder in a local
+variable or holder is rejected because a completed recipe must not retain construction state. The complete graph of other
+captured recipe values must be serializable so the detached recipe remains serializable. Java serialization preserves the
+Template companion and immutable recipe state, but never Builders, Construction sessions, scopes, or mutable recipe
+collections. Ordinary completed models retain no deferred actions.
 
-The current completed Model companion is serialized with the model; Builder-only state is not. [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)
-accepts `KlumObjectSupport.of(object)` as the future Java-first path/structure/validation facade and makes
-`KlumModelProxy` plus raw metadata internal. Until #390 implements that boundary, do not build new integrations on direct
-proxy or metadata access.
+The internal generated `$proxy` field uses a sealed common Model/Template companion solely for cross-package generated
+linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported completed-object paths and structure; do
+not build integrations on `KlumModelProxy`, `KlumTemplateProxy`, or raw metadata. #390 retains the remaining facade and
+proxy-lockdown work from [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md).
 
 Jackson now replays public Builder configuration through resolved property metadata. Missing input preserves source
 initializers and later defaults; present values, `null`, and containers replace current Builder state authoritatively between
@@ -132,5 +147,5 @@ mixins, ignore/access rules, and unknown-property policy are resolved by Jackson
 `copyFrom` no longer affect JSON input. See [[Jackson Integration]] and
 [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md).
 
-`LINK` identity/forward references remain #440 scope. Marked Templates remain unsupported Jackson values, but reliable
-rejection depends on #438's stable completed Template identity; do not serialize Templates in the interim.
+`LINK` identity/forward references remain #440 scope. Marked Templates are rejected as JSON values so recipe actions
+cannot be silently lost; rehydrate a fresh ordinary model before serialization.

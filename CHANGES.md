@@ -33,13 +33,24 @@ This is a breaking release. See the [Builder-first construction migration](https
   provenance getters and composition-only `Structure` helper expose paths, direct ownership, relative paths, and
   cycle-safe typed traversal without exposing the internal Model companion ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
   [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)).
-- Template companion, copy-source, and replay semantics remain tracked by
-  [#438](https://github.com/klum-dsl/klum-ast/issues/438).
+- Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred
+  actions; every owned Template node carries persistent recipe identity and paths, while pre-existing ordinary `LINK`
+  targets retain their identity. Direct Template relationship assignment, including `LINK`, is rejected with rehydration
+  guidance ([#438](https://github.com/klum-dsl/klum-ast/issues/438)).
+- Defined copy-source behavior: ordinary completed models and Maps are value-only; marked Templates add immutable recipe
+  replay; same-session unsealed Builders add an ephemeral dehydrated snapshot of pending actions without identity
+  conversion. Sealed and cross-session Builders are rejected.
+- `applyLater`/`scheduleApplyLater` now reject every phase at or after `INSTANTIATE` (40) immediately and direct
+  completed-model work to `ModelVisitingPhaseAction`.
 
 ## Templates, serialization, and Jackson
 
-- Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template `applyLater` recipes are detached from their defining Builder; captured values must be serializable and captured Builders are rejected.
+- Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template `applyLater`
+  recipes are stored in immutable serializable recipe state, cloned on replay, and validated when the Template
+  materializes. Captured values must be serializable and captured Builders are rejected. Java serialization preserves
+  graph-wide Template identity without serializing Builders, Construction sessions, scopes, or mutable recipe collections.
 - Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.
+- Jackson serialization rejects marked Templates, including nested values, so JSON cannot silently discard recipe actions.
 - Jackson now replays resolved public configuration properties into root and owned child Builders between `PostCreate` and
   `PostApply`, then runs one normal lifecycle, materialization, validation, and verification pipeline. Missing input keeps
   initializer/default behavior; present values, `null`, and containers replace authoritatively. Resolved `@JsonProperty`,
@@ -47,9 +58,8 @@ This is a breaking release. See the [Builder-first construction migration](https
   Templates or copy/overwrite semantics ([#439](https://github.com/klum-dsl/klum-ast/issues/439),
   [#251](https://github.com/klum-dsl/klum-ast/issues/251),
   [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)).
-  Explicit type-level custom deserializers remain the opt-out. Template rejection remains blocked by
-  [#438](https://github.com/klum-dsl/klum-ast/issues/438), and LINK identity remains #440 scope. The former public
-  `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes remain removed.
+  Explicit type-level custom deserializers remain the opt-out. `LINK` identity and forward references remain #440 scope.
+  The former public `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes remain removed.
 
 # 3.0.1
 - New annodocimal version, ignores irrelevant inner class entries in class files

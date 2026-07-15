@@ -76,8 +76,11 @@ Additional invariants:
 - Source initializers execute once when a Builder is allocated. `FieldType.BUILDER` state is omitted from the model. Non-transient, non-relationship model fields become final.
 - Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK`; owned composition must be created in the owner's session. Nested root factories are rejected.
 - Materialization publishes independent read-only snapshots for `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`; comparators are retained. `EnumSet` is defensive. Unsupported concrete/custom collection declarations fail schema compilation. Simple Values are retained, not deep-copied.
-- Current `KlumModelProxy` stores completed-model breadcrumb/model path, serializable metadata, validation results, validator memoization, and Template deferred closures. ADRs 0004/0006 require raw metadata and the proxy to become internal and Template state to move out. It never retains the creating Builder.
-- Templates are marked DSL Object recipes. The accepted target copies values/composition and replays immutable recipe state into fresh Builders; every owned Template node is marked and no Template may be a relationship value.
+- Generated models retain a sealed internal `KlumObjectCompanion`. `KlumModelProxy` stores ordinary completed-model paths,
+  metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
+  Template identity and immutable serializable `TemplateRecipeState`. Neither retains the creating Builder.
+- Templates copy values/composition and replay cloned recipe actions into fresh Builders. Every owned Template node is
+  marked, pre-existing ordinary `LINK` targets retain identity, and no Template may be a relationship or JSON value.
 - `StructureUtil.visit` is identity-cycle-safe and follows composition only: declared fields are traversed, while owner and `LINK` fields are skipped. Builder phase traversal also skips sealed aggregation wrappers. Paths use GPath-like field, index, and map-key segments.
 - Current Jackson deserialization restores a raw serialized-state Map into Builders. ADR 0007 replaces this with resolved
   Jackson-property configuration replay between `PostCreate` and `PostApply`, followed by one normal lifecycle.
@@ -120,9 +123,8 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 
 Confirmed deferred gaps, not current capabilities:
 
-- `Create.AsBuilder`, Builder-producing collection projections, and hidden Builder twins for source converters/custom factories do not exist yet; reasoned `@PendingFeature` tests record the target. Regular opaque scripts returning completed models remain top-level-only.
-- Template recipe state still resides in `KlumModelProxy`; the ADR 0004 `KlumTemplateProxy`/`TemplateRecipeState` split is a target.
-- The ADR 0004 rule rejecting `applyLater` at phase 40 or later is not enforced by the current scheduler.
+- ADR 0004 AB-1/AB-2/AB-3 are implemented. Regular opaque scripts returning completed models remain top-level-only, and
+  #431 retains final compatibility closure.
 - Generated `Foo_DSL` AST layout (#394) and Jackson configuration replay (#428/#251) are decided but not implemented.
   Completed-object support (#390) has its OS-1 provenance/structure slice implemented; OS-2 validation and proxy-lockdown
   work remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase registration (#305) is
