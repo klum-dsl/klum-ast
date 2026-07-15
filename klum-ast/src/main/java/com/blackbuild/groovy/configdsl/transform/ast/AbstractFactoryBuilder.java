@@ -68,7 +68,17 @@ public abstract class AbstractFactoryBuilder {
 
     public abstract void invoke();
 
-    protected void createInnerClass(String name) {
+    protected void createCollectionFactoryClass(String name) {
+        createInnerClass(name);
+        GeneratedDslSupport.registerCollectionFactory(targetClass, collectionFactory, name);
+    }
+
+    protected void createClusterFactoryClass(String name) {
+        createInnerClass(name);
+        GeneratedDslSupport.registerClusterFactory(targetClass, collectionFactory, name);
+    }
+
+    private void createInnerClass(String name) {
         collectionFactory = new InnerClassNode(targetClass, targetClass.getName() + "$_" + name, ACC_PUBLIC | ACC_STATIC, OBJECT_TYPE);
         ClassNode builderType = rwClass.getPlainNodeReference();
         collectionFactory.addField("rw", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, builderType, null);

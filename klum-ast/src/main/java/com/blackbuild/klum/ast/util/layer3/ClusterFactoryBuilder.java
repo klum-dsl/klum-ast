@@ -93,7 +93,7 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
 
         if (fieldsToInclude.isEmpty()) return;
 
-        createInnerClass(fieldName);
+        createClusterFactoryClass(fieldName);
         for (FieldNode fieldNode : fieldsToInclude)
             addMethodsForField(fieldNode);
 

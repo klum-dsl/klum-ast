@@ -128,7 +128,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
 
     @Override
     public void invoke() {
-        createInnerClass(fieldNode.getName());
+        createCollectionFactoryClass(fieldNode.getName());
         createClosureForOuterClass();
         delegateDefaultCreationMethodsToOuterInstance();
         if (fieldNodeIsNoLink()) {
