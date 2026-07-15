@@ -67,6 +67,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
@@ -366,7 +367,7 @@ final class BuilderMethodProjection {
         if (generics == null) return null;
         return Arrays.stream(generics)
                 .map(BuilderMethodProjection::unresolvedGenericBuilderProblem)
-                .filter(problem -> problem != null)
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
     }
@@ -570,12 +571,11 @@ final class BuilderMethodProjection {
 
         private RootFactoryCall findRootFactoryCall(MethodCallExpression call) {
             Expression receiver = call.getObjectExpression();
-            if (receiver instanceof PropertyExpression create) {
-                if ("Create".equals(create.getPropertyAsString())
-                        && create.getObjectExpression() instanceof ClassExpression classExpression) {
-                    ClassNode model = classExpression.getType();
-                    if (isDSLObject(model)) return new RootFactoryCall(model, true);
-                }
+            if (receiver instanceof PropertyExpression create
+                    && "Create".equals(create.getPropertyAsString())
+                    && create.getObjectExpression() instanceof ClassExpression classExpression) {
+                ClassNode model = classExpression.getType();
+                if (isDSLObject(model)) return new RootFactoryCall(model, true);
             }
 
             MethodNode target = call.getMethodTarget();

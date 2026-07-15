@@ -28,6 +28,7 @@ import groovy.lang.MissingMethodException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,11 +57,11 @@ public final class OmittedProjectionSupport {
         throw new MissingMethodException(methodName, receiver.getClass(), actualArguments);
     }
 
-    private static boolean matches(ClassLoader loader, Object[] arguments, String[] parameterTypeNames,
+    private static boolean matches(ClassLoader loader, Object[] arguments, List<String> parameterTypeNames,
                                    int minimumArguments, boolean varargs) {
-        if (!hasCompatibleArity(arguments.length, parameterTypeNames.length, minimumArguments, varargs)) return false;
+        if (!hasCompatibleArity(arguments.length, parameterTypeNames.size(), minimumArguments, varargs)) return false;
 
-        int fixed = varargs ? parameterTypeNames.length - 1 : arguments.length;
+        int fixed = varargs ? parameterTypeNames.size() - 1 : arguments.length;
         if (!fixedArgumentsMatch(loader, arguments, parameterTypeNames, fixed)) return false;
         return !varargs || varargsMatch(loader, arguments, parameterTypeNames, fixed);
     }
@@ -72,18 +73,18 @@ public final class OmittedProjectionSupport {
         return argumentCount <= parameterCount;
     }
 
-    private static boolean fixedArgumentsMatch(ClassLoader loader, Object[] arguments, String[] parameterTypeNames,
+    private static boolean fixedArgumentsMatch(ClassLoader loader, Object[] arguments, List<String> parameterTypeNames,
                                                int fixed) {
         for (int index = 0; index < fixed; index++) {
-            if (index >= arguments.length || !accepts(loadType(parameterTypeNames[index], loader), arguments[index]))
+            if (index >= arguments.length || !accepts(loadType(parameterTypeNames.get(index), loader), arguments[index]))
                 return false;
         }
         return true;
     }
 
-    private static boolean varargsMatch(ClassLoader loader, Object[] arguments, String[] parameterTypeNames, int fixed) {
-        Class<?> arrayType = loadType(parameterTypeNames[parameterTypeNames.length - 1], loader);
-        if (arguments.length == parameterTypeNames.length && accepts(arrayType, arguments[arguments.length - 1]))
+    private static boolean varargsMatch(ClassLoader loader, Object[] arguments, List<String> parameterTypeNames, int fixed) {
+        Class<?> arrayType = loadType(parameterTypeNames.get(parameterTypeNames.size() - 1), loader);
+        if (arguments.length == parameterTypeNames.size() && accepts(arrayType, arguments[arguments.length - 1]))
             return true;
         Class<?> componentType = arrayType.getComponentType();
         for (int index = fixed; index < arguments.length; index++)
@@ -143,15 +144,15 @@ public final class OmittedProjectionSupport {
         return result;
     }
 
-    private record CatalogEntry(String name, int minimumArguments, boolean varargs, String[] parameterTypes,
+    private record CatalogEntry(String name, int minimumArguments, boolean varargs, List<String> parameterTypes,
                                 String signature, String reason) {
 
         private static CatalogEntry decode(String encodedEntry) {
             String[] fields = encodedEntry.split("\\.", -1);
             String decodedParameterTypes = OmittedProjectionSupport.decode(fields[3]);
-            String[] parameterTypes = decodedParameterTypes.isEmpty()
-                    ? new String[0]
-                    : decodedParameterTypes.split(",");
+            List<String> parameterTypes = decodedParameterTypes.isEmpty()
+                    ? List.of()
+                    : List.of(decodedParameterTypes.split(","));
             return new CatalogEntry(
                     OmittedProjectionSupport.decode(fields[0]),
                     Integer.parseInt(fields[1]),
