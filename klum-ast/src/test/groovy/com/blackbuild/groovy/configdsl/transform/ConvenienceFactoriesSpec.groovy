@@ -641,7 +641,7 @@ Element.Create.With(name: "second-from-script")
 
         then:
         KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        opaqueScriptGuidance(error)
     }
 
     @Issue("https://github.com/klum-dsl/klum-ast/issues/198")
@@ -685,12 +685,13 @@ Element.Create.With("b", name: "second-from-script")
 
         then:
         KlumModelException error = thrown()
-        nestedFactoryGuidance(error)
+        opaqueScriptGuidance(error)
     }
 
-    private static boolean nestedFactoryGuidance(KlumModelException error) {
-        assert error.message.contains("Cannot start an independent DSL Object factory while a Builder lifecycle is active")
-        assert error.message.contains("owning Builder's generated relationship methods")
+    private static boolean opaqueScriptGuidance(KlumModelException error) {
+        assert error.message.contains("Create.AsBuilder.From only accepts DelegatingScript configuration recipes")
+        assert error.message.contains("A regular Script may materialize a completed DSL Object")
+        assert error.message.contains("run the Script as a root with Create.From")
         return true
     }
 

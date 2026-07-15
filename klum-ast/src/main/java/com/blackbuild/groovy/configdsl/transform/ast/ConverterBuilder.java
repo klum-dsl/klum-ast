@@ -30,6 +30,8 @@ import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.Expression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.*;
@@ -41,12 +43,14 @@ import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
+import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static org.codehaus.groovy.ast.ClassHelper.STRING_TYPE;
 import static org.codehaus.groovy.ast.ClassHelper.make;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.correctToGenericsSpecRecurse;
 
 /**
@@ -173,11 +177,12 @@ class ConverterBuilder {
     }
 
     void createConverterMethodsFromFactoryMethods(ClassNode converterClass) {
+        BuilderMethodProjection.ensureProjectedMethods(converterClass, elementType);
         findAllFactoryMethodsFor(converterClass).forEach(this::createConverterFactoryCall);
     }
 
     private Stream<MethodNode> findAllFactoryMethodsFor(ClassNode converterClass) {
-        return converterClass.getMethods()
+        return new ArrayList<>(converterClass.getMethods())
                 .stream()
                 .filter(this::isFactoryMethod);
     }
@@ -187,7 +192,8 @@ class ConverterBuilder {
                 || !method.isPublic()
                 || !isConverterMethod(method)) return false;
         ClassNode type = method.getReturnType();
-        return isAssignableTo(type, elementType);
+        return isAssignableTo(type, elementType)
+                || BuilderMethodProjection.isSingleBuilderProducerType(type, elementType);
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -274,12 +280,56 @@ class ConverterBuilder {
     }
 
     private void createConverterFactoryCall(MethodNode converterMethod) {
+        MethodNode builderProducer = BuilderMethodProjection.builderProducerFor(converterMethod, elementType);
+        if (isDSLObject(elementType)) {
+            if (builderProducer != null)
+                createBuilderConverterMethod(converterMethod, builderProducer);
+            else
+                OmittedProjectionCatalog.omit(rwClass, methodName, converterMethod,
+                        BuilderMethodProjection.omissionReasonFor(converterMethod));
+            return;
+        }
         createConverterMethod(
                 converterMethod.getParameters(),
                 converterMethod.getDeclaringClass(),
                 converterMethod.getName(),
                 converterMethod
         );
+    }
+
+    private void createBuilderConverterMethod(MethodNode sourceMethod, MethodNode builderProducer) {
+        Map<String, ClassNode> genericsSpec = GenericsUtils.createGenericsSpec(elementType);
+        Parameter[] parameters = cloneParamsWithAdjustedNames(sourceMethod);
+        for (int index = 0; index < parameters.length; index++) {
+            parameters[index].setType(correctToGenericsSpecRecurse(genericsSpec, parameters[index].getOriginType()));
+            copyAnnotationsFromSourceToTarget(sourceMethod.getParameters()[index], parameters[index], Collections.emptyList());
+        }
+
+        MethodCallExpression producerCall = callX(
+                classX(builderProducer.getDeclaringClass()),
+                builderProducer.getName(),
+                args(stream(parameters).map(parameter -> (Expression) varX(parameter)).toArray(Expression[]::new))
+        );
+        producerCall.setMethodTarget(builderProducer);
+
+        ClassNode modelBuilder = getRwClassOf(transformation.annotatedClass);
+        Expression target = rwClass.equals(modelBuilder) ? varX("this") : varX("rw");
+        MethodCallExpression attachCall;
+        if (isCollection(fieldNode.getType()))
+            attachCall = callX(target, "addElementToCollection", args(constX(fieldNode.getName()), producerCall));
+        else if (isMap(fieldNode.getType()))
+            attachCall = callX(target, "addElementToMap", args(constX(fieldNode.getName()), constX(null), producerCall));
+        else
+            attachCall = callX(target, "setSingleField", args(constX(fieldNode.getName()), producerCall));
+
+        MethodBuilder method = MethodBuilder.createPublicMethod(methodName)
+                .optional()
+                .returning(BuilderMethodProjection.projectedBuilderType(builderProducer.getReturnType(), elementType))
+                .params(parameters)
+                .sourceLinkTo(sourceMethod)
+                .doReturn(attachCall);
+        BuilderMethodProjection.documentComposition(method, sourceMethod, builderProducer.getReturnType());
+        method.addTo(rwClass);
     }
 
     private void createConverterConstructorCall(ConstructorNode constructor) {

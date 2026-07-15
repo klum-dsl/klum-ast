@@ -755,8 +755,49 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
+    /**
+     * Validates and attaches a projected batch of child Builders, then returns the producer's original container.
+     * Validation happens before the first mutation so a rejected batch cannot be partially attached.
+     */
+    public <C extends Collection<?>> C addProjectedBuildersFromCollectionToCollection(String fieldName, C builders) {
+        assertMutable();
+        Field schemaField = getModelField(fieldName);
+        builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));
+        builders.forEach(builder -> addElementToCollection(fieldName, builder));
+        return builders;
+    }
+
+    /** Attaches the values of a projected map to a collection relationship and returns the same map. */
+    public <T extends Map<?, ?>> T addProjectedBuildersFromMapToCollection(String fieldName, T builders) {
+        assertMutable();
+        Field schemaField = getModelField(fieldName);
+        builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
+        builders.values().forEach(builder -> addElementToCollection(fieldName, builder));
+        return builders;
+    }
+
     public <K, V> void addElementsToMap(String fieldName, Map<K, V> values) {
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
+    }
+
+    /**
+     * Validates and attaches a projected map of child Builders, preserving its keys, then returns that same map.
+     */
+    public <T extends Map<?, ?>> T addProjectedBuildersFromMapToMap(String fieldName, T builders) {
+        assertMutable();
+        Field schemaField = getModelField(fieldName);
+        builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
+        builders.forEach((key, builder) -> addElementToMap(fieldName, key, builder));
+        return builders;
+    }
+
+    /** Attaches a projected collection to a keyed relationship and returns the producer's original collection. */
+    public <C extends Collection<?>> C addProjectedBuildersFromCollectionToMap(String fieldName, C builders) {
+        assertMutable();
+        Field schemaField = getModelField(fieldName);
+        builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));
+        builders.forEach(builder -> addElementToMap(fieldName, null, builder));
+        return builders;
     }
 
     public <V> void addElementsToMap(String fieldName, Iterable<V> values) {
@@ -848,13 +889,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     @SafeVarargs
     public final void addElementsFromScriptsToCollection(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script)));
+        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Arrays.stream(scripts).forEach(script -> addElementToCollection(fieldName, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 
     @SafeVarargs
     public final void addElementsFromScriptsToMap(String fieldName, Class<? extends Script>... scripts) {
         Class<?> elementType = getClassFromType(DslHelper.getElementType(getModelField(fieldName)));
-        Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(DslHelper.getFactoryOf(elementType), "From", script)));
+        Object builderFactory = InvokerHelper.getProperty(DslHelper.getFactoryOf(elementType), "AsBuilder");
+        Arrays.stream(scripts).forEach(script -> addElementToMap(fieldName, null, InvokerHelper.invokeMethod(builderFactory, "From", script)));
     }
 
     Object invokeBuilderMethod(String methodName, Object... args) {

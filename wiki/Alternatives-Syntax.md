@@ -61,7 +61,9 @@ There are a couple of noteworthy points:
   This means that if you split your schema into different projects, you need to depend on the sources, not on the compiled
   classes of other schema parts (see [[Usage]] for details).
 - Different child classes with the same simple name (in different packages) is not allowed.
-- [[Convenience Factories]] also work on alternative methods. This works only for implicit and explicit factory methods in the subclass.
+- [[Convenience Factories]] and source-visible converter methods also work on alternative methods. In 4.0, adaptable
+  model-producing methods are rebound to active-session Builder-producing twins, so the alternative remains part of the
+  owning graph lifecycle. Opaque or precompiled model-returning methods without a Builder contract are omitted.
 
 
 There are four strategies for choosing alternative names (in order of precedence):
@@ -120,4 +122,3 @@ method name (if a shortName is given, strip suffix is ignored).
 In any other case, the name of the subclass with a lowercase first character is used.
 
 For more complex cases, custom [[Factory Classes]] can be used.
-

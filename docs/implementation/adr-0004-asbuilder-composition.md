@@ -7,6 +7,10 @@ repository archaeology. ADR 0003 and ADR 0004 remain authoritative when this doc
 Implementation is tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431), which is blocked by #416 until
 PR #429 merges.
 
+**Current status:** AB-1 was implemented by #436 and AB-2 was implemented by #437. AB-3's Template companion and
+copy-source boundary remains tracked by #438. The investigation and historical merge recommendation below are retained as
+context for those slices.
+
 Source positions below refer to PR #429 commit `0171fe54` unless a symbol name is given. Prefer the symbol when later edits
 move a line.
 
@@ -185,6 +189,13 @@ Route collection, map, Cluster, direct delegating-script, converter, and custom 
 semantics, link twins through AST metadata, and omit opaque projections with catalog-backed dynamic diagnostics. This slice
 depends on AB-1 and ADR 0005's public type namespace.
 
+**Implemented:** issue #437 generates public synthetic source twins linked from their original MethodNodes, binds generated
+and recursive callers directly through AST metadata, projects concrete `Foo_DSL.Builder` types through single, Collection,
+and Map results, and preserves the producer's original containers and keys while attaching the batch. Collection, map,
+Cluster, direct `DelegatingScript`, converter, alternative, and custom-factory composition now use AB-1's active session.
+Opaque projections are absent from bytecode-facing public interfaces, IDE mirrors, and AnnoDoc; an internal signature
+catalog supplies targeted dynamic diagnostics without changing unrelated missing-method behavior.
+
 ### [AB-3 — Template companion and copy-source protocol](https://github.com/klum-dsl/klum-ast/issues/438)
 
 Introduce `KlumObjectCompanion`, `KlumTemplateProxy`, and immutable `TemplateRecipeState`; move deferred actions out of
@@ -207,7 +218,7 @@ AB-1 executable coverage lives in `AsBuilderSpec` and `GeneratedDslSupportSpec`.
 active Templates, ownership and paths, root-return compatibility, built-in inputs, session failures, and concrete generated
 Builder signatures.
 
-The following Groovy 3 features record behavior to restore and carry a reasoned `@PendingFeature` until their slice lands:
+The following Groovy 3 features were the executable AB-2 target contract and are now enabled without `@PendingFeature`:
 
 - `ConverterSpec`: DSL converter closures, keyed converter closures, source factory converters, default arguments, keyed
   single/list/map converters, custom collection/map factory projections, and abstract factory projections;
@@ -215,7 +226,7 @@ The following Groovy 3 features record behavior to restore and carry a reasoned 
 - `BuilderFirstSpec`: source-visible DSL Object converter factory composition;
 - `ConverterSpec`: collection-local `From(DelegatingScript)` and direct collection `scripts` overloads.
 
-Keep the issue #198 `ConvenienceFactoriesSpec` rejection tests for regular Scripts returning completed models. They document
+The issue #198 `ConvenienceFactoriesSpec` rejection tests remain for regular Scripts returning completed models. They document
 the opaque-script boundary selected by ADR 0004, not the adaptable `DelegatingScript` path.
 
 When implementing, split features with multiple `when` blocks so single-result and multi-result paths can fail

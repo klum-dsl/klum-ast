@@ -63,6 +63,8 @@ public final class GeneratedDslSupport {
 
     public static final String SUPPORT_METADATA_KEY = GeneratedDslSupport.class.getName() + ".support";
     public static final String PUBLIC_INTERFACE_METADATA_KEY = GeneratedDslSupport.class.getName() + ".publicInterface";
+    private static final String BUILDER_PLACEHOLDER_METADATA_KEY = GeneratedDslSupport.class.getName() + ".builderPlaceholder";
+    private static final String API_METHOD_METADATA_KEY = GeneratedDslSupport.class.getName() + ".apiMethod";
     public static final String API_TAG = "dsl-support-api";
     public static final String INTERFACE_LINK_TAG = "dsl-support-interface:";
 
@@ -89,6 +91,9 @@ public final class GeneratedDslSupport {
 
         factoryInterface = createNestedInterface(namespace, "Factory", "The public factory contract for " + model.getName() + ".");
         builderInterface = createNestedInterface(namespace, "Builder", "The public Builder contract for " + model.getName() + ".");
+        ClassNode builderPlaceholder = model.redirect().getNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY);
+        if (builderPlaceholder != null)
+            builderPlaceholder.setRedirect(builderInterface);
         copyTypeParameters(model, builderInterface);
         addParentBuilderInterface();
         link(builderImplementation, parameterizedForModel(builderInterface, model));
@@ -113,6 +118,24 @@ public final class GeneratedDslSupport {
 
     public ClassNode getBuilderInterface() {
         return parameterizedForModel(builderInterface, model);
+    }
+
+    /**
+     * Returns the public Builder contract for a model even when that model's local transformation has not run yet.
+     * The placeholder is linked to the real generated interface through AST metadata when the target model is visited.
+     */
+    public static ClassNode builderTypeFor(ClassNode model) {
+        ClassNode target = model.redirect();
+        GeneratedDslSupport support = target.getNodeMetaData(SUPPORT_METADATA_KEY);
+        if (support != null)
+            return support.getBuilderInterface();
+
+        ClassNode placeholder = target.getNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY);
+        if (placeholder == null) {
+            placeholder = ClassHelper.makeWithoutCaching(target.getName() + "_DSL$Builder");
+            target.setNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY, placeholder);
+        }
+        return parameterizedForModel(placeholder, model);
     }
 
     public static ClassNode registerCollectionFactory(ClassNode model, ClassNode implementation, String fieldName) {
@@ -235,9 +258,16 @@ public final class GeneratedDslSupport {
     }
 
     private void addProjectedMethod(ClassNode publicInterface, MethodNode implementationMethod) {
+        MethodNode linked = implementationMethod.getNodeMetaData(API_METHOD_METADATA_KEY);
+        if (linked != null) return;
+
         projectMethodSignature(implementationMethod);
         Parameter[] parameters = cloneParameters(implementationMethod.getParameters());
-        if (publicInterface.getDeclaredMethod(implementationMethod.getName(), parameters) != null) return;
+        MethodNode existing = publicInterface.getDeclaredMethod(implementationMethod.getName(), parameters);
+        if (existing != null) {
+            implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, existing);
+            return;
+        }
 
         MethodNode apiMethod = new MethodNode(
                 implementationMethod.getName(),
@@ -250,6 +280,7 @@ public final class GeneratedDslSupport {
         apiMethod.setGenericsTypes(projectGenericsTypes(implementationMethod.getGenericsTypes()));
         copyAnnotationsFromSourceToTarget(implementationMethod, apiMethod, Collections.emptyList());
         publicInterface.addMethod(apiMethod);
+        implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, apiMethod);
     }
 
     private static void projectMethodSignature(MethodNode method) {

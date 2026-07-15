@@ -240,9 +240,12 @@ The newly created Builder is configured by the optional values and closure.
             ''')
 
         then:
-        rwMethodDoc("bar", long) == """Creates a new instance of Bar with the given birthday as timestamp.
+        rwMethodDoc("bar", long) == """Creates an unsealed Builder in the active construction session and attaches it to this relationship.
+<p>
+The returned Builder remains attached to the current construction session; it cannot be independently materialized or validated.
+</p>
 @param value the timestamp
-@return the newly created instance
+@return the attached, unsealed Builder
 @see Bar#fromLong(long)"""
     }
 

@@ -41,13 +41,16 @@ This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
 When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular
 [Alternatives Syntax](Alternatives-Syntax.md), especially when using abstract classes.
 
-The 4.0 Builder-first runtime provides active-session `Create.AsBuilder.With`, `One`, `FromMap`, and
-`From(DelegatingScript)` operations for code that already owns the relationship sink. Model-returning custom creator methods
-are still projected as their root form and therefore fail when invoked inside the owning Builder lifecycle. The generated
-Builder-producing twins and collection/Cluster projections are tracked by
-[#437](https://github.com/klum-dsl/klum-ast/issues/437) and specified by
-[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md). Until that slice
-lands, use the generated element closure method instead of a projected custom creator method.
+The 4.0 Builder-first runtime projects adaptable source-visible creator methods onto active-session Builder production.
+Inside a relationship factory, single results, Collections, and Maps are attached to the owner without starting a nested
+lifecycle. Recursive creator calls are rebound to their projected twins. The original creator method is unchanged, so a
+direct `MyClass.Create.customMethod(...)` call still returns a completed root model.
+
+The generated twins are synthetic implementation details. Public `Foo_DSL` contracts and IDE mirrors expose concrete
+`Foo_DSL.Builder` results with composition-specific documentation instead. Opaque or precompiled model-returning creator
+methods without an explicit `KlumBuilder<Foo>` contract are omitted from relationship APIs and report migration guidance
+when a matching dynamic call is attempted. See
+[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
 
 ```groovy
@@ -134,4 +137,7 @@ Foo.Create.With {
 }
 ```
 
-If the factory method returns map of the model class, only the values of that map are used.
+The projected call returns the producer's original container. For a Map relationship, Map-producing methods retain their
+original keys; Collection-producing methods derive keys from the keyed Builders as usual. For a Collection relationship,
+Map values are attached in Map iteration order. Concrete container subtype, iteration order, comparator, and duplicate
+behavior are preserved.

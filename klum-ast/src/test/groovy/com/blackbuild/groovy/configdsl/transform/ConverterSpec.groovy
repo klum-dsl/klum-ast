@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform
 
 import groovy.time.TimeCategory
 import spock.lang.Issue
-import spock.lang.PendingFeature
 
 import java.time.Duration
 
@@ -106,7 +105,6 @@ class ConverterSpec extends AbstractDSLSpec {
         TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
-    @PendingFeature(reason = "ADR 0004: DSL Object converter closures still materialize models instead of producing child Builders")
     def "generated converter for dsl field"() {
         when:
         createClass '''
@@ -133,7 +131,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.value.time == 123L
     }
 
-    @PendingFeature(reason = "ADR 0004: keyed DSL Object converter closures still materialize models instead of producing child Builders")
     def "generated converter for keyed dsl field"() {
         when:
         createClass '''
@@ -224,7 +221,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.dates.bla.time == 123L
     }
 
-    @PendingFeature(reason = "ADR 0004: source factory converters still call root factories instead of hidden Builder-producing twins")
     def "converter factory for dsl field"() {
         when:
         createClass '''
@@ -254,7 +250,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
-    @PendingFeature(reason = "ADR 0004: source factory converters with default arguments still lack Builder-producing twins")
     def "converter factory for dsl field with default values"() {
         when:
         createClass '''
@@ -295,7 +290,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.token == "flummy"
     }
 
-    @PendingFeature(reason = "ADR 0004: keyed source factory converters still call root factories instead of Builder-producing twins")
     def "converter factory for keyed dsl field"() {
         when:
         createClass '''
@@ -326,7 +320,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.birthday.time == 123L
     }
 
-    @PendingFeature(reason = "ADR 0004: list relationship converters still call model-returning factories instead of Builder-producing twins")
     def "converter factory for keyed dsl list"() {
         when:
         createClass '''
@@ -357,7 +350,6 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bars.first().birthday.time == 123L
     }
 
-    @PendingFeature(reason = "ADR 0004: map relationship converters still call model-returning factories instead of Builder-producing twins")
     def "converter factory for keyed dsl map"() {
         when:
         createClass '''
@@ -577,7 +569,6 @@ class Other<E> {
     }
 
     @Issue(["300", "319"])
-    @PendingFeature(reason = "ADR 0004 / #319: collection-local custom factories still lack Builder-producing projections")
     def "methods of the factory are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -636,7 +627,6 @@ import java.time.Duration
     }
 
     @Issue(["300", "319"])
-    @PendingFeature(reason = "ADR 0004 / #319: map-local custom factories still lack Builder-producing projections")
     def "methods of the factory are included in collection factories for maps"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -696,7 +686,6 @@ import java.time.Duration
     }
 
     @Issue("300")
-    @PendingFeature(reason = "ADR 0004: abstract element factories still lack subtype-preserving Builder-producing projections")
     def "methods of the factory of abstract classes are included in collection factories"() {
         when:
         createClass '''import com.blackbuild.klum.ast.util.KlumFactory
@@ -735,7 +724,7 @@ import java.time.Duration
         hasMethod(barsFactory, 'aBaz', String, Closure)
         hasMethod(barsFactory, 'aBla', String, Closure)
 
-        delegatesToPointsTo(barsFactory.getMethod('aBaz', String, Closure).getParameterAnnotations()[1], 'Baz._RW')
+        delegatesToPointsTo(barsFactory.getMethod('aBaz', String, Closure).getParameterAnnotations()[1], 'Baz_DSL.Builder')
 
         when:
         instance = create("Foo") {
@@ -758,7 +747,6 @@ import java.time.Duration
     }
 
     @Issue(["198", "319"])
-    @PendingFeature(reason = "ADR 0004: collection-local From(DelegatingScript) still calls the root materializing factory")
     def "collection-local From creates a child Builder from a delegating script"() {
         given:
         createClass '''
@@ -787,7 +775,6 @@ import java.time.Duration
     }
 
     @Issue("198")
-    @PendingFeature(reason = "ADR 0004: direct collection script methods still call root From instead of producing child Builders")
     def "direct collection script methods create children from delegating scripts"() {
         given:
         createClass '''

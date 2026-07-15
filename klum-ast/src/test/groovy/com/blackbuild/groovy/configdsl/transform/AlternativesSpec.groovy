@@ -26,7 +26,6 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
-import spock.lang.PendingFeature
 
 import java.lang.annotation.Annotation
 
@@ -222,7 +221,6 @@ class ChildElement extends Element {
 
     @SuppressWarnings('GroovyAssignabilityCheck')
     @Issue("270")
-    @PendingFeature(reason = "ADR 0004 / #270: alternative converters still call model-returning factories instead of Builder-producing twins")
     def "factory methods are used for alternative methods"() {
         given:
         createClass('''

@@ -34,6 +34,9 @@ matching IDE source mirrors. Type `Foo.Create` and generated implementations aga
 statically compiled Groovy call the full factory-to-child path against bytecode while the uncompiled mirrors provide the
 same completion surface. This is the prerequisite for ADR 0004 AB-2.
 
+**Implemented:** issue #433 provides the generated namespace and linked public Builder/factory types. ADR 0004 AB-2
+(#437) now uses that contract for concrete Builder-producing projection signatures and composition-specific AnnoDoc.
+
 ### DSL-2 — Capability narrowing and RW migration
 
 Convert `KlumBuilder<T>` to the supported narrow interface, move implementation behavior behind an internal base, remove
@@ -70,6 +73,9 @@ The resulting graph is one-way: compile → IDE mirror. There is no mirror → c
 compile → mirror → compile cycle. A multi-project TestKit fixture pins the clean IDEA metadata, explicit refresh behavior,
 AnnoDoc preservation, task ordering, archive/publication/classpath exclusions, downstream isolation, stable output hash,
 stale-output cleanup, and build-cache restoration after deleting the mirror directory.
+
+**Implemented:** issue #434 provides this mirror lifecycle; #437 verifies that projected Builder methods appear in the
+mirror while synthetic hidden twins and omitted opaque methods do not.
 
 Gradle's configuration cache is not currently an end-to-end supported lane for schema compilation: AnnoDocimal 0.7.1
 adds a `GroovyCompile.doFirst` action that captures the Gradle `Project`, which Gradle 8.14.4 reports as configuration-cache
