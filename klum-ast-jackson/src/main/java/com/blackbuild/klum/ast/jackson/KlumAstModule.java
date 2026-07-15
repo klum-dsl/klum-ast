@@ -32,7 +32,14 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
+import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
+
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class KlumAstModule extends Module {
 
@@ -61,11 +68,46 @@ public class KlumAstModule extends Module {
                                                        JsonDeserializer<?> deserializer) {
             if (!DslHelper.isDslType(beanDesc.getBeanClass()))
                 return deserializer;
-            return new KlumDeserializer(beanDesc.getBeanClass());
+            return new KlumDeserializer(beanDesc.getBeanClass(), deserializer);
         }
     }
 
     public static class KlumSerializerModifier extends BeanSerializerModifier {
+        @Override
+        public List<BeanPropertyWriter> changeProperties(SerializationConfig config, BeanDescription beanDesc,
+                                                         List<BeanPropertyWriter> beanProperties) {
+            if (!DslHelper.isDslType(beanDesc.getBeanClass()))
+                return beanProperties;
+            return beanProperties.stream()
+                    .map(writer -> linkWriter(config, beanDesc, writer))
+                    .collect(Collectors.toList());
+        }
+
+        private static BeanPropertyWriter linkWriter(SerializationConfig config, BeanDescription beanDesc,
+                                                     BeanPropertyWriter writer) {
+            AnnotatedMember member = writer.getMember();
+            if (member == null)
+                return writer;
+            BeanPropertyDefinition property = beanDesc.findProperties().stream()
+                    .filter(candidate -> candidate.getName().equals(writer.getName()))
+                    .findFirst()
+                    .orElse(null);
+            if (property == null)
+                return writer;
+            Field schemaField = DslHelper.getField(beanDesc.getBeanClass(), property.getInternalName()).orElse(null);
+            if (schemaField == null || !DslHelper.isLink(schemaField))
+                return writer;
+            var introspector = config.getAnnotationIntrospector();
+            var referenceInfo = introspector.findObjectReferenceInfo(member, null);
+            boolean alwaysAsId = referenceInfo != null && referenceInfo.getAlwaysAsId();
+            boolean customSerializer = introspector.findSerializer(member) != null;
+            return new KlumLinkBeanPropertyWriter(
+                    writer,
+                    schemaField.getDeclaringClass().getName() + "." + schemaField.getName(),
+                    alwaysAsId || customSerializer
+            );
+        }
+
         @Override
         public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc,
                                                    JsonSerializer<?> serializer) {

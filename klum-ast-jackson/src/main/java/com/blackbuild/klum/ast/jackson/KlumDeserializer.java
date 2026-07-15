@@ -44,10 +44,15 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.KeyDeserializer;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
+import com.fasterxml.jackson.databind.deser.impl.ObjectIdReader;
+import com.fasterxml.jackson.databind.deser.impl.ReadableObjectId;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -58,8 +63,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -73,13 +80,30 @@ import java.util.stream.Stream;
 /**
  * Replays resolved Jackson configuration properties through the generated Builder lifecycle.
  */
-final class KlumDeserializer extends StdDeserializer<Object> {
+final class KlumDeserializer extends StdDeserializer<Object> implements ContextualDeserializer {
 
     private final Class<?> modelType;
+    private final JsonDeserializer<?> jacksonDelegate;
 
-    KlumDeserializer(Class<?> modelType) {
+    KlumDeserializer(Class<?> modelType, JsonDeserializer<?> jacksonDelegate) {
         super(modelType);
         this.modelType = modelType;
+        this.jacksonDelegate = jacksonDelegate;
+    }
+
+    @Override
+    public JsonDeserializer<?> createContextual(DeserializationContext context, BeanProperty property)
+            throws JsonMappingException {
+        JsonDeserializer<?> contextualDelegate = context.handleSecondaryContextualization(
+                jacksonDelegate, property, context.constructType(modelType));
+        if (contextualDelegate == jacksonDelegate)
+            return this;
+        return new KlumDeserializer(modelType, contextualDelegate);
+    }
+
+    @Override
+    public ObjectIdReader getObjectIdReader() {
+        return jacksonDelegate.getObjectIdReader();
     }
 
     @Override
@@ -107,23 +131,16 @@ final class KlumDeserializer extends StdDeserializer<Object> {
     private Object replay(ObjectNode configuration, JsonParser source, DeserializationContext context) {
         ResolvedProperties properties = resolveProperties(modelType, context);
         String key = resolveKey(modelType, configuration, null, properties);
+        ReplaySession replaySession = new ReplaySession(source, context);
         return PhaseDriver.withBuilderLifecycle(
                 () -> FactoryHelper.createBuilder(modelType, key),
-                builder -> configure(builder, configuration, properties, source, context)
+                builder -> replaySession.replay(builder, configuration, properties)
         );
     }
 
-    private void configure(KlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
-                           JsonParser source, DeserializationContext context) {
-        builder.setCurrentTemplates(Collections.emptyMap());
-        LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
-        configuration.fields()
-                .forEachRemaining(entry -> bind(builder, entry.getKey(), entry.getValue(), properties, source, context));
-        LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
-    }
-
     private void bind(KlumBuilder<?> builder, String externalName, JsonNode node,
-                      ResolvedProperties properties, JsonParser source, DeserializationContext context) {
+                      ResolvedProperties properties, Map<ResolvedProperty, Object> ownedValues,
+                      JsonParser source, DeserializationContext context) {
         ResolvedProperty property = properties.bindable().get(externalName);
         if (property == null) {
             if (properties.ignored().contains(externalName) || properties.ignoreUnknown())
@@ -132,13 +149,72 @@ final class KlumDeserializer extends StdDeserializer<Object> {
             return;
         }
         try {
-            Object value = DslHelper.isRelationship(property.schemaField())
-                    && !DslHelper.isLink(property.schemaField())
-                    ? readOwnedValue(node, property, source, context)
-                    : readSimpleValue(node, source, property, context);
+            Object value;
+            if (DslHelper.isLink(property.schemaField()))
+                value = readLinkValue(node, property, source, context);
+            else if (DslHelper.isRelationship(property.schemaField()))
+                value = ownedValues.get(property);
+            else
+                value = readSimpleValue(node, source, property, context);
             builder.setSingleField(property.internalName(), value);
         } catch (IOException exception) {
             throw new UncheckedIOException(exception);
+        }
+    }
+
+    private Object readLinkValue(JsonNode node, ResolvedProperty property,
+                                 JsonParser source, DeserializationContext context) throws IOException {
+        if (node.isNull())
+            return null;
+        if (node.isObject())
+            throw JsonMappingException.from(source, "LINK property " + property.schemaField().getDeclaringClass().getName()
+                    + "." + property.internalName() + " must contain a reference id, not an inline object");
+
+        JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
+                property.type(), property.beanProperty());
+        if (hasCustomPropertyDeserializer(property, context))
+            return readValue(node, source, valueDeserializer, context);
+        if (!isAlwaysAsId(property, context) || valueDeserializer.getObjectIdReader() == null)
+            throw JsonMappingException.from(source, "Non-null LINK property "
+                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                    + " requires @JsonIdentityInfo on the target type and "
+                    + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, or an explicit custom property deserializer");
+
+        ObjectIdReader reader = valueDeserializer.getObjectIdReader();
+        Object id;
+        try (JsonParser valueParser = node.traverse(source.getCodec())) {
+            valueParser.nextToken();
+            id = reader.readObjectReference(valueParser, context);
+        }
+        ReadableObjectId readableObjectId = context.findObjectId(id, reader.generator, reader.resolver);
+        Object resolved = readableObjectId.resolve();
+        if (resolved == null)
+            throw JsonMappingException.from(source, "Could not resolve LINK property "
+                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                    + " reference id '" + id + "' to a completed DSL Object or Builder in this Construction session");
+        return resolved;
+    }
+
+    private static boolean hasCustomPropertyDeserializer(ResolvedProperty property, DeserializationContext context) {
+        AnnotatedMember member = property.beanProperty().getMember();
+        return member != null && context.getAnnotationIntrospector().findDeserializer(member) != null;
+    }
+
+    private static boolean isAlwaysAsId(ResolvedProperty property, DeserializationContext context) {
+        AnnotatedMember member = property.beanProperty().getMember();
+        if (member == null)
+            return false;
+        var referenceInfo = context.getAnnotationIntrospector().findObjectReferenceInfo(member, null);
+        return referenceInfo != null && referenceInfo.getAlwaysAsId();
+    }
+
+    private static Object readValue(JsonNode node, JsonParser source, JsonDeserializer<Object> valueDeserializer,
+                                    DeserializationContext context) throws IOException {
+        try (JsonParser valueParser = node.traverse(source.getCodec())) {
+            valueParser.nextToken();
+            return valueParser.currentToken() == JsonToken.VALUE_NULL
+                    ? valueDeserializer.getNullValue(context)
+                    : valueDeserializer.deserialize(valueParser, context);
         }
     }
 
@@ -152,68 +228,6 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                     ? valueDeserializer.getNullValue(context)
                     : valueDeserializer.deserialize(valueParser, context);
         }
-    }
-
-    private Object readOwnedValue(JsonNode node, ResolvedProperty property,
-                                  JsonParser source, DeserializationContext context) throws IOException {
-        if (node.isNull())
-            return null;
-        if (property.type().isMapLikeType())
-            return readOwnedMap(node, property, source, context);
-        if (property.type().isCollectionLikeType())
-            return readOwnedCollection(node, property, source, context);
-        return readOwnedBuilder(node, property.type().getRawClass(), null, source, context);
-    }
-
-    private Map<Object, Object> readOwnedMap(JsonNode node, ResolvedProperty property,
-                                             JsonParser source, DeserializationContext context) throws IOException {
-        if (!node.isObject())
-            throw JsonMappingException.from(source, "Expected an object for owned map property "
-                    + property.externalName());
-        Map<Object, Object> result = SortedMap.class.isAssignableFrom(property.type().getRawClass())
-                ? new TreeMap<>()
-                : new LinkedHashMap<>();
-        KeyDeserializer keyDeserializer = context.findKeyDeserializer(property.type().getKeyType(), property.beanProperty());
-        Class<?> childType = property.type().getContentType().getRawClass();
-        var fields = node.fields();
-        while (fields.hasNext()) {
-            var entry = fields.next();
-            Object key = keyDeserializer.deserializeKey(entry.getKey(), context);
-            result.put(key, readOwnedBuilder(entry.getValue(), childType, key, source, context));
-        }
-        return result;
-    }
-
-    private Collection<Object> readOwnedCollection(JsonNode node,
-                                                   ResolvedProperty property, JsonParser source,
-                                                   DeserializationContext context) throws IOException {
-        if (!node.isArray())
-            throw JsonMappingException.from(source, "Expected an array for owned collection property "
-                    + property.externalName());
-        Collection<Object> result = SortedSet.class.isAssignableFrom(property.type().getRawClass())
-                ? new TreeSet<>()
-                : Set.class.isAssignableFrom(property.type().getRawClass())
-                ? new LinkedHashSet<>()
-                : new ArrayList<>();
-        Class<?> childType = property.type().getContentType().getRawClass();
-        for (JsonNode element : node)
-            result.add(readOwnedBuilder(element, childType, null, source, context));
-        return result;
-    }
-
-    private KlumBuilder<?> readOwnedBuilder(JsonNode node, Class<?> childType,
-                                            Object keyHint, JsonParser source,
-                                            DeserializationContext context) throws IOException {
-        if (node.isNull())
-            return null;
-        if (!node.isObject())
-            throw JsonMappingException.from(source, "Expected an object for owned DSL value " + childType.getName());
-        ObjectNode object = (ObjectNode) node;
-        ResolvedProperties properties = resolveProperties(childType, context);
-        String key = resolveKey(childType, object, keyHint, properties);
-        KlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
-        configure(child, object, properties, source, context);
-        return child;
     }
 
     private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node,
@@ -233,7 +247,7 @@ final class KlumDeserializer extends StdDeserializer<Object> {
         Set<String> ignored = new HashSet<>(description.getIgnoredPropertyNames());
         description.getClassInfo().fields().forEach(field -> addIgnoredFieldName(field, ignored, context));
         description.findProperties().forEach(definition -> {
-            Optional<ResolvedProperty> resolved = definition.couldDeserialize()
+            Optional<ResolvedProperty> resolved = definition.couldDeserialize() && visibleInActiveView(definition, context)
                     ? toResolvedProperty(currentType, definition)
                     : Optional.empty();
             Stream<String> names = Stream.concat(
@@ -249,6 +263,16 @@ final class KlumDeserializer extends StdDeserializer<Object> {
                 .getDefaultPropertyIgnorals(currentType, description.getClassInfo());
         ignored.addAll(ignorals.findIgnoredForDeserialization());
         return new ResolvedProperties(bindable, ignored, ignorals.getIgnoreUnknown());
+    }
+
+    private static boolean visibleInActiveView(BeanPropertyDefinition property, DeserializationContext context) {
+        Class<?> activeView = context.getActiveView();
+        if (activeView == null)
+            return true;
+        Class<?>[] views = property.findViews();
+        if (views == null)
+            return context.isEnabled(MapperFeature.DEFAULT_VIEW_INCLUSION);
+        return Stream.of(views).anyMatch(view -> view.isAssignableFrom(activeView));
     }
 
     private static void addIgnoredFieldName(AnnotatedField field, Set<String> ignored,
@@ -326,6 +350,142 @@ final class KlumDeserializer extends StdDeserializer<Object> {
 
     private record ResolvedProperties(Map<String, ResolvedProperty> bindable, Set<String> ignored,
                                       boolean ignoreUnknown) {
+    }
+
+    private final class ReplaySession {
+        private final JsonParser source;
+        private final DeserializationContext context;
+        private final List<PendingBuilder> pendingBuilders = new ArrayList<>();
+        private final Map<ObjectNode, PendingBuilder> buildersByConfiguration = new IdentityHashMap<>();
+
+        private ReplaySession(JsonParser source, DeserializationContext context) {
+            this.source = source;
+            this.context = context;
+        }
+
+        private void replay(KlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties) {
+            try {
+                addBuilder(root, configuration, properties);
+                for (PendingBuilder pending : pendingBuilders) {
+                    pending.builder().setCurrentTemplates(Collections.emptyMap());
+                    LifecycleHelper.executeLifecycleMethods(pending.builder(), PostCreate.class);
+                }
+                for (PendingBuilder pending : pendingBuilders)
+                    bindConfiguration(pending);
+                for (PendingBuilder pending : pendingBuilders)
+                    LifecycleHelper.executeLifecycleMethods(pending.builder(), PostApply.class);
+            } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+            }
+        }
+
+        private PendingBuilder addBuilder(KlumBuilder<?> builder, ObjectNode configuration,
+                                          ResolvedProperties properties) throws IOException {
+            PendingBuilder pending = new PendingBuilder(builder, configuration, properties, new LinkedHashMap<>());
+            pendingBuilders.add(pending);
+            buildersByConfiguration.put(configuration, pending);
+            registerIdentity(pending);
+            discoverOwnedValues(pending);
+            return pending;
+        }
+
+        private void registerIdentity(PendingBuilder pending) throws IOException {
+            JsonDeserializer<Object> deserializer = context.findRootValueDeserializer(
+                    context.constructType(pending.builder().getModelType()));
+            ObjectIdReader reader = deserializer.getObjectIdReader();
+            if (reader == null)
+                return;
+            JsonNode idNode = pending.configuration().get(reader.propertyName.getSimpleName());
+            if (idNode == null || idNode.isNull())
+                return;
+            Object id;
+            try (JsonParser idParser = idNode.traverse(source.getCodec())) {
+                idParser.nextToken();
+                id = reader.readObjectReference(idParser, context);
+            }
+            context.findObjectId(id, reader.generator, reader.resolver).bindItem(pending.builder());
+        }
+
+        private void discoverOwnedValues(PendingBuilder pending) throws IOException {
+            var fields = pending.configuration().fields();
+            while (fields.hasNext()) {
+                var entry = fields.next();
+                ResolvedProperty property = pending.properties().bindable().get(entry.getKey());
+                if (property == null || !DslHelper.isRelationship(property.schemaField())
+                        || DslHelper.isLink(property.schemaField()))
+                    continue;
+                pending.ownedValues().put(property, discoverOwnedValue(entry.getValue(), property));
+            }
+        }
+
+        private Object discoverOwnedValue(JsonNode node, ResolvedProperty property) throws IOException {
+            if (node.isNull())
+                return null;
+            if (property.type().isMapLikeType())
+                return discoverOwnedMap(node, property);
+            if (property.type().isCollectionLikeType())
+                return discoverOwnedCollection(node, property);
+            return discoverOwnedBuilder(node, property.type().getRawClass(), null);
+        }
+
+        private Map<Object, Object> discoverOwnedMap(JsonNode node, ResolvedProperty property) throws IOException {
+            if (!node.isObject())
+                throw JsonMappingException.from(source, "Expected an object for owned map property "
+                        + property.externalName());
+            Map<Object, Object> result = SortedMap.class.isAssignableFrom(property.type().getRawClass())
+                    ? new TreeMap<>()
+                    : new LinkedHashMap<>();
+            KeyDeserializer keyDeserializer = context.findKeyDeserializer(
+                    property.type().getKeyType(), property.beanProperty());
+            Class<?> childType = property.type().getContentType().getRawClass();
+            var fields = node.fields();
+            while (fields.hasNext()) {
+                var entry = fields.next();
+                Object key = keyDeserializer.deserializeKey(entry.getKey(), context);
+                result.put(key, discoverOwnedBuilder(entry.getValue(), childType, key));
+            }
+            return result;
+        }
+
+        private Collection<Object> discoverOwnedCollection(JsonNode node, ResolvedProperty property) throws IOException {
+            if (!node.isArray())
+                throw JsonMappingException.from(source, "Expected an array for owned collection property "
+                        + property.externalName());
+            Collection<Object> result = SortedSet.class.isAssignableFrom(property.type().getRawClass())
+                    ? new TreeSet<>()
+                    : Set.class.isAssignableFrom(property.type().getRawClass())
+                    ? new LinkedHashSet<>()
+                    : new ArrayList<>();
+            Class<?> childType = property.type().getContentType().getRawClass();
+            for (JsonNode element : node)
+                result.add(discoverOwnedBuilder(element, childType, null));
+            return result;
+        }
+
+        private KlumBuilder<?> discoverOwnedBuilder(JsonNode node, Class<?> childType, Object keyHint)
+                throws IOException {
+            if (!node.isObject())
+                throw JsonMappingException.from(source, "Expected an object for owned DSL value " + childType.getName());
+            ObjectNode object = (ObjectNode) node;
+            PendingBuilder existing = buildersByConfiguration.get(object);
+            if (existing != null)
+                return existing.builder();
+            ResolvedProperties properties = resolveProperties(childType, context);
+            String key = resolveKey(childType, object, keyHint, properties);
+            KlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
+            addBuilder(child, object, properties);
+            return child;
+        }
+
+        private void bindConfiguration(PendingBuilder pending) {
+            pending.configuration().fields().forEachRemaining(entry -> bind(
+                    pending.builder(), entry.getKey(), entry.getValue(), pending.properties(), pending.ownedValues(),
+                    source, context));
+        }
+    }
+
+    private record PendingBuilder(KlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
+                                  Map<ResolvedProperty, Object> ownedValues) {
     }
 
 }
