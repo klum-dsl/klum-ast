@@ -58,8 +58,15 @@ This is a breaking release. See the [Builder-first construction migration](https
   Templates or copy/overwrite semantics ([#439](https://github.com/klum-dsl/klum-ast/issues/439),
   [#251](https://github.com/klum-dsl/klum-ast/issues/251),
   [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)).
-  Explicit type-level custom deserializers remain the opt-out. `LINK` identity and forward references remain #440 scope.
-  The former public `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes remain removed.
+  Explicit type-level custom deserializers remain the opt-out.
+- Jackson `LINK` persistence is reference-only. Explicit Jackson identities with `alwaysAsId`, custom property codecs, and
+  custom `ObjectIdResolver`s preserve completed targets and same-session Builder identity across backward and forward
+  references, including Collection and Map `LINK`s. Inline objects and missing reference strategies fail with focused
+  mapping errors; Owner and Role remain framework-managed ([#440](https://github.com/klum-dsl/klum-ast/issues/440)).
+- Jackson views, inclusion, formats, Simple Value codecs, mixins, and polymorphic owned DSL subtypes work without replacing
+  Klum construction. `@JsonCreator`, direct model mutators, foreign Jackson Builders, completed-model owned deserializers,
+  and managed/back references cannot take over Builder allocation. The former public `KlumValueInstantiator` and
+  `SettableKlumBeanProperty` extension classes remain removed.
 
 # 3.0.1
 - New annodocimal version, ignores irrelevant inner class entries in class files
