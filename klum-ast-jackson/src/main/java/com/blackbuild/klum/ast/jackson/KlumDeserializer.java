@@ -87,7 +87,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
     private static final ThreadLocal<OwnedBuilderRequest> OWNED_BUILDER_REQUEST = new ThreadLocal<>();
 
     private final Class<?> modelType;
-    private final JsonDeserializer<?> jacksonDelegate;
+    private final transient JsonDeserializer<?> jacksonDelegate;
 
     KlumDeserializer(Class<?> modelType, JsonDeserializer<?> jacksonDelegate) {
         super(modelType);
@@ -162,119 +162,13 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         );
     }
 
-    private void bind(KlumBuilder<?> builder, String externalName, JsonNode node,
-                      ResolvedProperties properties, Map<ResolvedProperty, Object> ownedValues,
-                      JsonParser source, DeserializationContext context) {
-        ResolvedProperty property = properties.bindable().get(externalName);
-        if (property == null) {
-            if (properties.ignored().contains(externalName) || properties.ignoreUnknown())
-                return;
-            handleUnknown(builder, externalName, node, source, context);
-            return;
-        }
-        try {
-            Object value;
-            if (DslHelper.isLink(property.schemaField()))
-                value = readLinkValue(node, property, source, context);
-            else if (DslHelper.isRelationship(property.schemaField()))
-                value = ownedValues.get(property);
-            else
-                value = readSimpleValue(node, source, property, context);
-            builder.setSingleField(property.internalName(), value);
-        } catch (IOException exception) {
-            throw new UncheckedIOException(exception);
-        }
-    }
-
-    private Object readLinkValue(JsonNode node, ResolvedProperty property,
-                                 JsonParser source, DeserializationContext context) throws IOException {
-        if (node.isNull())
-            return null;
-        if (node.isObject() && !property.type().isMapLikeType())
-            throw JsonMappingException.from(source, "LINK property " + property.schemaField().getDeclaringClass().getName()
-                    + "." + property.internalName() + " must contain a reference id, not an inline object");
-
-        if (hasCustomPropertyDeserializer(property, context)) {
-            JsonDeserializer<Object> valueDeserializer = findPropertyValueDeserializer(property, context);
-            return readValue(node, source, valueDeserializer, context);
-        }
-        if (!isAlwaysAsId(property, context))
-            throw JsonMappingException.from(source, "Non-null LINK property "
-                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
-                    + " requires @JsonIdentityInfo on the target type and "
-                    + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, or an explicit custom property deserializer");
-
-        if (property.type().isMapLikeType())
-            return readLinkMap(node, property, source, context);
-        if (property.type().isCollectionLikeType())
-            return readLinkCollection(node, property, source, context);
-        return resolveLinkReference(node, property.type(), property, source, context);
-    }
-
-    private Map<Object, Object> readLinkMap(JsonNode node, ResolvedProperty property,
-                                            JsonParser source, DeserializationContext context) throws IOException {
-        if (!node.isObject())
-            throw JsonMappingException.from(source, "Expected an object of reference ids for LINK map property "
-                    + property.externalName());
-        Map<Object, Object> result = SortedMap.class.isAssignableFrom(property.type().getRawClass())
-                ? new TreeMap<>()
-                : new LinkedHashMap<>();
-        KeyDeserializer keyDeserializer = context.findKeyDeserializer(
-                property.type().getKeyType(), property.beanProperty());
-        var fields = node.fields();
-        while (fields.hasNext()) {
-            var entry = fields.next();
-            if (entry.getValue().isObject())
-                throw inlineLinkError(property, source);
-            Object key = keyDeserializer.deserializeKey(entry.getKey(), context);
-            result.put(key, resolveLinkReference(
-                    entry.getValue(), property.type().getContentType(), property, source, context));
-        }
-        return result;
-    }
-
-    private Collection<Object> readLinkCollection(JsonNode node, ResolvedProperty property,
-                                                  JsonParser source, DeserializationContext context) throws IOException {
-        if (!node.isArray())
-            throw JsonMappingException.from(source, "Expected an array of reference ids for LINK collection property "
-                    + property.externalName());
-        Collection<Object> result = SortedSet.class.isAssignableFrom(property.type().getRawClass())
-                ? new TreeSet<>()
-                : Set.class.isAssignableFrom(property.type().getRawClass())
-                ? new LinkedHashSet<>()
-                : new ArrayList<>();
-        for (JsonNode element : node) {
-            if (element.isObject())
-                throw inlineLinkError(property, source);
-            result.add(resolveLinkReference(element, property.type().getContentType(), property, source, context));
-        }
-        return result;
-    }
-
-    private Object resolveLinkReference(JsonNode node, JavaType targetType, ResolvedProperty property,
-                                        JsonParser source, DeserializationContext context) throws IOException {
-        if (node.isNull())
-            return null;
-        JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
-                targetType, property.beanProperty());
-        if (valueDeserializer.getObjectIdReader() == null)
-            throw JsonMappingException.from(source, "Non-null LINK property "
-                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
-                    + " requires @JsonIdentityInfo on its target type");
-
-        ObjectIdReader reader = valueDeserializer.getObjectIdReader();
-        Object id;
-        try (JsonParser valueParser = node.traverse(source.getCodec())) {
-            valueParser.nextToken();
-            id = reader.readObjectReference(valueParser, context);
-        }
-        ReadableObjectId readableObjectId = context.findObjectId(id, reader.generator, reader.resolver);
-        Object resolved = readableObjectId.resolve();
-        if (resolved == null)
-            throw JsonMappingException.from(source, "Could not resolve LINK property "
-                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
-                    + " reference id '" + id + "' to a completed DSL Object or Builder in this Construction session");
-        return resolved;
+    private static Collection<Object> createCollection(JavaType type) {
+        Class<?> rawType = type.getRawClass();
+        if (SortedSet.class.isAssignableFrom(rawType))
+            return new TreeSet<>();
+        if (Set.class.isAssignableFrom(rawType))
+            return new LinkedHashSet<>();
+        return new ArrayList<>();
     }
 
     private static JsonMappingException inlineLinkError(ResolvedProperty property, JsonParser source) {
@@ -294,7 +188,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         Object definition = member == null ? null : context.getAnnotationIntrospector().findDeserializer(member);
         if (definition == null)
             return context.findContextualValueDeserializer(property.type(), property.beanProperty());
-        JsonDeserializer<Object> deserializer = (JsonDeserializer<Object>) context.deserializerInstance(member, definition);
+        JsonDeserializer<Object> deserializer = context.deserializerInstance(member, definition);
         return (JsonDeserializer<Object>) context.handleSecondaryContextualization(
                 deserializer, property.beanProperty(), property.type());
     }
@@ -321,16 +215,6 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                                           DeserializationContext context) throws IOException {
         JsonDeserializer<Object> valueDeserializer = findPropertyValueDeserializer(property, context);
         return readValue(node, source, valueDeserializer, context);
-    }
-
-    private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node,
-                               JsonParser source, DeserializationContext context) {
-        try (JsonParser valueParser = node.traverse(source.getCodec())) {
-            valueParser.nextToken();
-            context.handleUnknownProperty(valueParser, this, builder, externalName);
-        } catch (IOException exception) {
-            throw new UncheckedIOException(exception);
-        }
     }
 
     private ResolvedProperties resolveProperties(Class<?> currentType, DeserializationContext context) {
@@ -555,11 +439,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             if (!node.isArray())
                 throw JsonMappingException.from(source, "Expected an array for owned collection property "
                         + property.externalName());
-            Collection<Object> result = SortedSet.class.isAssignableFrom(property.type().getRawClass())
-                    ? new TreeSet<>()
-                    : Set.class.isAssignableFrom(property.type().getRawClass())
-                    ? new LinkedHashSet<>()
-                    : new ArrayList<>();
+            Collection<Object> result = createCollection(property.type());
             Class<?> childType = property.type().getContentType().getRawClass();
             for (JsonNode element : node)
                 result.add(discoverOwnedBuilder(element, childType, null));
@@ -611,10 +491,128 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return child;
         }
 
+        private Object readLinkValue(JsonNode node, ResolvedProperty property) throws IOException {
+            if (node.isNull())
+                return null;
+            if (node.isObject() && !property.type().isMapLikeType())
+                throw JsonMappingException.from(source, "LINK property "
+                        + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                        + " must contain a reference id, not an inline object");
+
+            if (hasCustomPropertyDeserializer(property, context)) {
+                JsonDeserializer<Object> valueDeserializer = findPropertyValueDeserializer(property, context);
+                return readValue(node, source, valueDeserializer, context);
+            }
+            if (!isAlwaysAsId(property, context))
+                throw JsonMappingException.from(source, "Non-null LINK property "
+                        + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                        + " requires @JsonIdentityInfo on the target type and "
+                        + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, "
+                        + "or an explicit custom property deserializer");
+
+            if (property.type().isMapLikeType())
+                return readLinkMap(node, property);
+            if (property.type().isCollectionLikeType())
+                return readLinkCollection(node, property);
+            return resolveLinkReference(node, property.type(), property);
+        }
+
+        private Map<Object, Object> readLinkMap(JsonNode node, ResolvedProperty property) throws IOException {
+            if (!node.isObject())
+                throw JsonMappingException.from(source, "Expected an object of reference ids for LINK map property "
+                        + property.externalName());
+            Map<Object, Object> result = SortedMap.class.isAssignableFrom(property.type().getRawClass())
+                    ? new TreeMap<>()
+                    : new LinkedHashMap<>();
+            KeyDeserializer keyDeserializer = context.findKeyDeserializer(
+                    property.type().getKeyType(), property.beanProperty());
+            var fields = node.fields();
+            while (fields.hasNext()) {
+                var entry = fields.next();
+                if (entry.getValue().isObject())
+                    throw inlineLinkError(property, source);
+                Object key = keyDeserializer.deserializeKey(entry.getKey(), context);
+                result.put(key, resolveLinkReference(
+                        entry.getValue(), property.type().getContentType(), property));
+            }
+            return result;
+        }
+
+        private Collection<Object> readLinkCollection(JsonNode node, ResolvedProperty property) throws IOException {
+            if (!node.isArray())
+                throw JsonMappingException.from(source,
+                        "Expected an array of reference ids for LINK collection property " + property.externalName());
+            Collection<Object> result = createCollection(property.type());
+            for (JsonNode element : node) {
+                if (element.isObject())
+                    throw inlineLinkError(property, source);
+                result.add(resolveLinkReference(element, property.type().getContentType(), property));
+            }
+            return result;
+        }
+
+        private Object resolveLinkReference(JsonNode node, JavaType targetType, ResolvedProperty property)
+                throws IOException {
+            if (node.isNull())
+                return null;
+            JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
+                    targetType, property.beanProperty());
+            if (valueDeserializer.getObjectIdReader() == null)
+                throw JsonMappingException.from(source, "Non-null LINK property "
+                        + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                        + " requires @JsonIdentityInfo on its target type");
+
+            ObjectIdReader reader = valueDeserializer.getObjectIdReader();
+            Object id;
+            try (JsonParser valueParser = node.traverse(source.getCodec())) {
+                valueParser.nextToken();
+                id = reader.readObjectReference(valueParser, context);
+            }
+            ReadableObjectId readableObjectId = context.findObjectId(id, reader.generator, reader.resolver);
+            Object resolved = readableObjectId.resolve();
+            if (resolved == null)
+                throw JsonMappingException.from(source, "Could not resolve LINK property "
+                        + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                        + " reference id '" + id
+                        + "' to a completed DSL Object or Builder in this Construction session");
+            return resolved;
+        }
+
+        private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node) {
+            try (JsonParser valueParser = node.traverse(source.getCodec())) {
+                valueParser.nextToken();
+                context.handleUnknownProperty(valueParser, KlumDeserializer.this, builder, externalName);
+            } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+            }
+        }
+
+        private void bind(KlumBuilder<?> builder, String externalName, JsonNode node,
+                          ResolvedProperties properties, Map<ResolvedProperty, Object> ownedValues) {
+            ResolvedProperty property = properties.bindable().get(externalName);
+            if (property == null) {
+                if (properties.ignored().contains(externalName) || properties.ignoreUnknown())
+                    return;
+                handleUnknown(builder, externalName, node);
+                return;
+            }
+            try {
+                Object value;
+                if (DslHelper.isLink(property.schemaField()))
+                    value = readLinkValue(node, property);
+                else if (DslHelper.isRelationship(property.schemaField()))
+                    value = ownedValues.get(property);
+                else
+                    value = readSimpleValue(node, source, property, context);
+                builder.setSingleField(property.internalName(), value);
+            } catch (IOException exception) {
+                throw new UncheckedIOException(exception);
+            }
+        }
+
         private void bindConfiguration(PendingBuilder pending) {
             pending.configuration().fields().forEachRemaining(entry -> bind(
-                    pending.builder(), entry.getKey(), entry.getValue(), pending.properties(), pending.ownedValues(),
-                    source, context));
+                    pending.builder(), entry.getKey(), entry.getValue(), pending.properties(), pending.ownedValues()));
         }
     }
 

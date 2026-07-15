@@ -40,7 +40,6 @@ import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class KlumAstModule extends Module {
 
@@ -94,7 +93,7 @@ public class KlumAstModule extends Module {
                 return beanProperties;
             return beanProperties.stream()
                     .map(writer -> linkWriter(config, beanDesc, writer))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         private static BeanPropertyWriter linkWriter(SerializationConfig config, BeanDescription beanDesc,
