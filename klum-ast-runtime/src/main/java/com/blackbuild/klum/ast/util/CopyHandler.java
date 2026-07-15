@@ -495,7 +495,7 @@ public class CopyHandler {
         if (value instanceof KlumBuilder)
             return ((KlumBuilder<?>) value).getBreadcrumbPath();
         if (value != null && DslHelper.isDslObject(value))
-            return KlumModelProxy.getProxyFor(value).getBreadcrumbPath();
+            return KlumTemplateProxy.companionFor(value).getBreadcrumbPath();
         return null;
     }
 

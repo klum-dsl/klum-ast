@@ -35,6 +35,7 @@ import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
+import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Reference;
@@ -349,28 +350,33 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata,
-                template ? dehydrateApplyLaterClosures(applyLaterClosures) : Collections.emptyMap());
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+    }
+
+    /**
+     * Creates the internal companion retained by a generated DSL Object.
+     * Public visibility exists only for generated constructors in arbitrary packages.
+     */
+    public final KlumObjectCompanion $createCompanion(GroovyObject model) {
+        if (template)
+            return new KlumTemplateProxy(
+                    model,
+                    getBreadcrumbPath(),
+                    modelPath,
+                    TemplateRecipeState.capture(applyLaterClosures)
+            );
+        return new KlumModelProxy(model, exportModelState());
     }
 
     public static final class ModelState implements Serializable {
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Serializable> metadata;
-        private final Map<Integer, List<Closure<?>>> applyLaterClosures;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata,
-                           Map<Integer, List<Closure<?>>> applyLaterClosures) {
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
             this.metadata = new HashMap<>(metadata);
-            this.applyLaterClosures = copyApplyLaterClosures(applyLaterClosures);
-        }
-
-        private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
-            Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
-            source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
-            return copy;
         }
 
         public String getBreadcrumbPath() {
@@ -385,9 +391,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return metadata;
         }
 
-        public Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
-            return applyLaterClosures;
-        }
     }
 
     public <T> T getInstanceAttribute(String attributeName) {
@@ -983,17 +986,18 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     void copyApplyLaterClosuresFrom(Object recipe) {
-        Map<Integer, List<Closure<?>>> source;
-        if (recipe instanceof KlumBuilder)
-            source = ((KlumBuilder<?>) recipe).applyLaterClosures;
-        else if (recipe instanceof KlumModelObject)
-            source = KlumModelProxy.getProxyFor(recipe).getApplyLaterClosures();
-        else
+        if (recipe instanceof KlumBuilder) {
+            KlumBuilder<?> sourceBuilder = (KlumBuilder<?>) recipe;
+            sourceBuilder.applyLaterClosures.forEach((phase, closures) -> closures.forEach(closure ->
+                    doScheduleApplyLater(phase, cloneClosure(closure))));
             return;
-        source.forEach((phase, closures) -> closures.forEach(closure -> doScheduleApplyLater(phase, cloneClosure(closure))));
+        }
+        if (recipe instanceof KlumModelObject
+                && KlumTemplateProxy.companionFor(recipe) instanceof KlumTemplateProxy templateProxy)
+            templateProxy.replayInto(this);
     }
 
-    private static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
+    static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, closures.stream()
                 .map(KlumBuilder::dehydrateRecipeClosure)

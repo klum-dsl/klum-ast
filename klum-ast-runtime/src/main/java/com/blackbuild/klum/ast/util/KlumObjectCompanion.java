@@ -21,26 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.KlumModelObject
+import groovy.lang.GroovyObject;
 
-class TestObject implements KlumModelObject {
-    public final KlumObjectCompanion $proxy
+import java.io.Serializable;
 
-    TestObject() {
-        def stateCarrier = new CompanionStateCarrier(getClass() as Class<TestObject>)
-        $proxy = stateCarrier.$createCompanion(this)
-    }
+/**
+ * Internal state associated with a materialized DSL Object.
+ *
+ * <p>This type is public only because generated DSL Objects can live in arbitrary packages.
+ * It is a generated-code linkage type, not supported client API.</p>
+ */
+public sealed interface KlumObjectCompanion extends Serializable permits KlumModelProxy, KlumTemplateProxy {
 
-    private static final class CompanionStateCarrier extends KlumBuilder<TestObject> {
-        CompanionStateCarrier(Class<TestObject> modelType) {
-            super(modelType)
-        }
+    GroovyObject getObject();
 
-        @Override
-        protected Class<TestObject> $modelImplementationType() {
-            return TestObject
-        }
-    }
+    String getBreadcrumbPath();
+
+    String getModelPath();
 }

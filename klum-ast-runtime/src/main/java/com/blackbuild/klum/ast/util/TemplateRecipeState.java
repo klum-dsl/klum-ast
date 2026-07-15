@@ -21,26 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.util;
 
-import com.blackbuild.klum.ast.KlumModelObject
+import groovy.lang.Closure;
 
-class TestObject implements KlumModelObject {
-    public final KlumObjectCompanion $proxy
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
-    TestObject() {
-        def stateCarrier = new CompanionStateCarrier(getClass() as Class<TestObject>)
-        $proxy = stateCarrier.$createCompanion(this)
+/** Immutable serialized recipe actions retained only by a Template companion. */
+final class TemplateRecipeState implements Serializable {
+
+    private final Map<Integer, List<Closure<?>>> actions;
+
+    private TemplateRecipeState(Map<Integer, List<Closure<?>>> actions) {
+        Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
+        actions.forEach((phase, closures) -> copy.put(phase, List.copyOf(closures)));
+        this.actions = Collections.unmodifiableMap(copy);
     }
 
-    private static final class CompanionStateCarrier extends KlumBuilder<TestObject> {
-        CompanionStateCarrier(Class<TestObject> modelType) {
-            super(modelType)
-        }
+    static TemplateRecipeState capture(Map<Integer, List<Closure<?>>> actions) {
+        return new TemplateRecipeState(KlumBuilder.dehydrateApplyLaterClosures(actions));
+    }
 
-        @Override
-        protected Class<TestObject> $modelImplementationType() {
-            return TestObject
-        }
+    void replayInto(KlumBuilder<?> recipient) {
+        actions.forEach((phase, closures) -> closures.forEach(closure ->
+                recipient.scheduleApplyLater(phase, (Closure<?>) closure.clone())));
     }
 }

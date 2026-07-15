@@ -25,8 +25,6 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.klum.ast.KlumModelObject;
-import groovy.lang.Closure;
 import groovy.lang.GroovyObject;
 
 import java.io.IOException;
@@ -36,7 +34,6 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -50,7 +47,7 @@ import static java.lang.String.format;
  * <p>This companion deliberately contains no construction-time mutation API and
  * never retains the Builder that created the model.</p>
  */
-public final class KlumModelProxy implements Serializable {
+public final class KlumModelProxy implements KlumObjectCompanion {
 
     public static final String NAME_IN_MODEL = "$proxy";
 
@@ -59,7 +56,6 @@ public final class KlumModelProxy implements Serializable {
     private final String breadcrumbPath;
     private String modelPath;
     private final Map<String, Serializable> metadata;
-    private final Map<Integer, List<Closure<?>>> applyLaterClosures;
     private final Set<Class<?>> executedValidators = new HashSet<>();
 
     public KlumModelProxy(GroovyObject model, KlumBuilder.ModelState state) {
@@ -67,31 +63,36 @@ public final class KlumModelProxy implements Serializable {
         this.breadcrumbPath = state.getBreadcrumbPath();
         this.modelPath = state.getModelPath();
         this.metadata = new HashMap<>(state.getMetadata());
-        this.applyLaterClosures = new HashMap<>(state.getApplyLaterClosures());
     }
 
     /**
      * Returns the companion for a completed DSL Object.
      */
     public static KlumModelProxy getProxyFor(Object target) {
-        if (target instanceof KlumModelProxy modelProxy)
+        KlumObjectCompanion companion = KlumTemplateProxy.companionFor(target);
+        if (companion instanceof KlumModelProxy modelProxy)
             return modelProxy;
-        if (!(target instanceof KlumModelObject))
-            throw new KlumException(format("Object of type %s is not a completed DSL Object", target.getClass().getName()));
-        KlumModelProxy proxy = DslHelper.getFieldValue(target, NAME_IN_MODEL);
-        if (proxy == null)
-            throw new KlumException(format("Completed DSL Object %s has no model companion", target.getClass().getName()));
-        return proxy;
+        throw new KlumException(format("Completed DSL Object %s is a Template, not an ordinary model", target.getClass().getName()));
     }
 
+    @Override
+    public GroovyObject getObject() {
+        return model;
+    }
+
+    /** @deprecated use the common internal companion identity operation. */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings({"java:S4144", "java:S1133"}) // accepted #435 migration alias until its scheduled removal
     public GroovyObject getModel() {
         return model;
     }
 
+    @Override
     public String getBreadcrumbPath() {
         return breadcrumbPath;
     }
 
+    @Override
     public String getModelPath() {
         return modelPath;
     }
@@ -151,10 +152,6 @@ public final class KlumModelProxy implements Serializable {
             throw new KlumException(format(
                     "Metadata value for key '%s' must have a fully Serializable object graph", key), exception);
         }
-    }
-
-    Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
-        return applyLaterClosures;
     }
 
     /**

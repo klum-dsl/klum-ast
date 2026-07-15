@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.DslHelper;
+import com.blackbuild.klum.ast.util.TemplateManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,7 +52,7 @@ public interface ModelVisitor {
      * @return whether to skip, visit or skip subtree
      */
     default Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        return DslHelper.isDslObject(element) ? Action.HANDLE : Action.SKIP;
+        return DslHelper.isDslObject(element) && !TemplateManager.isTemplate(element) ? Action.HANDLE : Action.SKIP;
     }
 
     enum Action {

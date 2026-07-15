@@ -219,7 +219,36 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         error.message.contains("only supported for LINK relationships")
     }
 
-    def "model companions do not retain Builder-backed applyLater closures"() {
+    def "ordinary Model state contains no deferred actions"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Recipe {
+                String name
+                String result
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            name "model"
+            applyLater {
+                result name.toUpperCase()
+            }
+        }
+
+        then:
+        instance.result == "MODEL"
+        KlumModelProxy.getProxyFor(instance).object.is(instance)
+        !KlumModelProxy.declaredFields*.name.contains("applyLaterClosures")
+        !KlumModelProxy.declaredMethods*.name.contains("getApplyLaterClosures")
+        !KlumBuilder.ModelState.declaredFields*.name.contains("applyLaterClosures")
+        !KlumBuilder.ModelState.declaredMethods*.name.contains("getApplyLaterClosures")
+    }
+
+    def "Template recipe actions replay into fresh Builders"() {
         given:
         createClass '''
             package pk
@@ -233,22 +262,13 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         when:
         def suffix = "!"
-        def template = clazz.Create.Template {
+        def template = clazz.Template.Create {
             applyLater {
                 result name.toUpperCase() + suffix
             }
         }
-        def proxy = KlumModelProxy.getProxyFor(template)
-        def closuresField = KlumModelProxy.getDeclaredField("applyLaterClosures")
-        closuresField.accessible = true
-        Closure stored = closuresField.get(proxy).values().first().first()
 
-        then:
-        stored.owner == null
-        stored.delegate == null
-        stored.thisObject == null
-
-        when: "the dehydrated recipe is copied into a fresh Builder"
+        and: "the detached recipe is copied into a fresh Builder"
         instance = clazz.Template.With(template) {
             clazz.Create.With { name "fresh" }
         }
