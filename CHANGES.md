@@ -29,6 +29,10 @@ This is a breaking release. See the [Builder-first construction migration](https
   duplicates, and map keys. Opaque or precompiled model producers are omitted from generated APIs and matching dynamic calls
   fail with targeted migration guidance ([#437](https://github.com/klum-dsl/klum-ast/issues/437),
   [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)).
+- Added the Java-first `KlumObjectSupport.of(completedObject)` facade for a completed DSL Object root or subtree. Its
+  provenance getters and composition-only `Structure` helper expose paths, direct ownership, relative paths, and
+  cycle-safe typed traversal without exposing the internal Model companion ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
+  [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)).
 - Template companion, copy-source, and replay semantics remain tracked by
   [#438](https://github.com/klum-dsl/klum-ast/issues/438).
 

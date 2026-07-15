@@ -19,7 +19,7 @@ become an accidental plugin protocol.
 
 ## Tracer-bullet slices
 
-### [OS-1 — Provenance and structure facade](https://github.com/klum-dsl/klum-ast/issues/435)
+### [OS-1 — Provenance and structure facade](https://github.com/klum-dsl/klum-ast/issues/435) — Implemented
 
 Add `KlumObjectSupport.of(object)` with `getObject`, both path getters, and `getStructure`. Implement direct owners, owner
 hierarchy, composition-only cycle-safe visit/find-all, and relative paths. Make existing `StructureUtil` delegate where

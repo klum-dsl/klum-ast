@@ -24,8 +24,8 @@
 package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.util.KlumObjectSupport;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +43,7 @@ public abstract class ModelVisitingPhaseAction extends AbstractPhaseAction imple
         Object root = PhaseDriver.getInstance().getRootObject();
         if (!(root instanceof KlumModelObject))
             throw new IllegalStateException("Model phase " + getPhase().getDisplayName() + " received a Builder");
-        StructureUtil.visit(root, this);
+        KlumObjectSupport.of(root).getStructure().visit(this);
     }
 
     @Override

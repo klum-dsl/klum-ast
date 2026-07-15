@@ -27,7 +27,6 @@ import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.*;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
-import com.blackbuild.klum.ast.util.layer3.StructureUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +55,7 @@ public class Validator {
      */
     public static List<KlumValidationResult> getValidationResultsFromStructure(Object instance) {
         ValidationResultCollector visitor = new ValidationResultCollector();
-        StructureUtil.visit(instance, visitor);
+        KlumObjectSupport.of(instance).getStructure().visit(visitor);
         return visitor.aggregatedErrors;
     }
 
@@ -82,7 +81,7 @@ public class Validator {
      */
     public static List<KlumValidationResult> verifyStructure(Object instance, Validate.Level failLevel) throws KlumValidationException {
         ValidationResultCollector visitor = new ValidationResultCollector();
-        StructureUtil.visit(instance, visitor);
+        KlumObjectSupport.of(instance).getStructure().visit(visitor);
         KlumValidationResult.throwOn(visitor.aggregatedErrors, failLevel);
         return visitor.aggregatedErrors;
     }

@@ -77,14 +77,20 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 - Object support
 
   `KlumObjectSupport<T>.of(object)` is the supported Java-first facade for any completed DSL Object or subtree. It exposes
-  the object, construction breadcrumb, structural model path, grouped composition structure traversal, and stored
-  validation results without exposing the internal companion.
+  the object, construction breadcrumb, structural model path, and grouped composition structure traversal without exposing
+  the internal companion. Its Structure helper is composition-only and identity-cycle-safe; it skips Owner and LINK edges.
+  Completed-model phase traversal uses this helper directly, while Builder phases use a separate internal Builder structure
+  helper. The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
+
+  OS-2 adds the stored-validation helper (`getValidation`) and moves remaining completed-model validation readers away from
+  companion access. It must read existing results only: it never reruns validators or mutates lifecycle issue state.
 
 - Construction API
 
   DSL Objects are constructed only by generated Builders and controlled deserialization logic. Generated constructors are internal implementation details and are not a client construction API.
 
-  `KlumInstanceProxy` compatibility is limited to Builders and construction-time operations. Completed DSL Objects use their Model companion or public utilities; asking `KlumInstanceProxy` for a completed DSL Object is an error with migration guidance.
+  `KlumInstanceProxy` compatibility is limited to Builders and construction-time operations. Completed DSL Objects use
+  `KlumObjectSupport`; asking `KlumInstanceProxy` for a completed DSL Object is an error with migration guidance.
 
   Completed DSL Objects do not expose `apply`; configuration is Builder-only.
 
