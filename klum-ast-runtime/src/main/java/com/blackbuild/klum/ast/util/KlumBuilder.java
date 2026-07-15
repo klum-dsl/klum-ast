@@ -988,7 +988,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         KlumPhase phase = PhaseDriver.getCurrentPhase();
         if (phase == null)
             phase = DefaultKlumPhase.APPLY_LATER;
-        doScheduleApplyLater(phase.getNumber(), closure);
+        doScheduleApplyLater(phase.getNumber(), phase.getName(), closure);
     }
 
     public void applyLater(KlumPhase phase, Closure<?> closure) {
@@ -996,7 +996,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void scheduleApplyLater(KlumPhase phase, Closure<?> closure) {
-        doScheduleApplyLater(phase.getNumber(), closure);
+        doScheduleApplyLater(phase.getNumber(), phase.getName(), closure);
     }
 
     public void applyLater(Integer number, Closure<?> closure) {
@@ -1004,13 +1004,26 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void scheduleApplyLater(Integer number, Closure<?> closure) {
-        doScheduleApplyLater(number, closure);
+        doScheduleApplyLater(number, defaultPhaseName(number), closure);
     }
 
-    private void doScheduleApplyLater(Integer number, Closure<?> closure) {
+    private void doScheduleApplyLater(Integer number, String phaseName, Closure<?> closure) {
+        if (number >= DefaultKlumPhase.INSTANTIATE.getNumber()) {
+            String phaseDisplay = phaseName == null ? number.toString() : "'" + phaseName + "' (" + number + ")";
+            throw new KlumModelException("Cannot schedule applyLater for phase " + phaseDisplay
+                    + ": deferred Builder actions must run before materialization at phase 40. "
+                    + "Use a phase below 40, or a ModelVisitingPhaseAction for completed-model work.");
+        }
         applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
         if (!template)
             PhaseDriver.getInstance().registerApplyLaterPhase(number);
+    }
+
+    private static String defaultPhaseName(Integer number) {
+        for (DefaultKlumPhase phase : DefaultKlumPhase.values())
+            if (phase.getNumber() == number)
+                return phase.getName();
+        return null;
     }
 
     void copyApplyLaterClosuresFrom(Object recipe) {
