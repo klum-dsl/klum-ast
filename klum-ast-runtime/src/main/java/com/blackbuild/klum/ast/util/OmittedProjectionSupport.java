@@ -30,7 +30,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Runtime matcher for the internal catalog of deliberately omitted composition projections. */
+/**
+ * Runtime matcher for the internal catalog of deliberately omitted composition projections.
+ *
+ * <p>The wire format is a semicolon-separated list of entries. Each entry contains six period-separated fields:
+ * Base64 name, minimum argument count, varargs flag, Base64 comma-separated parameter types, Base64 signature, and Base64
+ * omission reason. URL-safe Base64 without padding keeps the two delimiters unambiguous.</p>
+ */
 public final class OmittedProjectionSupport {
 
     private static final Map<String, Class<?>> PRIMITIVES = primitiveTypes();
@@ -41,36 +47,41 @@ public final class OmittedProjectionSupport {
     public static Object handle(Object receiver, String methodName, Object arguments, String encodedCatalog) {
         Object[] actualArguments = normalizeArguments(arguments);
         for (String encodedEntry : encodedCatalog.split(";")) {
-            if (encodedEntry.isEmpty()) continue;
-            String[] fields = encodedEntry.split("\\.", -1);
-            String candidateName = decode(fields[0]);
-            if (!candidateName.equals(methodName)) continue;
-            int minimumArguments = Integer.parseInt(fields[1]);
-            boolean varargs = Boolean.parseBoolean(fields[2]);
-            String[] parameterTypes = decode(fields[3]).isEmpty() ? new String[0] : decode(fields[3]).split(",");
-            if (!matches(receiver.getClass().getClassLoader(), actualArguments, parameterTypes, minimumArguments, varargs))
-                continue;
-            String signature = decode(fields[4]);
-            String reason = decode(fields[5]);
-            throw new KlumModelException("Cannot use omitted Builder-producing projection " + signature + ": " + reason
-                    + ". Use an active-session Create.AsBuilder recipe or move the producer into source visible to the schema compiler.");
+            if (!encodedEntry.isEmpty()) {
+                CatalogEntry entry = CatalogEntry.decode(encodedEntry);
+                if (entry.matches(receiver.getClass().getClassLoader(), methodName, actualArguments))
+                    throw entry.toException();
+            }
         }
         throw new MissingMethodException(methodName, receiver.getClass(), actualArguments);
     }
 
     private static boolean matches(ClassLoader loader, Object[] arguments, String[] parameterTypeNames,
                                    int minimumArguments, boolean varargs) {
-        if (arguments.length < minimumArguments) return false;
-        if (!varargs && arguments.length > parameterTypeNames.length) return false;
-        if (varargs && parameterTypeNames.length == 0) return false;
+        if (!hasCompatibleArity(arguments.length, parameterTypeNames.length, minimumArguments, varargs)) return false;
 
         int fixed = varargs ? parameterTypeNames.length - 1 : arguments.length;
+        if (!fixedArgumentsMatch(loader, arguments, parameterTypeNames, fixed)) return false;
+        return !varargs || varargsMatch(loader, arguments, parameterTypeNames, fixed);
+    }
+
+    private static boolean hasCompatibleArity(int argumentCount, int parameterCount, int minimumArguments,
+                                              boolean varargs) {
+        if (argumentCount < minimumArguments) return false;
+        if (varargs) return parameterCount > 0;
+        return argumentCount <= parameterCount;
+    }
+
+    private static boolean fixedArgumentsMatch(ClassLoader loader, Object[] arguments, String[] parameterTypeNames,
+                                               int fixed) {
         for (int index = 0; index < fixed; index++) {
             if (index >= arguments.length || !accepts(loadType(parameterTypeNames[index], loader), arguments[index]))
                 return false;
         }
-        if (!varargs) return true;
+        return true;
+    }
 
+    private static boolean varargsMatch(ClassLoader loader, Object[] arguments, String[] parameterTypeNames, int fixed) {
         Class<?> arrayType = loadType(parameterTypeNames[parameterTypeNames.length - 1], loader);
         if (arguments.length == parameterTypeNames.length && accepts(arrayType, arguments[arguments.length - 1]))
             return true;
@@ -98,7 +109,7 @@ public final class OmittedProjectionSupport {
 
     private static Object[] normalizeArguments(Object arguments) {
         if (arguments == null) return new Object[0];
-        if (arguments instanceof Object[]) return (Object[]) arguments;
+        if (arguments instanceof Object[] objectArray) return objectArray;
         return new Object[] { arguments };
     }
 
@@ -130,5 +141,41 @@ public final class OmittedProjectionSupport {
         result.put("char", char.class);
         result.put("void", void.class);
         return result;
+    }
+
+    private record CatalogEntry(String name, int minimumArguments, boolean varargs, String[] parameterTypes,
+                                String signature, String reason) {
+
+        private static CatalogEntry decode(String encodedEntry) {
+            String[] fields = encodedEntry.split("\\.", -1);
+            String decodedParameterTypes = OmittedProjectionSupport.decode(fields[3]);
+            String[] parameterTypes = decodedParameterTypes.isEmpty()
+                    ? new String[0]
+                    : decodedParameterTypes.split(",");
+            return new CatalogEntry(
+                    OmittedProjectionSupport.decode(fields[0]),
+                    Integer.parseInt(fields[1]),
+                    Boolean.parseBoolean(fields[2]),
+                    parameterTypes,
+                    OmittedProjectionSupport.decode(fields[4]),
+                    OmittedProjectionSupport.decode(fields[5])
+            );
+        }
+
+        private boolean matches(ClassLoader loader, String methodName, Object[] arguments) {
+            return name.equals(methodName)
+                    && OmittedProjectionSupport.matches(
+                            loader,
+                            arguments,
+                            parameterTypes,
+                            minimumArguments,
+                            varargs
+                    );
+        }
+
+        private KlumModelException toException() {
+            return new KlumModelException("Cannot use omitted Builder-producing projection " + signature + ": " + reason
+                    + ". Use an active-session Create.AsBuilder recipe or move the producer into source visible to the schema compiler.");
+        }
     }
 }

@@ -29,9 +29,11 @@ import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,7 +90,7 @@ final class OmittedProjectionCatalog {
         target.setNodeMetaData(METHOD_METADATA_KEY, methodMissing);
     }
 
-    private static org.codehaus.groovy.ast.expr.MethodCallExpression createHandlerCall(String catalog) {
+    private static MethodCallExpression createHandlerCall(String catalog) {
         return callX(
                 classX(ClassHelper.make(OmittedProjectionSupport.class)),
                 "handle",
@@ -101,18 +103,18 @@ final class OmittedProjectionCatalog {
         private Entry(String exposedName, MethodNode method, String reason) {
             this(
                     exposedName,
-                    java.util.Arrays.stream(method.getParameters())
+                    Arrays.stream(method.getParameters())
                             .map(Parameter::getOriginType)
                             .map(ClassNode::getName)
-                            .collect(Collectors.toList()),
-                    (int) java.util.Arrays.stream(method.getParameters())
+                            .toList(),
+                    (int) Arrays.stream(method.getParameters())
                             .limit((method.getModifiers() & Opcodes.ACC_VARARGS) != 0
                                     ? Math.max(0, method.getParameters().length - 1)
                                     : method.getParameters().length)
                             .filter(parameter -> !parameter.hasInitialExpression())
                             .count(),
                     (method.getModifiers() & Opcodes.ACC_VARARGS) != 0,
-                    exposedName + "(" + java.util.Arrays.stream(method.getParameters())
+                    exposedName + "(" + Arrays.stream(method.getParameters())
                             .map(Parameter::getOriginType)
                             .map(ClassNode::getName)
                             .collect(Collectors.joining(", ")) + ")",

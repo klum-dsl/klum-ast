@@ -1472,7 +1472,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(method -> !method.isStatic())
                     .filter(method -> !method.isFinal())
                     .filter(method -> !method.isSynthetic())
-                    .filter(method -> !method.getName().startsWith("$klum$"))
+                    .filter(method -> !method.getName().startsWith(RESERVED_KLUM_NAMESPACE))
                     .filter(method -> !method.getName().equals("getAsBuilder"))
                     .map(method -> correctFactoryMethod(currentSpec, method))
                     .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));

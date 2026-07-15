@@ -759,7 +759,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      * Validates and attaches a projected batch of child Builders, then returns the producer's original container.
      * Validation happens before the first mutation so a rejected batch cannot be partially attached.
      */
-    public <C extends Collection<?>> C addProjectedBuildersToCollection(String fieldName, C builders) {
+    public <C extends Collection<?>> C addProjectedBuildersFromCollectionToCollection(String fieldName, C builders) {
         assertMutable();
         Field schemaField = getModelField(fieldName);
         builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));
@@ -768,7 +768,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     /** Attaches the values of a projected map to a collection relationship and returns the same map. */
-    public <M extends Map<?, ?>> M addProjectedBuildersToCollection(String fieldName, M builders) {
+    public <T extends Map<?, ?>> T addProjectedBuildersFromMapToCollection(String fieldName, T builders) {
         assertMutable();
         Field schemaField = getModelField(fieldName);
         builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
@@ -783,7 +783,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     /**
      * Validates and attaches a projected map of child Builders, preserving its keys, then returns that same map.
      */
-    public <M extends Map<?, ?>> M addProjectedBuildersToMap(String fieldName, M builders) {
+    public <T extends Map<?, ?>> T addProjectedBuildersFromMapToMap(String fieldName, T builders) {
         assertMutable();
         Field schemaField = getModelField(fieldName);
         builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
@@ -792,7 +792,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     /** Attaches a projected collection to a keyed relationship and returns the producer's original collection. */
-    public <C extends Collection<?>> C addProjectedBuildersToMap(String fieldName, C builders) {
+    public <C extends Collection<?>> C addProjectedBuildersFromCollectionToMap(String fieldName, C builders) {
         assertMutable();
         Field schemaField = getModelField(fieldName);
         builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));

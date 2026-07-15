@@ -23,15 +23,17 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
 import com.blackbuild.annodocimal.ast.formatting.DocText;
 import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
+import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.common.CommonAstHelper;
+import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
+import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.GenericsType;
@@ -41,6 +43,7 @@ import org.codehaus.groovy.ast.expr.BooleanExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.CastExpression;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ExpressionTransformer;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
@@ -90,6 +93,7 @@ final class BuilderMethodProjection {
     private static final String OMISSION_REASON_METADATA_KEY = BuilderMethodProjection.class.getName() + ".omissionReason";
     private static final String PROJECTION_STATE_METADATA_KEY = BuilderMethodProjection.class.getName() + ".state";
     private static final String TWIN_PREFIX = "$klum$asBuilder$";
+    private static final String ANNOTATION_VALUE_MEMBER = "value";
 
     private static final ClassNode KLUM_BUILDER = ClassHelper.make(KlumBuilder.class);
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
@@ -134,13 +138,13 @@ final class BuilderMethodProjection {
             Parameter projected = result[index];
             copyAnnotationsFromSourceToTarget(original, projected, Collections.emptyList());
 
-            List<org.codehaus.groovy.ast.AnnotationNode> aliases = original.getAnnotations(DELEGATES_TO_RW);
+            List<AnnotationNode> aliases = original.getAnnotations(DELEGATES_TO_RW);
             if (aliases.isEmpty()) continue;
-            ClassNode target = CommonAstHelper.getNullSafeClassMember(aliases.get(0), "value", defaultModel);
+            ClassNode target = CommonAstHelper.getNullSafeClassMember(aliases.get(0), ANNOTATION_VALUE_MEMBER, defaultModel);
             projected.getAnnotations().removeIf(annotation -> annotation.getClassNode().equals(DELEGATES_TO));
-            org.codehaus.groovy.ast.AnnotationNode delegatesTo = new org.codehaus.groovy.ast.AnnotationNode(DELEGATES_TO);
-            delegatesTo.setMember("value", classX(GeneratedDslSupport.builderTypeFor(target)));
-            delegatesTo.setMember("strategy", constX(groovy.lang.Closure.DELEGATE_ONLY));
+            AnnotationNode delegatesTo = new AnnotationNode(DELEGATES_TO);
+            delegatesTo.setMember(ANNOTATION_VALUE_MEMBER, classX(GeneratedDslSupport.builderTypeFor(target)));
+            delegatesTo.setMember("strategy", constX(Closure.DELEGATE_ONLY));
             projected.addAnnotation(delegatesTo);
         }
         return result;
@@ -269,11 +273,17 @@ final class BuilderMethodProjection {
 
     private static void normalizeDelegatingParameters(MethodNode source, ClassNode defaultModel) {
         for (Parameter parameter : source.getParameters()) {
-            if (!parameter.getAnnotations(DELEGATES_TO).isEmpty()) continue;
-            List<org.codehaus.groovy.ast.AnnotationNode> aliases = parameter.getAnnotations(DELEGATES_TO_RW);
-            if (aliases.isEmpty()) continue;
-            ClassNode target = CommonAstHelper.getNullSafeClassMember(aliases.get(0), "value", defaultModel);
-            DelegatesToRWTransformation.addDelegatesToAnnotation(target, parameter);
+            if (parameter.getAnnotations(DELEGATES_TO).isEmpty()) {
+                List<AnnotationNode> aliases = parameter.getAnnotations(DELEGATES_TO_RW);
+                if (!aliases.isEmpty()) {
+                    ClassNode target = CommonAstHelper.getNullSafeClassMember(
+                            aliases.get(0),
+                            ANNOTATION_VALUE_MEMBER,
+                            defaultModel
+                    );
+                    DelegatesToRWTransformation.addDelegatesToAnnotation(target, parameter);
+                }
+            }
         }
     }
 
@@ -283,13 +293,17 @@ final class BuilderMethodProjection {
         do {
             changed = false;
             for (Candidate candidate : candidates) {
-                if (candidate.opaque || result.contains(candidate)) continue;
-                if (!candidate.directBuilderCall && candidate.dependencies.stream().noneMatch(result::contains)) continue;
-                if (!result.containsAll(candidate.dependencies)) continue;
-                changed |= result.add(candidate);
+                if (isNewlyAdaptable(candidate, result)) changed |= result.add(candidate);
             }
         } while (changed);
         return result;
+    }
+
+    private static boolean isNewlyAdaptable(Candidate candidate, Set<Candidate> adaptable) {
+        if (candidate.opaque || adaptable.contains(candidate)) return false;
+        boolean hasBuilderPath = candidate.directBuilderCall
+                || candidate.dependencies.stream().anyMatch(adaptable::contains);
+        return hasBuilderPath && adaptable.containsAll(candidate.dependencies);
     }
 
     private static boolean isExplicitBuilderProducer(ClassNode returnType, ClassNode expectedModel) {
@@ -347,35 +361,48 @@ final class BuilderMethodProjection {
 
     private static String unresolvedBuilderProblem(ClassNode type) {
         if (type == null) return null;
-        if (isAssignableTo(type, KLUM_BUILDER)) {
-            GenericsType[] generics = type.getGenericsTypes();
-            if (generics == null || generics.length != 1)
-                return "the KlumBuilder return type is raw";
-            GenericsType element = generics[0];
-            if (element.isWildcard())
-                return "the KlumBuilder element type is a wildcard";
-            if (element.isPlaceholder())
-                return "the KlumBuilder element type is an unresolved generic placeholder";
-            if (element.getType() == null || !isDSLObject(element.getType()))
-                return "the KlumBuilder element type does not resolve to a DSL Object";
-            return null;
-        }
+        if (isAssignableTo(type, KLUM_BUILDER)) return unresolvedKlumBuilderProblem(type);
         GenericsType[] generics = type.getGenericsTypes();
         if (generics == null) return null;
-        for (GenericsType generic : generics) {
-            if (generic.isWildcard()) {
-                ClassNode[] upperBounds = generic.getUpperBounds();
-                if ((upperBounds != null && Arrays.stream(upperBounds).anyMatch(bound -> unresolvedBuilderProblem(bound) != null
-                        || isAssignableTo(bound, KLUM_BUILDER)))
-                        || (generic.getLowerBound() != null && (unresolvedBuilderProblem(generic.getLowerBound()) != null
-                        || isAssignableTo(generic.getLowerBound(), KLUM_BUILDER))))
-                    return "a container Builder element type is a wildcard";
-                continue;
-            }
-            String nested = unresolvedBuilderProblem(generic.getType());
-            if (nested != null) return nested;
-        }
+        return Arrays.stream(generics)
+                .map(BuilderMethodProjection::unresolvedGenericBuilderProblem)
+                .filter(problem -> problem != null)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String unresolvedKlumBuilderProblem(ClassNode type) {
+        GenericsType[] generics = type.getGenericsTypes();
+        if (generics == null || generics.length != 1)
+            return "the KlumBuilder return type is raw";
+        GenericsType element = generics[0];
+        if (element.isWildcard())
+            return "the KlumBuilder element type is a wildcard";
+        if (element.isPlaceholder())
+            return "the KlumBuilder element type is an unresolved generic placeholder";
+        if (element.getType() == null || !isDSLObject(element.getType()))
+            return "the KlumBuilder element type does not resolve to a DSL Object";
         return null;
+    }
+
+    private static String unresolvedGenericBuilderProblem(GenericsType generic) {
+        if (generic.isWildcard())
+            return wildcardContainsBuilderType(generic)
+                    ? "a container Builder element type is a wildcard"
+                    : null;
+        return unresolvedBuilderProblem(generic.getType());
+    }
+
+    private static boolean wildcardContainsBuilderType(GenericsType generic) {
+        ClassNode[] upperBounds = generic.getUpperBounds();
+        boolean matchingUpperBound = upperBounds != null
+                && Arrays.stream(upperBounds).anyMatch(BuilderMethodProjection::containsBuilderType);
+        return matchingUpperBound || containsBuilderType(generic.getLowerBound());
+    }
+
+    private static boolean containsBuilderType(ClassNode type) {
+        return type != null
+                && (isAssignableTo(type, KLUM_BUILDER) || unresolvedBuilderProblem(type) != null);
     }
 
     private static final class ProjectionState {
@@ -421,24 +448,21 @@ final class BuilderMethodProjection {
         private Statement cloneStatement(Statement source) {
             if (source == null) return null;
             Statement result;
-            if (source instanceof BlockStatement) {
-                BlockStatement block = (BlockStatement) source;
+            if (source instanceof BlockStatement block) {
                 List<Statement> statements = new ArrayList<>();
                 block.getStatements().forEach(statement -> statements.add(cloneStatement(statement)));
                 result = new BlockStatement(statements, block.getVariableScope());
-            } else if (source instanceof ReturnStatement) {
-                result = new ReturnStatement(transform(((ReturnStatement) source).getExpression()));
-            } else if (source instanceof ExpressionStatement) {
-                result = new ExpressionStatement(transform(((ExpressionStatement) source).getExpression()));
-            } else if (source instanceof IfStatement) {
-                IfStatement ifStatement = (IfStatement) source;
+            } else if (source instanceof ReturnStatement returnStatement) {
+                result = new ReturnStatement(transform(returnStatement.getExpression()));
+            } else if (source instanceof ExpressionStatement expressionStatement) {
+                result = new ExpressionStatement(transform(expressionStatement.getExpression()));
+            } else if (source instanceof IfStatement ifStatement) {
                 result = new IfStatement(
                         (BooleanExpression) transform(ifStatement.getBooleanExpression()),
                         cloneStatement(ifStatement.getIfBlock()),
                         cloneStatement(ifStatement.getElseBlock())
                 );
-            } else if (source instanceof ForStatement) {
-                ForStatement forStatement = (ForStatement) source;
+            } else if (source instanceof ForStatement forStatement) {
                 ForStatement copy = new ForStatement(
                         forStatement.getVariable(),
                         transform(forStatement.getCollectionExpression()),
@@ -446,8 +470,8 @@ final class BuilderMethodProjection {
                 );
                 copy.setVariableScope(forStatement.getVariableScope());
                 result = copy;
-            } else if (source instanceof ThrowStatement) {
-                result = new ThrowStatement(transform(((ThrowStatement) source).getExpression()));
+            } else if (source instanceof ThrowStatement throwStatement) {
+                result = new ThrowStatement(transform(throwStatement.getExpression()));
             } else if (source instanceof EmptyStatement) {
                 return source;
             } else {
@@ -463,24 +487,22 @@ final class BuilderMethodProjection {
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
-            if (expression instanceof ClosureExpression) {
-                ClosureExpression source = (ClosureExpression) expression;
+            if (expression instanceof ClosureExpression source) {
                 ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
                 result.setVariableScope(source.getVariableScope());
                 result.setSourcePosition(source);
                 result.copyNodeMetaData(source);
                 return result;
             }
-            if (!(expression instanceof MethodCallExpression))
+            if (!(expression instanceof MethodCallExpression source))
                 return expression.transformExpression(this);
 
-            MethodCallExpression source = (MethodCallExpression) expression;
             MethodCallExpression result = (MethodCallExpression) source.transformExpression(this);
 
             Candidate dependency = findDependency(source);
             if (dependency != null) {
                 candidate.dependencies.add(dependency);
-                result.setMethod(new org.codehaus.groovy.ast.expr.ConstantExpression(dependency.twin.getName()));
+                result.setMethod(new ConstantExpression(dependency.twin.getName()));
                 result.setMethodTarget(dependency.twin);
                 return result;
             }
@@ -537,21 +559,21 @@ final class BuilderMethodProjection {
                     .map(value -> value.original)
                     .filter(method -> method.getName().equals(call.getMethodAsString()))
                     .filter(method -> acceptsArgumentCount(method, argumentCount))
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
             if (byArity.size() == 1) return byArity.get(0);
 
             List<MethodNode> compatible = byArity.stream()
                     .filter(method -> argumentsMatch(method.getParameters(), call.getArguments()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
             return compatible.size() == 1 ? compatible.get(0) : null;
         }
 
         private RootFactoryCall findRootFactoryCall(MethodCallExpression call) {
             Expression receiver = call.getObjectExpression();
-            if (receiver instanceof PropertyExpression) {
-                PropertyExpression create = (PropertyExpression) receiver;
-                if ("Create".equals(create.getPropertyAsString()) && create.getObjectExpression() instanceof ClassExpression) {
-                    ClassNode model = ((ClassExpression) create.getObjectExpression()).getType();
+            if (receiver instanceof PropertyExpression create) {
+                if ("Create".equals(create.getPropertyAsString())
+                        && create.getObjectExpression() instanceof ClassExpression classExpression) {
+                    ClassNode model = classExpression.getType();
                     if (isDSLObject(model)) return new RootFactoryCall(model, true);
                 }
             }
@@ -598,36 +620,40 @@ final class BuilderMethodProjection {
                     .findFirst()
                     .orElse(null);
         }
-    }
 
-    private static boolean parameterTypesMatch(Parameter[] left, Parameter[] right) {
-        if (left.length != right.length) return false;
-        for (int index = 0; index < left.length; index++)
-            if (!left[index].getOriginType().redirect().equals(right[index].getOriginType().redirect())) return false;
-        return true;
-    }
-
-    private static boolean acceptsArgumentCount(MethodNode method, int argumentCount) {
-        int required = (int) Arrays.stream(method.getParameters()).filter(parameter -> !parameter.hasInitialExpression()).count();
-        return argumentCount >= required && argumentCount <= method.getParameters().length;
-    }
-
-    private static int argumentCount(Expression arguments) {
-        return arguments instanceof TupleExpression ? ((TupleExpression) arguments).getExpressions().size() : 1;
-    }
-
-    private static boolean argumentsMatch(Parameter[] parameters, Expression arguments) {
-        if (!(arguments instanceof TupleExpression)) return parameters.length == 1;
-        List<Expression> expressions = ((TupleExpression) arguments).getExpressions();
-        if (parameters.length != expressions.size()) return false;
-        for (int index = 0; index < parameters.length; index++) {
-            Expression expression = expressions.get(index);
-            if (expression instanceof MapExpression && !isAssignableTo(ClassHelper.MAP_TYPE, parameters[index].getType()))
-                return false;
-            if (expression instanceof ClosureExpression && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
-                return false;
+        private static boolean parameterTypesMatch(Parameter[] left, Parameter[] right) {
+            if (left.length != right.length) return false;
+            for (int index = 0; index < left.length; index++)
+                if (!left[index].getOriginType().redirect().equals(right[index].getOriginType().redirect())) return false;
+            return true;
         }
-        return true;
+
+        private static boolean acceptsArgumentCount(MethodNode method, int argumentCount) {
+            int required = (int) Arrays.stream(method.getParameters())
+                    .filter(parameter -> !parameter.hasInitialExpression())
+                    .count();
+            return argumentCount >= required && argumentCount <= method.getParameters().length;
+        }
+
+        private static int argumentCount(Expression arguments) {
+            return arguments instanceof TupleExpression tupleExpression ? tupleExpression.getExpressions().size() : 1;
+        }
+
+        private static boolean argumentsMatch(Parameter[] parameters, Expression arguments) {
+            if (!(arguments instanceof TupleExpression tupleExpression)) return parameters.length == 1;
+            List<Expression> expressions = tupleExpression.getExpressions();
+            if (parameters.length != expressions.size()) return false;
+            for (int index = 0; index < parameters.length; index++) {
+                Expression expression = expressions.get(index);
+                if (expression instanceof MapExpression
+                        && !isAssignableTo(ClassHelper.MAP_TYPE, parameters[index].getType()))
+                    return false;
+                if (expression instanceof ClosureExpression
+                        && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
+                    return false;
+            }
+            return true;
+        }
     }
 
     private static final class RootFactoryCall {
