@@ -40,10 +40,16 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 - Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template `applyLater` recipes are detached from their defining Builder; captured values must be serializable and captured Builders are rejected.
 - Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.
-- Jackson now restores fields into Builders through the module's internal `KlumDeserializer` and runs the normal lifecycle,
-  materialization, and validation pipeline. The former public `KlumValueInstantiator` and `SettableKlumBeanProperty`
-  extension classes have been removed. This raw-state implementation is transitional; [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
-  records configuration replay as the accepted #428/#251 target.
+- Jackson now replays resolved public configuration properties into root and owned child Builders between `PostCreate` and
+  `PostApply`, then runs one normal lifecycle, materialization, validation, and verification pipeline. Missing input keeps
+  initializer/default behavior; present values, `null`, and containers replace authoritatively. Resolved `@JsonProperty`,
+  `@JsonAlias`, naming strategies, mixins, access/ignore rules, and unknown-property policy are honored without ambient
+  Templates or copy/overwrite semantics ([#439](https://github.com/klum-dsl/klum-ast/issues/439),
+  [#251](https://github.com/klum-dsl/klum-ast/issues/251),
+  [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)).
+  Explicit type-level custom deserializers remain the opt-out. Template rejection remains blocked by
+  [#438](https://github.com/klum-dsl/klum-ast/issues/438), and LINK identity remains #440 scope. The former public
+  `KlumValueInstantiator` and `SettableKlumBeanProperty` extension classes remain removed.
 
 # 3.0.1
 - New annodocimal version, ignores irrelevant inner class entries in class files
