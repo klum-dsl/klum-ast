@@ -24,8 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumModelException
-
-import static com.blackbuild.klum.ast.util.KlumModelProxy.getProxyFor
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 
 class ModelPathTest extends AbstractDSLSpec {
 
@@ -65,15 +64,15 @@ class ModelPathTest extends AbstractDSLSpec {
         }
 
         then:
-        getProxyFor(instance).modelPath == '<root>'
-        getProxyFor(instance.level2).modelPath == '<root>.level2'
-        getProxyFor(instance.level2.level3).modelPath == '<root>.level2.level3'
-        getProxyFor(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
-        getProxyFor(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
-        getProxyFor(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
-        getProxyFor(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
-        getProxyFor(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
-        getProxyFor(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
+        KlumObjectSupport.of(instance).modelPath == '<root>'
+        KlumObjectSupport.of(instance.level2).modelPath == '<root>.level2'
+        KlumObjectSupport.of(instance.level2.level3).modelPath == '<root>.level2.level3'
+        KlumObjectSupport.of(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
+        KlumObjectSupport.of(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
+        KlumObjectSupport.of(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
+        KlumObjectSupport.of(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
     def "model path is set correctly when using nested Create.With"() {
@@ -121,15 +120,15 @@ class ModelPathTest extends AbstractDSLSpec {
         }
 
         then:
-        getProxyFor(instance).modelPath == '<root>'
-        getProxyFor(instance.level2).modelPath == '<root>.level2'
-        getProxyFor(instance.level2.level3).modelPath == '<root>.level2.level3'
-        getProxyFor(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
-        getProxyFor(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
-        getProxyFor(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
-        getProxyFor(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
-        getProxyFor(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
-        getProxyFor(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
+        KlumObjectSupport.of(instance).modelPath == '<root>'
+        KlumObjectSupport.of(instance.level2).modelPath == '<root>.level2'
+        KlumObjectSupport.of(instance.level2.level3).modelPath == '<root>.level2.level3'
+        KlumObjectSupport.of(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
+        KlumObjectSupport.of(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
+        KlumObjectSupport.of(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
+        KlumObjectSupport.of(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
     def "completed converter results cannot become nested composition"() {
@@ -242,15 +241,15 @@ class ModelPathTest extends AbstractDSLSpec {
         instance = Model.fromString("bla")
 
         then:
-        getProxyFor(instance).modelPath == '<root>'
-        getProxyFor(instance.level2).modelPath == '<root>.level2'
-        getProxyFor(instance.level2.level3).modelPath == '<root>.level2.level3'
-        getProxyFor(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
-        getProxyFor(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
-        getProxyFor(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
-        getProxyFor(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
-        getProxyFor(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
-        getProxyFor(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
+        KlumObjectSupport.of(instance).modelPath == '<root>'
+        KlumObjectSupport.of(instance.level2).modelPath == '<root>.level2'
+        KlumObjectSupport.of(instance.level2.level3).modelPath == '<root>.level2.level3'
+        KlumObjectSupport.of(instance.level2.level3Elements[0]).modelPath == '<root>.level2.level3Elements[0]'
+        KlumObjectSupport.of(instance.level2.level3Elements[1]).modelPath == '<root>.level2.level3Elements[1]'
+        KlumObjectSupport.of(instance.level2.keyedValues[0]).modelPath == '<root>.level2.keyedValues[0]'
+        KlumObjectSupport.of(instance.level2.keyedValues[1]).modelPath == '<root>.level2.keyedValues[1]'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['mapFirst']).modelPath == '<root>.level2.keyedMapValue.mapFirst'
+        KlumObjectSupport.of(instance.level2.keyedMapValue['map-second']).modelPath == "<root>.level2.keyedMapValue.'map-second'"
     }
 
     def "model path is set correctly when using nested AutoCreate"() {
@@ -275,9 +274,9 @@ import java.util.logging.Level
         instance = Model.Create.One()
 
         then:
-        getProxyFor(instance).modelPath == '<root>'
-        getProxyFor(instance.level2).modelPath == '<root>.level2'
-        getProxyFor(instance.level2.level3).modelPath == '<root>.level2.level3'
+        KlumObjectSupport.of(instance).modelPath == '<root>'
+        KlumObjectSupport.of(instance.level2).modelPath == '<root>.level2'
+        KlumObjectSupport.of(instance.level2.level3).modelPath == '<root>.level2.level3'
     }
 
 }

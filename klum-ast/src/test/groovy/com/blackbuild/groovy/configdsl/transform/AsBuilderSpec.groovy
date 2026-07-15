@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.process.ConstructionSession
 import com.blackbuild.klum.ast.util.DslHelper
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumModelProxy
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 
 import java.lang.reflect.Modifier
 import java.util.concurrent.CountDownLatch
@@ -132,7 +132,7 @@ class AsBuilderSpec extends AbstractDSLSpec {
         Child.postTreeCalls == 1
         Child.validationCalls == 1
         instance.child.owner.is(instance)
-        KlumModelProxy.getProxyFor(instance.child).modelPath == '<root>.child'
+        KlumObjectSupport.of(instance.child).modelPath == '<root>.child'
         DslHelper.getBreadcrumbPath(instance.child) == '$/p.Root.With/p.Child.AsBuilder.With'
     }
 

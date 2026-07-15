@@ -98,6 +98,6 @@ class KlumInstanceProxyTest extends AbstractRuntimeTest {
         then:
         KlumException failure = thrown()
         failure.message.contains("Builder-only")
-        failure.message.contains("KlumModelProxy")
+        failure.message.contains("KlumObjectSupport")
     }
 }

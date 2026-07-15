@@ -1192,7 +1192,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         currentTemplates = Collections.emptyMap();
     }
 
-    public boolean hasMetaData(String key) {
+    boolean hasMetaData(String key) {
         return metadata.containsKey(key);
     }
 
@@ -1206,7 +1206,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      * @return the stored value, or {@code null} if no value is stored
      * @throws KlumException if the stored value is not of the requested type
      */
-    public <T> T getMetaData(String key, Class<T> type) {
+    <T> T getMetaData(String key, Class<T> type) {
         Object value = metadata.get(key);
         if (value == null)
             return null;
@@ -1222,7 +1222,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      * @param value a value whose complete object graph is serializable, or {@code null}
      * @throws KlumException if {@code value} or anything reachable from it is not serializable
      */
-    public void setMetaData(String key, Object value) {
+    void setMetaData(String key, Object value) {
         metadata.put(key, KlumModelProxy.requireSerializableMetadataValue(key, value));
     }
 

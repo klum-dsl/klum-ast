@@ -233,21 +233,12 @@ public class Validator {
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
         if (instance instanceof KlumBuilder)
-            return ((KlumBuilder<?>) instance).getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+            return InternalKlumObjectSupport.getValidationResult(instance);
         return KlumObjectSupport.of(instance).getValidation().getResult();
     }
 
     private static KlumValidationResult doGetOrCreateValidationResult(Object instance) {
-        if (instance instanceof KlumBuilder) {
-            KlumBuilder<?> builder = (KlumBuilder<?>) instance;
-            if (!builder.hasMetaData(KlumValidationResult.METADATA_KEY))
-                builder.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getModelAndBreadcrumbPath(instance)));
-        } else {
-            KlumModelProxy proxy = KlumModelProxy.getProxyFor(instance);
-            if (!proxy.hasMetaData(KlumValidationResult.METADATA_KEY))
-                proxy.setMetaData(KlumValidationResult.METADATA_KEY, new KlumValidationResult(DslHelper.getModelAndBreadcrumbPath(instance)));
-        }
-        return doGetValidationResult(instance);
+        return InternalKlumObjectSupport.getOrCreateValidationResult(instance);
     }
 
     /**

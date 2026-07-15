@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.util.KlumModelProxy
+import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.util.KlumException
 import com.blackbuild.klum.ast.util.KlumValidationException
@@ -36,6 +36,95 @@ import javax.tools.ToolProvider
 import java.lang.reflect.Modifier
 
 class KlumObjectSupportSpec extends AbstractDSLSpec {
+
+    def "support helpers neither cache a companion nor duplicate it during model serialization"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL class SerializableRoot {
+                @Required(level = Validate.Level.WARNING)
+                String name
+            }
+        '''
+        instance = clazz.Create.One()
+        def companionField = clazz.getDeclaredField('$proxy')
+        companionField.accessible = true
+        def companion = companionField.get(instance)
+        def support = KlumObjectSupport.of(instance)
+
+        when: 'all facade helpers are exercised before serialization'
+        support.breadcrumbPath
+        support.modelPath
+        support.structure.findAll(clazz)
+        def storedResult = support.validation.result
+        support.validation.results
+        def bytes = new ByteArrayOutputStream()
+        new ObjectOutputStream(bytes).withCloseable { it.writeObject(instance) }
+        def dynamicLoader = loader
+        def restored = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray())) {
+            @Override
+            protected Class<?> resolveClass(ObjectStreamClass descriptor) {
+                try {
+                    return dynamicLoader.loadClass(descriptor.name)
+                } catch (ClassNotFoundException ignored) {
+                    return super.resolveClass(descriptor)
+                }
+            }
+        }.withCloseable { it.readObject() }
+        def restoredCompanion = companionField.get(restored)
+        def getCompanionObject = restoredCompanion.class.getDeclaredMethod('getObject')
+        getCompanionObject.accessible = true
+        def restoredCompanionObject = getCompanionObject.invoke(restoredCompanion)
+        def restoredResult = KlumObjectSupport.of(restored).validation.result
+
+        then: 'the facade and grouped helpers retain only their target object'
+        KlumObjectSupport.declaredFields.findAll { !it.synthetic }*.name == ['object']
+        KlumObjectSupport.Structure.declaredFields.findAll { !it.synthetic }*.name == ['object']
+        KlumObjectSupport.Validation.declaredFields.findAll { !it.synthetic }*.name == ['object']
+        companionField.get(instance).is(companion)
+
+        and: 'serialization restores the model-companion back-reference and its stored validation once'
+        restoredCompanionObject.is(restored)
+        restoredResult.issues*.message == storedResult.issues*.message
+        restoredResult.breadcrumbPath == storedResult.breadcrumbPath
+    }
+
+    def "completed companion lookup and raw metadata are not client API"() {
+        given:
+        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
+
+        expect:
+        !Modifier.isPublic(modelProxyClass.modifiers)
+        ['getProxyFor', 'hasMetaData', 'getMetaData', 'setMetaData'].every { methodName ->
+            modelProxyClass.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
+        }
+        ['hasMetaData', 'getMetaData', 'setMetaData'].every { methodName ->
+            KlumBuilder.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
+        }
+
+        and: 'Java source receives an immediate migration diagnostic instead of companion access'
+        compileJavaConsumerFails('''
+            import com.blackbuild.klum.ast.util.KlumModelProxy;
+
+            public final class JavaObjectSupportConsumer {
+                public static Object inspect(Object model) {
+                    return KlumModelProxy.getProxyFor(model);
+                }
+            }
+        ''', 'KlumModelProxy is not public')
+
+        and: 'raw Builder metadata is likewise absent from Java source API'
+        compileJavaConsumerFails('''
+            import com.blackbuild.klum.ast.util.KlumBuilder;
+
+            public final class JavaObjectSupportConsumer {
+                public static Object inspect(KlumBuilder<?> builder) {
+                    return builder.getMetaData("client-extension", Object.class);
+                }
+            }
+        ''', 'getMetaData(String,Class<T>) is not public')
+    }
 
     def "validation support reads stored root and subtree results without rerunning validation"() {
         given:
@@ -138,6 +227,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         }
         def rootSupport = KlumObjectSupport.of(instance)
         def childSupport = KlumObjectSupport.of(instance.child)
+        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
         compileJavaConsumer('''
             import com.blackbuild.klum.ast.util.KlumObjectSupport;
 
@@ -165,9 +255,10 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         rootSupport.structure.singleOwner.empty
 
         and: "the public facade stores and exposes only its completed-object target"
-        KlumObjectSupport.declaredFields*.type.every { it != KlumModelProxy }
-        KlumObjectSupport.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != KlumModelProxy : true }
-        KlumObjectSupport.Structure.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != KlumModelProxy : true }
+        KlumObjectSupport.declaredFields*.type.every { it != modelProxyClass }
+        KlumObjectSupport.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != modelProxyClass : true }
+        KlumObjectSupport.Structure.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != modelProxyClass : true }
+        KlumObjectSupport.Validation.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != modelProxyClass : true }
         !Serializable.isAssignableFrom(KlumObjectSupport)
 
         when: 'the target is not a completed DSL Object'
@@ -178,7 +269,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         error.message.contains('not a completed DSL Object')
 
         when: 'the internal companion itself is supplied'
-        KlumObjectSupport.of(KlumModelProxy.getProxyFor(instance))
+        def companionField = instance.class.getDeclaredField('$proxy')
+        companionField.accessible = true
+        KlumObjectSupport.of(companionField.get(instance))
 
         then:
         def companionError = thrown(KlumException)
@@ -338,5 +431,23 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 sourceFile.absolutePath
         )
         assert result == 0
+    }
+
+    private void compileJavaConsumerFails(String source, String expectedDiagnostic) {
+        File sourceFile = new File(tempFolder.root, 'JavaObjectSupportConsumer.java')
+        sourceFile.text = source.stripIndent()
+        String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
+                .join(File.pathSeparator)
+        def errors = new ByteArrayOutputStream()
+        int result = ToolProvider.systemJavaCompiler.run(
+                null,
+                null,
+                errors,
+                '-classpath', classpath,
+                '-d', compilerConfiguration.targetDirectory.absolutePath,
+                sourceFile.absolutePath
+        )
+        assert result != 0
+        assert errors.toString().contains(expectedDiagnostic)
     }
 }

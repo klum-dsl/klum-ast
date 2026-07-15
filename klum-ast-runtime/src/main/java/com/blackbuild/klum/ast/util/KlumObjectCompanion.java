@@ -35,6 +35,9 @@ import java.io.Serializable;
  */
 public sealed interface KlumObjectCompanion extends Serializable permits KlumModelProxy, KlumTemplateProxy {
 
+    /** Generated private field name; public only for compiler/runtime linkage. */
+    String NAME_IN_MODEL = "$proxy";
+
     GroovyObject getObject();
 
     String getBreadcrumbPath();

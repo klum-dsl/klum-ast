@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.KlumRwObject
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumModelProxy
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
@@ -241,9 +241,9 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         then:
         instance.result == "MODEL"
-        KlumModelProxy.getProxyFor(instance).object.is(instance)
-        !KlumModelProxy.declaredFields*.name.contains("applyLaterClosures")
-        !KlumModelProxy.declaredMethods*.name.contains("getApplyLaterClosures")
+        KlumObjectSupport.of(instance).object.is(instance)
+        !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredFields*.name.contains("applyLaterClosures")
+        !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredMethods*.name.contains("getApplyLaterClosures")
         !KlumBuilder.ModelState.declaredFields*.name.contains("applyLaterClosures")
         !KlumBuilder.ModelState.declaredMethods*.name.contains("getApplyLaterClosures")
     }
@@ -827,8 +827,6 @@ class BuilderFirstSpec extends AbstractDSLSpec {
             name "serialized"
             values "one", "two"
         }
-        KlumModelProxy.getProxyFor(instance).setMetaData("marker", "preserved")
-
         when:
         def bytes = new ByteArrayOutputStream()
         new ObjectOutputStream(bytes).withCloseable { it.writeObject(instance) }
@@ -847,9 +845,9 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         then:
         restored.name == "serialized"
         restored.values == ["one", "two"]
-        def companion = KlumModelProxy.getProxyFor(restored)
-        companion.model.is(restored)
-        companion.modelPath == "<root>"
-        companion.getMetaData("marker", String) == "preserved"
+        def support = KlumObjectSupport.of(restored)
+        support.object.is(restored)
+        support.modelPath == "<root>"
+        support.validation.result != null
     }
 }

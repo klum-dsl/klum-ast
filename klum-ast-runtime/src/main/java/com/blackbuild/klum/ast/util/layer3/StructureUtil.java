@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.util.layer3;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumObjectSupport;
-import com.blackbuild.klum.ast.util.KlumModelProxy;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -348,7 +347,7 @@ public class StructureUtil {
             if (leaf instanceof KlumBuilder)
                 leaf = ((KlumBuilder<?>) leaf).getSingleOwner();
             else
-                leaf = KlumModelProxy.getProxyFor(leaf).getSingleOwner();
+                leaf = KlumObjectSupport.of(leaf).getStructure().getSingleOwner().orElse(null);
         }
         return result;
      }
@@ -357,7 +356,7 @@ public class StructureUtil {
         if (!isDslObject(value))
             return false;
         try {
-            KlumModelProxy.getProxyFor(value);
+            KlumObjectSupport.of(value);
             return true;
         } catch (KlumException ignored) {
             return false;
