@@ -17,7 +17,17 @@ This is a breaking release. See the [Builder-first construction migration](https
   `Foo_DSL` interfaces and refresh their AnnoDocimal IDE source mirrors without compiling, packaging, publishing, or
   propagating the mirrors themselves ([#434](https://github.com/klum-dsl/klum-ast/issues/434)).
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
-- Known compatibility gap: collection-local creator projections, direct `DelegatingScript` collection creation, and DSL Object converters that call model-returning factories currently fail rather than produce owned child Builders. Their target behavior is retained as pending tests and specified by [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md), with implementation tracked by [#431](https://github.com/klum-dsl/klum-ast/issues/431); use generated child closure methods until the `Create.AsBuilder` follow-up lands.
+- Added active-session `Create.AsBuilder.With`, `One`, `FromMap`, and `From(DelegatingScript)` operations. They create an
+  unsealed owned Builder in the current root Construction session, apply active Templates, and run `PostCreate`, explicit
+  configuration, and `PostApply` once without starting a nested lifecycle. Calls outside the session, across root sessions,
+  or after lifecycle completion fail with migration guidance; ordinary materializing Scripts remain root-only
+  ([#436](https://github.com/klum-dsl/klum-ast/issues/436)).
+- Known compatibility gap: collection/Cluster projections, direct `DelegatingScript` collection creation, and DSL Object
+  converters that call model-returning factories still require the generated Builder-producing projections tracked by
+  [#437](https://github.com/klum-dsl/klum-ast/issues/437). Template companion and replay semantics remain tracked by
+  [#438](https://github.com/klum-dsl/klum-ast/issues/438). Their target behavior is specified by
+  [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md); use generated
+  child closure methods where no owning Builder projection is available yet.
 
 ## Templates, serialization, and Jackson
 

@@ -46,6 +46,7 @@ import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
 import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
@@ -110,6 +111,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_FACTORY = make(KlumFactory.class);
     public static final ClassNode KEYED_FACTORY = make(KlumFactory.Keyed.class);
     public static final ClassNode UNKEYED_FACTORY = make(KlumFactory.Unkeyed.class);
+    public static final ClassNode BUILDER_FACTORY = make(KlumFactory.BuilderFactory.class);
+    public static final ClassNode KEYED_BUILDER_FACTORY = make(KlumFactory.KeyedBuilderFactory.class);
+    public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
     public static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
     public static final ClassNode MODEL_PROXY = make(KlumModelProxy.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
@@ -1388,6 +1392,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     ctorSuperS(classX(annotatedClass)));
 
         overrideFactoryMethods(factoryClass, defaultImpl);
+        createAsBuilderFactoryAccessor(defaultImpl);
 
         annotatedClass.getModule().addClass(factoryClass);
 
@@ -1440,6 +1445,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(MethodNode::isPublic)
                     .filter(method -> !method.isStatic())
                     .filter(method -> !method.isFinal())
+                    .filter(method -> !method.getName().equals("getAsBuilder"))
                     .map(method -> correctFactoryMethod(currentSpec, method))
                     .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
             currentLevel = currentLevel.getUnresolvedSuperClass();
@@ -1478,6 +1484,33 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
         AnnoDocUtil.addDocumentation(override, originalDocumentation);
         factoryClass.addMethod(override);
+    }
+
+    private void createAsBuilderFactoryAccessor(ClassNode defaultImpl) {
+        ClassNode factoryType;
+        if (!isInstantiable(defaultImpl))
+            factoryType = BUILDER_FACTORY;
+        else
+            factoryType = keyField == null ? UNKEYED_BUILDER_FACTORY : KEYED_BUILDER_FACTORY;
+
+        ClassNode specialized = factoryType.getPlainNodeReference();
+        specialized.setUsingGenerics(true);
+        specialized.setGenericsTypes(new GenericsType[] {
+                new GenericsType(defaultImpl.getPlainNodeReference()),
+                new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface().getPlainNodeReference())
+        });
+
+        MethodNode accessor = new MethodNode(
+                "getAsBuilder",
+                ACC_PUBLIC | ACC_ABSTRACT,
+                specialized,
+                Parameter.EMPTY_ARRAY,
+                ClassNode.EMPTY_ARRAY,
+                EmptyStatement.INSTANCE
+        );
+        AnnoDocUtil.addDocumentation(accessor,
+                "Returns the active-session factory for creating owned " + annotatedClass.getName() + " Builders.");
+        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(accessor);
     }
 
     private void overrideUndelegatedClosureMethod(InnerClassNode factoryClass, ClassNode defaultImpl, MethodNode methodNode) {

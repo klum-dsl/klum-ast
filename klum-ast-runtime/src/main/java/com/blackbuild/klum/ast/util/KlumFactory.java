@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
 import groovy.lang.Closure;
+import groovy.lang.DelegatesTo;
 import groovy.lang.Script;
 
 import java.io.File;
@@ -49,6 +50,33 @@ public class KlumFactory<T> {
     protected KlumFactory(Class<T> type) {
         requireDslType(type);
         this.type = FactoryHelper.getTypeOrDefaultType(type);
+    }
+
+    /** Returns the active-session factory used to create owned child Builders. */
+    public BuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+        return new BuilderFactory<T, KlumBuilder<T>>(type);
+    }
+
+    /** Active-session Builder-producing operations shared by keyed and unkeyed factories. */
+    public static class BuilderFactory<T, B> {
+        protected final Class<T> type;
+
+        protected BuilderFactory(Class<T> type) {
+            this.type = type;
+        }
+
+        public B FromMap(Map<String, Object> configMap) {
+            return asPublicBuilder(FactoryHelper.createFromMapAsBuilder(type, configMap));
+        }
+
+        public B From(Class<? extends Script> configurationScript) {
+            return asPublicBuilder(FactoryHelper.createFromAsBuilder(type, configurationScript));
+        }
+
+        @SuppressWarnings("unchecked")
+        protected final B asPublicBuilder(KlumBuilder<T> builder) {
+            return (B) builder;
+        }
     }
 
     /**
@@ -380,6 +408,11 @@ public class KlumFactory<T> {
             super(requireKeyed(type));
         }
 
+        @Override
+        public KeyedBuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+            return new KeyedBuilderFactory<T, KlumBuilder<T>>(type);
+        }
+
         /**
          * Creates a new instance of the model by only setting the key, but not applying any configuration (apart from
          * 'postCreate' and 'postApply' methods).
@@ -473,6 +506,11 @@ public class KlumFactory<T> {
             super(DslHelper.requireNotKeyed(type));
         }
 
+        @Override
+        public UnkeyedBuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
+            return new UnkeyedBuilderFactory<T, KlumBuilder<T>>(type);
+        }
+
         /**
          * Convenience methods to allow simply replacing 'X.create' with 'X.Create.With' in scripts, without
          * checking for arguments. This means that empty create calls like 'X.create()' will correctly work afterward.
@@ -544,6 +582,54 @@ public class KlumFactory<T> {
          */
         public T From(String configuration, ClassLoader loader) {
             return FactoryHelper.createFrom(type, null, configuration, loader);
+        }
+    }
+
+    /** Builder-producing operations for keyed model types. */
+    public static final class KeyedBuilderFactory<T, B> extends BuilderFactory<T, B> {
+        private KeyedBuilderFactory(Class<T> type) {
+            super(type);
+        }
+
+        public B One(String key) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, null, key, null, "One"));
+        }
+
+        public B With(Map<String, ?> configMap, String key,
+                      @DelegatesTo(type = "B", strategy = Closure.DELEGATE_ONLY) Closure<?> configuration) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, configMap, key, configuration, "With"));
+        }
+
+        public B With(String key, @DelegatesTo(type = "B", strategy = Closure.DELEGATE_ONLY) Closure<?> configuration) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, null, key, configuration, "With"));
+        }
+
+        public B With(Map<String, ?> configMap, String key) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, configMap, key, null, "With"));
+        }
+    }
+
+    /** Builder-producing operations for unkeyed model types. */
+    public static final class UnkeyedBuilderFactory<T, B> extends BuilderFactory<T, B> {
+        private UnkeyedBuilderFactory(Class<T> type) {
+            super(type);
+        }
+
+        public B One() {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, null, null, null, "One"));
+        }
+
+        public B With(Map<String, ?> configMap,
+                      @DelegatesTo(type = "B", strategy = Closure.DELEGATE_ONLY) Closure<?> configuration) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, configMap, null, configuration, "With"));
+        }
+
+        public B With(@DelegatesTo(type = "B", strategy = Closure.DELEGATE_ONLY) Closure<?> configuration) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, null, null, configuration, "With"));
+        }
+
+        public B With(Map<String, ?> configMap) {
+            return asPublicBuilder(FactoryHelper.createAsBuilder(type, configMap, null, null, "With"));
         }
     }
 }

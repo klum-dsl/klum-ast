@@ -174,6 +174,10 @@ Extract one child-preparation path shared by closure creation and `FactoryHelper
 owned relationship. The slice is complete when the child joins the root lifecycle, `PostCreate`/configuration/`PostApply`
 run once, root factories still return completed models, and outside-session or cross-session calls fail clearly.
 
+**Implemented:** issue #436 provides the shared preparation path, active-session identity/adoption checks, generated
+`Foo_DSL.Builder` return/delegate typing, built-in recipe inputs, and focused executable coverage. It deliberately leaves
+collection/Cluster/custom-factory projections to AB-2 and Template companion/copy-source behavior to AB-3.
+
 ### [AB-2 — Generated projections and hidden twins](https://github.com/klum-dsl/klum-ast/issues/437)
 
 Route collection, map, Cluster, direct delegating-script, converter, and custom factory composition through
@@ -198,6 +202,10 @@ Do not combine all source transformations in one commit. Single-result built-ins
 custom factories, and explicit converter contracts have distinct failure modes and should remain independently revertible.
 
 ## Existing target-contract tests
+
+AB-1 executable coverage lives in `AsBuilderSpec` and `GeneratedDslSupportSpec`. It covers one owned child, callback counts,
+active Templates, ownership and paths, root-return compatibility, built-in inputs, session failures, and concrete generated
+Builder signatures.
 
 The following Groovy 3 features record behavior to restore and carry a reasoned `@PendingFeature` until their slice lands:
 

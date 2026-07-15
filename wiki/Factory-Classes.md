@@ -41,11 +41,13 @@ This allows creating instances of `MyClass` via `MyClass.Create.Baker("Klaus")`.
 When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular
 [Alternatives Syntax](Alternatives-Syntax.md), especially when using abstract classes.
 
-In the current 4.0 Builder-first implementation, model-returning creator methods are still projected but fail when invoked
-inside the owning Builder lifecycle. The intended compatibility behavior is specified by
-[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md): the local method
-will retain its familiar name while producing an unsealed child Builder through `Create.AsBuilder`. Until that follow-up
-lands, use the generated element closure method instead of a projected creator method.
+The 4.0 Builder-first runtime provides active-session `Create.AsBuilder.With`, `One`, `FromMap`, and
+`From(DelegatingScript)` operations for code that already owns the relationship sink. Model-returning custom creator methods
+are still projected as their root form and therefore fail when invoked inside the owning Builder lifecycle. The generated
+Builder-producing twins and collection/Cluster projections are tracked by
+[#437](https://github.com/klum-dsl/klum-ast/issues/437) and specified by
+[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md). Until that slice
+lands, use the generated element closure method instead of a projected custom creator method.
 
 
 ```groovy
