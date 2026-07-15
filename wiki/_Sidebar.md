@@ -10,6 +10,7 @@
   * [[Static Models]]
   * [[Javadoc]]
 * Advanced Features
+  * [[Completed Object Support]]
   * [[Convenience Factories]]
   * [[Factory Classes]]
   * [[Templates]]

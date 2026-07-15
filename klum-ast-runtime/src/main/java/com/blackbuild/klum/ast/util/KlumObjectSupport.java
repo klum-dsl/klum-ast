@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * Java-first support for a completed DSL Object or one of its completed subtrees.
@@ -185,12 +186,9 @@ public final class KlumObjectSupport<T> {
         public <R> void visit(Class<R> type, BiConsumer<String, R> visitor) {
             Objects.requireNonNull(type, "type");
             Objects.requireNonNull(visitor, "visitor");
-            visit(new ModelVisitor() {
-                @Override
-                public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-                    if (type.isInstance(element))
-                        visitor.accept(path, type.cast(element));
-                }
+            visit((path, element, container, nameOfFieldInContainer) -> {
+                if (type.isInstance(element))
+                    visitor.accept(path, type.cast(element));
             });
         }
 
@@ -206,17 +204,14 @@ public final class KlumObjectSupport<T> {
         public <R> Map<String, R> findAll(Class<R> type, String rootPath) {
             Map<String, R> result = new LinkedHashMap<>();
             Objects.requireNonNull(type, "type");
-            visit(new ModelVisitor() {
-                @Override
-                public void visit(String path, Object element, Object container, String nameOfFieldInContainer) {
-                    if (type.isInstance(element))
-                        result.put(path, type.cast(element));
-                }
+            visit((path, element, container, nameOfFieldInContainer) -> {
+                if (type.isInstance(element))
+                    result.put(path, type.cast(element));
             }, rootPath);
             return result;
         }
 
-        private static String createPath(Object child, java.util.function.Predicate<Object> stopCondition, String rootPath) {
+        private static String createPath(Object child, Predicate<Object> stopCondition, String rootPath) {
             List<Object> hierarchy = KlumObjectSupport.of(child).getStructure().getOwnerHierarchy();
             int ancestorIndex;
             if (stopCondition == null) {
