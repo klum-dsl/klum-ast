@@ -23,8 +23,11 @@
  */
 package com.blackbuild.klum.ast.jackson;
 
+import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.Role;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 
@@ -37,9 +40,23 @@ public class KlumAnnotationIntrospector extends JacksonAnnotationIntrospector {
         if (m.hasAnnotation(Role.class))
             return true;
 
+        com.blackbuild.groovy.configdsl.transform.Field field =
+                m.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (field != null && (field.value() == FieldType.IGNORED || field.value() == FieldType.BUILDER))
+            return true;
+
         if (m.getName().contains("$"))
             return true;
 
         return super.hasIgnoreMarker(m);
+    }
+
+    @Override
+    public JsonProperty.Access findPropertyAccess(Annotated annotated) {
+        com.blackbuild.groovy.configdsl.transform.Field field =
+                annotated.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
+        if (field != null && field.value() == FieldType.PROTECTED)
+            return JsonProperty.Access.READ_ONLY;
+        return super.findPropertyAccess(annotated);
     }
 }

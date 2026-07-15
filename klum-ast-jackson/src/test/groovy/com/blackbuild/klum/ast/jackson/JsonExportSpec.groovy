@@ -179,14 +179,14 @@ class JsonExportSpec extends AbstractDSLSpec {
         def deserialized = mapper.readValue('{"name":"json","child":{"value":"nested"}}', Root)
 
         then:
-        deserialized.name == "json-post-apply"
+        deserialized.name == "json-apply"
         deserialized.child.value == "nested"
         deserialized.child.parent.is(deserialized)
         Root.events == [
-                "postCreate:json",
-                "postApply:json-post",
-                "postTree:json-post-apply:true",
-                "validate:json-post-apply:Root"
+                "postCreate:initializer",
+                "postApply:json",
+                "postTree:json-apply:true",
+                "validate:json-apply:Root"
         ]
         !deserialized.metaClass.respondsTo(deserialized, "apply", Closure)
     }
