@@ -23,9 +23,12 @@
  */
 package com.blackbuild.klum.ast.util;
 
+import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.util.layer3.CompositionTraversal;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.util.layer3.StructuralPath;
+import com.blackbuild.klum.ast.validation.KlumValidationResult;
+import com.blackbuild.klum.ast.validation.Validator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -89,6 +92,60 @@ public final class KlumObjectSupport<T> {
     /** Returns composition structure support rooted at this completed DSL Object. */
     public Structure<T> getStructure() {
         return new Structure<>(object);
+    }
+
+    /** Returns stored validation support rooted at this completed DSL Object. */
+    public Validation<T> getValidation() {
+        return new Validation<>(object);
+    }
+
+    /**
+     * Stored validation support rooted at a completed DSL Object.
+     *
+     * <p>This helper only reads results recorded by the construction lifecycle. It never executes validators,
+     * creates validation results, or mutates recorded issues.</p>
+     *
+     * @param <T> the root object type
+     */
+    public static final class Validation<T> {
+
+        private final T object;
+
+        private Validation(T object) {
+            this.object = object;
+        }
+
+        /** Returns the validation result stored for this object, or {@code null} when no result was recorded. */
+        public KlumValidationResult getResult() {
+            return InternalKlumObjectSupport.getValidationResult(object);
+        }
+
+        /**
+         * Returns stored validation results for this object and its owned composition subtree.
+         * Owner and {@code LINK} fields are not followed.
+         */
+        public List<KlumValidationResult> getResults() {
+            List<KlumValidationResult> results = new ArrayList<>();
+            KlumObjectSupport.of(object).getStructure().visit((path, element, container, nameOfFieldInContainer) -> {
+                KlumValidationResult result = InternalKlumObjectSupport.getValidationResult(element);
+                if (result != null)
+                    results.add(result);
+            });
+            return List.copyOf(results);
+        }
+
+        /** Verifies stored subtree results using the configured validation failure level. */
+        public List<KlumValidationResult> verify() throws KlumValidationException {
+            return verify(Validator.getFailLevel());
+        }
+
+        /** Verifies stored subtree results using {@code failLevel}. */
+        public List<KlumValidationResult> verify(Validate.Level failLevel) throws KlumValidationException {
+            Objects.requireNonNull(failLevel, "failLevel");
+            List<KlumValidationResult> results = getResults();
+            KlumValidationResult.throwOn(results, failLevel);
+            return results;
+        }
     }
 
     /**

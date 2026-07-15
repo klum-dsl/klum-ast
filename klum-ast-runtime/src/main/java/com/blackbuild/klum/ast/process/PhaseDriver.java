@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumModelException;
-import com.blackbuild.klum.ast.util.KlumModelProxy;
+import com.blackbuild.klum.ast.util.InternalKlumObjectSupport;
 import groovy.lang.Closure;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -180,7 +180,7 @@ public class PhaseDriver {
             if (object instanceof KlumBuilder)
                 ((KlumBuilder<?>) object).setModelPath("<root>");
             else
-                KlumModelProxy.getProxyFor(object).setModelPathIfAbsent("<root>");
+                InternalKlumObjectSupport.setModelPathIfAbsent(object, "<root>");
         }
         driver.activeObjectPointer++;
     }
