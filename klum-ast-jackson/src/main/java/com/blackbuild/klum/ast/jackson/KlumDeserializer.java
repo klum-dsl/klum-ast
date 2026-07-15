@@ -84,10 +84,20 @@ import java.util.stream.Stream;
  */
 final class KlumDeserializer extends StdDeserializer<Object> implements ContextualDeserializer {
 
+    /**
+     * Carries the replay session only across the synchronous re-entry caused by
+     * {@link ReplaySession#discoverPolymorphicBuilder(ObjectNode, JavaType, TypeDeserializer, Object)} calling
+     * {@link JsonDeserializer#deserializeWithType(JsonParser, DeserializationContext, TypeDeserializer)}. The
+     * consumer must use the same {@link DeserializationContext}; the producer restores any previous request so nested
+     * polymorphic discovery remains scoped correctly.
+     */
     private static final ThreadLocal<OwnedBuilderRequest> OWNED_BUILDER_REQUEST = new ThreadLocal<>();
 
     private final Class<?> modelType;
-    private final transient JsonDeserializer<?> jacksonDelegate;
+
+    /** Jackson's standard delegate is serializable and must survive deserializer serialization. */
+    @SuppressWarnings("java:S1948")
+    private final JsonDeserializer<?> jacksonDelegate;
 
     KlumDeserializer(Class<?> modelType, JsonDeserializer<?> jacksonDelegate) {
         super(modelType);
@@ -504,11 +514,9 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                 return readValue(node, source, valueDeserializer, context);
             }
             if (!isAlwaysAsId(property, context))
-                throw JsonMappingException.from(source, "Non-null LINK property "
-                        + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
-                        + " requires @JsonIdentityInfo on the target type and "
-                        + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, "
-                        + "or an explicit custom property deserializer");
+                throw JsonMappingException.from(source, KlumLinkDiagnostics.missingReferenceStrategy(
+                        property.schemaField().getDeclaringClass().getName() + "." + property.internalName(),
+                        "deserializer"));
 
             if (property.type().isMapLikeType())
                 return readLinkMap(node, property);

@@ -55,9 +55,7 @@ final class KlumLinkBeanPropertyWriter extends BeanPropertyWriter {
     private void assertReferenceStrategy(Object bean, JsonGenerator generator) throws Exception {
         if (get(bean) == null || hasReferenceStrategy)
             return;
-        throw JsonMappingException.from(generator, "Non-null LINK property " + schemaProperty
-                + " requires @JsonIdentityInfo on the target type and "
-                + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, "
-                + "or an explicit custom property serializer");
+        throw JsonMappingException.from(generator,
+                KlumLinkDiagnostics.missingReferenceStrategy(schemaProperty, "serializer"));
     }
 }
