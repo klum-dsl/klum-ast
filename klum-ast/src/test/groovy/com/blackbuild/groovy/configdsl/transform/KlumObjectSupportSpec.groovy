@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.util.KlumValidationException
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor
 import com.blackbuild.klum.ast.util.layer3.StructureUtil
 import com.blackbuild.klum.ast.validation.KlumValidationResult
+import com.blackbuild.klum.ast.validation.Validator
 import org.jetbrains.annotations.NotNull
 
 import javax.tools.ToolProvider
@@ -141,7 +142,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         ''', 'exportModelState() is not public')
     }
 
-    def "validation support reads stored root and subtree results without rerunning validation"() {
+    def "validation support includes clean stored results without rerunning validation"() {
         given:
         createClass '''
             @DSL class Root {
@@ -195,6 +196,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         when:
         def result = support.validation.result
         def results = support.validation.results
+        def deprecatedResults = Validator.getValidationResultsFromStructure(instance)
         def subtreeResults = childSupport.validation.results
         def verified = support.validation.verify()
         compileJavaConsumer('''
@@ -217,6 +219,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         then:
         result.is(storedRootResult)
         results == [storedRootResult, storedChildResult, storedCleanResult]
+        deprecatedResults == results
         subtreeResults == [storedChildResult]
         verified == results
         Root.validationCalls == 1

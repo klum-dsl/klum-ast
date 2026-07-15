@@ -231,9 +231,7 @@ public class Validator {
     }
 
     private static KlumValidationResult doGetValidationResult(Object instance) {
-        if (instance instanceof KlumBuilder)
-            return InternalKlumObjectSupport.getValidationResult(instance);
-        return KlumObjectSupport.of(instance).getValidation().getResult();
+        return InternalKlumObjectSupport.getValidationResult(instance);
     }
 
     private static KlumValidationResult doGetOrCreateValidationResult(Object instance) {

@@ -32,7 +32,9 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Added the Java-first `KlumObjectSupport.of(completedObject)` facade for a completed DSL Object root or subtree. Its
   provenance getters and composition-only `Structure` helper expose paths, direct ownership, relative paths, and
   cycle-safe typed traversal. Its `Validation` helper reads and verifies stored target/subtree results without rerunning
-  validators. The Model companion and generic metadata access are now internal ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
+  validators. Subtree result lists include every stored result, including results without issues; the deprecated
+  `Validator.getValidationResultsFromStructure` and `verifyStructure` adapters now inherit that broader list contract.
+  The Model companion and generic metadata access are now internal ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
   [#390](https://github.com/klum-dsl/klum-ast/issues/390),
   [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)).
 - Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred

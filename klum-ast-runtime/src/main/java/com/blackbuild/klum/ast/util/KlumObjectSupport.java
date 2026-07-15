@@ -117,8 +117,7 @@ public final class KlumObjectSupport<T> {
 
         /** Returns the validation result stored for this object, or {@code null} when no result was recorded. */
         public KlumValidationResult getResult() {
-            return KlumModelProxy.getProxyFor(object)
-                    .getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
+            return InternalKlumObjectSupport.getValidationResult(object);
         }
 
         /**
@@ -128,7 +127,7 @@ public final class KlumObjectSupport<T> {
         public List<KlumValidationResult> getResults() {
             List<KlumValidationResult> results = new ArrayList<>();
             KlumObjectSupport.of(object).getStructure().visit((path, element, container, nameOfFieldInContainer) -> {
-                KlumValidationResult result = KlumObjectSupport.of(element).getValidation().getResult();
+                KlumValidationResult result = InternalKlumObjectSupport.getValidationResult(element);
                 if (result != null)
                     results.add(result);
             });

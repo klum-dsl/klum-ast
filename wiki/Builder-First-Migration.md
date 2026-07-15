@@ -137,6 +137,10 @@ linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported 
 stored validation; do not build integrations on companion classes or raw metadata. Broader compatibility closure remains
 tracked by [#390](https://github.com/klum-dsl/klum-ast/issues/390) and [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md).
 
+`getValidation().getResults()` returns every stored result in the owned subtree, including clean results without issues.
+This is broader than the old `Validator.getValidationResultsFromStructure` and `verifyStructure` list contract; their
+deprecated adapters now return the facade's complete stored-result list.
+
 Jackson now replays public Builder configuration through resolved property metadata. Missing input preserves source
 initializers and later defaults; present values, `null`, and containers replace current Builder state authoritatively between
 `PostCreate` and `PostApply`. Derived output must be `PROTECTED`, ignored, or explicitly Jackson read-only so the single
