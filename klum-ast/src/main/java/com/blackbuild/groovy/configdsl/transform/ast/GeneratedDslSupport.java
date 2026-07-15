@@ -223,6 +223,7 @@ public final class GeneratedDslSupport {
         while (current != null) {
             MethodNode inherited = current.getDeclaredMethod(method.getName(), method.getParameters());
             if (inherited != null) {
+                // Groovy resolves shadowing against the nearest superclass declaration.
                 int visibility = inherited.getModifiers() & (groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
                         | groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
                         | groovyjarjarasm.asm.Opcodes.ACC_PRIVATE);
@@ -278,6 +279,7 @@ public final class GeneratedDslSupport {
         Expression value = delegatesTo.getMember("value");
         if (value instanceof ClassExpression) {
             ClassNode projected = publicType(((ClassExpression) value).getType());
+            // Cloned parameters can share this AnnotationNode; replace it instead of mutating shared metadata.
             AnnotationNode replacement = new AnnotationNode(DELEGATES_TO);
             delegatesTo.getMembers().forEach(replacement::setMember);
             replacement.setMember("value", new ClassExpression(projected));
