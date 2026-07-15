@@ -45,7 +45,7 @@ The accepted target client interface is the schema annotations plus generated `F
 and nested Collection/Cluster factories), with `Foo.Create` typed to `Foo_DSL.Factory`. Clients may name but not implement
 these interfaces. Current `$_RW`, `KlumRwObject`, `@DelegatesToRW`, and `KlumInstanceProxy` remain compatibility details
 pending ADR 0005 implementation. Completed objects use `KlumObjectSupport`; direct `KlumModelProxy` access is not supported
-by ADR 0006, although current source still exposes it.
+by ADR 0006 and the Model companion is package-internal.
 
 ADR 0005 also requires AnnoDocimal `Foo_DSL` source mirrors to be IDE-only metadata. DSL-G adds a cacheable
 `createKlumDslSourceMirrors` task and registers its output only as an IDEA generated source root. Developers run the task
@@ -76,9 +76,11 @@ Additional invariants:
 - Source initializers execute once when a Builder is allocated. `FieldType.BUILDER` state is omitted from the model. Non-transient, non-relationship model fields become final.
 - Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK`; owned composition must be created in the owner's session. Nested root factories are rejected.
 - Materialization publishes independent read-only snapshots for `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`; comparators are retained. `EnumSet` is defensive. Unsupported concrete/custom collection declarations fail schema compilation. Simple Values are retained, not deep-copied.
-- Generated models retain a sealed internal `KlumObjectCompanion`. `KlumModelProxy` stores ordinary completed-model paths,
-  metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
+- Generated models retain a sealed internal `KlumObjectCompanion`. The package-internal Model companion stores ordinary
+  completed-model paths, metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
   Template identity and immutable serializable `TemplateRecipeState`. Neither retains the creating Builder.
+- `KlumObjectSupport.Validation` reads stored target/subtree results and verifies them without executing validators or
+  mutating lifecycle issue state. Generic Builder/Model metadata access is internal lifecycle linkage, not an extension seam.
 - Templates copy values/composition and replay cloned recipe actions into fresh Builders. Every owned Template node is
   marked, pre-existing ordinary `LINK` targets retain identity, and no Template may be a relationship or JSON value.
 - `StructureUtil.visit` is identity-cycle-safe and follows composition only: declared fields are traversed, while owner and `LINK` fields are skipped. Builder phase traversal also skips sealed aggregation wrappers. Paths use GPath-like field, index, and map-key segments.
@@ -116,8 +118,8 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted target behavior but not implemented**. The confirmed failure paths and pending tests are indexed in [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
 - [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; only DSL-G's Gradle
   mirror lifecycle is implemented.
-- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 provenance and composition
-  structure support is implemented; OS-2 stored-validation support and companion lockdown remain planned.
+- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 provenance/composition support
+  and OS-2 stored-validation support/companion lockdown are implemented; OS-3 compatibility closure remains planned.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) accepts configuration replay; it is not implemented.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
 

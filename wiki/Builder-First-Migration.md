@@ -133,9 +133,9 @@ Template companion and immutable recipe state, but never Builders, Construction 
 collections. Ordinary completed models retain no deferred actions.
 
 The internal generated `$proxy` field uses a sealed common Model/Template companion solely for cross-package generated
-linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported completed-object paths and structure; do
-not build integrations on `KlumModelProxy`, `KlumTemplateProxy`, or raw metadata. #390 retains the remaining facade and
-proxy-lockdown work from [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md).
+linkage. It is not client API. Use `KlumObjectSupport.of(object)` for supported completed-object paths, structure, and
+stored validation; do not build integrations on companion classes or raw metadata. Broader compatibility closure remains
+tracked by [#390](https://github.com/klum-dsl/klum-ast/issues/390) and [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md).
 
 Jackson now replays public Builder configuration through resolved property metadata. Missing input preserves source
 initializers and later defaults; present values, `null`, and containers replace current Builder state authoritatively between

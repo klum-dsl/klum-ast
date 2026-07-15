@@ -82,8 +82,8 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   Completed-model phase traversal uses this helper directly, while Builder phases use a separate internal Builder structure
   helper. The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
-  OS-2 adds the stored-validation helper (`getValidation`) and moves remaining completed-model validation readers away from
-  companion access. It must read existing results only: it never reruns validators or mutates lifecycle issue state.
+  Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators
+  or mutating lifecycle issue state. Completed-model validation readers do not access the companion directly.
 
 - Construction API
 

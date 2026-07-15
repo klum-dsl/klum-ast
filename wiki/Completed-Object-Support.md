@@ -8,6 +8,8 @@ The facade accepts either a completed root object or any completed DSL Object in
 
 ```java
 import com.blackbuild.klum.ast.util.KlumObjectSupport;
+import com.blackbuild.klum.ast.validation.KlumValidationResult;
+import java.util.List;
 import java.util.Map;
 
 KlumObjectSupport<Deployment> support = KlumObjectSupport.of(deployment);
@@ -18,10 +20,14 @@ String modelPath = support.getModelPath();
 
 KlumObjectSupport.Structure<Deployment> structure = support.getStructure();
 Map<String, Service> services = structure.findAll(Service.class);
+
+KlumObjectSupport.Validation<Deployment> validation = support.getValidation();
+KlumValidationResult result = validation.getResult();
+List<KlumValidationResult> subtreeResults = validation.getResults();
 ```
 
-The Javadoc for `KlumObjectSupport` and its nested `Structure` helper is the source of truth for complete signatures,
-overloads, return types, and exceptional cases.
+The Javadoc for `KlumObjectSupport` and its nested `Structure` and `Validation` helpers is the source of truth for complete
+signatures, overloads, return types, and exceptional cases.
 
 ## Provenance and model paths
 
@@ -40,6 +46,13 @@ questions and are not interchangeable.
 Traversal follows composed DSL values only. Owner and `LINK` edges are not followed, and identity-based cycle protection
 ensures that object graphs remain safe even when DSL types override `equals`.
 
+## Stored validation
+
+`getValidation().getResult()` returns the result already stored for the target object. `getResults()` reads issue-bearing
+results from the target's owned composition subtree. `verify()` uses the configured failure level, while `verify(level)`
+uses the supplied level. These operations only inspect lifecycle results: they do not execute `InstanceValidator`s, create
+results, or mutate recorded issues.
+
 The facade may also start at a subtree:
 
 ```java
@@ -57,5 +70,5 @@ String pathFromDeployment = support.getStructure().getRelativePath(service);
 `KlumObjectSupport` directly. `KlumModelProxy` and its raw metadata are internal implementation details and are not a
 supported client extension API.
 
-Stored validation results are currently accessed through the supported `Validator` utilities described in
-[[Validation]]. A grouped validation helper on `KlumObjectSupport` belongs to the later completed-object validation slice.
+The former `Validator.getValidationResult`, `getValidationResultsFromStructure`, and `verifyStructure` readers remain as
+deprecated adapters. New completed-object code uses `KlumObjectSupport.getValidation()` as described in [[Validation]].
