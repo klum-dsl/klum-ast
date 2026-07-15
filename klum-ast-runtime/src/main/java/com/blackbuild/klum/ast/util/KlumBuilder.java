@@ -576,9 +576,24 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      */
     public void copyFrom(Object template) {
         if (template != null) {
+            assertMutable();
+            if (template instanceof KlumBuilder)
+                assertValidBuilderCopySource((KlumBuilder<?>) template);
             CopyHandler.copyToFrom(this, template);
             copyApplyLaterClosuresFrom(template);
         }
+    }
+
+    private void assertValidBuilderCopySource(KlumBuilder<?> sourceBuilder) {
+        if (sourceBuilder.sealed)
+            throw new KlumModelException("Cannot copy from a sealed Builder. "
+                    + "Use its completed model for a values-only copy, or copy from a marked Template to replay recipe actions.");
+        if (constructionSession == null
+                || sourceBuilder.constructionSession == null
+                || constructionSession != sourceBuilder.constructionSession
+                || !sourceBuilder.constructionSessionActive)
+            throw new KlumModelException("Cannot copy from a Builder outside this active Construction session. "
+                    + "Create the source with Create.AsBuilder inside the same root Builder lifecycle.");
     }
 
     /** Internal target used by generated typed copyFrom overloads. */
@@ -1001,8 +1016,12 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     void copyApplyLaterClosuresFrom(Object recipe) {
         if (recipe instanceof KlumBuilder) {
             KlumBuilder<?> sourceBuilder = (KlumBuilder<?>) recipe;
-            sourceBuilder.applyLaterClosures.forEach((phase, closures) -> closures.forEach(closure ->
-                    doScheduleApplyLater(phase, cloneClosure(closure))));
+            if (sourceBuilder.applyLaterClosures.isEmpty())
+                return;
+            assertValidBuilderCopySource(sourceBuilder);
+            sourceBuilder.applyLaterClosures.forEach((phase, closures) ->
+                    new ArrayList<>(closures).forEach(closure ->
+                            scheduleApplyLater(phase, closure.dehydrate())));
             return;
         }
         if (recipe instanceof KlumModelObject
@@ -1141,12 +1160,19 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private static final class BuilderCaptureException extends IOException {
     }
 
-    private static Closure<?> cloneClosure(Closure<?> closure) {
-        return (Closure<?>) closure.clone();
-    }
-
     public void executeApplyLaterClosures(int phase) {
-        applyLaterClosures.getOrDefault(phase, Collections.emptyList()).forEach(closure -> applyOnly(null, closure));
+        List<Closure<?>> closures = applyLaterClosures.get(phase);
+        if (closures == null)
+            return;
+        int pendingAtPhaseStart = closures.size();
+        for (int index = 0; index < pendingAtPhaseStart; index++) {
+            Iterator<Closure<?>> iterator = closures.iterator();
+            Closure<?> closure = iterator.next();
+            iterator.remove();
+            applyOnly(null, closure);
+        }
+        if (closures.isEmpty())
+            applyLaterClosures.remove(phase);
     }
 
     public void cleanup() {
