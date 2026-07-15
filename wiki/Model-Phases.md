@@ -117,6 +117,16 @@ the action is executed directly after the current phase if called from within a 
 
 ApplyLater closures on Templates are not executed on the Template. They are detached as recipe state and replayed against
 each fresh recipient Builder. Captured Builders are rejected, and other captured values must be serializable.
+
+Every `applyLater` and `scheduleApplyLater` overload rejects phase 40 or later immediately. Deferred actions mutate
+Builders, so they must run before `INSTANTIATE`. Move the action to a phase below 40, or implement completed-model work as
+a `ModelVisitingPhaseAction`. For example, phase 40 fails with:
+
+```text
+Cannot schedule applyLater for phase 'instantiate' (40): deferred Builder actions must run before materialization at phase 40. Use a phase below 40, or a ModelVisitingPhaseAction for completed-model work.
+```
+
+This guard is the materialization boundary. It does not add the broader past/current-phase checks tracked separately.
 This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.
 
 ```groovy

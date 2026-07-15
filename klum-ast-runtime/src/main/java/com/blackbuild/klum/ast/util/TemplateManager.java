@@ -61,6 +61,19 @@ public class TemplateManager {
         // Thread local singleton
     }
 
+    /**
+     * Returns whether the value is a materialized Template with persistent Template companion identity.
+     * Active Template scopes and live Builders do not imply Template identity.
+     */
+    public static boolean isTemplate(Object value) {
+        return value != null
+                && DslHelper.isDslObject(value)
+                && DslHelper.getCachedField(value.getClass(), KlumModelProxy.NAME_IN_MODEL)
+                .map(field -> field.getProperty(value))
+                .filter(KlumTemplateProxy.class::isInstance)
+                .isPresent();
+    }
+
 
     private void deregister() {
         if (templates.isEmpty())

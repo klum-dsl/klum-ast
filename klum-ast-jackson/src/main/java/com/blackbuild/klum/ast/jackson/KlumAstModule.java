@@ -28,8 +28,11 @@ import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
 
 public class KlumAstModule extends Module {
 
@@ -48,6 +51,7 @@ public class KlumAstModule extends Module {
     @Override
     public void setupModule(SetupContext context) {
         context.addBeanDeserializerModifier(new KlumDeserializerModifier());
+        context.addBeanSerializerModifier(new KlumSerializerModifier());
         context.insertAnnotationIntrospector(new KlumAnnotationIntrospector());
     }
 
@@ -58,6 +62,16 @@ public class KlumAstModule extends Module {
             if (!DslHelper.isDslType(beanDesc.getBeanClass()))
                 return deserializer;
             return new KlumDeserializer(beanDesc.getBeanClass());
+        }
+    }
+
+    public static class KlumSerializerModifier extends BeanSerializerModifier {
+        @Override
+        public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc,
+                                                   JsonSerializer<?> serializer) {
+            if (!DslHelper.isDslType(beanDesc.getBeanClass()))
+                return serializer;
+            return new KlumTemplateRejectingSerializer(serializer);
         }
     }
 }

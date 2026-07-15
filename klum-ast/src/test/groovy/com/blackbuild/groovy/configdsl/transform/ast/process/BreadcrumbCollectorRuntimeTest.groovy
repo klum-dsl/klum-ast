@@ -27,7 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.klum.ast.process.BreadcrumbCollector
 import com.blackbuild.klum.ast.util.KlumModelException
 
-import static com.blackbuild.klum.ast.util.KlumModelProxy.getProxyFor
+import static com.blackbuild.klum.ast.util.DslHelper.getBreadcrumbPath
 
 @SuppressWarnings("GrPackage")
 class BreadcrumbCollectorRuntimeTest extends AbstractDSLSpec {
@@ -145,7 +145,7 @@ class KeyBar {
     }
 
     private String breadCrumbFor(instance) {
-        getProxyFor(instance).getBreadcrumbPath()
+        getBreadcrumbPath(instance)
     }
 
     def "list members breadcrumb test"() {

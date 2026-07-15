@@ -330,13 +330,13 @@ public class DslHelper {
     public static String getBreadcrumbPath(Object instance) {
         if (instance instanceof KlumBuilder)
             return ((KlumBuilder<?>) instance).getBreadcrumbPath();
-        return KlumModelProxy.getProxyFor(instance).getBreadcrumbPath();
+        return KlumTemplateProxy.companionFor(instance).getBreadcrumbPath();
     }
 
     public static String getModelPath(Object instance) {
         if (instance instanceof KlumBuilder)
             return ((KlumBuilder<?>) instance).getModelPath();
-        return KlumModelProxy.getProxyFor(instance).getModelPath();
+        return KlumTemplateProxy.companionFor(instance).getModelPath();
     }
 
     public static String getModelAndBreadcrumbPath(Object instance) {

@@ -26,6 +26,8 @@ package com.blackbuild.klum.ast.util;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
+import com.blackbuild.groovy.configdsl.transform.PostApply;
+import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.util.copy.Overwrite;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
@@ -91,6 +93,7 @@ public class CopyHandler {
             doCopyFromMap();
         else
             doCopyFromObject();
+        target.refreshModelPaths();
     }
 
     private void doCopyFromMap() {
@@ -257,7 +260,7 @@ public class CopyHandler {
         if (templateValue == null)
             return null;
         if (DslHelper.isRelationship(field))
-            return rehydrateDslRecipe(field.getType(), templateValue, null);
+            return copyFieldValue(field, field.getType(), templateValue, null);
         return copyValue(templateValue);
     }
 
@@ -313,7 +316,7 @@ public class CopyHandler {
                 addMapValues(field, currentValues, templateValues);
                 break;
             case MERGE_VALUES:
-                if (isDslType(DslHelper.getElementType(field)))
+                if (isDslType(DslHelper.getElementType(field)) && !DslHelper.isLink(field))
                     mergeMapValues(field, currentValues, templateValues);
                 else
                     addMapValues(field, currentValues, templateValues);
@@ -338,7 +341,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-                currentValues.computeIfAbsent(key, k -> copyFieldValue(valueType, value, key));
+            currentValues.computeIfAbsent(key, k -> copyFieldValue(field, valueType, value, key));
         }
     }
 
@@ -351,7 +354,7 @@ public class CopyHandler {
             assertCorrectType(field, value, valueType);
             Object currentValue = currentValues.get(key);
             if (currentValue == null)
-                currentValues.put(key, copyFieldValue(valueType, value, key));
+                currentValues.put(key, copyFieldValue(field, valueType, value, key));
             else
                 copyNested(currentValue, value);
         }
@@ -363,7 +366,7 @@ public class CopyHandler {
             Object key = entry.getKey();
             Object value = entry.getValue();
             assertCorrectType(field, value, valueType);
-            currentValues.put(key, copyFieldValue(valueType, value, key));
+            currentValues.put(key, copyFieldValue(field, valueType, value, key));
         }
     }
 
@@ -433,13 +436,17 @@ public class CopyHandler {
         Class<?> elementType = DslHelper.getClassFromType(DslHelper.getElementType(field));
         for (Object value : templateValue) {
             assertCorrectType(field, value, elementType);
-            currentValue.add(copyFieldValue(elementType, value, null));
+            currentValue.add(copyFieldValue(field, elementType, value, null));
         }
     }
 
-    private Object copyFieldValue(Class<?> declaredType, Object value, Object keyHint) {
+    private Object copyFieldValue(Field field, Class<?> declaredType, Object value, Object keyHint) {
         if (value == null)
             return null;
+        if (DslHelper.isLink(field)
+                && DslHelper.isDslObject(value)
+                && !TemplateManager.isTemplate(value))
+            return value;
         if (DslHelper.isDslType(declaredType))
             return rehydrateDslRecipe(declaredType, value, keyHint);
         return copyValue(value);
@@ -466,8 +473,10 @@ public class CopyHandler {
                 donorBreadcrumbRoot
         ).doCopy();
         builder.copyApplyLaterClosuresFrom(recipe);
-        if (!target.isTemplate())
-            LifecycleHelper.executeLifecycleMethods(builder, com.blackbuild.groovy.configdsl.transform.PostCreate.class);
+        if (!target.isTemplate()) {
+            LifecycleHelper.executeLifecycleMethods(builder, PostCreate.class);
+            LifecycleHelper.executeLifecycleMethods(builder, PostApply.class);
+        }
         return builder;
     }
 
@@ -495,7 +504,7 @@ public class CopyHandler {
         if (value instanceof KlumBuilder)
             return ((KlumBuilder<?>) value).getBreadcrumbPath();
         if (value != null && DslHelper.isDslObject(value))
-            return KlumModelProxy.getProxyFor(value).getBreadcrumbPath();
+            return KlumTemplateProxy.companionFor(value).getBreadcrumbPath();
         return null;
     }
 

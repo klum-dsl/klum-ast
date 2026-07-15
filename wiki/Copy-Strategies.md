@@ -4,6 +4,24 @@ Copy strategies control how `copyFrom` applies a donor recipe to the current mut
 Templates, but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
 means the Builder being configured; a completed DSL Object is never mutated.
 
+## Copy source protocol
+
+The donor's identity determines whether deferred recipe actions are replayed:
+
+- an ordinary completed model contributes its current values only; actions that built it have already run and are not
+  retained by its companion;
+- a marked Template contributes values plus its immutable recipe actions;
+- an unsealed Builder in the same active Construction session contributes current values plus an ephemeral, dehydrated
+  snapshot of actions that have not run yet. Copying does not mark or convert the source Builder or either completed model
+  into a Template. Because this snapshot never leaves the active session, captured values do not need to be serializable;
+- a sealed Builder or a Builder from another Construction session is rejected. Use the sealed Builder's completed model
+  for a value-only copy, or a marked Template when actions must replay;
+- Maps and other data sources remain value-only.
+
+Each replay clones and schedules its actions against the recipient Builder. Already executed live-Builder actions are not
+copied, and action order is preserved. Fresh owned children run one ordinary lifecycle and receive their final ownership
+and model paths when the recipient graph is materialized.
+
 When copying an object to another, there are three distinct types of strategies: single object, collections and maps. The strategy can
 be configured on a class for all matching fields at once, or on a per-field basis.
 

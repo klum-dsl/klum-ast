@@ -7,9 +7,10 @@ repository archaeology. ADR 0003 and ADR 0004 remain authoritative when this doc
 Implementation is tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431), which is blocked by #416 until
 PR #429 merges.
 
-**Current status:** AB-1 was implemented by #436 and AB-2 was implemented by #437. AB-3's Template companion and
-copy-source boundary remains tracked by #438. The investigation and historical merge recommendation below are retained as
-context for those slices.
+**Current status:** AB-1 was implemented by #436, AB-2 by #437, and AB-3 by #438. Persistent Template companions,
+immutable recipe serialization, copy-source modes, Template relationship/JSON rejection, and the strict phase-40
+`applyLater` boundary are covered. The investigation and historical merge recommendation below are retained as context;
+#431 retains final compatibility closure.
 
 Source positions below refer to PR #429 commit `0171fe54` unless a symbol name is given. Prefer the symbol when later edits
 move a line.
@@ -202,6 +203,11 @@ Introduce `KlumObjectCompanion`, `KlumTemplateProxy`, and immutable `TemplateRec
 `KlumModelProxy`; mark every owned Template node; reject Template relationship assignment; and implement value-only Model,
 recipe Template, and ephemeral same-session Builder copy sources. Enforce `applyLater < INSTANTIATE` at the lowest scheduler
 with the accepted `KlumModelException` diagnostic. This slice depends on AB-1 and coordinates with ADR 0006.
+
+**Implemented:** generated `$proxy` fields now use the sealed internal `KlumObjectCompanion` with final Model and Template
+variants. Ordinary models retain no actions; graph-wide Templates retain immutable serializable recipe state and reject
+relationship/JSON use. Copying distinguishes ordinary models, Templates, same-session live Builders, and rejected
+sealed/cross-session Builders. The common scheduler rejects every phase at or after `INSTANTIATE`, including replay.
 
 ### AB-4 — Public guidance and compatibility closure
 

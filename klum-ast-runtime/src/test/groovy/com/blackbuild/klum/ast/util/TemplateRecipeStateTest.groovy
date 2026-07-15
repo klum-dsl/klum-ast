@@ -23,24 +23,27 @@
  */
 package com.blackbuild.klum.ast.util
 
-import com.blackbuild.klum.ast.KlumModelObject
+import spock.lang.Specification
 
-class TestObject implements KlumModelObject {
-    public final KlumObjectCompanion $proxy
+class TemplateRecipeStateTest extends Specification {
 
-    TestObject() {
-        def stateCarrier = new CompanionStateCarrier(getClass() as Class<TestObject>)
-        $proxy = stateCarrier.$createCompanion(this)
-    }
+    def "recipe replay uses the common scheduling boundary"() {
+        given:
+        def constructor = TemplateRecipeState.getDeclaredConstructor(Map)
+        constructor.accessible = true
+        Map<Integer, List<Closure>> actions = [
+                (40): [{ throw new AssertionError("recipe action must not execute") }]
+        ]
+        TemplateRecipeState state = constructor.newInstance([actions] as Object[])
+        def recipient = new TestRuntimeBuilder<TestObject>(TestObject)
 
-    private static final class CompanionStateCarrier extends KlumBuilder<TestObject> {
-        CompanionStateCarrier(Class<TestObject> modelType) {
-            super(modelType)
-        }
+        when:
+        state.replayInto(recipient)
 
-        @Override
-        protected Class<TestObject> $modelImplementationType() {
-            return TestObject
-        }
+        then:
+        KlumModelException error = thrown()
+        error.message == "Cannot schedule applyLater for phase 'instantiate' (40): deferred Builder actions must run " +
+                "before materialization at phase 40. Use a phase below 40, or a ModelVisitingPhaseAction for " +
+                "completed-model work. at "
     }
 }

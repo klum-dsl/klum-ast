@@ -35,6 +35,7 @@ import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
+import groovy.lang.GroovyObject;
 import groovy.lang.GroovyObjectSupport;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Reference;
@@ -349,28 +350,33 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public final ModelState exportModelState() {
-        return new ModelState(getBreadcrumbPath(), modelPath, metadata,
-                template ? dehydrateApplyLaterClosures(applyLaterClosures) : Collections.emptyMap());
+        return new ModelState(getBreadcrumbPath(), modelPath, metadata);
+    }
+
+    /**
+     * Creates the internal companion retained by a generated DSL Object.
+     * Public visibility exists only for generated constructors in arbitrary packages.
+     */
+    public final KlumObjectCompanion $createCompanion(GroovyObject model) {
+        if (template)
+            return new KlumTemplateProxy(
+                    model,
+                    getBreadcrumbPath(),
+                    modelPath,
+                    TemplateRecipeState.capture(applyLaterClosures)
+            );
+        return new KlumModelProxy(model, exportModelState());
     }
 
     public static final class ModelState implements Serializable {
         private final String breadcrumbPath;
         private final String modelPath;
         private final Map<String, Serializable> metadata;
-        private final Map<Integer, List<Closure<?>>> applyLaterClosures;
 
-        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata,
-                           Map<Integer, List<Closure<?>>> applyLaterClosures) {
+        private ModelState(String breadcrumbPath, String modelPath, Map<String, Serializable> metadata) {
             this.breadcrumbPath = breadcrumbPath;
             this.modelPath = modelPath;
             this.metadata = new HashMap<>(metadata);
-            this.applyLaterClosures = copyApplyLaterClosures(applyLaterClosures);
-        }
-
-        private static Map<Integer, List<Closure<?>>> copyApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
-            Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
-            source.forEach((phase, closures) -> copy.put(phase, new ArrayList<>(closures)));
-            return copy;
         }
 
         public String getBreadcrumbPath() {
@@ -385,9 +391,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return metadata;
         }
 
-        public Map<Integer, List<Closure<?>>> getApplyLaterClosures() {
-            return applyLaterClosures;
-        }
     }
 
     public <T> T getInstanceAttribute(String attributeName) {
@@ -448,6 +451,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return value;
         if (value instanceof KlumBuilder) {
             KlumBuilder<?> builderValue = (KlumBuilder<?>) value;
+            if (builderValue.isSealed() && TemplateManager.isTemplate(builderValue.getCompletedModel()))
+                throw templateRelationshipInputError(schemaField);
             if (builderValue.isSealed() && !acceptsCompletedRelationship(schemaField))
                 throw completedRelationshipInputError(schemaField);
             if (!builderValue.isSealed())
@@ -456,6 +461,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         }
         if (!(value instanceof KlumModelObject))
             throw new KlumModelException(format("Value for relationship %s.%s is neither a Builder nor a completed DSL Object", modelType.getName(), schemaField.getName()));
+        if (TemplateManager.isTemplate(value))
+            throw templateRelationshipInputError(schemaField);
         if (!acceptsCompletedRelationship(schemaField))
             throw completedRelationshipInputError(schemaField);
         return FactoryHelper.wrapCompletedModel(value);
@@ -468,6 +475,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private KlumModelException completedRelationshipInputError(Field schemaField) {
         return new KlumModelException(format(
                 "Completed DSL Object inputs are only supported for LINK relationships (%s.%s)",
+                modelType.getName(),
+                schemaField.getName()
+        ));
+    }
+
+    private KlumModelException templateRelationshipInputError(Field schemaField) {
+        return new KlumModelException(format(
+                "Cannot use a Template as relationship value %s.%s. "
+                        + "Rehydrate it with Template.With, copyFrom, or another Template/copy API so a fresh Builder graph is created.",
                 modelType.getName(),
                 schemaField.getName()
         ));
@@ -560,9 +576,24 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
      */
     public void copyFrom(Object template) {
         if (template != null) {
+            assertMutable();
+            if (template instanceof KlumBuilder)
+                assertValidBuilderCopySource((KlumBuilder<?>) template);
             CopyHandler.copyToFrom(this, template);
             copyApplyLaterClosuresFrom(template);
         }
+    }
+
+    private void assertValidBuilderCopySource(KlumBuilder<?> sourceBuilder) {
+        if (sourceBuilder.sealed)
+            throw new KlumModelException("Cannot copy from a sealed Builder. "
+                    + "Use its completed model for a values-only copy, or copy from a marked Template to replay recipe actions.");
+        if (constructionSession == null
+                || sourceBuilder.constructionSession == null
+                || constructionSession != sourceBuilder.constructionSession
+                || !sourceBuilder.constructionSessionActive)
+            throw new KlumModelException("Cannot copy from a Builder outside this active Construction session. "
+                    + "Create the source with Create.AsBuilder inside the same root Builder lifecycle.");
     }
 
     /** Internal target used by generated typed copyFrom overloads. */
@@ -957,7 +988,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         KlumPhase phase = PhaseDriver.getCurrentPhase();
         if (phase == null)
             phase = DefaultKlumPhase.APPLY_LATER;
-        doScheduleApplyLater(phase.getNumber(), closure);
+        doScheduleApplyLater(phase.getNumber(), phase.getName(), closure);
     }
 
     public void applyLater(KlumPhase phase, Closure<?> closure) {
@@ -965,7 +996,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void scheduleApplyLater(KlumPhase phase, Closure<?> closure) {
-        doScheduleApplyLater(phase.getNumber(), closure);
+        doScheduleApplyLater(phase.getNumber(), phase.getName(), closure);
     }
 
     public void applyLater(Integer number, Closure<?> closure) {
@@ -973,27 +1004,45 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     public void scheduleApplyLater(Integer number, Closure<?> closure) {
-        doScheduleApplyLater(number, closure);
+        doScheduleApplyLater(number, defaultPhaseName(number), closure);
     }
 
-    private void doScheduleApplyLater(Integer number, Closure<?> closure) {
+    private void doScheduleApplyLater(Integer number, String phaseName, Closure<?> closure) {
+        if (number >= DefaultKlumPhase.INSTANTIATE.getNumber()) {
+            String phaseDisplay = phaseName == null ? number.toString() : "'" + phaseName + "' (" + number + ")";
+            throw new KlumModelException("Cannot schedule applyLater for phase " + phaseDisplay
+                    + ": deferred Builder actions must run before materialization at phase 40. "
+                    + "Use a phase below 40, or a ModelVisitingPhaseAction for completed-model work.");
+        }
         applyLaterClosures.computeIfAbsent(number, ignore -> new ArrayList<>()).add(closure);
         if (!template)
             PhaseDriver.getInstance().registerApplyLaterPhase(number);
     }
 
-    void copyApplyLaterClosuresFrom(Object recipe) {
-        Map<Integer, List<Closure<?>>> source;
-        if (recipe instanceof KlumBuilder)
-            source = ((KlumBuilder<?>) recipe).applyLaterClosures;
-        else if (recipe instanceof KlumModelObject)
-            source = KlumModelProxy.getProxyFor(recipe).getApplyLaterClosures();
-        else
-            return;
-        source.forEach((phase, closures) -> closures.forEach(closure -> doScheduleApplyLater(phase, cloneClosure(closure))));
+    private static String defaultPhaseName(Integer number) {
+        for (DefaultKlumPhase phase : DefaultKlumPhase.values())
+            if (phase.getNumber() == number)
+                return phase.getName();
+        return null;
     }
 
-    private static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
+    void copyApplyLaterClosuresFrom(Object recipe) {
+        if (recipe instanceof KlumBuilder) {
+            KlumBuilder<?> sourceBuilder = (KlumBuilder<?>) recipe;
+            if (sourceBuilder.applyLaterClosures.isEmpty())
+                return;
+            assertValidBuilderCopySource(sourceBuilder);
+            sourceBuilder.applyLaterClosures.forEach((phase, closures) ->
+                    new ArrayList<>(closures).forEach(closure ->
+                            scheduleApplyLater(phase, closure.dehydrate())));
+            return;
+        }
+        if (recipe instanceof KlumModelObject
+                && KlumTemplateProxy.companionFor(recipe) instanceof KlumTemplateProxy templateProxy)
+            templateProxy.replayInto(this);
+    }
+
+    static Map<Integer, List<Closure<?>>> dehydrateApplyLaterClosures(Map<Integer, List<Closure<?>>> source) {
         Map<Integer, List<Closure<?>>> copy = new TreeMap<>();
         source.forEach((phase, closures) -> copy.put(phase, closures.stream()
                 .map(KlumBuilder::dehydrateRecipeClosure)
@@ -1124,12 +1173,19 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private static final class BuilderCaptureException extends IOException {
     }
 
-    private static Closure<?> cloneClosure(Closure<?> closure) {
-        return (Closure<?>) closure.clone();
-    }
-
     public void executeApplyLaterClosures(int phase) {
-        applyLaterClosures.getOrDefault(phase, Collections.emptyList()).forEach(closure -> applyOnly(null, closure));
+        List<Closure<?>> closures = applyLaterClosures.get(phase);
+        if (closures == null)
+            return;
+        int pendingAtPhaseStart = closures.size();
+        for (int index = 0; index < pendingAtPhaseStart; index++) {
+            Iterator<Closure<?>> iterator = closures.iterator();
+            Closure<?> closure = iterator.next();
+            iterator.remove();
+            applyOnly(null, closure);
+        }
+        if (closures.isEmpty())
+            applyLaterClosures.remove(phase);
     }
 
     public void cleanup() {
@@ -1194,6 +1250,11 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
                 propagateModelPath(getInstanceAttribute(field.getName()), modelPath + "." + field.getName());
             }
         }
+    }
+
+    void refreshModelPaths() {
+        if (modelPath != null)
+            propagateModelPathToComposition();
     }
 
     private static void propagateModelPath(Object value, String path) {

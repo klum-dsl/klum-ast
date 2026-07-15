@@ -11,6 +11,8 @@ This provides helpers for serialization and deserialization of Klum objects:
 - the module's internal `KlumDeserializer` replays resolved Jackson properties into generated Builders rather than partially initialized DSL Objects
 - owned nested DSL values are populated as Builders in the same Construction session
 - after binding, the normal lifecycle, graph materialization, validation, and verification pipeline produces the completed DSL Object
+- serialization rejects a marked Template, including one nested in an ordinary value, because JSON would retain values
+  while silently losing Template recipe actions. Rehydrate the Template into an ordinary completed model before exporting it
 - All enhancements are packaged into a Jackson module (KlumAstModule)
 
 [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
@@ -19,6 +21,9 @@ field. [Issue #439](https://github.com/klum-dsl/klum-ast/issues/439) implements 
 renamed and aliased properties from #251. Existing beta JSON may change when moving from the earlier raw-state behavior.
 
 > JSON serialized by different KlumAST versions is not guaranteed to be mutually compatible.
+
+Template rejection is the only AB-3 serialization change. `LINK` identity/reference handling and further Jackson
+customization remain in #440.
 
 # Usage
 
@@ -102,9 +107,9 @@ JSON-1 does not implement `LINK` identity or forward references, `@JsonCreator`,
 construction, completed-model owned deserializers, managed/back-reference ownership replacement, or polymorphic owned DSL
 subtypes. Those boundaries remain with [#440](https://github.com/klum-dsl/klum-ast/issues/440).
 
-Marked Templates are unsupported Jackson values. Reliable rejection is blocked until
-[#438](https://github.com/klum-dsl/klum-ast/issues/438) gives completed Templates stable identity separate from ordinary
-models; until then, do not pass Templates to an `ObjectMapper`.
+Marked Templates are unsupported Jackson values. `KlumAstModule` rejects a marked Template at the root or nested in an
+ordinary value because JSON cannot preserve its recipe actions. Rehydrate a fresh ordinary completed model through
+`Template.With`, `copyFrom`, or another Template/copy API before passing it to an `ObjectMapper`.
 
 # Extend
 

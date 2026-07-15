@@ -25,6 +25,7 @@
 package com.blackbuild.klum.ast.jackson
 
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.intellij.lang.annotations.Language
 
@@ -89,6 +90,57 @@ class JsonExportSpec extends AbstractDSLSpec {
 
         then:
         mapper.writeValueAsString(instance) == '{"bars":{"Klaus":{"name":"Klaus"},"Dieter":{"name":"Dieter"}}}'
+    }
+
+    def "serialization rejects a marked Template instead of dropping its recipe actions"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                String name
+            }
+        ''')
+        def template = clazz.Template.Create {
+            name "template"
+            applyLater {
+                name "replayed"
+            }
+        }
+
+        when:
+        mapper.writeValueAsString(template)
+
+        then:
+        JsonMappingException error = thrown()
+        error.message.startsWith("Cannot serialize marked Template pk.Foo as JSON because JSON preserves values " +
+                "but not Template recipe actions. Rehydrate it through Template.With or another Template/copy API " +
+                "and serialize the completed model instead.")
+    }
+
+    def "serialization rejects a marked Template nested in an ordinary value"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                Object value
+            }
+        ''')
+        def template = clazz.Template.Create()
+        instance = clazz.Create.With {
+            value template
+        }
+
+        when:
+        mapper.writeValueAsString(instance)
+
+        then:
+        JsonMappingException error = thrown()
+        error.message.contains("Cannot serialize marked Template pk.Foo as JSON")
+        error.pathReference.contains('pk.Foo["value"]')
     }
 
     def "deserialization with map"() {
