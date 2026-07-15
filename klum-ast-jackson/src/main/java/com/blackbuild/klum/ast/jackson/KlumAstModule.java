@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.jackson;
 
 import com.blackbuild.klum.ast.util.DslHelper;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.DeserializationConfig;
@@ -66,9 +67,22 @@ public class KlumAstModule extends Module {
         @Override
         public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc,
                                                        JsonDeserializer<?> deserializer) {
-            if (!DslHelper.isDslType(beanDesc.getBeanClass()))
+            Class<?> handledType = deserializer.handledType();
+            Class<?> modelType = DslHelper.isDslType(beanDesc.getBeanClass())
+                    ? beanDesc.getBeanClass()
+                    : builderTargetType(beanDesc, handledType);
+            if (modelType == null || !DslHelper.isDslType(modelType))
                 return deserializer;
-            return new KlumDeserializer(beanDesc.getBeanClass(), deserializer);
+            return new KlumDeserializer(modelType, deserializer);
+        }
+
+        private static Class<?> builderTargetType(BeanDescription beanDesc, Class<?> fallback) {
+            JsonPOJOBuilder.Value builderConfig = beanDesc.findPOJOBuilderConfig();
+            String buildMethodName = builderConfig == null
+                    ? JsonPOJOBuilder.DEFAULT_BUILD_METHOD
+                    : builderConfig.buildMethodName;
+            var buildMethod = beanDesc.findMethod(buildMethodName, null);
+            return buildMethod == null ? fallback : buildMethod.getRawReturnType();
         }
     }
 
