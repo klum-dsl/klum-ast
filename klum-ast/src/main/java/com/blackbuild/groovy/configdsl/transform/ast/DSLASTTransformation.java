@@ -124,6 +124,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             DSLASTTransformation.class.getName() + ".builderAnnotationClosure";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String FACTORY_FIELD_NAME = "Create";
+    private static final String RESERVED_KLUM_NAMESPACE = "$klum$";
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
@@ -156,6 +157,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         implementMarkerInterfaces();
 
+        rejectReservedKlumNamespace(annotatedClass);
         checkFieldNames();
         rejectCompletedModelApplyMethods();
         rejectClientConstructors();
@@ -182,6 +184,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         makeClassSerializable();
 
         runDelayedActions(annotatedClass);
+        OmittedProjectionCatalog.complete(rwClass);
         GeneratedDslSupport.complete(annotatedClass);
 
         new VariableScopeVisitor(sourceUnit, true).visitClass(annotatedClass);
@@ -240,6 +243,27 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void warnIfInvalid(FieldNode fieldNode) {
         if (fieldNode.getName().startsWith("$") && (fieldNode.getModifiers() & ACC_SYNTHETIC) != 0)
             addCompileWarning(sourceUnit, "fields starting with '$' are strongly discouraged", fieldNode);
+    }
+
+    private void rejectReservedKlumNamespace(ClassNode type) {
+        type.getFields().stream()
+                .filter(field -> field.getOwner().redirect().equals(type.redirect()))
+                .filter(field -> !field.isSynthetic())
+                .filter(field -> field.getName().startsWith(RESERVED_KLUM_NAMESPACE))
+                .forEach(field -> rejectReservedKlumMember(field.getName(), field));
+        type.getMethods().stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(type.redirect()))
+                .filter(method -> !method.isSynthetic())
+                .filter(method -> method.getName().startsWith(RESERVED_KLUM_NAMESPACE))
+                .forEach(method -> rejectReservedKlumMember(method.getName(), method));
+    }
+
+    private void rejectReservedKlumMember(String name, ASTNode member) {
+        addCompileError(
+                sourceUnit,
+                "The '$klum$' namespace is reserved for generated KlumAST members: " + name,
+                member
+        );
     }
 
     private void moveMutatorsToRWClass() {
@@ -1374,6 +1398,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createFactoryField() {
         ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
         ClassNode factoryType = getFactoryBase(defaultImpl);
+        rejectReservedKlumNamespace(factoryType);
+        BuilderMethodProjection.ensureProjectedMethods(factoryType, defaultImpl);
 
         boolean factoryIsGeneric = factoryType.redirect().getGenericsTypes() != null;
 
@@ -1445,6 +1471,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .filter(MethodNode::isPublic)
                     .filter(method -> !method.isStatic())
                     .filter(method -> !method.isFinal())
+                    .filter(method -> !method.isSynthetic())
+                    .filter(method -> !method.getName().startsWith("$klum$"))
                     .filter(method -> !method.getName().equals("getAsBuilder"))
                     .map(method -> correctFactoryMethod(currentSpec, method))
                     .forEach(method -> overrideFactoryMethod(factoryClass, defaultImpl, method));
@@ -1454,6 +1482,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private static MethodNode correctFactoryMethod(Map<String, ClassNode> genericsSpec, MethodNode source) {
         MethodNode corrected = correctToGenericsSpec(genericsSpec, source);
+        MethodNode twin = source.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
+        if (twin != null)
+            corrected.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);
         AnnoDocUtil.addDocumentation(corrected, ASTExtractor.extractDocumentation(source, null));
         return corrected;
     }
@@ -1481,6 +1512,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 body
         );
         override.setGenericsTypes(methodNode.getGenericsTypes());
+        MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
+        if (twin != null)
+            override.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);
         String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
         AnnoDocUtil.addDocumentation(override, originalDocumentation);
         factoryClass.addMethod(override);
@@ -1551,6 +1585,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
         AnnoDocUtil.addDocumentation(newMethod, originalDocumentation);
+        MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
+        if (twin != null)
+            newMethod.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);
         MethodNode existing = factoryClass.getDeclaredMethod(methodNode.getName(), parameters);
         if (existing == null)
             factoryClass.addMethod(newMethod);

@@ -22,12 +22,15 @@ This is a breaking release. See the [Builder-first construction migration](https
   configuration, and `PostApply` once without starting a nested lifecycle. Calls outside the session, across root sessions,
   or after lifecycle completion fail with migration guidance; ordinary materializing Scripts remain root-only
   ([#436](https://github.com/klum-dsl/klum-ast/issues/436)).
-- Known compatibility gap: collection/Cluster projections, direct `DelegatingScript` collection creation, and DSL Object
-  converters that call model-returning factories still require the generated Builder-producing projections tracked by
-  [#437](https://github.com/klum-dsl/klum-ast/issues/437). Template companion and replay semantics remain tracked by
-  [#438](https://github.com/klum-dsl/klum-ast/issues/438). Their target behavior is specified by
-  [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md); use generated
-  child closure methods where no owning Builder projection is available yet.
+- Restored Builder-first collection, map, Cluster, direct `DelegatingScript`, converter, alternative, and custom-factory
+  composition. Source-visible model-producing methods receive synthetic `$klum$asBuilder$...` twins linked through AST
+  metadata; generated public contracts expose concrete `Foo_DSL.Builder` results while direct root factory behavior remains
+  completed-model-oriented. Multi-result projections retain their original container, iteration order, comparator,
+  duplicates, and map keys. Opaque or precompiled model producers are omitted from generated APIs and matching dynamic calls
+  fail with targeted migration guidance ([#437](https://github.com/klum-dsl/klum-ast/issues/437),
+  [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)).
+- Template companion, copy-source, and replay semantics remain tracked by
+  [#438](https://github.com/klum-dsl/klum-ast/issues/438).
 
 ## Templates, serialization, and Jackson
 

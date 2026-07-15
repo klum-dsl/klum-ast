@@ -179,7 +179,9 @@ class ModelPathTest extends AbstractDSLSpec {
 
         then:
         KlumModelException error = thrown()
-        error.message.contains("Completed DSL Object inputs are only supported for LINK relationships (Model.level2)")
+        error.message.contains("Cannot use omitted Builder-producing projection level2(java.lang.String)")
+        error.message.contains("producer body contains an opaque materializing call")
+        error.message.contains("active-session Create.AsBuilder recipe")
     }
 
     def "model path is set correctly when using nested Create.With in Factory"() {

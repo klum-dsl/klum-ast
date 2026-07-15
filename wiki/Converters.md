@@ -47,25 +47,28 @@ Date payDay(int $date, int $month, $year) {
 
 The closures must return an instance of the field (or element) type.
 
-If that type is a DSL Object, returning a completed model from the closure cannot create owned composition in 4.0. The
-same Builder-lifecycle restriction described below for factory-method converters applies. Field converters for Simple
-Values are unaffected.
+For a DSL Object result, source-visible converter closures are transformed onto active-session Builder production and the
+returned Builder is attached to the owning relationship. Field converters for Simple Values are unaffected.
 
 # Factory Method converters
 
 For non-DSL values, factory-method converters continue to return the converted value and pass it to the Builder setter or
 adder.
 
-Completed-model converters require special care in 4.0. A static factory method returning a DSL Object is still discovered,
-but a generated relationship converter cannot call `Create.With` or `Create.One` while its owner's Builder lifecycle is
-active. That would create an independently materialized model and then attempt to adopt it as owned composition, so the
-call fails with guidance to use the owning Builder's generated relationship method.
+For DSL Object relationships, a source-visible static factory method returning a model through a recognizable
+`Create.With`, `Create.One`, `Create.FromMap`, or adaptable `Create.From` path receives a linked Builder-producing twin.
+Generated converter methods call that twin directly, attach its unsealed Builder to the active construction session, and
+expose the concrete `Foo_DSL.Builder` return type. Recursive source factory calls are rebound to their own twins. The
+original factory method remains unchanged for direct completed-root calls.
 
 A factory method is either a method named `from*`, `of*`, `parse*` or (for non DSL methods) `create*` or explicitly 
 annotated with `@Converter`.
 
-Until the Builder-producing converter protocol is implemented, construct owned DSL Object relationships through the
-parent's normal closure method:
+An opaque or precompiled model-returning converter without an explicit `KlumBuilder<Foo>` result is not advertised on the
+generated Builder API or its IDE mirror. A matching dynamic invocation throws a targeted `KlumModelException` explaining
+how to migrate; unrelated unknown method names retain normal Groovy `MissingMethodException` behavior. Such producers can
+be migrated by returning a concretely parameterized `KlumBuilder<Foo>` or by making their source-visible construction path
+adaptable. The parent's normal closure method remains the simplest alternative:
 
 ```groovy
 Foo.Create.With {
@@ -77,8 +80,7 @@ Foo.Create.With {
 
 An independently completed converter result remains valid as a root result or when explicitly passed to an aggregation
 `LINK`; it is not valid as new composition. [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)
-records the future `Create.AsBuilder` composition protocol, Builder-producing collection projections, and source-compatible
-adaptation for recognizable classic converters without committing to the final generated Builder type name or placement.
+records the Builder-producing composition protocol.
 
 Note that having more than one factory with the same parameters might
 lead to unexpected results.

@@ -30,7 +30,6 @@ import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumModelProxy
 import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
-import spock.lang.PendingFeature
 
 import java.lang.reflect.Modifier
 
@@ -766,7 +765,6 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         !first.items.first().is(second.items.first())
     }
 
-    @PendingFeature(reason = "ADR 0004: source-visible DSL Object converters still lack hidden Builder-producing twins")
     def "source factory converters create composition through child Builders"() {
         given:
         createClass '''
@@ -788,7 +786,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         when:
-        clazz.Create.With { child "nested" }
+        instance = clazz.Create.With { child "nested" }
 
         then:
         instance.child.value == "nested"

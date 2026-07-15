@@ -21,13 +21,13 @@ current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define th
 | #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is an adoption gate for DSL-3 and may run in parallel. |
 | #390 — ADR 0006 completed Object support | Decision is complete, but direct proxy/metadata access remains exposed and clients lack the supported Java facade. | [#435 OS-1](https://github.com/klum-dsl/klum-ast/issues/435), OS-2, and OS-3: root/subtree facade, structure, stored validation, proxy lockdown, serialization, and Java-first docs. | Coordinate OS-2 with #438's common companion split. |
 | #428 + #251 — ADR 0007 configuration replay | Decision is complete, but raw Map restoration still duplicates derived state and ignores resolved property naming. | [#439 JSON-1](https://github.com/klum-dsl/klum-ast/issues/439), [#440 JSON-2](https://github.com/klum-dsl/klum-ast/issues/440), and JSON-3: property-aware binding, one lifecycle, LINK identity, customization, Template rejection, migration/CHANGES, Groovy 3/4/5. | #439 may start independently; #440's Template/reference integration aligns with #438. |
-| #431 — finalized ADR 0004 | The confirmed regressions and ordinary-model Template state remain in current source. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436), [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437), [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438), and AB-4: active session, projections/twins, Template state/copy sources, strict applyLater boundary, compatibility closure. | #437 depends on #433/#436; #438 coordinates with #390/#428; AB-4 waits for both. |
+| #431 — finalized ADR 0004 | AB-1 active sessions and AB-2 adaptable composition are implemented; ordinary-model Template state and the copy-source/applyLater boundary remain. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436) and [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437) are complete. [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438) and AB-4 must finish Template state/copy sources, the strict applyLater boundary, and compatibility closure. | #438 coordinates with #390/#428; AB-4 waits for it. |
 
 ### Recommended must-item sequence
 
 ```text
-#433 DSL-1 ────────────────> #437 AB-2 ──┐
-#436 AB-1 ──────────────────────────────┤
+#433 DSL-1 (done) ─────────> #437 AB-2 (done) ──┐
+#436 AB-1 (done) ──────────────────────────────┤
 #435 OS-1 ──> #390 OS-2 <──> #438 AB-3 ├──> documentation + full compatibility lanes
 #439 JSON-1 ──> #440 JSON-2 <─ #438 AB-3 ┘
 #434 DSL-G ──> #394 DSL-3

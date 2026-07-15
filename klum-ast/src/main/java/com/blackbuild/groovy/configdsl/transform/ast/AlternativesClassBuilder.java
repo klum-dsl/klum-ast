@@ -32,6 +32,7 @@ import org.codehaus.groovy.ast.expr.ClosureExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapEntryExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.MethodCallExpression;
 
 import java.beans.Introspector;
 import java.util.*;
@@ -54,6 +55,7 @@ import static org.codehaus.groovy.transform.AbstractASTTransformation.getMemberS
  */
 class AlternativesClassBuilder extends AbstractFactoryBuilder {
     private static final ClassNode KLUM_FACTORY = ClassHelper.make(KlumFactory.class);
+    private static final ClassNode BUILDER_FACTORY = ClassHelper.make(KlumFactory.BuilderFactory.class);
     private final DSLASTTransformation transformation;
     private final FieldNode fieldNode;
     private final ClassNode keyType;
@@ -135,6 +137,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
             createMethodsFromFactory();
             createNamedAlternativeMethodsForSubclasses();
         }
+        OmittedProjectionCatalog.complete(collectionFactory);
     }
 
     private void createClosureForOuterClass() {
@@ -239,6 +242,8 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
             factory.getMethods().forEach(this::createDelegateFactoryMethod);
             factory = factory.getUnresolvedSuperClass();
         }
+        OmittedProjectionCatalog.complete(collectionFactory);
+        GeneratedDslSupport.complete(targetClass);
     }
 
     private void createNamedAlternativeMethodsForSingleSubclass(ClassNode subclass) {
@@ -275,54 +280,93 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
         if (methodNode.getName().startsWith(TemplateMethods.TEMPLATE_FIELD_NAME)) return;
 
         ClassNode returnType = correctToGenericsSpec(genericsSpec, methodNode).getReturnType();
+        MethodNode builderFactoryMethod = findBuiltInBuilderFactoryMethod(methodNode);
+        MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
+        MethodNode builderProducer = twin != null
+                ? twin
+                : BuilderMethodProjection.isBuilderProducerType(returnType, elementType) ? methodNode : null;
 
-        if (isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
+        if (builderProducer != null) {
+            MethodNode original = builderProducer.getNodeMetaData(BuilderMethodProjection.ORIGINAL_METADATA_KEY);
+            MethodCallExpression builderCall = callX(
+                    propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
+                    builderProducer.getName(),
+                    args(cloneParamsWithAdjustedNames(methodNode))
+            );
+            builderCall.setMethodTarget(builderProducer);
+
+            String attachmentMethod;
+            if (isCollection(returnType) || isMap(returnType))
+                attachmentMethod = isMap(fieldNode.getType())
+                        ? "addProjectedBuildersToMap"
+                        : "addProjectedBuildersToCollection";
+            else
+                attachmentMethod = isMap(fieldNode.getType()) ? "addElementToMap" : "addElementToCollection";
+
+            Expression attachmentArguments = isMap(fieldNode.getType()) && !isCollection(returnType) && !isMap(returnType)
+                    ? args(constX(fieldNode.getName()), constX(null), builderCall)
+                    : args(constX(fieldNode.getName()), builderCall);
+
+            MethodBuilder method = MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(BuilderMethodProjection.projectedBuilderType(builderProducer.getReturnType(), elementType))
                     .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(fieldNode.getName(),
-                            callX(
-                                    propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
-                                    methodNode.getName(),
-                                    args(cloneParamsWithAdjustedNames(methodNode))
-                            )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
-        } else if (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
-                    .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(fieldNode.getName(),
-                            callX(
-                                    callX(
-                                            propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
-                                            methodNode.getName(),
-                                            args(cloneParamsWithAdjustedNames(methodNode))
-                                    ),
-                                    "values"
-                            )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
-        } else if (isAssignableTo(returnType, elementType)) {
-            MethodBuilder.createPublicMethod(methodNode.getName())
-                    .returning(newClass(returnType))
-                    .optional()
-                    .cloneParamsFrom(methodNode)
-                    .callThis(
-                            memberName,
-                            callX(
-                                    propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
-                                    methodNode.getName(),
-                                    args(cloneParamsWithAdjustedNames(methodNode))
-                            )
-                    )
-                    .copyDocFrom(methodNode)
-                    .addTo(collectionFactory);
+                    .params(BuilderMethodProjection.projectedParameters(
+                            original != null ? original : methodNode,
+                            BuilderMethodProjection.concreteModelFor(builderProducer, elementType)))
+                    .doReturn(callX(varX("rw"), attachmentMethod, attachmentArguments));
+            BuilderMethodProjection.documentComposition(method, methodNode, returnType);
+            method.addTo(collectionFactory);
+            return;
         }
+
+        if (builderFactoryMethod != null && isAssignableTo(returnType, elementType)) {
+            MethodCallExpression builderCall = callX(
+                    propX(
+                            propX(classX(elementType), DSLASTTransformation.FACTORY_FIELD_NAME),
+                            "AsBuilder"
+                    ),
+                    builderFactoryMethod.getName(),
+                    args(cloneParamsWithAdjustedNames(methodNode))
+            );
+            builderCall.setMethodTarget(builderFactoryMethod);
+            MethodBuilder method = MethodBuilder.createPublicMethod(methodNode.getName())
+                    .returning(GeneratedDslSupport.publicType(getRwClassOf(returnType)))
+                    .optional()
+                    .cloneParamsFrom(methodNode)
+                    .callThis(memberName, builderCall);
+            BuilderMethodProjection.documentComposition(method, methodNode, returnType);
+            method.addTo(collectionFactory);
+            return;
+        }
+
+        if ((isCollection(returnType) && isAssignableTo(getElementTypeForCollection(returnType), elementType))
+                || (isMap(returnType) && isAssignableTo(getElementTypeForMap(returnType), elementType))
+                || isAssignableTo(returnType, elementType)) {
+            OmittedProjectionCatalog.omit(collectionFactory, methodNode,
+                    builderFactoryMethod == null
+                            ? BuilderMethodProjection.omissionReasonFor(methodNode)
+                            : "the root factory operation has no active-session Builder-producing form");
+        }
+    }
+
+    private static MethodNode findBuiltInBuilderFactoryMethod(MethodNode rootFactoryMethod) {
+        if (!rootFactoryMethod.getDeclaringClass().equals(KLUM_FACTORY)
+                && !rootFactoryMethod.getDeclaringClass().isDerivedFrom(KLUM_FACTORY))
+            return null;
+
+        return BUILDER_FACTORY.getMethods(rootFactoryMethod.getName()).stream()
+                .filter(candidate -> parametersMatch(candidate.getParameters(), rootFactoryMethod.getParameters()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static boolean parametersMatch(Parameter[] left, Parameter[] right) {
+        if (left.length != right.length) return false;
+        for (int index = 0; index < left.length; index++) {
+            if (!left[index].getOriginType().redirect().equals(right[index].getOriginType().redirect()))
+                return false;
+        }
+        return true;
     }
 
     private String getShortNameFor(ClassNode subclass) {
