@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException
-import spock.lang.PendingFeature
 
 class ConfigurationReplaySpec extends AbstractDSLSpec {
 
@@ -462,7 +461,6 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         mapper.readValue('{"value":"json"}', clazz).value == "custom:json"
     }
 
-    @PendingFeature(reason = "Blocked by #438: completed Templates have no stable identity before companion separation")
     def "marked Templates are rejected as Jackson values"() {
         given:
         createClass('''
