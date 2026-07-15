@@ -10,6 +10,8 @@ Use this checklist for any pull request that changes public behavior, compatibil
 
 ## Quality checks
 
+- Review changed source against `docs/agents/coding-style.md`; unnecessary fully qualified names should be fixed unless a
+  documented exception applies.
 - Inspect all required CI checks, including SonarCloud, against the current pull request revision.
 - Fix reliability and security findings before handoff. Address maintainability findings or retain them only with a localized suppression and a concrete reason.
 - Do not use broad suppressions to hide unrelated findings. A suppression is documentation of an intentional exception and must explain the invariant or compatibility constraint.

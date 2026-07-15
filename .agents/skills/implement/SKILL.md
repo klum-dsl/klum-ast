@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the work described by the user in the PRD or issues.
 
-Read the repository's agent instructions and `docs/agents/commits.md`. Before the first commit, create a new branch dedicated to the issue from the agreed base, or confirm the current branch was newly created for this issue.
+Read the repository's agent instructions, `docs/agents/coding-style.md`, and `docs/agents/commits.md`. Before the first commit, create a new branch dedicated to the issue from the agreed base, or confirm the current branch was newly created for this issue.
 
 Use /tdd where possible, at pre-agreed seams. Commit each completed reasoning slice according to `docs/agents/commits.md`; a TDD commit contains the failing test and the change that makes it green.
 
