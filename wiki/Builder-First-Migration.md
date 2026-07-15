@@ -48,6 +48,7 @@ KlumAST with `@Grab`, but the complete standalone-script setup will be documente
 | `copyFrom` rejects a sealed or cross-session Builder | Use a completed model for a value-only copy, a marked Template for value-plus-recipe replay, or an unsealed `Create.AsBuilder` result from the same active Construction session. |
 | `applyLater` rejects phase 40 or later | Schedule Builder mutation below `INSTANTIATE`, or move completed-model work into a `ModelVisitingPhaseAction`. |
 | Jackson rejects a marked Template | Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions. |
+| Jackson rejects a `LINK` value or inline object | Configure `@JsonIdentityInfo` on the target and `@JsonIdentityReference(alwaysAsId = true)` on the `LINK`, or provide explicit reference property codecs. Persist only ids, never nested `LINK` objects. |
 | A generated `apply` method is missing on a completed model | Move the changes into the original `Create.With` callback, a Template, or another factory input. |
 | Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. |
 
@@ -151,5 +152,12 @@ mixins, ignore/access rules, and unknown-property policy are resolved by Jackson
 `copyFrom` no longer affect JSON input. See [[Jackson Integration]] and
 [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md).
 
-`LINK` identity/forward references remain #440 scope. Marked Templates are rejected as JSON values so recipe actions
-cannot be silently lost; rehydrate a fresh ordinary model before serialization.
+`LINK` values now require an explicit reference schema. Put `@JsonIdentityInfo` on the target type and
+`@JsonIdentityReference(alwaysAsId = true)` on each `LINK`, or provide custom property reference codecs. Backward and
+forward ids resolve against completed targets or Builders allocated in the same replay session. Inline objects are no
+longer accepted as `LINK` input, and non-null output without a reference strategy fails instead of embedding a target.
+
+Marked Templates are rejected as JSON values so recipe actions cannot be silently lost; rehydrate a fresh ordinary model
+before serialization. Jackson views, formats, inclusion, Simple Value codecs, mixins, and polymorphic owned types remain
+supported, but creator, model-setter, foreign Jackson Builder, owned completed-model deserializer, and managed/back-reference
+annotations cannot replace the Klum Builder lifecycle.

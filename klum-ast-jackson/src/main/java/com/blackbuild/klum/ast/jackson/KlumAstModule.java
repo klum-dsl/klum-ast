@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.jackson;
 
 import com.blackbuild.klum.ast.util.DslHelper;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.DeserializationConfig;
@@ -32,7 +33,13 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.deser.BeanDeserializerModifier;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
+import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
+
+import java.lang.reflect.Field;
+import java.util.List;
 
 public class KlumAstModule extends Module {
 
@@ -59,13 +66,65 @@ public class KlumAstModule extends Module {
         @Override
         public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription beanDesc,
                                                        JsonDeserializer<?> deserializer) {
-            if (!DslHelper.isDslType(beanDesc.getBeanClass()))
+            Class<?> handledType = deserializer.handledType();
+            Class<?> modelType = DslHelper.isDslType(beanDesc.getBeanClass())
+                    ? beanDesc.getBeanClass()
+                    : builderTargetType(beanDesc, handledType);
+            if (modelType == null || !DslHelper.isDslType(modelType))
                 return deserializer;
-            return new KlumDeserializer(beanDesc.getBeanClass());
+            return new KlumDeserializer(modelType, deserializer);
+        }
+
+        private static Class<?> builderTargetType(BeanDescription beanDesc, Class<?> fallback) {
+            JsonPOJOBuilder.Value builderConfig = beanDesc.findPOJOBuilderConfig();
+            String buildMethodName = builderConfig == null
+                    ? JsonPOJOBuilder.DEFAULT_BUILD_METHOD
+                    : builderConfig.buildMethodName;
+            var buildMethod = beanDesc.findMethod(buildMethodName, null);
+            return buildMethod == null ? fallback : buildMethod.getRawReturnType();
         }
     }
 
     public static class KlumSerializerModifier extends BeanSerializerModifier {
+        @Override
+        public List<BeanPropertyWriter> changeProperties(SerializationConfig config, BeanDescription beanDesc,
+                                                         List<BeanPropertyWriter> beanProperties) {
+            if (!DslHelper.isDslType(beanDesc.getBeanClass()))
+                return beanProperties;
+            return beanProperties.stream()
+                    .map(writer -> linkWriter(config, beanDesc, writer))
+                    .toList();
+        }
+
+        private static BeanPropertyWriter linkWriter(SerializationConfig config, BeanDescription beanDesc,
+                                                     BeanPropertyWriter writer) {
+            AnnotatedMember member = writer.getMember();
+            if (member == null)
+                return writer;
+            BeanPropertyDefinition property = beanDesc.findProperties().stream()
+                    .filter(candidate -> candidate.getName().equals(writer.getName()))
+                    .findFirst()
+                    .orElse(null);
+            if (property == null)
+                return writer;
+            Field schemaField = DslHelper.getField(beanDesc.getBeanClass(), property.getInternalName()).orElse(null);
+            if (schemaField == null || !DslHelper.isLink(schemaField))
+                return writer;
+            var introspector = config.getAnnotationIntrospector();
+            var referenceInfo = introspector.findObjectReferenceInfo(member, null);
+            boolean alwaysAsId = referenceInfo != null && referenceInfo.getAlwaysAsId();
+            var propertyType = config.getTypeFactory().constructType(schemaField.getGenericType());
+            var targetType = propertyType.isContainerType() ? propertyType.getContentType() : propertyType;
+            boolean targetHasIdentity = targetType != null
+                    && config.introspect(targetType).getObjectIdInfo() != null;
+            boolean customSerializer = introspector.findSerializer(member) != null;
+            return new KlumLinkBeanPropertyWriter(
+                    writer,
+                    schemaField.getDeclaringClass().getName() + "." + schemaField.getName(),
+                    customSerializer || alwaysAsId && targetHasIdentity
+            );
+        }
+
         @Override
         public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc,
                                                    JsonSerializer<?> serializer) {
