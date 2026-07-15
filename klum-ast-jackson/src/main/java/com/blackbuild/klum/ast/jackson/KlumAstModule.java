@@ -100,11 +100,15 @@ public class KlumAstModule extends Module {
             var introspector = config.getAnnotationIntrospector();
             var referenceInfo = introspector.findObjectReferenceInfo(member, null);
             boolean alwaysAsId = referenceInfo != null && referenceInfo.getAlwaysAsId();
+            var propertyType = config.getTypeFactory().constructType(schemaField.getGenericType());
+            var targetType = propertyType.isContainerType() ? propertyType.getContentType() : propertyType;
+            boolean targetHasIdentity = targetType != null
+                    && config.introspect(targetType).getObjectIdInfo() != null;
             boolean customSerializer = introspector.findSerializer(member) != null;
             return new KlumLinkBeanPropertyWriter(
                     writer,
                     schemaField.getDeclaringClass().getName() + "." + schemaField.getName(),
-                    alwaysAsId || customSerializer
+                    customSerializer || alwaysAsId && targetHasIdentity
             );
         }
 

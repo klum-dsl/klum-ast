@@ -34,6 +34,7 @@ import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.BeanDescription;
@@ -166,19 +167,77 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                                  JsonParser source, DeserializationContext context) throws IOException {
         if (node.isNull())
             return null;
-        if (node.isObject())
+        if (node.isObject() && !property.type().isMapLikeType())
             throw JsonMappingException.from(source, "LINK property " + property.schemaField().getDeclaringClass().getName()
                     + "." + property.internalName() + " must contain a reference id, not an inline object");
 
-        JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
-                property.type(), property.beanProperty());
-        if (hasCustomPropertyDeserializer(property, context))
+        if (hasCustomPropertyDeserializer(property, context)) {
+            JsonDeserializer<Object> valueDeserializer = findPropertyValueDeserializer(property, context);
             return readValue(node, source, valueDeserializer, context);
-        if (!isAlwaysAsId(property, context) || valueDeserializer.getObjectIdReader() == null)
+        }
+        if (!isAlwaysAsId(property, context))
             throw JsonMappingException.from(source, "Non-null LINK property "
                     + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
                     + " requires @JsonIdentityInfo on the target type and "
                     + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, or an explicit custom property deserializer");
+
+        if (property.type().isMapLikeType())
+            return readLinkMap(node, property, source, context);
+        if (property.type().isCollectionLikeType())
+            return readLinkCollection(node, property, source, context);
+        return resolveLinkReference(node, property.type(), property, source, context);
+    }
+
+    private Map<Object, Object> readLinkMap(JsonNode node, ResolvedProperty property,
+                                            JsonParser source, DeserializationContext context) throws IOException {
+        if (!node.isObject())
+            throw JsonMappingException.from(source, "Expected an object of reference ids for LINK map property "
+                    + property.externalName());
+        Map<Object, Object> result = SortedMap.class.isAssignableFrom(property.type().getRawClass())
+                ? new TreeMap<>()
+                : new LinkedHashMap<>();
+        KeyDeserializer keyDeserializer = context.findKeyDeserializer(
+                property.type().getKeyType(), property.beanProperty());
+        var fields = node.fields();
+        while (fields.hasNext()) {
+            var entry = fields.next();
+            if (entry.getValue().isObject())
+                throw inlineLinkError(property, source);
+            Object key = keyDeserializer.deserializeKey(entry.getKey(), context);
+            result.put(key, resolveLinkReference(
+                    entry.getValue(), property.type().getContentType(), property, source, context));
+        }
+        return result;
+    }
+
+    private Collection<Object> readLinkCollection(JsonNode node, ResolvedProperty property,
+                                                  JsonParser source, DeserializationContext context) throws IOException {
+        if (!node.isArray())
+            throw JsonMappingException.from(source, "Expected an array of reference ids for LINK collection property "
+                    + property.externalName());
+        Collection<Object> result = SortedSet.class.isAssignableFrom(property.type().getRawClass())
+                ? new TreeSet<>()
+                : Set.class.isAssignableFrom(property.type().getRawClass())
+                ? new LinkedHashSet<>()
+                : new ArrayList<>();
+        for (JsonNode element : node) {
+            if (element.isObject())
+                throw inlineLinkError(property, source);
+            result.add(resolveLinkReference(element, property.type().getContentType(), property, source, context));
+        }
+        return result;
+    }
+
+    private Object resolveLinkReference(JsonNode node, JavaType targetType, ResolvedProperty property,
+                                        JsonParser source, DeserializationContext context) throws IOException {
+        if (node.isNull())
+            return null;
+        JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
+                targetType, property.beanProperty());
+        if (valueDeserializer.getObjectIdReader() == null)
+            throw JsonMappingException.from(source, "Non-null LINK property "
+                    + property.schemaField().getDeclaringClass().getName() + "." + property.internalName()
+                    + " requires @JsonIdentityInfo on its target type");
 
         ObjectIdReader reader = valueDeserializer.getObjectIdReader();
         Object id;
@@ -195,9 +254,26 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         return resolved;
     }
 
+    private static JsonMappingException inlineLinkError(ResolvedProperty property, JsonParser source) {
+        return JsonMappingException.from(source, "LINK property " + property.schemaField().getDeclaringClass().getName()
+                + "." + property.internalName() + " must contain reference ids, not inline objects");
+    }
+
     private static boolean hasCustomPropertyDeserializer(ResolvedProperty property, DeserializationContext context) {
         AnnotatedMember member = property.beanProperty().getMember();
         return member != null && context.getAnnotationIntrospector().findDeserializer(member) != null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JsonDeserializer<Object> findPropertyValueDeserializer(
+            ResolvedProperty property, DeserializationContext context) throws JsonMappingException {
+        AnnotatedMember member = property.beanProperty().getMember();
+        Object definition = member == null ? null : context.getAnnotationIntrospector().findDeserializer(member);
+        if (definition == null)
+            return context.findContextualValueDeserializer(property.type(), property.beanProperty());
+        JsonDeserializer<Object> deserializer = (JsonDeserializer<Object>) context.deserializerInstance(member, definition);
+        return (JsonDeserializer<Object>) context.handleSecondaryContextualization(
+                deserializer, property.beanProperty(), property.type());
     }
 
     private static boolean isAlwaysAsId(ResolvedProperty property, DeserializationContext context) {
@@ -220,14 +296,8 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
 
     private static Object readSimpleValue(JsonNode node, JsonParser source, ResolvedProperty property,
                                           DeserializationContext context) throws IOException {
-        try (JsonParser valueParser = node.traverse(source.getCodec())) {
-            valueParser.nextToken();
-            JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(
-                    property.type(), property.beanProperty());
-            return valueParser.currentToken() == JsonToken.VALUE_NULL
-                    ? valueDeserializer.getNullValue(context)
-                    : valueDeserializer.deserialize(valueParser, context);
-        }
+        JsonDeserializer<Object> valueDeserializer = findPropertyValueDeserializer(property, context);
+        return readValue(node, source, valueDeserializer, context);
     }
 
     private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node,
@@ -245,10 +315,13 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         BeanDescription description = context.getConfig().introspect(type);
         Map<String, ResolvedProperty> bindable = new LinkedHashMap<>();
         Set<String> ignored = new HashSet<>(description.getIgnoredPropertyNames());
+        var objectIdInfo = context.getAnnotationIntrospector().findObjectIdInfo(description.getClassInfo());
+        if (objectIdInfo != null && objectIdInfo.getGeneratorType() != ObjectIdGenerators.PropertyGenerator.class)
+            ignored.add(objectIdInfo.getPropertyName().getSimpleName());
         description.getClassInfo().fields().forEach(field -> addIgnoredFieldName(field, ignored, context));
         description.findProperties().forEach(definition -> {
             Optional<ResolvedProperty> resolved = definition.couldDeserialize() && visibleInActiveView(definition, context)
-                    ? toResolvedProperty(currentType, definition)
+                    ? toResolvedProperty(currentType, definition, context)
                     : Optional.empty();
             Stream<String> names = Stream.concat(
                     Stream.of(definition.getName()),
@@ -299,15 +372,23 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                 .flatMap(Collection::stream);
     }
 
-    private Optional<ResolvedProperty> toResolvedProperty(Class<?> currentType, BeanPropertyDefinition property) {
+    private Optional<ResolvedProperty> toResolvedProperty(Class<?> currentType, BeanPropertyDefinition property,
+                                                           DeserializationContext context) {
         Optional<Field> schemaField = DslHelper.getField(currentType, property.getInternalName());
         if (schemaField.isEmpty() || !isConfigurable(schemaField.get()))
             return Optional.empty();
+        AnnotatedMember contextualMember = Stream.of(
+                        property.getField(), property.getSetter(), property.getGetter(), property.getPrimaryMember())
+                .filter(Objects::nonNull)
+                .distinct()
+                .filter(member -> context.getAnnotationIntrospector().findDeserializer(member) != null)
+                .findFirst()
+                .orElse(property.getField() != null ? property.getField() : property.getPrimaryMember());
         BeanProperty beanProperty = new BeanProperty.Std(
                 property.getFullName(),
                 property.getPrimaryType(),
                 property.getWrapperName(),
-                property.getPrimaryMember(),
+                contextualMember,
                 property.getMetadata()
         );
         return Optional.of(new ResolvedProperty(

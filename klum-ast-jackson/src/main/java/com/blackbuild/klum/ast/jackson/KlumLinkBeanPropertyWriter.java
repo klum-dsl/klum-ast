@@ -42,11 +42,22 @@ final class KlumLinkBeanPropertyWriter extends BeanPropertyWriter {
 
     @Override
     public void serializeAsField(Object bean, JsonGenerator generator, SerializerProvider serializers) throws Exception {
-        if (get(bean) != null && !hasReferenceStrategy)
-            throw JsonMappingException.from(generator, "Non-null LINK property " + schemaProperty
-                    + " requires @JsonIdentityInfo on the target type and "
-                    + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, "
-                    + "or an explicit custom property serializer");
+        assertReferenceStrategy(bean, generator);
         super.serializeAsField(bean, generator, serializers);
+    }
+
+    @Override
+    public void serializeAsElement(Object bean, JsonGenerator generator, SerializerProvider serializers) throws Exception {
+        assertReferenceStrategy(bean, generator);
+        super.serializeAsElement(bean, generator, serializers);
+    }
+
+    private void assertReferenceStrategy(Object bean, JsonGenerator generator) throws Exception {
+        if (get(bean) == null || hasReferenceStrategy)
+            return;
+        throw JsonMappingException.from(generator, "Non-null LINK property " + schemaProperty
+                + " requires @JsonIdentityInfo on the target type and "
+                + "@JsonIdentityReference(alwaysAsId = true) on the LINK property, "
+                + "or an explicit custom property serializer");
     }
 }
