@@ -27,10 +27,10 @@ import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.groovy.configdsl.transform.PostApply;
-import com.blackbuild.groovy.configdsl.transform.PostCreate;
 import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.process.ConstructionSession;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -89,6 +89,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private M completedModel;
     private boolean sealed;
     private boolean template;
+    private transient ConstructionSession constructionSession;
+    private transient boolean constructionSessionActive;
 
     private String breadcrumbPath;
     private String modelPath;
@@ -111,6 +113,21 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     protected KlumBuilder(Class<M> modelType) {
         this.modelType = Objects.requireNonNull(modelType);
+    }
+
+    /** Internal hook used by {@link PhaseDriver}; the token remains opaque to clients. */
+    public final void $attachConstructionSession(ConstructionSession session) {
+        Objects.requireNonNull(session);
+        if (constructionSession != null && constructionSession != session)
+            throw crossSessionAdoptionError();
+        constructionSession = session;
+        constructionSessionActive = true;
+    }
+
+    /** Internal hook used by {@link PhaseDriver} when the owning root lifecycle ends. */
+    public final void $completeConstructionSession(ConstructionSession session) {
+        if (constructionSession == session)
+            constructionSessionActive = false;
     }
 
     public final Class<M> getModelType() {
@@ -433,6 +450,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             KlumBuilder<?> builderValue = (KlumBuilder<?>) value;
             if (builderValue.isSealed() && !acceptsCompletedRelationship(schemaField))
                 throw completedRelationshipInputError(schemaField);
+            if (!builderValue.isSealed())
+                assertSameConstructionSession(builderValue);
             return value;
         }
         if (!(value instanceof KlumModelObject))
@@ -452,6 +471,21 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
                 modelType.getName(),
                 schemaField.getName()
         ));
+    }
+
+    private void assertSameConstructionSession(KlumBuilder<?> child) {
+        if (constructionSession == null && child.constructionSession == null)
+            return;
+        assertConstructionSessionActive();
+        child.assertConstructionSessionActive();
+        if (constructionSession != child.constructionSession)
+            throw crossSessionAdoptionError();
+    }
+
+    private static KlumModelException crossSessionAdoptionError() {
+        return new KlumModelException("Cannot adopt a Builder from a different Construction session. "
+                + "Call Create.AsBuilder inside the owning root Builder lifecycle and attach that Builder there; "
+                + "Builders cannot cross root lifecycles.");
     }
 
     private static Collection<Object> newMutableCollectionLike(Collection<?> source) {
@@ -496,8 +530,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private void assertMutable() {
+        assertConstructionSessionActive();
         if (sealed)
             throw new KlumModelException("A sealed Builder cannot be configured");
+    }
+
+    private void assertConstructionSessionActive() {
+        if (constructionSession != null && !constructionSessionActive)
+            throw new KlumModelException("Cannot use a Builder after its Construction session has completed. "
+                    + "Create and attach a fresh child with Create.AsBuilder inside the owning root Builder lifecycle.");
     }
 
     private void applyClosure(Closure<?> body) {
@@ -693,17 +734,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private KlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
-        KlumBuilder<?> created = FactoryHelper.createBuilder(type, key);
-        if (template)
-            created.markAsTemplate();
-        created.copyFromTemplate();
-        if (template)
-            created.applyOnly(namedParams, body);
-        else {
-            LifecycleHelper.executeLifecycleMethods(created, PostCreate.class);
-            created.apply(namedParams, body);
-        }
-        return created;
+        return FactoryHelper.prepareNestedBuilder(type, key, template, builder -> builder.applyOnly(namedParams, body));
     }
 
     /**

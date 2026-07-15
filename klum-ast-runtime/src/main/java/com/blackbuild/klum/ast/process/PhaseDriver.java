@@ -56,6 +56,9 @@ public class PhaseDriver {
 
     private Object rootObject;
     private int activeObjectPointer = 0;
+    private ConstructionSession constructionSession;
+    private final Set<KlumBuilder<?>> constructionSessionBuilders =
+            Collections.newSetFromMap(new IdentityHashMap<>());
 
     private PhaseAction currentPhase;
 
@@ -123,23 +126,51 @@ public class PhaseDriver {
 
     /** Runs one complete Builder lifecycle and returns its completed model. */
     public static <T> T withBuilderLifecycle(Supplier<? extends KlumBuilder<T>> generator, Consumer<KlumBuilder<T>> action) {
-        if (PhaseDriver.getInstance().activeObjectPointer > 0)
+        PhaseDriver driver = PhaseDriver.getInstance();
+        if (driver.activeObjectPointer > 0 || driver.constructionSession != null)
             throw new KlumModelException("Cannot start an independent DSL Object factory while a Builder lifecycle is active. "
                     + "Create composition through the owning Builder's generated relationship methods; "
                     + "completed DSL Objects may only be created beforehand and assigned to LINK fields.");
 
-        Object oldInstance = PhaseDriver.getInstance().context.getInstance();
+        Object oldInstance = driver.context.getInstance();
+        driver.constructionSession = new ConstructionSession();
+        boolean entered = false;
         try {
             KlumBuilder<T> builder = generator.get();
-            PhaseDriver.getInstance().context.setInstance(builder);
+            attachToCurrentConstructionSession(builder);
+            driver.context.setInstance(builder);
             PhaseDriver.enter(builder);
+            entered = true;
             action.accept(builder);
             PhaseDriver.executeIfReady();
-            return (T) PhaseDriver.getInstance().rootObject;
+            return (T) driver.rootObject;
         } finally {
-            PhaseDriver.getInstance().context.setInstance(oldInstance);
-            PhaseDriver.leave();
+            driver.context.setInstance(oldInstance);
+            if (entered)
+                PhaseDriver.leave();
+            else {
+                driver.completeConstructionSession();
+                INSTANCE.remove();
+            }
         }
+    }
+
+    /** Associates a newly allocated Builder with the active root lifecycle, if one exists. */
+    public static void attachToCurrentConstructionSession(KlumBuilder<?> builder) {
+        PhaseDriver driver = INSTANCE.get();
+        if (driver == null || driver.constructionSession == null)
+            return;
+        builder.$attachConstructionSession(driver.constructionSession);
+        driver.constructionSessionBuilders.add(builder);
+    }
+
+    /** Rejects Builder-producing factory calls that are not owned by a root lifecycle. */
+    public static void requireActiveConstructionSession() {
+        PhaseDriver driver = INSTANCE.get();
+        if (driver == null || driver.constructionSession == null)
+            throw new KlumModelException("Create.AsBuilder requires an active Construction session. "
+                    + "Call it inside the owning root Builder lifecycle and attach the returned Builder to an owned relationship; "
+                    + "use Create.With, Create.One, or Create.From for a standalone completed DSL Object.");
     }
 
     public static void enter(Object object) {
@@ -157,8 +188,19 @@ public class PhaseDriver {
     public static void leave() {
         PhaseDriver driver = getInstance();
         driver.activeObjectPointer--;
-        if (getInstance().activeObjectPointer == 0)
+        if (driver.activeObjectPointer == 0) {
+            driver.completeConstructionSession();
             INSTANCE.remove();
+        }
+    }
+
+    private void completeConstructionSession() {
+        ConstructionSession completedSession = constructionSession;
+        if (completedSession == null)
+            return;
+        constructionSessionBuilders.forEach(builder -> builder.$completeConstructionSession(completedSession));
+        constructionSessionBuilders.clear();
+        constructionSession = null;
     }
 
     public static void executeIfReady() {

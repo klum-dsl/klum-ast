@@ -23,10 +23,20 @@ The closure receivers, child values, mutators, and lifecycle callbacks through `
   `getDSLInstance()` or `getRwInstance()` identity aliases. [ADR 0005](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0005-generated-dsl-support-api.md)
   removes RW vocabulary in favor of the generated `Foo_DSL.Builder` interface and `@DelegatesToBuilder`; implementation is
   tracked by [issue #394](https://github.com/klum-dsl/klum-ast/issues/394).
-- Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` from inside a parent construction callback or from a nested converter: that starts a second lifecycle. Use the generated child method on the parent Builder instead.
+- Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` from inside a parent construction callback or from a nested converter: that starts a second lifecycle. Use the generated child method on the parent Builder instead. Builder-producing extension paths can use `Child.Create.AsBuilder.With`, `One`, `FromMap`, or `From(DelegatingScript)` while the root lifecycle is active, then attach the returned Builder to its owning relationship in that same session.
 - Pass an existing completed DSL Object only to a `FieldType.LINK` relationship. Completed objects cannot become newly owned composition. Use a Template when an existing object is intended as a reusable recipe; applying it rehydrates fresh Builders.
 
-Standalone root factories still return completed models. A custom factory or converter that creates a completed model remains suitable only where that model is the root result or an aggregation `LINK` target. The `Create.AsBuilder` composition protocol and Builder-producing collection projections are recorded in [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md) and tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431). Until that follow-up is available, collection-local creator methods, direct `DelegatingScript` collection creation, and owned DSL Object converters that call a root factory fail with nested-lifecycle guidance; use generated child closure methods instead.
+Standalone root factories still return completed models. `Create.AsBuilder` is valid only during an active root Construction
+session; using its result after that lifecycle, or adopting it into another root lifecycle, is rejected. Its `From` operation
+accepts `DelegatingScript` recipes but deliberately rejects ordinary Scripts that materialize a completed model. A custom
+factory or converter that creates a completed model therefore remains suitable only where that model is the root result or
+an aggregation `LINK` target.
+
+The remaining Builder-producing collection/Cluster and custom-factory projections are tracked by
+[issue #437](https://github.com/klum-dsl/klum-ast/issues/437). Until those projections are available, collection-local creator
+methods, direct `DelegatingScript` collection creation, and owned DSL Object converters that call a root factory still fail
+with nested-lifecycle guidance; use generated child closure methods instead. The complete protocol is recorded in
+[ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
 ## Schema and lifecycle changes
 

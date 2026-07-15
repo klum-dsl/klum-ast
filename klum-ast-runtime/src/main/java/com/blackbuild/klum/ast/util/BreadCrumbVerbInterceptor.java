@@ -32,7 +32,8 @@ public class BreadCrumbVerbInterceptor implements Interceptor {
 
     private static final BreadCrumbVerbInterceptor INSTANCE = new BreadCrumbVerbInterceptor();
 
-    private static final Set<String> IGNORED_METHODS = Set.of("getMethod", "getMetaClass", "setMetaClass", "invokeMethod", "getProperty", "setProperty", "ctor");
+    private static final Set<String> IGNORED_METHODS = Set.of(
+            "getMethod", "getMetaClass", "setMetaClass", "invokeMethod", "getProperty", "setProperty", "getAsBuilder", "ctor");
 
     @Override
     @SuppressWarnings("java:S3516") // only relevant if doInvoke() returns false, which it never does

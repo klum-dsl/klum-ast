@@ -38,10 +38,13 @@ For DSL element maps and collections, there is also a convenience method for cre
 from a couple of scripts, each element in a single script. The generated method has the form
 `<fieldName>(Class<? extends Script>...)` for both maps and collections.
 
-The current 4.0 Builder-first implementation rejects these calls during the owning lifecycle. ADR 0004 will restore
-`DelegatingScript` inputs as Builder-producing recipes through `Create.AsBuilder`. A regular Script that returns a completed
-model is an opaque materializing program and remains top-level-only. Until the ADR 0004 follow-up lands, express collection
-composition through generated element closure methods. See
+`Element.Create.AsBuilder.From(MyDelegatingScript)` now applies a `DelegatingScript` recipe to an unsealed Builder in the
+active root Construction session. It is intended for owning relationship machinery and does not start or complete a nested
+lifecycle. A regular Script that returns a completed model is an opaque materializing program and remains top-level-only.
+
+The generated collection/map overloads shown below do not yet route through that primitive and remain rejected during the
+owning lifecycle. Express collection composition through generated element closure methods until the projections tracked by
+[#437](https://github.com/klum-dsl/klum-ast/issues/437) land. See
 [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
 The intended `DelegatingScript` behavior allows splitting a bigger model into separate files:
@@ -177,6 +180,10 @@ the base type's package. Additionally, the type can be a stripped name as define
 
 Owner and Role fields are not set during the creation, but since FromMap is a regular creator method, objects created
 by it undergo the regular lifecycle phases, including setting of owner, role and default values.
+
+Builder-producing extension paths can use `Create.AsBuilder.FromMap(map)` during an active root Construction session. The
+result must be attached to an owned relationship in that same session; the outer graph performs ownership, materialization,
+and validation.
 
 Special features of libraries such as renamed fields etc. can be simulated by overriding the FromMap method in a custom 
 factory and adjusting the effective map before calling the super method.

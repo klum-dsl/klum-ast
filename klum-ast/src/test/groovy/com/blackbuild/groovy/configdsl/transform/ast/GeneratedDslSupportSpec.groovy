@@ -148,6 +148,41 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         consumer.create().primary.name == 'cluster child'
     }
 
+    def "AsBuilder projects the concrete public Builder return and closure delegate types"() {
+        when:
+        compileJavaConsumer('''
+            package sample;
+
+            import java.util.Map;
+
+            public final class JavaDslConsumer {
+                public static Child_DSL.Builder childBuilder() {
+                    return Child.Create.getAsBuilder().With(Map.of("name", "java child"));
+                }
+            }
+        ''')
+
+        createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticAsBuilderConsumer {
+                static void compileAsBuilderClosure() {
+                    Foo.Create.With {
+                        Child_DSL.Builder child = Child.Create.AsBuilder.With {
+                            name 'groovy child'
+                        }
+                    }
+                }
+            }
+        ''', 'sample/StaticAsBuilderConsumer.groovy')
+
+        then:
+        noExceptionThrown()
+    }
+
     def "AnnoDocimal source mirror matches the bytecode namespace and nested documentation"() {
         given:
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
