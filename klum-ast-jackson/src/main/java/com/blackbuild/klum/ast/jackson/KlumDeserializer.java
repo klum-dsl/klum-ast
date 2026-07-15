@@ -56,6 +56,7 @@ import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -83,6 +84,8 @@ import java.util.stream.Stream;
  */
 final class KlumDeserializer extends StdDeserializer<Object> implements ContextualDeserializer {
 
+    private static final ThreadLocal<OwnedBuilderRequest> OWNED_BUILDER_REQUEST = new ThreadLocal<>();
+
     private final Class<?> modelType;
     private final JsonDeserializer<?> jacksonDelegate;
 
@@ -109,6 +112,10 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
 
     @Override
     public Object deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+        OwnedBuilderRequest request = OWNED_BUILDER_REQUEST.get();
+        if (request != null && request.context() == context)
+            return request.session().addOwnedBuilder(
+                    modelType, readPolymorphicObject(parser, context), request.keyHint());
         if (parser.currentToken() == JsonToken.VALUE_NULL)
             return null;
         if (!parser.isExpectedStartObjectToken())
@@ -127,6 +134,22 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
 
     private static ObjectNode readObject(JsonParser parser, DeserializationContext context) throws IOException {
         return (ObjectNode) context.readTree(parser);
+    }
+
+    private static ObjectNode readPolymorphicObject(JsonParser parser, DeserializationContext context)
+            throws IOException {
+        if (parser.isExpectedStartObjectToken())
+            return readObject(parser, context);
+        if (parser.currentToken() != JsonToken.FIELD_NAME)
+            return (ObjectNode) context.handleUnexpectedToken(ObjectNode.class, parser);
+        ObjectNode result = context.getNodeFactory().objectNode();
+        while (parser.currentToken() == JsonToken.FIELD_NAME) {
+            String name = parser.currentName();
+            parser.nextToken();
+            result.set(name, context.readTree(parser));
+            parser.nextToken();
+        }
+        return result;
     }
 
     private Object replay(ObjectNode configuration, JsonParser source, DeserializationContext context) {
@@ -551,6 +574,36 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             PendingBuilder existing = buildersByConfiguration.get(object);
             if (existing != null)
                 return existing.builder();
+            JavaType declaredType = context.constructType(childType);
+            TypeDeserializer typeDeserializer = context.getConfig().findTypeDeserializer(declaredType);
+            if (typeDeserializer != null)
+                return discoverPolymorphicBuilder(object, declaredType, typeDeserializer, keyHint);
+            return addOwnedBuilder(childType, object, keyHint);
+        }
+
+        private KlumBuilder<?> discoverPolymorphicBuilder(ObjectNode configuration, JavaType declaredType,
+                                                          TypeDeserializer typeDeserializer, Object keyHint)
+                throws IOException {
+            JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(declaredType, null);
+            OwnedBuilderRequest previous = OWNED_BUILDER_REQUEST.get();
+            OWNED_BUILDER_REQUEST.set(new OwnedBuilderRequest(this, context, keyHint));
+            try (JsonParser parser = configuration.traverse(source.getCodec())) {
+                parser.nextToken();
+                Object result = valueDeserializer.deserializeWithType(parser, context, typeDeserializer);
+                if (result instanceof KlumBuilder<?> builder)
+                    return builder;
+                throw JsonMappingException.from(source, "Polymorphic owned DSL value " + declaredType
+                        + " did not allocate a Builder in the active Construction session");
+            } finally {
+                if (previous == null)
+                    OWNED_BUILDER_REQUEST.remove();
+                else
+                    OWNED_BUILDER_REQUEST.set(previous);
+            }
+        }
+
+        private KlumBuilder<?> addOwnedBuilder(Class<?> childType, ObjectNode object, Object keyHint)
+                throws IOException {
             ResolvedProperties properties = resolveProperties(childType, context);
             String key = resolveKey(childType, object, keyHint, properties);
             KlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
@@ -567,6 +620,9 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
 
     private record PendingBuilder(KlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
                                   Map<ResolvedProperty, Object> ownedValues) {
+    }
+
+    private record OwnedBuilderRequest(ReplaySession session, DeserializationContext context, Object keyHint) {
     }
 
 }
