@@ -5,6 +5,11 @@ Use this checklist for any pull request that changes public behavior, compatibil
 ## Pull request scope and issue links
 
 - Use closing keywords only for issues whose accepted behavior is fully delivered by the pull request.
+- Treat GitHub closing keywords as mechanical syntax, not prose. In pull-request titles and bodies, never place `close`,
+  `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, or `resolved` before an issue reference unless the
+  pull request is intended to close that issue automatically. Negation, quotation, code formatting, and explanatory
+  context do not make the pattern safe. For non-closing relationships, use neutral wording such as `Related: #123`,
+  `Issue #123 remains open`, or `This pull request leaves the issue state unchanged`.
 - Reference related issues that remain intentionally deferred, and say what the pull request does not implement.
 - Keep the pull request summary, compatibility breaks, and test evidence current as commits are added.
 
