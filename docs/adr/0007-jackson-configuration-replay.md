@@ -10,12 +10,12 @@ the successor decision.
 
 Tracking issues:
 
-- [#428 — Decide deserialization lifecycle semantics](https://github.com/klum-dsl/klum-ast/issues/428)
-- [#251 — Jackson deserialization does not work with renamed properties](https://github.com/klum-dsl/klum-ast/issues/251)
+- [#428 — Deliver Jackson interoperability for immutable DSL Objects](https://github.com/klum-dsl/klum-ast/issues/428)
+- [#251 — Honor resolved Jackson property names during managed import](https://github.com/klum-dsl/klum-ast/issues/251)
 
 Implementation status: JSON-1 property-aware configuration replay is implemented by
-[#439](https://github.com/klum-dsl/klum-ast/issues/439). JSON-2 identity-safe `LINK` persistence and the advanced
-customization boundary are implemented by [#440](https://github.com/klum-dsl/klum-ast/issues/440). See the
+[#439](https://github.com/klum-dsl/klum-ast/issues/439). JSON-2 identity and advanced customization groundwork is
+implemented by [#440](https://github.com/klum-dsl/klum-ast/issues/440). See the
 [implementation plan](../implementation/adr-0007-jackson-configuration-replay.md).
 
 Parent decisions:

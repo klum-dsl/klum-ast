@@ -53,7 +53,7 @@ The public seam is nevertheless incomplete for the confirmed use case:
 
 ## Tracer-bullet slices
 
-### JSON-3 — Explicit importer modes and diagnostics
+### [JSON-3 — Explicit importer modes and diagnostics](https://github.com/klum-dsl/klum-ast/issues/463)
 
 Introduce the central, data-format-neutral importer around a caller-owned configured mapper/reader. Finalize and test its
 public signatures before implementing the four distinct semantic modes:
@@ -98,7 +98,7 @@ unknown-property policy, views, mixins, polymorphism, and mapper merge configura
 3. Add breadcrumb/error translation and construction-override diagnostics without changing non-DSL Jackson behavior.
 4. Add parser/tree/Map, repeated-input, root-wrapper, null/merge, and Groovy 3/4/5 compatibility coverage.
 
-### JSON-4 — Asymmetric interoperability compatibility closure
+### [JSON-4 — Asymmetric interoperability compatibility closure](https://github.com/klum-dsl/klum-ast/issues/464)
 
 Replace persistence/round-trip guidance with role-oriented interoperability documentation and executable examples. Add a
 documentation-referenceable YAML scenario that imports at least two explicit foreign inputs, enriches the Builder graph
@@ -157,8 +157,8 @@ version fields and compatibility adapters are Schema-owned, and that `Create.Fro
 
 ## Issue-to-slice mapping
 
-- #251 and #439: implemented resolved-property groundwork retained by JSON-3.
+- #251 and #439: implemented/closed resolved-property groundwork retained by JSON-3.
 - #440: implemented identity/customization groundwork retained with corrected export rationale.
-- #447: no-metadata decision recorded by ADR 0009; no production metadata slice exists.
-- #428: remains the canonical 4.0 parent until JSON-3 and JSON-4 complete.
-- #430: existing `FromMap` convenience remains separate and is not extended into the canonical import seam.
+- #447: completed no-metadata decision recorded by ADR 0009; no production metadata slice exists.
+- #428: remains the canonical 4.0 parent until #463 and #464 complete.
+- #430: completed existing `FromMap` convenience remains separate and is not extended into the canonical import seam.

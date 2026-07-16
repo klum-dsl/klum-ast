@@ -9,11 +9,14 @@ Tracking issues:
 - [#428 — Jackson interoperability for immutable DSL Objects](https://github.com/klum-dsl/klum-ast/issues/428)
 - [#447 — Jackson wire-format metadata decision](https://github.com/klum-dsl/klum-ast/issues/447)
 - [#251 — resolved Jackson property names](https://github.com/klum-dsl/klum-ast/issues/251)
+- [#463 — explicit importer modes and breadcrumbs](https://github.com/klum-dsl/klum-ast/issues/463)
+- [#464 — asymmetric interoperability closure](https://github.com/klum-dsl/klum-ast/issues/464)
 
 Implementation status: JSON-1 property-aware Builder binding is implemented by
 [#439](https://github.com/klum-dsl/klum-ast/issues/439), and JSON-2 identity/customization groundwork is implemented by
-[#440](https://github.com/klum-dsl/klum-ast/issues/440). The explicit importer and interoperability compatibility closure
-remain planned in the [implementation plan](../implementation/adr-0009-jackson-interoperability.md).
+[#440](https://github.com/klum-dsl/klum-ast/issues/440). JSON-3/#463 owns the explicit importer, and JSON-4/#464 owns
+interoperability compatibility closure. See the
+[implementation plan](../implementation/adr-0009-jackson-interoperability.md).
 
 Supersedes: [ADR 0007 — Jackson deserialization as configuration replay](0007-jackson-configuration-replay.md)
 
