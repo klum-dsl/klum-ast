@@ -253,3 +253,25 @@ enhancement and breaking change, and rewritten with the D-19 contract and protot
 unmilestoned `needs-triage` investigations for extension mechanisms and Layer 3 documentation. Upstream
 `blackbuild/anno-docimal#36` was created and linked through #450. No issue was closed or assigned, and no project or native
 dependency relationship changed.
+
+## D-20 — Classify the KlumCast and AnnoDocimal integration audit
+
+**Decision:** Treat the merged owning-repository records as authoritative over the earlier KlumAST inventory's open
+questions. The [final #450 audit](issue-450-integration-audit.md) records ten mutually exclusive release classifications.
+
+- KlumCast 0.4 artifact/package/module adoption is a 4.0 blocker through #459 because #391 cannot accept the 0.3.1 split
+  package and unstable automatic names. Migrating the eight checks from 0.4's deprecated adapter to its durable SPI is
+  separately pre-4.0 desirable through #460, not a release blocker.
+- Final AnnoDocimal 1.0 is a hard KlumAST 4.0 prerequisite through #461. Its tracker #47 owns the API, task, projection,
+  capture, module, publication, documentation, CI, and release gates; KlumAST owns only downstream adoption and its
+  Builder/IDE-specific policy.
+- No beneficial ownership move was found for KlumAST validation semantics, supported name-based KlumCast bindings,
+  AnnoDocimal protocol dependencies, IDEA-only source-root wiring, `_DSL` selection, Builder-specific documentation, or
+  repository-local governance. Do not create duplicate upstream issues for those conclusions.
+
+**Issue normalization:** #459, #460, and #461 are native sub-issues of #450 with their independent release placements.
+#455 retains the multi-Groovy design and #456 retains versioned documentation; #450 supplies facts but decides neither.
+
+**State correction:** PR #457's negated prose contained a mechanical issue-action keyword before the #450 reference, so
+GitHub changed the issue state when that partial inventory merged. #450 was reopened and remains open through review of
+the final audit. PR and commit text must use neutral issue links whenever automatic state changes are not intended.

@@ -126,6 +126,9 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) accepts configuration replay. JSON-1 property replay and
   JSON-2 identity-safe `LINK`/customization behavior are implemented; JSON-3 retains final migration closure.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
+- The [#450 integration audit](issue-450-integration-audit.md) confirms that current KlumCast 0.3.1 and AnnoDocimal 0.7.1
+  behavior remains unchanged. Target dependency contracts are tracked by #459 (KlumCast 0.4 artifacts/modules), #460
+  (desirable durable check-SPI migration), and #461 (blocking AnnoDocimal 1.0 adoption); none is a current capability.
 
 Confirmed deferred gaps, not current capabilities:
 

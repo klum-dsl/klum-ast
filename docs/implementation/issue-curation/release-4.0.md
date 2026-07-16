@@ -19,8 +19,11 @@ current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define th
 
 | Issue | Why it blocks 4.0 | Required evidence before release | Dependencies / ordering |
 |---|---|---|---|
-| #391 — Java modules and final packages | Shipping the legacy `configdsl` namespace, split packages, or broad accidental exports would freeze the wrong handwritten interface and force another major break later. | One artifact set proven as named modules with Groovy 3/4/5 plus classpath fixtures; stable module names; qualified schema opening; no split/legacy packages; positive export allowlists; schema-plugin validation; ADR, tracer-bullet plan, import map, migration/CHANGES. | #450 and `blackbuild/anno-docimal#36` feed the mandatory prototype. The prototype precedes the ADR and mass package movement; #394 remains the separate generated-interface boundary. |
-| #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is an adoption gate for DSL-3 and may run in parallel. |
+| #391 — Java modules and final packages | Shipping the legacy `configdsl` namespace, split packages, or broad accidental exports would freeze the wrong handwritten interface and force another major break later. | One artifact set proven as named modules with Groovy 3/4/5 plus classpath fixtures; stable module names; qualified schema opening; no split/legacy packages; positive export allowlists; schema-plugin validation; ADR, tracer-bullet plan, import map, migration/CHANGES. | [#459](https://github.com/klum-dsl/klum-ast/issues/459) supplies KlumCast 0.4's stable artifact/module contract and [#461](https://github.com/klum-dsl/klum-ast/issues/461) supplies AnnoDocimal 1.0/#36. The prototype precedes the ADR and mass package movement; #394 remains the separate generated-interface boundary. |
+| #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is implemented; final AnnoDocimal 1.0 adoption/task replacement is tracked by [#461](https://github.com/klum-dsl/klum-ast/issues/461). |
+| #459 — KlumCast 0.4 artifact adoption | #391 cannot prove portable module-path behavior while KlumCast 0.3.1 has split packages and unstable automatic names. | Published 0.4.x satisfying `klum-cast#12/#24`; resolved package ownership/module names; service loading and ordinary classpath behavior; Groovy 3/4/5 consumer evidence. | Upstream #12/#24 precede #459; #459 precedes #391's final tracer. The durable check-SPI migration remains separate #460. |
+| #461 — AnnoDocimal 1.0 adoption | AnnoDocimal explicitly requires final 1.0 before KlumAST 4.0; current 0.7.1 helpers, task workaround, configuration-cache limitation, and module identities are provisional. | Final 1.0.0 satisfying upstream tracker #47; supported API migration; reusable filtered task; strict configuration-cache reuse; projection/module/capture evidence; preserved IDEA-only mirror isolation. | Upstream #47 precedes #461; #461 then feeds #391 and #394. Development may test pre-releases, but release validation uses final artifacts. |
+| #450 — integration audit | The dependency and ownership audit is a release prerequisite even though not every finding blocks. | The [final synthesis](issue-450-integration-audit.md), release classifications, upstream links, native sub-issues #459–#461, and discoverable #391/#394 boundaries are accepted. | Keep #450 open through audit review. Its implementation follow-ups retain their own states and release classifications. |
 | #390 — ADR 0006 completed Object support | Decision is complete, but direct proxy/metadata access remains exposed and clients lack the supported Java facade. | [#435 OS-1](https://github.com/klum-dsl/klum-ast/issues/435), OS-2, and OS-3: root/subtree facade, structure, stored validation, proxy lockdown, serialization, and Java-first docs. | Coordinate OS-2 with #438's common companion split. |
 | #428 + #251 — ADR 0007 configuration replay | Decision is complete, but raw Map restoration still duplicates derived state and ignores resolved property naming. | [#439 JSON-1](https://github.com/klum-dsl/klum-ast/issues/439), [#440 JSON-2](https://github.com/klum-dsl/klum-ast/issues/440), and JSON-3: property-aware binding, one lifecycle, LINK identity, customization, Template rejection, migration/CHANGES, Groovy 3/4/5. | #439 may start independently; #440's Template/reference integration aligns with #438. |
 | #431 — finalized ADR 0004 | AB-1 active sessions, AB-2 adaptable composition, and AB-3 Template/copy/scheduling boundaries are implemented; final compatibility closure remains. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436), [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437), and [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438) are complete. AB-4 must close remaining compatibility/documentation gates. | AB-4 may now reconcile #431 with #390/#428 without broadening their remaining scopes. |
@@ -28,6 +31,9 @@ current source/tests. ADR 0008 is a later-4.x target; ADRs 0004–0007 define th
 ### Recommended must-item sequence
 
 ```text
+#459 KlumCast 0.4 ──> #391 JPMS tracer
+#461 AnnoDocimal 1.0 ─┬─> #391 JPMS tracer
+                       └─> #394 DSL-3
 #433 DSL-1 (done) ─────────> #437 AB-2 (done) ──┐
 #436 AB-1 (done) ──────────────────────────────┤
 #435 OS-1 (done) ──> #390 OS-2 <──> #438 AB-3 (done) ├──> compatibility closure
@@ -42,7 +48,7 @@ Jackson property binding can proceed independently until Template/LINK serializa
 
 ## 4.0 nice-to-have
 
-These improve confidence or polish at the new public boundary but have a safe deferral path. They are not permission to expand the release until the five must items are complete.
+These improve confidence or polish at the new public boundary but have a safe deferral path. They are not permission to expand the release until the listed must items are complete.
 
 | Issue | Release value | Deferral safety / evidence |
 |---|---|---|
@@ -53,6 +59,7 @@ These improve confidence or polish at the new public boundary but have a safe de
 | #371 — shadowed hierarchy fields | Could expose a real materialization/owner/default bug in the new Builder hierarchy. | Body contains no reproducer. A compile-time rejection can move to 4.1 if focused 4.0 hierarchy tests show no corruption. |
 | #383 — generated getter Javadocs | Keeps public Builder/model accessor docs aligned with the migration. | Documentation-only; existing generated mutator/factory docs already cover the core Builder wording. |
 | #389 — supported Gradle versions | Makes plugin compatibility claims explicit for the release. | No runtime change; can be published immediately after release if the tested matrix is documented honestly. |
+| #460 — KlumCast check SPI migration | Avoids carrying the deprecated 0.4 check adapter into the new major release and improves structured diagnostic coverage. | KlumCast 0.4 intentionally provides the bridge, so #459/#391 can complete without #460. If deferred, document the bridge and its later removal. |
 
 ## Explicitly deferred from 4.0
 
