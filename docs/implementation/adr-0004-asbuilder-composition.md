@@ -267,8 +267,8 @@ at final handoff.
 - accept ordinary models as value-only copy sources and same-session unsealed Builders as ephemeral recipe sources;
 - reject every `applyLater` phase greater than or equal to 40 immediately.
 
-General phase guards remain #281 and mutable Simple Value diagnostics remain #427. Jackson persistence is decided separately
-by ADR 0007.
+General phase guards remain #281 and mutable Simple Value diagnostics remain #427. Jackson interoperability is decided
+separately by ADR 0009, which supersedes ADR 0007's persistence framing.
 
 ## Completion criteria
 

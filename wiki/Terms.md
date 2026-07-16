@@ -1,3 +1,26 @@
+# Roles
+
+KlumAST documentation distinguishes four roles. One person can assume several roles in the same project.
+
+## Domain API Developer
+
+Defines the stable, consumer-facing model contract. In a Layer 3 model, this API is designed before the Schema and is the
+only model surface on which generic clients depend.
+
+## Schema Developer
+
+Defines DSL Object types, relationships, lifecycle behavior, validation, and external mappings. Without a separate Layer 3
+API, the Schema Developer also owns the consumer-facing model contract.
+
+## Client Developer
+
+Builds integrations that consume completed DSL Objects through their public domain API, including importer invocation,
+validation-result handling, and downstream serialization.
+
+## Model Writer
+
+Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, Templates, or combinations of those inputs.
+
 # Values
 In this documentation, we differentiate between three kinds of values:
 

@@ -40,9 +40,10 @@ Examples:
 - #147 is completed by repeated-key Builder merging, even though it chose merge rather than a new rejecting Map implementation.
 - #165 is completed more strongly because completed models no longer retain Builders at all.
 - #358 is completed by the Builder-backed deserializer, while its policy question remains separately #428.
-- #430 is completed for root `FromMap`; nested Builder composition is separately #431.
+- #430 is completed for root `FromMap`; ADR 0009 makes Jackson the canonical foreign-format mapping path without
+  deprecating that existing value-copy convenience.
 
-**Non-example:** A related helper or partial implementation is not completion. `deepFind(type)` does not complete #344's typed `visit`, and raw-map Jackson binding does not complete #251.
+**Non-example:** A related helper or partial implementation is not completion. `deepFind(type)` does not complete #344's typed `visit`.
 
 ## D-04 — Builder-first conflict handling
 
@@ -66,7 +67,7 @@ Applied to:
 
 - #394 generated Builder layout and compatibility marker;
 - #390 supported completed-model companion/facade API;
-- #428 deserialization/lifecycle semantics;
+- #428 Jackson interoperability and importer semantics;
 - #431 accepted `AsBuilder` composition and Template companion protocol.
 
 **Reason:** This yields a narrow, coherent release gate. Other useful fixes remain nice-to-have unless current evidence demonstrates correctness failure in the core Builder-first contract.
@@ -85,7 +86,8 @@ Applied to:
 
 - #343 is a duplicate of #431 because ADR 0004 and #431 explicitly include every Template-marking requirement.
 - #358 and #428 are not duplicates: implementation and policy can close independently.
-- #251 and #428 are not duplicates: property name mapping and lifecycle persistence are orthogonal.
+- #251 and #428 are not duplicates: resolved property-name mapping completed independently, while #428 owns the broader
+  importer and interoperability contract.
 - #375 → #184 is marked provisional because both bodies are under-specified.
 
 ## D-08 — Provisional closure of #411
@@ -114,7 +116,7 @@ Applied to:
 
 **Decision:** Keep both issues. Schedule them provisionally for later 4.x and share implementation machinery only where the eventual designs justify it.
 
-**Evidence and rationale:** The maintainer confirmed that #79 is a true default for Simple Values: a schema author supplies a URI, and resolution occurs only if the model implementer has not supplied the target. It enables incremental, type-safe migration from existing `* as Code` sources, such as retaining selected Helm values from YAML. Raw content and keyed properties are examples, not a fixed resolver contract; URI syntax, selectors, formats, and missing-resource behavior remain implementation decisions. #386 is analogous for DSL Object Templates/recipes, and #430 remains the distinct whole-map/tree import path.
+**Evidence and rationale:** The maintainer confirmed that #79 is a true default for Simple Values: a schema author supplies a URI, and resolution occurs only if the model implementer has not supplied the target. It enables incremental, type-safe migration from existing `* as Code` sources, such as retaining selected Helm values from YAML. Raw content and keyed properties are examples, not a fixed resolver contract; URI syntax, selectors, formats, and missing-resource behavior remain implementation decisions. #386 is analogous for DSL Object Templates/recipes. Completed #430 remains distinct Map value-copy convenience; ADR 0009 owns Jackson-mapped foreign input.
 
 For #314, the model implementer supplies a seed value, such as a Vault secret path, and the provider resolves a separate target. The target remains readable through the normal model API and should not serialize by default. No seed means no resolution; an unresolvable supplied seed fails construction with provider/target context. Syntax and storage—transient field, generated accessor, Model companion, or plugin companion—remain implementation decisions.
 
@@ -186,12 +188,15 @@ Templates. Sealed/cross-session Builders are rejected.
 **Decision:** The lowest scheduler immediately throws `KlumModelException` for every phase number at or after
 `INSTANTIATE` (40), including Template replay. There is no warning, clamping, or compatibility exception.
 
-### D-17 — Jackson persists configuration intent
+### D-17 — Jackson configuration replay (superseded by D-21)
 
 **Decision:** #428 chooses public Builder configuration plus one normal lifecycle, not completed state. Binding uses resolved
 Jackson property definitions, makes present values authoritative, recursively populates owned Builders, and requires
 explicit identity/reference handling for `LINK`. This absorbs #251's renamed-property requirement into the 4.0 contract.
 Templates are rejected and breaking JSON changes are acceptable.
+
+This persistence framing was accepted on 2026-07-14 and implemented as JSON-1/JSON-2 groundwork. The maintainer's
+2026-07-16 interoperability clarification supersedes it through D-21 and ADR 0009.
 
 ### D-18 — Keep a narrow declarative phase SPI
 
@@ -275,3 +280,39 @@ questions. The [final #450 audit](issue-450-integration-audit.md) records ten mu
 **State correction:** PR #457's negated prose contained a mechanical issue-action keyword before the #450 reference, so
 GitHub changed the issue state when that partial inventory merged. #450 was reopened and remains open through review of
 the final audit. PR and commit text must use neutral issue links whenever automatic state changes are not intended.
+
+## D-21 — Jackson is asymmetric external-format interoperability
+
+**Decision:** ADR 0009 supersedes ADR 0007. KlumAST imports externally owned JSON/YAML into Builder construction and
+exports completed DSL Objects through ordinary Jackson POJO serialization. It defines no wire format, round trip,
+envelope, reserved metadata field, producer field, version comparison, or generic migration adapter.
+
+Managed import must use a caller-configured, data-format-neutral `KlumJacksonImporter` with explicit root, value-only
+Template, active-session Builder-producing, and apply-to-existing-Builder modes. It preserves ordinary Jackson
+property/value configuration while rejecting construction takeover. Source/mapping/I/O failures become breadcrumb-rich
+`KlumModelException`s with their original causes. Raw non-DSL Jackson reads remain ordinary operations.
+
+Export has no Klum facade. LINK input never becomes owned composition; LINK output must choose an explicit Schema-owned
+projection and may deliberately inline through a custom serializer. Normal Template output remains rejected, while
+explicit type-level serializers/deserializers are complete opt-outs. Owner/Role export overrides, richer LINK resolution,
+generated import creators, YAML multi-document convenience, and model version/diff architecture are deferred.
+
+**Compatibility:** Public importer signatures and managed mapping/lifecycle/customization semantics are 4.x commitments.
+Byte output, ordering, formatting, a universal schema, and import/export symmetry are not. Existing `Create.FromMap`
+remains current value-copy API but is not the canonical foreign-format mapping seam.
+
+**Vocabulary:** Domain API Developer, Schema Developer, Client Developer, and Model Writer are project-wide roles. Layer 3
+separates all four explicitly; #454 owns a later grilling session for variants and examples.
+
+## 2026-07-16 Jackson interoperability normalization
+
+After exact-body presentation and maintainer authorization, ADR 0009 and its implementation plan superseded ADR 0007's
+cancelled JSON-3 round-trip closure. GitHub normalization:
+
+- rewrote open parent #428 around ADR 0009 and retained its 4.0 milestone;
+- created #463 JSON-3 (`ready-for-human`) for importer API review/implementation;
+- created #464 JSON-4 (`ready-for-agent`) for asymmetric compatibility closure and made it natively blocked by #463;
+- completed #447 with the no-metadata decision and #251 with #439 implementation evidence;
+- completed #430 as already implemented while explicitly preserving `FromMap` until a separate compatibility decision;
+- added successor-architecture notes to completed #439/#440; and
+- updated open #454 with the four roles and required future Layer 3 grilling.

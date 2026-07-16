@@ -54,19 +54,25 @@ This is a breaking release. See the [Builder-first construction migration](https
   materializes. Captured values must be serializable and captured Builders are rejected. Java serialization preserves
   graph-wide Template identity without serializing Builders, Construction sessions, scopes, or mutable recipe collections.
 - Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.
+- Defined Jackson as asymmetric external-format interoperability rather than Klum persistence: managed import binds foreign
+  data through Builders, completed models export through ordinary Jackson APIs, and KlumAST adds no wire-format or producer
+  metadata. External version fields and migration adapters remain Schema-owned
+  ([#447](https://github.com/klum-dsl/klum-ast/issues/447),
+  [ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md)).
 - Jackson serialization rejects marked Templates, including nested values, so JSON cannot silently discard recipe actions.
-- Jackson now replays resolved public configuration properties into root and owned child Builders between `PostCreate` and
+- Jackson import now binds resolved public configuration properties into root and owned child Builders between `PostCreate` and
   `PostApply`, then runs one normal lifecycle, materialization, validation, and verification pipeline. Missing input keeps
   initializer/default behavior; present values, `null`, and containers replace authoritatively. Resolved `@JsonProperty`,
   `@JsonAlias`, naming strategies, mixins, access/ignore rules, and unknown-property policy are honored without ambient
   Templates or copy/overwrite semantics ([#439](https://github.com/klum-dsl/klum-ast/issues/439),
   [#251](https://github.com/klum-dsl/klum-ast/issues/251),
-  [ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)).
+  [ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md)).
   Explicit type-level custom deserializers remain the opt-out.
-- Jackson `LINK` persistence is reference-only. Explicit Jackson identities with `alwaysAsId`, custom property codecs, and
+- Jackson `LINK` import is reference-only. Explicit Jackson identities with `alwaysAsId`, custom property codecs, and
   custom `ObjectIdResolver`s preserve completed targets and same-session Builder identity across backward and forward
-  references, including Collection and Map `LINK`s. Inline objects and missing reference strategies fail with focused
-  mapping errors; Owner and Role remain framework-managed ([#440](https://github.com/klum-dsl/klum-ast/issues/440)).
+  references, including Collection and Map `LINK`s. Inline input fails with focused mapping errors. Export requires an
+  explicit projection and may use identity, omission, scalar/custom structure, or a deliberate inline serializer; Owner and
+  Role remain framework-managed ([#440](https://github.com/klum-dsl/klum-ast/issues/440)).
 - Jackson views, inclusion, formats, Simple Value codecs, mixins, and polymorphic owned DSL subtypes work without replacing
   Klum construction. `@JsonCreator`, direct model mutators, foreign Jackson Builders, completed-model owned deserializers,
   and managed/back references cannot take over Builder allocation. The former public `KlumValueInstantiator` and
