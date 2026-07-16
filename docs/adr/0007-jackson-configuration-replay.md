@@ -2,7 +2,11 @@
 
 Date: 2026-07-14
 
-Status: Accepted
+Status: Superseded by [ADR 0009](0009-jackson-interoperability.md)
+
+ADR 0009 replaces this ADR's persistence and round-trip premise with asymmetric external-format interoperability. JSON-1
+and JSON-2 remain useful implementation history where their Builder-first mapping and customization mechanics agree with
+the successor decision.
 
 Tracking issues:
 

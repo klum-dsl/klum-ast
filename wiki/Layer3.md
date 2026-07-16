@@ -1,11 +1,17 @@
 Layer3 advanced structures
 ==========================
 
-A Layer3 structure is a way of approaching a model from two sides:
+A Layer3 structure separates responsibilities that are often combined in a simpler Schema/Model design:
 
-- The API layer provides abstract base classes for the schema. These base classes usually provide access to the relevant fields of the actual classes using Maps and collections. The API layer is thus consumer-specific and technical in nature.
-- The Scheme layer provides the actual classes, i.e., specific subclasses of the classes defined in the API-Layer. These provide named fields and validations, making the actual modeling easier. These fields are usually a lot more domain-specific.
-- The model layer contains the actual configuration scripts to instantiate the schema layer classes and connect them to each other.
+- The Domain API Developer defines an API layer of abstract consumer-facing model contracts. These usually expose the
+  relevant values through Maps and collections and are technical rather than deployment-specific.
+- The Schema Developer provides the actual Schema classes, usually specific subclasses of API-layer types. They add named
+  fields, lifecycle behavior, and validation so concrete modeling is expressive and domain-specific.
+- The Model Writer creates configured Model instances through scripts or structured inputs and connects them.
+- The Client Developer consumes the API layer without depending on the concrete Schema layer.
+
+The role boundaries and variants of this approach need a dedicated design pass under issue #454. The established
+definition is the API–Schema–Model dependency pattern; it is not a package or Java-module boundary.
 
 ## Example structure
 

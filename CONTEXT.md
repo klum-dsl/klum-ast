@@ -27,6 +27,22 @@ Test are done via the Spock Framework. Most important tests are in the klum-ast 
 
 These terms are sourced from the project wiki and consolidated here. Use these canonical terms when writing issues, ADRs or code comments.
 
+- Domain API Developer
+
+  A Domain API Developer defines the stable, consumer-facing model contract that Client Developers compile against. In a Layer 3 model, this contract precedes and constrains the Schema without exposing Schema-specific types to clients.
+
+- Schema Developer
+
+  A Schema Developer defines DSL Object types, relationships, lifecycle behavior, validation, and external mappings. In a model without a separate API layer, the Schema Developer also assumes the Domain API Developer role.
+
+- Client Developer
+
+  A Client Developer integrates with and consumes completed DSL Objects through their public domain API. Client code may invoke construction/import APIs and downstream serialization, but does not depend on Builder implementations or Schema-only types in a Layer 3 model.
+
+- Model Writer
+
+  A Model Writer creates concrete configured models using Groovy DSL scripts, structured data such as YAML or JSON, Templates, or combinations of those inputs.
+
 - DSL-Objects
 
   DSL Objects are annotated with `@DSL`. These are (potentially complex) objects enhanced by the transformation. They can either be keyed or unkeyed. "Keyed" means they have a designated field of type String decorated with the `@Key` annotation, acting as a key for this class. DSL classes are automatically made `Serializable`.
@@ -87,7 +103,7 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 - Construction API
 
-  DSL Objects are constructed only by generated Builders and controlled deserialization logic. Generated constructors are internal implementation details and are not a client construction API.
+  DSL Objects are constructed only by generated Builders and controlled import logic. Generated constructors are internal implementation details and are not a client construction API.
 
   `KlumInstanceProxy` compatibility is limited to Builders and construction-time operations. Completed DSL Objects use
   `KlumObjectSupport`; asking `KlumInstanceProxy` for a completed DSL Object is an error with migration guidance.
@@ -108,12 +124,16 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   A Builder-producing factory creates an unsealed child Builder inside an active Construction session. `Create.AsBuilder`
   is the explicit composition protocol, while standalone root factories return completed DSL Objects.
 
-- Deserialization
+- Jackson import
 
-  Jackson deserialization replays persisted public Builder configuration into a fresh Builder graph, then follows the
-  normal lifecycle once through Materialization, validation, and verification. Lifecycle-derived values are recomputed and
-  are not persistence inputs. Owned values are nested configuration; `LINK` values require explicit identity/reference
-  handling. Templates are not Jackson values.
+  A Jackson import maps externally owned structured data onto public Builder configuration. A root import completes one
+  normal lifecycle, while an in-session import contributes Builders to an existing Construction session; neither operation
+  promises that KlumAST can consume its own exported representation.
+
+- Jackson export
+
+  A Jackson export is ordinary Jackson serialization of a completed DSL Object as a consumer-facing POJO projection. The
+  Schema and mapper own the external shape; KlumAST adds no wire-format metadata and defines no import/export round trip.
 
 - Template
 
@@ -131,8 +151,10 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 - Layer 3 model
 
   A Layer 3 model is a modeling pattern that separates a generic consumer-facing API layer, a domain-specific Schema
-  layer, and configured Model instances. Cluster projection is specialized support for this pattern; lifecycle, linking,
-  ownership, defaults, and traversal are general KlumAST capabilities rather than defining Layer 3 features.
+  layer, and configured Model instances. The Domain API Developer defines the API before the Schema Developer realizes it,
+  Client Developers depend only on that API, and Model Writers create the configured instances. Cluster projection is
+  specialized support for this pattern; lifecycle, linking, ownership, defaults, and traversal are general KlumAST
+  capabilities rather than defining Layer 3 features.
 
 - Collections
 

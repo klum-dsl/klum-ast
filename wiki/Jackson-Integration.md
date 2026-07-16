@@ -1,36 +1,39 @@
 Jackson Integration
 ===================
 
-__This feature is considered beta. While it works for my use cases, it is bound to have a couple of rough edges. Create issues as necessary.__
+__This feature is considered beta. The 4.0 interoperability contract is accepted, while its explicit importer API remains
+to be implemented under issue #428.__
 
-KlumAST provides optional integration for Jackson in the optional `klum-ast-jackson` module.
+KlumAST provides optional Jackson integration in the `klum-ast-jackson` module. Its purpose is interoperability with
+externally owned JSON/YAML formats:
 
-This provides helpers for serialization and deserialization of Klum objects:
+- import foreign structured data into the Klum Builder lifecycle so linkage, defaults, validation, and other phases can
+  enrich it;
+- serialize a completed DSL Object as the ordinary Jackson POJO projection required by another tool.
 
-- Using `KlumAnnotationIntrospector`, Owner fields, `@Role`-annotated members and members whose name contains `$` are automatically ignored during serialization (they are _not_ converted into back references, since this would usually be done during deserialization anyway)
-- the module's internal `KlumDeserializer` replays resolved Jackson properties into generated Builders rather than partially initialized DSL Objects
-- owned nested DSL values are populated as Builders in the same Construction session
-- after binding, the normal lifecycle, graph materialization, validation, and verification pipeline produces the completed DSL Object
-- serialization rejects a marked Template, including one nested in an ordinary value, because JSON would retain values
-  while silently losing Template recipe actions. Rehydrate the Template into an ordinary completed model before exporting it
-- All enhancements are packaged into a Jackson module (KlumAstModule)
+Import and export are intentionally asymmetric. KlumAST does not define a JSON/YAML persistence format, does not promise
+that exported data can be imported again, and does not add format or producer metadata. A Groovy model script remains the
+native durable representation of a Klum model.
 
-[ADR 0007](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0007-jackson-configuration-replay.md)
-defines this as configuration replay: JSON persists public Builder configuration intent, not a snapshot of every completed
-field. [Issue #439](https://github.com/klum-dsl/klum-ast/issues/439) implements the property-aware JSON-1 slice, including
-renamed and aliased properties from #251. [Issue #440](https://github.com/klum-dsl/klum-ast/issues/440) implements
-identity-safe `LINK` persistence and the supported Jackson customization boundary. Existing beta JSON may change when
-moving from the earlier raw-state behavior.
+[ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md) defines the
+interoperability contract and supersedes ADR 0007's persistence framing. Issues #439 and #440 provide the existing
+resolved-property, Builder, identity, and customization groundwork.
 
-> JSON serialized by different KlumAST versions is not guaranteed to be mutually compatible.
+# Responsibilities by role
 
-Marked Templates remain unsupported Jackson values because value serialization cannot preserve their recipe behavior.
+- A **Client Developer** supplies a configured mapper, invokes managed import, and writes completed models through normal
+  Jackson APIs.
+- A **Schema Developer** adapts foreign formats with Jackson annotations, converters, LINK projections, and lifecycle
+  behavior.
+- A **Model Writer** can combine Groovy-authored and YAML-authored model parts without knowing Jackson or Builder internals.
+- In Layer 3, the **Domain API Developer** defines the consumer-facing model contract independently of the concrete Schema.
 
-# Usage
+See [[Terms]] for the project-wide role definitions.
 
-In order to use the module, it needs to be included in the classpath.
+# Dependency and module registration
 
 ## Maven
+
 ```xml
 <dependencies>
  <dependency>
@@ -49,64 +52,89 @@ dependencies {
 }
 ```
 
-To actually activate the module, you need to register it in the ObjectMapper:
+Register the module through discovery or explicitly:
 
 ```java
-ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+ObjectMapper discovered = new ObjectMapper().findAndRegisterModules();
+ObjectMapper explicit = new ObjectMapper().registerModule(new KlumAstModule());
 ```
 
-It is also possible to register the module explicitly:
+The mapper remains caller-owned. Naming strategies, mixins, views, root wrapping, unknown-property policy, formats,
+modules, and data-format factories stay under the integration's control.
 
-```java
-ObjectMapper mapper = new ObjectMapper().registerModule(new KlumAstModule());
-```
+# Managed import
 
-# Configuration replay
+The existing internal `KlumDeserializer` resolves Jackson properties and binds them to generated Builders rather than
+partially initialized DSL Objects. The final 4.0 API adds a public, data-format-neutral `KlumJacksonImporter` with four
+explicit modes:
 
-Jackson allocates each root and owned child Builder with its source initializers, then executes this order:
+1. read a root and run one complete lifecycle;
+2. read a value-only Template without running lifecycle processing;
+3. create an imported Builder inside an active Construction session;
+4. apply an input to an existing unsealed Builder.
 
-1. `PostCreate`
-2. bind properties that are present in JSON
-3. `PostApply`
-4. the normal graph phases, materialization, validation, and verification
+The exact method signatures are finalized in the importer tracer bullet. Until that implementation lands, raw
+`ObjectMapper.readValue(DslType)` remains the beta standalone-root path; do not use it to start a DSL root inside an active
+Construction session.
 
-Missing properties leave initializer, default, auto-create, or lifecycle behavior intact. A present scalar replaces the
-current value; present `null` clears a nullable value; and a present container replaces the initialized container, with an
-empty container clearing it. JSON binding does not apply ambient Templates, `@Overwrite`, or `copyFrom` merge behavior.
+Root import uses this order:
 
-The persistence input surface is the public configurable Builder surface. Owner, Role, synthetic, `PROTECTED`, `IGNORED`,
-and `BUILDER` state is not input. `PROTECTED` state is read-only output; other lifecycle-derived output should be marked
-read-only explicitly:
+1. allocate root and owned child Builders with their source initializers;
+2. run `PostCreate`;
+3. bind properties present in the external input;
+4. run `PostApply`;
+5. run graph phases, materialization, validation, and verification once.
+
+Missing properties leave the current Builder value unchanged. Present values use the configured Jackson null, merge, and
+replacement behavior; explicitly setting a Collection to `null` is permitted. Ambient Templates, `@Overwrite`, and
+`copyFrom` do not alter Jackson binding.
+
+Owned nested DSL values are Builders in the same Construction session. Multiple explicit inputs can be applied in order
+before lifecycle completion. Top-level arrays, Maps, and YAML multi-document streams are ordinary Jackson structures and
+do not implicitly create a shared Klum lifecycle; format-specific multi-document convenience is later work.
+
+# Mapping a foreign schema
+
+Use ordinary Jackson annotations and configuration to adapt an externally controlled format:
 
 ```groovy
 import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @DSL
-class Person {
-    @JsonProperty("display_name")
-    @JsonAlias("name")
-    String configuredName
+class Policy {
+    @JsonProperty("public")
+    boolean publiclyVisible
+
+    @JsonAlias("legacy_name")
+    String name
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     String normalizedName
 
     @PostApply
     void normalize() {
-        normalizedName = configuredName?.trim()
+        normalizedName = name?.trim()
     }
 }
 ```
 
-Resolved `@JsonProperty` names, `@JsonAlias`, configured naming strategies, mixins, ignore/access rules, and the mapper's
-unknown-property policy are honored. Serialization uses the same external property metadata. An explicit type-level custom
-deserializer opts that DSL type out of Klum configuration replay.
+Managed import honors property names and aliases, naming strategies, access/ignore rules, mixins, views,
+unknown-property policy, formats, Simple Value codecs, null/content policies, merge configuration, and polymorphic owned
+DSL subtypes.
 
-# LINK references
+KlumAST still owns construction. `@JsonCreator`, direct completed-model mutation, and
+`@JsonDeserialize(builder = ...)` cannot replace generated Builder allocation and must fail clearly. An explicit
+type-level custom deserializer is a full opt-out; it receives no additional Klum lifecycle. Prefer a converter or a
+`FieldType.BUILDER` staging field populated into real fields during `PostApply` or a later Builder phase.
 
-A `FieldType.LINK` is aggregation, never owned nested configuration. Its JSON value must therefore use an explicit
-reference strategy. The normal Jackson identity form puts `@JsonIdentityInfo` on the target type and
-`@JsonIdentityReference(alwaysAsId = true)` on the `LINK` property:
+# LINK values
+
+`FieldType.LINK` is aggregation rather than owned composition. Import never interprets an inline object at a `LINK` field
+as an owned child. Use Jackson identity/reference metadata, a property converter, or lifecycle resolution; otherwise the
+input fails.
+
+The standard identity form is:
 
 ```groovy
 import com.fasterxml.jackson.annotation.JsonIdentityInfo
@@ -129,45 +157,48 @@ class Deployment {
 }
 ```
 
-The `primary` value is persisted as an id such as `"database"`, never as an inline Service object. Backward and forward
-references resolve to Builders allocated in the same configuration-replay session and preserve identity after
-materialization. A custom `ObjectIdResolver` may resolve an existing completed DSL Object as an aggregation target. The
-same rules apply to Collection and Map `LINK`s, whose members or values are reference ids.
+For export, the Schema Developer must choose a representation for every non-null LINK: identity/reference id, omission,
+scalar projection, custom structure, or deliberate inline projection. A custom serializer may therefore inline a value if
+the external format requires it, but owns recursion and cycle safety. Without an explicit choice, KlumAST fails rather than
+inventing a universal representation.
 
-Custom property serializers/deserializers are the alternative for a domain-specific reference format. They must write and
-resolve a reference rather than treat the target as owned configuration. Inline object input fails with `JsonMappingException`.
-A non-null `LINK` without both target `@JsonIdentityInfo` and property `alwaysAsId`, or without explicit property codecs,
-also fails instead of silently embedding or omitting the target. Owner and Role JSON input is ignored; both are recomputed
-by the framework.
+# Templates
 
-# Supported customization
+Managed Template import is value-only and deliberately skips lifecycle processing. Applying that Template later copies its
+values and owned Template composition into fresh Builders and then follows normal Template behavior.
 
-Jackson customization remains supported at property and Simple Value seams:
+Normal Jackson serialization rejects a marked Template because values cannot preserve executable recipe actions.
+Materialize a fresh ordinary model through `Template.With`, `copyFrom`, or another Template/copy API before serialization.
+An explicit type-level serializer is a deliberate opt-out and owns its output.
 
-- active views control both configuration input and output;
-- inclusion and formats retain normal Jackson behavior;
-- property serializers/deserializers can encode Simple Values or an explicit `LINK` reference;
-- naming strategies, aliases, access/ignore rules, and mixins use resolved Jackson metadata;
-- polymorphic owned DSL subtypes select the concrete subtype but still allocate a Builder in the root Construction session.
+# Export
 
-Construction itself remains owned by KlumAST. `@JsonCreator`, direct model mutators, `@JsonDeserialize(builder = ...)`,
-owned-relationship deserializers that produce completed models, and generic managed/back references cannot replace Builder
-allocation, ownership, or Materialization. An explicit type-level custom deserializer is the deliberate opt-out and owns
-the complete construction result for that type.
+There is no Klum export facade. Serialize a completed model through ordinary Jackson APIs:
 
-# Current boundaries
+```java
+mapper.writeValue(outputStream, completedModel);
+```
 
-Jackson persistence is configuration replay rather than an exact completed-state snapshot. Lifecycle-derived fields are
-recomputed, ambient Templates and copy/overwrite semantics do not participate, and a property cannot safely be both
-non-idempotently transformed output and persisted input.
+Lifecycle-derived and Jackson read-only values may appear even though they were not import inputs. Owner, Role, Builder
+state, and synthetic members remain omitted in 4.0. Explicit type-level serializers may project public model data and
+`KlumObjectSupport`; internal companion state is not a supported extension seam.
 
-Marked Templates are unsupported Jackson values. `KlumAstModule` rejects a marked Template at the root or nested in an
-ordinary value because JSON cannot preserve its recipe actions. Rehydrate a fresh ordinary completed model through
-`Template.With`, `copyFrom`, or another Template/copy API before passing it to an `ObjectMapper`.
+# Errors and compatibility
+
+The 4.0 importer wraps syntax, mapping, and source-I/O failures in `KlumModelException`, preserving the original exception
+as the cause and contributing source plus Jackson path information to the Klum breadcrumb. Raw non-DSL Jackson operations
+retain their normal error behavior.
+
+KlumAST commits to the public importer API and managed Builder/lifecycle/customization semantics across 4.x. It does not
+commit to byte-for-byte output, property ordering, a universal wire schema, or round trips. External version fields are
+ordinary Schema data; any adapters for old or future variants belong in Schema-owned converters, staging DTOs/Builders, or
+custom deserializers.
+
+`Create.FromMap` remains a separate value-copy convenience. It does not resolve Jackson property metadata and is not a
+substitute for managed import of a foreign format.
 
 # Extend
 
-`KlumAstModule` can be subclassed to customize module registration. The Builder-backed deserializer remains an internal
-implementation detail; ADR 0007 defines property/value customization and an explicit type-level custom deserializer as the
-supported escape hatches. The public `KlumValueInstantiator` and `SettableKlumBeanProperty` classes from earlier versions
-have been removed.
+`KlumAstModule` can be subclassed to customize module registration. Its Builder-backed deserializer remains an internal
+implementation detail. Supported extension seams are normal Jackson property/value configuration, explicit type-level
+serializer/deserializer opt-outs, converters, and the public importer once implemented.

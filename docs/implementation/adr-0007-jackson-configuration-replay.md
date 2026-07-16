@@ -1,5 +1,10 @@
 # ADR 0007 implementation plan: Jackson configuration replay
 
+Status: Superseded by the [ADR 0009 implementation plan](adr-0009-jackson-interoperability.md).
+
+JSON-1 and JSON-2 remain implemented historical slices. The JSON-3 persistence/round-trip closure below is cancelled and
+replaced by the explicit importer and asymmetric interoperability slices in ADR 0009.
+
 This plan implements [ADR 0007](../adr/0007-jackson-configuration-replay.md) for canonical issues
 [#428](https://github.com/klum-dsl/klum-ast/issues/428) and [#251](https://github.com/klum-dsl/klum-ast/issues/251).
 
@@ -51,9 +56,8 @@ cannot replace Klum construction.
 
 ### JSON-3 — Migration and compatibility closure
 
-Remove provisional raw-state semantics, expand round-trip and non-idempotent lifecycle coverage, document configuration
-replay and the breaking JSON boundary, update migration navigation and `CHANGES.md`, and run Jackson tests under Groovy
-3/4/5 plus the aggregate build.
+Cancelled. Do not expand round-trip coverage or publish configuration replay as Klum persistence. ADR 0009 replaces this
+slice with an explicit importer tracer bullet followed by asymmetric interoperability compatibility closure.
 
 ## Compatibility
 
