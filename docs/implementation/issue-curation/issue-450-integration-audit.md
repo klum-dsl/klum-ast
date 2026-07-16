@@ -64,6 +64,11 @@ an implementation requirement.
 | AD-6 | Both AnnoDocimal plugin IDs remain an intentional supported base/opinionated pair. Top-level class-file selection and IDE model wiring belong to the consuming build; KlumAST-specific generated Builder wording is consumer policy ([plugin decision](https://github.com/blackbuild/anno-docimal/blob/7dd470cc38752f10a70e2558b1f3800e6df7917d/docs/implementation/architecture-and-agent-baseline.md#layered-gradle-plugins), [product boundary](https://github.com/blackbuild/anno-docimal/blob/7dd470cc38752f10a70e2558b1f3800e6df7917d/docs/implementation/architecture-and-agent-baseline.md#product-boundary)). | KlumAST applies `AnnoDocimalPlugin` by class from its published schema plugin, chooses only top-level `_DSL` classes, exposes mirrors to IDEA alone, and rewrites docs for Builder semantics. | **No beneficial ownership or dependency-scope move was found** for plugin layering, IDEA wiring, `_DSL` naming/selection, Builder-specific text, overload tag remapping, or hidden-twin policy. Keep the upstream plugin on the KlumAST plugin's runtime/API graph, because consumers must have the class that KlumAST applies. Do not ask AnnoDocimal to merge plugin layers or make source mirrors automatic project source. | Preserves the boundary that mirrors are metadata, not a second compilable/published API. A future consumer-neutral IDE plugin would require new evidence and a separate contract. | Revisit only after 4.0 if another consumer demonstrates the same IDE policy. The reusable task/API work in AD-2 is sufficient for current integration. | No additional upstream release beyond AD-1/AD-2. | **post-4.0 follow-up** |
 | GOV-1 | Both upstream repositories adopted repository-owned context, ADR, issue, testing, commit, and release guidance modeled on the same KlumAST baseline ([KlumCast baseline](https://github.com/klum-dsl/klum-cast/blob/4053e73419931905a89a70545a452d1d06659d18/docs/implementation/architecture-and-agent-baseline.md), [AnnoDocimal baseline](https://github.com/blackbuild/anno-docimal/blob/7dd470cc38752f10a70e2558b1f3800e6df7917d/docs/implementation/architecture-and-agent-baseline.md#governance-baseline-established)). | Cross-repository findings now have owning-repository ADRs and issue trackers rather than only KlumAST speculation. | **No beneficial KlumAST governance change was found.** Keep each repository's policies local; cross-link decisions and issues rather than copying their plans into KlumAST. | None for product/runtime compatibility. | Future synchronization is ordinary repository maintenance, not a #450 release deliverable. | No upstream release condition. | **post-4.0 follow-up** |
 
+For the downstream side of the matrix, [#459](https://github.com/klum-dsl/klum-ast/issues/459) owns KC-2 adoption and
+[#461](https://github.com/klum-dsl/klum-ast/issues/461) owns the consolidated AD-1 through AD-5 adoption. References to
+#391 and #394 in those rows identify the consuming release gates, not substitute owners. KC-1 is independently owned by
+[#460](https://github.com/klum-dsl/klum-ast/issues/460).
+
 ## Dependency and action sequence
 
 ### KlumAST can do now
@@ -131,7 +136,7 @@ published Javadocs and user documentation.
 
 ## Closure check
 
-The current state is accidental rather than a completion decision. GitHub mechanically interpreted PR #457's negated
+The prior closed state was accidental rather than a completion decision. GitHub mechanically interpreted PR #457's negated
 phrase `does not ... close #450` as an issue-closing instruction when the PR merged. At that point the issue body still
 showed every deliverable checkbox unchecked and linked only the earlier AnnoDocimal #36 finding.
 
