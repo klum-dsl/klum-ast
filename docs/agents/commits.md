@@ -14,6 +14,9 @@ Use these rules when implementing an issue.
 - Make each commit one self-contained reasoning step: a reviewer should be able to understand why the step exists and how it advances the issue without depending on unrelated later work.
 - Prefer small vertical or preparatory steps over commits split mechanically by file or layer.
 - Write a concise imperative subject that states the change and its reason. Use the body only when the reasoning does not fit clearly in the subject.
+- Treat commit subjects and bodies as GitHub issue-linking input. Do not place a GitHub closing keyword before an issue
+  reference unless merging that commit is intended to close the issue automatically; negated wording can still trigger
+  GitHub's pattern matching. Use neutral issue references as described in `docs/agents/pull-requests.md`.
 - Keep tests and the production change that makes them pass together. During TDD, do not commit the initial failing test separately; finish the red-to-green cycle and commit only when that test is green again.
 - Before each commit, run the relevant build and tests and normally require them to pass. Outside a TDD cycle, a temporarily non-working intermediate commit is acceptable when it makes the reasoning materially easier to follow; repair it in the immediately following commit and explain the boundary in both messages.
 - Documentation need not describe every intermediate commit. It must match the final branch state unless the issue explicitly excludes documentation. A separate, usually final documentation commit is valid.
