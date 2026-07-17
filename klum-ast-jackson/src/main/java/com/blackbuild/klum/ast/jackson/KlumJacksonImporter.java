@@ -52,12 +52,23 @@ public final class KlumJacksonImporter {
         this.reader = reader;
     }
 
-    /** Captures {@link ObjectMapper#reader()} once without changing the mapper. */
+    /**
+     * Captures {@link ObjectMapper#reader()} once without changing the mapper.
+     *
+     * @param mapper caller-configured mapper
+     * @return immutable importer using the mapper's current reader configuration
+     */
     public static KlumJacksonImporter using(ObjectMapper mapper) {
         return new KlumJacksonImporter(Objects.requireNonNull(mapper, "mapper").reader());
     }
 
-    /** Captures an untyped, non-updating reader while preserving all of its caller configuration. */
+    /**
+     * Captures an untyped, non-updating reader while preserving all of its caller configuration.
+     *
+     * @param reader caller-configured untyped reader
+     * @return immutable importer retaining that reader
+     * @throws IllegalArgumentException if the reader is typed or updates an existing value
+     */
     public static KlumJacksonImporter using(ObjectReader reader) {
         Objects.requireNonNull(reader, "reader");
         if (reader.getValueType() != null || valueToUpdate(reader) != null)
@@ -65,17 +76,39 @@ public final class KlumJacksonImporter {
         return new KlumJacksonImporter(reader);
     }
 
-    /** Reads one root DSL Object through its normal Builder lifecycle. */
+    /**
+     * Reads one root DSL Object through its normal Builder lifecycle.
+     *
+     * @param type DSL model type
+     * @param input one caller-owned Jackson input
+     * @param <T> completed DSL model type
+     * @return the completed root model
+     */
     public <T> T readRoot(Class<T> type, KlumJacksonInput input) {
         return read(type, input, KlumDeserializer.ManagedMode.ROOT, null);
     }
 
-    /** Reads a value-only Template without running lifecycle callbacks or phases. */
+    /**
+     * Reads a value-only Template without running lifecycle callbacks or phases.
+     *
+     * @param type DSL model type
+     * @param input one caller-owned Jackson input
+     * @param <T> completed DSL model type
+     * @return marked value-only Template
+     */
     public <T> T readTemplate(Class<T> type, KlumJacksonInput input) {
         return read(type, input, KlumDeserializer.ManagedMode.TEMPLATE, null);
     }
 
-    /** Reads one owned Builder in the current Construction session without materializing it. */
+    /**
+     * Reads one owned Builder in the current Construction session without materializing it.
+     *
+     * @param factory generated Builder-producing factory
+     * @param input one caller-owned Jackson input
+     * @param <T> DSL model type
+     * @param <B> precise generated Builder type
+     * @return unsealed Builder from the active session
+     */
     public <T, B extends KlumBuilder<T>> B readBuilder(KlumFactory.BuilderFactory<T, B> factory,
                                                         KlumJacksonInput input) {
         Objects.requireNonNull(factory, "factory");
@@ -83,7 +116,14 @@ public final class KlumJacksonImporter {
                 factory.$createForImport());
     }
 
-    /** Applies one input to the same unsealed Builder in its active Construction session. */
+    /**
+     * Applies one input to the same unsealed Builder in its active Construction session.
+     *
+     * @param builder active unsealed Builder
+     * @param input one caller-owned Jackson input
+     * @param <B> precise Builder type
+     * @return the identical Builder instance
+     */
     public <B extends KlumBuilder<?>> B applyToBuilder(B builder, KlumJacksonInput input) {
         Objects.requireNonNull(builder, "builder");
         return read(builder.getModelType(), input, KlumDeserializer.ManagedMode.APPLY, builder);

@@ -52,22 +52,42 @@ public final class KlumJacksonInput {
         this.source = source;
     }
 
-    /** Borrows one single-pass parser. The importer never closes it. */
+    /**
+     * Borrows one single-pass parser. The importer never closes it.
+     *
+     * @param parser caller-owned parser
+     * @return immutable parser input
+     */
     public static KlumJacksonInput parser(JsonParser parser) {
         return new KlumJacksonInput(Objects.requireNonNull(parser, "parser"), null, null, null);
     }
 
-    /** Uses an immutable view of a caller-owned Jackson tree. */
+    /**
+     * Uses an immutable view of a caller-owned Jackson tree.
+     *
+     * @param node caller-owned tree
+     * @return immutable tree input
+     */
     public static KlumJacksonInput tree(JsonNode node) {
         return new KlumJacksonInput(null, Objects.requireNonNull(node, "node"), null, null);
     }
 
-    /** Uses a caller-owned Map without mutating it. */
+    /**
+     * Uses a caller-owned Map without mutating it.
+     *
+     * @param values caller-owned values
+     * @return immutable map input
+     */
     public static KlumJacksonInput map(Map<?, ?> values) {
         return new KlumJacksonInput(null, null, Objects.requireNonNull(values, "values"), null);
     }
 
-    /** Returns this input with an opaque source identity used only for diagnostics. */
+    /**
+     * Returns this input with an opaque source identity used only for diagnostics.
+     *
+     * @param source opaque source name
+     * @return equivalent input with that diagnostic source name
+     */
     public KlumJacksonInput named(String source) {
         return new KlumJacksonInput(parser, tree, map, Objects.requireNonNull(source, "source"));
     }
