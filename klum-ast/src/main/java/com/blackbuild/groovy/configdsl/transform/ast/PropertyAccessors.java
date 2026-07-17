@@ -127,6 +127,8 @@ class PropertyAccessors {
 
     private void documentModelGetter(FieldNode field, String getterName) {
         MethodNode getter = transformation.annotatedClass.getDeclaredMethod(getterName, Parameter.EMPTY_ARRAY);
+        if (getter == null)
+            throw new IllegalStateException("Generated model getter not found: " + transformation.annotatedClass.getName() + "#" + getterName);
         JavadocDocBuilder documentation = new JavadocDocBuilder();
         documentGetter(documentation, field);
         AnnoDocUtil.addDocumentation(getter, documentation);
@@ -134,7 +136,7 @@ class PropertyAccessors {
 
     private static void documentGetter(DocBuilder documentation, FieldNode field) {
         documentation.title(DocUtil.getGetterText(field));
-        if (!field.getAnnotations(ClassHelper.make(Deprecated.class)).isEmpty())
+        if (!field.getAnnotations(AbstractMethodBuilder.DEPRECATED_NODE).isEmpty())
             documentation.deprecated(ASTExtractor.extractDocText(field).getTag("deprecated").orElse(null));
     }
 }
