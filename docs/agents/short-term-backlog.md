@@ -48,6 +48,7 @@ local and avoid duplicating the canonical rule across files or skills. Record ex
 work is needed, link its baseline issue or pull request; otherwise, record a brief rationale for keeping the change local.
 Do not invent a baseline location or modify a separate checkout or remote repository without the required authorization.
 
-The reusable portion of this policy is tracked upstream in
+The reusable worker draft-pull-request authorization and the broader reusable portion of this policy are tracked
+upstream in
 [`blackbuild/engineering-baseline#2`](https://github.com/blackbuild/engineering-baseline/issues/2). The KlumAST-specific
 issue-tracker and authorization wording above remains local.

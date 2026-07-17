@@ -2,6 +2,23 @@
 
 Use this checklist for any pull request that changes public behavior, compatibility, or generated APIs.
 
+## Worker draft-pull-request authorization
+
+A worker implementing an assigned change on a dedicated issue branch may push that branch and open a draft pull request
+without asking for additional permission when all of the following are true:
+
+- The change is small and localized, and the implementation follows an established repository pattern.
+- The issue or other accepted specification settles the intended behavior; no product or maintainer decision remains.
+- The work does not require an unresolved cross-cutting architecture, compatibility, public or generated API, migration,
+  or release-policy decision. A localized user-visible fix may still qualify when its expected behavior is already settled.
+- Local review, commit-history review, applicable tests, and required documentation are complete, and any validation gap
+  is stated accurately in the draft pull request.
+- The branch and pull request contain only the assigned work and preserved pre-existing changes are excluded.
+
+If any condition is uncertain or unmet, stop at `(ready:PR)` and ask the maintainer to decide the publication boundary.
+This authorization covers pushing the dedicated branch and creating a draft pull request only. It does not authorize
+marking the pull request ready for review, merging it, or expanding the assigned scope.
+
 ## Pull request scope and issue links
 
 - Use closing keywords only for issues whose accepted behavior is fully delivered by the pull request.

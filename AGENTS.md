@@ -46,6 +46,10 @@ Implement issues on a new, dedicated issue branch using small, reasoned commits.
 
 ### Pull requests and releases
 
+Workers may push a dedicated issue branch and open a draft pull request without additional permission when the change is
+small, its intent is settled, and the required review, tests, and documentation are complete. Complex or unresolved work
+still stops at `(ready:PR)`. See `docs/agents/pull-requests.md` for the publication boundary.
+
 User-facing documentation is maintained in `wiki/`. Pull requests with user-visible changes must keep the relevant wiki pages, migration navigation, `CHANGES.md`, linked issues, and SonarCloud findings in sync. See `docs/agents/pull-requests.md`.
 When reacting to pull-request review feedback, post one consolidated follow-up comment that states what was addressed, what
 was intentionally left unchanged and why, and which validation supports the result.
