@@ -29,7 +29,7 @@ This file separates likely duplicates from merely related issues. All mappings a
 | #207/#338 and #337 | Multi-descriptor runtime loading (#207) is not the same as Gradle source inclusion/combined compilation (#337), even though both may aggregate models. |
 | #251, #358, #428 | #358's Builder deserializer and #251's resolved-name mapping completed independently; #428 remains open for the explicit importer and asymmetric interoperability contract. Historical overlap did not make the issues duplicates. |
 | #357 and #344 | Flattened Cluster collection paths are a Layer 3 projection feature; typed `StructureUtil.visit` is a general traversal API. They may share traversal code but not requirements. |
-| #399, #411, #402 | #399 needs a concrete PostCreate breadcrumb reproduction; #411's basic path split appears implemented; #402 proposes a much broader event model. Do not close #399 merely because #411 exists. |
+| #399, #390, #402 | #399 needs a concrete PostCreate construction-path reproduction; #390 closes the current construction/structural/traversal terminology split; #402 proposes a much broader event model. Do not close #399 merely because #390 exists. |
 
 ## Completed-by-later-work links
 

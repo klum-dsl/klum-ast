@@ -353,3 +353,20 @@ assignment, branch, or commit was changed.
 The same inventory refresh reconciled the local open-issue count with GitHub (109): #469–#472 were already-live 4.0
 onboarding issues omitted from the local table. They were recorded as their own documentation/onboarding cluster; no
 GitHub state or scope was changed.
+
+## 2026-07-17 Construction-path terminology normalization
+
+After evidence-led terminology grilling and maintainer confirmation, **construction path** is the canonical name for the
+immutable `$`-prefixed DSL invocation String retained for an object. **Structural model path** names its owned-composition
+location, **traversal path** is contextual traversal output, **import source** identifies external input, and **validation
+location** identifies a target/member. **Provenance** and **lineage** are reserved for a richer future origin/event record
+and must not name the current String.
+
+#390 / ADR 0006 owns the pre-freeze replacement of the temporary public
+`KlumObjectSupport.getBreadcrumbPath()` with `getConstructionPath()` without an alias. Existing exception/helper JVM
+descriptors remain unchanged in 4.0. `BreadcrumbCollector` remains generated/runtime implementation vocabulary, not a
+client or extension seam. #467 records the convention, #468 freezes the member classification, and #463 adopts
+construction-path/import-source diagnostics. #432 remains separate pending #402's future lineage/event placement.
+
+GitHub normalization rewrote #390, retitled/commented #463, added consumer records to #467/#468, documented #432's
+deferral, and completed #411 because no separate public context-path type is required. Labels and milestones were unchanged.

@@ -97,24 +97,56 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 - Object companion
 
   An Object companion is private framework state associated with a DSL Object. Ordinary completed objects use an internal
-  Model companion for provenance, validation, and validator memoization. Marked Templates use a distinct Template companion
+  Model companion for construction paths, validation, and validator memoization. Marked Templates use a distinct Template companion
   for identity and immutable recipe state. The common internal abstraction exposes only object identity and paths.
 
   Builders may hold provisional validation issues from `EARLY_VALIDATE` and lifecycle callbacks. Materialization transfers those issues to the Model companion.
 
-  The Model companion is serializable with its DSL Object, preserving breadcrumbs and validation results. Raw technical
+  The Model companion is serializable with its DSL Object, preserving construction paths and validation results. Raw technical
   metadata is internal rather than a client extension seam. Builder-only construction state is not serialized.
 
 - Object support
 
   `KlumObjectSupport<T>.of(object)` is the supported Java-first facade for any completed DSL Object or subtree. It exposes
-  the object, construction breadcrumb, structural model path, and grouped composition structure traversal without exposing
+  the object, construction path, structural model path, and grouped composition structure traversal without exposing
   the internal companion. Its Structure helper is composition-only and identity-cycle-safe; it skips Owner and LINK edges.
   Completed-model phase traversal uses this helper directly, while Builder phases use a separate internal Builder structure
   helper. The shared internal composition walker owns only traversal mechanics and is not a client extension seam.
 
   Its Validation helper (`getValidation`) reads stored target/subtree results and verifies them without rerunning validators
   or mutating lifecycle issue state. Completed-model validation readers do not access the companion directly.
+
+- Construction path
+
+  A Construction path is the immutable, `$`-prefixed DSL invocation path retained for one object. It identifies the nested
+  Builder/factory operations that constructed that object, including Template or automatic-creation steps. It is not a
+  structural model path, source identity, or event history. `BreadcrumbCollector` is internal implementation vocabulary for
+  assembling this value.
+
+- Structural model path
+
+  A Structural model path is the object's location in its owned composition graph, rooted at `<root>` and expressed with
+  fields, collection indices, and map keys. Owner and `LINK` relationships do not define this path.
+
+- Traversal path
+
+  A Traversal path is the contextual path emitted by one composition traversal. It may be rooted or prefixed by that
+  traversal's caller and is not separately retained as object identity.
+
+- Import source
+
+  An Import source is the external input identity contributed by a managed importer. It may augment a construction-path
+  diagnostic but is not itself a construction path.
+
+- Validation location
+
+  A Validation location identifies the object and optional member to which a validation issue applies. It may render with a
+  construction path, but it is a distinct diagnostic concept.
+
+- Provenance and lineage
+
+  Provenance or lineage means a richer origin, applied-recipe, or lifecycle-event history. KlumAST does not currently retain
+  such a record; do not use either term for the single construction-path String.
 
 - Construction API
 

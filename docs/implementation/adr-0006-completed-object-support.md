@@ -5,7 +5,7 @@ This plan implements [ADR 0006](../adr/0006-completed-object-support.md) for can
 
 ## Original behavior and failure
 
-`KlumModelProxy.getProxyFor` is publicly callable and exposes breadcrumb/model paths, raw metadata, validation state, and
+`KlumModelProxy.getProxyFor` is publicly callable and exposes construction/model paths, raw metadata, validation state, and
 Template-era deferred closures. `DslHelper`, `StructureUtil`, and validation handlers expose only fragments of the intended
 completed-object surface. The framework has no stable Java entry point for a completed subtree, and arbitrary metadata can
 become an accidental plugin protocol.
@@ -19,7 +19,7 @@ become an accidental plugin protocol.
 
 ## Tracer-bullet slices
 
-### [OS-1 — Provenance and structure facade](https://github.com/klum-dsl/klum-ast/issues/435) — Implemented
+### [OS-1 — Construction-path and structure facade](https://github.com/klum-dsl/klum-ast/issues/435) — Implemented
 
 Add `KlumObjectSupport.of(object)` with `getObject`, both path getters, and `getStructure`. Implement direct owners, owner
 hierarchy, composition-only cycle-safe visit/find-all, and relative paths. Make existing `StructureUtil` delegate where
@@ -31,10 +31,14 @@ Add `getValidation()` with target/subtree result access and non-rerunning `verif
 `KlumModelProxy`, internalize its lookup and raw metadata, and add migration diagnostics/deprecations where source
 compatibility is feasible. Verify facade serialization does not create a second companion reference.
 
-### OS-3 — Documentation and compatibility closure
+### OS-3 — Construction-path terminology and compatibility closure
 
-Publish Java-first Javadoc/wiki examples, distinguish breadcrumb from model path, document the absence of generic extension
-metadata, update migration navigation and `CHANGES.md`, and run runtime plus serialization coverage.
+Before the 4.0 API freeze, replace the temporary `getBreadcrumbPath()` facade method with `getConstructionPath()` and do
+not retain an alias. Publish Java-first Javadoc/wiki examples that distinguish construction path, structural model path,
+traversal path, import source, and validation location; document that provenance/lineage is richer future #402 work.
+Retain `BreadcrumbCollector` as internal generated/runtime vocabulary and preserve existing exception/helper descriptors.
+Document the absence of generic extension metadata, update migration navigation and `CHANGES.md`, and run runtime plus
+serialization coverage.
 
 ## Compatibility
 
@@ -46,7 +50,7 @@ these slices.
 
 | ADR contract | Slice |
 |---|---|
-| facade for any completed root/subtree and path provenance | OS-1 |
+| facade for any completed root/subtree and construction path | OS-1 |
 | grouped Java-first structure traversal | OS-1 |
 | stored-only validation results and verification | OS-2 |
 | strictly internal companion and metadata | OS-2 |

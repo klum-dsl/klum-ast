@@ -21,7 +21,7 @@ The public seam is nevertheless incomplete for the confirmed use case:
 - a Schema Developer cannot explicitly read a root or Template through a Klum exception/diagnostic seam;
 - a Schema Developer cannot import a child Builder or apply structured input to an existing Builder;
 - raw DSL reads inside an active lifecycle can attempt a nested root instead of naming the correct import mode;
-- import I/O and mapping errors remain Jackson-first and do not contribute source and external-path context;
+- import I/O and mapping errors remain Jackson-first and do not contribute import-source or construction-path context;
 - construction-taking annotations do not yet fail with the complete actionable managed-import contract;
 - the wiki and release artifacts still describe persistence and round trips rather than external interoperability;
 - the module reports an unknown Jackson module version; and
@@ -239,7 +239,7 @@ must not introduce Jackson-owned layering or cross-input overwrite policy; issue
 | explicit root, Template, in-session Builder, and apply modes | JSON-3 |
 | caller-owned Jackson configuration and one parser/tree/Map input | JSON-3 |
 | raw compatibility, customization, construction rejection, and type-level opt-out | JSON-3 |
-| source/external path, exception identity, and `KlumModelException` boundary | JSON-3 |
+| import source, construction path, exception identity, and `KlumModelException` boundary | JSON-3 |
 | Jackson 2 endpoint matrix and Jackson 3.1-compatible internal seam | JSON-3 |
 | ordinary POJO export with no Klum wire metadata | JSON-4 |
 | independent import/export fixtures and one-input documentary YAML workflow | JSON-4 |

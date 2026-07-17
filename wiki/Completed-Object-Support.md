@@ -15,7 +15,7 @@ import java.util.Map;
 KlumObjectSupport<Deployment> support = KlumObjectSupport.of(deployment);
 
 Deployment object = support.getObject();
-String breadcrumbPath = support.getBreadcrumbPath();
+String constructionPath = support.getConstructionPath();
 String modelPath = support.getModelPath();
 
 KlumObjectSupport.Structure<Deployment> structure = support.getStructure();
@@ -29,11 +29,18 @@ List<KlumValidationResult> subtreeResults = validation.getResults();
 The Javadoc for `KlumObjectSupport` and its nested `Structure` and `Validation` helpers is the source of truth for complete
 signatures, overloads, return types, and exceptional cases.
 
-## Provenance and model paths
+## Construction and structural model paths
 
-`getBreadcrumbPath()` reports construction provenance: the Builder/factory call path through which the object was
-created. `getModelPath()` reports the object's structural location in the completed model. These answer different
-questions and are not interchangeable.
+The final 4.0 facade names the Builder/factory call path `getConstructionPath()`. It is the immutable construction path
+through which the object was created. `getModelPath()` reports the object's structural location in the completed model.
+These answer different questions and are not interchangeable.
+
+The currently released pre-freeze implementation still uses the temporary `getBreadcrumbPath()` spelling; #390 OS-3
+renames it before the 4.0 API freeze without a facade alias. `BreadcrumbCollector` remains an internal implementation
+name. Neither method is provenance: KlumAST does not retain a source-lineage, applied-Template, or lifecycle-event record.
+
+Traversal methods produce contextual traversal paths. Managed import contributes an import source, and validation records a
+validation location. Neither is a substitute for the construction or structural model path.
 
 ## Ownership, paths, and traversal
 
