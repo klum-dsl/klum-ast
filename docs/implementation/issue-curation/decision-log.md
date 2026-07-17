@@ -371,6 +371,17 @@ construction-path/import-source diagnostics. #432 remains separate pending #402'
 GitHub normalization rewrote #390, retitled/commented #463, added consumer records to #467/#468, documented #432's
 deferral, and completed #411 because no separate public context-path type is required. Labels and milestones were unchanged.
 
+## 2026-07-17 Framework public-interface convention
+
+ADR 0010 resolves #467 without changing a feature implementation. Framework types use UpperCamelCase and lower-camel
+methods; `of` wraps a known completed value, `using` configures an adapter from caller-owned infrastructure, and a public
+constructor is reserved for conventional direct construction such as `new KlumAstModule()`. Root operations return completed
+DSL Objects while explicit `Create.AsBuilder` produces an active-session Builder. The record classifies the narrow dynamic
+`KlumBuilder.link(fieldName, target)` capability as framework-owned construction support only; #474 retains its shape and
+behavior. `KlumObjectSupport.getConstructionPath()` is the sole future public construction-string getter, while
+`BreadcrumbCollector` remains implementation vocabulary. #390, #394/#431, #463, and #474 retain their delivery work, and
+#468 remains the final JVM inventory gate.
+
 ## 2026-07-17 Ordered configuration composition refinement
 
 After evidence-led grilling and maintainer confirmation, #304 is the canonical 4.1 source-neutral configuration
