@@ -89,9 +89,10 @@ Missing properties leave the current Builder value unchanged. Present values use
 replacement behavior; explicitly setting a Collection to `null` is permitted. Ambient Templates, `@Overwrite`, and
 `copyFrom` do not alter Jackson binding.
 
-Owned nested DSL values are Builders in the same Construction session. Multiple explicit inputs can be applied in order
-before lifecycle completion. Top-level arrays, Maps, and YAML multi-document streams are ordinary Jackson structures and
-do not implicitly create a shared Klum lifecycle; format-specific multi-document convenience is later work.
+Owned nested DSL values are Builders in the same Construction session. Each importer operation applies exactly one
+`KlumJacksonInput` before lifecycle completion. Top-level arrays, Maps, and YAML multi-document streams are ordinary
+Jackson structures and do not implicitly create a shared Klum lifecycle; format-specific multi-document convenience and
+ordered heterogeneous composition are later source-neutral core work (#304), not Jackson importer behavior.
 
 # Mapping a foreign schema
 

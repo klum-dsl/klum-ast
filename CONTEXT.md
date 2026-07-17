@@ -182,6 +182,12 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   A Jackson export is ordinary Jackson serialization of a completed DSL Object as a consumer-facing POJO projection. The
   Schema and mapper own the external shape; KlumAST adds no wire-format metadata and defines no import/export round trip.
 
+- Configuration layer
+
+  A Configuration layer is a typed, opaque source of Builder configuration consumed by a future root composition
+  coordinator. Layers apply in caller order within one Construction session; the coordinator owns cross-layer policy and
+  diagnostics. A Jackson input can contribute one layer, but a Jackson importer operation does not itself compose layers.
+
 - Template
 
   A Template is an explicitly designated client-facing DSL Object used as a reusable construction recipe; an ordinary

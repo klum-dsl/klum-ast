@@ -370,3 +370,21 @@ construction-path/import-source diagnostics. #432 remains separate pending #402'
 
 GitHub normalization rewrote #390, retitled/commented #463, added consumer records to #467/#468, documented #432's
 deferral, and completed #411 because no separate public context-path type is required. Labels and milestones were unchanged.
+
+## 2026-07-17 Ordered configuration composition refinement
+
+After evidence-led grilling and maintainer confirmation, #304 is the canonical 4.1 source-neutral configuration
+composition coordinator. Its public direction is generated `Create.Compose(KlumConfigurationLayer<T>...)`, with typed
+opaque layer values created by `KlumLayers` for copy recipes, Maps, DelegatingScripts, and Groovy text/files/URLs. The
+coordinator owns one root Builder lifecycle, layer order, transient source diagnostics, and atomic publication; it neither
+rolls back the private in-session Builder nor persists a layer ledger on a completed DSL Object.
+
+Schema `@Overwrite` remains the default policy. #310 (with #350 duplicate intent) owns layer-local runtime policy and
+precedence; #132 and #342 retain final-closure and Template-plus-configuration conveniences and must delegate to #304.
+#352 remains a separate later-4.x strategy extension. #432 remains the narrow applied-Template provenance request, while
+#402 owns any durable applied-layer/event history.
+
+ADR 0009, #463, and #464 use exactly one `KlumJacksonInput` per importer operation. It retains Jackson
+mapping/null/merge behavior for that input but does not sequence multiple inputs or define cross-layer
+overwrite/null/list/map rules. Future heterogeneous composition is #304 work. JSON-3 and JSON-4 remain 4.0 Jackson work
+and are not blocked by #304.
