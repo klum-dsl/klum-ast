@@ -4,6 +4,12 @@
 
 Issues and PRDs for this repo live in GitHub Issues (uses the `gh` CLI). External PRs are not treated as a request surface. See `docs/agents/issue-tracker.md`.
 
+### Short-term backlog
+
+Keep worthwhile side work visible without losing the current objective. Side work and agent-configuration changes normally
+belong in separate user-visible tasks. See `docs/agents/short-term-backlog.md` for task, sidetrack, and baseline-reflection
+rules.
+
 ### Triage labels
 
 This repo uses the canonical triage label vocabulary. See `docs/agents/triage-labels.md` for the mapping.
