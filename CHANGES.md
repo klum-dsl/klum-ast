@@ -16,6 +16,8 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Added `createKlumDslSourceMirrors` to the schema Gradle plugin. Run it after schema changes to compile the real
   `Foo_DSL` interfaces and refresh their AnnoDocimal IDE source mirrors without compiling, packaging, publishing, or
   propagating the mirrors themselves ([#434](https://github.com/klum-dsl/klum-ast/issues/434)).
+- Generated completed-model and Builder getters now carry field-derived AnnoDoc documentation, including deprecation
+  reasons ([#383](https://github.com/klum-dsl/klum-ast/issues/383)).
 - Provisional Builder validation issues transfer to the completed-model companion, and each `InstanceValidator` is memoized once per completed model.
 - Added active-session `Create.AsBuilder.With`, `One`, `FromMap`, and `From(DelegatingScript)` operations. They create an
   unsealed owned Builder in the current root Construction session, apply active Templates, and run `PostCreate`, explicit

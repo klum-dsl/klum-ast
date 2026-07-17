@@ -23,10 +23,17 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
+import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
+import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
+import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.doc.DocUtil;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.MethodNode;
+import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.PropertyNode;
 
 import java.util.ArrayList;
@@ -55,6 +62,7 @@ class PropertyAccessors {
                 .filter(property -> transformation.builderFields.containsKey(property.getField()))
                 .forEach(this::makeModelPropertyReadOnly);
         replaceProperties(transformation.annotatedClass, modelPropertiesToReplace);
+        modelPropertiesToReplace.forEach(this::documentModelGetters);
     }
 
     private void createBuilderAccessors(FieldNode modelField, FieldNode builderField) {
@@ -64,6 +72,8 @@ class PropertyAccessors {
         createMethod(getGetterName(fieldName))
                 .mod(visibility)
                 .returning(builderField.getType())
+                .linkToField(modelField)
+                .withDocumentation(documentation -> documentGetter(documentation, modelField))
                 .doReturn(attrX(varX("this"), constX(fieldName)))
                 .addTo(transformation.rwClass);
 
@@ -71,6 +81,8 @@ class PropertyAccessors {
             createMethod(getBooleanGetterName(fieldName))
                     .mod(visibility)
                     .returning(builderField.getType())
+                    .linkToField(modelField)
+                    .withDocumentation(documentation -> documentGetter(documentation, modelField))
                     .doReturn(attrX(varX("this"), constX(fieldName)))
                     .addTo(transformation.rwClass);
 
@@ -104,5 +116,25 @@ class PropertyAccessors {
             property.setGetterBlock(returnS(attrX(varX("this"), constX(field.getName()))));
         property.setSetterBlock(null);
         modelPropertiesToReplace.add(property);
+    }
+
+    private void documentModelGetters(PropertyNode property) {
+        FieldNode field = property.getField();
+        documentModelGetter(field, getGetterName(field.getName()));
+        if (ClassHelper.boolean_TYPE.equals(field.getType()) || ClassHelper.Boolean_TYPE.equals(field.getType()))
+            documentModelGetter(field, getBooleanGetterName(field.getName()));
+    }
+
+    private void documentModelGetter(FieldNode field, String getterName) {
+        MethodNode getter = transformation.annotatedClass.getDeclaredMethod(getterName, Parameter.EMPTY_ARRAY);
+        JavadocDocBuilder documentation = new JavadocDocBuilder();
+        documentGetter(documentation, field);
+        AnnoDocUtil.addDocumentation(getter, documentation);
+    }
+
+    private static void documentGetter(DocBuilder documentation, FieldNode field) {
+        documentation.title(DocUtil.getGetterText(field));
+        if (!field.getAnnotations(ClassHelper.make(Deprecated.class)).isEmpty())
+            documentation.deprecated(ASTExtractor.extractDocText(field).getTag("deprecated").orElse(null));
     }
 }

@@ -75,6 +75,10 @@ class AnnoDocTest extends AbstractDSLSpec {
         return rwClazz.getMethod(methodName, params).getAnnotation(AnnoDoc)?.value()
     }
 
+    String builderMethodDoc(String methodName, Class... params) {
+        return getClass(clazz.name + '_DSL$Builder').getMethod(methodName, params).getAnnotation(AnnoDoc)?.value()
+    }
+
     String creatorDoc(String methodName, Class... params) {
         def methodNode = getMethod(factoryClassNode, methodName, params)
         return ASTExtractor.extractDocumentation(methodNode)
@@ -123,6 +127,47 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         rwMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
 @param template the recipe to apply"""
 
+    }
+
+    def "generated getters document model and Builder values"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+package dummy
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+
+@DSL class Foo {
+    /** display name. */
+    String name
+
+    /** active flag. */
+    boolean active
+
+    /** legacy name.
+     * @deprecated Use name instead.
+     */
+    @Deprecated
+    String legacyName
+}
+''')
+
+        then: "completed-model getters are documented"
+        methodDoc("getName") == "Returns the display name."
+        methodDoc("getActive") == "Returns the active flag."
+        methodDoc("isActive") == "Returns the active flag."
+        methodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
+
+        and: "Builder implementation getters are documented"
+        rwMethodDoc("getName") == "Returns the display name."
+        rwMethodDoc("getActive") == "Returns the active flag."
+        rwMethodDoc("isActive") == "Returns the active flag."
+        rwMethodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
+
+        and: "public Builder contract getters carry the same documentation"
+        builderMethodDoc("getName") == "Returns the display name."
+        builderMethodDoc("getActive") == "Returns the active flag."
+        builderMethodDoc("isActive") == "Returns the active flag."
+        builderMethodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
     }
 
     def "javadoc for auto overridden creator"() {
