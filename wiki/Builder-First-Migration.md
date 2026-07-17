@@ -54,7 +54,7 @@ KlumAST with `@Grab`, but the complete standalone-script setup will be documente
 
 ### 3. Run the full model test suite
 
-Pay particular attention to lifecycle callbacks, validation, ownership and breadcrumb paths, sorted collection comparators,
+Pay particular attention to lifecycle callbacks, validation, ownership and construction paths, sorted collection comparators,
 Templates, serialization, and Jackson inputs. These areas intentionally distinguish between the construction-time Builder
 graph and the completed model graph.
 

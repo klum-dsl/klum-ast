@@ -186,8 +186,8 @@ state, and synthetic members remain omitted in 4.0. Explicit type-level serializ
 # Errors and compatibility
 
 The 4.0 importer wraps syntax, mapping, and source-I/O failures in `KlumModelException`, preserving the original exception
-as the cause and contributing source plus Jackson path information to the Klum breadcrumb. Raw non-DSL Jackson operations
-retain their normal error behavior.
+as the cause and contributing an import source plus Jackson property/index information to the construction path. Raw
+non-DSL Jackson operations retain their normal error behavior.
 
 KlumAST commits to the public importer API and managed Builder/lifecycle/customization semantics across 4.x. It does not
 commit to byte-for-byte output, property ordering, a universal wire schema, or round trips. External version fields are

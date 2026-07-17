@@ -9,7 +9,7 @@ Tracking issues:
 - [#428 — Jackson interoperability for immutable DSL Objects](https://github.com/klum-dsl/klum-ast/issues/428)
 - [#447 — Jackson wire-format metadata decision](https://github.com/klum-dsl/klum-ast/issues/447)
 - [#251 — resolved Jackson property names](https://github.com/klum-dsl/klum-ast/issues/251)
-- [#463 — explicit importer modes and breadcrumbs](https://github.com/klum-dsl/klum-ast/issues/463)
+- [#463 — explicit importer modes and construction paths](https://github.com/klum-dsl/klum-ast/issues/463)
 - [#464 — asymmetric interoperability closure](https://github.com/klum-dsl/klum-ast/issues/464)
 
 Implementation status: JSON-1 property-aware Builder binding is implemented by
@@ -148,13 +148,13 @@ An explicit type-level serializer is a complete opt-out and may serialize a Temp
 
 ### Diagnostics
 
-`KlumJacksonImporter` contributes a diagnostic construction-location path for its public operation, target type, source,
-and available Jackson path. The stable path grammar is shaped as
+`KlumJacksonImporter` contributes a construction path for its public operation and target type, augmented by an import
+source and available Jackson path. The stable path grammar is shaped as
 `$/Order.readRoot:jackson(config.yaml)/input(#/services/2/public)`: the method name is the operation verb, Jackson property
 names and indices retain their external spelling, and the input suffix is an RFC 6901 JSON Pointer. During binding this
-external path replaces overlapping generated field crumbs rather than duplicating them; lifecycle failures after binding
-continue under the normal Builder path. The broader public vocabulary for this existing breadcrumb mechanism is tracked
-separately and does not change the JSON-3 semantics.
+external path replaces overlapping generated field segments rather than duplicating them; lifecycle failures after binding
+continue under the normal Builder path. `BreadcrumbCollector` remains internal runtime terminology; construction path is
+the public term and does not promise provenance or lineage.
 
 Syntax, mapping, I/O, custom-binding, and unexpected non-Klum binding failures cross the managed seam as exactly one new
 `KlumModelException`. Its direct cause is the top-level original failure. The stable message shape is
