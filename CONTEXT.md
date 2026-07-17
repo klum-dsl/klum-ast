@@ -27,6 +27,12 @@ Test are done via the Spock Framework. Most important tests are in the klum-ast 
 
 These terms are sourced from the project wiki and consolidated here. Use these canonical terms when writing issues, ADRs or code comments.
 
+- Klum project naming
+
+  `Klum` is a tongue-in-cheek reference to the host of *Germany's Next Topmodel*, reflecting the project's focus on models and its motto, "Turn your models into supermodels." Names for projects in the Klum namespace should loosely draw from the show or modeling vocabulary; KlumAST itself is the exception.
+
+  Keep this theme in project, artifact, and package names rather than API vocabulary, unless a name has a useful software double meaning, as with Klum-Wrap. Klum-Cast is a poor precedent: its name refers to entertainment casting but is easily mistaken for an object-oriented cast, making the project's purpose misleading.
+
 - Domain API Developer
 
   A Domain API Developer defines the stable, consumer-facing model contract that Client Developers compile against. In a Layer 3 model, this contract precedes and constrains the Schema without exposing Schema-specific types to clients.
