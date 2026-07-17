@@ -30,6 +30,8 @@ import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.TemplateManager
 import com.fasterxml.jackson.databind.ObjectMapper
 
+import javax.tools.ToolProvider
+
 class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
     def "readRoot applies one captured input through the generated Builder lifecycle"() {
@@ -139,5 +141,45 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
         then:
         noExceptionThrown()
+    }
+
+    def "Java consumers compile against the root and Template importer descriptors"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class JavaImportedValue { String value }
+        ''')
+
+        expect:
+        compileJavaConsumer('''
+            package sample;
+
+            import com.blackbuild.klum.ast.jackson.KlumJacksonImporter;
+            import com.blackbuild.klum.ast.jackson.KlumJacksonInput;
+            import com.fasterxml.jackson.databind.ObjectMapper;
+            import pk.JavaImportedValue;
+
+            class JacksonConsumer {
+                void importValue(ObjectMapper mapper) {
+                    KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
+                    JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
+                    JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
+                }
+            }
+        ''')
+    }
+
+    private void compileJavaConsumer(String source) {
+        File sourceFile = new File(tempFolder.root, 'sample/JacksonConsumer.java')
+        sourceFile.parentFile.mkdirs()
+        sourceFile.text = source.stripIndent()
+        String classpath = [System.getProperty('java.class.path'), compilerConfiguration.targetDirectory.absolutePath]
+                .join(File.pathSeparator)
+        def errors = new ByteArrayOutputStream()
+        int result = ToolProvider.systemJavaCompiler.run(null, null, errors, '-classpath', classpath,
+                '-d', compilerConfiguration.targetDirectory.absolutePath, sourceFile.absolutePath)
+        assert result == 0: errors.toString()
     }
 }
