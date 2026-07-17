@@ -316,3 +316,40 @@ cancelled JSON-3 round-trip closure. GitHub normalization:
 - completed #430 as already implemented while explicitly preserving `FromMap` until a separate compatibility decision;
 - added successor-architecture notes to completed #439/#440; and
 - updated open #454 with the four roles and required future Layer 3 grilling.
+
+## D-22 — Preserve Layer 3 composition-or-aggregation relationships
+
+**Decision:** Add `FieldType.OPTIONAL_LINK` as the relationship mode that may contain either owned composition or
+aggregation. `@LinkTo` selects `OPTIONAL_LINK`; `@Field(FieldType.LINK) @LinkTo` remains an aggregation-only fallback.
+Relationship classification is per single value, collection element, or map entry: `LINK` entries are aggregation,
+while `OPTIONAL_LINK` entries may mix composition and aggregation.
+
+A fresh unclaimed Builder from the active construction session is composition and receives an internal write-once
+composition claim. An already claimed Builder, or a completed model, is aggregation. A fresh Builder is invalid for
+`LINK`, because it would never be reached by composition materialization. Composition-only relationships reject a
+claimed Builder and a completed model; Templates, sealed Builders, and cross-session Builders remain invalid everywhere.
+
+Generated Java and Groovy APIs expose Builders for composition and valid aggregation. Only `LINK` and `OPTIONAL_LINK`
+retain completed-model target overloads; composition-only model overloads are removed. Completed-model batch APIs use
+`link…` names to avoid Java generic erasure. A narrow dynamic Builder `link(fieldName, target)` capability remains
+available to custom `@AutoLink` methods/closures, but records aggregation only and fails rather than overwriting a set
+single field or non-empty collection/map.
+
+**Compatibility:** This is the intentional 3.x-to-4.0 migration path for `@LinkTo`: mixed fields migrate directly,
+aggregation-only fields use `LINK`, and composition-only fields stay ordinary. Existing dynamic Auto-Link code that
+overwrites configured values must adopt explicit non-destructive fallback behavior.
+
+**Follow-up ownership:** #474 owns this behavior and its ADR 0003/0004 clarification, coverage, migration/docs, and
+generated method shapes. #431 retains `AsBuilder`/composition protocol completion; #467 classifies the dynamic
+framework-owned capability only; #468 inventories and freezes the resulting public surface.
+
+## 2026-07-17 Layer 3 relationship normalization
+
+After evidence-led grilling and maintainer confirmation, #474 was created as the canonical 4.0 issue with
+`enhancement`, `breaking change`, and `ready-for-agent` labels and milestone 4.0. Triage comments on #431, #467, and
+#468 record the ownership boundary. No implementation, ADR amendment, issue closure, dependency relation, project,
+assignment, branch, or commit was changed.
+
+The same inventory refresh reconciled the local open-issue count with GitHub (109): #469–#472 were already-live 4.0
+onboarding issues omitted from the local table. They were recorded as their own documentation/onboarding cluster; no
+GitHub state or scope was changed.

@@ -27,7 +27,9 @@ current source/tests. ADR 0007 is superseded by ADR 0009, while ADR 0008 remains
 | #450 — integration audit | The dependency and ownership audit is a release prerequisite even though not every finding blocks. | The [final synthesis](issue-450-integration-audit.md), release classifications, upstream links, native sub-issues #459–#461, and discoverable #391/#394 boundaries are accepted. | Keep #450 open through audit review. Its implementation follow-ups retain their own states and release classifications. |
 | #390 — ADR 0006 completed Object support | Decision is complete, but direct proxy/metadata access remains exposed and clients lack the supported Java facade. | [#435 OS-1](https://github.com/klum-dsl/klum-ast/issues/435), OS-2, and OS-3: root/subtree facade, structure, stored validation, proxy lockdown, serialization, and Java-first docs. | Coordinate OS-2 with #438's common companion split. |
 | #428 — ADR 0009 Jackson interoperability | JSON-1/#439 and JSON-2/#440 implement useful Builder/property/identity groundwork, but 4.0 still lacks the explicit importer and executable asymmetric YAML contract. Shipping raw root reads alone would freeze the wrong entry point. | [#463 JSON-3](https://github.com/klum-dsl/klum-ast/issues/463): reviewed importer API, four explicit modes, caller-owned configuration, breadcrumbs/errors. [#464 JSON-4](https://github.com/klum-dsl/klum-ast/issues/464): separate import/export fixtures, documentary YAML read/enrich/write, role-based wiki/migration/CHANGES, Groovy 3/4/5. | #439/#440 are done groundwork. #464 is natively blocked by #463. No metadata implementation follows completed #447. |
-| #431 — finalized ADR 0004 | AB-1 active sessions, AB-2 adaptable composition, and AB-3 Template/copy/scheduling boundaries are implemented; final compatibility closure remains. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436), [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437), and [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438) are complete. AB-4 must close remaining compatibility/documentation gates. | AB-4 may now reconcile #431 with #390/#428 without broadening their remaining scopes. |
+| #431 — finalized ADR 0004 | AB-1 active sessions, AB-2 adaptable composition, and AB-3 Template/copy/scheduling boundaries are implemented; final compatibility closure remains. | [#436 AB-1](https://github.com/klum-dsl/klum-ast/issues/436), [#437 AB-2](https://github.com/klum-dsl/klum-ast/issues/437), and [#438 AB-3](https://github.com/klum-dsl/klum-ast/issues/438) are complete. AB-4 must close its remaining compatibility/documentation gates. | #474 independently owns the Layer 3 relationship-mode clarification; AB-4 may reconcile #431 with #390/#428 without absorbing #474. |
+| #474 — Layer 3 composition-or-aggregation relationships | Shipping static composition-or-`LINK` behavior would break the 3.x `@LinkTo` model in which local owned configuration can override an auto-linked default. | `OPTIONAL_LINK`, Builder composition claims, per-entry collection/map semantics, generated Java/Groovy relationship API, non-destructive dynamic Auto-Link fallback, rejection/migration coverage, ADR 0003/0004 clarification, and wiki/CHANGES evidence on Groovy 3/4/5. | #431 remains the active-session/`AsBuilder` protocol; #467 classifies the dynamic framework capability; #468 inventories and freezes the final generated surface. |
+| #469 — task-oriented adopter onboarding | 4.0 needs an executable, versioned route for new adopters instead of feature-oriented documentation that presumes prior architectural knowledge. | The #470 Gradle baseline/portable skill distribution and the #471 domain-first/#472 target-contract journeys are independently executable, use canonical role/Layer 3 vocabulary, and are field-test-ready without open-ended scope. | #456 owns versioned documentation infrastructure; #454 owns the broader Layer 3 vocabulary. #470 precedes #471 and #472. |
 
 ### Recommended must-item sequence
 
@@ -40,12 +42,17 @@ current source/tests. ADR 0007 is superseded by ADR 0009, while ADR 0008 remains
 #435 OS-1 (done) ──> #390 OS-2 <──> #438 AB-3 (done) ──> compatibility closure
 #439 JSON-1 (done) ──> #440 JSON-2 (done) ──> #463 JSON-3 ──> #464 JSON-4 ──> compatibility closure
 #434 DSL-G ──> #394 DSL-3
+#431 composition protocol ───────────────────────────────> #474 relationship compatibility ──> #468 API freeze
+#470 onboarding baseline ──> #471 domain-first journey
+                         └─> #472 target-contract journey
 ```
 
 The Builder-first decisions are no longer blockers; the shown implementation seams are. #391 additionally requires a
 module-path feasibility proof before its package ADR can be finalized. The generated namespace must exist before
 projected Builder signatures, while Model/Template companion changes and facade lockdown must share one internal boundary.
 Jackson groundwork is complete; #463's public API review and implementation now precede #464's compatibility closure.
+#474 is an independent public compatibility blocker: it must settle Layer 3 relationship behavior before #468 freezes the
+generated surface.
 
 ## 4.0 nice-to-have
 

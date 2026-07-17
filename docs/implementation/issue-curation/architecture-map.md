@@ -74,7 +74,7 @@ Phase actions are discovered from [`META-INF/services/...PhaseAction`](../../../
 Additional invariants:
 
 - Source initializers execute once when a Builder is allocated. `FieldType.BUILDER` state is omitted from the model. Non-transient, non-relationship model fields become final.
-- Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK`; owned composition must be created in the owner's session. Nested root factories are rejected.
+- Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK`; owned composition must be created in the owner's session. Nested root factories are rejected. **Target #474** adds `OPTIONAL_LINK`: a fresh same-session Builder is claimed as composition, while an already claimed Builder or a completed model is aggregation; a fresh Builder remains invalid for aggregation-only `LINK`.
 - Materialization publishes independent read-only snapshots for `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`; comparators are retained. `EnumSet` is defensive. Unsupported concrete/custom collection declarations fail schema compilation. Simple Values are retained, not deep-copied.
 - Generated models retain a sealed internal `KlumObjectCompanion`. The package-internal Model companion stores ordinary
   completed-model paths, metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
@@ -84,7 +84,7 @@ Additional invariants:
 - Templates copy values/composition and replay cloned recipe actions into fresh Builders. Every owned Template node is
   marked, pre-existing ordinary `LINK` targets retain identity, and no Template may be a relationship value. Normal
   Jackson export rejects Templates; ADR 0009 plans explicit value-only Template import through #463.
-- `StructureUtil.visit` is identity-cycle-safe and follows composition only: declared fields are traversed, while owner and `LINK` fields are skipped. Builder phase traversal also skips sealed aggregation wrappers. Paths use GPath-like field, index, and map-key segments.
+- `StructureUtil.visit` is identity-cycle-safe and follows composition only: declared fields are traversed, while owner and `LINK` fields are skipped. Builder phase traversal also skips sealed aggregation wrappers. Paths use GPath-like field, index, and map-key segments. **Target #474** requires this distinction to be recorded per relationship entry so `OPTIONAL_LINK` collections/maps can mix owned and aggregation edges without traversal leakage.
 - Current Jackson root deserialization binds resolved public configuration properties between `PostCreate` and `PostApply`
   in one Builder lifecycle. The complete owned graph and its identities are prepared before binding so backward and forward
   `LINK` references resolve without creating ownership; polymorphic owned values remain Builders in that session. #463
@@ -144,5 +144,9 @@ Confirmed deferred gaps, not current capabilities:
   Completed-object support (#390) has its OS-1 provenance/structure and OS-2 validation/proxy-lockdown slices implemented;
   OS-3 compatibility closure remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
   registration (#305) is decided and deferred to later 4.x.
+- #474 is a confirmed 4.0 target that amends the relationship boundary: `@LinkTo` selects `OPTIONAL_LINK`; explicit `LINK`
+  is aggregation-only; composition-only fields reject completed/claimed values. It owns public Java/Groovy generated
+  relationship shapes and the narrow non-destructive dynamic Auto-Link capability. It must not be mistaken for current
+  behavior until implemented and covered on all Groovy lanes.
 
 **Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `KlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.

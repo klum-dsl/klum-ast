@@ -1,6 +1,6 @@
 # Open issue index for the 4.0 release
 
-Snapshot refreshed 2026-07-16: 103 open issues in `klum-dsl/klum-ast`, inspected from repository base `65f7a99b` and the live issue tracker. The original inventory was read-only; later confirmed normalization actions are recorded below.
+Snapshot refreshed 2026-07-17: 109 open issues in `klum-dsl/klum-ast`, inspected from repository base `65f7a99b` and the live issue tracker. The original inventory was read-only; later confirmed normalization actions are recorded below.
 
 All dispositions are provisional maintainer recommendations. “Relevant” means that the current source still lacks the requested capability or still contains the reported risk; it does not mean that the issue is accepted product policy. The historical 2.x/3.x sections of `wiki/Roadmap.md` were not used as current policy.
 
@@ -19,6 +19,7 @@ Each row cites one or more of these inspected evidence bundles. The issue body a
 | `PHASE` | `PhaseDriver`, typed visiting actions, lifecycle phase implementations, `LifecycleSpec`, and `wiki/Model-Phases.md`. |
 | `PATH` | `BreadcrumbCollector`, `KlumBuilder`, `KlumModelProxy`, `DslHelper`, `ModelPathTest`, `BreadcrumbDSLTest`, and `wiki/Exception-Handling.md`. |
 | `L3` | `Cluster`, `Layer3`, `ClusterModel`, `StructureUtil`, their transformation/runtime tests, and `wiki/Layer3.md`. |
+| `REL` | ADRs 0003/0004/0005, `FieldType`, generated property/DSL accessors, `KlumBuilder` relationship normalization/materialization, Auto-Link phases, Layer 3 tests, and v3.0.1 API/docs fixtures. |
 | `JACK` | `KlumAstModule`, `KlumAnnotationIntrospector`, `KlumDeserializer`, `JsonExportSpec`, and `wiki/Jackson-Integration.md`. |
 | `GRADLE` | Gradle plugin implementations, BOM, TestKit/scenario builds, and `wiki/Gradle-Plugins.md`. |
 | `IDE` | `PolymorphicMethods.gdsl`, its IntelliJ 142 dependencies, and the absence of an Eclipse DSLD implementation. |
@@ -142,15 +143,24 @@ The evidence key in each row supplies the relevant ADR/wiki/test set; directly r
 | #461 | Migrate KlumAST to AnnoDocimal 1.0 supported APIs and projection task. | dependency / Gradle / documentation integration | **Confirmed downstream gate from #450:** final AnnoDocimal 1.0 precedes KlumAST 4.0. Migrate provisional helpers, reuse the deterministic/configuration-cache-safe task, consume stable module names, and preserve KlumAST-owned IDEA/mirror policy. | AST, Gradle, IDE, JPMS; all Groovy lanes | **4.0 blocker, ready-for-agent** |
 | #463 | Add explicit Jackson importer modes and breadcrumbs. | enhancement / breaking API | **Confirmed JSON-3 tracer:** finalize the public importer signatures, then implement explicit root, Template, active-session Builder, and apply-to-Builder modes with caller-owned Jackson configuration and `KlumModelException` breadcrumb/cause preservation. | JACK, RT, J17/API; Groovy 3/4/5 | **4.0 blocker, ready-for-human API review** |
 | #464 | Prove asymmetric Jackson/YAML interoperability. | enhancement / compatibility closure | **Confirmed JSON-4 tracer:** add separate foreign-import and external-export fixtures plus a documentary multi-input YAML read/enrich/write workflow; synchronize role-oriented wiki, migration, CHANGES, and compatibility lanes without a round-trip contract. | JACK, Docs; Groovy 3/4/5 | **4.0 blocker, ready-for-agent; blocked by #463** |
+| #467 | Define framework-owned public-interface naming and entrypoint conventions. | design / API convention | **Relevant API-freeze prerequisite:** fixes the framework-owned naming/entrypoint convention while expressly excluding schema-authored/generated DSL methods. #474 supplies the narrow dynamic Builder `link(fieldName, target)` capability that #467 must classify; its generated method shapes remain owned by #474. | J17/API, AST; Groovy 3/4/5 | **4.0 must, convention record pending** |
+| #468 | Finalize the 4.0 JVM-public type/member and generated-surface inventory. | compatibility / release gate | **Relevant late gate:** every public delta since v3.0.1 needs a classified owner and export treatment. #474 adds relationship-mode accessors and completed-model link batches that #468 must inventory and freeze; #468 does not choose their behavior. | J17/API, AST; Groovy 3/4/5 | **4.0 must, late API-freeze gate** |
+| #469 | Provide task-oriented KlumAST 4.x adopter onboarding and portable Agent Skills. | documentation / onboarding design | **Confirmed 4.0 documentation scope:** versioned documentation is authoritative and portable, task-oriented agent skills enact it for Gradle adopters. The parent owns the two-axis entry decision (domain-first/target-contract and Layer 3/direct schema), a separate `agent-skills/` distribution, and field-test bounded preview. #470–#472 are its independently verifiable tracer bullets. Related but not a substitute for #456 versioned documentation or #454 Layer 3 vocabulary. | Docs, Gradle, L3; Groovy 3/4/5 | **4.0 must, parent scope confirmed** |
+| #470 | Establish the Gradle onboarding baseline and portable adopter-skill distribution. | documentation / executable onboarding | **Ready tracer for #469:** deliver an entry guide, `start-klum-project` and `author-klum-model` skills, a minimal executable Gradle fixture, supported-Groovy/IntelliJ guidance, and a portable open-skills distribution. It must use versioned documentation as the authority. | Docs, Gradle, IDE; Groovy 3/4/5 | **4.0 must, ready-for-agent** |
+| #471 | Teach domain-first modeling through an executable smart-home journey. | documentation / Layer 3 acceptance fixture | **Ready child of #469, blocked by #470:** prove a domain-first Layer 3 schema, configured model, and thin downstream adapter through shared executable documentation/skill evidence. It must use #454’s vocabulary without treating an example as unreviewed Layer 3 policy. | Docs, L3, Gradle; Groovy 3/4/5 | **4.0 must, ready-for-agent; blocked by #470** |
+| #472 | Teach target-contract modeling through an executable Helm journey. | documentation / target-contract acceptance fixture | **Ready child of #469, blocked by #470:** prove direct-schema target-contract modeling with representative Helm values, meaningful defaults/validation/convenience, and golden-contract checks. It must not imply a universal import/export round trip or absorb #79/#304. | Docs, Gradle; Groovy 3/4/5 | **4.0 must, ready-for-agent; blocked by #470** |
+| #474 | Preserve Layer 3 composition-or-aggregation relationships. | enhancement / breaking compatibility | **Confirmed 4.0 contract:** `OPTIONAL_LINK` lets a relationship entry be composition or aggregation; `@LinkTo` selects it, while explicit `LINK` remains aggregation-only. Ownership is determined by same-session Builder composition claim versus an existing completed/claimed target. The issue owns generated Java/Groovy relationship method shapes, non-destructive dynamic Auto-Link fallback, collection/map semantics, migration, and ADR 0003/0004 clarification. It is distinct from #431’s Builder-producing composition, #467’s framework naming convention, and #468’s final inventory. | AST, RT, L3, REL, J17/API; Groovy 3/4/5 | **4.0 must, ready-for-agent** |
 
 ## Inventory checks
 
-- The table contains every number returned by `gh issue list --state open --limit 1000` after the 2026-07-16 Jackson
-  normalization: **102/102**. Completed #251/#430/#447 were removed; new #463/#464 were added.
+- The table contains every number returned by `gh issue list --state open --limit 1000` after the 2026-07-17 relationship
+  normalization: **109/109**. Completed #251/#430/#447 remain absent; previously omitted #467–#472 were restored to the
+  inventory and #474 was added.
 - No external PR was treated as a request surface, per `docs/agents/issue-tracker.md`.
 - Remaining “close” recommendations are evidence-backed proposals only. The confirmed 2026-07-14 architecture normalization
   created milestone 4.0, updated #251/#305/#390/#394/#428/#431, and created #433–#441. The 2026-07-15 pass refined
   #391, created #453/#454, and linked `blackbuild/anno-docimal#36` through #450. The first 2026-07-16 pass reopened #450
   after PR #457's accidental mechanical state change and created native sub-issues #459–#461. The Jackson pass then
-  normalized #428/#454, completed #251/#430/#447, and created #463/#464 with a native dependency. Implemented/completed
-  issues are absent from this open-only table.
+  normalized #428/#454, completed #251/#430/#447, and created #463/#464 with a native dependency. The 2026-07-17
+  relationship pass created #474 and linked its ownership to #431/#467/#468; the inventory refresh also restored the
+  already-live #469–#472 onboarding cluster. Implemented/completed issues are absent from this open-only table.
