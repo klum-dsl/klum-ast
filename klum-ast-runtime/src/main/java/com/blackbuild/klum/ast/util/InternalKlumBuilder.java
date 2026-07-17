@@ -213,6 +213,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         return root.getCompletedModel();
     }
 
+    /** Internal adapter hook that materializes a value-only Template graph without lifecycle phases. */
+    public static Object materializeTemplateForImport(InternalKlumBuilder<?> root) {
+        return materializeGraph(root);
+    }
+
     /** Internal Builder hook that assigns one completed relationship without exposing a model mutator. */
     protected final void $assignMaterializedRelationship(String fieldName) {
         CachedField target = DslHelper.getCachedField(completedModel.getClass(), fieldName)

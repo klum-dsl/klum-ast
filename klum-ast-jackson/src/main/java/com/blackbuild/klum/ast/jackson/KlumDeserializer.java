@@ -32,6 +32,8 @@ import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.InternalKlumBuilder;
+import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.KlumModelException;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -84,6 +86,8 @@ import java.util.stream.Stream;
  */
 final class KlumDeserializer extends StdDeserializer<Object> implements ContextualDeserializer {
 
+    private static final ThreadLocal<ManagedRequest> MANAGED_REQUEST = new ThreadLocal<>();
+
     /**
      * Carries the replay session only across the synchronous re-entry caused by
      * {@link ReplaySession#discoverPolymorphicBuilder(ObjectNode, JavaType, TypeDeserializer, Object)} calling
@@ -122,6 +126,9 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
 
     @Override
     public Object deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+        ManagedRequest managedRequest = MANAGED_REQUEST.get();
+        if (managedRequest != null && !managedRequest.wasHandled() && managedRequest.matches(modelType))
+            return deserializeManaged(parser, context, managedRequest);
         OwnedBuilderRequest request = OWNED_BUILDER_REQUEST.get();
         if (request != null && request.context() == context)
             return request.session().addOwnedBuilder(
@@ -139,6 +146,38 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         } catch (RuntimeException exception) {
             throw JsonMappingException.from(parser, "Could not replay configuration for " + modelType.getName()
                     + " through its Builder lifecycle", exception);
+        }
+    }
+
+    static <T> T withManagedRequest(ManagedRequest request, ThrowingSupplier<T> action) throws IOException {
+        ManagedRequest previous = MANAGED_REQUEST.get();
+        MANAGED_REQUEST.set(request);
+        try {
+            return action.get();
+        } finally {
+            if (previous == null)
+                MANAGED_REQUEST.remove();
+            else
+                MANAGED_REQUEST.set(previous);
+        }
+    }
+
+    private Object deserializeManaged(JsonParser parser, DeserializationContext context, ManagedRequest request)
+            throws IOException {
+        if (parser.currentToken() == JsonToken.VALUE_NULL)
+            return null;
+        if (!parser.isExpectedStartObjectToken())
+            return context.handleUnexpectedToken(modelType, parser);
+        ObjectNode configuration = readObject(parser, context);
+        try {
+            request.markHandled();
+            return switch (request.mode()) {
+                case ROOT -> replay(configuration, parser, context);
+                case TEMPLATE -> replayTemplate(configuration, parser, context);
+                case BUILDER, APPLY -> replayInto(internalBuilder(request.target()), configuration, parser, context);
+            };
+        } catch (UncheckedIOException failure) {
+            throw failure.getCause();
         }
     }
 
@@ -168,8 +207,34 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         ReplaySession replaySession = new ReplaySession(source, context);
         return PhaseDriver.withBuilderLifecycle(
                 () -> FactoryHelper.createBuilder(modelType, key),
-                builder -> replaySession.replay(builder, configuration, properties)
+                builder -> replaySession.replay(builder, configuration, properties, true)
         );
+    }
+
+    private Object replayTemplate(ObjectNode configuration, JsonParser source, DeserializationContext context) {
+        InternalKlumBuilder<?> builder = internalBuilder(FactoryHelper.createTemplateBuilderForImport(modelType));
+        return replayInto(builder, configuration, source, context, true);
+    }
+
+    private Object replayInto(InternalKlumBuilder<?> builder, ObjectNode configuration, JsonParser source,
+                              DeserializationContext context) {
+        return replayInto(builder, configuration, source, context, false);
+    }
+
+    private Object replayInto(InternalKlumBuilder<?> builder, ObjectNode configuration, JsonParser source,
+                              DeserializationContext context, boolean template) {
+        if (builder == null)
+            throw new KlumModelException("Managed Jackson import did not receive a Builder target");
+        ResolvedProperties properties = resolveProperties(modelType, context);
+        ReplaySession replaySession = new ReplaySession(source, context);
+        replaySession.replay(builder, configuration, properties, !template);
+        return template ? InternalKlumBuilder.materializeTemplateForImport(builder) : builder;
+    }
+
+    private static InternalKlumBuilder<?> internalBuilder(KlumBuilder<?> builder) {
+        if (builder instanceof InternalKlumBuilder<?> internalBuilder)
+            return internalBuilder;
+        throw new KlumModelException("Managed Jackson import requires an active generated Builder implementation");
     }
 
     private static Collection<Object> createCollection(JavaType type) {
@@ -361,17 +426,20 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             this.context = context;
         }
 
-        private void replay(InternalKlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties) {
+        private void replay(InternalKlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties,
+                            boolean runLifecycle) {
             try {
                 addBuilder(root, configuration, properties);
-                for (PendingBuilder pending : pendingBuilders) {
-                    pending.builder().setCurrentTemplates(Collections.emptyMap());
-                    LifecycleHelper.executeLifecycleMethods(pending.builder(), PostCreate.class);
-                }
+                if (runLifecycle)
+                    for (PendingBuilder pending : pendingBuilders) {
+                        pending.builder().setCurrentTemplates(Collections.emptyMap());
+                        LifecycleHelper.executeLifecycleMethods(pending.builder(), PostCreate.class);
+                    }
                 for (PendingBuilder pending : pendingBuilders)
                     bindConfiguration(pending);
-                for (PendingBuilder pending : pendingBuilders)
-                    LifecycleHelper.executeLifecycleMethods(pending.builder(), PostApply.class);
+                if (runLifecycle)
+                    for (PendingBuilder pending : pendingBuilders)
+                        LifecycleHelper.executeLifecycleMethods(pending.builder(), PostApply.class);
             } catch (IOException exception) {
                 throw new UncheckedIOException(exception);
             }
@@ -622,6 +690,57 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             pending.configuration().fields().forEachRemaining(entry -> bind(
                     pending.builder(), entry.getKey(), entry.getValue(), pending.properties(), pending.ownedValues()));
         }
+    }
+
+    enum ManagedMode {
+        ROOT("readRoot"), TEMPLATE("readTemplate"), BUILDER("readBuilder"), APPLY("applyToBuilder");
+
+        private final String operation;
+
+        ManagedMode(String operation) {
+            this.operation = operation;
+        }
+
+        String operation() {
+            return operation;
+        }
+    }
+
+    static final class ManagedRequest {
+        private final ManagedMode mode;
+        private final KlumBuilder<?> target;
+        private boolean handled;
+
+        ManagedRequest(ManagedMode mode, KlumBuilder<?> target) {
+            this.mode = mode;
+            this.target = target;
+        }
+
+        private boolean matches(Class<?> type) {
+            return target == null || target instanceof InternalKlumBuilder<?> builder
+                    && builder.getModelType().equals(type);
+        }
+
+        ManagedMode mode() {
+            return mode;
+        }
+
+        KlumBuilder<?> target() {
+            return target;
+        }
+
+        boolean wasHandled() {
+            return handled;
+        }
+
+        void markHandled() {
+            handled = true;
+        }
+    }
+
+    @FunctionalInterface
+    interface ThrowingSupplier<T> {
+        T get() throws IOException;
     }
 
     private record PendingBuilder(InternalKlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
