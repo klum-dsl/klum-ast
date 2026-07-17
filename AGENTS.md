@@ -1,5 +1,18 @@
 ## Agent skills
 
+### Task names
+
+Each agent should rename its own Codex task when the purpose becomes materially more precise, using a concise title that describes the specific outcome. Use a status prefix when work reaches one of these handoff states:
+
+- `(ready:commit)` — changes and validation are complete, but the commit remains.
+- `(ready:PR)` — commits are ready, but pushing or creating the pull request remains.
+- `(done)` — the requested outcome is complete with no repository step pending.
+- `(done:PR)` — the completed work has been published as a pull request.
+- `(done:merged)` — use only when the task explicitly includes shepherding the pull request through merge.
+- `(blocked)` — progress requires external input or an external state change.
+
+Active work needs no status prefix.
+
 ### Issue tracker
 
 Issues and PRDs for this repo live in GitHub Issues (uses the `gh` CLI). External PRs are not treated as a request surface. See `docs/agents/issue-tracker.md`.
