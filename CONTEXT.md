@@ -43,6 +43,21 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   A Model Writer creates concrete configured models using Groovy DSL scripts, structured data such as YAML or JSON, Templates, or combinations of those inputs.
 
+- Domain-first modeling
+
+  Domain-first modeling derives the Schema from the problem domain rather than from a particular backend or artifact
+  format. The resulting completed model is the canonical domain abstraction; Client Developers adapt it to target systems,
+  APIs, or documents.
+
+- Target-contract modeling
+
+  Target-contract modeling starts from an existing technical contract, such as Helm values, and uses a Klum Schema as a
+  convenient, validated authoring language for that contract. The target contract remains authoritative and generated
+  artifacts must conform to it, although the Schema may add higher-level defaults and need not mirror the target one-to-one.
+
+  Domain-first and target-contract modeling describe what drives Schema design. Both are independent of decorating model
+  objects with Klum-Wrap.
+
 - DSL-Objects
 
   DSL Objects are annotated with `@DSL`. These are (potentially complex) objects enhanced by the transformation. They can either be keyed or unkeyed. "Keyed" means they have a designated field of type String decorated with the `@Key` annotation, acting as a key for this class. DSL classes are automatically made `Serializable`.
@@ -155,6 +170,12 @@ These terms are sourced from the project wiki and consolidated here. Use these c
   Client Developers depend only on that API, and Model Writers create the configured instances. Cluster projection is
   specialized support for this pattern; lifecycle, linking, ownership, defaults, and traversal are general KlumAST
   capabilities rather than defining Layer 3 features.
+
+- Direct-schema modeling
+
+  Direct-schema modeling uses the Schema's DSL Object types as the consumer-facing API rather than defining a separate
+  Domain API layer. The Schema Developer also assumes the Domain API Developer role, and Client Developers depend directly
+  on the Schema types.
 
 - Collections
 
