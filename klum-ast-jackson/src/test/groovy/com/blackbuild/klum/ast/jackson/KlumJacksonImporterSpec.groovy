@@ -109,6 +109,32 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         mapper.registeredModuleIds.empty
     }
 
+    def "borrowed parsers remain open and named sources appear in import diagnostics"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class ParserImportedValue { String value }
+        ''')
+        def mapper = new ObjectMapper().findAndRegisterModules()
+        def importer = KlumJacksonImporter.using(mapper)
+        def validParser = mapper.factory.createParser('{"value":"Ada"}')
+        def invalidParser = mapper.factory.createParser('{')
+
+        when:
+        def imported = importer.readRoot(clazz, KlumJacksonInput.parser(validParser))
+        importer.readRoot(clazz, KlumJacksonInput.parser(invalidParser).named("config.yaml"))
+
+        then:
+        imported.value == "Ada"
+        !validParser.closed
+        def exception = thrown(RuntimeException)
+        exception.message.startsWith("Jackson readRoot import of pk.ParserImportedValue failed:")
+        exception.message.contains('$/ParserImportedValue.readRoot:jackson(config.yaml)')
+        exception.cause != null
+    }
+
     def "Builder modes stay in the active Construction session and preserve Builder identity"() {
         given:
         createClass('''
@@ -169,6 +195,40 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
                 }
             }
         ''')
+    }
+
+    def "statically compiled Groovy consumers infer root and Template types"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class StaticImportedValue { String value }
+        ''')
+
+        when:
+        Class<?> consumer = createSecondaryClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.jackson.KlumJacksonImporter
+            import com.blackbuild.klum.ast.jackson.KlumJacksonInput
+            import com.fasterxml.jackson.databind.ObjectMapper
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticJacksonConsumer {
+                static StaticImportedValue root(ObjectMapper mapper) {
+                    KlumJacksonImporter.using(mapper).readRoot(StaticImportedValue, KlumJacksonInput.map([value: "root"]))
+                }
+
+                static StaticImportedValue template(ObjectMapper mapper) {
+                    KlumJacksonImporter.using(mapper).readTemplate(StaticImportedValue, KlumJacksonInput.map([value: "template"]))
+                }
+            }
+        ''', 'pk/StaticJacksonConsumer.groovy')
+
+        then:
+        consumer != null
     }
 
     private void compileJavaConsumer(String source) {

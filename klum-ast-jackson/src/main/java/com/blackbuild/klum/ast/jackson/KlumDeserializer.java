@@ -168,9 +168,9 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return null;
         if (!parser.isExpectedStartObjectToken())
             return context.handleUnexpectedToken(modelType, parser);
-        ObjectNode configuration = readObject(parser, context);
         try {
             request.markHandled();
+            ObjectNode configuration = readObject(parser, context);
             return switch (request.mode()) {
                 case ROOT -> replay(configuration, parser, context);
                 case TEMPLATE -> replayTemplate(configuration, parser, context);
