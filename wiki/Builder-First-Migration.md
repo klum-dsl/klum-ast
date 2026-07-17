@@ -50,7 +50,7 @@ KlumAST with `@Grab`, but the complete standalone-script setup will be documente
 | Jackson rejects a marked Template | Materialize a fresh ordinary model through a Template/copy API and serialize that model. JSON cannot preserve Template recipe actions. |
 | Jackson rejects a `LINK` value or inline object | For import, configure identity/reference handling, a converter, or lifecycle resolution; inline input never becomes owned composition. For export, choose an explicit id, omission, scalar, custom, or deliberate inline projection. |
 | A generated `apply` method is missing on a completed model | Move the changes into the original `Create.With` callback, a Template, or another factory input. |
-| Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. |
+| Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. Use `getConstructionPath()` for the Builder/factory invocation path and `getModelPath()` for the object's structural location. |
 
 ### 3. Run the full model test suite
 

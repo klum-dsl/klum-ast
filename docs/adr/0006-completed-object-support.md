@@ -7,8 +7,8 @@ Status: Accepted
 Tracking issue: [#390 — Stable Entry object for internal methods](https://github.com/klum-dsl/klum-ast/issues/390)
 
 Implementation status: OS-1 construction-path and structure support is implemented in [#435](https://github.com/klum-dsl/klum-ast/issues/435).
-OS-2 validation support and companion lockdown are implemented. OS-3 documentation and compatibility closure remains
-planned. See the [implementation plan](../implementation/adr-0006-completed-object-support.md).
+OS-2 validation support and companion lockdown are implemented. OS-3 construction-path terminology and compatibility
+closure are implemented. See the [implementation plan](../implementation/adr-0006-completed-object-support.md).
 
 Parent decision: [ADR 0003 — Builder-first materialization of DSL Objects](0003-builder-first-materialization.md)
 
@@ -42,9 +42,9 @@ getValidation()
 source and validation location are separate diagnostics. These direct methods do not promise provenance or lineage: a
 richer generation/event record remains #402 work.
 
-The currently implemented facade spelling `getBreadcrumbPath()` is a temporary pre-freeze name and is replaced without an
-alias before the 4.0 API freeze. `BreadcrumbCollector` remains internal generated/runtime terminology. Existing exception
-and helper descriptors retain their current JVM names under their separate compatibility policy.
+`getConstructionPath()` is the sole public construction-string getter on the facade; it has no breadcrumb alias.
+`BreadcrumbCollector` remains internal generated/runtime terminology. Existing exception and helper descriptors retain
+their current JVM names under their separate compatibility policy.
 
 `getStructure()` returns the public nested helper `KlumObjectSupport.Structure<T>`. Its contract is composition-only and
 cycle-safe: direct owners and optional single owner, owner hierarchy/ancestors, typed visit and find-all operations, and
