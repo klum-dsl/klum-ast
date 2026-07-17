@@ -31,14 +31,13 @@ Add `getValidation()` with target/subtree result access and non-rerunning `verif
 `KlumModelProxy`, internalize its lookup and raw metadata, and add migration diagnostics/deprecations where source
 compatibility is feasible. Verify facade serialization does not create a second companion reference.
 
-### OS-3 — Construction-path terminology and compatibility closure
+### OS-3 — Construction-path terminology and compatibility closure — Implemented
 
-Before the 4.0 API freeze, replace the temporary `getBreadcrumbPath()` facade method with `getConstructionPath()` and do
-not retain an alias. Publish Java-first Javadoc/wiki examples that distinguish construction path, structural model path,
-traversal path, import source, and validation location; document that provenance/lineage is richer future #402 work.
-Retain `BreadcrumbCollector` as internal generated/runtime vocabulary and preserve existing exception/helper descriptors.
-Document the absence of generic extension metadata, update migration navigation and `CHANGES.md`, and run runtime plus
-serialization coverage.
+Replaced the temporary `getBreadcrumbPath()` facade method with `getConstructionPath()` without retaining an alias.
+Java-first Javadoc/wiki examples distinguish construction path, structural model path, traversal path, import source,
+and validation location; provenance/lineage remains richer future #402 work. `BreadcrumbCollector` remains internal
+generated/runtime vocabulary and existing exception/helper descriptors remain compatible. The migration, release notes,
+and runtime serialization coverage record the final boundary.
 
 ## Compatibility
 

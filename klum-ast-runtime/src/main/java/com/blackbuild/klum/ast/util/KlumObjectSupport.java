@@ -47,6 +47,12 @@ import java.util.function.Predicate;
 /**
  * Java-first support for a completed DSL Object or one of its completed subtrees.
  *
+ * <p>This facade exposes the completed object's construction path, structural model path, composition structure,
+ * and stored validation without exposing its internal companion or generic extension metadata. A construction path
+ * identifies the Builder/factory invocation that created the object. It is distinct from a structural model path,
+ * contextual traversal paths, managed import sources, and validation locations; it does not represent provenance or
+ * lineage.</p>
+ *
  * @param <T> the completed DSL Object type
  */
 public final class KlumObjectSupport<T> {
@@ -79,8 +85,13 @@ public final class KlumObjectSupport<T> {
         return object;
     }
 
-    /** Returns the construction breadcrumb path of this completed DSL Object. */
-    public String getBreadcrumbPath() {
+    /**
+     * Returns the immutable Builder/factory invocation path through which this completed DSL Object was constructed.
+     *
+     * <p>This construction path is distinct from {@link #getModelPath()}, contextual traversal paths, managed import
+     * sources, and validation locations. It does not retain provenance or lineage.</p>
+     */
+    public String getConstructionPath() {
         return DslHelper.getBreadcrumbPath(object);
     }
 

@@ -55,7 +55,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         def support = KlumObjectSupport.of(instance)
 
         when: 'all facade helpers are exercised before serialization'
-        support.breadcrumbPath
+        support.constructionPath
         support.modelPath
         support.structure.findAll(clazz)
         def storedResult = support.validation.result
@@ -243,7 +243,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         storedChildResult.issues.toList() == childIssues
     }
 
-    def "Java callers use explicit completed-object getters for a root and subtree without proxy access"() {
+    def "Java and static Groovy callers use the construction-path getter for a root and subtree without proxy access"() {
         given:
         createClass '''
             import com.blackbuild.groovy.configdsl.transform.Owner
@@ -271,9 +271,24 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 public static void inspect(Root root, Child child) {
                     KlumObjectSupport<Root> rootSupport = KlumObjectSupport.of(root);
                     Root supportedRoot = rootSupport.getObject();
-                    String rootBreadcrumb = rootSupport.getBreadcrumbPath();
+                    String rootConstructionPath = rootSupport.getConstructionPath();
                     String rootModelPath = rootSupport.getModelPath();
-                    KlumObjectSupport.Structure<Child> structure = KlumObjectSupport.of(child).getStructure();
+                    KlumObjectSupport<Child> childSupport = KlumObjectSupport.of(child);
+                    String childConstructionPath = childSupport.getConstructionPath();
+                    KlumObjectSupport.Structure<Child> structure = childSupport.getStructure();
+                }
+            }
+        ''')
+        Class<?> staticConsumer = createSecondaryClass('''
+            import com.blackbuild.klum.ast.util.KlumObjectSupport
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticObjectSupportConsumer {
+                static String inspect(Root root, Child child) {
+                    KlumObjectSupport<Root> rootSupport = KlumObjectSupport.of(root)
+                    KlumObjectSupport<Child> childSupport = KlumObjectSupport.of(child)
+                    rootSupport.getConstructionPath() + '|' + childSupport.getConstructionPath()
                 }
             }
         ''')
@@ -281,12 +296,13 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         then:
         rootSupport.getObject().is(instance)
         childSupport.getObject().is(instance.child)
-        rootSupport.getBreadcrumbPath() == '$/Root.With'
-        childSupport.getBreadcrumbPath() == '$/Root.With/child'
+        rootSupport.getConstructionPath() == '$/Root.With'
+        childSupport.getConstructionPath() == '$/Root.With/child'
         rootSupport.getModelPath() == '<root>'
         childSupport.getModelPath() == '<root>.child'
-        rootSupport.getBreadcrumbPath() != rootSupport.getModelPath()
-        childSupport.getBreadcrumbPath() != childSupport.getModelPath()
+        rootSupport.getConstructionPath() != rootSupport.getModelPath()
+        childSupport.getConstructionPath() != childSupport.getModelPath()
+        staticConsumer.inspect(instance, instance.child) == '$/Root.With|$/Root.With/child'
         rootSupport.structure.directOwners.empty
         rootSupport.structure.singleOwner.empty
 
@@ -296,6 +312,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         KlumObjectSupport.Structure.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != modelProxyClass : true }
         KlumObjectSupport.Validation.methods.every { Modifier.isPublic(it.modifiers) ? it.returnType != modelProxyClass : true }
         !Serializable.isAssignableFrom(KlumObjectSupport)
+        KlumObjectSupport.methods*.name.contains('getConstructionPath')
+        !KlumObjectSupport.methods*.name.contains('getBreadcrumbPath')
 
         when: 'the target is not a completed DSL Object'
         KlumObjectSupport.of(new Object())

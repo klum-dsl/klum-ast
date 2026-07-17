@@ -128,8 +128,8 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted target behavior but not implemented**. The confirmed failure paths and pending tests are indexed in [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
 - [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; only DSL-G's Gradle
   mirror lifecycle is implemented.
-- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 provenance/composition support
-  and OS-2 stored-validation support/companion lockdown are implemented; OS-3 compatibility closure remains planned.
+- [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 construction-path/composition support,
+  OS-2 stored-validation support/companion lockdown, and OS-3's `getConstructionPath()` compatibility closure are implemented.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) is **Superseded**; its JSON-1 property binding and JSON-2
   identity/customization mechanics remain implemented history, but not a persistence contract.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
@@ -146,8 +146,8 @@ Confirmed deferred gaps, not current capabilities:
   #431 retains final compatibility closure.
 - Generated `Foo_DSL` AST layout (#394) remains decided but not implemented. Jackson JSON-1/#439 and JSON-2/#440 are
   implemented groundwork; #463 explicit importer and #464 asymmetric compatibility closure remain under #428.
-  Completed-object support (#390) has its OS-1 provenance/structure and OS-2 validation/proxy-lockdown slices implemented;
-  OS-3 compatibility closure remains. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
+  Completed-object support (#390) has its OS-1 construction-path/structure, OS-2 validation/proxy-lockdown, and OS-3
+  `getConstructionPath()` compatibility slices implemented. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
   registration (#305) is decided and deferred to later 4.x.
 - #474 is a confirmed 4.0 target that amends the relationship boundary: `@LinkTo` selects `OPTIONAL_LINK`; explicit `LINK`
   is aggregation-only; composition-only fields reject completed/claimed values. It owns public Java/Groovy generated

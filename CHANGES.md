@@ -6,7 +6,7 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 - Replaced mutable generated RW objects with generated Builders inheriting from `KlumBuilder`, while preserving DSL inheritance. Builders own field initializers, relationship state, mutators, and lifecycle work through `POST_TREE` ([#416](https://github.com/klum-dsl/klum-ast/issues/416), [#266](https://github.com/klum-dsl/klum-ast/issues/266)).
 - Added the `INSTANTIATE` phase at ordinal 40. It materializes the complete graph before validation, including cycles and self-links, then runs validation against completed DSL Objects.
-- Completed DSL Objects no longer expose generated `apply` or a client construction path. Non-transient simple fields are final; `FieldType.TRANSIENT` remains mutable ([#323](https://github.com/klum-dsl/klum-ast/issues/323)).
+- Completed DSL Objects no longer expose generated `apply` or construction-path members directly. Non-transient simple fields are final; `FieldType.TRANSIENT` remains mutable ([#323](https://github.com/klum-dsl/klum-ast/issues/323)).
 - Relationship fields hold Builders during construction. Existing completed DSL Objects are accepted only as aggregation `LINK` targets; owned composition stays within one Builder lifecycle.
 - Completed collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`; unsupported concrete or custom declarations now fail schema compilation.
 - Split construction and completed-model state between `KlumBuilder` and `KlumModelProxy`. `KlumInstanceProxy` is now a deprecated Builder-only compatibility adapter, and `VisitingPhaseAction` is replaced by state-specific Builder and Model variants.
@@ -38,8 +38,9 @@ This is a breaking release. See the [Builder-first construction migration](https
   `Validator.getValidationResultsFromStructure` and `verifyStructure` adapters now inherit that broader list contract.
   The Model companion and generic metadata access are now internal ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
   [#390](https://github.com/klum-dsl/klum-ast/issues/390),
-  [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)). The temporary
-  `getBreadcrumbPath()` spelling is replaced by `getConstructionPath()` before the 4.0 API freeze ([#390](https://github.com/klum-dsl/klum-ast/issues/390)).
+  [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)). Its sole
+  public construction-string getter is `getConstructionPath()`; no `getBreadcrumbPath()` facade alias remains
+  ([#390](https://github.com/klum-dsl/klum-ast/issues/390)).
 - Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred
   actions; every owned Template node carries persistent recipe identity and paths, while pre-existing ordinary `LINK`
   targets retain their identity. Direct Template relationship assignment, including `LINK`, is rejected with rehydration
