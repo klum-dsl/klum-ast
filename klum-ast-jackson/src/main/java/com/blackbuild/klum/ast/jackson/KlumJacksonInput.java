@@ -77,7 +77,10 @@ public final class KlumJacksonInput {
             return new InputParser(parser, false);
         if (tree != null)
             return new InputParser(tree.traverse(reader.getFactory().getCodec()), true);
-        JsonNode mapTree = new ObjectMapper().valueToTree(map);
+        ObjectMapper mapper = reader.getFactory().getCodec() instanceof ObjectMapper configuredMapper
+                ? configuredMapper
+                : new ObjectMapper();
+        JsonNode mapTree = reader.readTree(mapper.writeValueAsBytes(map));
         return new InputParser(mapTree.traverse(reader.getFactory().getCodec()), true);
     }
 
