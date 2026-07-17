@@ -19,6 +19,11 @@ it to ask for confirmation before substantive work begins. If the task-creation 
 include it and the confirmation requirement in the task context. Do not substitute a hidden sub-agent for the user-visible
 backlog task.
 
+Every spawned task must state its completion status clearly in its final response. When its work is complete, say that the
+task is finished. When the task's work is complete but an external condition remains, use a conditional completion
+statement that names and, when possible, links the condition, for example: "This task is finished, with final merge of PR
+#123 pending." Do not declare completion while substantive work assigned to the task remains.
+
 Agent-configuration work normally warrants its own task because it changes how later work is performed.
 
 ## Small sidetracks may stay in the current task
