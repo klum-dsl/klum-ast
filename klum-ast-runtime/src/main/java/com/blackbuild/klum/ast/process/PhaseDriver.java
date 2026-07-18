@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumModelException;
 import com.blackbuild.klum.ast.util.InternalKlumObjectSupport;
 import groovy.lang.Closure;
@@ -57,7 +57,7 @@ public class PhaseDriver {
     private Object rootObject;
     private int activeObjectPointer = 0;
     private ConstructionSession constructionSession;
-    private final Set<KlumBuilder<?>> constructionSessionBuilders =
+    private final Set<InternalKlumBuilder<?>> constructionSessionBuilders =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
     private PhaseAction currentPhase;
@@ -125,7 +125,7 @@ public class PhaseDriver {
     }
 
     /** Runs one complete Builder lifecycle and returns its completed model. */
-    public static <T> T withBuilderLifecycle(Supplier<? extends KlumBuilder<T>> generator, Consumer<KlumBuilder<T>> action) {
+    public static <T> T withBuilderLifecycle(Supplier<? extends InternalKlumBuilder<T>> generator, Consumer<InternalKlumBuilder<T>> action) {
         PhaseDriver driver = PhaseDriver.getInstance();
         if (driver.activeObjectPointer > 0 || driver.constructionSession != null)
             throw new KlumModelException("Cannot start an independent DSL Object factory while a Builder lifecycle is active. "
@@ -136,7 +136,7 @@ public class PhaseDriver {
         driver.constructionSession = new ConstructionSession();
         boolean entered = false;
         try {
-            KlumBuilder<T> builder = generator.get();
+            InternalKlumBuilder<T> builder = generator.get();
             attachToCurrentConstructionSession(builder);
             driver.context.setInstance(builder);
             PhaseDriver.enter(builder);
@@ -156,7 +156,7 @@ public class PhaseDriver {
     }
 
     /** Associates a newly allocated Builder with the active root lifecycle, if one exists. */
-    public static void attachToCurrentConstructionSession(KlumBuilder<?> builder) {
+    public static void attachToCurrentConstructionSession(InternalKlumBuilder<?> builder) {
         PhaseDriver driver = INSTANCE.get();
         if (driver == null || driver.constructionSession == null)
             return;
@@ -177,8 +177,8 @@ public class PhaseDriver {
         PhaseDriver driver = getInstance();
         if (driver.activeObjectPointer == 0) {
             driver.rootObject = object;
-            if (object instanceof KlumBuilder)
-                ((KlumBuilder<?>) object).setModelPath("<root>");
+            if (object instanceof InternalKlumBuilder)
+                ((InternalKlumBuilder<?>) object).setModelPath("<root>");
             else
                 InternalKlumObjectSupport.setModelPathIfAbsent(object, "<root>");
         }

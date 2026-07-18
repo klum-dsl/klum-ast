@@ -485,7 +485,7 @@ class ChildElement extends Element {
         Annotation[] elementAnnotations = factory.getMethod("subElement", String, Closure).parameterAnnotations[1]
 
         then:
-        delegatesToPointsTo(elementAnnotations, 'pk.SubElement._RW')
+        delegatesToPointsTo(elementAnnotations, 'pk.SubElement.Builder')
     }
 
     def "common suffixes can be stripped from grand child alternatives as well"() {

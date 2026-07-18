@@ -27,7 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.Field;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.ast.util.BreadCrumbVerbInterceptor;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.LanguageHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
@@ -93,7 +93,7 @@ public class DslAstHelper {
         // fields still hold the common Builder abstraction until a concrete subtype is chosen.
         if (classNode.isInterface())
             return GenericsUtils.makeClassSafeWithGenerics(
-                    ClassHelper.make(KlumBuilder.class),
+                    ClassHelper.make(InternalKlumBuilder.class),
                     new GenericsType(classNode.getPlainNodeReference())
             );
 

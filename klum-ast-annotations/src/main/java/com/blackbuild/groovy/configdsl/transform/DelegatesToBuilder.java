@@ -21,21 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast;
+package com.blackbuild.groovy.configdsl.transform;
+
+import groovy.transform.Undefined;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Legacy marker for generated mutable construction types formerly known as RW instances.
+ * Marks a closure parameter as delegating to a generated Builder.
  *
- * <p>Generated Builders temporarily retain this marker for integrations compiled against
- * the former generated layout. New construction code should target
- * {@link com.blackbuild.klum.ast.util.KlumBuilder}; completed DSL Objects implement
- * {@link KlumModelObject}. The deprecated
- * {@link com.blackbuild.klum.ast.util.KlumInstanceProxy} remains the corresponding
- * Builder-only compatibility adapter.</p>
- *
- * @deprecated since 4.0; use {@link com.blackbuild.klum.ast.util.KlumBuilder}. Removal of
- * the legacy generated-type marker is coordinated with issue #394.
+ * <p>The generated Builder does not exist while the schema is parsed. An
+ * optional value selects the DSL Object whose Builder receives the closure.</p>
  */
-@Deprecated(since = "4.0", forRemoval = true)
-public interface KlumRwObject {
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.SOURCE)
+@Documented
+public @interface DelegatesToBuilder {
+
+    /** The DSL Object whose generated Builder receives the closure. */
+    Class<?> value() default Undefined.class;
 }

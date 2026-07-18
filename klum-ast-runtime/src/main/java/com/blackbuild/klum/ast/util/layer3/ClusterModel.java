@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.DslHelper;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import groovy.lang.Closure;
 import groovy.lang.PropertyValue;
 import groovy.transform.stc.ClosureParams;
@@ -232,8 +232,8 @@ public class ClusterModel {
 
     private static Optional<ParameterizedType> getParameterizedTypeForProperty(Object container, PropertyValue value) {
         AnnotatedElement element = getAnnotatedElementForProperty(container, value);
-        if (container instanceof KlumBuilder)
-            element = DslHelper.getField(((KlumBuilder<?>) container).getModelType(), value.getName())
+        if (container instanceof InternalKlumBuilder)
+            element = DslHelper.getField(((InternalKlumBuilder<?>) container).getModelType(), value.getName())
                     .map(AnnotatedElement.class::cast)
                     .orElse(element);
 
@@ -274,8 +274,8 @@ public class ClusterModel {
 
     private static boolean propertyTypeMatches(Object container, PropertyValue property, Class<?> expectedType) {
         Class<?> propertyType = property.getType();
-        if (container instanceof KlumBuilder)
-            propertyType = DslHelper.getField(((KlumBuilder<?>) container).getModelType(), property.getName())
+        if (container instanceof InternalKlumBuilder)
+            propertyType = DslHelper.getField(((InternalKlumBuilder<?>) container).getModelType(), property.getName())
                     .map(Field::getType)
                     .orElse(propertyType);
         return expectedType.isAssignableFrom(propertyType) || propertyType.isPrimitive() && expectedType == Object.class;

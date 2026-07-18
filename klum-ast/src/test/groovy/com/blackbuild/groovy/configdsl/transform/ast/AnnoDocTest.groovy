@@ -28,7 +28,7 @@ package com.blackbuild.groovy.configdsl.transform.ast
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.InternalKlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
@@ -123,7 +123,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         classDoc() == '''This is a class'''
         rwClassDoc() == "The generated Builder for dummy.Foo."
         !clazz.declaredMethods*.name.contains("apply")
-        rwClazz.getMethod("apply", Map).declaringClass == KlumBuilder
+        rwClazz.getMethod("apply", Map).declaringClass == InternalKlumBuilder
         rwMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
 @param template the recipe to apply"""
 
@@ -256,7 +256,7 @@ The newly created Builder is configured by the optional values and closure.
 @param values the optional parameters
 @param closure the closure to configure the new element
 @return the newly created Builder""" // closures has a default value, so during ast it is a single method
-        rwMethodDoc("bars", getArrayClass("dummy.Bar\$_RW")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+        rwMethodDoc("bars", getArrayClass("dummy.Bar\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 @param values the elements to add"""
         rwMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
 @param values the elements to add"""

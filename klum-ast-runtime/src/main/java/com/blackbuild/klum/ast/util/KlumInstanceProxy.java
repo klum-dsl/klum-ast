@@ -33,10 +33,10 @@ import java.util.Map;
 /**
  * Builder-only compatibility adapter for code written against the former RW proxy.
  *
- * <p>New construction code belongs on {@link KlumBuilder}; completed-model inspection uses {@link KlumObjectSupport}.
+ * <p>New construction code belongs on {@link InternalKlumBuilder}; completed-model inspection uses {@link KlumObjectSupport}.
  * Looking up this adapter for a completed model is intentionally rejected.</p>
  *
- * @deprecated since 4.0; use {@link KlumBuilder} for construction state and
+ * @deprecated since 4.0; use {@link InternalKlumBuilder} for construction state and
  * {@link KlumObjectSupport} for completed-model inspection
  */
 @Deprecated(since = "4.0", forRemoval = true)
@@ -48,27 +48,27 @@ public final class KlumInstanceProxy {
     public static final String NAME_OF_PROXY_FIELD_IN_MODEL_CLASS = "$proxy";
     public static final String NAME_OF_MODEL_FIELD_IN_RW_CLASS = "this$0";
 
-    private final KlumBuilder<?> builder;
+    private final InternalKlumBuilder<?> builder;
 
     public KlumInstanceProxy(GroovyObject target) {
-        if (!(target instanceof KlumBuilder))
+        if (!(target instanceof InternalKlumBuilder))
             throw completedModelLookupFailure(target);
-        this.builder = (KlumBuilder<?>) target;
+        this.builder = (InternalKlumBuilder<?>) target;
     }
 
-    private KlumInstanceProxy(KlumBuilder<?> builder) {
+    private KlumInstanceProxy(InternalKlumBuilder<?> builder) {
         this.builder = builder;
     }
 
-    KlumBuilder<?> getBuilder() {
+    InternalKlumBuilder<?> getBuilder() {
         return builder;
     }
 
     public static KlumInstanceProxy getProxyFor(Object target) {
         if (target instanceof KlumInstanceProxy)
             return (KlumInstanceProxy) target;
-        if (target instanceof KlumBuilder)
-            return new KlumInstanceProxy((KlumBuilder<?>) target);
+        if (target instanceof InternalKlumBuilder)
+            return new KlumInstanceProxy((InternalKlumBuilder<?>) target);
         if (target instanceof KlumModelObject)
             throw completedModelLookupFailure(target);
         throw new KlumException("Object of type " + target.getClass().getName() + " is neither a Builder nor a DSL Object");

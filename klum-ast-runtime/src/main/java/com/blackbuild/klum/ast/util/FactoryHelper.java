@@ -67,23 +67,23 @@ public class FactoryHelper extends GroovyObjectSupport {
         // static only
     }
 
-    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key) {
+    public static <T> InternalKlumBuilder<T> createBuilder(Class<T> type, String key) {
         return createBuilder(type, key, null);
     }
 
-    public static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
+    public static <T> InternalKlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension) {
         return createBuilder(type, key, breadcrumbPathExtension, false);
     }
 
-    private static <T> KlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension, boolean template) {
+    private static <T> InternalKlumBuilder<T> createBuilder(Class<T> type, String key, String breadcrumbPathExtension, boolean template) {
         if (!template && !DslHelper.isInstantiable(type))
             throw new KlumModelException("Cannot instantiate abstract class " + type.getName());
         try {
-            Class<? extends KlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
-            Constructor<? extends KlumBuilder<?>> constructor = builderType.getDeclaredConstructor(String.class);
+            Class<? extends InternalKlumBuilder<?>> builderType = GeneratedBuilderSupport.builderTypeFor(type);
+            Constructor<? extends InternalKlumBuilder<?>> constructor = builderType.getDeclaredConstructor(String.class);
             if (!constructor.trySetAccessible())
                 throw new KlumModelException("Cannot access generated Builder constructor for " + type.getName());
-            KlumBuilder<T> builder = (KlumBuilder<T>) constructor.newInstance(key);
+            InternalKlumBuilder<T> builder = (InternalKlumBuilder<T>) constructor.newInstance(key);
             if (!template)
                 PhaseDriver.attachToCurrentConstructionSession(builder);
             if (breadcrumbPathExtension != null)
@@ -99,19 +99,19 @@ public class FactoryHelper extends GroovyObjectSupport {
         }
     }
 
-    private static <T> KlumBuilder<T> createTemplateBuilder(Class<T> type) {
-        KlumBuilder<T> builder = createBuilder(type, null, null, true);
+    private static <T> InternalKlumBuilder<T> createTemplateBuilder(Class<T> type) {
+        InternalKlumBuilder<T> builder = createBuilder(type, null, null, true);
         builder.setModelPath("<root>");
         return builder;
     }
 
     @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
-    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
+    static InternalKlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
         return createRecipeBuilder(declaredType, recipe, keyHint, template, null);
     }
 
     @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
-    static KlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template,
+    static InternalKlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template,
                                               String breadcrumbPathExtension) {
         Class<?> effectiveType = effectiveRecipeType(declaredType, recipe);
         String key = recipeKey(effectiveType, recipe);
@@ -124,8 +124,8 @@ public class FactoryHelper extends GroovyObjectSupport {
         if (recipe instanceof Map)
             return deduceClass(declaredType, (String) ((Map<?, ?>) recipe).get(TYPE_HINT));
 
-        Class<?> recipeType = recipe instanceof KlumBuilder
-                ? ((KlumBuilder<?>) recipe).getModelType()
+        Class<?> recipeType = recipe instanceof InternalKlumBuilder
+                ? ((InternalKlumBuilder<?>) recipe).getModelType()
                 : recipe.getClass();
         if (declaredType.isAssignableFrom(recipeType)
                 && DslHelper.isInstantiable(recipeType)
@@ -145,8 +145,8 @@ public class FactoryHelper extends GroovyObjectSupport {
     private static Object recipeValue(Object recipe, String name) {
         if (recipe instanceof Map)
             return ((Map<?, ?>) recipe).get(name);
-        if (recipe instanceof KlumBuilder)
-            return ((KlumBuilder<?>) recipe).getInstanceAttribute(name);
+        if (recipe instanceof InternalKlumBuilder)
+            return ((InternalKlumBuilder<?>) recipe).getInstanceAttribute(name);
         return DslHelper.getAttributeValue(name, recipe);
     }
 
@@ -154,17 +154,17 @@ public class FactoryHelper extends GroovyObjectSupport {
      * Creates and configures a composition child without entering another phase lifecycle.
      * The root Builder traversal will process and materialize it together with its owner.
      */
-    public static <T> KlumBuilder<T> createNestedBuilder(Class<T> type, Map<String, ?> values, String key) {
+    public static <T> InternalKlumBuilder<T> createNestedBuilder(Class<T> type, Map<String, ?> values, String key) {
         return prepareNestedBuilder(type, key, false, builder -> builder.applyOnly(values, null));
     }
 
-    static <T> KlumBuilder<T> prepareNestedBuilder(Class<T> type, String key, boolean template,
-                                                   Consumer<KlumBuilder<T>> configuration) {
+    static <T> InternalKlumBuilder<T> prepareNestedBuilder(Class<T> type, String key, boolean template,
+                                                   Consumer<InternalKlumBuilder<T>> configuration) {
         return prepareBuilder(createBuilder(type, key, null, template), template, configuration);
     }
 
-    private static <T> KlumBuilder<T> prepareBuilder(KlumBuilder<T> builder, boolean template,
-                                                      Consumer<KlumBuilder<T>> configuration) {
+    private static <T> InternalKlumBuilder<T> prepareBuilder(InternalKlumBuilder<T> builder, boolean template,
+                                                      Consumer<InternalKlumBuilder<T>> configuration) {
         if (template)
             builder.markAsTemplate();
         builder.copyFromTemplate();
@@ -177,7 +177,7 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     @SuppressWarnings("java:S1452") // completed models retain their runtime-generated Builder type
-    static KlumBuilder<?> wrapCompletedModel(Object model) {
+    static InternalKlumBuilder<?> wrapCompletedModel(Object model) {
         if (!DslHelper.isDslObject(model))
             throw new KlumModelException("Only completed DSL Objects can be wrapped");
         Class<Object> modelType = (Class<Object>) model.getClass();
@@ -186,7 +186,7 @@ public class FactoryHelper extends GroovyObjectSupport {
                 .map(name -> InvokerHelper.getProperty(model, name))
                 .map(Object::toString)
                 .orElse(null);
-        KlumBuilder<Object> builder = createBuilder(modelType, key);
+        InternalKlumBuilder<Object> builder = createBuilder(modelType, key);
         builder.sealTo(model);
         return builder;
     }
@@ -293,7 +293,7 @@ public class FactoryHelper extends GroovyObjectSupport {
     }
 
     private static <T> T createFromDelegatingScript(Class<T> type, String key, DelegatingScript script) {
-        Consumer<KlumBuilder<T>> apply = builder -> {
+        Consumer<InternalKlumBuilder<T>> apply = builder -> {
             script.setDelegate(builder);
             script.run();
         };
@@ -304,7 +304,7 @@ public class FactoryHelper extends GroovyObjectSupport {
             return doCreate(null, () -> createBuilder(type, null), apply);
     }
 
-    private static <T> T doCreate(String key, Supplier<? extends KlumBuilder<T>> createBuilder, Consumer<KlumBuilder<T>> apply) {
+    private static <T> T doCreate(String key, Supplier<? extends InternalKlumBuilder<T>> createBuilder, Consumer<InternalKlumBuilder<T>> apply) {
         return BreadcrumbCollector.withBreadcrumb(null, null, key,
                 () -> PhaseDriver.withBuilderLifecycle(createBuilder, builder -> prepareBuilder(builder, false, apply))
         );
@@ -329,7 +329,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return doCreate(key, () -> createBuilder(type, key), builder -> builder.applyOnly(values, body));
     }
 
-    public static <T> KlumBuilder<T> createAsBuilder(Class<T> type, Map<String, ?> values, String key, Closure<?> body,
+    public static <T> InternalKlumBuilder<T> createAsBuilder(Class<T> type, Map<String, ?> values, String key, Closure<?> body,
                                                      String operation) {
         PhaseDriver.requireActiveConstructionSession();
         return BreadcrumbCollector.withBreadcrumb(DslHelper.shortNameFor(type) + ".AsBuilder." + operation, null, key,
@@ -443,13 +443,13 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, String text, ClassLoader loader) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            KlumBuilder<T> builder = createTemplateBuilder(type);
+            InternalKlumBuilder<T> builder = createTemplateBuilder(type);
             builder.copyFromTemplate();
 
             DelegatingScript script = (DelegatingScript) createGroovyShell(loader).parse(text);
             script.setDelegate(builder);
             script.run();
-            return (T) KlumBuilder.materializeGraph(builder);
+            return (T) InternalKlumBuilder.materializeGraph(builder);
         });
     }
 
@@ -489,10 +489,10 @@ public class FactoryHelper extends GroovyObjectSupport {
      */
     public static <T> T createAsTemplate(Class<T> type, Map<String, ?> values, Closure<?> closure) {
         return BreadcrumbCollector.withBreadcrumb(() -> {
-            KlumBuilder<T> builder = createTemplateBuilder(type);
+            InternalKlumBuilder<T> builder = createTemplateBuilder(type);
             builder.copyFromTemplate();
             builder.applyOnly(values, closure);
-            return (T) KlumBuilder.materializeGraph(builder);
+            return (T) InternalKlumBuilder.materializeGraph(builder);
         });
     }
 
@@ -516,7 +516,7 @@ public class FactoryHelper extends GroovyObjectSupport {
         return doCreate(key, () -> createBuilder(effectiveType, key), builder -> builder.copyFrom(configMap));
     }
 
-    public static <T> KlumBuilder<T> createFromMapAsBuilder(Class<T> type, Map<String, Object> configMap) {
+    public static <T> InternalKlumBuilder<T> createFromMapAsBuilder(Class<T> type, Map<String, Object> configMap) {
         PhaseDriver.requireActiveConstructionSession();
         Class<T> effectiveType = deduceClass(type, (String) configMap.get(TYPE_HINT));
         String key = keyFromMap(effectiveType, configMap);
@@ -524,7 +524,7 @@ public class FactoryHelper extends GroovyObjectSupport {
                 () -> prepareNestedBuilder(effectiveType, key, false, builder -> builder.copyFrom(configMap)));
     }
 
-    public static <T> KlumBuilder<T> createFromAsBuilder(Class<T> type, Class<? extends Script> scriptType) {
+    public static <T> InternalKlumBuilder<T> createFromAsBuilder(Class<T> type, Class<? extends Script> scriptType) {
         PhaseDriver.requireActiveConstructionSession();
         if (!DelegatingScript.class.isAssignableFrom(scriptType))
             throw new KlumModelException("Create.AsBuilder.From only accepts DelegatingScript configuration recipes. "

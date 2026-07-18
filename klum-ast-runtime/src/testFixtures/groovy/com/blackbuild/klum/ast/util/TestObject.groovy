@@ -33,7 +33,7 @@ class TestObject implements KlumModelObject {
         $proxy = stateCarrier.$createCompanion(this)
     }
 
-    private static final class CompanionStateCarrier extends KlumBuilder<TestObject> {
+    private static final class CompanionStateCarrier extends InternalKlumBuilder<TestObject> {
         CompanionStateCarrier(Class<TestObject> modelType) {
             super(modelType)
         }

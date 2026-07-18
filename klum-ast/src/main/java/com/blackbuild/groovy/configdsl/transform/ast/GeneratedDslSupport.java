@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.ast.util.KlumBuilder;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -40,6 +41,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.ListExpression;
 import org.codehaus.groovy.ast.stmt.EmptyStatement;
+import org.codehaus.groovy.ast.tools.GenericsUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,6 +71,7 @@ public final class GeneratedDslSupport {
     public static final String INTERFACE_LINK_TAG = "dsl-support-interface:";
 
     private static final ClassNode KLUM_GENERATED = ClassHelper.make(KlumGenerated.class);
+    private static final ClassNode KLUM_BUILDER = ClassHelper.make(KlumBuilder.class);
     private static final ClassNode DELEGATES_TO = ClassHelper.make(DelegatesTo.class);
 
     private final ClassNode model;
@@ -203,7 +206,11 @@ public final class GeneratedDslSupport {
 
     private void addParentBuilderInterface() {
         ClassNode parent = model.getUnresolvedSuperClass(false);
-        if (!DslAstHelper.isDSLObject(parent)) return;
+        if (!DslAstHelper.isDSLObject(parent)) {
+            builderInterface.setUsingGenerics(true);
+            builderInterface.setInterfaces(new ClassNode[] { builderCapabilityFor(model) });
+            return;
+        }
 
         ClassNode parentModel = parent.redirect();
         GeneratedDslSupport parentSupport = parentModel.getNodeMetaData(SUPPORT_METADATA_KEY);
@@ -218,6 +225,13 @@ public final class GeneratedDslSupport {
         ClassNode parentBuilder = publicType(getRwClassOf(parent.redirect())).redirect();
         builderInterface.setUsingGenerics(true);
         builderInterface.setInterfaces(new ClassNode[] { parameterizedForModel(parentBuilder, parent) });
+    }
+
+    private static ClassNode builderCapabilityFor(ClassNode model) {
+        return GenericsUtils.makeClassSafeWithGenerics(
+                KLUM_BUILDER,
+                new GenericsType(parameterizedForModel(model, model))
+        );
     }
 
     private void link(ClassNode implementation, ClassNode publicInterface) {

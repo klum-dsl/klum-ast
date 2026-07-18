@@ -54,9 +54,9 @@ import static groovyjarjarasm.asm.Opcodes.*;
  */
 public class CopyHandler {
 
-    private final KlumBuilder<?> target;
+    private final InternalKlumBuilder<?> target;
     private final Object donor;
-    private final Map<Object, KlumBuilder<?>> rehydratedRecipes;
+    private final Map<Object, InternalKlumBuilder<?>> rehydratedRecipes;
     private final String donorBreadcrumbRoot;
 
     /**
@@ -73,13 +73,13 @@ public class CopyHandler {
         this(target, donor, new IdentityHashMap<>(), null);
     }
 
-    private CopyHandler(Object target, Object donor, Map<Object, KlumBuilder<?>> rehydratedRecipes,
+    private CopyHandler(Object target, Object donor, Map<Object, InternalKlumBuilder<?>> rehydratedRecipes,
                         String donorBreadcrumbRoot) {
-        if (!(target instanceof KlumBuilder))
+        if (!(target instanceof InternalKlumBuilder))
             throw new KlumModelException("Copy targets must be Builders; completed models are immutable");
         if (donor == null)
             throw new KlumModelException("Copy donor must not be null");
-        this.target = (KlumBuilder<?>) target;
+        this.target = (InternalKlumBuilder<?>) target;
         this.donor = donor;
         this.rehydratedRecipes = rehydratedRecipes;
         this.donorBreadcrumbRoot = donorBreadcrumbRoot != null
@@ -103,8 +103,8 @@ public class CopyHandler {
     }
 
     private void doCopyFromObject() {
-        Class<?> donorType = donor instanceof KlumBuilder
-                ? ((KlumBuilder<?>) donor).getModelType()
+        Class<?> donorType = donor instanceof InternalKlumBuilder
+                ? ((InternalKlumBuilder<?>) donor).getModelType()
                 : donor.getClass();
         DslHelper.getDslHierarchyOf(donorType).forEach(this::copyFromLayer);
     }
@@ -199,8 +199,8 @@ public class CopyHandler {
         Object result;
         if (donor instanceof Map)
             result = ((Map<String, Object>) donor).get(fieldName);
-        else if (donor instanceof KlumBuilder)
-            result = ((KlumBuilder<?>) donor).getInstanceAttribute(fieldName);
+        else if (donor instanceof InternalKlumBuilder)
+            result = ((InternalKlumBuilder<?>) donor).getInstanceAttribute(fieldName);
         else
             result = DslHelper.getAttributeValue(fieldName, donor);
         if (result != null && !(result instanceof Map) && !isInstance(type, result)) {
@@ -215,8 +215,8 @@ public class CopyHandler {
     @SuppressWarnings("java:S3776")
     private static <T> boolean isInstance(Class<T> type, Object result) {
         if (type.isInstance(result)) return true;
-        if (result instanceof KlumBuilder)
-            return type.isAssignableFrom(((KlumBuilder<?>) result).getModelType());
+        if (result instanceof InternalKlumBuilder)
+            return type.isAssignableFrom(((InternalKlumBuilder<?>) result).getModelType());
 
         if (type.isPrimitive()) {
             if (type == int.class) return result instanceof Integer;
@@ -453,11 +453,11 @@ public class CopyHandler {
     }
 
     private Object rehydrateDslRecipe(Class<?> declaredType, Object recipe, Object keyHint) {
-        KlumBuilder<?> existing = rehydratedRecipes.get(recipe);
+        InternalKlumBuilder<?> existing = rehydratedRecipes.get(recipe);
         if (existing != null)
             return existing;
 
-        KlumBuilder<?> builder = FactoryHelper.createRecipeBuilder(
+        InternalKlumBuilder<?> builder = FactoryHelper.createRecipeBuilder(
                 declaredType,
                 recipe,
                 keyHint,
@@ -487,7 +487,7 @@ public class CopyHandler {
                 rehydratedRecipes,
                 donorBreadcrumbRoot
         ).doCopy();
-        ((KlumBuilder<?>) nestedTarget).copyApplyLaterClosuresFrom(nestedDonor);
+        ((InternalKlumBuilder<?>) nestedTarget).copyApplyLaterClosuresFrom(nestedDonor);
     }
 
     private String breadcrumbExtensionFor(Object recipe) {
@@ -501,8 +501,8 @@ public class CopyHandler {
     }
 
     private static String breadcrumbPathOf(Object value) {
-        if (value instanceof KlumBuilder)
-            return ((KlumBuilder<?>) value).getBreadcrumbPath();
+        if (value instanceof InternalKlumBuilder)
+            return ((InternalKlumBuilder<?>) value).getBreadcrumbPath();
         if (value != null && DslHelper.isDslObject(value))
             return KlumTemplateProxy.companionFor(value).getBreadcrumbPath();
         return null;

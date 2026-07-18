@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +34,7 @@ class ApplyLaterPhase extends BuilderVisitingPhaseAction {
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         builder.executeApplyLaterClosures(getPhaseNumber());
     }
 

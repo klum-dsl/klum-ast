@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.process;
 
 import com.blackbuild.klum.ast.KlumModelObject;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumObjectSupport;
 import com.blackbuild.klum.ast.util.layer3.BuilderStructureSupport;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
@@ -53,7 +53,7 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
     @Override
     protected void doExecute() {
         Object root = PhaseDriver.getInstance().getRootObject();
-        if (root instanceof KlumBuilder<?> builder)
+        if (root instanceof InternalKlumBuilder<?> builder)
             BuilderStructureSupport.visit(builder, this);
         else if (root instanceof KlumModelObject)
             KlumObjectSupport.of(root).getStructure().visit(this);

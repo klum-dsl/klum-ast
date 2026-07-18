@@ -1784,8 +1784,8 @@ import org.codehaus.groovy.control.CompilePhase
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[2])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner._RW')
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner._RW')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Closure).parameterAnnotations[0], 'pk.Inner.Builder')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
 
         where:
         methodName << ["inner", "listInner"]
@@ -1824,8 +1824,8 @@ import org.codehaus.groovy.control.CompilePhase
         delegatesToPointsToDelegateTarget(polymorphicMethodWithNamesParams[3])
 
         and:
-        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner._RW')
-        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner._RW')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, String, Closure).parameterAnnotations[1], 'pk.Inner.Builder')
+        delegatesToPointsTo(rwClazz.getMethod(methodName, Map, String, Closure).parameterAnnotations[2], 'pk.Inner.Builder')
 
         where:
         methodName << ["inner", "listInner", "mapInner"]

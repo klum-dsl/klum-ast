@@ -27,7 +27,7 @@ import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.groovy.configdsl.transform.Validate;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.BuilderVisitingPhaseAction;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.Notify;
 import org.jetbrains.annotations.NotNull;
@@ -43,7 +43,7 @@ public class EarlyValidationPhase extends BuilderVisitingPhaseAction {
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         markDeprecateUnsetFields(builder);
         markFieldsWithNotify(builder);
     }

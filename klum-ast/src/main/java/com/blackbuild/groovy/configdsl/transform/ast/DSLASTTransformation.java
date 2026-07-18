@@ -29,11 +29,10 @@ import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.KlumKeyedModelObject;
 import com.blackbuild.klum.ast.KlumModelObject;
-import com.blackbuild.klum.ast.KlumRwObject;
 import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumObjectCompanion;
 import com.blackbuild.klum.ast.util.layer3.ClusterFactoryBuilder;
@@ -114,11 +113,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode BUILDER_FACTORY = make(KlumFactory.BuilderFactory.class);
     public static final ClassNode KEYED_BUILDER_FACTORY = make(KlumFactory.KeyedBuilderFactory.class);
     public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
-    public static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
+    public static final ClassNode KLUM_BUILDER = make(InternalKlumBuilder.class);
     public static final ClassNode OBJECT_COMPANION = make(KlumObjectCompanion.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
-    public static final String RW_CLASS_SUFFIX = "$_RW";
+    public static final String RW_CLASS_SUFFIX = "$Builder";
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String BUILDER_ANNOTATION_CLOSURE_METADATA_KEY =
             DSLASTTransformation.class.getName() + ".builderAnnotationClosure";
@@ -128,7 +127,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
-    static final ClassNode MATERIALIZATION_TOKEN = make(KlumBuilder.MaterializationToken.class);
+    static final ClassNode MATERIALIZATION_TOKEN = make(InternalKlumBuilder.MaterializationToken.class);
     public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
@@ -274,7 +273,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         new PropertyAccessors(this).invoke();
     }
 
-    @SuppressWarnings({"deprecation", "removal"}) // direct legacy marker preserves the generated shape until #394
     private void createRWClass() {
         ClassNode parentRW = getRwClassOfDslParent();
         ClassNode builderBase;
@@ -294,7 +292,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 annotatedClass.getName() + RW_CLASS_SUFFIX,
                 ACC_PUBLIC | ACC_STATIC,
                 builderBase,
-                new ClassNode[] { make(Serializable.class), make(KlumRwObject.class) },
+                new ClassNode[] { make(Serializable.class) },
                 MixinNode.EMPTY_ARRAY);
         AnnoDocUtil.addDocumentation(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
@@ -946,7 +944,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (!linkField) {
             String fieldKeyName = fieldKey != null ? fieldKey.getName() : null;
             if (isInstantiable(defaultImpl)) {
-                createProxyMethod(methodName, KlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
+                createProxyMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -966,7 +964,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
-                createProxyMethod(methodName, KlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
+                createProxyMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -985,7 +983,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(rwClass);
             }
 
-            createProxyMethod(fieldName, KlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
+            createProxyMethod(fieldName, InternalKlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1185,7 +1183,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .addTo(rwClass);
             }
 
-            createProxyMethod(fieldName, KlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
+            createProxyMethod(fieldName, InternalKlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)

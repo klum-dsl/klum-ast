@@ -59,7 +59,7 @@ public final class KlumTemplateProxy implements KlumObjectCompanion {
         return modelPath;
     }
 
-    void replayInto(KlumBuilder<?> recipient) {
+    void replayInto(InternalKlumBuilder<?> recipient) {
         recipeState.replayInto(recipient);
     }
 

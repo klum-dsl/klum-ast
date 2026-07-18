@@ -66,7 +66,7 @@ public class DslHelper {
     }
 
     public static boolean isBuilder(Object object) {
-        return object instanceof KlumBuilder;
+        return object instanceof InternalKlumBuilder;
     }
 
     public static List<Class<?>> getDslHierarchyOf(Class<?> type) {
@@ -289,7 +289,7 @@ public class DslHelper {
     private static boolean virtualSetterAccepts(Class<?> parameterType, Class<?> modelType) {
         if (parameterType.isAssignableFrom(modelType))
             return true;
-        return KlumBuilder.class.isAssignableFrom(parameterType)
+        return InternalKlumBuilder.class.isAssignableFrom(parameterType)
                 && parameterType.isAssignableFrom(GeneratedBuilderSupport.builderTypeFor(modelType));
     }
 
@@ -328,14 +328,14 @@ public class DslHelper {
     }
 
     public static String getBreadcrumbPath(Object instance) {
-        if (instance instanceof KlumBuilder)
-            return ((KlumBuilder<?>) instance).getBreadcrumbPath();
+        if (instance instanceof InternalKlumBuilder)
+            return ((InternalKlumBuilder<?>) instance).getBreadcrumbPath();
         return KlumTemplateProxy.companionFor(instance).getBreadcrumbPath();
     }
 
     public static String getModelPath(Object instance) {
-        if (instance instanceof KlumBuilder)
-            return ((KlumBuilder<?>) instance).getModelPath();
+        if (instance instanceof InternalKlumBuilder)
+            return ((InternalKlumBuilder<?>) instance).getModelPath();
         return KlumTemplateProxy.companionFor(instance).getModelPath();
     }
 

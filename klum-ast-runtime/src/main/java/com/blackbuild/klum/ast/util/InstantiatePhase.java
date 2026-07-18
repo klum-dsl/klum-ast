@@ -37,8 +37,8 @@ public final class InstantiatePhase extends AbstractPhaseAction {
     @Override
     protected void doExecute() {
         Object root = PhaseDriver.getInstance().getRootObject();
-        if (!(root instanceof KlumBuilder))
+        if (!(root instanceof InternalKlumBuilder))
             throw new IllegalStateException("INSTANTIATE requires a Builder root");
-        replaceRootObject(KlumBuilder.materializeGraph((KlumBuilder<?>) root));
+        replaceRootObject(InternalKlumBuilder.materializeGraph((InternalKlumBuilder<?>) root));
     }
 }

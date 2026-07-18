@@ -29,14 +29,14 @@ package com.blackbuild.klum.ast.util;
  */
 final class GeneratedBuilderSupport {
 
-    private static final String CURRENT_SUFFIX = "$_RW";
+    private static final String CURRENT_SUFFIX = "$Builder";
 
     private GeneratedBuilderSupport() {
     }
 
-    static Class<? extends KlumBuilder<?>> builderTypeFor(Class<?> modelType) {
+    static Class<? extends InternalKlumBuilder<?>> builderTypeFor(Class<?> modelType) {
         try {
-            return (Class<? extends KlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);
+            return (Class<? extends InternalKlumBuilder<?>>) modelType.getClassLoader().loadClass(modelType.getName() + CURRENT_SUFFIX);
         } catch (ClassNotFoundException e) {
             throw new KlumModelException("No generated Builder found for " + modelType.getName(), e);
         }

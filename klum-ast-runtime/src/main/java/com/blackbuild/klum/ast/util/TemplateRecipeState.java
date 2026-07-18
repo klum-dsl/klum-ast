@@ -42,10 +42,10 @@ final class TemplateRecipeState implements Serializable {
     }
 
     static TemplateRecipeState capture(Map<Integer, List<Closure<?>>> actions) {
-        return new TemplateRecipeState(KlumBuilder.dehydrateApplyLaterClosures(actions));
+        return new TemplateRecipeState(InternalKlumBuilder.dehydrateApplyLaterClosures(actions));
     }
 
-    void replayInto(KlumBuilder<?> recipient) {
+    void replayInto(InternalKlumBuilder<?> recipient) {
         actions.forEach((phase, closures) -> closures.forEach(closure ->
                 recipient.scheduleApplyLater(phase, (Closure<?>) closure.clone())));
     }

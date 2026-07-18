@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.generator.AnnoDocGenerator
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated
+import com.blackbuild.klum.ast.util.KlumBuilder
 import groovy.lang.DelegatesTo
 import org.intellij.lang.annotations.Language
 
@@ -56,10 +57,10 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         and: 'implementation linkage is carried by generated metadata and JVM interfaces'
         factory.isAssignableFrom(getClass('sample.Foo$_Factory'))
-        builder.isAssignableFrom(getClass('sample.Foo$_RW'))
+        builder.isAssignableFrom(getClass('sample.Foo$Builder'))
         collectionFactory.isAssignableFrom(getClass('sample.Foo$_kids'))
         clusterFactory.isAssignableFrom(getClass('sample.Foo$_services'))
-        generatedLink(getClass('sample.Foo$_RW')) == builder.name
+        generatedLink(getClass('sample.Foo$Builder')) == builder.name
         generatedLink(getClass('sample.Foo$_Factory')) == factory.name
     }
 
@@ -90,9 +91,20 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         expect:
         baseBuilder.typeParameters*.name == ['T']
+        baseBuilder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<sample.Base<T>>')
         fooBuilder.genericInterfaces*.typeName.contains('sample.Base_DSL$Builder<java.lang.String>')
         baseBuilder.getMethod('label', Object).genericParameterTypes*.typeName == ['T']
         fooBuilder.getMethod('label', Object).declaringClass == baseBuilder
+    }
+
+    def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
+        given:
+        Class<?> builder = getClass('sample.Child_DSL$Builder')
+
+        expect:
+        KlumBuilder.isAssignableFrom(builder)
+        KlumBuilder.declaredMethods.length == 0
+        builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<sample.Child>')
     }
 
     def "Java and statically compiled Groovy consume only the public namespace"() {
@@ -153,11 +165,18 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         compileJavaConsumer('''
             package sample;
 
+            import com.blackbuild.klum.ast.util.KlumBuilder;
+            import com.blackbuild.klum.ast.util.KlumFactory;
             import java.util.Map;
 
             public final class JavaDslConsumer {
                 public static Child_DSL.Builder childBuilder() {
                     return Child.Create.getAsBuilder().With(Map.of("name", "java child"));
+                }
+
+                public static <B extends KlumBuilder<Child>> B builderFrom(
+                        KlumFactory.BuilderFactory<Child, B> factory) {
+                    return factory.FromMap(Map.of("name", "generic child"));
                 }
             }
         ''')

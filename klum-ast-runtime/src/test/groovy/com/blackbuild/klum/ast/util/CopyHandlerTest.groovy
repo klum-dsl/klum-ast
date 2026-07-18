@@ -57,15 +57,15 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 String value
             }
 
-            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+            class Outer$Builder extends TestRuntimeBuilder<Outer> {
                 String name
-                Inner$_RW inner
-                Outer$_RW(String key) { super(Outer) }
+                Inner$Builder inner
+                Outer$Builder(String key) { super(Outer) }
             }
 
-            class Inner$_RW extends TestRuntimeBuilder<Inner> {
+            class Inner$Builder extends TestRuntimeBuilder<Inner> {
                 String value
-                Inner$_RW(String key) { super(Inner) }
+                Inner$Builder(String key) { super(Inner) }
             }
          ''')
 
@@ -108,16 +108,16 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 String value
             }
 
-            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+            class Outer$Builder extends TestRuntimeBuilder<Outer> {
                 String name
-                List<Inner$_RW> inners = []
-                Map<String, Inner$_RW> mappedInners = [:]
-                Outer$_RW(String key) { super(Outer) }
+                List<Inner$Builder> inners = []
+                Map<String, Inner$Builder> mappedInners = [:]
+                Outer$Builder(String key) { super(Outer) }
             }
 
-            class Inner$_RW extends TestRuntimeBuilder<Inner> {
+            class Inner$Builder extends TestRuntimeBuilder<Inner> {
                 String value
-                Inner$_RW(String key) { super(Inner) }
+                Inner$Builder(String key) { super(Inner) }
             }
          ''')
 
@@ -175,11 +175,11 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 List<List<String>> innerLists = []
             }
 
-            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+            class Outer$Builder extends TestRuntimeBuilder<Outer> {
                 String name
                 Map<String, List<String>> inners = [:]
                 List<List<String>> innerLists = []
-                Outer$_RW(String key) { super(Outer) }
+                Outer$Builder(String key) { super(Outer) }
             }
          ''')
 
@@ -227,11 +227,11 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 List<List<String>> innerLists = []
             }
 
-            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+            class Outer$Builder extends TestRuntimeBuilder<Outer> {
                 String name
                 Map<String, List<String>> inners = [:]
                 List<List<String>> innerLists = []
-                Outer$_RW(String key) { super(Outer) }
+                Outer$Builder(String key) { super(Outer) }
             }
          ''')
 
@@ -273,11 +273,11 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 Dummy dummy
             }
 
-            class Outer$_RW extends TestRuntimeBuilder<Outer> {
+            class Outer$Builder extends TestRuntimeBuilder<Outer> {
                 String name
                 Inner inner
                 Dummy dummy
-                Outer$_RW(String key) { super(Outer) }
+                Outer$Builder(String key) { super(Outer) }
             }
             
             enum Dummy {
@@ -324,10 +324,10 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 List<String> innerLists = []
             }
 
-            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+            class AClass$Builder extends TestRuntimeBuilder<AClass> {
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
-                AClass$_RW(String key) { super(AClass) }
+                AClass$Builder(String key) { super(AClass) }
             }
          ''')
 
@@ -373,10 +373,10 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
                 List<String> innerLists = []
             }
 
-            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+            class AClass$Builder extends TestRuntimeBuilder<AClass> {
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
-                AClass$_RW(String key) { super(AClass) }
+                AClass$Builder(String key) { super(AClass) }
             }
          ''')
 
@@ -427,16 +427,16 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
                 List<String> otherLists = []
             }
 
-            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+            class AClass$Builder extends TestRuntimeBuilder<AClass> {
                 Map<String, String> inners = [:]
                 List<String> innerLists = []
-                AClass$_RW(String key) { super(AClass) }
+                AClass$Builder(String key) { super(AClass) }
             }
 
-            class BClass$_RW extends TestRuntimeBuilder<BClass> {
+            class BClass$Builder extends TestRuntimeBuilder<BClass> {
                 Map<String, String> inners = [:]
                 List<String> otherLists = []
-                BClass$_RW(String key) { super(BClass) }
+                BClass$Builder(String key) { super(BClass) }
             }
          ''')
 
@@ -477,11 +477,11 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
                 String ignoredField
             }
 
-            class AClass$_RW extends TestRuntimeBuilder<AClass> {
+            class AClass$Builder extends TestRuntimeBuilder<AClass> {
                 String normalField
                 String transientField
                 String ignoredField
-                AClass$_RW(String key) { super(AClass) }
+                AClass$Builder(String key) { super(AClass) }
             }
          ''')
 
@@ -520,7 +520,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 char charValue
             }
 
-            class Foo$_RW extends TestRuntimeBuilder<Foo> {
+            class Foo$Builder extends TestRuntimeBuilder<Foo> {
                 int number
                 byte byteNumber
                 short shortNumber
@@ -529,7 +529,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
                 double doubleNumber
                 boolean boolValue
                 char charValue
-                Foo$_RW(String key) { super(Foo) }
+                Foo$Builder(String key) { super(Foo) }
             }
          ''')
 

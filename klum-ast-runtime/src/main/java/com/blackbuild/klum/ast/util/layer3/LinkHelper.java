@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.util.layer3;
 import com.blackbuild.groovy.configdsl.transform.NoClosure;
 import com.blackbuild.klum.ast.util.ClosureHelper;
 import com.blackbuild.klum.ast.util.DslHelper;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 import com.blackbuild.klum.ast.util.layer3.annotations.LinkToWrapper;
@@ -54,14 +54,14 @@ public class LinkHelper {
     private LinkHelper() {
     }
 
-    static void autoLink(KlumBuilder<?> container, String fieldName) {
+    static void autoLink(InternalKlumBuilder<?> container, String fieldName) {
         Field field = container.getField(fieldName);
         Field schemaField = DslHelper.getField(container.getModelType(), fieldName).orElse(field);
         LinkTo linkTo = new LinkToWrapper(schemaField);
         autoLink(container, field, linkTo);
     }
 
-    static void autoLink(KlumBuilder<?> builder, Field field, LinkTo linkTo) {
+    static void autoLink(InternalKlumBuilder<?> builder, Field field, LinkTo linkTo) {
         Object value = determineLinkTarget(builder, field, linkTo);
         if (value == null) return;
 
@@ -77,7 +77,7 @@ public class LinkHelper {
             builder.setSingleField(field.getName(), value);
     }
 
-    static Object determineLinkTarget(KlumBuilder<?> builder, Field fieldToFill, LinkTo linkTo) {
+    static Object determineLinkTarget(InternalKlumBuilder<?> builder, Field fieldToFill, LinkTo linkTo) {
         Object providerObject = determineProviderObject(builder, linkTo);
         if (providerObject == null) return null;
 
@@ -104,7 +104,7 @@ public class LinkHelper {
         return inferLinkTarget(builder, fieldToFill, linkTo, providerObject);
     }
 
-    private static @Nullable Object inferLinkTarget(KlumBuilder<?> builder, Field fieldToFill, LinkTo linkTo, Object providerObject) {
+    private static @Nullable Object inferLinkTarget(InternalKlumBuilder<?> builder, Field fieldToFill, LinkTo linkTo, Object providerObject) {
         MetaProperty metaPropertyForFieldName = getFieldNameProperty(fieldToFill, providerObject, linkTo);
         if (linkTo.strategy() == LinkTo.Strategy.FIELD_NAME)
             return metaPropertyForFieldName != null ? metaPropertyForFieldName.getProperty(providerObject) : null;
@@ -126,13 +126,13 @@ public class LinkHelper {
     }
 
     private static Object getSingleValueOrFail(Object provider, Class<?> type, java.util.function.Predicate<AnnotatedElement> filter) {
-        if (!(provider instanceof KlumBuilder))
+        if (!(provider instanceof InternalKlumBuilder))
             return ClusterModel.getSingleValueOrFail(provider, type, filter);
 
-        KlumBuilder<?> builder = (KlumBuilder<?>) provider;
+        InternalKlumBuilder<?> builder = (InternalKlumBuilder<?>) provider;
         List<Field> matches = new ArrayList<>();
         Class<?> layer = builder.getClass();
-        while (layer != null && KlumBuilder.class.isAssignableFrom(layer)) {
+        while (layer != null && InternalKlumBuilder.class.isAssignableFrom(layer)) {
             for (Field field : layer.getDeclaredFields()) {
                 if (!Modifier.isStatic(field.getModifiers())
                         && !field.getName().contains("$")
@@ -150,13 +150,13 @@ public class LinkHelper {
         return builder.getInstanceAttribute(matches.get(0).getName());
     }
 
-    static Object determineProviderObject(KlumBuilder<?> builder, LinkTo linkTo) {
+    static Object determineProviderObject(InternalKlumBuilder<?> builder, LinkTo linkTo) {
         if (linkTo.provider() != NoClosure.class)
             return ClosureHelper.invokeClosureWithDelegateAsArgument(linkTo.provider(), builder);
         if (linkTo.providerType() != Object.class)
             return BuilderStructureSupport.getOwnerHierarchy(builder).stream()
-                    .filter(KlumBuilder.class::isInstance)
-                    .map(KlumBuilder.class::cast)
+                    .filter(InternalKlumBuilder.class::isInstance)
+                    .map(InternalKlumBuilder.class::cast)
                     .filter(candidate -> linkTo.providerType().isAssignableFrom(candidate.getModelType()))
                     .findFirst()
                     .orElse(null);
@@ -172,7 +172,7 @@ public class LinkHelper {
         return getMetaPropertyOrMapKey(providerObject, field.getName() + linkTo.nameSuffix());
     }
 
-    static MetaProperty getOwnerPathProperty(KlumBuilder<?> builder, Object providerObject, LinkTo linkTo) {
+    static MetaProperty getOwnerPathProperty(InternalKlumBuilder<?> builder, Object providerObject, LinkTo linkTo) {
         Set<Object> owners = builder.getOwners();
         if (owners.size() != 1) return null;
 

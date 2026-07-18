@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.KlumRwObject
+import com.blackbuild.klum.ast.util.InternalKlumBuilder
 import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.KlumModelException
@@ -74,7 +74,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         }
 
         then:
-        rwClazz.superclass == KlumBuilder
+        rwClazz.superclass == InternalKlumBuilder
         instance.value == "configured:builder-only"
         clazz.initializerCalls == 1
         clazz.declaredFields*.name.contains("scratch") == false
@@ -82,7 +82,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         clazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
     }
 
-    def "legacy RW marker remains deprecated without leaking RW identity aliases into Builders"() {
+    def "Builders expose only the public zero-operation capability"() {
         given:
         createClass '''
             package pk
@@ -93,18 +93,18 @@ class BuilderFirstSpec extends AbstractDSLSpec {
             }
         '''
 
-        expect: "the marker remains temporarily assignable for external compatibility"
-        KlumRwObject.isAssignableFrom(rwClazz)
-        rwClazz.interfaces.contains(KlumRwObject)
-        KlumRwObject.getAnnotation(Deprecated).forRemoval()
+        expect: "the generated public Builder contract carries the public capability"
+        KlumBuilder.isAssignableFrom(rwClazz)
+        getClass('pk.CompatibilitySurface_DSL$Builder').interfaces.contains(KlumBuilder)
+        KlumBuilder.declaredMethods.length == 0
 
-        and: "the new Builder API does not carry identity aliases from KlumInstanceProxy"
+        and: "Builders do not carry legacy RW identity aliases"
         !rwClazz.methods*.name.contains("getDSLInstance")
         !rwClazz.methods*.name.contains("getRwInstance")
 
-        and: "the one runtime dynamic invocation seam uses Builder vocabulary and package visibility"
-        !KlumBuilder.declaredMethods*.name.contains("invokeRwMethod")
-        !Modifier.isPublic(KlumBuilder.getDeclaredMethod("invokeBuilderMethod", String, Object[]).modifiers)
+        and: "runtime operations stay on the internal support base"
+        !InternalKlumBuilder.declaredMethods*.name.contains("invokeRwMethod")
+        !Modifier.isPublic(InternalKlumBuilder.getDeclaredMethod("invokeBuilderMethod", String, Object[]).modifiers)
     }
 
     def "completed models reject source mutation and construction entrypoints"() {
@@ -150,11 +150,11 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         expect:
         rwClazz.declaredConstructors.every { !Modifier.isPublic(it.modifiers) }
-        !Modifier.isPublic(KlumBuilder.getDeclaredMethod("materializeGraph", KlumBuilder).modifiers)
+        !Modifier.isPublic(InternalKlumBuilder.getDeclaredMethod("materializeGraph", InternalKlumBuilder).modifiers)
 
         when: "same-package or subclass code tries to invoke the internal model constructor"
         def builder = FactoryHelper.createBuilder(clazz, null)
-        def constructor = clazz.getDeclaredConstructor(rwClazz, KlumBuilder.MaterializationToken)
+        def constructor = clazz.getDeclaredConstructor(rwClazz, InternalKlumBuilder.MaterializationToken)
         constructor.accessible = true
         constructor.newInstance(builder, null)
 
@@ -211,7 +211,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         when:
         Child.Create.With {
-            ((KlumBuilder) delegate).setInstanceAttribute("parent", completedParent)
+            ((InternalKlumBuilder) delegate).setInstanceAttribute("parent", completedParent)
         }
 
         then:
@@ -244,8 +244,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         KlumObjectSupport.of(instance).object.is(instance)
         !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredFields*.name.contains("applyLaterClosures")
         !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredMethods*.name.contains("getApplyLaterClosures")
-        !KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredFields*.name.contains("applyLaterClosures")
-        !KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredMethods*.name.contains("getApplyLaterClosures")
+        !InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredFields*.name.contains("applyLaterClosures")
+        !InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredMethods*.name.contains("getApplyLaterClosures")
     }
 
     def "Template recipe actions replay into fresh Builders"() {

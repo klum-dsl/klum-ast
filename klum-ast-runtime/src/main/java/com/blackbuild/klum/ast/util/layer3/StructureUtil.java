@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.KlumException;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumObjectSupport;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 import org.jetbrains.annotations.NotNull;
@@ -88,7 +88,7 @@ public class StructureUtil {
             KlumObjectSupport.of(root).getStructure().visit(visitor);
             return;
         }
-        if (root instanceof KlumBuilder<?> builder) {
+        if (root instanceof InternalKlumBuilder<?> builder) {
             BuilderStructureSupport.visit(builder, visitor);
             return;
         }
@@ -99,7 +99,7 @@ public class StructureUtil {
      * Explicit construction-state traversal used by pre-materialization phases.
      * Sealed wrappers are filtered by {@code BuilderVisitingPhaseAction}.
      */
-    public static void visitBuilders(KlumBuilder<?> root, ModelVisitor visitor) {
+    public static void visitBuilders(InternalKlumBuilder<?> root, ModelVisitor visitor) {
         BuilderStructureSupport.visit(root, visitor);
     }
 
@@ -115,7 +115,7 @@ public class StructureUtil {
             KlumObjectSupport.of(root).getStructure().visit(visitor, path);
             return;
         }
-        if (root instanceof KlumBuilder<?> builder) {
+        if (root instanceof InternalKlumBuilder<?> builder) {
             BuilderStructureSupport.visit(builder, visitor, path);
             return;
         }
@@ -337,15 +337,15 @@ public class StructureUtil {
     public static List<Object> getOwnerHierarchy(Object leaf) {
         if (isCompletedDslObject(leaf))
             return KlumObjectSupport.of(leaf).getStructure().getOwnerHierarchy();
-        if (leaf instanceof KlumBuilder<?> builder)
+        if (leaf instanceof InternalKlumBuilder<?> builder)
             return BuilderStructureSupport.getOwnerHierarchy(builder);
         List<Object> result = new ArrayList<>();
-        while (leaf instanceof KlumBuilder || isDslObject(leaf)) {
+        while (leaf instanceof InternalKlumBuilder || isDslObject(leaf)) {
             if (result.contains(leaf))
                 throw new KlumSchemaException("Object " + leaf + " has an owner cycle");
             result.add(leaf);
-            if (leaf instanceof KlumBuilder)
-                leaf = ((KlumBuilder<?>) leaf).getSingleOwner();
+            if (leaf instanceof InternalKlumBuilder)
+                leaf = ((InternalKlumBuilder<?>) leaf).getSingleOwner();
             else
                 leaf = KlumObjectSupport.of(leaf).getStructure().getSingleOwner().orElse(null);
         }

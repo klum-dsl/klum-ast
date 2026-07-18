@@ -106,7 +106,7 @@ import com.blackbuild.klum.ast.util.DummyAstTransformation
     }
 
     def newBuilderOf(String modelName) {
-        return newInstanceOf(modelName + '$_RW', [null] as Object[])
+        return newInstanceOf(modelName + '$Builder', [null] as Object[])
     }
 
     def createClass(@Language("groovy") String code) {

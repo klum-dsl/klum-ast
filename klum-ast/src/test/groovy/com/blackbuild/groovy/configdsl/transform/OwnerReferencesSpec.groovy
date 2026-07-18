@@ -518,7 +518,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         when:
         instance = clazz.Create.With {
             bar {
-                assert owner.delegate.getClass().name == "pk.Foo$_RW"
+                assert owner.delegate.getClass().name == "pk.Foo$Builder"
             }
             listBars {
                 bar {
