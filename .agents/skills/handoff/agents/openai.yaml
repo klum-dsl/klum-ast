@@ -1,0 +1,4 @@
+interface:
+  default_prompt: "Use $handoff to prepare this conversation for the next session's stated purpose."
+policy:
+  allow_implicit_invocation: false

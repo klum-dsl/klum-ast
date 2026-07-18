@@ -1,7 +1,6 @@
 ---
 name: writing-great-skills
 description: Reference for writing and editing skills well — the vocabulary and principles that make a skill predictable.
-disable-model-invocation: true
 ---
 
 A skill exists to wrangle determinism out of a stochastic system. **Predictability** — the agent taking the same _process_ every run, not producing the same output — is the root virtue; every lever below serves it.
@@ -12,8 +11,10 @@ A skill exists to wrangle determinism out of a stochastic system. **Predictabili
 
 Two choices, trading different costs:
 
-- A **model-invoked** skill keeps a **description**, so the agent can fire it autonomously _and_ other skills can reach it (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Mechanics: omit `disable-model-invocation`, and write a model-facing description with rich trigger phrasing ("Use when the user wants…, mentions…").
-- A **user-invoked** skill strips the description from the agent's reach: only you, typing its name, can invoke it — and no other skill can. Zero context load, but it spends **cognitive load**: _you_ are the index that must remember it exists. Mechanics: set `disable-model-invocation: true`; the `description` becomes human-facing — a one-line summary, trigger lists stripped.
+- A **model-invoked** skill keeps a **description** in the model context, so the agent can fire it autonomously (you can still type its name too). It contributes to **context load** — the description sits in the window every turn. Mechanics: leave `policy.allow_implicit_invocation` at its default `true`, and write a model-facing description with rich trigger phrasing ("Use when the user wants…, mentions…").
+- A **user-invoked** skill keeps its description out of the model context and remains available through explicit `$skill-name` invocation. Zero context load, but it spends **cognitive load**: _you_ are the index that must remember it exists. Mechanics: set `policy.allow_implicit_invocation: false` in `agents/openai.yaml`; the `description` becomes human-facing — a one-line summary, trigger lists stripped.
+
+Keep `SKILL.md` frontmatter portable. Put Codex-specific invocation and interface settings in `agents/openai.yaml`.
 
 Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If it only ever fires by hand, make it user-invoked and pay no context load.
 
