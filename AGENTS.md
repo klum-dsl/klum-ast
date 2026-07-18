@@ -46,6 +46,16 @@ name conflicts or another documented technical necessity. See `docs/agents/codin
 ### Testing
 
 Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.
+Tests added for user-visible feature work must carry the driving issue number in `@Issue`. Every new user-visible DSL
+feature also needs a documentary test marked with `@Tag("documentary")` and linked to its documentation through `@See`.
+See `docs/agents/testing.md`.
+
+### Feature discussion examples
+
+During grilling and implementation, usually present a compact usage example in the conversation so the feature's syntax
+and feel can be evaluated early. For DSL changes, use only Groovy and show the relevant Schema or Model syntax. For client
+APIs, show Java first and Groovy second. Evolve the example into the documentary test and user documentation once the
+feature direction is settled. See `docs/agents/testing.md`.
 
 ### Issue implementation commits
 
