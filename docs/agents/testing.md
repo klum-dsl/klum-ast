@@ -21,12 +21,17 @@ Typical commands are:
 ./gradlew check
 ```
 
-## Feature traceability and documentary tests
+## Issue traceability and documentary tests
 
-Every test added as part of user-visible feature work must carry Spock's `@Issue` annotation with the number of the
-driving GitHub issue. Put the annotation on the specification when one issue owns all of its tests, or on individual
-features when a specification covers several issues. Choose the specific implementation issue or its governing parent
-case by case, according to which one best explains the behavior under test.
+Every newly added test must carry Spock's `@Issue` annotation with the number of its driving GitHub issue. When a complete
+specification or test class relates to one issue, put `@Issue` on the class; that remains sufficient for every test that
+originates from the same issue. Annotate an individual test when it originates from a different issue, such as a later bug
+fix or feature addition. Choose the specific implementation issue or its governing parent case by case, according to
+which one best explains the behavior under test.
+
+When implementation changes an existing test, add or amend its `@Issue` annotation only if the test change is significant.
+A change is significant when it materially changes the tested behavior, scenario, or expected contract. Mechanical edits,
+renames, formatting, or adjustments to shared setup do not require issue-annotation churn.
 
 Every new user-visible DSL feature must also have one or more documentary tests. At least one should normally be a happy
 path that demonstrates the feature's basic use as readable, executable DSL code. Prefer meaningful hypothetical domain
