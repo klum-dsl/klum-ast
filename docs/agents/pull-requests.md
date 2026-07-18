@@ -37,7 +37,16 @@ marking the pull request ready for review, merging it, or expanding the assigned
 - Inspect all required CI checks, including SonarCloud, against the current pull request revision.
 - Fix reliability and security findings before handoff. Address maintainability findings or retain them only with a localized suppression and a concrete reason.
 - Do not use broad suppressions to hide unrelated findings. A suppression is documentation of an intentional exception and must explain the invariant or compatibility constraint.
-- Follow `docs/agents/testing.md`: use Groovy 3 for focused iterations and run the Groovy 4 and 5 compatibility lanes before final handoff.
+- Follow `docs/agents/testing.md`: use Groovy 3 for focused iterations and run the Groovy 4 and 5 compatibility lanes
+  before final handoff. Documentation-only pull requests that cannot affect compilation, tests, generated output, or
+  runtime behavior may omit the Groovy lanes when the applicable documentation and diff checks are reported instead.
+- Verify that every new test carries its driving `@Issue` number, using a class-level annotation while one issue owns the
+  complete specification. Add or amend `@Issue` on changed existing tests only for significant behavioral changes. A new
+  user-visible DSL feature must also have a documentary test marked with `@Tag("documentary")` and linked to its
+  documentation through `@See`. The feature issue, test, and documentation must reference one another as defined in
+  `docs/agents/testing.md`.
+- Verify that new executable test classes use the `Test` suffix and that dedicated documentary classes use
+  `<Theme>DocumentaryTest`. Existing `*Spec` classes need not be renamed unless a scoped rename improves the change.
 
 ## Review feedback follow-up
 
@@ -57,6 +66,8 @@ marking the pull request ready for review, merging it, or expanding the assigned
 
 - Add user-visible features, fixes, deprecations, and compatibility breaks to the next release section in `CHANGES.md`.
 - The canonical user documentation lives in `wiki/`, not under `docs/`. Update every affected feature page as part of the behavioral change.
+- Demonstrate new user-visible DSL features with concise examples aligned with their documentary tests, and identify the
+  corresponding documentary test file and feature method on the affected wiki page.
 - Put migration guides in `wiki/`. A substantial migration may use a dedicated page, but it must be linked from `wiki/Migration.md`.
 - Whenever a wiki page is added, renamed, or removed, update `wiki/_Sidebar.md` so the page remains discoverable.
 - Keep provisional policies explicitly labelled and linked to the issue that will finalize them.
