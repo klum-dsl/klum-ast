@@ -37,7 +37,9 @@ marking the pull request ready for review, merging it, or expanding the assigned
 - Inspect all required CI checks, including SonarCloud, against the current pull request revision.
 - Fix reliability and security findings before handoff. Address maintainability findings or retain them only with a localized suppression and a concrete reason.
 - Do not use broad suppressions to hide unrelated findings. A suppression is documentation of an intentional exception and must explain the invariant or compatibility constraint.
-- Follow `docs/agents/testing.md`: use Groovy 3 for focused iterations and run the Groovy 4 and 5 compatibility lanes before final handoff.
+- Follow `docs/agents/testing.md`: use Groovy 3 for focused iterations and run the Groovy 4 and 5 compatibility lanes
+  before final handoff. Documentation-only pull requests that cannot affect compilation, tests, generated output, or
+  runtime behavior may omit the Groovy lanes when the applicable documentation and diff checks are reported instead.
 - Verify that every new test carries its driving `@Issue` number, using a class-level annotation while one issue owns the
   complete specification. Add or amend `@Issue` on changed existing tests only for significant behavioral changes. A new
   user-visible DSL feature must also have a documentary test marked with `@Tag("documentary")` and linked to its

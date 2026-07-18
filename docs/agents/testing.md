@@ -12,6 +12,12 @@ KlumAST supports three Groovy generations. Passing one generation is not evidenc
 
 Start with the narrowest relevant Groovy 3 test, then run the affected module's Groovy 3 suite. Run Groovy 4 and 5 sparingly during development unless the change touches compiler APIs, AST behavior, Groovy syntax, dependency compatibility, or another known version seam. Before handing off a completed change, run both compatibility lanes; the root `check` task includes them for projects using the multi-Groovy convention.
 
+A documentation-only pull request does not require the Groovy 3, 4, or 5 test lanes when its changes cannot affect
+compilation, test execution, generated output, or runtime behavior. Run `git diff --check` plus any applicable Markdown,
+link, rendering, or documentation-generation checks instead, and state the omission in the pull request. Treat changes to
+build configuration, executable or compiled examples, generated-source inputs, and test fixtures as code changes rather
+than documentation-only changes.
+
 Typical commands are:
 
 ```shell

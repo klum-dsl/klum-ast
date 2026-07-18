@@ -46,6 +46,8 @@ name conflicts or another documented technical necessity. See `docs/agents/codin
 ### Testing
 
 Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.
+Documentation-only pull requests that cannot affect compilation, test execution, or runtime behavior do not require the
+Groovy test lanes; run the applicable documentation and diff checks instead. See `docs/agents/testing.md`.
 Every newly added test must carry its driving issue number in `@Issue`; a class-level annotation is sufficient while all
 tests in that class originate from the same issue. Add or amend `@Issue` on an existing test only when a change to it is
 significant. Every new user-visible DSL feature also needs a documentary test marked with `@Tag("documentary")` and linked
