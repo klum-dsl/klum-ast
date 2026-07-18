@@ -1,0 +1,4 @@
+interface:
+  default_prompt: "Use $claude-handoff to hand this conversation off for the next session's stated purpose."
+policy:
+  allow_implicit_invocation: false

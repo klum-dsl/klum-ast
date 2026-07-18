@@ -1,0 +1,4 @@
+interface:
+  default_prompt: "Use $teach to teach me the stated skill or concept in this workspace."
+policy:
+  allow_implicit_invocation: false

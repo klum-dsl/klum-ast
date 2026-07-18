@@ -1,0 +1,4 @@
+interface:
+  default_prompt: "Use $loop-me to design a stated workflow or help me identify one worth designing."
+policy:
+  allow_implicit_invocation: false
