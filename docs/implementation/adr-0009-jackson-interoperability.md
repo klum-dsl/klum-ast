@@ -77,12 +77,12 @@ framework factory/accessor naming without changing these importer descriptors.
 
 ### Generated Builder capability prerequisite
 
-The descriptors above remain fixed. Their `B extends KlumBuilder<T>` bound requires #394 DSL-2 to make
+The descriptors above remain fixed. Their `B extends KlumBuilder<T>` bound required #394 DSL-2 to make
 `KlumBuilder<T>` a zero-operation public interface and to make each generated `Foo_DSL.Builder` extend that interface;
 runtime implementation moves behind an internal base. This preserves precise Java and static-Groovy Builder inference
 without exposing hidden implementations or widening the importer to erased, reflective, or `Object`-typed alternatives.
 
-#463 is natively blocked by #394 until DSL-2 is delivered. JSON-3 must then compile the exact Java 17 and static-Groovy
+#394 DSL-2 now supplies that capability. JSON-3 must compile the exact Java 17 and static-Groovy
 consumer shapes against Jackson 2.14.2 and 2.21.x. The 4.0 package migration already requires schema recompilation, so
 no pre-4.0 concrete `KlumBuilder` or RW-marker binary contract is retained; the delivered importer and generated Builder
 descriptors are 4.x source and binary commitments.
@@ -165,8 +165,8 @@ hide Jackson/source/lifecycle coordination behind the importer. No API decision 
 reader attributes/context handoff, and parser/tree/Map normalization are implementation choices as long as they cannot
 leak ambient import state into ordinary nested Jackson reads.
 
-Implementation is blocked by #394 DSL-2, not by an unresolved JSON-3 product decision. Do not start with a weakened
-generic bound or an implementation-specific Builder type; first deliver the generated Builder capability prerequisite.
+Implementation is no longer blocked by #394 DSL-2; do not weaken the generic bound or use an implementation-specific
+Builder type. JSON-3 must consume the delivered generated Builder capability.
 
 #### Acceptance coverage
 

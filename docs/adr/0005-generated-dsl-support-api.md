@@ -6,8 +6,9 @@ Status: Accepted
 
 Tracking issue: [#394 — Make RW and other generated classes top level](https://github.com/klum-dsl/klum-ast/issues/394)
 
-Implementation status: Partial. DSL-G's IDE-only Gradle lifecycle is implemented, while the AST still generates
-`Foo.$_RW`, declares the deprecated `KlumRwObject` marker, and exposes no `Foo_DSL` bytecode to mirror. See the
+Implementation status: DSL-1, DSL-2, and DSL-G are implemented. Generated Builders use the hidden
+`Foo$Builder` implementation spelling, expose `Foo_DSL.Builder extends KlumBuilder<Foo>`, and no longer carry the
+`KlumRwObject` marker. DSL-3 owns remaining distribution/documentation closure. See the
 [implementation plan](../implementation/adr-0005-generated-dsl-support-api.md).
 
 Parent decision: [ADR 0003 — Builder-first materialization of DSL Objects](0003-builder-first-materialization.md)

@@ -10,9 +10,10 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Relationship fields hold Builders during construction. Existing completed DSL Objects are accepted only as aggregation `LINK` targets; owned composition stays within one Builder lifecycle.
 - Completed collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`; unsupported concrete or custom declarations now fail schema compilation.
 - Split construction and completed-model state between `KlumBuilder` and `KlumModelProxy`. `KlumInstanceProxy` is now a deprecated Builder-only compatibility adapter, and `VisitingPhaseAction` is replaced by state-specific Builder and Model variants.
-- Deprecated the legacy `KlumRwObject` marker. Generated Builders retain it temporarily for integration compatibility, but
-  no longer expose the redundant `getDSLInstance()` or `getRwInstance()` identity aliases. [ADR 0005](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0005-generated-dsl-support-api.md)
-  records its accepted removal and the future `Foo_DSL` interface layout under [#394](https://github.com/klum-dsl/klum-ast/issues/394).
+- Replaced the legacy `$_RW`/`KlumRwObject` Builder implementation contract with generated
+  `Foo_DSL.Builder extends KlumBuilder<Foo>` capabilities. Runtime operations are internal; use generated Builder/factory
+  interfaces and `@DelegatesToBuilder`. `@DelegatesToRW` remains a deprecated source alias
+  ([#394](https://github.com/klum-dsl/klum-ast/issues/394)).
 - Added `createKlumDslSourceMirrors` to the schema Gradle plugin. Run it after schema changes to compile the real
   `Foo_DSL` interfaces and refresh their AnnoDocimal IDE source mirrors without compiling, packaging, publishing, or
   propagating the mirrors themselves ([#434](https://github.com/klum-dsl/klum-ast/issues/434)).

@@ -64,7 +64,7 @@ when a matching dynamic call is attempted. See
     static class Factory extends KlumFactory.Unkeyed<Bar> {
         protected Factory() {super(Bar)}
 
-        Bar aBaz(String name, @DelegatesToRW(Baz) Closure body) {
+        Bar aBaz(String name, @DelegatesToBuilder(Baz) Closure body) {
             return Baz.Create.With(name: name, body)
         }
         
@@ -72,7 +72,7 @@ when a matching dynamic call is attempted. See
             return Baz.Create.With(name: name, nickname: name)
         }
         
-        Bar aBla(String name, @DelegatesToRW(Bla) Closure body) {
+        Bar aBla(String name, @DelegatesToBuilder(Bla) Closure body) {
             return Bla.Create.With(name: name, body)
         }
     }

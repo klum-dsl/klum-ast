@@ -65,10 +65,9 @@ graph and the completed model graph.
   factory input. Completed models expose no generated `apply` method.
 - Stop calling `KlumInstanceProxy.getProxyFor(model)`. The deprecated compatibility adapter accepts Builders only. Completed
   model technical state belongs to the Model companion and supported public utilities.
-- Treat `KlumRwObject` as a temporary deprecated generated-layout marker only. Builders no longer expose the former
-  `getDSLInstance()` or `getRwInstance()` identity aliases. [ADR 0005](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0005-generated-dsl-support-api.md)
-  removes RW vocabulary in favor of the generated `Foo_DSL.Builder` interface and `@DelegatesToBuilder`; implementation is
-  tracked by [issue #394](https://github.com/klum-dsl/klum-ast/issues/394).
+- `KlumRwObject` and `$_RW` are removed in 4.0. Name generated `Foo_DSL.Builder` interfaces and use
+  `@DelegatesToBuilder`; the legacy `@DelegatesToRW` annotation remains a deprecated source alias. Builders do not expose
+  the former `getDSLInstance()` or `getRwInstance()` identity aliases.
 - Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` directly from inside a
   parent construction callback: that would start a second lifecycle, which is forbidden. Use the generated child method on
   the parent Builder.
@@ -117,7 +116,7 @@ its source into the schema compilation. The protocol is recorded in
 - Provisional validation issues raised during Builder phases transfer to the completed model. Each `InstanceValidator` executes at most once per completed model.
 
 The supported generated API is the top-level `Foo_DSL` namespace with nested `Factory`, `Builder`, and
-relationship-factory interfaces. The generated `$_RW` classes remain internal implementations and are not a client API.
+relationship-factory interfaces. The generated `$Builder` classes remain internal implementations and are not a client API.
 AnnoDocimal sources are IDE-only mirrors: the Gradle plugin exposes them for completion without compiling or packaging them
 as a second definition of the AST-generated interfaces.
 

@@ -51,9 +51,8 @@ would create the following adder methods for the child field (provided child is 
 - `child()`
 - `child(Map<String, Object> namedParams, Class<? extends Child> type, Closure body)`
 
-The closure delegate and return type are the generated child Builder. Its concrete spelling is deliberately omitted here
-because [issue #394](https://github.com/klum-dsl/klum-ast/issues/394) will decide the public generated-type name and
-location.
+The closure delegate and return type are the generated child Builder. Its public spelling is the generated
+`Foo_DSL.Builder` interface; [issue #394](https://github.com/klum-dsl/klum-ast/issues/394) establishes this contract.
 
 AnnoDocimal drops parameter tags for arguments omitted by a generated overload. The main text is a template in which
 `{{...}}` placeholders are replaced with actual values:

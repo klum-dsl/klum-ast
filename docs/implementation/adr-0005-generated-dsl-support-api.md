@@ -5,10 +5,11 @@ This plan implements [ADR 0005](../adr/0005-generated-dsl-support-api.md) for ca
 
 ## Current behavior and failure
 
-`DSLASTTransformation.createRWClass()` generates inner `Foo.$_RW` classes that extend concrete `KlumBuilder` and directly
-declare deprecated `KlumRwObject`. Root and relationship factories are other inner generated classes. AnnoDoc exists in
-class metadata, but IntelliJ same-project completion consumes generated sources and cannot receive a separately generated
-source stub for an inner class of existing `Foo`. `@DelegatesToRW` and its transformation keep RW vocabulary public.
+Before DSL-2, `DSLASTTransformation.createRWClass()` generated inner `Foo.$_RW` classes that extended concrete
+`KlumBuilder` and directly declared deprecated `KlumRwObject`. DSL-2 replaces that spelling with the hidden
+`Foo$Builder` implementation, makes public `KlumBuilder<T>` zero-operation, and has generated
+`Foo_DSL.Builder` extend it. Runtime behavior lives in `InternalKlumBuilder`; `@DelegatesToBuilder` is canonical and
+the deprecated `@DelegatesToRW` source alias normalizes to the same generated metadata.
 
 `KlumAstSchemaPlugin` applies `AnnoDocimalPlugin` and enables normal source/Javadoc variants. DSL-G now adds the dedicated
 `createKlumDslSourceMirrors` task and IntelliJ-only model wiring described below. A mirror `Foo_DSL` source cannot be placed
@@ -59,8 +60,13 @@ After the 4.0 API is delivered, the `KlumBuilder<T>` bound, generated `Foo_DSL` 
 implementations remain non-contractual.
 
 The exact JSON-3 descriptors in #463 depend on this slice: an interface `Foo_DSL.Builder` cannot satisfy
-`B extends KlumBuilder<T>` while `KlumBuilder<T>` is a class. #463 remains blocked until DSL-2 is delivered, then proves
-the exact Java 17 and static-Groovy consumer shapes at the Jackson 2.14.2 and 2.21.x endpoints.
+`B extends KlumBuilder<T>` while `KlumBuilder<T>` is a class. DSL-2 now delivers that prerequisite; #463 can prove the
+exact Java 17 and static-Groovy consumer shapes at the Jackson 2.14.2 and 2.21.x endpoints.
+
+**Implemented:** `KlumBuilder<T>` is the zero-operation capability, generated Builder interfaces extend it with their
+model generic type, and `InternalKlumBuilder` owns runtime behavior. The generated implementation spelling is
+`Foo$Builder`; `KlumRwObject` and `$_RW` are removed. `@DelegatesToBuilder` is canonical, `@DelegatesToRW` remains the
+deprecated source alias, and combining them is rejected. JSON-3 remains separate importer work.
 
 ### DSL-3 — Generated-source distribution and documentation
 
