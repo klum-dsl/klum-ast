@@ -36,6 +36,7 @@ import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumModelException;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
@@ -302,7 +303,8 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             ignored.add(objectIdInfo.getPropertyName().getSimpleName());
         description.getClassInfo().fields().forEach(field -> addIgnoredFieldName(field, ignored, context));
         description.findProperties().forEach(definition -> {
-            Optional<ResolvedProperty> resolved = definition.couldDeserialize() && visibleInActiveView(definition, context)
+            Optional<ResolvedProperty> resolved = acceptsConfiguration(definition, context)
+                    && visibleInActiveView(definition, context)
                     ? toResolvedProperty(currentType, definition, context)
                     : Optional.empty();
             Stream<String> names = Stream.concat(
@@ -318,6 +320,28 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                 .getDefaultPropertyIgnorals(currentType, description.getClassInfo());
         ignored.addAll(ignorals.findIgnoredForDeserialization());
         return new ResolvedProperties(bindable, ignored, ignorals.getIgnoreUnknown());
+    }
+
+    /**
+     * Klum configuration binds generated Builder fields, which do not expose Jackson bean mutators. Jackson 2.21 no
+     * longer reports such field-backed properties as {@code couldDeserialize()}, even though their metadata remains
+     * the correct configured input surface. Honour explicit read-only and ignore annotations instead.
+     */
+    private static boolean acceptsConfiguration(BeanPropertyDefinition property, DeserializationContext context) {
+        return Stream.of(property.getPrimaryMember(), property.getField(), property.getGetter(), property.getSetter())
+                .filter(Objects::nonNull)
+                .distinct()
+                .noneMatch(member -> context.getAnnotationIntrospector().hasIgnoreMarker(member)
+                        || isReadOnly(member, context));
+    }
+
+    private static boolean isReadOnly(AnnotatedMember member, DeserializationContext context) {
+        JsonProperty.Access access = context.getAnnotationIntrospector().findPropertyAccess(member);
+        if (access == null) {
+            JsonProperty property = member.getAnnotation(JsonProperty.class);
+            access = property == null ? null : property.access();
+        }
+        return access == JsonProperty.Access.READ_ONLY;
     }
 
     private static boolean visibleInActiveView(BeanPropertyDefinition property, DeserializationContext context) {
@@ -357,7 +381,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
     private Optional<ResolvedProperty> toResolvedProperty(Class<?> currentType, BeanPropertyDefinition property,
                                                            DeserializationContext context) {
         Optional<Field> schemaField = DslHelper.getField(currentType, property.getInternalName());
-        if (schemaField.isEmpty() || !isConfigurable(schemaField.get()))
+        if (schemaField.isEmpty() || !isConfigurable(schemaField.get()) || isReadOnly(schemaField.get()))
             return Optional.empty();
         AnnotatedMember contextualMember = Stream.of(
                         property.getField(), property.getSetter(), property.getGetter(), property.getPrimaryMember())
@@ -380,6 +404,11 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
                 beanProperty,
                 schemaField.get()
         ));
+    }
+
+    private static boolean isReadOnly(Field field) {
+        JsonProperty property = field.getAnnotation(JsonProperty.class);
+        return property != null && property.access() == JsonProperty.Access.READ_ONLY;
     }
 
     private static String resolveKey(Class<?> currentType, ObjectNode configuration, Object keyHint,
