@@ -9,7 +9,7 @@ Produce the smallest coherent 4.0 scope consistent with accepted decisions and c
 
 ## Reconcile reality
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/pull-requests.md`, all curation files, open issues and milestones, recent merged PRs, current CI status, `CHANGES.md`, `README.md`, `wiki/Builder-First-Migration.md`, and relevant ADRs and implementation notes.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/feature-triage.md`, `docs/agents/pull-requests.md`, all curation files, open issues and milestones, recent merged PRs, current CI status, `CHANGES.md`, `README.md`, `wiki/Builder-First-Migration.md`, and relevant ADRs and implementation notes.
 
 Cross-check every curation claim against current GitHub and repository state. Identify:
 
@@ -19,9 +19,12 @@ Cross-check every curation claim against current GitHub and repository state. Id
 - stale or contradicted curation entries
 - completed, duplicate, obsolete, or superseded issues
 - safe deferrals to 4.1, later 4.x, or 5.0
+- recorded feature need horizons and workaround viability that materially affect priority
 - risks in implementation order and release scope
 
 Treat green CI as evidence of tested state, not proof that unresolved product or compatibility decisions are complete.
+Treat feature use-case classification as priority evidence rather than an automatic ranking. Do not require a retroactive
+classification pass over already-triaged issues; use the record when present or when an issue is revisited for another reason.
 
 ## Update analysis artifacts
 

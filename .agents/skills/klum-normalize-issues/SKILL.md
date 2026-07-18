@@ -9,7 +9,7 @@ Apply confirmed decisions while retaining useful issue history.
 
 ## Verify authorization and context
 
-1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, and the full target issue bodies and comments.
+1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/feature-triage.md`, and the full target issue bodies and comments.
 2. Read the confirmed interview summary, curation indexes, linked ADRs, implementation plans, wiki contracts, tests, and release notes.
 3. Stop and return unresolved points to `$klum-grill-issue` when intent, canonical issue, closure reason, or release placement is not confirmed.
 
@@ -19,6 +19,7 @@ Use only sections that add information:
 
 - `Problem`
 - `Motivation`
+- `Use case`
 - `Current behavior`
 - `Desired behavior`
 - `Constraints and compatibility`
@@ -28,6 +29,12 @@ Use only sections that add information:
 - `Related issues and decisions`
 - `Release target`
 - `Maintainer decision`
+
+For a newly triaged enhancement, use `Use case` to record the primary use case, need horizon, workaround viability, and an
+optional secondary angle. Derive the minimum accepted scope from the primary use case and keep the secondary angle separate.
+When evidence is absent, omit the section or record `unknown`; this alone does not return the issue to grilling or block
+normalization. Previously triaged issues need this addition only when they are already being revisited. A complexity-free
+mini-feature may record a quick-win rationale instead.
 
 Use `CONTEXT.md` vocabulary. Preserve historically useful motivation and discussion through concise summaries and links. Link stable repository artifacts instead of copying their contents.
 

@@ -27,6 +27,13 @@ rules.
 
 This repo uses the canonical triage label vocabulary. See `docs/agents/triage-labels.md` for the mapping.
 
+### Feature triage
+
+New feature issues should record a primary use case, need horizon, and workaround viability so priority and minimum scope
+follow an actual user problem. An optional secondary angle must not silently broaden the feature. Missing classification is
+not a triage blocker, already-triaged issues need no retroactive pass, and complexity-free mini-features may be treated as
+quick wins. See `docs/agents/feature-triage.md`.
+
 ### Domain docs
 
 This repository uses a single-context layout: one `CONTEXT.md` at the repo root and `docs/adr/` for ADRs. See `docs/agents/domain.md` for the consumption rules.
