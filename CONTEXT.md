@@ -33,6 +33,8 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
   Keep this theme in project, artifact, and package names rather than API vocabulary, unless a name has a useful software double meaning, as with Klum-Wrap. Klum-Cast is a poor precedent: its name refers to entertainment casting but is easily mistaken for an object-oriented cast, making the project's purpose misleading.
 
+  Major releases may pair their canonical semantic version with a release-facing name in the form `Season <major>: <subtitle>`. The subtitle should use modeling or show vocabulary while describing the release's character, so the theme remains recognizable without obscuring the version or its purpose.
+
 - Domain API Developer
 
   A Domain API Developer defines the stable, consumer-facing model contract that Client Developers compile against. In a Layer 3 model, this contract precedes and constrains the Schema without exposing Schema-specific types to clients.

@@ -5,6 +5,8 @@ This release view is derived from the complete [open issue index](issue-index.md
 current source/tests. ADR 0007 is superseded by ADR 0009, while ADR 0008 remains a later-4.x target. ADRs 0004–0006 and
 0009 define the remaining accepted 4.0 boundaries.
 
+Proposed release name: **Season 4: The Makeover**.
+
 ## Release thesis
 
 4.0 is the breaking Builder-first release. Its minimum coherent scope is to finish and freeze the public boundaries introduced by PR #429:
