@@ -44,6 +44,24 @@ Convert `KlumBuilder<T>` to the supported narrow interface, move implementation 
 `@DelegatesToRW`. Compile-fail when both annotations occur. Migrate generated code and tests to Builder vocabulary while
 retaining only the promised source alias.
 
+**Confirmed Builder capability refinement (2026-07-18):** `KlumBuilder<T>` is a zero-operation public construction
+capability, not a general-purpose mutable Builder API. Every generated `Foo_DSL.Builder` extends
+`KlumBuilder<Foo>` (with its declared model generics preserved), and `KlumFactory.BuilderFactory<T, B>` consistently
+uses `B extends KlumBuilder<T>`. The generated `Foo_DSL` interfaces remain the only public surface for
+schema-specific configuration. Runtime state, lifecycle, reflection, materialization, path, copy, and collection
+internals move behind an internal support base. The later dynamic `KlumBuilder.link(fieldName, target)` capability is
+owned by #474 and must not broaden DSL-2.
+
+This shares the intentional 4.0 recompilation boundary already required by package migration. `$_RW` and
+`KlumRwObject` have no retained source or binary compatibility; `@DelegatesToRW` is the sole deprecated source alias.
+After the 4.0 API is delivered, the `KlumBuilder<T>` bound, generated `Foo_DSL` interfaces, and Java
+`Create.getAsBuilder()` / static-Groovy `Create.AsBuilder` shapes are 4.x source and binary contracts. Hidden generated
+implementations remain non-contractual.
+
+The exact JSON-3 descriptors in #463 depend on this slice: an interface `Foo_DSL.Builder` cannot satisfy
+`B extends KlumBuilder<T>` while `KlumBuilder<T>` is a class. #463 remains blocked until DSL-2 is delivered, then proves
+the exact Java 17 and static-Groovy consumer shapes at the Jackson 2.14.2 and 2.21.x endpoints.
+
 ### DSL-3 — Generated-source distribution and documentation
 
 Exercise the DSL-G Gradle/IDE integration against the actual DSL-1 namespace, verify a same-project schema and Java
