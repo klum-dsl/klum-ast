@@ -43,6 +43,8 @@ marking the pull request ready for review, merging it, or expanding the assigned
   user-visible DSL feature must also have a documentary test marked with `@Tag("documentary")` and linked to its
   documentation through `@See`. The feature issue, test, and documentation must reference one another as defined in
   `docs/agents/testing.md`.
+- Verify that new executable test classes use the `Test` suffix and that dedicated documentary classes use
+  `<Theme>DocumentaryTest`. Existing `*Spec` classes need not be renamed unless a scoped rename improves the change.
 
 ## Review feedback follow-up
 

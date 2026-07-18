@@ -49,7 +49,9 @@ Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility
 Every newly added test must carry its driving issue number in `@Issue`; a class-level annotation is sufficient while all
 tests in that class originate from the same issue. Add or amend `@Issue` on an existing test only when a change to it is
 significant. Every new user-visible DSL feature also needs a documentary test marked with `@Tag("documentary")` and linked
-to its documentation through `@See`. See `docs/agents/testing.md`.
+to its documentation through `@See`. Name new executable test classes with the `Test` suffix; use
+`<Theme>DocumentaryTest` for dedicated documentary classes. Existing `*Spec` classes need not be renamed. See
+`docs/agents/testing.md`.
 
 ### Feature discussion examples
 

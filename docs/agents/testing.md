@@ -15,13 +15,13 @@ Start with the narrowest relevant Groovy 3 test, then run the affected module's 
 Typical commands are:
 
 ```shell
-./gradlew :klum-ast:test --tests com.blackbuild.groovy.configdsl.transform.SomeSpec
+./gradlew :klum-ast:test --tests com.blackbuild.groovy.configdsl.transform.SomeTest
 ./gradlew test
 ./gradlew groovy4Tests groovy5Tests
 ./gradlew check
 ```
 
-## Issue traceability and documentary tests
+## Issue traceability
 
 Every newly added test must carry Spock's `@Issue` annotation with the number of its driving GitHub issue. When a complete
 specification or test class relates to one issue, put `@Issue` on the class; that remains sufficient for every test that
@@ -33,6 +33,25 @@ When implementation changes an existing test, add or amend its `@Issue` annotati
 A change is significant when it materially changes the tested behavior, scenario, or expected contract. Mechanical edits,
 renames, formatting, or adjustments to shared setup do not require issue-annotation churn.
 
+The driving issue is the normal historical link from a test. When an ADR governs the behavior, the governing issue must
+reference it. Do not routinely repeat that ADR link on every test. Add another `@See` for the ADR only when the test
+directly enforces an architectural decision or non-obvious invariant and the link materially helps a reader understand why
+the asserted boundary is intentional. A documentary happy path should normally link to user documentation rather than an
+ADR.
+
+## Test class naming and organization
+
+Name every new executable test class with the `Test` suffix. Use `<Subject><Concern>Test` when a concern distinguishes the
+class from other tests for the same subject, or `<Subject>Test` when the subject is already narrow. Do not introduce new
+`*Spec` names. Existing `*Spec` classes need not be renamed; they may be renamed when the change stays within the task's
+scope and all test filters and references remain correct.
+
+A production class or concept does not need a one-to-one test class. Split its tests into multiple classes when each
+resulting class has a cohesive purpose and the split improves readability, navigation, or fixture clarity. Avoid splitting
+so finely that related behavior or setup becomes harder to understand.
+
+## Documentary tests
+
 Every new user-visible DSL feature must also have one or more documentary tests. At least one should normally be a happy
 path that demonstrates the feature's basic use as readable, executable DSL code. Prefer meaningful hypothetical domain
 vocabulary over placeholders such as `Foo` and `Bar` when that makes the example easier to understand.
@@ -42,6 +61,17 @@ entire specification is documentary, in which case a specification-level tag is 
 feature or specification to link to the relevant documentation element. `@See` is represented as an attachment in Spock
 reports, so give it an absolute URL to the current documentation source and include a heading anchor when it is stable.
 Until issue #456 settles the final documentation placement, a URL to the relevant file under `wiki/` is sufficient.
+
+Documentary tests may live beside the focused behavioral tests or in a separate thematic class. Prefer a dedicated
+`<Theme>DocumentaryTest` when several examples form a coherent reading path or review entry point, share comprehensible
+domain setup, or span multiple driving issues within one theme. Keep an isolated documentary happy path with its focused
+behavioral tests when extraction would duplicate fixtures or fragment ownership. Use `DocumentaryTest`, not
+`DocumentationTest`, so the name identifies an executable example rather than suggesting a test of documentation tooling.
+
+In a dedicated documentary class, put `@Tag("documentary")` on the class in addition to using the documentary class name.
+If its features originate from different issues, put `@Issue` on each feature method. Put `@See` on each feature when the
+documentation targets differ; a class-level `@See` is sufficient only when one documentation target genuinely covers the
+whole class.
 
 The normal annotation shape is:
 
@@ -54,9 +84,29 @@ def "demonstrates the basic feature syntax"() {
 }
 ```
 
-Do not require a feature-name prefix as a second documentary marker; the tag is the single machine-readable convention.
-`@Narrative` and `@Title` apply only to specifications, so they may improve a wholly documentary specification but do not
-replace its `@Tag("documentary")` marker.
+A thematic class spanning issues normally looks like:
+
+```groovy
+@Tag("documentary")
+class TemplatesDocumentaryTest extends AbstractDSLSpec {
+
+    @Issue("123")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Templates.md#applying-templates")
+    def "applies a named template"() {
+        // first readable example
+    }
+
+    @Issue("124")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Templates.md#combining-templates")
+    def "combines templates in declaration order"() {
+        // related example from another issue
+    }
+}
+```
+
+Do not require documentary prefixes in feature-method names. `@Tag("documentary")` is the machine-readable marker, while
+the `DocumentaryTest` suffix identifies a dedicated documentary class. `@Narrative` and `@Title` apply only to
+specifications, so they may improve a wholly documentary specification but do not replace its `documentary` tag.
 
 Keep the feature issue, documentary test, and user documentation mutually traceable:
 
