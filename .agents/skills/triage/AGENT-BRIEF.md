@@ -36,6 +36,12 @@ The agent needs to know when it's done. Every agent brief must have concrete, te
 
 State what is out of scope. This prevents the agent from gold-plating or making assumptions about adjacent features.
 
+### Use-case evidence for enhancements
+
+Follow `docs/agents/feature-triage.md`. State the primary use case, need horizon, and workaround viability when known. Keep an
+optional secondary angle separate so it does not silently expand the acceptance criteria. Unknown classification does not
+prevent an otherwise complete brief, and a complexity-free mini-feature may use a concise quick-win rationale instead.
+
 ## Template
 
 ```markdown
@@ -43,6 +49,12 @@ State what is out of scope. This prevents the agent from gold-plating or making 
 
 **Category:** bug / enhancement
 **Summary:** one-line description of what needs to happen
+
+**Use case (enhancements):**
+- Primary: actor, task, and desired outcome
+- Need horizon: immediate / future / speculative / nice-to-have / unknown
+- Workaround: none / viable but costly / viable / unknown — concise explanation
+- Secondary angle (optional): adjacent benefit that is not implicit scope
 
 **Current behavior:**
 Describe what happens now. For bugs, this is the broken behavior.

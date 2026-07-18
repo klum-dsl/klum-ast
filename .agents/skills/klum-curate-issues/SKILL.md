@@ -9,7 +9,7 @@ Build an evidence-backed issue inventory before interviewing the maintainer or c
 
 ## Load durable context
 
-1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, and `docs/agents/domain.md`.
+1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/feature-triage.md`, and `docs/agents/domain.md`.
 2. Read `README.md`, `CHANGES.md`, `wiki/Builder-First-Migration.md`, relevant ADRs and implementation notes, and `docs/implementation/issue-curation/architecture-map.md` if present.
 3. Treat `wiki/Roadmap.md` as historical evidence unless current decisions confirm it.
 
@@ -20,12 +20,18 @@ Use the repository's configured GitHub workflow to read every open issue, includ
 For each issue record:
 
 - intended problem or capability
+- for a newly triaged enhancement, primary use case, need horizon, workaround viability, and optional secondary angle
 - affected module, domain concepts, generated/public API, and compatibility surface
 - bug, enhancement, refactoring, documentation, or design decision
 - current relevance and evidence of implementation, supersession, or rejection
 - related issues, PRs, tests, ADRs, wiki pages, and release notes
 - relationship to Builder-first 4.0 and Groovy 3/4/5 compatibility
 - provisional disposition: `4.0 must`, `4.0 nice`, `4.1`, `later 4.x`, `5.0`, `completed`, `obsolete`, `duplicate`, or `maintainer decision`
+
+Use the feature-triage classification as priority evidence and derive minimum scope from the primary use case. Do not block
+classification when evidence is unknown, revisit already-triaged enhancements solely to fill the fields, or let a secondary
+angle silently broaden the request. When an existing enhancement is being reconsidered for another reason, add the record
+from available evidence. A complexity-free mini-feature may instead carry a concise quick-win rationale.
 
 Cluster by underlying domain problem before deep source exploration. Inspect one code path per cluster where possible and record where redundancy and prior-rejection checks were performed.
 
