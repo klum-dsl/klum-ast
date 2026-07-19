@@ -23,15 +23,14 @@
  */
 package com.blackbuild.klum.ast.jackson;
 
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumModelException;
-import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -149,13 +148,13 @@ public final class KlumJacksonImporter {
                     () -> reader.forType(type).readValue(parser));
             if (!request.wasHandled() && mode == KlumDeserializer.ManagedMode.ROOT && hasTypeLevelCustomDeserializer(type))
                 return result;
-            if (!request.wasHandled())
+            if (!request.wasHandled()) {
                 if (hasTypeLevelCustomDeserializer(type))
                     throw new KlumModelException("Jackson " + mode.operation()
                             + " import does not support a type-level custom deserializer for " + type.getName());
-                else
                 throw new KlumModelException("Jackson " + mode.operation() + " import requires KlumAstModule for "
                         + type.getName());
+            }
             return result;
         } catch (KlumException exception) {
             throw exception;

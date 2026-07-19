@@ -27,7 +27,9 @@ package com.blackbuild.klum.ast.jackson
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.klum.ast.process.PhaseDriver
 import com.blackbuild.klum.ast.util.FactoryHelper
+import com.blackbuild.klum.ast.util.KlumBuilder
 import com.blackbuild.klum.ast.util.TemplateManager
+import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Issue
@@ -145,6 +147,99 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         imported.value == "custom:Ada"
     }
 
+    def "Template mode rejects a type-level custom Jackson deserializer"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.fasterxml.jackson.core.JsonParser
+            import com.fasterxml.jackson.databind.DeserializationContext
+            import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+            import com.fasterxml.jackson.databind.deser.std.StdDeserializer
+
+            @JsonDeserialize(using = TemplateOptOutDeserializer)
+            @DSL
+            class TemplateOptOutValue { String value }
+
+            class TemplateOptOutDeserializer extends StdDeserializer<TemplateOptOutValue> {
+                TemplateOptOutDeserializer() { super(TemplateOptOutValue) }
+
+                @Override
+                TemplateOptOutValue deserialize(JsonParser parser, DeserializationContext context) {
+                    TemplateOptOutValue.Create.With { value "custom" }
+                }
+            }
+        ''')
+
+        when:
+        KlumJacksonImporter.using(new ObjectMapper()).readTemplate(clazz, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("does not support a type-level custom deserializer")
+    }
+
+    def "reader capture rejects typed and updating readers while retaining an untyped reader"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class ReaderImportedValue { String value }
+        ''')
+        def mapper = new ObjectMapper().findAndRegisterModules()
+
+        when:
+        def imported = KlumJacksonImporter.using(mapper.reader()).readRoot(clazz, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        imported.value == "Ada"
+
+        when:
+        KlumJacksonImporter.using(mapper.readerFor(clazz))
+
+        then:
+        def typedException = thrown(IllegalArgumentException)
+        typedException.message.contains("untyped")
+
+        when:
+        KlumJacksonImporter.using(mapper.readerForUpdating([:]))
+
+        then:
+        def updatingException = thrown(IllegalArgumentException)
+        updatingException.message.contains("untyped")
+    }
+
+    def "input adapters preserve caller ownership and stable identities"() {
+        given:
+        def mapper = new ObjectMapper()
+        def tree = mapper.readTree('{"value":"Ada"}')
+        def values = [value: "Ada"]
+        def parser = mapper.factory.createParser('{"value":"Ada"}')
+        def treeInput = KlumJacksonInput.tree(tree)
+        def mapInput = KlumJacksonInput.map(values)
+        def parserInput = KlumJacksonInput.parser(parser)
+
+        when:
+        def treeSource = treeInput.open(mapper.reader())
+        def mapSource = mapInput.open(mapper.reader())
+        def parserSource = parserInput.open(mapper.reader())
+        treeSource.close()
+        mapSource.close()
+        parserSource.close()
+
+        then:
+        treeInput.sourceName() == "tree"
+        mapInput.sourceName() == "map"
+        parserInput.sourceName() == "parser"
+        mapInput.named("config.yaml").sourceName() == "config.yaml"
+        tree.get("value").asText() == "Ada"
+        values == [value: "Ada"]
+        treeSource.parser.closed
+        mapSource.parser.closed
+        !parser.closed
+    }
+
     def "borrowed parsers remain open and named sources appear in import diagnostics"() {
         given:
         createClass('''
@@ -170,6 +265,58 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         exception.message.contains('$/ParserImportedValue.readRoot:jackson(config.yaml)')
         exception.message.contains(":line ")
         exception.cause instanceof JsonProcessingException
+    }
+
+    def "mapping failures use escaped external JSON pointers"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class PointerImportedValue { String value }
+        ''')
+
+        when:
+        KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+                .readRoot(clazz, KlumJacksonInput.map(["unknown/value~field": "Ada"]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.cause instanceof JsonMappingException
+        exception.message.contains("/input(#/unknown~1value~0field)")
+    }
+
+    def "unexpected custom binding failures are wrapped once with their direct cause"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.fasterxml.jackson.core.JsonParser
+            import com.fasterxml.jackson.databind.DeserializationContext
+            import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+            import com.fasterxml.jackson.databind.deser.std.StdDeserializer
+
+            @JsonDeserialize(using = ExplodingImportedValueDeserializer)
+            @DSL
+            class ExplodingImportedValue { String value }
+
+            class ExplodingImportedValueDeserializer extends StdDeserializer<ExplodingImportedValue> {
+                ExplodingImportedValueDeserializer() { super(ExplodingImportedValue) }
+
+                @Override
+                ExplodingImportedValue deserialize(JsonParser parser, DeserializationContext context) {
+                    throw new IllegalStateException("custom binding failed")
+                }
+            }
+        ''')
+
+        when:
+        KlumJacksonImporter.using(new ObjectMapper()).readRoot(clazz, KlumJacksonInput.map([:]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.startsWith("Jackson readRoot import of pk.ExplodingImportedValue failed: custom binding failed")
+        exception.cause instanceof IllegalStateException
     }
 
     def "Builder modes stay in the active Construction session and preserve Builder identity"() {
@@ -264,6 +411,41 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         then:
         def exception = thrown(RuntimeException)
         exception.message.contains("active Construction session")
+    }
+
+    def "applyToBuilder rejects a non-generated Builder capability"() {
+        given:
+        def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+        def builder = new KlumBuilder<Object>() { }
+
+        when:
+        importer.applyToBuilder(builder, KlumJacksonInput.map([:]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("active generated Builder")
+    }
+
+    def "applyToBuilder rejects a Builder from a different active Construction session"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class SessionImportedValue { String value }
+        ''')
+        def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+        def unownedBuilder = FactoryHelper.createBuilder(clazz, null)
+
+        when:
+        PhaseDriver.withBuilderLifecycle(
+                { FactoryHelper.createBuilder(clazz, null) },
+                { importer.applyToBuilder(unownedBuilder, KlumJacksonInput.map([value: "Ada"])) }
+        )
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("belongs to no active Construction session")
     }
 
     def "Java consumers compile against every importer descriptor"() {

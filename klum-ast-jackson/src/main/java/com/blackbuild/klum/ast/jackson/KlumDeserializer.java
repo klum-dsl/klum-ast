@@ -754,6 +754,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return mode;
         }
 
+        @SuppressWarnings("java:S1452") // a managed request may target any generated Builder model type
         KlumBuilder<?> target() {
             return target;
         }
