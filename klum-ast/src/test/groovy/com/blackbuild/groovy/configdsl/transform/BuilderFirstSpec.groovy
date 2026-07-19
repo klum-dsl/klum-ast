@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 import java.lang.reflect.Modifier
 
@@ -354,7 +355,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         BuilderHolder.INSTANCE.value = null
     }
 
-    def "materialization resolves self and cyclic Builder relationships"() {
+    @Issue("474")
+    def "materialization resolves self and cyclic optional Builder relationships"() {
         given:
         createClass '''
             package pk
@@ -362,9 +364,10 @@ class BuilderFirstSpec extends AbstractDSLSpec {
             @DSL
             class Node {
                 String name
+                @Field(FieldType.OPTIONAL_LINK)
                 Node child
 
-                @Field(FieldType.LINK)
+                @Field(FieldType.OPTIONAL_LINK)
                 Node peer
             }
         '''

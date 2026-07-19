@@ -282,8 +282,12 @@ class MonitoringService extends Microservice {
   @LinkTo Database database
 }
 ```
-During the instantiation of the model, the database field will bea automatically filled but can still be overwritten 
-on instance level. See Javadoc for `@LinkTo` for more details.
+During the instantiation of the model, the database field will be automatically filled but can still be overwritten
+on instance level. `@LinkTo` now selects `FieldType.OPTIONAL_LINK`: a locally created same-session value is owned
+composition, while the Auto-Link fallback and any completed value are aggregation references. For an aggregation-only
+relationship, declare `@Field(FieldType.LINK) @LinkTo`; a normal unannotated relationship remains composition-only.
+See `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries`
+for the executable example.
 
 ### Role fields
 

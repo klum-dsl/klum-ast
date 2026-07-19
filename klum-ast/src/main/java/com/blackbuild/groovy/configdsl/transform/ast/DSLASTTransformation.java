@@ -929,7 +929,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode defaultImpl = getDefaultImplOfFieldOrMethod(fieldNode, elementType);
         ClassNode dslBaseType = getDslBaseType(elementType, defaultImpl);
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
-        boolean linkField = getFieldType(fieldNode) == FieldType.LINK;
+        FieldType relationshipType = getFieldType(fieldNode);
+        boolean linkField = relationshipType == FieldType.LINK;
+        boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
         ClassNode storedElementType = linkField ? elementType : elementRwType;
         String storedElementDescription = linkField
                 ? "completed '{{singleElementName}}' LINK targets"
@@ -1022,15 +1024,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(storedElementType, "value")
                 .addTo(rwClass);
 
-        // Keep a model-typed compatibility overload so completed composition inputs
-        // fail with KlumBuilder's LINK migration guidance instead of MissingMethodException.
-        if (!linkField) {
+        if (optionalLinkField) {
             createProxyMethod(methodName, ADD_ELEMENT_TO_COLLECTION)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(elementType)
-                    .documentationTitle("Rejects a completed '{{singleElementName}}' because composition must be built in this Builder lifecycle.")
+                    .documentationTitle("Adds one completed '{{singleElementName}}' as an aggregation LINK target.")
                     .constantParam(fieldName)
                     .param(elementType, "value")
                     .addTo(rwClass);
@@ -1137,7 +1137,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         String fieldName = fieldNode.getName();
 
         ClassNode elementRwType = DslAstHelper.getRwClassOf(defaultImpl).getPlainNodeReference();
-        boolean linkField = getFieldType(fieldNode) == FieldType.LINK;
+        FieldType relationshipType = getFieldType(fieldNode);
+        boolean linkField = relationshipType == FieldType.LINK;
+        boolean optionalLinkField = relationshipType == FieldType.OPTIONAL_LINK;
         ClassNode storedElementType = linkField ? elementType : elementRwType;
         String storedElementDescription = linkField
                 ? "completed '{{singleElementName}}' LINK targets"
@@ -1222,14 +1224,13 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .param(storedElementType, elementToAddVarName)
                 .addTo(rwClass);
 
-        // See the corresponding collection overload above.
-        if (!linkField) {
+        if (optionalLinkField) {
             createProxyMethod(methodName, ADD_ELEMENT_TO_MAP)
                     .optional()
                     .mod(visibility)
                     .returning(elementType)
                     .linkToField(fieldNode)
-                    .documentationTitle("Rejects a completed '{{singleElementName}}' because composition must be built in this Builder lifecycle.")
+                    .documentationTitle("Adds one completed '{{singleElementName}}' as an aggregation LINK target.")
                     .constantParam(fieldName)
                     .constantParam(null)
                     .param(elementType, elementToAddVarName)

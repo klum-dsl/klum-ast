@@ -261,7 +261,7 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
                 String name
                 @Owner CycleRoot owner
 
-                @Field(FieldType.LINK)
+                @Field(FieldType.OPTIONAL_LINK)
                 CycleNode peer
 
                 @PostCreate
