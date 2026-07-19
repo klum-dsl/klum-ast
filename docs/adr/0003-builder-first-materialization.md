@@ -36,7 +36,7 @@ Builders retain provisional validation issues raised by `EARLY_VALIDATE` and lif
 
 The Model companion is serializable with the completed DSL Object, preserving breadcrumbs and validation results. Builder-only construction state is excluded.
 
-Composition is built in one Builder lifecycle. A completed DSL Object may be used only as an aggregation `LINK` target and is never re-owned, mutated, or rehydrated. Templates are the intentional exception: they remain client-facing DSL Object recipes but are copied into fresh Builders when applied. Builder traversal is internal and skips sealed Builders; completed-object traversal is the client-visible/read-only traversal.
+Composition is built in one Builder lifecycle. A completed DSL Object may be used only as an aggregation `LINK` or `OPTIONAL_LINK` target and is never re-owned, mutated, or rehydrated. `OPTIONAL_LINK` records ownership per relationship entry: a fresh same-session Builder is claimed as composition, while an already claimed Builder or completed model is aggregation. Templates are the intentional exception: they remain client-facing DSL Object recipes but are copied into fresh Builders when applied. Builder traversal is internal and skips sealed Builders; completed-object traversal is the client-visible/read-only traversal.
 
 Builder relationship fields uniformly hold Builders. An externally completed DSL Object is represented by an immediately sealed Builder with a one-way reference to that object; pre-materialization lifecycle code therefore works with Builder state, not arbitrary completed-model methods.
 

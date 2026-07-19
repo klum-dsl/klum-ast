@@ -92,6 +92,8 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     private boolean template;
     private transient ConstructionSession constructionSession;
     private transient boolean constructionSessionActive;
+    private transient KlumBuilder<?> compositionOwner;
+    private transient String compositionFieldName;
 
     private String breadcrumbPath;
     private String modelPath;
@@ -232,7 +234,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         if (builder == null || builder.isSealed() || !visited.add(builder))
             return;
         ordered.add(builder);
-        builder.relationshipValues().forEach(value -> collectRelationshipValue(value, visited, ordered));
+        builder.compositionRelationshipValues().forEach(value -> collectRelationshipValue(value, visited, ordered));
     }
 
     private static void collectRelationshipValue(Object value, Set<KlumBuilder<?>> visited, List<KlumBuilder<?>> ordered) {
@@ -245,16 +247,28 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         }
     }
 
-    private List<Object> relationshipValues() {
+    private List<Object> compositionRelationshipValues() {
         List<Object> values = new ArrayList<>();
         for (Class<?> layer : DslHelper.getDslHierarchyOf(modelType)) {
             for (Field field : layer.getDeclaredFields()) {
-                if (DslHelper.isRelationship(field))
-                    values.add(getInstanceAttribute(field.getName()));
+                if (DslHelper.isRelationship(field) && !DslHelper.isOwner(field))
+                    addCompositionRelationshipValues(values, field, getInstanceAttribute(field.getName()));
             }
         }
         values.addAll(virtualChildren);
         return values;
+    }
+
+    private void addCompositionRelationshipValues(List<Object> target, Field field, Object value) {
+        if (DslHelper.isLink(field) || value == null)
+            return;
+        if (value instanceof Collection<?> collection) {
+            collection.forEach(member -> addCompositionRelationshipValues(target, field, member));
+        } else if (value instanceof Map<?, ?> map) {
+            map.values().forEach(member -> addCompositionRelationshipValues(target, field, member));
+        } else if (!DslHelper.isOptionalLink(field) || isCompositionClaimedBy(this, field.getName(), value)) {
+            target.add(value);
+        }
     }
 
     /** Called by generated model constructors for non-relationship fields. */
@@ -451,12 +465,19 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             return value;
         if (value instanceof KlumBuilder) {
             KlumBuilder<?> builderValue = (KlumBuilder<?>) value;
+            if (DslHelper.isOwner(schemaField)) {
+                if (!builderValue.isSealed())
+                    assertSameConstructionSession(builderValue);
+                return value;
+            }
             if (builderValue.isSealed() && TemplateManager.isTemplate(builderValue.getCompletedModel()))
                 throw templateRelationshipInputError(schemaField);
             if (builderValue.isSealed() && !acceptsCompletedRelationship(schemaField))
                 throw completedRelationshipInputError(schemaField);
-            if (!builderValue.isSealed())
+            if (!builderValue.isSealed()) {
                 assertSameConstructionSession(builderValue);
+                claimOrRejectBuilderRelationship(schemaField, builderValue);
+            }
             return value;
         }
         if (!(value instanceof KlumModelObject))
@@ -469,12 +490,48 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     }
 
     private static boolean acceptsCompletedRelationship(Field schemaField) {
-        return DslHelper.isLink(schemaField);
+        return DslHelper.isLink(schemaField) || DslHelper.isOptionalLink(schemaField);
+    }
+
+    private void claimOrRejectBuilderRelationship(Field schemaField, KlumBuilder<?> child) {
+        if (DslHelper.isLink(schemaField)) {
+            if (child.compositionOwner == null)
+                throw new KlumModelException(format(
+                        "Fresh Builder inputs are not supported for LINK relationship %s.%s; use a completed DSL Object or attach the Builder through OPTIONAL_LINK composition",
+                        modelType.getName(), schemaField.getName()));
+            return;
+        }
+        if (DslHelper.isOptionalLink(schemaField)) {
+            if (child.compositionOwner == null) {
+                child.compositionOwner = this;
+                child.compositionFieldName = schemaField.getName();
+            }
+            return;
+        }
+        if (child.compositionOwner == child
+                && DslHelper.isOptionalLink(child.getModelField(child.compositionFieldName))) {
+            child.compositionOwner = this;
+            child.compositionFieldName = schemaField.getName();
+            return;
+        }
+        if (child.compositionOwner != null)
+            throw new KlumModelException(format(
+                    "Builder for %s is already claimed by composition relationship %s.%s and cannot be attached to composition relationship %s.%s",
+                    child.modelType.getName(), child.compositionOwner.modelType.getName(), child.compositionFieldName,
+                    modelType.getName(), schemaField.getName()));
+        child.compositionOwner = this;
+        child.compositionFieldName = schemaField.getName();
+    }
+
+    private static boolean isCompositionClaimedBy(KlumBuilder<?> parent, String fieldName, Object value) {
+        return value instanceof KlumBuilder<?> builder
+                && builder.compositionOwner == parent
+                && Objects.equals(builder.compositionFieldName, fieldName);
     }
 
     private KlumModelException completedRelationshipInputError(Field schemaField) {
         return new KlumModelException(format(
-                "Completed DSL Object inputs are only supported for LINK relationships (%s.%s)",
+                "Completed DSL Object inputs are only supported for LINK relationships or OPTIONAL_LINK relationships (%s.%s)",
                 modelType.getName(),
                 schemaField.getName()
         ));
@@ -700,6 +757,34 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         });
     }
 
+    /**
+     * Adds an aggregation fallback during {@code @AutoLink} processing without replacing configured values.
+     * The target must already be a completed model or a Builder claimed by another composition relationship.
+     */
+    public <T> T link(String fieldName, T target) {
+        assertMutable();
+        Field schemaField = getModelField(fieldName);
+        if (!DslHelper.isRelationship(schemaField) || (!DslHelper.isLink(schemaField) && !DslHelper.isOptionalLink(schemaField)))
+            throw new KlumModelException(format("Field %s.%s is not a LINK or OPTIONAL_LINK relationship", modelType.getName(), fieldName));
+        Object current = getInstanceAttribute(fieldName);
+        boolean occupied = current != null
+                && (!(current instanceof Collection<?>) && !(current instanceof Map<?, ?>)
+                || current instanceof Collection<?> collection && !collection.isEmpty()
+                || current instanceof Map<?, ?> map && !map.isEmpty());
+        if (occupied)
+            throw new KlumModelException(format("Cannot add Auto-Link fallback for occupied relationship %s.%s", modelType.getName(), fieldName));
+        if (target instanceof KlumBuilder<?> builder && !builder.isSealed() && builder.compositionOwner == null)
+            throw new KlumModelException(format("Auto-Link fallback %s.%s requires a completed model or an already composition-claimed Builder", modelType.getName(), fieldName));
+        if (current instanceof Collection<?> && target instanceof Iterable<?> iterable) {
+            addElementsToCollection(fieldName, iterable);
+        } else if (current instanceof Map<?, ?> && target instanceof Map<?, ?> map) {
+            addElementsToMap(fieldName, map);
+        } else {
+            setSingleField(fieldName, target);
+        }
+        return target;
+    }
+
     public <T> T setSingleFieldViaConverter(String fieldOrMethodName, Class<?> converterType, String converterMethod, Object... args) {
         return setSingleField(fieldOrMethodName, createObjectViaConverter(converterType, converterMethod, args));
     }
@@ -786,14 +871,9 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         elements.forEach(element -> addElementToCollection(fieldName, element));
     }
 
-    /**
-     * Validates and attaches a projected batch of child Builders, then returns the producer's original container.
-     * Validation happens before the first mutation so a rejected batch cannot be partially attached.
-     */
+    /** Attaches a projected batch of child Builders and returns the producer's original container. */
     public <C extends Collection<?>> C addProjectedBuildersFromCollectionToCollection(String fieldName, C builders) {
         assertMutable();
-        Field schemaField = getModelField(fieldName);
-        builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));
         builders.forEach(builder -> addElementToCollection(fieldName, builder));
         return builders;
     }
@@ -801,8 +881,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     /** Attaches the values of a projected map to a collection relationship and returns the same map. */
     public <T extends Map<?, ?>> T addProjectedBuildersFromMapToCollection(String fieldName, T builders) {
         assertMutable();
-        Field schemaField = getModelField(fieldName);
-        builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
         builders.values().forEach(builder -> addElementToCollection(fieldName, builder));
         return builders;
     }
@@ -811,13 +889,9 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
         values.forEach((key, value) -> addElementToMap(fieldName, key, value));
     }
 
-    /**
-     * Validates and attaches a projected map of child Builders, preserving its keys, then returns that same map.
-     */
+    /** Attaches a projected map of child Builders, preserving its keys, then returns that same map. */
     public <T extends Map<?, ?>> T addProjectedBuildersFromMapToMap(String fieldName, T builders) {
         assertMutable();
-        Field schemaField = getModelField(fieldName);
-        builders.values().forEach(builder -> normalizeRelationshipValue(schemaField, builder));
         builders.forEach((key, builder) -> addElementToMap(fieldName, key, builder));
         return builders;
     }
@@ -825,8 +899,6 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
     /** Attaches a projected collection to a keyed relationship and returns the producer's original collection. */
     public <C extends Collection<?>> C addProjectedBuildersFromCollectionToMap(String fieldName, C builders) {
         assertMutable();
-        Field schemaField = getModelField(fieldName);
-        builders.forEach(builder -> normalizeRelationshipValue(schemaField, builder));
         builders.forEach(builder -> addElementToMap(fieldName, null, builder));
         return builders;
     }
@@ -877,7 +949,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
 
     private <K, V> void doAddElementToMap(String fieldName, K key, V value) {
         Field schemaField = getModelField(fieldName);
-        Object keySource = value instanceof KlumBuilder ? value : normalizeRelationshipValueIfNecessary(schemaField, value);
+        Object keySource = normalizeRelationshipValueIfNecessary(schemaField, value);
         key = determineKeyFromMappingClosure(fieldName, keySource, key);
         if (key == null && DslHelper.isKeyed(DslHelper.getClassFromType(DslHelper.getElementType(schemaField))))
             key = (K) ((KlumBuilder<?>) keySource).getKey();
@@ -1247,7 +1319,7 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             for (Field field : layer.getDeclaredFields()) {
                 if (!DslHelper.isRelationship(field) || DslHelper.isOwner(field) || DslHelper.isLink(field))
                     continue;
-                propagateModelPath(getInstanceAttribute(field.getName()), modelPath + "." + field.getName());
+                propagateModelPath(field, getInstanceAttribute(field.getName()), modelPath + "." + field.getName());
             }
         }
     }
@@ -1257,15 +1329,15 @@ public abstract class KlumBuilder<M> extends GroovyObjectSupport implements Klum
             propagateModelPathToComposition();
     }
 
-    private static void propagateModelPath(Object value, String path) {
-        if (value instanceof KlumBuilder) {
+    private void propagateModelPath(Field field, Object value, String path) {
+        if (value instanceof KlumBuilder && (!DslHelper.isOptionalLink(field) || isCompositionClaimedBy(this, field.getName(), value))) {
             ((KlumBuilder<?>) value).setModelPath(path);
         } else if (value instanceof Collection) {
             int index = 0;
             for (Object member : (Collection<?>) value)
-                propagateModelPath(member, path + "[" + index++ + "]");
+                propagateModelPath(field, member, path + "[" + index++ + "]");
         } else if (value instanceof Map) {
-            ((Map<?, ?>) value).forEach((key, member) -> propagateModelPath(member, path + "." + toGPath(key)));
+            ((Map<?, ?>) value).forEach((key, member) -> propagateModelPath(field, member, path + "." + toGPath(key)));
         }
     }
 

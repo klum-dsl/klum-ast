@@ -123,6 +123,16 @@ This also holds true for methods using default values populated by the owner.
 
 `PostApply` methods accessing the owner must also be move to a later phase (or split).
 
+## Layer 3 `@LinkTo` relationships
+
+In 4.0, `@LinkTo` is an `OPTIONAL_LINK` relationship by default. A local Builder created in the current construction
+session remains owned composition; an already owned Builder or a completed DSL Object is an aggregation target. This
+preserves the usual Layer 3 pattern in which a local value overrides an Auto-Link fallback.
+
+Use `@Field(FieldType.LINK) @LinkTo` when the field must be aggregation-only. Ordinary relationships remain
+composition-only and reject completed or already claimed Builders. Custom `@AutoLink` code that previously overwrote a
+configured value must use `builder.link(fieldName, target)` for an explicit non-destructive fallback instead.
+
 ## Deprecation: Validation annotation -> Validate
 
 `@Validation.mode()` is replaced by phases and thus ignored. `Validation.Option.IGNORE_UNMARKED` is default anyway, so
