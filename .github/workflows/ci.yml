@@ -45,8 +45,19 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         if: success() || failure()
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+          report_paths: '**/build/test-results/*/TEST-*.xml'
           check_name: 'JUnit Test Report'
+      - name: Archive compatibility-lane evidence
+        uses: actions/upload-artifact@v7
+        if: success() || failure()
+        with:
+          name: compatibility-lane-evidence
+          path: |
+            **/build/test-results/groovy4Tests/TEST-*.xml
+            **/build/test-results/groovy5Tests/TEST-*.xml
+            code-coverage-report/build/reports/jacoco/groovy4CodeCoverageReport/**
+            code-coverage-report/build/reports/jacoco/groovy5CodeCoverageReport/**
+          if-no-files-found: error
       - name: Archive test classes
         uses: actions/upload-artifact@v7
         if: failure()

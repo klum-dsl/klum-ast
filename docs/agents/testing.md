@@ -2,6 +2,13 @@
 
 KlumAST supports three Groovy generations. Passing one generation is not evidence that the other two pass, even when their compiler behavior is currently similar.
 
+The baseline and compatibility lanes share only their production artifact plus explicit `src/test/java` and
+`src/test/resources` inputs. Groovy test sources and Groovy test fixtures are compiled separately in each lane.
+`verifyTestLaneIsolation`, which is part of `check`, rejects mismatched Groovy/Spock dependencies, cross-lane compiled
+test or resource output on source-set/Groovy compile/runtime classpaths, non-lane test classes, and non-lane JUnit result
+directories. CI keeps the Groovy-4/5 JUnit and JaCoCo reports as compatibility-lane evidence; Sonar consumes only the
+Groovy-3 baseline report so production classes are not counted once per lane.
+
 ## Test lanes
 
 | Gradle task | Groovy generation | Use |
