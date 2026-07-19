@@ -2,16 +2,24 @@
 
 ### Task names
 
-Each agent should rename its own Codex task when the purpose becomes materially more precise, using a concise title that describes the specific outcome. Use a status prefix when work reaches one of these handoff states:
+Each agent should rename its own Codex task when the purpose becomes materially more precise, using a concise title that describes the specific outcome. Active work needs no status prefix. When work reaches a handoff state, the title must express its current delivery/archive state; keep the execution scope separate in status reports.
 
-- `(ready:commit)` — changes and validation are complete, but the commit remains.
-- `(ready:PR)` — commits are ready, but pushing or creating the pull request remains.
-- `(done)` — the requested outcome is complete with no repository step pending.
-- `(done:PR)` — the completed work has been published as a pull request.
-- `(done:merged)` — use only when the task explicitly includes shepherding the pull request through merge.
-- `(blocked)` — progress requires external input or an external state change.
+Non-archive-safe states:
 
-Active work needs no status prefix.
+- `(ready:commit)` — validated changes still need committing.
+- `(ready:issue)` — an issue proposal is prepared but the issue still needs creating.
+- `(ready:PR)` — committed work still needs pushing and/or pull-request creation.
+- `(PR:open)` — a pull request exists but is not verified merged, even if assigned implementation work is finished.
+- `(needs:changes)` — substantive adjustments remain, including pull-request stabilization or review fixes.
+- `(blocked)` — external input or state is required.
+
+Archive-safe states:
+
+- `(done)` — the requested outcome is complete with no repository or delivery step pending.
+- `(done:issue)` — the requested issue has been created and verified.
+- `(done:merged)` — the requested changes are verified merged, regardless of whether merge shepherding was in the original assignment.
+
+Do not use `(done:PR)`: an open pull request is not archive-safe, while a merged pull request is `(done:merged)`. Tasks need not poll merge or issue state continuously. On a user report or orchestrator refresh, verify the live state and update the title; orchestrators may initiate periodic reconciliation.
 
 ### Issue tracker
 
