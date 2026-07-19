@@ -66,7 +66,21 @@ For any candidate, send each relevant orchestrator one non-blocking message cont
 
 This is automatic triage, not authorization or work dispatch: never auto-start a user-visible task, create a GitHub issue or pull request, modify a repository, or make a feedback loop. Preserve normal explicit GitHub-write authority and the user's implementation selection. Route only at creation or a material scope change; do not re-broadcast an already-routed candidate unless its evidence or scope materially changes.
 
-### 6. Reconcile lifecycle and titles
+### 6. Run an explicitly bounded AFK window
+
+AFK mode is an exception to the normal no-auto-start rule, not a second orchestrator. Enter it only when the user explicitly supplies all of the following: a fixed duration or deadline, a capacity mode, and a maximum model/reasoning level. Render the active window and its ceiling visibly. A request that omits capacity is **passive reconciliation-only**, not permission to launch work.
+
+Capacity is a ceiling on concurrently active implementation tasks: `passive` = 0, `low` = 1, `normal` = 2, and `high` = 3. A repository overlay may lower that number for its own risk, but may never raise it. Use the least costly model and reasoning level that fits each admitted task, never exceeding the declared ceiling.
+
+Before every launch, refresh the candidate's declared evidence sources and admit it only when the evidence is fresh, the work is already fully specified, and it belongs to the allowed task class: a bounded implementation or validation/documentation follow-up whose safe delivery boundary is a local commit. A candidate requiring a product, compatibility, architecture, classification, scope, or publication decision stays in the human queue. An empty admissible queue is valid and must remain idle.
+
+Every admitted task is a fresh, user-visible worktree task with a stable short label, callback ID, bounded outcome, and the normal report protocol. It may create a local branch, edit, validate, review its local history, and commit. It must not use credentials or make any remote mutation: no push; PR or issue creation; comment, closure, label, milestone, or dependency change; merge, release, workflow dispatch; or equivalent remote action. Do not treat local commits as publication authorization.
+
+An unexpected decision, exception, ambiguous evidence, failed admission check, or policy conflict is a safe stop: launch no replacement work and return the candidate with its evidence and question to the human queue. At the deadline, on an early return from AFK, or when capacity is reduced, stop new launches, let already admitted work reach its safe local boundary, and then provide the complete handoff: task reports, local branch/commit state, validation, unresolved human queue, and every external condition.
+
+Use the existing orchestrator and, when the platform supports it, exactly one one-shot deadline heartbeat for the AFK window. Do not create another orchestrator, a recurring automation, or a self-renewing heartbeat. On exit, the normal no-auto-start rule immediately resumes. Cross-orchestrator impact triage remains required, but during AFK it may only route non-blocking information; it cannot dispatch remote, cross-repository, or additional work.
+
+### 7. Reconcile lifecycle and titles
 
 Keep a task's assigned execution scope separate from its repository delivery state. A completed task can therefore retain an external delivery condition; a task title must express the current actionable/archive state under the repository's authoritative task-title policy.
 
@@ -100,11 +114,14 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] At task creation and material scope changes, relevant active orchestrators were compared for repository, scope, and shared-boundary impact; exactly one triage outcome was selected.
 - [ ] Cross-cutting candidates were routed once with the required evidence and ownership fields, then deduplicated by receivers without triggering work, GitHub writes, repository changes, or feedback loops.
 - [ ] Refreshing and rendering made no repository, tracker, project, PR, release, or task-state mutation beyond a user-authorized task lifecycle action.
+- [ ] An AFK window, when active, records an explicit deadline, capacity mode, and model/reasoning ceiling; admission evidence is fresh; every launched task is a local-only worktree task within the capacity cap; and no recurring automation or remote mutation was used.
 
 ## KlumAST overlay
 
-For KlumAST, use root `AGENTS.md` as the authoritative task-title and delivery/archive policy; use `docs/agents/short-term-backlog.md` for model-selection and task-boundary rules; use `docs/agents/issue-tracker.md` and `docs/agents/pull-requests.md` for GitHub and publication authority. Apply `klum-review-release` for release reconciliation, `klum-curate-issues` for issue inventories, `klum-grill-issue` for unresolved maintainer decisions, and `klum-implement-issue` only for accepted implementation work. The current release plan, issue-culture artifacts, ADRs, and local GitHub state supply the release-specific evidence. These are overlays, not copies of this generic protocol.
+For KlumAST, use root `AGENTS.md` as the authoritative task-title and delivery/archive policy; use `docs/agents/short-term-backlog.md` for model-selection and task-boundary rules; use `docs/agents/issue-tracker.md` and `docs/agents/pull-requests.md` for GitHub and publication authority. Apply `klum-review-release` for release reconciliation, `klum-curate-issues` for issue inventories, `klum-grill-issue` for unresolved maintainer decisions, and `klum-implement-issue` only for accepted implementation work. The current release plan, issue-culture artifacts, ADRs, local GitHub state, and task threads supply the release-specific evidence.
+
+In an AFK window, tests, CI load, and local resource pressure may reduce concurrency below the generic cap. License-plugin conflicts are hard stops under `AGENTS.md`; do not adapt files or configuration to evade them. The only autonomous reconciliation is the local task and repository inventory. Uncertain classification and all GitHub changes stay in the human queue. These are overlays, not copies of the generic protocol.
 
 ## Baseline reflection
 
-The generic evidence, horizon, rendering, lifecycle, and callback protocol is a candidate for later upstream extraction through [blackbuild/engineering-baseline#2](https://github.com/blackbuild/engineering-baseline/issues/2); it remains local now because the reusable baseline has not yet been validated across repositories and KlumAST's overlay paths and release authority must stay repository-owned.
+The generic evidence, horizon, rendering, lifecycle, callback, and AFK-window protocol is a candidate for later upstream extraction through [blackbuild/engineering-baseline#2](https://github.com/blackbuild/engineering-baseline/issues/2). KlumAST's overlay paths, resource limits, license-policy stops, and release authority remain repository-owned.
