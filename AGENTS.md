@@ -43,6 +43,13 @@ This repository uses a single-context layout: one `CONTEXT.md` at the repo root 
 Import referenced Java and Groovy types and use their simple names. Fully qualified names in source are reserved for genuine
 name conflicts or another documented technical necessity. See `docs/agents/coding-style.md`.
 
+### License plugin
+
+If license-plugin configuration conflicts with a planned change, ask for the plugin or its configuration to be changed.
+Do not rename, retype, or otherwise adapt files merely to bypass license-header handling (for example, renaming `.txt` to
+`.java`). An outdated year in a license file needs a dedicated issue; when an outdated year or related structural problem is
+found incidentally, get confirmation before creating that separate issue or task.
+
 ### Testing
 
 Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.
