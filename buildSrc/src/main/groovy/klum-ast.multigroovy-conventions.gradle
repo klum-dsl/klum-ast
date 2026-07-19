@@ -1,3 +1,5 @@
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+
 plugins {
     id "klum-ast.java-conventions"
     id 'jvm-test-suite'
@@ -30,6 +32,12 @@ testing {
                     srcDirs = ['src/test/groovy']
                     destinationDirectory = file("build/classes/groovy/test-g$groovyVersion")
                 }
+                java {
+                    srcDirs = ['src/test/java']
+                }
+                resources {
+                    srcDirs = ['src/test/resources']
+                }
             }
 
             dependencies {
@@ -38,7 +46,6 @@ testing {
                 implementation libs.spock.junit4."g$groovyVersion"
                 implementation libs.groovy."v$groovyVersion"
                 implementation platform(libs.groovy."v$groovyVersion".bom)
-                implementation sourceSets.test.output
                 implementation 'uk.org.webcompere:system-stubs-core:2.1.8'
                 runtimeOnly libs.bytebuddy
                 runtimeOnly libs.objenesis
@@ -51,6 +58,83 @@ testing {
     }
 }
 
+def testLanes = [
+        3: [
+                sourceSet : sourceSets.test,
+                classpath : configurations.testRuntimeClasspath,
+                compileTask: tasks.named('compileTestGroovy'),
+                testTask   : tasks.named('test')
+        ],
+        4: [
+                sourceSet : sourceSets.groovy4Tests,
+                classpath : configurations.groovy4TestsRuntimeClasspath,
+                compileTask: tasks.named('compileGroovy4TestsGroovy'),
+                testTask   : tasks.named('groovy4Tests')
+        ],
+        5: [
+                sourceSet : sourceSets.groovy5Tests,
+                classpath : configurations.groovy5TestsRuntimeClasspath,
+                compileTask: tasks.named('compileGroovy5TestsGroovy'),
+                testTask   : tasks.named('groovy5Tests')
+        ]
+]
+
+tasks.register('verifyTestLaneIsolation') {
+    group = 'verification'
+    description = 'Verifies matching Groovy/Spock dependencies, isolated test output, and lane-specific JUnit results.'
+    dependsOn testLanes.values()*.testTask
+    mustRunAfter testLanes.values()*.testTask
+
+    doLast {
+        testLanes.each { generation, lane ->
+            def components = lane.classpath.incoming.resolutionResult.allComponents*.id.findAll {
+                it instanceof ModuleComponentIdentifier
+            }
+            def groovyComponents = components.findAll { it.group in ['org.codehaus.groovy', 'org.apache.groovy'] }
+            def expectedGroovyGroup = generation == 3 ? 'org.codehaus.groovy' : 'org.apache.groovy'
+            if (groovyComponents.isEmpty() || groovyComponents.any {
+                it.group != expectedGroovyGroup || it.version != libs.versions.groovy."v$generation".get()
+            })
+                throw new GradleException("Groovy $generation lane contains mismatched Groovy modules: $groovyComponents")
+
+            def spockComponents = components.findAll { it.group == 'org.spockframework' }
+            if (spockComponents.isEmpty() || spockComponents.any {
+                it.version != libs.versions.spock."g$generation".get()
+            })
+                throw new GradleException("Groovy $generation lane contains mismatched Spock modules: $spockComponents")
+
+            def forbiddenOutput = testLanes.findAll { otherGeneration, ignored -> otherGeneration != generation }
+                    .values()
+                    .collectMany { otherLane ->
+                        otherLane.sourceSet.output.classesDirs.files + [otherLane.sourceSet.output.resourcesDir]
+                    }
+                    .findAll { it != null }
+            def sourceSetCompileLeak = lane.sourceSet.compileClasspath.files.intersect(forbiddenOutput)
+            if (!sourceSetCompileLeak.isEmpty())
+                throw new GradleException("Groovy $generation source-set compile classpath contains another lane's output: $sourceSetCompileLeak")
+
+            def groovyCompileLeak = lane.compileTask.get().classpath.files.intersect(forbiddenOutput)
+            if (!groovyCompileLeak.isEmpty())
+                throw new GradleException("Groovy $generation Groovy compile classpath contains another lane's output: $groovyCompileLeak")
+
+            def testTask = lane.testTask.get()
+            def runtimeLeak = testTask.classpath.files.intersect(forbiddenOutput)
+            if (!runtimeLeak.isEmpty())
+                throw new GradleException("Groovy $generation test runtime classpath contains another lane's output: $runtimeLeak")
+
+            def expectedClasses = lane.sourceSet.output.classesDirs.files
+            if (testTask.testClassesDirs.files != expectedClasses)
+                throw new GradleException("Groovy $generation executes unexpected test classes: ${testTask.testClassesDirs.files}")
+
+            def expectedResults = layout.buildDirectory.dir("test-results/${testTask.name}").get().asFile
+            if (testTask.reports.junitXml.outputLocation.get().asFile != expectedResults)
+                throw new GradleException("Groovy $generation writes JUnit results outside $expectedResults")
+            if (!expectedResults.directory)
+                throw new GradleException("Groovy $generation did not produce JUnit results in $expectedResults")
+        }
+    }
+}
+
 // Need to add test fixtures as source, since we compile with different spock versions
 tasks.withType(GroovyCompile).configureEach {
     if (!name.contains("Test") || name.contains("Fixtures")) return
@@ -60,4 +144,5 @@ tasks.withType(GroovyCompile).configureEach {
 tasks.named('check') {
     dependsOn(testing.suites.groovy4Tests)
     dependsOn(testing.suites.groovy5Tests)
+    dependsOn(tasks.named('verifyTestLaneIsolation'))
 }

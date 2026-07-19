@@ -21,11 +21,11 @@ reporting {
         testCodeCoverageReport(JacocoCoverageReport) {
             testSuiteName = "test"
         }
-        groovy3CodeCoverageReport(JacocoCoverageReport) {
-            testSuiteName = "groovy3Tests"
-        }
         groovy4CodeCoverageReport(JacocoCoverageReport) {
             testSuiteName = "groovy4Tests"
+        }
+        groovy5CodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = "groovy5Tests"
         }
     }
 }

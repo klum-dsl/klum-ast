@@ -70,5 +70,13 @@ public enum FieldType {
      * and only create dsl methods for existing objects (i.e. using a instance as parameter), but no methods to
      * create new instances (Map and/or Closure parameters).</p>
      */
-    LINK
+    LINK,
+
+    /**
+     * A relationship which accepts either owned composition or an aggregation link. A fresh Builder from the current
+     * construction session is claimed as composition; an already claimed Builder or a completed DSL Object is retained
+     * as an aggregation target. {@link com.blackbuild.klum.ast.util.layer3.annotations.LinkTo} selects this mode unless
+     * the field explicitly declares {@link #LINK}.
+     */
+    OPTIONAL_LINK
 }

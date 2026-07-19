@@ -44,6 +44,11 @@ Builders carry an internal opaque `ConstructionSession` identity token. One toke
 Builders capture it, and ownership/adoption checks compare it by identity. The token exposes no current phase or current
 object and becomes invalid after the lifecycle. It is deliberately narrower than `PhaseDriver.Context`.
 
+`OPTIONAL_LINK` refines the relationship boundary without changing this protocol. It claims a fresh same-session Builder
+as composition at one relationship entry, while an already claimed Builder or completed model is an aggregation entry.
+Aggregation-only `LINK` rejects fresh Builders. The distinction is per single value, collection element, or map value;
+an optional collection or map may therefore mix owned and aggregation targets.
+
 ### Project adaptable factory methods into Builder-producing methods
 
 Collection and Cluster factories call Builder-producing implementations and return the created Builder. Factory methods

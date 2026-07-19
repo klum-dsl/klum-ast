@@ -64,17 +64,21 @@ public class LinkHelper {
     static void autoLink(InternalKlumBuilder<?> builder, Field field, LinkTo linkTo) {
         Object value = determineLinkTarget(builder, field, linkTo);
         if (value == null) return;
+        Field schemaField = DslHelper.getField(builder.getModelType(), field.getName()).orElse(field);
 
         if (!field.getType().isAssignableFrom(value.getClass()))
             throw new KlumVisitorException(String.format("LinkTo annotation on %s#%s targets %s, which is not compatible with the field type %s",
                     field.getDeclaringClass().getName(), field.getName(), value.getClass().getName(), field.getType().getName()), builder);
 
-        if (value instanceof Collection)
+        if (DslHelper.isRelationship(schemaField)) {
+            builder.link(field.getName(), value);
+        } else if (value instanceof Collection) {
             builder.addElementsToCollection(field.getName(), (Collection<?>) value);
-        else if (value instanceof Map)
+        } else if (value instanceof Map) {
             builder.addElementsToMap(field.getName(), (Map<?, ?>) value);
-        else
+        } else {
             builder.setSingleField(field.getName(), value);
+        }
     }
 
     static Object determineLinkTarget(InternalKlumBuilder<?> builder, Field fieldToFill, LinkTo linkTo) {

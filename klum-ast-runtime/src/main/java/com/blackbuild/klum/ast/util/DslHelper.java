@@ -28,6 +28,7 @@ import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.groovy.configdsl.transform.Key;
 import com.blackbuild.groovy.configdsl.transform.Owner;
 import com.blackbuild.klum.ast.KlumModelObject;
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 import groovy.lang.*;
 import groovy.transform.Undefined;
 import groovyjarjarasm.asm.Opcodes;
@@ -152,8 +153,11 @@ public class DslHelper {
 
     public static FieldType getKlumFieldType(Field field) {
         com.blackbuild.groovy.configdsl.transform.Field fieldAnnotation = field.getAnnotation(com.blackbuild.groovy.configdsl.transform.Field.class);
-        if (fieldAnnotation == null) return FieldType.DEFAULT;
-        return fieldAnnotation.value();
+        if (fieldAnnotation != null && fieldAnnotation.value() != FieldType.DEFAULT)
+            return fieldAnnotation.value();
+        if (field.isAnnotationPresent(LinkTo.class) || field.getDeclaringClass().isAnnotationPresent(LinkTo.class))
+            return FieldType.OPTIONAL_LINK;
+        return FieldType.DEFAULT;
     }
 
     public static <T extends Annotation> T getFieldAnnotation(Class<?> type, String fieldName, Class<T> annotationType) {
@@ -354,6 +358,10 @@ public class DslHelper {
 
     public static boolean isLink(@NotNull Field field) {
         return getKlumFieldType(field) == FieldType.LINK;
+    }
+
+    public static boolean isOptionalLink(@NotNull Field field) {
+        return getKlumFieldType(field) == FieldType.OPTIONAL_LINK;
     }
 
     /** Returns whether a schema field represents a direct or collection-valued DSL relationship. */

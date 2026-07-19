@@ -29,6 +29,7 @@ import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.ast.util.BreadCrumbVerbInterceptor;
 import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.LanguageHelper;
+import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -362,7 +363,16 @@ public class DslAstHelper {
     }
 
     public static FieldType getFieldType(AnnotatedNode annotatedNode) {
-        return CommonAstHelper.getNullSafeEnumMemberValue(getAnnotation(annotatedNode, DSLASTTransformation.DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
+        FieldType declaredType = CommonAstHelper.getNullSafeEnumMemberValue(
+                getAnnotation(annotatedNode, DSLASTTransformation.DSL_FIELD_ANNOTATION), "value", FieldType.DEFAULT);
+        if (declaredType != FieldType.DEFAULT)
+            return declaredType;
+        if (getAnnotation(annotatedNode, ClassHelper.make(LinkTo.class)) != null)
+            return FieldType.OPTIONAL_LINK;
+        if (annotatedNode instanceof FieldNode fieldNode
+                && getAnnotation(fieldNode.getDeclaringClass(), ClassHelper.make(LinkTo.class)) != null)
+            return FieldType.OPTIONAL_LINK;
+        return FieldType.DEFAULT;
     }
 
     static boolean isProtected(AnnotatedNode annotatedNode) {

@@ -2,16 +2,24 @@
 
 ### Task names
 
-Each agent should rename its own Codex task when the purpose becomes materially more precise, using a concise title that describes the specific outcome. Use a status prefix when work reaches one of these handoff states:
+Each agent should rename its own Codex task when the purpose becomes materially more precise, using a concise title that describes the specific outcome. Active work needs no status prefix. When work reaches a handoff state, the title must express its current delivery/archive state; keep the execution scope separate in status reports.
 
-- `(ready:commit)` — changes and validation are complete, but the commit remains.
-- `(ready:PR)` — commits are ready, but pushing or creating the pull request remains.
-- `(done)` — the requested outcome is complete with no repository step pending.
-- `(done:PR)` — the completed work has been published as a pull request.
-- `(done:merged)` — use only when the task explicitly includes shepherding the pull request through merge.
-- `(blocked)` — progress requires external input or an external state change.
+Non-archive-safe states:
 
-Active work needs no status prefix.
+- `(ready:commit)` — validated changes still need committing.
+- `(ready:issue)` — an issue proposal is prepared but the issue still needs creating.
+- `(ready:PR)` — committed work still needs pushing and/or pull-request creation.
+- `(PR:open)` — a pull request exists but is not verified merged, even if assigned implementation work is finished.
+- `(needs:changes)` — substantive adjustments remain, including pull-request stabilization or review fixes.
+- `(blocked)` — external input or state is required.
+
+Archive-safe states:
+
+- `(done)` — the requested outcome is complete with no repository or delivery step pending.
+- `(done:issue)` — the requested issue has been created and verified.
+- `(done:merged)` — the requested changes are verified merged, regardless of whether merge shepherding was in the original assignment.
+
+Do not use `(done:PR)`: an open pull request is not archive-safe, while a merged pull request is `(done:merged)`. Tasks need not poll merge or issue state continuously. On a user report or orchestrator refresh, verify the live state and update the title; orchestrators may initiate periodic reconciliation.
 
 ### Issue tracker
 
@@ -43,9 +51,31 @@ This repository uses a single-context layout: one `CONTEXT.md` at the repo root 
 Import referenced Java and Groovy types and use their simple names. Fully qualified names in source are reserved for genuine
 name conflicts or another documented technical necessity. See `docs/agents/coding-style.md`.
 
+### License plugin
+
+If license-plugin configuration conflicts with a planned change, ask for the plugin or its configuration to be changed.
+Do not rename, retype, or otherwise adapt files merely to bypass license-header handling (for example, renaming `.txt` to
+`.java`). An outdated year in a license file needs a dedicated issue; when an outdated year or related structural problem is
+found incidentally, get confirmation before creating that separate issue or task.
+
 ### Testing
 
 Groovy 3 is the baseline test lane (`test`). Groovy 4 and Groovy 5 compatibility use `groovy4Tests` and `groovy5Tests`; run them when a version difference is expected and at the end of a change, rather than on every focused iteration. Every ignored, conditionally ignored, or pending test must state an actionable reason. See `docs/agents/testing.md`.
+Documentation-only pull requests that cannot affect compilation, test execution, or runtime behavior do not require the
+Groovy test lanes; run the applicable documentation and diff checks instead. See `docs/agents/testing.md`.
+Every newly added test must carry its driving issue number in `@Issue`; a class-level annotation is sufficient while all
+tests in that class originate from the same issue. Add or amend `@Issue` on an existing test only when a change to it is
+significant. Every new user-visible DSL feature also needs a documentary test marked with `@Tag("documentary")` and linked
+to its documentation through `@See`. Name new executable test classes with the `Test` suffix; use
+`<Theme>DocumentaryTest` for dedicated documentary classes. Existing `*Spec` classes need not be renamed. See
+`docs/agents/testing.md`.
+
+### Feature discussion examples
+
+During grilling and implementation, usually present a compact usage example in the conversation so the feature's syntax
+and feel can be evaluated early. For DSL changes, use only Groovy and show the relevant Schema or Model syntax. For client
+APIs, show Java first and Groovy second. Evolve the example into the documentary test and user documentation once the
+feature direction is settled. See `docs/agents/testing.md`.
 
 ### Issue implementation commits
 

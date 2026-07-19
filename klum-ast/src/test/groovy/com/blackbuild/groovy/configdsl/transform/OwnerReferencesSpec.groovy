@@ -211,8 +211,8 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then: "a sealed Builder from a completed lifecycle cannot become new composition"
-        KlumModelException error = thrown()
-        error.message.contains("Completed DSL Object inputs are only supported for LINK relationships")
+        MissingMethodException error = thrown()
+        error.method == 'bar'
         instance.bars[0].foo.is(instance)
     }
 
@@ -252,7 +252,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(KlumModelException)
+        thrown(MissingMethodException)
         aBar.outer.is(instance)
     }
 
@@ -378,7 +378,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(KlumModelException)
+        thrown(MissingMethodException)
         aBar.foo.is(instance)
     }
 
@@ -412,7 +412,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(KlumModelException)
+        thrown(MissingMethodException)
         aBar.foo.is(otherFoo)
     }
 
@@ -445,7 +445,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
         }
 
         then:
-        thrown(KlumModelException)
+        thrown(MissingMethodException)
         aBar.foo.is(otherFoo)
     }
 

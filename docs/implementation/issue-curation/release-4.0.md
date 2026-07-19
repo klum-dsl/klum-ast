@@ -56,6 +56,49 @@ Jackson groundwork is complete; #463's public API review and implementation now 
 #474 is an independent public compatibility blocker: it must settle Layer 3 relationship behavior before #468 freezes the
 generated surface.
 
+## Confirmed pre-release validation policy
+
+**Decision (2026-07-19):** Use a public, immutable release candidate as the sole 4.0 remote external-consumer
+validation channel. A candidate is not evidence that its differently versioned final artifact is byte-identical; it is
+evidence for the candidate's source commit and release configuration. The final release must therefore use the exact
+commit validated by the last candidate. A documentation-only change may proceed without another candidate. Any other
+exception, such as an intentional support-matrix transition for which no suitable candidate consumer exists, requires an
+explicit recorded release decision naming the changed validation claim and compensating evidence.
+
+| Channel | 4.0 role | Publication and consumer contract |
+|---|---|---|
+| Alpha / beta | Not supported. | Nebula Release is currently configured with no alpha/beta policy or mechanism; introducing either is separate work and must not be implied by an RC. |
+| Snapshot / dev snapshot / immutable snapshot | Developer integration only. | They may help development, but their mutable or non-release-tagged nature makes them insufficient for the required named, cross-network complete-product validation. |
+| RC | Required remote validation channel. | Nebula `candidate` creates an immutable tagged `4.0.0-rc.N`. Publish all KlumAST Maven artifacts and both Gradle plugin IDs at that one version to the public repositories, then verify a clean external consumer resolves only those remote coordinates. |
+| Central/Nexus staging repository | Publication gate, not a consumer channel. | Use staging to validate signing and repository acceptance before promotion, but do not call it external-consumer validation: a closed/open staging repository alone does not provide the intended public, cross-network, complete-product resolve-back test. |
+| Final | Formal 4.0 release. | Publish a distinct final version from the last RC's commit (or the documented exception). Re-run release verification against the final coordinates; do not describe it as promotion of identical artifact bytes. |
+
+The external consumer must pin the exact RC version, resolve Maven modules through Maven Central, and resolve the two
+plugins through `pluginManagement` with the Gradle Plugin Portal. It must use a clean Gradle cache and no composite build,
+`mavenLocal`, local repository, or unpublished included build. The smoke suite must prove all published Maven modules and
+both plugin markers resolve at the same candidate version, then compile/run the agreed consumer cases from a different
+machine or network.
+
+### Required sequence and owners
+
+1. KlumCast publishes its final 0.4.x artifact set and independently proves its remote Groovy 3/4/5, classpath, JPMS,
+   package, and module consumer cases. Its release-channel policy/runbook remains KlumCast-owned; it is not work for
+   KlumAST #459 or KlumCast #30.
+2. AnnoDocimal completes #47 and publishes final 1.0.0 after its #45 runbook rehearsal, #44 clean publication/consumer
+   smoke tests, and documentation gate. A named preview must cover its six Maven artifacts and two plugin IDs at one
+   version. This is a prerequisite for #461, not a shared KlumAST publication operation.
+3. KlumAST #459 and #461 consume those final dependencies; all 4.0 blockers and the normal Groovy 3/4/5 release gates
+   complete.
+4. KlumAST #488 owns the smallest necessary delivery slice: a reviewed `RELEASING.md`, protected credential and
+   publication path, RC publication of the complete KlumAST product, clean external resolve-back fixtures, and a
+   documented failure/recovery procedure. It must also state which task publishes Maven modules, plugin markers, and
+   wiki/documentation, because the current build wires `candidate`/`final` only to wiki publication.
+5. Run the named RC against external consumers, accept or reject it, and either release the final from that commit or
+   issue a new RC. The final's own remote-coordinate verification remains mandatory.
+
+AnnoDoc Support is optional fixture-only external evidence after KlumAST public coordinates exist; it is neither a 4.0
+prerequisite nor a shared publication owner. Any alpha/beta/staging extension there needs separately authorized work.
+
 ## 4.0 nice-to-have
 
 These improve confidence or polish at the new public boundary but have a safe deferral path. They are not permission to expand the release until the listed must items are complete.
