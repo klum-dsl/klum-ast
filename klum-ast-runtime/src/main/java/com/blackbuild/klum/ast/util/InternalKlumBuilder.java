@@ -30,6 +30,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.ConstructionSession;
+import com.blackbuild.klum.ast.process.ConstructionSession;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -128,6 +129,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     public final void $completeConstructionSession(ConstructionSession session) {
         if (constructionSession == session)
             constructionSessionActive = false;
+    }
+
+    /** Internal hook used by {@link PhaseDriver} to keep Builder adapters in their owning session. */
+    public final boolean $isInActiveConstructionSession(ConstructionSession session) {
+        return constructionSession == session && constructionSessionActive;
     }
 
     public final Class<M> getModelType() {

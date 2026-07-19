@@ -28,14 +28,19 @@ import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumFactory;
 import com.blackbuild.klum.ast.util.KlumModelException;
+import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.Objects;
 
 /**
@@ -113,8 +118,8 @@ public final class KlumJacksonImporter {
     public <T, B extends KlumBuilder<T>> B readBuilder(KlumFactory.BuilderFactory<T, B> factory,
                                                         KlumJacksonInput input) {
         Objects.requireNonNull(factory, "factory");
-        return read(factory.$modelTypeForImport(), input, KlumDeserializer.ManagedMode.BUILDER,
-                factory.$createForImport());
+        B builder = factory.FromMap(Collections.emptyMap());
+        return read(internalBuilder(builder).getModelType(), input, KlumDeserializer.ManagedMode.BUILDER, builder);
     }
 
     /**
@@ -127,8 +132,8 @@ public final class KlumJacksonImporter {
      */
     public <B extends KlumBuilder<?>> B applyToBuilder(B builder, KlumJacksonInput input) {
         Objects.requireNonNull(builder, "builder");
-        if (!(builder instanceof InternalKlumBuilder<?> internalBuilder))
-            throw new KlumModelException("Jackson applyToBuilder import requires an active generated Builder");
+        InternalKlumBuilder<?> internalBuilder = internalBuilder(builder);
+        PhaseDriver.requireCurrentConstructionSession(internalBuilder);
         return read(internalBuilder.getModelType(), input, KlumDeserializer.ManagedMode.APPLY, builder);
     }
 
@@ -142,17 +147,25 @@ public final class KlumJacksonImporter {
             JsonParser parser = source.parser();
             R result = (R) KlumDeserializer.withManagedRequest(request,
                     () -> reader.forType(type).readValue(parser));
+            if (!request.wasHandled() && mode == KlumDeserializer.ManagedMode.ROOT && hasTypeLevelCustomDeserializer(type))
+                return result;
             if (!request.wasHandled())
+                if (hasTypeLevelCustomDeserializer(type))
+                    throw new KlumModelException("Jackson " + mode.operation()
+                            + " import does not support a type-level custom deserializer for " + type.getName());
+                else
                 throw new KlumModelException("Jackson " + mode.operation() + " import requires KlumAstModule for "
                         + type.getName());
             return result;
         } catch (KlumException exception) {
             throw exception;
         } catch (IOException exception) {
+            rethrowKlumException(exception);
             if (!request.wasHandled())
                 throw missingModule(type, exception);
             throw importFailure(mode, type, input, exception);
         } catch (RuntimeException exception) {
+            rethrowKlumException(exception);
             if (exception.getCause() instanceof KlumException klumException)
                 throw klumException;
             throw importFailure(mode, type, input, exception);
@@ -163,17 +176,64 @@ public final class KlumJacksonImporter {
         return new KlumModelException("Managed Jackson import requires KlumAstModule for " + type.getName(), cause);
     }
 
-    private static KlumModelException importFailure(KlumDeserializer.ManagedMode mode, Class<?> type,
-                                                     KlumJacksonInput input, Throwable cause) {
-        Throwable directCause = cause instanceof JsonMappingException mapping && mapping.getCause() != null
-                ? mapping.getCause()
-                : cause;
-        return new KlumModelException("Jackson " + mode.operation() + " import of " + type.getName()
-                + " failed: " + cause.getMessage() + " at " + diagnosticPath(type, mode, input), directCause);
+    private static InternalKlumBuilder<?> internalBuilder(KlumBuilder<?> builder) {
+        if (builder instanceof InternalKlumBuilder<?> internalBuilder)
+            return internalBuilder;
+        throw new KlumModelException("Jackson Builder import requires an active generated Builder");
     }
 
-    private static String diagnosticPath(Class<?> type, KlumDeserializer.ManagedMode mode, KlumJacksonInput input) {
-        return "$/" + type.getSimpleName() + "." + mode.operation() + ":jackson(" + input.sourceName() + ")";
+    private static boolean hasTypeLevelCustomDeserializer(Class<?> type) {
+        JsonDeserialize annotation = type.getAnnotation(JsonDeserialize.class);
+        return annotation != null && annotation.using() != JsonDeserializer.None.class;
+    }
+
+    private static KlumModelException importFailure(KlumDeserializer.ManagedMode mode, Class<?> type,
+                                                     KlumJacksonInput input, Throwable cause) {
+        rethrowKlumException(cause);
+        return new KlumModelException("Jackson " + mode.operation() + " import of " + type.getName()
+                + " failed: " + conciseCause(cause) + " at " + diagnosticPath(type, mode, input, cause), cause);
+    }
+
+    private static void rethrowKlumException(Throwable failure) {
+        if (failure instanceof KlumException exception)
+            throw exception;
+        if (failure.getCause() instanceof KlumException exception)
+            throw exception;
+    }
+
+    private static String conciseCause(Throwable cause) {
+        if (cause instanceof JsonProcessingException processingException)
+            return processingException.getOriginalMessage();
+        return cause.getMessage();
+    }
+
+    private static String diagnosticPath(Class<?> type, KlumDeserializer.ManagedMode mode, KlumJacksonInput input,
+                                         Throwable cause) {
+        return "$/" + type.getSimpleName() + "." + mode.operation() + ":jackson(" + input.sourceName() + ")"
+                + inputPointer(cause) + syntaxLocation(cause);
+    }
+
+    private static String inputPointer(Throwable cause) {
+        if (!(cause instanceof JsonMappingException mappingException) || mappingException.getPath().isEmpty())
+            return "";
+        String pointer = mappingException.getPath().stream()
+                .map(reference -> reference.getFieldName() != null ? escapePointer(reference.getFieldName())
+                        : Integer.toString(reference.getIndex()))
+                .reduce("", (path, segment) -> path + "/" + segment);
+        return "/input(#" + pointer + ")";
+    }
+
+    private static String escapePointer(String value) {
+        return value.replace("~", "~0").replace("/", "~1");
+    }
+
+    private static String syntaxLocation(Throwable cause) {
+        if (!(cause instanceof JsonProcessingException processingException) || processingException.getLocation() == null)
+            return "";
+        var location = processingException.getLocation();
+        if (location.getLineNr() < 1 || location.getColumnNr() < 1)
+            return "";
+        return ":line " + location.getLineNr() + ", column " + location.getColumnNr();
     }
 
     private static Object valueToUpdate(ObjectReader reader) {

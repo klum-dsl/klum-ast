@@ -28,6 +28,7 @@ import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.klum.ast.process.PhaseDriver
 import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.TemplateManager
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import spock.lang.Issue
 
@@ -111,6 +112,39 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         mapper.registeredModuleIds.empty
     }
 
+    def "readRoot honours a type-level custom Jackson deserializer as an explicit opt-out"() {
+        given:
+        createClass('''
+            package pk
+
+            import com.fasterxml.jackson.core.JsonParser
+            import com.fasterxml.jackson.databind.DeserializationContext
+            import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+            import com.fasterxml.jackson.databind.deser.std.StdDeserializer
+
+            @JsonDeserialize(using = CustomImportedValueDeserializer)
+            @DSL
+            class CustomImportedValue { String value }
+
+            class CustomImportedValueDeserializer extends StdDeserializer<CustomImportedValue> {
+                CustomImportedValueDeserializer() { super(CustomImportedValue) }
+
+                @Override
+                CustomImportedValue deserialize(JsonParser parser, DeserializationContext context) {
+                    def tree = parser.codec.readTree(parser)
+                    return CustomImportedValue.Create.With { value "custom:${tree.value.asText()}" }
+                }
+            }
+        ''')
+        def importer = KlumJacksonImporter.using(new ObjectMapper())
+
+        when:
+        def imported = importer.readRoot(clazz, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        imported.value == "custom:Ada"
+    }
+
     def "borrowed parsers remain open and named sources appear in import diagnostics"() {
         given:
         createClass('''
@@ -134,7 +168,8 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         def exception = thrown(RuntimeException)
         exception.message.startsWith("Jackson readRoot import of pk.ParserImportedValue failed:")
         exception.message.contains('$/ParserImportedValue.readRoot:jackson(config.yaml)')
-        exception.cause != null
+        exception.message.contains(":line ")
+        exception.cause instanceof JsonProcessingException
     }
 
     def "Builder modes stay in the active Construction session and preserve Builder identity"() {
@@ -209,7 +244,26 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
         then:
         def exception = thrown(RuntimeException)
-        exception.message.contains("after its Construction session has completed")
+        exception.message.contains("active Construction session")
+    }
+
+    def "applyToBuilder rejects an unowned Builder without an active Construction session"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class UnownedImportedValue { String value }
+        ''')
+        def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+        def builder = FactoryHelper.createBuilder(clazz, null)
+
+        when:
+        importer.applyToBuilder(builder, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("active Construction session")
     }
 
     def "Java consumers compile against every importer descriptor"() {
@@ -231,14 +285,16 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
             import pk.JavaImportedValue;
             import pk.JavaImportedValue_DSL;
 
+            import java.util.Map;
+
             class JacksonConsumer {
                 void importValue(ObjectMapper mapper) {
                     KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
-                    JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
-                    JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
+                    JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
+                    JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(Map.of()));
                     JavaImportedValue_DSL.Builder builder = importer.readBuilder(
-                            JavaImportedValue.Create.getAsBuilder(), KlumJacksonInput.map(java.util.Map.of()));
-                    JavaImportedValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(java.util.Map.of()));
+                            JavaImportedValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                    JavaImportedValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                 }
             }
         ''')

@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.util;
 
 import com.blackbuild.annodocimal.annotations.InlineJavadocs;
-import com.blackbuild.klum.ast.process.PhaseDriver;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.lang.Script;
@@ -79,16 +78,6 @@ public class KlumFactory<T> {
             return (B) builder;
         }
 
-        /** Internal bridge for managed import adapters; clients use the adapter's typed operation instead. */
-        public final Class<T> $modelTypeForImport() {
-            return type;
-        }
-
-        /** Internal bridge for managed import adapters; creates an unsealed Builder in the active session. */
-        public final B $createForImport() {
-            PhaseDriver.requireActiveConstructionSession();
-            return asPublicBuilder(FactoryHelper.createBuilder(type, null));
-        }
     }
 
     /**

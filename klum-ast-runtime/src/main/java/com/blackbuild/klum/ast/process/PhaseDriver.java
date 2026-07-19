@@ -173,6 +173,15 @@ public class PhaseDriver {
                     + "use Create.With, Create.One, or Create.From for a standalone completed DSL Object.");
     }
 
+    /** Rejects use of a Builder from a missing, completed, or different Construction session. */
+    public static void requireCurrentConstructionSession(InternalKlumBuilder<?> builder) {
+        requireActiveConstructionSession();
+        PhaseDriver driver = INSTANCE.get();
+        if (!builder.$isInActiveConstructionSession(driver.constructionSession))
+            throw new KlumModelException("Builder belongs to no active Construction session on this thread. "
+                    + "Create it with Create.AsBuilder inside the owning root Builder lifecycle.");
+    }
+
     public static void enter(Object object) {
         PhaseDriver driver = getInstance();
         if (driver.activeObjectPointer == 0) {

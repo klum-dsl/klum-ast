@@ -45,14 +45,16 @@ class JacksonImporterConsumerTest extends Specification {
             import com.blackbuild.klum.ast.jackson.KlumJacksonInput;
             import com.fasterxml.jackson.databind.ObjectMapper;
 
+            import java.util.Map;
+
             class JavaConsumer {
                 static ExternalValue importValue(ObjectMapper mapper) {
                     KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
-                    ExternalValue root = importer.readRoot(ExternalValue.class, KlumJacksonInput.map(java.util.Map.of()));
-                    ExternalValue template = importer.readTemplate(ExternalValue.class, KlumJacksonInput.map(java.util.Map.of()));
+                    ExternalValue root = importer.readRoot(ExternalValue.class, KlumJacksonInput.map(Map.of()));
+                    ExternalValue template = importer.readTemplate(ExternalValue.class, KlumJacksonInput.map(Map.of()));
                     ExternalValue_DSL.Builder builder = importer.readBuilder(
-                            ExternalValue.Create.getAsBuilder(), KlumJacksonInput.map(java.util.Map.of()));
-                    ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(java.util.Map.of()));
+                            ExternalValue.Create.getAsBuilder(), KlumJacksonInput.map(Map.of()));
+                    ExternalValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(Map.of()));
                     return root;
                 }
             }
