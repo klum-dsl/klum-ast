@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.jackson;
 
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumException;
 import com.blackbuild.klum.ast.util.KlumFactory;
@@ -126,7 +127,9 @@ public final class KlumJacksonImporter {
      */
     public <B extends KlumBuilder<?>> B applyToBuilder(B builder, KlumJacksonInput input) {
         Objects.requireNonNull(builder, "builder");
-        return read(builder.getModelType(), input, KlumDeserializer.ManagedMode.APPLY, builder);
+        if (!(builder instanceof InternalKlumBuilder<?> internalBuilder))
+            throw new KlumModelException("Jackson applyToBuilder import requires an active generated Builder");
+        return read(internalBuilder.getModelType(), input, KlumDeserializer.ManagedMode.APPLY, builder);
     }
 
     @SuppressWarnings("unchecked")

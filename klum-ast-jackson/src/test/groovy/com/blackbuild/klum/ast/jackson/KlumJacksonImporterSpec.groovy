@@ -29,9 +29,11 @@ import com.blackbuild.klum.ast.process.PhaseDriver
 import com.blackbuild.klum.ast.util.FactoryHelper
 import com.blackbuild.klum.ast.util.TemplateManager
 import com.fasterxml.jackson.databind.ObjectMapper
+import spock.lang.Issue
 
 import javax.tools.ToolProvider
 
+@Issue("463")
 class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
     def "readRoot applies one captured input through the generated Builder lifecycle"() {
@@ -169,7 +171,48 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
-    def "Java consumers compile against the root and Template importer descriptors"() {
+    def "readBuilder rejects calls outside an active Construction session"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class DetachedImportedValue { String value }
+        ''')
+        def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+
+        when:
+        importer.readBuilder(clazz.Create.AsBuilder, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("active Construction session")
+    }
+
+    def "applyToBuilder rejects a Builder after its Construction session completes"() {
+        given:
+        createClass('''
+            package pk
+
+            @DSL
+            class SealedImportedValue { String value }
+        ''')
+        def importer = KlumJacksonImporter.using(new ObjectMapper().findAndRegisterModules())
+        def builder
+        PhaseDriver.withBuilderLifecycle(
+                { FactoryHelper.createBuilder(clazz, null) },
+                { builder = it }
+        )
+
+        when:
+        importer.applyToBuilder(builder, KlumJacksonInput.map([value: "Ada"]))
+
+        then:
+        def exception = thrown(RuntimeException)
+        exception.message.contains("after its Construction session has completed")
+    }
+
+    def "Java consumers compile against every importer descriptor"() {
         given:
         createClass('''
             package pk
@@ -186,18 +229,22 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
             import com.blackbuild.klum.ast.jackson.KlumJacksonInput;
             import com.fasterxml.jackson.databind.ObjectMapper;
             import pk.JavaImportedValue;
+            import pk.JavaImportedValue_DSL;
 
             class JacksonConsumer {
                 void importValue(ObjectMapper mapper) {
                     KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
                     JavaImportedValue root = importer.readRoot(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
                     JavaImportedValue template = importer.readTemplate(JavaImportedValue.class, KlumJacksonInput.map(java.util.Map.of()));
+                    JavaImportedValue_DSL.Builder builder = importer.readBuilder(
+                            JavaImportedValue.Create.getAsBuilder(), KlumJacksonInput.map(java.util.Map.of()));
+                    JavaImportedValue_DSL.Builder applied = importer.applyToBuilder(builder, KlumJacksonInput.map(java.util.Map.of()));
                 }
             }
         ''')
     }
 
-    def "statically compiled Groovy consumers infer root and Template types"() {
+    def "statically compiled Groovy consumers infer every importer type"() {
         given:
         createClass('''
             package pk
@@ -223,6 +270,13 @@ class KlumJacksonImporterSpec extends AbstractDSLSpec {
 
                 static StaticImportedValue template(ObjectMapper mapper) {
                     KlumJacksonImporter.using(mapper).readTemplate(StaticImportedValue, KlumJacksonInput.map([value: "template"]))
+                }
+
+                static StaticImportedValue_DSL.Builder builder(ObjectMapper mapper) {
+                    KlumJacksonImporter importer = KlumJacksonImporter.using(mapper)
+                    StaticImportedValue_DSL.Builder builder = importer.readBuilder(
+                            StaticImportedValue.Create.AsBuilder, KlumJacksonInput.map([value: "builder"]))
+                    importer.applyToBuilder(builder, KlumJacksonInput.map([value: "applied"]))
                 }
             }
         ''', 'pk/StaticJacksonConsumer.groovy')
