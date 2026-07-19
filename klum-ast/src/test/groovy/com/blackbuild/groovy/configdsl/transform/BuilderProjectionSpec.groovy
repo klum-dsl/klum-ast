@@ -170,7 +170,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         !getClass('sample.Child_DSL$Builder').declaredMethods*.name.any { it.startsWith('$klum$') }
 
         and:
-        mirror.contains('Child_DSL.Builder child(String value)')
+        mirror.contains('Child_DSL.Builder<Child> child(String value)')
         mirror.contains('unsealed Builder in the active construction session')
         mirror.contains('@param value the value to configure')
         !mirror.contains('$klum$asBuilder$')

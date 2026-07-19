@@ -78,8 +78,10 @@ framework factory/accessor naming without changing these importer descriptors.
 ### Generated Builder capability prerequisite
 
 The descriptors above remain fixed. Their `B extends KlumBuilder<T>` bound required #394 DSL-2 to make
-`KlumBuilder<T>` a zero-operation public interface and to make each generated `Foo_DSL.Builder` extend that interface;
-runtime implementation moves behind an internal base. This preserves precise Java and static-Groovy Builder inference
+`KlumBuilder<T>` a zero-operation public interface and to make each generated `Foo_DSL.Builder<SELF extends Foo>` extend
+that interface. Inherited public and hidden Builder hierarchies thread the leaf `SELF`, so
+`Child.Create.getAsBuilder()` exposes `Child_DSL.Builder<Child>` as the exact `B`. Runtime implementation moves behind an
+internal base. This preserves precise Java and static-Groovy Builder inference
 without exposing hidden implementations or widening the importer to erased, reflective, or `Object`-typed alternatives.
 
 #394 DSL-2 now supplies that capability. JSON-3 must compile the exact Java 17 and static-Groovy

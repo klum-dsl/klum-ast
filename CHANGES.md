@@ -10,8 +10,10 @@ This is a breaking release. See the [Builder-first construction migration](https
 - Relationship fields hold Builders during construction. Existing completed DSL Objects are accepted only as aggregation `LINK` targets; owned composition stays within one Builder lifecycle.
 - Completed collections are independent read-only snapshots. Supported declarations are `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`; unsupported concrete or custom declarations now fail schema compilation.
 - Split construction and completed-model state between `KlumBuilder` and `KlumModelProxy`. `KlumInstanceProxy` is now a deprecated Builder-only compatibility adapter, and `VisitingPhaseAction` is replaced by state-specific Builder and Model variants.
-- Replaced the legacy `$_RW`/`KlumRwObject` Builder implementation contract with generated
-  `Foo_DSL.Builder extends KlumBuilder<Foo>` capabilities. Runtime operations are internal; use generated Builder/factory
+- Replaced the legacy `$_RW`/`KlumRwObject` Builder implementation contract with generated, self-typed
+  `Foo_DSL.Builder<SELF extends Foo> extends KlumBuilder<SELF>` capabilities. Inherited Builder interfaces retain their
+  parent interface and thread the same leaf `SELF`; factories expose the concrete `Foo_DSL.Builder<Foo>`. Runtime operations
+  are internal; use generated Builder/factory
   interfaces and `@DelegatesToBuilder`. `@DelegatesToRW` remains a deprecated source alias
   ([#394](https://github.com/klum-dsl/klum-ast/issues/394)).
 - Added `createKlumDslSourceMirrors` to the schema Gradle plugin. Run it after schema changes to compile the real

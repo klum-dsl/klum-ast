@@ -65,8 +65,10 @@ graph and the completed model graph.
   factory input. Completed models expose no generated `apply` method.
 - Stop calling `KlumInstanceProxy.getProxyFor(model)`. The deprecated compatibility adapter accepts Builders only. Completed
   model technical state belongs to the Model companion and supported public utilities.
-- `KlumRwObject` and `$_RW` are removed in 4.0. Name generated `Foo_DSL.Builder` interfaces and use
-  `@DelegatesToBuilder`; the legacy `@DelegatesToRW` annotation remains a deprecated source alias. Builders do not expose
+- `KlumRwObject` and `$_RW` are removed in 4.0. Name generated `Foo_DSL.Builder<Foo>` interfaces and use
+  `@DelegatesToBuilder`; an inherited `Child_DSL.Builder<Child>` remains a `Parent_DSL.Builder<Child>` and has the one
+  `KlumBuilder<Child>` capability required by Builder-producing APIs. The legacy `@DelegatesToRW` annotation remains a
+  deprecated source alias. Builders do not expose
   the former `getDSLInstance()` or `getRwInstance()` identity aliases.
 - Build all owned children through the parent Builder lifecycle. Do not call `Child.Create.With` directly from inside a
   parent construction callback: that would start a second lifecycle, which is forbidden. Use the generated child method on

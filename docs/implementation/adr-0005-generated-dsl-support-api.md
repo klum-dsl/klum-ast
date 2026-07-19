@@ -8,7 +8,7 @@ This plan implements [ADR 0005](../adr/0005-generated-dsl-support-api.md) for ca
 Before DSL-2, `DSLASTTransformation.createRWClass()` generated inner `Foo.$_RW` classes that extended concrete
 `KlumBuilder` and directly declared deprecated `KlumRwObject`. DSL-2 replaces that spelling with the hidden
 `Foo$Builder` implementation, makes public `KlumBuilder<T>` zero-operation, and has generated
-`Foo_DSL.Builder` extend it. Runtime behavior lives in `InternalKlumBuilder`; `@DelegatesToBuilder` is canonical and
+the self-typed `Foo_DSL.Builder<SELF extends Foo>` extend it. Runtime behavior lives in `InternalKlumBuilder`; `@DelegatesToBuilder` is canonical and
 the deprecated `@DelegatesToRW` source alias normalizes to the same generated metadata.
 
 `KlumAstSchemaPlugin` applies `AnnoDocimalPlugin` and enables normal source/Javadoc variants. DSL-G now adds the dedicated
@@ -46,8 +46,10 @@ Convert `KlumBuilder<T>` to the supported narrow interface, move implementation 
 retaining only the promised source alias.
 
 **Confirmed Builder capability refinement (2026-07-18):** `KlumBuilder<T>` is a zero-operation public construction
-capability, not a general-purpose mutable Builder API. Every generated `Foo_DSL.Builder` extends
-`KlumBuilder<Foo>` (with its declared model generics preserved), and `KlumFactory.BuilderFactory<T, B>` consistently
+capability, not a general-purpose mutable Builder API. Every generated `Foo_DSL.Builder<SELF extends Foo>` extends
+`KlumBuilder<SELF>`; inherited Builder interfaces and their hidden implementations thread that same leaf `SELF`, so a
+`Child_DSL.Builder<Child>` has exactly one `KlumBuilder<Child>` capability while still extending
+`Parent_DSL.Builder<Child>`. `KlumFactory.BuilderFactory<T, B>` consistently
 uses `B extends KlumBuilder<T>`. The generated `Foo_DSL` interfaces remain the only public surface for
 schema-specific configuration. Runtime state, lifecycle, reflection, materialization, path, copy, and collection
 internals move behind an internal support base. The later dynamic `KlumBuilder.link(fieldName, target)` capability is
@@ -59,12 +61,15 @@ After the 4.0 API is delivered, the `KlumBuilder<T>` bound, generated `Foo_DSL` 
 `Create.getAsBuilder()` / static-Groovy `Create.AsBuilder` shapes are 4.x source and binary contracts. Hidden generated
 implementations remain non-contractual.
 
+Model-declared generic support remains #180 work; DSL-2 does not widen that scope.
+
 The exact JSON-3 descriptors in #463 depend on this slice: an interface `Foo_DSL.Builder` cannot satisfy
 `B extends KlumBuilder<T>` while `KlumBuilder<T>` is a class. DSL-2 now delivers that prerequisite; #463 can prove the
 exact Java 17 and static-Groovy consumer shapes at the Jackson 2.14.2 and 2.21.x endpoints.
 
-**Implemented:** `KlumBuilder<T>` is the zero-operation capability, generated Builder interfaces extend it with their
-model generic type, and `InternalKlumBuilder` owns runtime behavior. The generated implementation spelling is
+**Implemented:** `KlumBuilder<T>` is the zero-operation capability, generated Builder interfaces thread a bounded leaf
+self-model type through inherited interfaces and hidden implementations, and `InternalKlumBuilder` owns runtime behavior.
+The generated implementation spelling is
 `Foo$Builder`; `KlumRwObject` and `$_RW` are removed. `@DelegatesToBuilder` is canonical, `@DelegatesToRW` remains the
 deprecated source alias, and combining them is rejected. JSON-3 remains separate importer work.
 

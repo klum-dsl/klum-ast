@@ -84,17 +84,20 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [builder, collectionFactory, clusterFactory].every { publicSignatures(it).every { !it.contains('\$_') } }
     }
 
-    def "preserves inherited and generic Builder typing"() {
+    def "preserves inherited Builder self-model typing"() {
         given:
         Class<?> baseBuilder = getClass('sample.Base_DSL$Builder')
         Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
 
         expect:
-        baseBuilder.typeParameters*.name == ['T']
-        baseBuilder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<sample.Base<T>>')
-        fooBuilder.genericInterfaces*.typeName.contains('sample.Base_DSL$Builder<java.lang.String>')
-        baseBuilder.getMethod('label', Object).genericParameterTypes*.typeName == ['T']
-        fooBuilder.getMethod('label', Object).declaringClass == baseBuilder
+        baseBuilder.typeParameters*.name == ['SELF']
+        baseBuilder.typeParameters[0].bounds*.typeName == ['sample.Base']
+        baseBuilder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<SELF>')
+        fooBuilder.typeParameters*.name == ['SELF']
+        fooBuilder.typeParameters[0].bounds*.typeName == ['sample.Foo']
+        fooBuilder.genericInterfaces*.typeName.contains('sample.Base_DSL$Builder<SELF>')
+        baseBuilder.getMethod('label', String).genericParameterTypes*.typeName == ['java.lang.String']
+        fooBuilder.getMethod('label', String).declaringClass == baseBuilder
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
@@ -104,7 +107,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         expect:
         KlumBuilder.isAssignableFrom(builder)
         KlumBuilder.declaredMethods.length == 0
-        builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<sample.Child>')
+        builder.typeParameters*.name == ['SELF']
+        builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<SELF>')
     }
 
     def "Java and statically compiled Groovy consume only the public namespace"() {
@@ -120,16 +124,20 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                     return Foo.Create;
                 }
 
-                public static Child_DSL.Builder addChild(
-                        Foo_DSL.Builder owner,
+                public static Child_DSL.Builder<Child> addChild(
+                        Foo_DSL.Builder<Foo> owner,
                         Foo_DSL.Builder.CollectionFactory_kids kids) {
                     owner.kids((Closure<?>) null);
                     return kids.kid(Map.of(), (Closure<?>) null);
                 }
 
-                public static Child_DSL.Builder addPrimary(
+                public static Child_DSL.Builder<Child> addPrimary(
                         Foo_DSL.Builder.ClusterFactory_services services) {
                     return services.primary(Map.of(), (Closure<?>) null);
+                }
+
+                public static Foo_DSL.Builder<Foo> inheritedBuilder() {
+                    return Foo.Create.getAsBuilder().With(Map.of("label", "inherited"));
                 }
             }
         ''')
@@ -170,7 +178,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             import java.util.Map;
 
             public final class JavaDslConsumer {
-                public static Child_DSL.Builder childBuilder() {
+                public static Child_DSL.Builder<Child> childBuilder() {
                     return Child.Create.getAsBuilder().With(Map.of("name", "java child"));
                 }
 
@@ -190,7 +198,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             class StaticAsBuilderConsumer {
                 static void compileAsBuilderClosure() {
                     Foo.Create.With {
-                        Child_DSL.Builder child = Child.Create.AsBuilder.With {
+                        Child_DSL.Builder<Child> child = Child.Create.AsBuilder.With {
                             name 'groovy child'
                         }
                     }
@@ -229,15 +237,15 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             import com.blackbuild.groovy.configdsl.transform.DSL
             import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
 
-            @DSL abstract class Base<T> {
-                T label
+            @DSL abstract class Base {
+                String label
             }
 
             @DSL class Child {
                 String name
             }
 
-            @DSL class Foo extends Base<String> {
+            @DSL class Foo extends Base {
                 List<Child> kids
                 Child primary
                 Child secondary

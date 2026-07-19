@@ -319,7 +319,9 @@ final class BuilderMethodProjection {
     private static ClassNode projectType(ClassNode sourceType, ClassNode expectedModel) {
         if (sourceType == null) return null;
         if (isDSLObject(sourceType) && isAssignableTo(sourceType, expectedModel))
-            return GeneratedDslSupport.builderTypeFor(sourceType);
+            return (sourceType.getModifiers() & Opcodes.ACC_ABSTRACT) != 0
+                    ? GeneratedDslSupport.builderTypeForSubtype(sourceType)
+                    : GeneratedDslSupport.builderTypeFor(sourceType);
 
         if (isAssignableTo(sourceType, KLUM_BUILDER)) {
             GenericsType[] generics = sourceType.getGenericsTypes();

@@ -25,6 +25,7 @@ package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -78,6 +79,7 @@ public final class GeneratedDslSupport {
     private final ClassNode namespace;
     private final InnerClassNode factoryInterface;
     private final InnerClassNode builderInterface;
+    private final GenericsType selfModelParameter;
     private final Map<ClassNode, ClassNode> implementations = new LinkedHashMap<>();
 
     private GeneratedDslSupport(ClassNode model, ClassNode builderImplementation) {
@@ -98,8 +100,11 @@ public final class GeneratedDslSupport {
         if (builderPlaceholder != null)
             builderPlaceholder.setRedirect(builderInterface);
         copyTypeParameters(model, builderInterface);
+        selfModelParameter = createSelfModelParameter(model);
+        appendTypeParameter(builderInterface, selfModelParameter);
         addParentBuilderInterface();
-        link(builderImplementation, parameterizedForModel(builderInterface, model));
+        ClassNode implementationSelfModel = configureBuilderImplementation(builderImplementation);
+        link(builderImplementation, builderInterfaceFor(builderInterface, model, implementationSelfModel));
     }
 
     public static GeneratedDslSupport create(ClassNode model, ClassNode builderImplementation) {
@@ -120,7 +125,7 @@ public final class GeneratedDslSupport {
     }
 
     public ClassNode getBuilderInterface() {
-        return parameterizedForModel(builderInterface, model);
+        return builderInterfaceFor(model, parameterizedForModel(model, model));
     }
 
     /**
@@ -138,7 +143,18 @@ public final class GeneratedDslSupport {
             placeholder = ClassHelper.makeWithoutCaching(target.getName() + "_DSL$Builder");
             target.setNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY, placeholder);
         }
-        return parameterizedForModel(placeholder, model);
+        return builderInterfaceFor(placeholder, model, parameterizedForModel(model, model));
+    }
+
+    /** Returns the public Builder type for a value whose concrete DSL subtype is intentionally unknown. */
+    public static ClassNode builderTypeForSubtype(ClassNode model) {
+        ClassNode concreteType = builderTypeFor(model);
+        GenericsType[] generics = concreteType.getGenericsTypes();
+        GenericsType wildcard = new GenericsType(ClassHelper.OBJECT_TYPE,
+                new ClassNode[] { parameterizedForModel(model, model) }, null);
+        wildcard.setWildcard(true);
+        generics[generics.length - 1] = wildcard;
+        return withGenerics(concreteType, generics);
     }
 
     public static ClassNode registerCollectionFactory(ClassNode model, ClassNode implementation, String fieldName) {
@@ -167,6 +183,10 @@ public final class GeneratedDslSupport {
         if (type.isArray()) return publicType(type.getComponentType()).makeArray();
         if (type.isGenericsPlaceHolder()) return type;
         if (hasGeneratedApiTag(type)) return type;
+
+        ClassNode modelForBuilder = DslAstHelper.getModelClassFor(type.redirect());
+        if (modelForBuilder != null)
+            return builderTypeFor(modelForBuilder);
 
         String linkedInterface = generatedLink(type);
         if (linkedInterface != null) {
@@ -208,7 +228,7 @@ public final class GeneratedDslSupport {
         ClassNode parent = model.getUnresolvedSuperClass(false);
         if (!DslAstHelper.isDSLObject(parent)) {
             builderInterface.setUsingGenerics(true);
-            builderInterface.setInterfaces(new ClassNode[] { builderCapabilityFor(model) });
+            builderInterface.setInterfaces(new ClassNode[] { builderCapabilityFor(selfModelParameter.getType()) });
             return;
         }
 
@@ -224,14 +244,39 @@ public final class GeneratedDslSupport {
     private void addParentBuilderInterface(ClassNode parent) {
         ClassNode parentBuilder = publicType(getRwClassOf(parent.redirect())).redirect();
         builderInterface.setUsingGenerics(true);
-        builderInterface.setInterfaces(new ClassNode[] { parameterizedForModel(parentBuilder, parent) });
+        builderInterface.setInterfaces(new ClassNode[] { builderInterfaceFor(parentBuilder, parent, selfModelParameter.getType()) });
     }
 
-    private static ClassNode builderCapabilityFor(ClassNode model) {
+    private static ClassNode builderCapabilityFor(ClassNode selfModel) {
         return GenericsUtils.makeClassSafeWithGenerics(
                 KLUM_BUILDER,
-                new GenericsType(parameterizedForModel(model, model))
+                new GenericsType(selfModel)
         );
+    }
+
+    /**
+     * Gives every implementation the same trailing leaf-model type parameter as its public Builder interface.
+     * A child Builder therefore inherits its parent's operations while retaining only one {@code KlumBuilder<SELF>}
+     * capability in the complete hierarchy.
+     */
+    private ClassNode configureBuilderImplementation(ClassNode builderImplementation) {
+        copyTypeParameters(model, builderImplementation);
+        GenericsType implementationSelfModelParameter = createSelfModelParameter(model);
+        appendTypeParameter(builderImplementation, implementationSelfModelParameter);
+        ClassNode implementationSelfModel = implementationSelfModelParameter.getType();
+
+        ClassNode parent = model.getUnresolvedSuperClass(false);
+        if (!DslAstHelper.isDSLObject(parent)) {
+            builderImplementation.setSuperClass(GenericsUtils.makeClassSafeWithGenerics(
+                    ClassHelper.make(InternalKlumBuilder.class),
+                    new GenericsType(implementationSelfModel)
+            ));
+            return implementationSelfModel;
+        }
+
+        ClassNode parentImplementation = getRwClassOf(parent.redirect()).redirect();
+        builderImplementation.setSuperClass(builderInterfaceFor(parentImplementation, parent, implementationSelfModel));
+        return implementationSelfModel;
     }
 
     private void link(ClassNode implementation, ClassNode publicInterface) {
@@ -352,6 +397,20 @@ public final class GeneratedDslSupport {
         return result;
     }
 
+    private static ClassNode builderInterfaceFor(ClassNode modelType, ClassNode selfModel) {
+        return builderInterfaceFor(modelType.redirect().getNodeMetaData(SUPPORT_METADATA_KEY) == null
+                ? modelType
+                : of(modelType.redirect()).builderInterface, modelType, selfModel);
+    }
+
+    private static ClassNode builderInterfaceFor(ClassNode api, ClassNode modelType, ClassNode selfModel) {
+        GenericsType[] modelGenerics = projectGenericsTypes(modelType.getGenericsTypes());
+        GenericsType[] builderGenerics = modelGenerics == null
+                ? new GenericsType[] { new GenericsType(selfModel) }
+                : append(modelGenerics, new GenericsType(selfModel));
+        return withGenerics(api, builderGenerics);
+    }
+
     private static ClassNode parameterizedForModel(ClassNode api, ClassNode modelType) {
         GenericsType[] modelGenerics = modelType.getGenericsTypes();
         if (modelGenerics == null || modelGenerics.length == 0)
@@ -377,6 +436,28 @@ public final class GeneratedDslSupport {
         GenericsType[] generics = source.getGenericsTypes();
         if (generics != null)
             target.setGenericsTypes(projectGenericsTypes(generics));
+    }
+
+    private static GenericsType createSelfModelParameter(ClassNode model) {
+        ClassNode selfModel = ClassHelper.makeWithoutCaching("SELF");
+        selfModel.setGenericsPlaceHolder(true);
+        selfModel.setRedirect(parameterizedForModel(model, model));
+        GenericsType result = new GenericsType(selfModel, new ClassNode[] { parameterizedForModel(model, model) }, null);
+        result.setName("SELF");
+        result.setPlaceholder(true);
+        return result;
+    }
+
+    private static void appendTypeParameter(ClassNode type, GenericsType parameter) {
+        GenericsType[] generics = type.getGenericsTypes();
+        type.setGenericsTypes(generics == null ? new GenericsType[] { parameter } : append(generics, parameter));
+        type.setUsingGenerics(true);
+    }
+
+    private static GenericsType[] append(GenericsType[] generics, GenericsType parameter) {
+        GenericsType[] result = Arrays.copyOf(generics, generics.length + 1);
+        result[generics.length] = parameter;
+        return result;
     }
 
     private static InnerClassNode createNestedInterface(ClassNode owner, String name, String documentation) {

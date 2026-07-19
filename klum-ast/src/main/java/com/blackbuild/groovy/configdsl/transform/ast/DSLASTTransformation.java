@@ -278,13 +278,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode builderBase;
         if (parentRW != null) {
             builderBase = parentRW.getPlainNodeReference();
-            GenericsType[] parentGenerics = annotatedClass.getUnresolvedSuperClass(false).getGenericsTypes();
-            if (parentGenerics != null) {
-                builderBase.setGenericsTypes(parentGenerics);
-                builderBase.setUsingGenerics(true);
-            }
         } else {
-            builderBase = makeClassSafeWithGenerics(KLUM_BUILDER, new GenericsType(annotatedClass));
+            builderBase = KLUM_BUILDER;
         }
 
         rwClass = new InnerClassNode(
@@ -297,9 +292,6 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         AnnoDocUtil.addDocumentation(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
         DslAstHelper.registerAsVerbProvider(rwClass);
-        if (annotatedClass.getGenericsTypes() != null)
-            rwClass.setGenericsTypes(annotatedClass.getGenericsTypes());
-
         annotatedClass.getModule().addClass(rwClass);
         if (dslParent == null)
             annotatedClass.addField(KlumObjectCompanion.NAME_IN_MODEL, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, OBJECT_COMPANION, null);
@@ -1529,7 +1521,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         specialized.setUsingGenerics(true);
         specialized.setGenericsTypes(new GenericsType[] {
                 new GenericsType(defaultImpl.getPlainNodeReference()),
-                new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface().getPlainNodeReference())
+                new GenericsType(GeneratedDslSupport.of(annotatedClass).getBuilderInterface())
         });
 
         MethodNode accessor = new MethodNode(
