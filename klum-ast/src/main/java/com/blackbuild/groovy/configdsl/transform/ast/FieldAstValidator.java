@@ -45,7 +45,6 @@ public class FieldAstValidator extends KlumCastCheck<Annotation> {
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
         this.annotationToCheck = annotationToCheck;
-        // TODO move logic to klumCast
         if (target instanceof FieldNode)
             extraValidateField((FieldNode) target);
         else if (target instanceof MethodNode)
