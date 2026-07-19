@@ -79,8 +79,10 @@ consumer generations.
 test-fixture source layout.
 
 **Work:** remove the cross-lane Groovy output edge; make a Java/resources-only sharing seam explicit where needed;
-recompile all Groovy fixtures per lane; ensure G4/G5 result and coverage evidence is discoverable. Preserve the one
-Groovy-3 production artifact and Java 17 toolchain.
+recompile all Groovy fixtures per lane; add `verifyTestLaneIsolation` to reject mismatched dependencies, cross-lane
+source-set/Groovy compile/runtime output, wrong test classes, or non-lane JUnit result locations; archive G4/G5 JUnit and
+JaCoCo evidence while Sonar uses only baseline coverage. Preserve the one Groovy-3 production artifact and Java 17
+toolchain.
 
 **Acceptance:** inspect the G4/G5 compile/runtime classpaths; run `test`, `groovy4Tests`, `groovy5Tests`, and `check` on
 Java 17; exercise the build cache; verify CI result paths/report tasks include all lanes. If the #391 fixture is touched,
