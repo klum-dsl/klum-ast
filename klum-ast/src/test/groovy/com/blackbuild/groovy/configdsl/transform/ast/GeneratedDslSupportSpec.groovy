@@ -88,6 +88,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         given:
         Class<?> baseBuilder = getClass('sample.Base_DSL$Builder')
         Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
+        Class<?> baseImplementation = getClass('sample.Base$Builder')
+        Class<?> fooImplementation = getClass('sample.Foo$Builder')
 
         expect:
         baseBuilder.typeParameters*.name == ['SELF']
@@ -98,6 +100,14 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         fooBuilder.genericInterfaces*.typeName.contains('sample.Base_DSL$Builder<SELF>')
         baseBuilder.getMethod('label', String).genericParameterTypes*.typeName == ['java.lang.String']
         fooBuilder.getMethod('label', String).declaringClass == baseBuilder
+
+        and: 'hidden implementations thread the same leaf model type without a second capability'
+        baseImplementation.typeParameters*.name == ['SELF']
+        baseImplementation.genericSuperclass.typeName == 'com.blackbuild.klum.ast.util.InternalKlumBuilder<SELF>'
+        fooImplementation.typeParameters*.name == ['SELF']
+        fooImplementation.typeParameters[0].bounds*.typeName == ['sample.Foo']
+        fooImplementation.genericSuperclass.typeName == 'sample.Base$Builder<SELF>'
+        !fooImplementation.genericInterfaces*.typeName.any { it.startsWith('com.blackbuild.klum.ast.util.KlumBuilder') }
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
