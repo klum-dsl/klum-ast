@@ -31,7 +31,7 @@ import com.blackbuild.groovy.configdsl.transform.Role;
 import com.blackbuild.klum.ast.process.PhaseDriver;
 import com.blackbuild.klum.ast.util.DslHelper;
 import com.blackbuild.klum.ast.util.FactoryHelper;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.LifecycleHelper;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -361,7 +361,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             this.context = context;
         }
 
-        private void replay(KlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties) {
+        private void replay(InternalKlumBuilder<?> root, ObjectNode configuration, ResolvedProperties properties) {
             try {
                 addBuilder(root, configuration, properties);
                 for (PendingBuilder pending : pendingBuilders) {
@@ -377,7 +377,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             }
         }
 
-        private PendingBuilder addBuilder(KlumBuilder<?> builder, ObjectNode configuration,
+        private PendingBuilder addBuilder(InternalKlumBuilder<?> builder, ObjectNode configuration,
                                           ResolvedProperties properties) throws IOException {
             PendingBuilder pending = new PendingBuilder(builder, configuration, properties, new LinkedHashMap<>());
             pendingBuilders.add(pending);
@@ -456,7 +456,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return result;
         }
 
-        private KlumBuilder<?> discoverOwnedBuilder(JsonNode node, Class<?> childType, Object keyHint)
+        private InternalKlumBuilder<?> discoverOwnedBuilder(JsonNode node, Class<?> childType, Object keyHint)
                 throws IOException {
             if (!node.isObject())
                 throw JsonMappingException.from(source, "Expected an object for owned DSL value " + childType.getName());
@@ -471,7 +471,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return addOwnedBuilder(childType, object, keyHint);
         }
 
-        private KlumBuilder<?> discoverPolymorphicBuilder(ObjectNode configuration, JavaType declaredType,
+        private InternalKlumBuilder<?> discoverPolymorphicBuilder(ObjectNode configuration, JavaType declaredType,
                                                           TypeDeserializer typeDeserializer, Object keyHint)
                 throws IOException {
             JsonDeserializer<Object> valueDeserializer = context.findContextualValueDeserializer(declaredType, null);
@@ -480,7 +480,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             try (JsonParser parser = configuration.traverse(source.getCodec())) {
                 parser.nextToken();
                 Object result = valueDeserializer.deserializeWithType(parser, context, typeDeserializer);
-                if (result instanceof KlumBuilder<?> builder)
+                if (result instanceof InternalKlumBuilder<?> builder)
                     return builder;
                 throw JsonMappingException.from(source, "Polymorphic owned DSL value " + declaredType
                         + " did not allocate a Builder in the active Construction session");
@@ -492,11 +492,11 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             }
         }
 
-        private KlumBuilder<?> addOwnedBuilder(Class<?> childType, ObjectNode object, Object keyHint)
+        private InternalKlumBuilder<?> addOwnedBuilder(Class<?> childType, ObjectNode object, Object keyHint)
                 throws IOException {
             ResolvedProperties properties = resolveProperties(childType, context);
             String key = resolveKey(childType, object, keyHint, properties);
-            KlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
+            InternalKlumBuilder<?> child = FactoryHelper.createBuilder(childType, key);
             addBuilder(child, object, properties);
             return child;
         }
@@ -586,7 +586,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             return resolved;
         }
 
-        private void handleUnknown(KlumBuilder<?> builder, String externalName, JsonNode node) {
+        private void handleUnknown(InternalKlumBuilder<?> builder, String externalName, JsonNode node) {
             try (JsonParser valueParser = node.traverse(source.getCodec())) {
                 valueParser.nextToken();
                 context.handleUnknownProperty(valueParser, KlumDeserializer.this, builder, externalName);
@@ -595,7 +595,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
             }
         }
 
-        private void bind(KlumBuilder<?> builder, String externalName, JsonNode node,
+        private void bind(InternalKlumBuilder<?> builder, String externalName, JsonNode node,
                           ResolvedProperties properties, Map<ResolvedProperty, Object> ownedValues) {
             ResolvedProperty property = properties.bindable().get(externalName);
             if (property == null) {
@@ -624,7 +624,7 @@ final class KlumDeserializer extends StdDeserializer<Object> implements Contextu
         }
     }
 
-    private record PendingBuilder(KlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
+    private record PendingBuilder(InternalKlumBuilder<?> builder, ObjectNode configuration, ResolvedProperties properties,
                                   Map<ResolvedProperty, Object> ownedValues) {
     }
 

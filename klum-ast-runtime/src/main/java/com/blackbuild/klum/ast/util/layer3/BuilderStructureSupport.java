@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumSchemaException;
 
 import java.util.ArrayList;
@@ -40,28 +40,28 @@ public final class BuilderStructureSupport {
         // static only
     }
 
-    public static void visit(KlumBuilder<?> root, ModelVisitor visitor) {
+    public static void visit(InternalKlumBuilder<?> root, ModelVisitor visitor) {
         visit(root, visitor, "<root>");
     }
 
-    public static void visit(KlumBuilder<?> root, ModelVisitor visitor, String rootPath) {
+    public static void visit(InternalKlumBuilder<?> root, ModelVisitor visitor, String rootPath) {
         CompositionTraversal.visit(root, visitor, rootPath);
     }
 
-    public static List<Object> getOwnerHierarchy(KlumBuilder<?> leaf) {
+    public static List<Object> getOwnerHierarchy(InternalKlumBuilder<?> leaf) {
         List<Object> result = new ArrayList<>();
         Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         Object current = leaf;
-        while (current instanceof KlumBuilder<?>) {
+        while (current instanceof InternalKlumBuilder<?>) {
             if (!seen.add(current))
                 throw new KlumSchemaException("Object " + current + " has an owner cycle");
             result.add(current);
-            current = ((KlumBuilder<?>) current).getSingleOwner();
+            current = ((InternalKlumBuilder<?>) current).getSingleOwner();
         }
         return List.copyOf(result);
     }
 
-    public static <T> Optional<T> getAncestorOfType(KlumBuilder<?> child, Class<T> type) {
+    public static <T> Optional<T> getAncestorOfType(InternalKlumBuilder<?> child, Class<T> type) {
         return getOwnerHierarchy(child).stream().filter(type::isInstance).map(type::cast).findFirst();
     }
 }

@@ -45,7 +45,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         if (container == null) return;
         setDirectOwners(element, container);
         setTransitiveOwners(element);
@@ -54,7 +54,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
         LifecycleHelper.executeLifecycleClosures(element, Owner.class);
     }
 
-    private void setDirectOwners(KlumBuilder<?> builder, Object value) {
+    private void setDirectOwners(InternalKlumBuilder<?> builder, Object value) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isNotTransitive)
                 .filter(field -> isExpectedOwnerType(getOwnerType(field), value))
@@ -67,7 +67,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
                 .forEach(method -> callOwnerMethod(builder, value, method));
     }
 
-    private void setRoles(KlumBuilder<?> builder, Object container) {
+    private void setRoles(InternalKlumBuilder<?> builder, Object container) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Role.class)
                 .filter(field -> isUnset(builder, field))
                 .filter(field -> isExpectedOwnerType(field.getAnnotation(Role.class).value(), container))
@@ -86,11 +86,11 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
                 );
     }
 
-    private void setRole(KlumBuilder<?> builder, Object container, Consumer<@NotNull String> action) {
+    private void setRole(InternalKlumBuilder<?> builder, Object container, Consumer<@NotNull String> action) {
         StructuralPath.getPathOfFieldContaining(container, builder).ifPresent(action);
     }
 
-    private void setTransitiveOwners(KlumBuilder<?> builder) {
+    private void setTransitiveOwners(InternalKlumBuilder<?> builder) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
                 .filter(this::isTransitive)
                 .filter(field -> isUnset(builder, field))
@@ -101,7 +101,7 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
                 .forEach(method -> callTransitiveOwnerMethod(builder, method));
     }
 
-    private void setRootOwners(KlumBuilder<?> builder) {
+    private void setRootOwners(InternalKlumBuilder<?> builder) {
         Object root = PhaseDriver.getInstance().getRootObject();
 
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), Owner.class)
@@ -114,15 +114,15 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
                 .forEach(method -> callOwnerMethod(builder, root, method));
     }
 
-    private static boolean isUnset(KlumBuilder<?> builder, Field field) {
+    private static boolean isUnset(InternalKlumBuilder<?> builder, Field field) {
         return builder.getInstanceAttribute(field.getName()) == null;
     }
 
-    private static void callOwnerMethod(KlumBuilder<?> builder, Object value, Method method) {
+    private static void callOwnerMethod(InternalKlumBuilder<?> builder, Object value, Method method) {
         builder.invokeMethod(method.getName(), convertValue(method.getAnnotation(Owner.class), value));
     }
 
-    private static void setOwnerFieldValue(KlumBuilder<?> builder, Object value, Field field) {
+    private static void setOwnerFieldValue(InternalKlumBuilder<?> builder, Object value, Field field) {
         Object valueToSet = convertValue(field.getAnnotation(Owner.class), value);
         if (field.getType().isInstance(valueToSet))
             builder.setInstanceAttribute(field.getName(), valueToSet);
@@ -134,12 +134,12 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
         return originalValue;
     }
 
-    private void setSingleTransitiveOwner(KlumBuilder<?> builder, Field field) {
+    private void setSingleTransitiveOwner(InternalKlumBuilder<?> builder, Field field) {
         BuilderStructureSupport.getAncestorOfType(builder, getOwnerType(field))
                 .ifPresent(value -> setOwnerFieldValue(builder, value, field));
     }
 
-    private void callTransitiveOwnerMethod(KlumBuilder<?> builder, Method method) {
+    private void callTransitiveOwnerMethod(InternalKlumBuilder<?> builder, Method method) {
         BuilderStructureSupport.getAncestorOfType(builder, getOwnerType(method))
                 .ifPresent(value -> callOwnerMethod(builder, value, method));
     }
@@ -170,8 +170,8 @@ public class OwnerPhase extends BuilderVisitingPhaseAction {
     private static boolean isExpectedOwnerType(Class<?> expectedType, Object candidate) {
         if (expectedType.isInstance(candidate))
             return true;
-        return candidate instanceof KlumBuilder
-                && expectedType.isAssignableFrom(((KlumBuilder<?>) candidate).getModelType());
+        return candidate instanceof InternalKlumBuilder
+                && expectedType.isAssignableFrom(((InternalKlumBuilder<?>) candidate).getModelType());
     }
 
 }

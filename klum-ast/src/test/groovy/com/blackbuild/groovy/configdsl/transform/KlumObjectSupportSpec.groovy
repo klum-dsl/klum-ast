@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.InternalKlumBuilder
 import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.blackbuild.klum.ast.util.KlumException
 import com.blackbuild.klum.ast.util.KlumValidationException
@@ -94,7 +95,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     def "completed companion lookup and raw metadata are not client API"() {
         given:
         Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
-        Class<?> modelStateClass = KlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }
+        Class<?> modelStateClass = InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }
 
         expect:
         !Modifier.isPublic(modelProxyClass.modifiers)
@@ -102,9 +103,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
             modelProxyClass.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
         }
         ['hasMetaData', 'getMetaData', 'setMetaData'].every { methodName ->
-            KlumBuilder.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
+            InternalKlumBuilder.declaredMethods.findAll { it.name == methodName }.every { !Modifier.isPublic(it.modifiers) }
         }
-        !Modifier.isPublic(KlumBuilder.getDeclaredMethod('exportModelState').modifiers)
+        !Modifier.isPublic(InternalKlumBuilder.getDeclaredMethod('exportModelState').modifiers)
         !Modifier.isPublic(modelStateClass.modifiers)
         !Modifier.isPublic(modelStateClass.getDeclaredMethod('getMetadata').modifiers)
 
@@ -128,7 +129,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                     return builder.getMetaData("client-extension", Object.class);
                 }
             }
-        ''', 'getMetaData(String,Class<T>) is not public')
+        ''', 'cannot find symbol')
 
         and: 'the materialization state carrier cannot bypass that lockdown'
         compileJavaConsumerFails('''
@@ -139,7 +140,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                     return builder.exportModelState();
                 }
             }
-        ''', 'exportModelState() is not public')
+        ''', 'cannot find symbol')
     }
 
     def "validation support includes clean stored results without rerunning validation"() {

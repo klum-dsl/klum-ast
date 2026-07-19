@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
+import com.blackbuild.groovy.configdsl.transform.DelegatesToBuilder;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
@@ -43,6 +44,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 public class DelegatesToRWTransformation extends AbstractASTTransformation {
 
     private static final ClassNode DELEGATES_TO_RW_TYPE = ClassHelper.make(DelegatesToRW.class);
+    private static final ClassNode DELEGATES_TO_BUILDER_TYPE = ClassHelper.make(DelegatesToBuilder.class);
     private static final ClassNode DELEGATES_TO_TYPE = ClassHelper.make(DelegatesTo.class);
     private ClassNode model;
     private Visitor visitor;
@@ -77,12 +79,19 @@ public class DelegatesToRWTransformation extends AbstractASTTransformation {
         public void visitAnnotations(AnnotatedNode node) {
             super.visitAnnotations(node);
 
-            List<AnnotationNode> annotations = node.getAnnotations(DELEGATES_TO_RW_TYPE);
-            if (annotations.isEmpty()) return;
+            List<AnnotationNode> legacyAnnotations = node.getAnnotations(DELEGATES_TO_RW_TYPE);
+            List<AnnotationNode> builderAnnotations = node.getAnnotations(DELEGATES_TO_BUILDER_TYPE);
+            if (legacyAnnotations.isEmpty() && builderAnnotations.isEmpty()) return;
+
+            if (!legacyAnnotations.isEmpty() && !builderAnnotations.isEmpty()) {
+                addError("Use either @DelegatesToBuilder or @DelegatesToRW, not both.", node);
+                return;
+            }
 
             if (!node.getAnnotations(DELEGATES_TO_TYPE).isEmpty()) return;
 
-            ClassExpression targetValue = (ClassExpression) annotations.get(0).getMember("value");
+            AnnotationNode annotation = builderAnnotations.isEmpty() ? legacyAnnotations.get(0) : builderAnnotations.get(0);
+            ClassExpression targetValue = (ClassExpression) annotation.getMember("value");
 
             ClassNode target = targetValue != null ? targetValue.getType() : model;
 

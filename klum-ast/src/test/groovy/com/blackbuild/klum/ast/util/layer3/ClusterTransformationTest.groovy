@@ -251,7 +251,7 @@ import java.lang.annotation.RetentionPolicy
 
         then:
         noExceptionThrown()
-        getClass('MyDatabase$_RW').getDeclaredMethods()
+        getClass('MyDatabase$Builder').getDeclaredMethods()
                 .findAll { it.name == "admin" }
                 .every { Modifier.isProtected(it.modifiers) }
     }
@@ -300,7 +300,7 @@ import java.lang.annotation.RetentionPolicy
 
         then:
         noExceptionThrown()
-        getClass('MyDatabase$_RW').getDeclaredMethods()
+        getClass('MyDatabase$Builder').getDeclaredMethods()
                 .findAll { it.name == "admin" }
                 .every { Modifier.isProtected(it.modifiers) }
     }

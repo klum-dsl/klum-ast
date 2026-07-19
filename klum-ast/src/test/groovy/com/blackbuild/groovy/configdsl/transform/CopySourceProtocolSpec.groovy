@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform
 
-import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.util.InternalKlumBuilder
 import com.blackbuild.klum.ast.util.KlumModelException
 import com.blackbuild.klum.ast.util.TemplateManager
 
@@ -87,15 +87,15 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         given:
         createCopySchema()
         def Node = getClass("pk.CopyNode")
-        KlumBuilder sourceBuilder
-        KlumBuilder recipientBuilder
+        InternalKlumBuilder sourceBuilder
+        InternalKlumBuilder recipientBuilder
         boolean copiedActionDehydrated
-        def actionsField = KlumBuilder.getDeclaredField("applyLaterClosures")
+        def actionsField = InternalKlumBuilder.getDeclaredField("applyLaterClosures")
         actionsField.accessible = true
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder rootBuilder = delegate
+            InternalKlumBuilder rootBuilder = delegate
             sourceBuilder = Node.Create.AsBuilder.With {
                 name "source"
                 events "configured"
@@ -141,8 +141,8 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder rootBuilder = delegate
-            KlumBuilder sourceBuilder = Node.Create.AsBuilder.With {
+            InternalKlumBuilder rootBuilder = delegate
+            InternalKlumBuilder sourceBuilder = Node.Create.AsBuilder.With {
                 name "source"
                 applyLater(25) {
                     events captured.value
@@ -150,7 +150,7 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
             }
             rootBuilder.setSingleField("source", sourceBuilder)
 
-            KlumBuilder recipientBuilder = Node.Create.AsBuilder.With {
+            InternalKlumBuilder recipientBuilder = Node.Create.AsBuilder.With {
                 copyFrom sourceBuilder
                 name "recipient"
             }
@@ -166,9 +166,9 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         given:
         createCopySchema()
         def Node = getClass("pk.CopyNode")
-        KlumBuilder sealedSource
+        InternalKlumBuilder sealedSource
         clazz.Create.With {
-            KlumBuilder rootBuilder = delegate
+            InternalKlumBuilder rootBuilder = delegate
             sealedSource = Node.Create.AsBuilder.With(name: "source")
             rootBuilder.setSingleField("source", sealedSource)
         }
@@ -189,15 +189,15 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         given:
         createCopySchema()
         def Node = getClass("pk.CopyNode")
-        def sourceBuilder = new AtomicReference<KlumBuilder>()
+        def sourceBuilder = new AtomicReference<InternalKlumBuilder>()
         def sourceReady = new CountDownLatch(1)
         def releaseSource = new CountDownLatch(1)
         def sourceFailure = new AtomicReference<Throwable>()
         Thread sourceSession = Thread.start {
             try {
                 clazz.Create.With {
-                    KlumBuilder rootBuilder = delegate
-                    KlumBuilder source = Node.Create.AsBuilder.With(name: "source")
+                    InternalKlumBuilder rootBuilder = delegate
+                    InternalKlumBuilder source = Node.Create.AsBuilder.With(name: "source")
                     rootBuilder.setSingleField("source", source)
                     sourceBuilder.set(source)
                     sourceReady.countDown()
@@ -231,14 +231,14 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         given:
         createCopySchema()
         def Node = getClass("pk.CopyNode")
-        KlumBuilder sourceBuilder
-        KlumBuilder recipientBuilder
-        def actionsField = KlumBuilder.getDeclaredField("applyLaterClosures")
+        InternalKlumBuilder sourceBuilder
+        InternalKlumBuilder recipientBuilder
+        def actionsField = InternalKlumBuilder.getDeclaredField("applyLaterClosures")
         actionsField.accessible = true
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder rootBuilder = delegate
+            InternalKlumBuilder rootBuilder = delegate
             sourceBuilder = Node.Create.AsBuilder.With {
                 name "source"
                 applyLater(1) {
@@ -269,12 +269,12 @@ class CopySourceProtocolSpec extends AbstractDSLSpec {
         given:
         createCopySchema()
         def Node = getClass("pk.CopyNode")
-        KlumBuilder sourceBuilder
-        KlumBuilder recipientBuilder
+        InternalKlumBuilder sourceBuilder
+        InternalKlumBuilder recipientBuilder
 
         when:
         instance = clazz.Create.With {
-            KlumBuilder rootBuilder = delegate
+            InternalKlumBuilder rootBuilder = delegate
             sourceBuilder = Node.Create.AsBuilder.With(name: "source")
             rootBuilder.setSingleField("source", sourceBuilder)
 

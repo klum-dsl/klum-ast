@@ -58,7 +58,7 @@ public class KlumFactory<T> {
     }
 
     /** Active-session Builder-producing operations shared by keyed and unkeyed factories. */
-    public static class BuilderFactory<T, B> {
+    public static class BuilderFactory<T, B extends KlumBuilder<T>> {
         protected final Class<T> type;
 
         protected BuilderFactory(Class<T> type) {
@@ -74,7 +74,7 @@ public class KlumFactory<T> {
         }
 
         @SuppressWarnings("unchecked")
-        protected final B asPublicBuilder(KlumBuilder<T> builder) {
+        protected final B asPublicBuilder(InternalKlumBuilder<T> builder) {
             return (B) builder;
         }
     }
@@ -586,7 +586,7 @@ public class KlumFactory<T> {
     }
 
     /** Builder-producing operations for keyed model types. */
-    public static final class KeyedBuilderFactory<T, B> extends BuilderFactory<T, B> {
+    public static final class KeyedBuilderFactory<T, B extends KlumBuilder<T>> extends BuilderFactory<T, B> {
         private KeyedBuilderFactory(Class<T> type) {
             super(type);
         }
@@ -610,7 +610,7 @@ public class KlumFactory<T> {
     }
 
     /** Builder-producing operations for unkeyed model types. */
-    public static final class UnkeyedBuilderFactory<T, B> extends BuilderFactory<T, B> {
+    public static final class UnkeyedBuilderFactory<T, B extends KlumBuilder<T>> extends BuilderFactory<T, B> {
         private UnkeyedBuilderFactory(Class<T> type) {
             super(type);
         }

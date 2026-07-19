@@ -52,7 +52,7 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         withCurrentTemplates(element, () -> {
             ClusterModel.getPropertiesStream(element, Object.class)
                     .filter(entry -> entry.getValue() == null)
@@ -68,7 +68,7 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
         });
     }
 
-    private void autoCreate(KlumBuilder<?> element, Field builderField, AutoCreate autoCreate) {
+    private void autoCreate(InternalKlumBuilder<?> element, Field builderField, AutoCreate autoCreate) {
         Field field = element.getModelField(builderField.getName());
         Map<String, Object> values = ClosureHelper.invokeClosure(autoCreate.value());
 
@@ -94,7 +94,7 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
 
         Class<?> finalType = type;
         String finalKey = key;
-        KlumBuilder<?> autoCreated = BreadcrumbCollector.withFullPathOverride(
+        InternalKlumBuilder<?> autoCreated = BreadcrumbCollector.withFullPathOverride(
                 getBreadcrumbPath(element) + "/" + field.getName() + ":@AutoCreate",
                 () -> FactoryHelper.createNestedBuilder(finalType, values, finalKey)
         );
@@ -102,14 +102,14 @@ public class AutoCreationPhase extends BuilderVisitingPhaseAction {
         element.setSingleField(field.getName(), autoCreated);
     }
 
-    private void autoCreateClusterFields(KlumBuilder<?> element) {
+    private void autoCreateClusterFields(InternalKlumBuilder<?> element) {
         DslHelper.getMethodsAnnotatedWith(element.getModelType(), Cluster.class)
                 .filter(method -> Map.class.isAssignableFrom(method.getReturnType()))
                 .filter(clusterField -> clusterField.isAnnotationPresent(AutoCreate.class))
                 .forEach(clusterMethod -> autoCreateElementsForCluster(element, clusterMethod));
     }
 
-    private void autoCreateElementsForCluster(KlumBuilder<?> element, Method clusterMethod) {
+    private void autoCreateElementsForCluster(InternalKlumBuilder<?> element, Method clusterMethod) {
         Cluster cluster = clusterMethod.getAnnotation(Cluster.class);
         Class<? extends Annotation> filterAnnotation = cluster.value();
         Predicate<AnnotatedElement> clusterFilter = filterAnnotation != Cluster.Undefined.class ? elementToCheck -> elementToCheck.isAnnotationPresent(filterAnnotation) : elementToCheck -> true;

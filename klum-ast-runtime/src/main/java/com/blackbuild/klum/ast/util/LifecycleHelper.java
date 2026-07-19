@@ -51,7 +51,7 @@ public class LifecycleHelper {
      * @param proxy the proxy for which the lifecycle methods should be executed
      * @param annotation the annotation that marks the lifecycle methods and closures
      */
-    public static void executeLifecycleMethods(KlumBuilder<?> builder, Class<? extends Annotation> annotation) {
+    public static void executeLifecycleMethods(InternalKlumBuilder<?> builder, Class<? extends Annotation> annotation) {
         Object rw = builder;
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .map(Method::getName)
@@ -68,7 +68,7 @@ public class LifecycleHelper {
     }
 
     /**
-     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link InternalKlumBuilder}
      */
     @Deprecated(since = "4.0", forRemoval = true)
     @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
@@ -81,7 +81,7 @@ public class LifecycleHelper {
      * @param proxy The proxy for which the lifecycle closures should be executed
      * @param annotation the annotation that marks the lifecycle closures
      */
-    public static void executeLifecycleClosures(KlumBuilder<?> builder, Class<? extends Annotation> annotation) {
+    public static void executeLifecycleClosures(InternalKlumBuilder<?> builder, Class<? extends Annotation> annotation) {
         DslHelper.getFieldsAnnotatedWith(builder.getClass(), annotation)
                 .filter(field -> field.getType().equals(Closure.class))
                 .map(Field::getName)
@@ -89,7 +89,7 @@ public class LifecycleHelper {
     }
 
     /**
-     * @deprecated since 4.0; construction lifecycle state now belongs to {@link KlumBuilder}
+     * @deprecated since 4.0; construction lifecycle state now belongs to {@link InternalKlumBuilder}
      */
     @Deprecated(since = "4.0", forRemoval = true)
     @SuppressWarnings("java:S1133") // retained as a 4.0 migration adapter
@@ -97,7 +97,7 @@ public class LifecycleHelper {
         executeLifecycleClosures(proxy.getBuilder(), annotation);
     }
 
-    private static void executeLifecycleClosure(KlumBuilder<?> builder, String name) {
+    private static void executeLifecycleClosure(InternalKlumBuilder<?> builder, String name) {
         Closure<?> closure = builder.getInstanceAttribute(name);
         try {
             PhaseDriver.setCurrentMember(name);

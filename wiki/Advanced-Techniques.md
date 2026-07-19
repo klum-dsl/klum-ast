@@ -4,8 +4,7 @@ Generated methods accepting configuration closures receive the appropriate `@Del
 modern IDEs can infer the available Builder methods.
 
 Schema-defined Mutators sometimes accept and forward their own configuration closures. The generated Builder type does
-not exist when that source method is parsed, and its final public name and location are intentionally still undecided.
-Use `@DelegatesToRW` in that case. Despite its compatibility-era name, the annotation points the IDE and static type
+not exist when that source method is parsed. Use `@DelegatesToBuilder` in that case. The annotation points the IDE and static type
 checker at the generated Builder, not at a mutable completed DSL Object.
 
 The optional annotation value selects the DSL Object whose Builder receives the closure:
@@ -16,12 +15,12 @@ class Container {
     List<Element> elements
 
     @Mutator
-    def circle(@DelegatesToRW(Element) Closure body) {
+    def circle(@DelegatesToBuilder(Element) Closure body) {
         element(type: 'circle', body)
     }
 
     @Mutator
-    def square(@DelegatesToRW(Element) Closure body) {
+    def square(@DelegatesToBuilder(Element) Closure body) {
         element(type: 'square', body)
     }
 // ...
@@ -29,7 +28,7 @@ class Container {
 ```
 
 Here both Mutators execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
-`@DelegatesToRW` does not add a completed-model `apply` or `configure` path; APIs that need to configure a DSL Object must
+`@DelegatesToBuilder` does not add a completed-model `apply` or `configure` path; APIs that need to configure a DSL Object must
 participate in factory/Builder construction.
 
 # Behaviour models: Parameter Hints

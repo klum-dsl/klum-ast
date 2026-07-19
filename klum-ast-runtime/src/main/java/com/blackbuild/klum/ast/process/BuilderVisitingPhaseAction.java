@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.process;
 
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.TemplateManager;
 import com.blackbuild.klum.ast.util.layer3.BuilderStructureSupport;
 import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
@@ -43,31 +43,31 @@ public abstract class BuilderVisitingPhaseAction extends AbstractPhaseAction imp
     @Override
     protected void doExecute() {
         Object root = PhaseDriver.getInstance().getRootObject();
-        if (!(root instanceof KlumBuilder))
+        if (!(root instanceof InternalKlumBuilder))
             throw new IllegalStateException("Builder phase " + getPhase().getDisplayName() + " received a completed model");
-        BuilderStructureSupport.visit((KlumBuilder<?>) root, this);
+        BuilderStructureSupport.visit((InternalKlumBuilder<?>) root, this);
     }
 
     @Override
     public Action shouldVisit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
-        if (!(element instanceof KlumBuilder))
+        if (!(element instanceof InternalKlumBuilder))
             return Action.SKIP;
-        return ((KlumBuilder<?>) element).isSealed() ? Action.SKIP : Action.HANDLE;
+        return ((InternalKlumBuilder<?>) element).isSealed() ? Action.SKIP : Action.HANDLE;
     }
 
     @Override
     public final void visit(@NotNull String path, @NotNull Object element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         try {
             PhaseDriver.getContext().setInstance(element);
-            doVisit(path, (KlumBuilder<?>) element, container, nameOfFieldInContainer);
+            doVisit(path, (InternalKlumBuilder<?>) element, container, nameOfFieldInContainer);
         } finally {
             PhaseDriver.getContext().setInstance(null);
         }
     }
 
-    protected abstract void doVisit(@NotNull String path, @NotNull KlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer);
+    protected abstract void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> builder, @Nullable Object container, @Nullable String nameOfFieldInContainer);
 
-    protected void withCurrentTemplates(KlumBuilder<?> builder, Runnable runnable) {
+    protected void withCurrentTemplates(InternalKlumBuilder<?> builder, Runnable runnable) {
         TemplateManager.doWithTemplates(builder.getCurrentTemplates(), new Closure<Void>(null) {
             @Override
             public Void call() {

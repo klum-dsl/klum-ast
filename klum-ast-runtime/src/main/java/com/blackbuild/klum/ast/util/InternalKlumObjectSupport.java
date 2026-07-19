@@ -39,7 +39,7 @@ public final class InternalKlumObjectSupport {
 
     /** Returns stored validation state for a Builder or completed model without creating it. */
     public static KlumValidationResult getValidationResult(Object instance) {
-        if (instance instanceof KlumBuilder<?> builder)
+        if (instance instanceof InternalKlumBuilder<?> builder)
             return builder.getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
         return KlumModelProxy.getProxyFor(instance)
                 .getMetaData(KlumValidationResult.METADATA_KEY, KlumValidationResult.class);
@@ -52,7 +52,7 @@ public final class InternalKlumObjectSupport {
             return existing;
 
         KlumValidationResult created = new KlumValidationResult(DslHelper.getModelAndBreadcrumbPath(instance));
-        if (instance instanceof KlumBuilder<?> builder)
+        if (instance instanceof InternalKlumBuilder<?> builder)
             builder.setMetaData(KlumValidationResult.METADATA_KEY, created);
         else
             KlumModelProxy.getProxyFor(instance).setMetaData(KlumValidationResult.METADATA_KEY, created);

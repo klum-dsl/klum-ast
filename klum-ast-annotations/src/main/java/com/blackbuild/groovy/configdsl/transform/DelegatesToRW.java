@@ -32,14 +32,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a closure parameter as delegating to a generated Builder. This works similarly to {@code DelegatesTo}, but the
- * Builder does not yet exist while the schema is parsed and its concrete generated name is not public API. The annotation
- * name is retained for compatibility with the former RW implementation. An optional value selects the DSL Object whose
- * Builder receives the closure.
+ * @deprecated since 4.0; use {@link DelegatesToBuilder}. The AST normalizes this
+ * source alias to the same generated {@code DelegatesTo} metadata.
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
 @Documented
+@Deprecated(since = "4.0", forRemoval = true)
 public @interface DelegatesToRW {
 
     /**

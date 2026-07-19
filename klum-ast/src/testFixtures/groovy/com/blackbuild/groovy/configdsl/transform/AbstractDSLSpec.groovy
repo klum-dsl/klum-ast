@@ -169,7 +169,7 @@ class AbstractDSLSpec extends Specification {
     }
 
     Class getRwClass(String name) {
-        getClass(name + '$_RW')
+        getClass(name + '$Builder')
     }
 
     boolean rwClassHasMethod(String methodName, Class... parameterTypes) {

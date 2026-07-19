@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.util
 
 /** Minimal mutable Builder used by runtime-only tests that deliberately stub the AST transform. */
-class TestRuntimeBuilder<M> extends KlumBuilder<M> {
+class TestRuntimeBuilder<M> extends InternalKlumBuilder<M> {
 
     TestRuntimeBuilder(Class<M> modelType) {
         super(modelType)

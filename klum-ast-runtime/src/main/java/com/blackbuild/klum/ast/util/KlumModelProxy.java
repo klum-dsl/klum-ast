@@ -58,7 +58,7 @@ final class KlumModelProxy implements KlumObjectCompanion {
     private final Map<String, Serializable> metadata;
     private final Set<Class<?>> executedValidators = new HashSet<>();
 
-    KlumModelProxy(GroovyObject model, KlumBuilder.ModelState state) {
+    KlumModelProxy(GroovyObject model, InternalKlumBuilder.ModelState state) {
         this.model = model;
         this.breadcrumbPath = state.getBreadcrumbPath();
         this.modelPath = state.getModelPath();

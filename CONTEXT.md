@@ -94,7 +94,7 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 - RW
 
-  RW is the deprecated name for the generated mutable construction counterpart now called a Builder. Reserve RW for migration and compatibility discussions; `KlumRwObject` is a temporary marker, not a construction capability.
+  RW is the deprecated name for the generated mutable construction counterpart now called a Builder. Reserve RW for migration and compatibility discussions; `KlumRwObject` and `$_RW` are removed in 4.0, while `@DelegatesToRW` remains the deprecated source alias for `@DelegatesToBuilder`.
 
 - Materialization
 

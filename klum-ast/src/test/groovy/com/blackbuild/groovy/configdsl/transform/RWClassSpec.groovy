@@ -69,7 +69,7 @@ class RWClassSpec extends AbstractDSLSpec {
         Class rwClass = getRwClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$_RW'
+        rwClass.superclass.name == 'pk.Parent$Builder'
     }
 
     def "RW class inherits parent RW class in different package"() {
@@ -93,7 +93,7 @@ class RWClassSpec extends AbstractDSLSpec {
         Class rwClass = getRwClass('pk2.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$_RW'
+        rwClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass("pk2.Child").Create.With()
@@ -123,7 +123,7 @@ class RWClassSpec extends AbstractDSLSpec {
         Class rwClass = getRwClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$_RW'
+        rwClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass("pk.Child").Create.With()
@@ -150,7 +150,7 @@ class RWClassSpec extends AbstractDSLSpec {
         Class rwClass = getRwClass('pk.Child')
 
         then:
-        rwClass.superclass.name == 'pk.Parent$_RW'
+        rwClass.superclass.name == 'pk.Parent$Builder'
 
         when:
         getClass('pk.Child').Create.With()
@@ -359,14 +359,14 @@ class RWClassSpec extends AbstractDSLSpec {
         instance.foo.childName == "parent::child"
     }
 
-    def "DelegatesToRW points to the generated Builder class"() {
+    def "DelegatesToBuilder points to the generated Builder class"() {
         given:
         createClass('''
             package pk
 
             @DSL
             class Foo {
-                def configure(@DelegatesToRW Closure body) {
+                def configure(@DelegatesToBuilder Closure body) {
                     return body
                 }
             }
@@ -376,11 +376,11 @@ class RWClassSpec extends AbstractDSLSpec {
         def method = clazz.getMethod("configure", Closure)
 
         then:
-        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Foo._RW')
+        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Foo.Builder')
 
     }
 
-    def "script allow delegation different RW class"() {
+    def "legacy DelegatesToRW remains a source alias"() {
         given:
         createClass('''
             package pk
@@ -404,22 +404,38 @@ class RWClassSpec extends AbstractDSLSpec {
         def method = rwClazz.getMethod("aBar", Closure)
 
         then:
-        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Bar._RW')
+        delegatesToPointsTo(method.parameterAnnotations[0], 'pk.Bar.Builder')
     }
 
-    def "delegatesToRW argument must be a model"() {
+    def "DelegatesToBuilder argument must be a model"() {
         when:
         createClass('''
             package pk
 
             @DSL
             class Foo {
-                def bar(@DelegatesToRW(String) Closure body) {}
+                def bar(@DelegatesToBuilder(String) Closure body) {}
             }
         ''')
 
         then:
         thrown(MultipleCompilationErrorsException)
+    }
+
+    def "DelegatesToBuilder and its legacy alias cannot be combined"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Foo {
+                def configure(@DelegatesToBuilder @DelegatesToRW Closure body) {}
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains('Use either @DelegatesToBuilder or @DelegatesToRW, not both')
     }
 
 }

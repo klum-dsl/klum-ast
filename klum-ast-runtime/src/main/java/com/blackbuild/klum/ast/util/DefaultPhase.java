@@ -51,27 +51,27 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
     }
 
     @Override
-    protected void doVisit(@NotNull String path, @NotNull KlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
+    protected void doVisit(@NotNull String path, @NotNull InternalKlumBuilder<?> element, @Nullable Object container, @Nullable String nameOfFieldInContainer) {
         setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(element, container, nameOfFieldInContainer);
         setDefaultValuesFromDefaultValueAnnotationsOnType(element);
         setFieldsAnnotatedWithDefaultAnnotation(element);
         executeDefaultLifecycleMethods(element);
     }
 
-    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(KlumBuilder<?> element, Object container, String nameOfFieldInContainer) {
+    private void setDefaultValuesFromDefaultValuesAnnotationOnOwnerField(InternalKlumBuilder<?> element, Object container, String nameOfFieldInContainer) {
         if (container == null) return;
         Field field = DslHelper.getField(container.getClass(), nameOfFieldInContainer).orElseThrow();
         AnnotationHelper.getMetaAnnotated(field, DefaultValues.class)
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
     }
 
-    private void setDefaultValuesFromDefaultValueAnnotationsOnType(KlumBuilder<?> element) {
+    private void setDefaultValuesFromDefaultValueAnnotationsOnType(InternalKlumBuilder<?> element) {
         DslHelper.getDslHierarchyOf(element.getModelType()).stream()
                 .flatMap(layer -> AnnotationHelper.getMetaAnnotated(layer, DefaultValues.class))
                 .forEach(annotation -> setDefaultValuesFromAnnotation(element, annotation));
         }
 
-    private void setDefaultValuesFromAnnotation(KlumBuilder<?> element, Annotation valuesAnnotation) {
+    private void setDefaultValuesFromAnnotation(InternalKlumBuilder<?> element, Annotation valuesAnnotation) {
         Map<String, Object> nonDefaultMembers = AnnotationHelper.getNonDefaultMembers(valuesAnnotation);
         if (nonDefaultMembers.containsKey("value")) {
             String valueTarget = valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).valueTarget();
@@ -82,7 +82,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         nonDefaultMembers.forEach((field, value) -> setFieldToDefaultValue(field, value, element, valuesAnnotation));
     }
 
-    private static void setFieldToDefaultValue(String field, Object value, KlumBuilder<?> builder, Annotation valuesAnnotation) {
+    private static void setFieldToDefaultValue(String field, Object value, InternalKlumBuilder<?> builder, Annotation valuesAnnotation) {
 
         try {
             if (!isEmpty(builder.getInstanceAttribute(field))) return;
@@ -117,7 +117,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         }
     }
 
-    private static @NotNull Class<?> determineTargetType(String field, Object value, KlumBuilder<?> builder, Class<?> fieldType) {
+    private static @NotNull Class<?> determineTargetType(String field, Object value, InternalKlumBuilder<?> builder, Class<?> fieldType) {
         if ("apply".equals(field) && isClosureType(value))
             return Closure.class;
         Class<?> methodArgument = isClosureType(value) ? (Class<?>) value : value.getClass();
@@ -139,7 +139,7 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
         return valuesAnnotation.annotationType().getAnnotation(DefaultValues.class).ignoreUnknownFields();
     }
 
-    private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, KlumBuilder<?> builder) {
+    private static @NotNull Class<?> determineTargetTypeFromSingleSetterOrField(String field, InternalKlumBuilder<?> builder) {
         List<MetaMethod> matchingSetters = builder.getMetaClass().getMetaMethods().stream()
                 .filter(metaMethod -> metaMethod.getName().equals(field) && metaMethod.getParameterTypes().length == 1)
                 .toList();
@@ -150,11 +150,11 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
             return builder.getField(field).getType();
     }
 
-    private static void executeDefaultLifecycleMethods(KlumBuilder<?> element) {
+    private static void executeDefaultLifecycleMethods(InternalKlumBuilder<?> element) {
         LifecycleHelper.executeLifecycleMethods(element, Default.class);
     }
 
-    private void setFieldsAnnotatedWithDefaultAnnotation(KlumBuilder<?> element) {
+    private void setFieldsAnnotatedWithDefaultAnnotation(InternalKlumBuilder<?> element) {
         ClusterModel.getFieldsAnnotatedWith(element, Default.class)
                 .entrySet()
                 .stream()
@@ -162,13 +162,13 @@ public class DefaultPhase extends BuilderVisitingPhaseAction {
                 .forEach(entry -> applyDefaultValue(element, entry.getKey()));
     }
 
-    private void applyDefaultValue(KlumBuilder<?> element, String fieldName) {
+    private void applyDefaultValue(InternalKlumBuilder<?> element, String fieldName) {
         Object defaultValue = getDefaultValue(element, fieldName);
         element.setSingleField(fieldName, defaultValue);
     }
 
     @SuppressWarnings({"OptionalGetWithoutIsPresent", "java:S3655"})
-    private Object getDefaultValue(KlumBuilder<?> builder, String fieldName) {
+    private Object getDefaultValue(InternalKlumBuilder<?> builder, String fieldName) {
         Field field = DslHelper.getField(builder.getClass(), fieldName).get();
         Default defaultAnnotation = field.getAnnotation(Default.class);
         if (defaultAnnotation == null) return null;
