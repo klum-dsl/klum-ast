@@ -52,3 +52,7 @@ The reusable worker draft-pull-request authorization and the broader reusable po
 upstream in
 [`blackbuild/engineering-baseline#2`](https://github.com/blackbuild/engineering-baseline/issues/2). The KlumAST-specific
 issue-tracker and authorization wording above remains local.
+
+The reusable AFK-window protocol is also a candidate for that same baseline issue. Its KlumAST overlay remains local:
+resource-sensitive concurrency reduction, license-policy hard stops, and human ownership of uncertain classification and
+all GitHub changes.
