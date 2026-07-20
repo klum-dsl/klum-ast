@@ -23,10 +23,16 @@
  */
 package com.blackbuild.klum.ast.process
 
+import groovy.transform.CompileStatic
+import com.blackbuild.klum.ast.util.InternalKlumBuilder
+import com.blackbuild.klum.ast.validation.InstanceValidator
+import com.blackbuild.klum.ast.validation.KlumValidationResult
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.annotations.Nullable
+import spock.lang.Issue
 import spock.lang.Specification
 
+@Issue("468")
 class PhaseActionTypingTest extends Specification {
 
     def "legacy untyped visiting phases fail with state typed migration guidance"() {
@@ -42,5 +48,44 @@ class PhaseActionTypingTest extends Specification {
         UnsupportedOperationException failure = thrown()
         failure.message.contains("BuilderVisitingPhaseAction")
         failure.message.contains("ModelVisitingPhaseAction")
+    }
+
+    def "static Groovy consumers compile every supported phase extension seam"() {
+        expect:
+        new StaticBuilderPhase().phase == DefaultKlumPhase.DEFAULT
+        new StaticModelPhase().phase == DefaultKlumPhase.VALIDATE
+        new StaticValidator() != null
+    }
+
+    @CompileStatic
+    private static final class StaticBuilderPhase extends BuilderVisitingPhaseAction {
+
+        StaticBuilderPhase() {
+            super(DefaultKlumPhase.DEFAULT)
+        }
+
+        @Override
+        protected void doVisit(String path, InternalKlumBuilder<?> builder, Object container, String nameOfFieldInContainer) {
+        }
+    }
+
+    @CompileStatic
+    private static final class StaticModelPhase extends ModelVisitingPhaseAction {
+
+        StaticModelPhase() {
+            super(DefaultKlumPhase.VALIDATE)
+        }
+
+        @Override
+        protected void doVisit(String path, Object element, Object container, String nameOfFieldInContainer) {
+        }
+    }
+
+    @CompileStatic
+    private static final class StaticValidator implements InstanceValidator {
+
+        @Override
+        void validateInstance(Object instance, KlumValidationResult validationResult) {
+        }
     }
 }
