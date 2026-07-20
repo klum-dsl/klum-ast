@@ -75,6 +75,9 @@ This is a breaking release. See the [Builder-first construction migration](https
   [#251](https://github.com/klum-dsl/klum-ast/issues/251),
   [ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md)).
   Explicit type-level custom deserializers remain the opt-out.
+- Added `KlumJacksonImporter` and `KlumJacksonInput` as the explicit Jackson 2 import seam. Caller-owned mapper/reader
+  configuration is captured without mutation; root, value-only Template, active-session Builder, and existing-Builder
+  application modes each consume one parser/tree/Map input ([#463](https://github.com/klum-dsl/klum-ast/issues/463)).
 - Jackson `LINK` import is reference-only. Explicit Jackson identities with `alwaysAsId`, custom property codecs, and
   custom `ObjectIdResolver`s preserve completed targets and same-session Builder identity across backward and forward
   references, including Collection and Map `LINK`s. Inline input fails with focused mapping errors. Export requires an

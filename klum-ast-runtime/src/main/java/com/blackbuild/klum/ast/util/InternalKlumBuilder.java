@@ -30,6 +30,7 @@ import com.blackbuild.groovy.configdsl.transform.PostApply;
 import com.blackbuild.klum.ast.KlumModelObject;
 import com.blackbuild.klum.ast.process.BreadcrumbCollector;
 import com.blackbuild.klum.ast.process.ConstructionSession;
+import com.blackbuild.klum.ast.process.ConstructionSession;
 import com.blackbuild.klum.ast.process.DefaultKlumPhase;
 import com.blackbuild.klum.ast.process.KlumPhase;
 import com.blackbuild.klum.ast.process.PhaseDriver;
@@ -130,6 +131,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             constructionSessionActive = false;
     }
 
+    /** Internal hook used by {@link PhaseDriver} to keep Builder adapters in their owning session. */
+    public final boolean $isInActiveConstructionSession(ConstructionSession session) {
+        return constructionSession == session && constructionSessionActive;
+    }
+
     public final Class<M> getModelType() {
         return modelType;
     }
@@ -211,6 +217,11 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         graph.forEach(InternalKlumBuilder::allocateModel);
         graph.forEach(InternalKlumBuilder::$assignRelationships);
         return root.getCompletedModel();
+    }
+
+    /** Internal adapter hook that materializes a value-only Template graph without lifecycle phases. */
+    public static Object materializeTemplateForImport(InternalKlumBuilder<?> root) {
+        return materializeGraph(root);
     }
 
     /** Internal Builder hook that assigns one completed relationship without exposing a model mutator. */

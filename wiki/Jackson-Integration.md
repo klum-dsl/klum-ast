@@ -64,18 +64,30 @@ modules, and data-format factories stay under the integration's control.
 
 # Managed import
 
-The existing internal `KlumDeserializer` resolves Jackson properties and binds them to generated Builders rather than
-partially initialized DSL Objects. The final 4.0 API adds a public, data-format-neutral `KlumJacksonImporter` with four
-explicit modes:
+`KlumJacksonImporter` resolves Jackson properties and binds them to generated Builders rather than partially initialized
+DSL Objects. Configure the caller-owned mapper with `KlumAstModule`, then capture one importer and provide one input per
+operation:
+
+```java
+KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
+Order order = importer.readRoot(Order.class, KlumJacksonInput.parser(parser));
+Order recipe = importer.readTemplate(Order.class, KlumJacksonInput.tree(tree));
+Child_DSL.Builder child = importer.readBuilder(Child.Create.getAsBuilder(), KlumJacksonInput.map(values));
+Child_DSL.Builder sameChild = importer.applyToBuilder(child, KlumJacksonInput.map(overrides));
+```
+
+Groovy may use `Child.Create.AsBuilder`. The four operations are explicit:
 
 1. read a root and run one complete lifecycle;
 2. read a value-only Template without running lifecycle processing;
 3. create an imported Builder inside an active Construction session;
 4. apply an input to an existing unsealed Builder.
 
-The exact method signatures are finalized in the importer tracer bullet. Until that implementation lands, raw
-`ObjectMapper.readValue(DslType)` remains the beta standalone-root path; do not use it to start a DSL root inside an active
-Construction session.
+The importer is immutable and retains a snapshot `mapper.reader()` or an untyped, non-updating `ObjectReader`. It never
+registers a module or changes mapper configuration. Parsers remain open and caller-owned; tree and Map inputs are not
+mutated. `named("config.yaml")` adds an opaque diagnostic source name. Typed or updating readers are rejected. Raw
+`ObjectMapper.readValue(DslType)` remains a discouraged standalone-root compatibility path; do not use it to start a DSL
+root inside an active Construction session.
 
 Root import uses this order:
 

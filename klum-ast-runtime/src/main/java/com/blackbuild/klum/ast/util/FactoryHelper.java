@@ -105,6 +105,11 @@ public class FactoryHelper extends GroovyObjectSupport {
         return builder;
     }
 
+    /** Internal adapter hook for importing a value-only Template without a Groovy configuration source. */
+    public static <T> KlumBuilder<T> createTemplateBuilderForImport(Class<T> type) {
+        return createTemplateBuilder(type);
+    }
+
     @SuppressWarnings("java:S1452") // the concrete generated Builder type is selected from the recipe at runtime
     static InternalKlumBuilder<?> createRecipeBuilder(Class<?> declaredType, Object recipe, Object keyHint, boolean template) {
         return createRecipeBuilder(declaredType, recipe, keyHint, template, null);

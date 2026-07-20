@@ -11,11 +11,31 @@ dependencies {
 //    api project(':klum-ast-annotations')
     api project(':klum-ast-runtime')
 
-    api 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
+    api "com.fasterxml.jackson.core:jackson-databind:${providers.gradleProperty('jacksonVersion').getOrElse('2.14.2')}"
 
     sharedTests project(':klum-ast')
     // just to make intellij happy, base classes are actually included as sources
     testCompileOnly(testFixtures(project(':klum-ast')))
+    testImplementation gradleTestKit()
+}
+
+// Gradle TestKit embeds Groovy 3, which cannot share a compiler classpath with the
+// Groovy 4/5 Spock lanes. The TestKit acceptance spec compiles Java and static-Groovy
+// consumers at both Jackson endpoints in the baseline lane; importer behavior itself
+// remains covered in all three project Groovy lanes by KlumJacksonImporterSpec.
+["groovy4Tests", "groovy5Tests"].each { lane ->
+    sourceSets.named(lane) {
+        groovy.exclude "com/blackbuild/klum/ast/jackson/JacksonImporterConsumerTest.groovy"
+    }
+}
+
+tasks.named("test") {
+    dependsOn(":klum-ast:jar", ":klum-ast-annotations:jar", ":klum-ast-runtime:jar", "jar")
+    systemProperty("klumAstJar", project(":klum-ast").tasks.named("jar").flatMap { it.archiveFile }.get().asFile)
+    systemProperty("klumAnnotationsJar", project(":klum-ast-annotations").tasks.named("jar")
+            .flatMap { it.archiveFile }.get().asFile)
+    systemProperty("klumRuntimeJar", project(":klum-ast-runtime").tasks.named("jar").flatMap { it.archiveFile }.get().asFile)
+    systemProperty("klumJacksonJar", tasks.named("jar").flatMap { it.archiveFile }.get().asFile)
 }
 
 publishing {
