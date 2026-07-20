@@ -1,6 +1,6 @@
 # Architecture map for issue curation
 
-This is a compact index for later issue analysis. Unless marked **target** or **hypothesis**, statements below are confirmed by the current source and tests on `master` at `93be14fd` (2026-07-13). Reopen source when an issue touches an unmapped seam or contradicts this map.
+This is a compact index for later issue analysis. Unless marked **target** or **hypothesis**, statements below are confirmed by the current source and tests on `master` at `8efa2005` (2026-07-20). Reopen source when an issue touches an unmapped seam or contradicts this map.
 
 ## Dependency shape
 
@@ -21,9 +21,9 @@ klum-ast-bom           -- constrains subprojects that apply `java-library`
 | Module | Responsibility and seam | Direct architectural dependencies | Primary evidence |
 |---|---|---|---|
 | `klum-ast-annotations` | Public schema vocabulary: `@DSL`, field/key/owner/role, lifecycle, validation, converter, copy strategy, and Layer 3 annotations. Runtime retention lets the runtime interpret the schema; transformation/validator classes are named as strings so the annotation artifact does not depend on compiler implementation. | AnnoDocimal annotations and KlumCast annotations; Groovy is compile-only. | [`DSL.java`](../../../klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/DSL.java), [`Field.java`](../../../klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/Field.java), [`FieldType.java`](../../../klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/FieldType.java), [`layer3/annotations`](../../../klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/util/layer3/annotations) |
-| `klum-ast` | Compile-time implementation. Local AST transformations validate schemas, move construction state and mutators to generated Builders, generate factories/DSL methods, and emit internal materialization hooks. It is consumed for schema compilation, not normal model runtime. | `api`: annotations, runtime, AnnoDocimal global AST, KlumCast compiler. | [`DSLASTTransformation.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.java), [`DslAstHelper.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/DslAstHelper.java), [`ConverterBuilder.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/ConverterBuilder.java), [`AlternativesClassBuilder.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/AlternativesClassBuilder.java) |
+| `klum-ast` | Compile-time implementation. Local AST transformations validate schemas, move construction state and mutators to hidden generated Builders, generate factories/DSL methods and the public `Foo_DSL` support contract, and emit internal materialization hooks. It is consumed for schema compilation, not normal model runtime. | `api`: annotations, runtime, AnnoDocimal global AST, KlumCast compiler. | [`DSLASTTransformation.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.java), [`GeneratedDslSupport.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/GeneratedDslSupport.java), [`DslAstHelper.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/DslAstHelper.java), [`ConverterBuilder.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/ConverterBuilder.java), [`AlternativesClassBuilder.java`](../../../klum-ast/src/main/java/com/blackbuild/groovy/configdsl/transform/ast/AlternativesClassBuilder.java) |
 | `klum-ast-runtime` | Runtime deep module behind generated methods: root factories, Builder state, phase driver, materialization, templates/copying, validation, construction/structural paths, owner/link/default phases, and structure traversal. Generated schema bytecode depends on it. `BreadcrumbCollector` remains generated/runtime implementation vocabulary. | `api`: annotations. Phase actions and validators are extended through Java `ServiceLoader`. | [`KlumBuilder.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/KlumBuilder.java), [`FactoryHelper.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/FactoryHelper.java), [`PhaseDriver.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/process/PhaseDriver.java), [`StructureUtil.java`](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/util/layer3/StructureUtil.java) |
-| `klum-ast-jackson` | Jackson interoperability adapter. It auto-registers `KlumAstModule`, resolves effective foreign properties, preallocates one owned Builder graph for current root reads, and exports completed models through ordinary Jackson serialization with Template/LINK safeguards. ADR 0009 adds the exact `KlumJacksonImporter`/`KlumJacksonInput` seam rather than a Klum wire format; issue #463 implements it with one input per operation. | `api`: runtime and Jackson Databind. | [`KlumAstModule.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumAstModule.java), [`KlumDeserializer.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumDeserializer.java), [`LinkIdentitySpec.groovy`](../../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/LinkIdentitySpec.groovy), [`JacksonCustomizationSpec.groovy`](../../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/JacksonCustomizationSpec.groovy) |
+| `klum-ast-jackson` | Jackson interoperability adapter. It auto-registers `KlumAstModule`, resolves effective foreign properties, preallocates one owned Builder graph for current root reads, and exports completed models through ordinary Jackson serialization with Template/LINK safeguards. ADR 0009's final `KlumJacksonImporter`/`KlumJacksonInput` seam provides exactly one parser/tree/Map input per explicit root, Template, active-session Builder, or apply-to-Builder operation; it is not a Klum wire format. | `api`: runtime and Jackson Databind. | [`KlumAstModule.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumAstModule.java), [`KlumDeserializer.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumDeserializer.java), [`KlumJacksonImporter.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumJacksonImporter.java), [`KlumJacksonInput.java`](../../../klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumJacksonInput.java), [`KlumJacksonImporterSpec.groovy`](../../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/KlumJacksonImporterSpec.groovy), [`JacksonYamlInteroperabilityDocumentaryTest.groovy`](../../../klum-ast-jackson/src/test/groovy/com/blackbuild/klum/ast/jackson/JacksonYamlInteroperabilityDocumentaryTest.groovy) |
 | `klum-ast-bean-validation` | Validation adapter. Registers `JSR380Validator` as an `InstanceValidator`; maps Jakarta violations and `Level` payloads into Klum validation issues. | `api`: runtime and Jakarta Validation; `implementation`: Hibernate Validator. | [`JSR380Validator.java`](../../../klum-ast-bean-validation/src/main/java/com/blackbuild/klum/ast/validation/bean/JSR380Validator.java), [`Level.java`](../../../klum-ast-bean-validation/src/main/java/com/blackbuild/klum/ast/validation/bean/Level.java), [`JSR380ValidatorTest.groovy`](../../../klum-ast-bean-validation/src/test/groovy/com/blackbuild/klum/ast/validation/bean/JSR380ValidatorTest.groovy) |
 | `klum-ast-gradle-plugin` | Build adapter with three plugin interfaces: `com.blackbuild.klum-ast-schema`, `com.blackbuild.klum-ast-model`, and `com.blackbuild.convention.groovy`. Schema projects receive compile-only `klum-ast`, API `klum-ast-runtime`, AnnoDocimal, sources/Javadoc, the BOM, and the explicit IDE source-mirror refresh lifecycle. Model projects expose schema dependencies and generate `META-INF/klum-model` descriptors. The convention plugin selects Groovy/Spock 3, 4, or 5. | Gradle interfaces plus AnnoDocimal plugin. Published Klum coordinates are added by name, not project dependencies. | [`AbstractKlumPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/AbstractKlumPlugin.java), [`KlumAstSchemaPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.java), [`KlumAstModelPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/KlumAstModelPlugin.java), [`GroovyDependenciesPlugin.java`](../../../klum-ast-gradle-plugin/src/main/java/com/blackbuild/klum/ast/gradle/convention/GroovyDependenciesPlugin.java) |
 | `klum-ast-bom` | Version-alignment platform. Adds constraints for every subproject that applies `java-library`; it has no behavior. | Gradle platform constraints only. | [`build.gradle`](../../../klum-ast-bom/build.gradle) |
@@ -35,17 +35,18 @@ klum-ast-bom           -- constrains subprojects that apply `java-library`
 Confirmed generated artifacts:
 
 - the DSL Object implements a keyed/unkeyed/model marker and `Serializable`;
-- a public static generated Builder currently named `$_RW`, inheriting the parent DSL Builder or `KlumBuilder<T>`;
-- a generated `$_Factory` and public static `Create` field, with `KlumFactory.Keyed`, `Unkeyed`, or abstract/custom factory behavior;
+- a top-level public `Foo_DSL` namespace with `Factory`, self-typed `Builder<SELF extends Foo>`, and nested Collection/Cluster factory interfaces; `Foo.Create` is typed to `Foo_DSL.Factory`;
+- a hidden generated `Foo$Builder` implementation that mirrors the inherited Builder hierarchy and implements `Foo_DSL.Builder`; `KlumBuilder<T>` is its zero-operation public capability rather than a mutable implementation base;
+- a hidden generated factory implementation and public static `Create` field, with keyed, unkeyed, or abstract/custom factory behavior;
 - a public static `Template` handler, collection-local factory types, closure delegate metadata, converters, alternatives, copy methods, and lifecycle/mutator methods on the Builder;
-- an internal model constructor guarded by `KlumBuilder.MaterializationToken`, plus generated allocation/relationship-assignment hooks;
+- an internal model constructor guarded by `InternalKlumBuilder.MaterializationToken`, plus generated allocation/relationship-assignment hooks;
 - an artificial `$Template` implementation when an abstract DSL type needs a materializable recipe.
 
-The accepted target client interface is the schema annotations plus generated `Foo_DSL` interfaces (`Factory`, `Builder`,
-and nested Collection/Cluster factories), with `Foo.Create` typed to `Foo_DSL.Factory`. Clients may name but not implement
-these interfaces. Current `$_RW`, `KlumRwObject`, `@DelegatesToRW`, and `KlumInstanceProxy` remain compatibility details
-pending ADR 0005 implementation. Completed objects use `KlumObjectSupport`; direct `KlumModelProxy` access is not supported
-by ADR 0006 and the Model companion is package-internal.
+The supported client interface is the schema annotations plus generated `Foo_DSL` interfaces (`Factory`, `Builder`, and
+nested Collection/Cluster factories). Clients may name but not construct, implement, or subclass these interfaces. `$_RW`
+and `KlumRwObject` are removed; `@DelegatesToBuilder` is canonical and `@DelegatesToRW` is its deprecated source alias.
+`KlumInstanceProxy` is a deprecated Builder-only compatibility adapter. Completed objects use `KlumObjectSupport`; direct
+`KlumModelProxy` access is not supported and the Model companion is package-internal.
 
 ADR 0005 also requires AnnoDocimal `Foo_DSL` source mirrors to be IDE-only metadata. DSL-G adds a cacheable
 `createKlumDslSourceMirrors` task and registers its output only as an IDEA generated source root. Developers run the task
@@ -74,7 +75,7 @@ Phase actions are discovered from [`META-INF/services/...PhaseAction`](../../../
 Additional invariants:
 
 - Source initializers execute once when a Builder is allocated. `FieldType.BUILDER` state is omitted from the model. Non-transient, non-relationship model fields become final.
-- Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK`; owned composition must be created in the owner's session. Nested root factories are rejected. `OPTIONAL_LINK` claims a fresh same-session Builder as composition, while an already claimed Builder or a completed model is aggregation; a fresh Builder remains invalid for aggregation-only `LINK` (#474).
+- Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK` or `OPTIONAL_LINK`; owned composition must be created in the owner's session. Nested root factories are rejected. `@LinkTo` selects `OPTIONAL_LINK` unless explicitly overridden: a fresh same-session Builder is claimed as composition, while an already claimed Builder or a completed model is aggregation. A fresh Builder remains invalid for aggregation-only `LINK`.
 - Materialization publishes independent read-only snapshots for `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`; comparators are retained. `EnumSet` is defensive. Unsupported concrete/custom collection declarations fail schema compilation. Simple Values are retained, not deep-copied.
 - Generated models retain a sealed internal `KlumObjectCompanion`. The package-internal Model companion stores ordinary
   completed-model paths, metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
@@ -83,14 +84,15 @@ Additional invariants:
   mutating lifecycle issue state. Generic Builder/Model metadata access is internal lifecycle linkage, not an extension seam.
 - Templates copy values/composition and replay cloned recipe actions into fresh Builders. Every owned Template node is
   marked, pre-existing ordinary `LINK` targets retain identity, and no Template may be a relationship value. Normal
-  Jackson export rejects Templates; ADR 0009 plans explicit value-only Template import through #463.
+  Jackson export rejects Templates; `KlumJacksonImporter.readTemplate` imports an explicit value-only Template without
+  running its lifecycle.
 - `StructureUtil.visit` is identity-cycle-safe and follows composition only: declared fields are traversed, while owner and `LINK` fields are skipped. Builder phase traversal also skips sealed aggregation wrappers. Paths use GPath-like field, index, and map-key segments. Per-entry relationship state keeps `OPTIONAL_LINK` collections/maps free to mix owned and aggregation entries without traversal leakage (#474).
 - Current Jackson root deserialization binds resolved public configuration properties between `PostCreate` and `PostApply`
   in one Builder lifecycle. The complete owned graph and its identities are prepared before binding so backward and forward
-  `LINK` references resolve without creating ownership; polymorphic owned values remain Builders in that session. #463
-  adds the confirmed `KlumJacksonImporter` root, Template, in-session Builder, and apply-to-Builder modes plus immutable
+  `LINK` references resolve without creating ownership; polymorphic owned values remain Builders in that session.
+  `KlumJacksonImporter` provides the root, value-only Template, in-session Builder, and apply-to-Builder modes with immutable
   parser/tree/Map `KlumJacksonInput` adapters and import-source construction-path context. Each operation binds one input;
-  source-neutral ordered composition belongs to #304.
+  source-neutral ordered composition remains #304 work.
 
 ## Extension seams
 
@@ -98,7 +100,7 @@ Additional invariants:
 - ADR 0008's later-4.x target wraps phase actions in state-typed registrations with stable IDs and equal-phase dependencies;
   the current runtime still loads actions directly.
 - Validation extensions implement `InstanceValidator` and register via `ServiceLoader`. Core annotation validators and optional Bean Validation share the same result and memoization path.
-- Jackson uses Jackson's `Module` service provider interface and only replaces deserializers for DSL types. The confirmed
+- Jackson uses Jackson's `Module` service provider interface and only replaces deserializers for DSL types. The delivered
   public importer is data-format-neutral, snapshots caller-owned mapper/reader configuration, and exposes no
   `ConstructionSession` or source-specific convenience overloads. The 4.0 artifact remains a Jackson 2 adapter; a future
   Jackson 3 adapter must compile separately against the same neutral lifecycle engine.
@@ -106,11 +108,11 @@ Additional invariants:
 
 ## Test map
 
-- Transformation/generated interface: [`TransformSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TransformSpec.groovy), [`RWClassSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/RWClassSpec.groovy), [`BuilderFirstSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/BuilderFirstSpec.groovy), [`ConverterSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ConverterSpec.groovy).
+- Transformation/generated interface: [`TransformSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TransformSpec.groovy), [`GeneratedDslSupportSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ast/GeneratedDslSupportSpec.groovy), [`BuilderProjectionSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/BuilderProjectionSpec.groovy), [`BuilderFirstSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/BuilderFirstSpec.groovy), [`ConverterSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ConverterSpec.groovy).
 - Lifecycle/templates/validation: [`LifecycleSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/LifecycleSpec.groovy), [`TemplatesSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/TemplatesSpec.groovy), [`ValidationSpec.groovy`](../../../klum-ast/src/test/groovy/com/blackbuild/groovy/configdsl/transform/ValidationSpec.groovy), plus owner/default/auto-create/auto-link specs nearby.
 - Runtime algorithms without the real transform: [`klum-ast-runtime/src/test`](../../../klum-ast-runtime/src/test/groovy) with [`AbstractRuntimeTest.groovy`](../../../klum-ast-runtime/src/testFixtures/groovy/com/blackbuild/klum/ast/util/AbstractRuntimeTest.groovy). End-to-end dynamic schema compilation uses [`AbstractDSLSpec.groovy`](../../../klum-ast/src/testFixtures/groovy/com/blackbuild/groovy/configdsl/transform/AbstractDSLSpec.groovy); file/compilation-order cases use the other fixtures in that directory.
 - Integration boundaries: Jackson `JsonExportSpec`, `ConfigurationReplaySpec`, `ConstructionOverrideSpec`,
-  `LinkIdentitySpec`, and `JacksonCustomizationSpec`, Bean Validation `JSR380ValidatorTest`, and Gradle TestKit/unit scenarios under
+  `LinkIdentitySpec`, `JacksonCustomizationSpec`, `KlumJacksonImporterSpec`, and `JacksonYamlInteroperabilityDocumentaryTest`, Bean Validation `JSR380ValidatorTest`, and Gradle TestKit/unit scenarios under
   [`klum-ast-gradle-plugin/src/test`](../../../klum-ast-gradle-plugin/src/test).
 - `klum-ast/src/test/scenarios` currently has no committed executable scenario, only its README; `ScenariosTest` conditionally skips when no scenario directory or `.link` fixture exists.
 
@@ -125,28 +127,35 @@ Compiler-version seams are concentrated in `klum-ast`: [`Groovy3To4MigrationHelp
 - [ADR 0001](../../adr/0001-architecture-overview.md) establishes the single-context documentation layout; it is **Proposed**.
 - [ADR 0002](../../adr/0002-phase-contracts-and-builder-model.md) is historical and **Superseded**; do not infer its opt-in rollout or phase-registration DSL exists.
 - [ADR 0003](../../adr/0003-builder-first-materialization.md) is **Accepted** and describes the implemented Builder-first/materialization boundary.
-- [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted and implemented**. Active-session composition,
-  generated Builder projections, Template recipe companions, copy-source behavior, and the materialization scheduler
-  boundary are indexed in [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
-- [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts `Foo_DSL` and Builder vocabulary; only DSL-G's Gradle
-  mirror lifecycle is implemented.
+- [ADR 0004](../../adr/0004-asbuilder-composition-protocol.md) is **Accepted and implemented** through the closed AB-1,
+  AB-2, AB-3, and compatibility-closure work under #431: active-session composition, generated Builder projections,
+  Template recipe companions, copy-source behavior, and the materialization scheduler boundary are indexed in
+  [`adr-0004-asbuilder-composition.md`](../adr-0004-asbuilder-composition.md).
+- [ADR 0005](../../adr/0005-generated-dsl-support-api.md) accepts and implements the `Foo_DSL`/Builder contract:
+  DSL-1 public namespaces, DSL-2 capability/RW migration, DSL-G's IDE-only mirror lifecycle, and DSL-3 distribution/
+  documentation closure are delivered under closed #394.
 - [ADR 0006](../../adr/0006-completed-object-support.md) accepts `KlumObjectSupport`. OS-1 construction-path/composition support,
   OS-2 stored-validation support/companion lockdown, and OS-3's `getConstructionPath()` compatibility closure are implemented.
 - [ADR 0007](../../adr/0007-jackson-configuration-replay.md) is **Superseded**; its JSON-1 property binding and JSON-2
   identity/customization mechanics remain implemented history, but not a persistence contract.
 - [ADR 0008](../../adr/0008-phase-registration.md) accepts a later-4.x registration SPI; it is not implemented.
 - [ADR 0009](../../adr/0009-jackson-interoperability.md) accepts asymmetric foreign-format import and ordinary POJO
-  export with no Klum wire metadata. The #463 importer interface was confirmed on 2026-07-17; implementation and #464
-  compatibility closure remain 4.0 blockers.
+  export with no Klum wire metadata. Closed #463 delivers the importer/interface and closed #464 delivers the asymmetric
+  YAML compatibility/documentation closure. Parent #428 remains open in GitHub, so its remaining parent-level release
+  reconciliation must not be inferred from either child issue's closure.
 - The [#450 integration audit](issue-450-integration-audit.md) confirms that current KlumCast 0.3.1 and AnnoDocimal 0.7.1
   behavior remains unchanged. Target dependency contracts are tracked by #459 (KlumCast 0.4 artifacts/modules), #460
   (desirable durable check-SPI migration), and #461 (blocking AnnoDocimal 1.0 adoption); none is a current capability.
 
 Confirmed deferred gaps, not current capabilities:
 
-- Generated `Foo_DSL` AST layout (#394) remains decided but not implemented. Jackson JSON-1/#439 and JSON-2/#440 are
-  implemented groundwork; #463 explicit importer and #464 asymmetric compatibility closure remain under #428.
-  Completed-object support (#390) has its OS-1 construction-path/structure, OS-2 validation/proxy-lockdown, and OS-3
-  `getConstructionPath()` compatibility slices implemented. The DSL-G Gradle mirror lifecycle is implemented independently. Declarative phase
-  registration (#305) is decided and deferred to later 4.x.
-**Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `KlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.
+- Regular opaque scripts returning completed models remain top-level-only; they are deliberately omitted from generated
+  Builder projections. Declarative phase registration (#305) is decided and deferred to later 4.x.
+- Generated `Foo_DSL` (#394) and the Jackson JSON-1/#439, JSON-2/#440, JSON-3/#463, and JSON-4/#464 seams are current
+  capabilities. Completed-object support (#390) has all confirmed OS slices: OS-1 construction-path/structure, OS-2
+  stored validation/proxy lockdown, and OS-3's sole `getConstructionPath()` public facade getter.
+- #474's delivered relationship boundary is current behavior: `@LinkTo` selects `OPTIONAL_LINK`; explicit `LINK` is
+  aggregation-only; composition-only fields reject completed/claimed values; generated Java/Groovy relationship shapes
+  and non-destructive dynamic Auto-Link coverage are part of the 4.0 public seam.
+
+**Analyst hypothesis:** issue coupling is highest where generated composition projections (`AlternativesClassBuilder`/`ConverterBuilder`) call model-returning factories (`KlumFactory`/`FactoryHelper`) and then cross `InternalKlumBuilder.normalizeRelationshipValue`. Verify that path for each factory/converter issue; do not assume all converter or script inputs share it.
