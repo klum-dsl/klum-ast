@@ -5,6 +5,7 @@
   * [[Usage]]
   * [[Gradle Plugins]]
   * [[Getting Started]]
+  * [[Target Contract Modeling]]
   * [[Basics]]
   * [[Model Phases]]
   * [[Exception Handling]]
