@@ -10,19 +10,16 @@ import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
 abstract class Home {
 
     @Key String name
-    @AutoCreate @Cluster Map<String, Area> areas
+    @AutoCreate @Cluster Map<String, Room> rooms
 }
 
 @DSL
-abstract class Area {
+abstract class Room {
 
     String displayName
     @AutoCreate @Cluster Map<String, Window> windows
     List<Device> devices
 }
-
-@DSL
-abstract class Room extends Area { }
 
 @DSL
 abstract class HeatedRoom extends Room {

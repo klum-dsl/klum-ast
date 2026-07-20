@@ -4,7 +4,7 @@ This is a 4.0-preview acceptance fixture for `build-domain-first-schema` and `au
 
 ## Domain API Developer
 
-`api` declares generic `Home`, `Area`, `Room`, `Window`, and `Device` contracts, including provider-specific device types where provider communication is relevant. `Home.areas` and `Area.windows` are Cluster projections. It has no concrete floorplan classes or Model script.
+`api` declares generic `Home`, `Room`, `Window`, and `Device` contracts, including provider-specific device types where provider communication is relevant. `Home.rooms` and `Room.windows` are Cluster projections. It has no concrete floorplan classes or Model script.
 
 ## Schema Developer
 
@@ -16,7 +16,7 @@ Follow the shared [`author-klum-model`](../../author-klum-model/SKILL.md) workfl
 
 ## Client Developer
 
-`client-demo` has only a project dependency on `api` (plus the Groovy API needed to compile against Groovy DSL types). `WindowStateClient` receives generic `Home`, walks the Area/Window Cluster projections, and asks a speculative `WindowStateService` about each Window. It imports no concrete room, provider, or Builder type. The end-to-end test compiles and executes it with the registered Model.
+`client-demo` has only a project dependency on `api` (plus the Groovy API needed to compile against Groovy DSL types). `WindowStateClient` receives generic `Home`, walks the Room/Window Cluster projections, and asks a speculative `WindowStateService` about each Window. It imports no concrete room, provider, or Builder type. The end-to-end test compiles and executes it with the registered Model.
 
 ## Direct-schema alternative
 

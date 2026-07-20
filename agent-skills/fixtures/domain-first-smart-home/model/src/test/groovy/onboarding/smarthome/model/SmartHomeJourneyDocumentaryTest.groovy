@@ -20,8 +20,8 @@ class SmartHomeJourneyDocumentaryTest extends Specification {
         when: 'the Model Writer loads the registered model against the finished Schema'
         CityFlat home = CityFlat.Create.FromClasspath()
 
-        then: 'the Schema supplies fixed areas, windows, and their default labels'
-        home.areas.keySet() == ['kitchen', 'livingRoom', 'mainBedroom'] as Set
+        then: 'the Schema supplies fixed rooms, windows, and their default labels'
+        home.rooms.keySet() == ['kitchen', 'livingRoom', 'mainBedroom'] as Set
         home.mainBedroom.displayName == 'Main bedroom'
         home.mainBedroom.windows.keySet() == ['garden'] as Set
         home.kitchen.windows.keySet() == ['street'] as Set

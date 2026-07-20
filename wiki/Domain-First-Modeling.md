@@ -17,7 +17,7 @@ Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundar
 
 The executable fixture at [`agent-skills/fixtures/domain-first-smart-home`](../agent-skills/fixtures/domain-first-smart-home) follows one complete journey:
 
-1. The Domain API Developer defines generic `Home`, `Area`, `Window`, and device/provider types. Cluster projections make the fixed floorplan available without exposing its Schema classes.
+1. The Domain API Developer defines generic `Home`, `Room`, `Window`, and device/provider types. Cluster projections make the fixed floorplan available without exposing its Schema classes.
 2. The Schema Developer realizes one CityFlat floorplan with named Kitchen, LivingRoom, MainBedroom, and garden/street Window fields. `@DefaultValues` supplies the Schema-owned visible labels; validation distinguishes mandatory installed-device categories from optional sensors.
 3. The Model Writer configures installed devices in a separate registered Model script through `CityFlat.Create.With`, selecting provider-specific Builder types such as `TadoThermostat` and `HomematicThermostat`.
 4. The Client Developer's `client-demo` accepts only generic `Home`, walks the Cluster projections, and asks a speculative service for Window state.

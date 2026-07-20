@@ -4,7 +4,7 @@ This executable 4.0-preview fixture is the shared reference for the `build-domai
 
 The four modules make the Layer 3 boundary concrete:
 
-- `api` defines generic `Home`, `Area`, `Window`, and device/provider types. It exposes the Schema floorplan through Cluster projections.
+- `api` defines generic `Home`, `Room`, `Window`, and device/provider types. It exposes the Schema floorplan through Cluster projections.
 - `schema` defines one `CityFlat` floorplan: Kitchen, LivingRoom, MainBedroom, garden/street Windows, fixed device slots, and Schema-owned display-name defaults.
 - `model` consumes the finished Schema. Its registered `CityFlatModel` script selects Tado/Homematic device Builders and records durable target values and connection identities.
 - `client-demo` compiles against `api` only. `WindowStateClient` iterates generic Cluster windows and asks a speculative external service for their state.

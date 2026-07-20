@@ -13,9 +13,9 @@ public final class WindowStateClient {
 
     public Map<String, String> readWindowStates(Home home, WindowStateService windowStateService) {
         Map<String, String> states = new LinkedHashMap<>();
-        home.getAreas().forEach((areaName, area) ->
-                area.getWindows().forEach((windowName, window) ->
-                        states.put(areaName + "." + windowName, windowStateService.stateFor(window))));
+        home.getRooms().forEach((roomName, room) ->
+                room.getWindows().forEach((windowName, window) ->
+                        states.put(roomName + "." + windowName, windowStateService.stateFor(window))));
         return states;
     }
 }
