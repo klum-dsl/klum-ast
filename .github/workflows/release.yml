@@ -27,11 +27,36 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-release-input:
+    name: Validate release stage and version
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.select-environment.outputs.name }}
+
+    steps:
+      - id: select-environment
+        env:
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_STAGE" == candidate && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$ ]]; then
+            echo 'name=release-candidate' >> "$GITHUB_OUTPUT"
+          elif [[ "$RELEASE_STAGE" == final && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'name=final-release' >> "$GITHUB_OUTPUT"
+          else
+            echo 'The selected stage does not match the exact immutable version.' >&2
+            exit 1
+          fi
+
   publish:
     name: Publish ${{ inputs.stage }} ${{ inputs.version }}
+    needs: validate-release-input
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    environment: ${{ inputs.stage == 'candidate' && 'release-candidate' || 'final-release' }}
+    environment:
+      name: ${{ needs.validate-release-input.outputs.environment }}
     env:
       KLUM_AST_RELEASE_AUTHORIZED: ${{ inputs.stage }}
       ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
@@ -68,11 +93,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          case "${{ inputs.stage }}:${{ inputs.version }}" in
-            candidate:*-rc.[0-9]*) ;;
-            final:[0-9]*.[0-9]*.[0-9]*) ;;
-            *) echo "The selected stage does not match the exact immutable version." >&2; exit 1 ;;
-          esac
           git show-ref --verify --quiet "refs/tags/v${{ inputs.version }}" && {
             echo "The release tag already exists; published versions are never retried in place." >&2
             exit 1

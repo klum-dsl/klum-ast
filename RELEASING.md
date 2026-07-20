@@ -69,8 +69,9 @@ action revision during an incident.
 
 Dispatch **Publish protected release**, select `candidate` or `final`, and enter the exact
 version and full `master` commit SHA. The matching environment approval is the irreversible-
-operation checkpoint. The workflow checks out that SHA with no persisted GitHub credential,
-proves it is on `master`, and executes in its protected job:
+operation checkpoint. An unprivileged preflight accepts only valid candidate/final version
+shapes before it selects either protected environment. The workflow then checks out that SHA
+with no persisted GitHub credential, proves it is on `master`, and executes in its protected job:
 
 ```text
 ./gradlew <candidate|final> publishCompleteKlumAstProduct \
