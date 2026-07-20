@@ -5,6 +5,7 @@ import com.blackbuild.groovy.configdsl.transform.Default
 import com.blackbuild.groovy.configdsl.transform.Key
 import com.blackbuild.groovy.configdsl.transform.Required
 import com.blackbuild.groovy.configdsl.transform.Validate
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
 import com.blackbuild.klum.ast.validation.Validator
 
 @DSL
@@ -68,7 +69,7 @@ class ResourceRequirements {
     ResourceValues requests
     ResourceValues limits
 
-    @Default
+    @AutoCreate
     void defaultsLimitsFromRequests() {
         if (requests && !limits) {
             def requested = requests
