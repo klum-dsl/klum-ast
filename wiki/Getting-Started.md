@@ -15,6 +15,8 @@ Before creating a Schema, answer two independent questions.
 
 Record the choices near the project architecture. Layer 3 is a modeling pattern, not a requirement for every Gradle project.
 
+`author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. This is the #470 baseline; later journeys can deepen either role without redefining their boundary.
+
 ## Create the Gradle project
 
 Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compiler/runtime dependencies, Groovy convention, and sources/Javadocs.
@@ -70,6 +72,6 @@ Quick Documentation for compiled declarations is separate from these mirrors. [A
 
 The repository's [`agent-skills/`](https://github.com/klum-dsl/klum-ast/tree/master/agent-skills) distribution contains portable, task-oriented workflows for `start-klum-project`, `author-klum-model`, and `feature-advisor`. Copy selected standard skill directories into the discovery location supported by your agent client; do not copy repository-maintainer skills from `.agents/skills/`.
 
-`feature-advisor` is a KlumAST-specific, evidence-based improvement review. It stays read-only unless you request selected changes, then explains the supported feature, fit, benefit, trade-offs, confidence, migration risk, effort, documentation source, and validation result.
+`feature-advisor` is a KlumAST-specific, evidence-based improvement review. It first assesses whether the adopted KlumAST version and installed skill distribution are needed, recommended, unnecessary, or unknown updates, then reviews supported features. It stays read-only unless you request selected changes, then explains the supported feature, fit, benefit, trade-offs, confidence, migration risk, effort, documentation source, and validation result.
 
 The minimal fixture at `agent-skills/fixtures/minimal-gradle-project` exercises the baseline locally against the 4.0 sources. Its `ADOPTER-DRY-RUN.md` captures the setup, Model Writer, and feature-advisor field-test flow, including a deliberately improvable Schema case.
