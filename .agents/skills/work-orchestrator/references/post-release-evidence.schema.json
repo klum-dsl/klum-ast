@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://klum-dsl.org/schemas/post-release-orchestration-evidence/v1",
+  "title": "Post-release orchestration evidence event",
+  "description": "Append-only, privacy-preserving event for a cross-repository release/run audit.",
+  "type": "object",
+  "required": ["schema_version", "event_id", "recorded_at", "release", "run", "worker", "event_type", "event"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "event_id": {"$ref": "#/$defs/stableId"},
+    "recorded_at": {"$ref": "#/$defs/utcTimestamp"},
+    "release": {"$ref": "#/$defs/release"},
+    "run": {"$ref": "#/$defs/run"},
+    "worker": {"$ref": "#/$defs/worker"},
+    "event_type": {"enum": ["worker_started", "worker_finished", "orchestrator", "correction", "redaction"]},
+    "event": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event_type": {"const": "worker_started"}}},
+      "then": {"properties": {"event": {"$ref": "#/$defs/startedEvent"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "worker_finished"}}},
+      "then": {"properties": {"event": {"$ref": "#/$defs/finishedEvent"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "orchestrator"}}},
+      "then": {"properties": {"event": {"$ref": "#/$defs/orchestratorEvent"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "correction"}}},
+      "then": {"properties": {"event": {"$ref": "#/$defs/correctionEvent"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "redaction"}}},
+      "then": {"properties": {"event": {"$ref": "#/$defs/redactionEvent"}}}
+    }
+  ],
+  "$defs": {
+    "stableId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "utcTimestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "nonNegativeDuration": {"type": "integer", "minimum": 0, "description": "Duration in seconds."},
+    "safeText": {"type": "string", "minLength": 1, "maxLength": 500, "description": "Sanitized summary only; never a secret, credential, raw prompt, or command output."},
+    "safeTextList": {"type": "array", "items": {"$ref": "#/$defs/safeText"}},
+    "release": {
+      "type": "object",
+      "required": ["release_id"],
+      "additionalProperties": false,
+      "properties": {"release_id": {"$ref": "#/$defs/stableId"}, "reference": {"$ref": "#/$defs/safeText"}}
+    },
+    "run": {
+      "type": "object",
+      "required": ["run_id"],
+      "additionalProperties": false,
+      "properties": {"run_id": {"$ref": "#/$defs/stableId"}, "callback_thread_id": {"$ref": "#/$defs/stableId"}}
+    },
+    "worker": {
+      "type": "object",
+      "required": ["worker_id", "task_id"],
+      "additionalProperties": false,
+      "properties": {
+        "worker_id": {"$ref": "#/$defs/stableId"},
+        "task_id": {"$ref": "#/$defs/stableId"},
+        "parent_worker_id": {"$ref": "#/$defs/stableId"}
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["actual_model", "actual_reasoning"],
+      "additionalProperties": false,
+      "properties": {"actual_model": {"$ref": "#/$defs/safeText"}, "actual_reasoning": {"$ref": "#/$defs/safeText"}}
+    },
+    "startedEvent": {
+      "type": "object",
+      "required": ["occurred_at", "model", "purpose", "expected_output"],
+      "additionalProperties": false,
+      "properties": {
+        "occurred_at": {"$ref": "#/$defs/utcTimestamp"},
+        "model": {"$ref": "#/$defs/model"},
+        "purpose": {"$ref": "#/$defs/safeText"},
+        "expected_output": {"$ref": "#/$defs/safeText"}
+      }
+    },
+    "finishedEvent": {
+      "type": "object",
+      "required": ["occurred_at", "timing", "actual_output", "quota_pressure", "human_interventions", "retries", "operations", "artifacts", "spawn", "cross_library_decisions", "problems", "afk_decision"],
+      "additionalProperties": false,
+      "properties": {
+        "occurred_at": {"$ref": "#/$defs/utcTimestamp"},
+        "timing": {"$ref": "#/$defs/timing"},
+        "actual_output": {"$ref": "#/$defs/safeText"},
+        "quota_pressure": {"$ref": "#/$defs/quotaPressure"},
+        "human_interventions": {"type": "array", "items": {"$ref": "#/$defs/humanIntervention"}},
+        "retries": {"$ref": "#/$defs/retries"},
+        "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}},
+        "artifacts": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
+        "spawn": {"$ref": "#/$defs/spawn"},
+        "cross_library_decisions": {"type": "array", "items": {"$ref": "#/$defs/crossLibraryDecision"}},
+        "problems": {"type": "array", "items": {"$ref": "#/$defs/safeText"}},
+        "mental_overload": {"$ref": "#/$defs/mentalOverload"},
+        "afk_decision": {"$ref": "#/$defs/afkDecision"}
+      }
+    },
+    "quotaPressure": {
+      "type": "object",
+      "required": ["availability"],
+      "additionalProperties": false,
+      "properties": {
+        "availability": {"enum": ["observable", "unavailable"]},
+        "summary": {"$ref": "#/$defs/safeText"},
+        "visible_remaining_percent": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "allOf": [{"if": {"properties": {"availability": {"const": "unavailable"}}}, "then": {"not": {"required": ["visible_remaining_percent"]}}}]
+    },
+    "timing": {
+      "description": "Observed worker-time accounting in seconds; wall-clock duration is derived from start/finish UTC timestamps.",
+      "type": "object",
+      "required": ["active_seconds", "waiting_seconds", "unclassified_seconds"],
+      "additionalProperties": false,
+      "properties": {
+        "active_seconds": {"$ref": "#/$defs/nonNegativeDuration"},
+        "waiting_seconds": {"$ref": "#/$defs/nonNegativeDuration"},
+        "unclassified_seconds": {"$ref": "#/$defs/nonNegativeDuration"}
+      }
+    },
+    "humanIntervention": {
+      "type": "object",
+      "required": ["point", "wait_seconds"],
+      "additionalProperties": false,
+      "properties": {"point": {"$ref": "#/$defs/safeText"}, "wait_seconds": {"$ref": "#/$defs/nonNegativeDuration"}}
+    },
+    "retries": {
+      "type": "object",
+      "required": ["retry_count", "abandoned_approaches", "duplicated_investigation"],
+      "additionalProperties": false,
+      "properties": {
+        "retry_count": {"type": "integer", "minimum": 0},
+        "abandoned_approaches": {"$ref": "#/$defs/safeTextList"},
+        "duplicated_investigation": {"$ref": "#/$defs/safeTextList"}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["operation_id", "target_category", "scope", "state"],
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {"$ref": "#/$defs/stableId"},
+        "target_category": {"enum": ["repository", "remote", "tracker", "pull_request", "release", "credentials", "other"]},
+        "scope": {"$ref": "#/$defs/safeText"},
+        "state": {"enum": ["requested", "authorized", "denied", "deferred", "completed"]},
+        "reference": {"$ref": "#/$defs/safeText"}
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifact_id", "direction", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/stableId"},
+        "direction": {"enum": ["read", "written"]},
+        "category": {"$ref": "#/$defs/safeText"},
+        "reference": {"$ref": "#/$defs/safeText"}
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "required": ["spawned", "rationale", "existing_workers_could_not_continue"],
+      "additionalProperties": false,
+      "properties": {
+        "spawned": {"type": "boolean"},
+        "rationale": {"$ref": "#/$defs/safeText"},
+        "existing_workers_could_not_continue": {"$ref": "#/$defs/safeText"}
+      }
+    },
+    "crossLibraryDecision": {
+      "type": "object",
+      "required": ["decision_id", "decision", "owner", "receiver_acknowledgements"],
+      "additionalProperties": false,
+      "properties": {
+        "decision_id": {"$ref": "#/$defs/stableId"},
+        "decision": {"$ref": "#/$defs/safeText"},
+        "owner": {"$ref": "#/$defs/stableId"},
+        "receiver_acknowledgements": {"type": "array", "items": {"$ref": "#/$defs/stableId"}}
+      }
+    },
+    "mentalOverload": {
+      "description": "Optional aggregate-safe operational telemetry; never inferred cognition or prompt content.",
+      "type": "object",
+      "required": ["user_facing_context_switches", "concurrent_human_decision_queue_peak"],
+      "additionalProperties": false,
+      "properties": {
+        "user_facing_context_switches": {"type": "integer", "minimum": 0},
+        "concurrent_human_decision_queue_peak": {"type": "integer", "minimum": 0},
+        "window_started_at": {"$ref": "#/$defs/utcTimestamp"},
+        "window_ended_at": {"$ref": "#/$defs/utcTimestamp"}
+      }
+    },
+    "afkDecision": {
+      "type": "object",
+      "required": ["Trigger", "why_this_worker_was_needed", "why_existing_workers_could_not_handle_it", "allowed_repository_scope", "allowed_operations", "operations_requiring_later_authorization", "expected_stopping_condition", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "Trigger": {"$ref": "#/$defs/safeText"},
+        "why_this_worker_was_needed": {"$ref": "#/$defs/safeText"},
+        "why_existing_workers_could_not_handle_it": {"$ref": "#/$defs/safeText"},
+        "allowed_repository_scope": {"$ref": "#/$defs/safeText"},
+        "allowed_operations": {"$ref": "#/$defs/safeTextList"},
+        "operations_requiring_later_authorization": {"$ref": "#/$defs/safeTextList"},
+        "expected_stopping_condition": {"$ref": "#/$defs/safeText"},
+        "result": {"$ref": "#/$defs/safeText"}
+      }
+    },
+    "orchestratorEvent": {
+      "type": "object",
+      "required": ["occurred_at", "kind", "summary"],
+      "additionalProperties": false,
+      "properties": {"occurred_at": {"$ref": "#/$defs/utcTimestamp"}, "kind": {"enum": ["launch", "routing", "authorization_friction", "human_queue_change", "audit_gap"]}, "summary": {"$ref": "#/$defs/safeText"}}
+    },
+    "correctionEvent": {
+      "type": "object",
+      "required": ["occurred_at", "supersedes_event_id", "replacement_values", "reason"],
+      "additionalProperties": false,
+      "properties": {"occurred_at": {"$ref": "#/$defs/utcTimestamp"}, "supersedes_event_id": {"$ref": "#/$defs/stableId"}, "replacement_values": {"type": "object", "additionalProperties": {"$ref": "#/$defs/safeText"}}, "reason": {"$ref": "#/$defs/safeText"}}
+    },
+    "redactionEvent": {
+      "type": "object",
+      "required": ["occurred_at", "target_event_id", "field", "reason", "safe_replacement"],
+      "additionalProperties": false,
+      "properties": {"occurred_at": {"$ref": "#/$defs/utcTimestamp"}, "target_event_id": {"$ref": "#/$defs/stableId"}, "field": {"$ref": "#/$defs/safeText"}, "reason": {"$ref": "#/$defs/safeText"}, "safe_replacement": {"$ref": "#/$defs/safeText"}}
+    }
+  }
+}

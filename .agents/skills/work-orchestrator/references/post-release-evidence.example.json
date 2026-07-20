@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "event_id": "event-evid-pol-finished-001",
+  "recorded_at": "2026-07-20T10:15:00Z",
+  "release": {"release_id": "klum-ast-4.0", "reference": "release governance run"},
+  "run": {"run_id": "run-4.0-evidence-policy", "callback_thread_id": "019f7046-f4fb-7e01-b527-33f2938da753"},
+  "worker": {"worker_id": "worker-evid-pol", "task_id": "task-evid-pol"},
+  "event_type": "worker_finished",
+  "event": {
+    "occurred_at": "2026-07-20T10:15:00Z",
+    "timing": {"active_seconds": 180, "waiting_seconds": 0, "unclassified_seconds": 0},
+    "actual_output": "Local committed evidence-policy documentation and schema.",
+    "quota_pressure": {"availability": "unavailable", "summary": "Platform did not expose quota telemetry."},
+    "human_interventions": [],
+    "retries": {"retry_count": 0, "abandoned_approaches": [], "duplicated_investigation": []},
+    "operations": [{"operation_id": "op-local-commit", "target_category": "repository", "scope": "local policy branch", "state": "authorized"}],
+    "artifacts": [{"artifact_id": "artifact-work-orchestrator-skill", "direction": "written", "category": "orchestrator policy and schema reference"}],
+    "spawn": {"spawned": false, "rationale": "No additional worker was needed.", "existing_workers_could_not_continue": "Not applicable."},
+    "cross_library_decisions": [],
+    "problems": [],
+    "afk_decision": {
+      "Trigger": "Not an AFK admission.",
+      "why_this_worker_was_needed": "Create the cross-orchestrator evidence policy.",
+      "why_existing_workers_could_not_handle_it": "No existing worker owned this bounded policy task.",
+      "allowed_repository_scope": "KlumAST policy and skill artifacts only.",
+      "allowed_operations": ["local documentation edits", "local validation", "local commit"],
+      "operations_requiring_later_authorization": ["push", "pull request creation", "remote repository changes"],
+      "expected_stopping_condition": "Validated local commit.",
+      "result": "Completed locally."
+    }
+  }
+}
