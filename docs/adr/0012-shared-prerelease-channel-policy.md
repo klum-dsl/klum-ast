@@ -58,7 +58,7 @@ is separate from RC authorization.
 External consumers pin the exact published version, use clean caches and no composite build, `mavenLocal`, local
 repository, or unpublished included build, and resolve each repository's complete public product from its real consumer
 repositories. KlumCast additionally proves its Groovy 3/4/5, classpath, and JPMS consumer contracts; AnnoDocimal proves
-its six artifacts and two plugin markers; KlumAST proves all Maven artifacts and both plugin IDs.
+its six artifacts and two plugin markers; KlumAST proves all Maven artifacts and its three declared plugin markers.
 
 ## Ownership
 

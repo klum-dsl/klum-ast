@@ -1,0 +1,36 @@
+def releaseVersion = providers.gradleProperty("releaseVersion").orNull
+if (releaseVersion == null)
+    throw new GradleException("Pass -PreleaseVersion=<published version> to resolve the public product.")
+
+configurations {
+    publicProduct {
+        canBeConsumed = false
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    publicProduct platform("com.blackbuild.klum.ast:klum-ast-bom:$releaseVersion")
+    publicProduct "com.blackbuild.klum.ast:klum-ast-annotations:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast-runtime:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast-jackson:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast-bean-validation:$releaseVersion"
+    publicProduct "com.blackbuild.klum.ast:klum-ast-gradle-plugin:$releaseVersion"
+}
+
+tasks.register("verifyPublicProduct") {
+    group = "verification"
+    description = "Resolves every published Maven module and all declared Gradle plugin markers from public repositories."
+    def evidenceFile = layout.buildDirectory.file("verification/public-product-$releaseVersion.txt")
+    dependsOn subprojects.collect { it.tasks.named("verifyPluginMarker") }
+    outputs.file(evidenceFile)
+
+    doLast {
+        def artifacts = configurations.publicProduct.resolvedConfiguration.resolvedArtifacts
+                .collect { "${it.moduleVersion.id.group}:${it.name}:${it.moduleVersion.id.version}" }
+                .sort()
+        evidenceFile.get().asFile.parentFile.mkdirs()
+        evidenceFile.get().asFile.text = artifacts.join("\n") + "\n"
+    }
+}
