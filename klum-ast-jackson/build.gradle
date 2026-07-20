@@ -17,6 +17,9 @@ dependencies {
     // just to make intellij happy, base classes are actually included as sources
     testCompileOnly(testFixtures(project(':klum-ast')))
     testImplementation gradleTestKit()
+    testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${providers.gradleProperty('jacksonVersion').getOrElse('2.14.2')}"
+    groovy4TestsImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${providers.gradleProperty('jacksonVersion').getOrElse('2.14.2')}"
+    groovy5TestsImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${providers.gradleProperty('jacksonVersion').getOrElse('2.14.2')}"
 }
 
 // Gradle TestKit embeds Groovy 3, which cannot share a compiler classpath with the
