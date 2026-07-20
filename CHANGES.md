@@ -2,6 +2,10 @@
 
 This is a breaking release. See the [Builder-first construction migration](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration) for required client and extension changes.
 
+## Dependency compatibility
+
+- Upgraded to the immutable [KlumCast 0.4.0-rc.2](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0-rc.2) artifact set: `klum-cast-annotations`, `klum-cast-spi`, and `klum-cast-compile`. The artifacts have stable automatic module names (`com.blackbuild.klum.cast.annotations`, `.spi`, and `.compiler`) and no split KlumCast packages. Recompile schemas and custom checks for 4.0. Existing name-bound custom checks continue through KlumCast's temporary 0.4 migration bridge; #460 owns their durable SPI migration.
+
 ## Builder-first construction
 
 - Added a task-oriented Gradle onboarding preview, portable `start-klum-project`, `author-klum-model`, and `feature-advisor` Agent Skills, plus an executable minimal fixture. `feature-advisor` also assesses whether KlumAST or its skill distribution needs an update ([#470](https://github.com/klum-dsl/klum-ast/issues/470)).
