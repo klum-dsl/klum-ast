@@ -1,3 +1,14 @@
+plugins {
+    id 'com.blackbuild.convention.groovy'
+}
+
+groovyDependencies {
+    // Groovy 3 is KlumAST's documented adopter baseline. The convention is
+    // inherited by every fixture module; -PfixtureGroovyVersion=4 or =5
+    // validates a coherent compatibility lane.
+    groovyVersion = providers.gradleProperty('fixtureGroovyVersion').getOrElse('3')
+}
+
 allprojects {
     repositories {
         mavenCentral()

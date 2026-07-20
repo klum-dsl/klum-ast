@@ -5,7 +5,3 @@ plugins {
 dependencies {
     api project(':api')
 }
-
-klumSchema {
-    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
-}

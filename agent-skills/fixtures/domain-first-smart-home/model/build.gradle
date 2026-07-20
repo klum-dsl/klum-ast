@@ -7,7 +7,6 @@ dependencies {
 }
 
 klumModel {
-    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
     schemas {
         schema project(':schema')
     }
