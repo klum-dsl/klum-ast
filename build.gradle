@@ -115,6 +115,8 @@ def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatyp
     dependsOn tasks.named("verifyReleaseVersion")
     dependsOn sonatypePublicationTasks
 }
+def closeSonatypeRepository = tasks.named("closeSonatypeStagingRepository")
+def releaseSonatypeRepository = tasks.named("releaseSonatypeStagingRepository")
 def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
 def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
 def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
@@ -134,11 +136,15 @@ sonatypePublicationTasks.each { publicationTask ->
     }
 }
 
-closeSonatypeStagingRepository.configure {
-    dependsOn tasks.named("verifyReleaseVersion"), publishMavenProductToSonatype
-    doFirst {
-        if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
-            throw new GradleException("Use publishCompleteKlumAstProduct; direct Sonatype staging release is forbidden.")
+[closeSonatypeRepository, releaseSonatypeRepository, closeSonatypeStagingRepository].each { stagingTask ->
+    stagingTask.configure {
+        dependsOn tasks.named("verifyReleaseVersion")
+        if (stagingTask == closeSonatypeRepository)
+            dependsOn publishMavenProductToSonatype
+        doFirst {
+            if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
+                throw new GradleException("Use publishCompleteKlumAstProduct; direct Sonatype staging release is forbidden.")
+        }
     }
 }
 
