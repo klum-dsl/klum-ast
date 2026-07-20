@@ -9,6 +9,11 @@ See the dedicated [[Builder First Migration]] guide for the complete migration c
 [[Templates]], [[Copy Strategies]], and [[Model Phases]] for materialization boundaries and [[Jackson Integration]] for
 foreign-data import and ordinary POJO export.
 
+For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
+and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
+use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
+owns source-neutral composition.
+
 # to 2.2
 
 `toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.
