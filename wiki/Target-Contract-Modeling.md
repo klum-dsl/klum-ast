@@ -24,7 +24,7 @@ ServiceRelease.Create.With('catalog') {
 }
 ```
 
-The fixture derives `ghcr.io/acme/catalog` and `catalog.example.test`, validates a deployable image tag and port, and expands `publiclyReachable` into the Helm ingress map. Its owned `resources` object has explicit `requests` and `limits` children; when their memory values differ, its internal validation stores a warning without rejecting the release. This is direct-schema because the same deployment team owns the authoring types and its target values; a separate Domain API would add no real client boundary.
+The fixture derives `ghcr.io/acme/catalog` and `catalog.example.test`, validates a deployable image tag and port, and expands `publiclyReachable` into the Helm ingress map. Its owned `resources` object has explicit `requests` and `limits` children; absent limits default to a fresh copy of requests, while different memory values store a warning without rejecting the release. This is direct-schema because the same deployment team owns the authoring types and its target values; a separate Domain API would add no real client boundary.
 
 `HelmTargetContractDocumentaryTest`, tagged `documentary` and linked to this page, writes human-readable YAML under `build/generated-values/`. It parses each generated file and compares its meaning to both representative target inputs and golden expected artifacts. Run the established fixture baseline and compatibility variants:
 

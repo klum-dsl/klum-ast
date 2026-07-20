@@ -10,7 +10,7 @@ The Acme Platform deployment team owns the `acme-service` Helm chart at version 
 
 The same team owns the Schema and the deployment configuration in this small target-specific project. There is no separate client-facing Domain API to stabilize, so Layer 3 would add ceremony without protecting a real consumer boundary. `ServiceRelease` is therefore the direct authoring type, while `toHelmValues()` is the intentional adapter to the Helm contract.
 
-The authoring model earns that seam by deriving image repositories and public hosts from the stable service key, validating deployment-safe tags and ports, and expanding `publiclyReachable` into Helm ingress values. It models `resources` as an owned inner object with explicit `requests` and `limits` children; a memory limit different from its request records a warning without rejecting the release. It is not a generic Helm object model and must not be used to infer a YAML/KlumAST round trip.
+The authoring model earns that seam by deriving image repositories and public hosts from the stable service key, validating deployment-safe tags and ports, and expanding `publiclyReachable` into Helm ingress values. It models `resources` as an owned inner object with explicit `requests` and `limits` children; absent limits default to a fresh copy of the request, while a different memory limit records a warning without rejecting the release. It is not a generic Helm object model and must not be used to infer a YAML/KlumAST round trip.
 
 ## Contract evidence
 

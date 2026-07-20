@@ -3,6 +3,7 @@ package onboarding.helm
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.groovy.configdsl.transform.Default
 import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.groovy.configdsl.transform.Required
 import com.blackbuild.groovy.configdsl.transform.Validate
 import com.blackbuild.klum.ast.validation.Validator
 
@@ -67,6 +68,16 @@ class ResourceRequirements {
     ResourceValues requests
     ResourceValues limits
 
+    @Default
+    void defaultsLimitsFromRequests() {
+        if (requests && !limits) {
+            def requested = requests
+            limits {
+                copyFrom requested
+            }
+        }
+    }
+
     Map<String, Object> toHelmValues() {
         [requests: requests.toHelmValues(), limits: limits.toHelmValues()]
     }
@@ -75,9 +86,6 @@ class ResourceRequirements {
     void validatesRequestsAndLimits() {
         if (!requests) {
             Validator.addError('resource requests are required')
-        }
-        if (!limits) {
-            Validator.addError('resource limits are required')
         }
         if (requests && limits && requests.memory != limits.memory) {
             Validator.addIssue('memory limit differs from memory request', Validate.Level.WARNING)
@@ -88,20 +96,10 @@ class ResourceRequirements {
 @DSL
 class ResourceValues {
 
-    String cpu
-    String memory
+    @Required String cpu
+    @Required String memory
 
     Map<String, String> toHelmValues() {
         [cpu: cpu, memory: memory]
-    }
-
-    @Validate
-    void requiresCpuAndMemory() {
-        if (!cpu) {
-            Validator.addError('resource cpu is required')
-        }
-        if (!memory) {
-            Validator.addError('resource memory is required')
-        }
     }
 }

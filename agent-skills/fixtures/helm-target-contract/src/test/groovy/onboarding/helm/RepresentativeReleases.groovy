@@ -9,7 +9,6 @@ class RepresentativeReleases {
                 publiclyReachable true
                 resources {
                     requests { cpu '250m'; memory '256Mi' }
-                    limits { cpu '500m'; memory '256Mi' }
                 }
             },
             ServiceRelease.Create.With('billing') {

@@ -29,7 +29,7 @@ class HelmTargetContractDocumentaryTest extends Specification {
         catalog.imageRepository == 'ghcr.io/acme/catalog'
         catalog.resources.requests.cpu == '250m'
         catalog.resources.requests.memory == '256Mi'
-        catalog.resources.limits.cpu == '500m'
+        catalog.resources.limits.cpu == '250m'
         catalog.resources.limits.memory == '256Mi'
         catalog.hostname == 'catalog.example.test'
         catalog.toHelmValues().ingress == [
@@ -84,6 +84,22 @@ class HelmTargetContractDocumentaryTest extends Specification {
         error.message.contains('imageTag must be a semantic version')
         error.message.contains('containerPort must be between 1 and 65535')
         error.message.contains('resources with requests and limits are required')
+    }
+
+    def 'requires CPU and memory on each resource value through its field contract'() {
+        when:
+        ServiceRelease.Create.With('catalog') {
+            imageTag '1.4.0'
+            resources {
+                requests {
+                    cpu '250m'
+                }
+            }
+        }
+
+        then:
+        KlumValidationException error = thrown()
+        error.message.contains('memory')
     }
 
     private String resourceText(String path) {
