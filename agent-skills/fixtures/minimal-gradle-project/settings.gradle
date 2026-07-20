@@ -1,0 +1,13 @@
+pluginManagement {
+    includeBuild('../../..')
+}
+
+rootProject.name = 'klum-onboarding-fixture'
+
+includeBuild('../../..') {
+    dependencySubstitution {
+        substitute module('com.blackbuild.klum.ast:klum-ast-bom') using project(':klum-ast-bom')
+        substitute module('com.blackbuild.klum.ast:klum-ast-runtime') using project(':klum-ast-runtime')
+        substitute module('com.blackbuild.klum.ast:klum-ast') using project(':klum-ast')
+    }
+}
