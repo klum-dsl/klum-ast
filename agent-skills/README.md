@@ -8,6 +8,7 @@ Copy only the directories you want into the skill-discovery directory used by yo
 
 ```shell
 cp -R start-klum-project <your-agent-skill-directory>/
+cp -R build-domain-first-schema <your-agent-skill-directory>/
 cp -R author-klum-model <your-agent-skill-directory>/
 cp -R feature-advisor <your-agent-skill-directory>/
 cp -R build-target-contract-schema <your-agent-skill-directory>/
@@ -28,6 +29,14 @@ Use documentation that matches the KlumAST version you are adopting. The linked 
 ```
 
 The fixture uses a composite build so it validates the checked-out KlumAST 4.0 sources. A real adopter project should use the released plugin version selected by `start-klum-project` instead.
+
+`fixtures/domain-first-smart-home` is the companion Layer 3 journey for `build-domain-first-schema`. Its fixed floorplan Schema, separate registered Model script, and API-only `client-demo` show why Layer 3 is more expressive than a generic Schema/Model shape. Run it with:
+
+```shell
+./gradlew -p agent-skills/fixtures/domain-first-smart-home test
+```
+
+Use its field-test brief only to evaluate a real project; it does not turn the fixture into a generic scaffold or settle the Layer 3 policy questions tracked by #454.
 
 `fixtures/helm-target-contract` is the target-contract companion: it creates readable Helm values for two services, compares their parsed meaning to representative and golden target artifacts, and records why a direct-schema authoring model is appropriate. Run its Groovy 3 baseline with:
 

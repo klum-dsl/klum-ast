@@ -1,0 +1,7 @@
+plugins {
+    id 'com.blackbuild.klum-ast-schema'
+}
+
+klumSchema {
+    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
+}

@@ -1,0 +1,13 @@
+plugins {
+    id 'groovy'
+    id 'com.blackbuild.convention.groovy'
+    id 'java-library'
+}
+
+dependencies {
+    api project(':api')
+}
+
+groovyDependencies {
+    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
+}

@@ -1,0 +1,11 @@
+plugins {
+    id 'com.blackbuild.klum-ast-schema'
+}
+
+dependencies {
+    api project(':api')
+}
+
+klumSchema {
+    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
+}

@@ -1,0 +1,15 @@
+plugins {
+    id 'com.blackbuild.klum-ast-model'
+}
+
+dependencies {
+    testImplementation project(':client-demo')
+}
+
+klumModel {
+    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
+    schemas {
+        schema project(':schema')
+    }
+    topLevelScript 'onboarding.smarthome.schema.CityFlat', 'onboarding.smarthome.model.CityFlatModel'
+}

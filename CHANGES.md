@@ -4,6 +4,8 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 ## Builder-first construction
 
+- Added the portable `build-domain-first-schema` skill, task-oriented domain-first guidance, and an executable Layer 3 smart-home journey. The fixture separates generic API, fixed floorplan Schema, registered Model script, and API-only `client-demo`; it covers Cluster projection, provider-polymorphic Builder calls, `@DefaultValues` labels, and a bounded field-test artifact ([#471](https://github.com/klum-dsl/klum-ast/issues/471)).
+
 - Added a task-oriented Gradle onboarding preview, portable `start-klum-project`, `author-klum-model`, and `feature-advisor` Agent Skills, plus an executable minimal fixture. `feature-advisor` also assesses whether KlumAST or its skill distribution needs an update ([#470](https://github.com/klum-dsl/klum-ast/issues/470)).
 - Added the portable `build-target-contract-schema` skill and an executable direct-schema Helm journey. It renders two validated service models as human-readable values files with semantic golden-contract evidence, makes the Layer 3 decision explicit, and keeps resource-backed defaults and ordered configuration composition with #79 and #304 ([#472](https://github.com/klum-dsl/klum-ast/issues/472)).
 
