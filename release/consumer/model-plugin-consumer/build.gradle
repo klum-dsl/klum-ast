@@ -1,0 +1,3 @@
+plugins {
+    id "com.blackbuild.klum-ast-model"
+}

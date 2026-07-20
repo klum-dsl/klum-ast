@@ -27,6 +27,8 @@ nexusPublishing {
         sonatype {
             nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
             snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
+            username.set(providers.gradleProperty("sonatypeUsername"))
+            password.set(providers.gradleProperty("sonatypePassword"))
         }
     }
 }
@@ -67,8 +69,34 @@ releaseCheck.doLast {
 
 evaluationDependsOnChildren()
 
-tasks.candidate.finalizedBy tasks.gitPublishPush
-tasks.final.finalizedBy tasks.gitPublishPush
+def releaseExpectedVersion = providers.gradleProperty("releaseExpectedVersion")
+
+tasks.register("verifyReleaseVersion") {
+    group = "verification"
+    description = "Verifies the protected release path received the exact version it is authorized to publish."
+
+    doLast {
+        if (!releaseExpectedVersion.present)
+            throw new GradleException("A release requires -PreleaseExpectedVersion=<exact version>.")
+
+        def expected = releaseExpectedVersion.get()
+        if (version.toString() != expected)
+            throw new GradleException("Release version $version does not match authorized version $expected.")
+    }
+}
+
+["candidate", "final"].each { releaseTask ->
+    tasks.named(releaseTask) {
+        dependsOn tasks.named("check"), tasks.named("verifyReleaseVersion")
+    }
+}
+
+def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
+def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
+
+publishGradlePlugins.configure {
+    mustRunAfter closeSonatypeStagingRepository
+}
 
 if (hasProperty('buildScan')) {
     develocity {

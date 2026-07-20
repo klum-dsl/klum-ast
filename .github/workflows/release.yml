@@ -1,0 +1,128 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "The independently authorized release stage"
+        required: true
+        type: choice
+        options:
+          - candidate
+          - final
+      version:
+        description: "Exact immutable version to publish, for example 4.0.0-rc.1"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.stage }} ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Reject an already used version or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ inputs.stage }}:${{ inputs.version }}" in
+            candidate:*-rc.[0-9]*) ;;
+            final:[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "The selected stage does not match the exact immutable version." >&2; exit 1 ;;
+          esac
+          git show-ref --verify --quiet "refs/tags/v${{ inputs.version }}" && {
+            echo "The release tag already exists; published versions are never retried in place." >&2
+            exit 1
+          }
+          gh release view "v${{ inputs.version }}" >/dev/null 2>&1 && {
+            echo "The GitHub release already exists; published versions are never retried in place." >&2
+            exit 1
+          }
+      - name: Require every protected credential before publication
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for credential in \
+            ORG_GRADLE_PROJECT_sonatypeUsername \
+            ORG_GRADLE_PROJECT_sonatypePassword \
+            ORG_GRADLE_PROJECT_signingKey \
+            ORG_GRADLE_PROJECT_signingPassword \
+            GRADLE_PUBLISH_KEY \
+            GRADLE_PUBLISH_SECRET
+          do
+            test -n "${!credential}" || {
+              echo "The protected release environment is missing $credential." >&2
+              exit 1
+            }
+          done
+      - name: Publish the complete product
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+        run: >-
+          ./gradlew ${{ inputs.stage }} publishToSonatype closeAndReleaseSonatypeStagingRepository
+          :klum-ast-gradle-plugin:publishPlugins
+          -PreleaseExpectedVersion=${{ inputs.version }}
+      - name: Create immutable GitHub release record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.stage }}" = candidate ]; then
+            gh release create "v${{ inputs.version }}" --prerelease --target "$GITHUB_SHA" --generate-notes
+          else
+            gh release create "v${{ inputs.version }}" --target "$GITHUB_SHA" --generate-notes
+          fi
+
+  resolve-back:
+    name: Resolve public product from clean repositories
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GRADLE_USER_HOME: ${{ runner.temp }}/gradle-user-home
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Resolve Maven modules and Gradle plugin markers
+        run: >-
+          ./gradlew --refresh-dependencies -p release/consumer verifyPublicProduct
+          -PreleaseVersion=${{ inputs.version }}
