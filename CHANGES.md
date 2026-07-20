@@ -4,6 +4,8 @@ This is a breaking release. See the [Builder-first construction migration](https
 
 ## Builder-first construction
 
+- Added a task-oriented Gradle onboarding preview, portable `start-klum-project`, `author-klum-model`, and `feature-advisor` Agent Skills, plus an executable minimal fixture. `feature-advisor` also assesses whether KlumAST or its skill distribution needs an update ([#470](https://github.com/klum-dsl/klum-ast/issues/470)).
+
 - Replaced mutable generated RW objects with generated Builders inheriting from `KlumBuilder`, while preserving DSL inheritance. Builders own field initializers, relationship state, mutators, and lifecycle work through `POST_TREE` ([#416](https://github.com/klum-dsl/klum-ast/issues/416), [#266](https://github.com/klum-dsl/klum-ast/issues/266)).
 - Added the `INSTANTIATE` phase at ordinal 40. It materializes the complete graph before validation, including cycles and self-links, then runs validation against completed DSL Objects.
 - Completed DSL Objects no longer expose generated `apply` or construction-path members directly. Non-transient simple fields are final; `FieldType.TRANSIENT` remains mutable ([#323](https://github.com/klum-dsl/klum-ast/issues/323)).

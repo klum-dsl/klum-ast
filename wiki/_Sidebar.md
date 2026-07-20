@@ -4,6 +4,7 @@
   * [[Terms]]
   * [[Usage]]
   * [[Gradle Plugins]]
+  * [[Getting Started]]
   * [[Basics]]
   * [[Model Phases]]
   * [[Exception Handling]]
