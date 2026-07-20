@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "event_id": "event-next-pol-handoff-001",
+  "recorded_at": "2026-07-20T10:16:00Z",
+  "release": {"release_id": "klum-ast-4.0", "reference": "release governance run"},
+  "run": {"run_id": "run-4.0-next-policy", "callback_thread_id": "019f7046-f4fb-7e01-b527-33f2938da753"},
+  "worker": {"worker_id": "worker-next-pol-orchestrator", "task_id": "task-next-pol"},
+  "event_type": "orchestrator",
+  "event": {
+    "occurred_at": "2026-07-20T10:16:00Z",
+    "kind": "completion_handoff",
+    "summary": "Full refresh after the final substantive worker; presented two ready choices and one blocked dependency.",
+    "completion_handoff": {
+      "completed_worker_id": "worker-next-pol",
+      "refresh_level": "full",
+      "last_substantive_worker": true,
+      "presented_available": [
+        {"label": "NEXT-ONE", "reference": "ready issue #101"},
+        {"label": "NEXT-TWO", "reference": "ready decision session"}
+      ],
+      "blocked_dependencies": [
+        {"label": "BLOCK-ONE", "reference": "review of PR #102"}
+      ]
+    }
+  }
+}

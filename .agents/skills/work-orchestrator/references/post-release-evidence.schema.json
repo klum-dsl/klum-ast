@@ -216,7 +216,47 @@
       "type": "object",
       "required": ["occurred_at", "kind", "summary"],
       "additionalProperties": false,
-      "properties": {"occurred_at": {"$ref": "#/$defs/utcTimestamp"}, "kind": {"enum": ["launch", "routing", "authorization_friction", "human_queue_change", "audit_gap"]}, "summary": {"$ref": "#/$defs/safeText"}}
+      "properties": {
+        "occurred_at": {"$ref": "#/$defs/utcTimestamp"},
+        "kind": {"enum": ["launch", "routing", "authorization_friction", "human_queue_change", "completion_handoff", "audit_gap"]},
+        "summary": {"$ref": "#/$defs/safeText"},
+        "completion_handoff": {"$ref": "#/$defs/completionHandoff"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "completion_handoff"}}},
+          "then": {"required": ["completion_handoff"]},
+          "else": {"not": {"required": ["completion_handoff"]}}
+        }
+      ]
+    },
+    "completionHandoff": {
+      "description": "Sanitized record of the next-work presentation following a completed worker; contains no duplicated runtime telemetry.",
+      "type": "object",
+      "required": ["completed_worker_id", "refresh_level", "last_substantive_worker", "presented_available", "blocked_dependencies"],
+      "additionalProperties": false,
+      "properties": {
+        "completed_worker_id": {"$ref": "#/$defs/stableId"},
+        "refresh_level": {"enum": ["sufficient", "full"]},
+        "last_substantive_worker": {"type": "boolean"},
+        "presented_available": {"type": "array", "items": {"$ref": "#/$defs/handoffItem"}},
+        "blocked_dependencies": {"type": "array", "items": {"$ref": "#/$defs/handoffItem"}}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"last_substantive_worker": {"const": true}}},
+          "then": {"properties": {"refresh_level": {"const": "full"}}}
+        }
+      ]
+    },
+    "handoffItem": {
+      "type": "object",
+      "required": ["label", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"$ref": "#/$defs/stableId"},
+        "reference": {"$ref": "#/$defs/safeText"}
+      }
     },
     "correctionEvent": {
       "type": "object",

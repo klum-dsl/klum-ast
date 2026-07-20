@@ -57,6 +57,9 @@ The reusable AFK-window protocol is also a candidate for that same baseline issu
 resource-sensitive concurrency reduction, license-policy hard stops, and human ownership of uncertain classification and
 all GitHub changes.
 
+When a KlumAST worker completes, apply the generic `work-orchestrator` completion-handoff protocol; this overlay does not
+authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states.
+
 ## Post-release orchestration evidence overlay
 
 For KlumAST 4.0, every cross-orchestrator evidence stream must carry stable `release_id` `klum-ast-4.0` and a distinct
