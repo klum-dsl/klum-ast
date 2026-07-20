@@ -1,0 +1,15 @@
+pluginManagement {
+    includeBuild('../../..')
+}
+
+rootProject.name = 'klum-domain-first-smart-home'
+
+include 'api', 'schema', 'model', 'client-demo'
+
+includeBuild('../../..') {
+    dependencySubstitution {
+        substitute module('com.blackbuild.klum.ast:klum-ast-bom') using project(':klum-ast-bom')
+        substitute module('com.blackbuild.klum.ast:klum-ast-runtime') using project(':klum-ast-runtime')
+        substitute module('com.blackbuild.klum.ast:klum-ast') using project(':klum-ast')
+    }
+}

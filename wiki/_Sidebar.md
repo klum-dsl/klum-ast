@@ -5,6 +5,7 @@
   * [[Usage]]
   * [[Gradle Plugins]]
   * [[Getting Started]]
+  * [[Domain First Modeling]]
   * [[Target Contract Modeling]]
   * [[Basics]]
   * [[Model Phases]]
