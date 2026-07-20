@@ -55,7 +55,7 @@ snapshot() {
             class_names+=("${class_file//\//.}")
         done < <(jar tf "$jar" | grep '\.class$' | grep -v '/module-info\.class$')
         if (( ${#class_names[@]} > 0 )); then
-            { javap -public -s -classpath "$jar" "${class_names[@]}" 2>/dev/null || true; } |
+            { javap -protected -s -classpath "$jar" "${class_names[@]}" 2>/dev/null || true; } |
                 awk -v artifact="$artifact" '
                     /^(public |protected |private |final |abstract |sealed |non-sealed |class |interface |enum |@interface )/ && / (class|interface|enum|@interface) / {
                         class_name = ""

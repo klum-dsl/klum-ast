@@ -15,7 +15,7 @@ scripts/classify-jvm-public-api.sh /tmp/klum-api-diff/added-public-api.txt \
   /tmp/klum-api-diff/classified-inventory.tsv
 ```
 
-At freeze candidate `57ea5b2`, the v3.0.1 comparison contains 272 added exact records: 40 client entrypoints, 7 extension seams, 20 generated hooks, and 205 implementation-linkage records. Every TSV row contains classification, owner, export treatment, 4.x status, artifact, binary type, record kind (`type` or `member`), and Java descriptor. Regenerate and review the complete TSV for each new release candidate; source visibility is not a contract decision.
+At freeze candidate `57ea5b2`, the generated TSV contains 371 added exact records. Every row contains classification, owner, export treatment, 4.x status, artifact, binary type, record kind (`type` or `member`), and Java descriptor. Regenerate and review the complete TSV for each new release candidate; source visibility is not a contract decision.
 
 ## Selected contract records
 
@@ -24,7 +24,7 @@ At freeze candidate `57ea5b2`, the v3.0.1 comparison contains 272 added exact re
 | `KlumObjectSupport.of`, `getObject`, `getConstructionPath`, `getModelPath`, `getStructure`, `getValidation`, and public members of `Structure`/`Validation` | Client entrypoint; #390 | Export the runtime API package. Source and binary compatible throughout 4.x. `getConstructionPath(): String` is the sole construction-string getter. |
 | `KlumJacksonImporter.using(ObjectMapper)`, `using(ObjectReader)`, `readRoot`, `readTemplate`, `readBuilder`, `applyToBuilder`; `KlumJacksonInput.parser/tree/map/named` | Client entrypoint; #463 | Export the Jackson API package; source and binary compatible throughout 4.x. |
 | `new KlumAstModule()` and `KlumAstModule.MODULE_NAME` | Client entrypoint; Jackson integration | Export the module type. The public nested serializer/deserializer modifiers are implementation linkage, not extension points. |
-| `PhaseAction`, `BuilderVisitingPhaseAction`, `ModelVisitingPhaseAction`, `InstanceValidator`, and callable public members | Extension seam; #305 / ADR 0008 | Export only runtime/validation SPI packages. Direct `ServiceLoader<PhaseAction>` providers keep the ADR 0008 bounded transition; no general SPI follows. |
+| `PhaseAction`, `BuilderVisitingPhaseAction`, `ModelVisitingPhaseAction`, `InstanceValidator`, and callable public members | Extension seam; #305 / ADR 0008 | Export runtime/validation SPI packages. `BuilderVisitingPhaseAction` has a deliberate qualified linkage to `InternalKlumBuilder` for its protected visitor descriptor; it does not make `util.layer3.ModelVisitor` generally exportable. Direct `ServiceLoader<PhaseAction>` providers keep the ADR 0008 bounded transition; no general SPI follows. |
 | Generated `Foo_DSL.Factory`, `Foo_DSL.Builder`, collection/cluster factory interfaces; `Foo.Create`, `Foo.Template`, and Java `Foo.Create.getAsBuilder()` / Groovy `Foo.Create.AsBuilder` | Generated hook; #394, #431, #474 | Export runtime types referenced by generated descriptors. Generated interfaces may be named in signatures, never implemented or subclassed. |
 | `KlumBuilder<T>` and `KlumFactory` Builder-factory descriptors | Generated hook; #394 / #431 | Runtime API export required for emitted bytecode; compatible in 4.x after intentional 3.x-to-4.0 recompilation. |
 | `FieldType.OPTIONAL_LINK` and generated relationship descriptors | Generated hook; #474 | Annotation/runtime linkage required by emitted bytecode; compatible in 4.x after recompilation. |
@@ -39,6 +39,6 @@ These Groovy sources compile separately in Groovy 3, 4, and 5 lanes. No AnnoDoci
 
 ## #391 positive export handoff
 
-#391 should export only the finalized annotation, runtime, runtime-validation, and Jackson API packages required by the client-entrypoint, extension-seam, and generated-hook rows. It must not generally export `util`, `process`, proxy, companion, lifecycle, traversal, reflection, generated-support, Jackson modifier, or Gradle implementation packages. A qualified export is permissible only for a concrete shipped-adapter or generated-bytecode linkage recorded by the TSV; it is not a new third-party extension mechanism.
+#391 should export only the finalized annotation, runtime, runtime-validation, and Jackson API packages required by the client-entrypoint, extension-seam, and generated-hook rows. It must not generally export `util`, `process`, proxy, companion, lifecycle, traversal, reflection, generated-support, Jackson modifier, or Gradle implementation packages. The protected `BuilderVisitingPhaseAction` descriptor is the recorded qualified runtime linkage exception; `ModelVisitor` remains internal. A qualified export is never a new third-party extension mechanism.
 
 The intentional 3.x-to-4.0 package/recompilation break remains #391's decision. These commitments start at the 4.0 freeze and do not preserve legacy package aliases.
