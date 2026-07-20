@@ -114,8 +114,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      GRADLE_USER_HOME: ${{ runner.temp }}/gradle-user-home
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
@@ -123,6 +121,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Resolve Maven modules and Gradle plugin markers
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/gradle-user-home
         run: >-
           ./gradlew --refresh-dependencies -p release/consumer verifyPublicProduct
           -PreleaseVersion=${{ inputs.version }}
