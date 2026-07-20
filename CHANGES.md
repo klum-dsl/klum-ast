@@ -5,6 +5,7 @@ This is a breaking release. See the [Builder-first construction migration](https
 ## Builder-first construction
 
 - Added a task-oriented Gradle onboarding preview, portable `start-klum-project`, `author-klum-model`, and `feature-advisor` Agent Skills, plus an executable minimal fixture. `feature-advisor` also assesses whether KlumAST or its skill distribution needs an update ([#470](https://github.com/klum-dsl/klum-ast/issues/470)).
+- Added the portable `build-target-contract-schema` skill and an executable direct-schema Helm journey. It renders two validated service models as human-readable values files with semantic golden-contract evidence, makes the Layer 3 decision explicit, and keeps resource-backed defaults and ordered configuration composition with #79 and #304 ([#472](https://github.com/klum-dsl/klum-ast/issues/472)).
 
 - Replaced mutable generated RW objects with generated Builders inheriting from `KlumBuilder`, while preserving DSL inheritance. Builders own field initializers, relationship state, mutators, and lifecycle work through `POST_TREE` ([#416](https://github.com/klum-dsl/klum-ast/issues/416), [#266](https://github.com/klum-dsl/klum-ast/issues/266)).
 - Added the `INSTANTIATE` phase at ordinal 40. It materializes the complete graph before validation, including cycles and self-links, then runs validation against completed DSL Objects.

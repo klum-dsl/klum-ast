@@ -10,6 +10,7 @@ Copy only the directories you want into the skill-discovery directory used by yo
 cp -R start-klum-project <your-agent-skill-directory>/
 cp -R author-klum-model <your-agent-skill-directory>/
 cp -R feature-advisor <your-agent-skill-directory>/
+cp -R build-target-contract-schema <your-agent-skill-directory>/
 ```
 
 Each directory is a standard skill: its portable `SKILL.md` is the workflow. Agent clients choose their own discovery location and UI metadata, so keep client-specific installation instructions outside these directories. In Codex, use its configured skills directory; other clients should use their documented discovery location.
@@ -27,3 +28,11 @@ Use documentation that matches the KlumAST version you are adopting. The linked 
 ```
 
 The fixture uses a composite build so it validates the checked-out KlumAST 4.0 sources. A real adopter project should use the released plugin version selected by `start-klum-project` instead.
+
+`fixtures/helm-target-contract` is the target-contract companion: it creates readable Helm values for two services, compares their parsed meaning to representative and golden target artifacts, and records why a direct-schema authoring model is appropriate. Run its Groovy 3 baseline with:
+
+```shell
+./gradlew -p agent-skills/fixtures/helm-target-contract test
+```
+
+The portable `build-target-contract-schema` workflow points to this fixture and its later [field-test starting point](field-tests/target-contract-helm/).
