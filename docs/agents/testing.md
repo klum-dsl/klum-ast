@@ -131,6 +131,12 @@ Keep the feature issue, documentary test, and user documentation mutually tracea
   refers to the documentary test file and feature method. Align the example with the test where practical so executable
   coverage guards the documented usage.
 
+When the outcome itself clarifies the contract, the documentation may also show an abbreviated `then:` assertion from the
+documentary test. For a more complex resulting graph, a concise logical representation of the completed model may be
+clearer than executable assertions. This is optional: omit it when the configured model is already self-explanatory, but
+consider it for behavior such as automatic creation, default values, or owner-provided defaults where the resulting state
+is the important part of the example.
+
 This policy applies prospectively. Do not expand unrelated feature work by retrofitting the existing suite; the existing
 documentation and test audit is tracked in [issue #491](https://github.com/klum-dsl/klum-ast/issues/491). This policy is
 KlumAST-specific because it connects the project's DSL behavior, Spock suite, GitHub issues, and user documentation.

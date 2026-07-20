@@ -74,6 +74,32 @@ Config.Create.With(name: 'Dieter', age: 15)
 
 Of course, named parameters and regular calls inside the closure can be combined ad lib.
 
+For example, a keyed deployment and its owned service can be configured together:
+
+```groovy
+@DSL
+class Deployment {
+    @Key String name
+    String environment
+    Service service
+}
+
+@DSL
+class Service {
+    String image
+}
+
+def deployment = Deployment.Create.With('catalog') {
+    environment 'production'
+    service {
+        image 'catalog:1.0'
+    }
+}
+```
+
+`deployment` is the completed DSL Object. The same example is executable in
+`FactoryConstructionTest.groovy`, feature `builds a completed deployment configuration with Create.With`.
+
 There are also a couple of [[Convenience Factories]] to load a model into client code.
 
 ## Lifecycle Methods
