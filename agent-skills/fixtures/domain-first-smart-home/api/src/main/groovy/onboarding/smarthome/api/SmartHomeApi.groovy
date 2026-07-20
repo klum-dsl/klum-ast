@@ -3,20 +3,21 @@ package onboarding.smarthome.api
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.groovy.configdsl.transform.Key
 import com.blackbuild.groovy.configdsl.transform.Required
+import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
 
 @DSL
 abstract class Home {
 
     @Key String name
-    @Cluster Map<String, Area> areas
+    @AutoCreate @Cluster Map<String, Area> areas
 }
 
 @DSL
 abstract class Area {
 
     String displayName
-    @Cluster Map<String, Window> windows
+    @AutoCreate @Cluster Map<String, Window> windows
     List<Device> devices
 }
 

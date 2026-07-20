@@ -2,7 +2,6 @@ package onboarding.smarthome.schema
 
 import com.blackbuild.groovy.configdsl.transform.DSL
 import com.blackbuild.groovy.configdsl.transform.Required
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
 import onboarding.smarthome.api.HeatedRoom
 import onboarding.smarthome.api.Home
@@ -25,16 +24,16 @@ import java.lang.annotation.Target
 @DSL
 class CityFlat extends Home {
 
-    @AutoCreate Kitchen kitchen
-    @AutoCreate LivingRoom livingRoom
-    @AutoCreate MainBedroom mainBedroom
+    Kitchen kitchen
+    LivingRoom livingRoom
+    MainBedroom mainBedroom
 }
 
 @DSL
 @DisplayName('Kitchen')
 class Kitchen extends HeatedRoom {
 
-    @AutoCreate StreetWindow street
+    StreetWindow street
     @Required SmokeDetector smokeDetector
 }
 
@@ -42,14 +41,14 @@ class Kitchen extends HeatedRoom {
 @DisplayName('Living room')
 class LivingRoom extends HeatedRoom {
 
-    @AutoCreate GardenWindow garden
+    GardenWindow garden
 }
 
 @DSL
 @DisplayName('Main bedroom')
 class MainBedroom extends HeatedRoom {
 
-    @AutoCreate GardenWindow garden
+    GardenWindow garden
 }
 
 @DSL

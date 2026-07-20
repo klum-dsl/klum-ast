@@ -8,7 +8,7 @@ This is a 4.0-preview acceptance fixture for `build-domain-first-schema` and `au
 
 ## Schema Developer
 
-`schema` realizes that contract for exactly one floorplan. `CityFlat` owns auto-created Kitchen, LivingRoom, and MainBedroom fields; its concrete room and window types provide named, completion-friendly structure. Their structural field names become Cluster keys. `@DisplayName`, backed by `@DefaultValues`, assigns the human-visible labels. Fixed thermostat and smoke-detector slots are validated; Window sensors stay optional because not every physical window is managed.
+`schema` realizes that contract for exactly one floorplan. The API auto-creates its room and window Clusters; `CityFlat` supplies the concrete Kitchen, LivingRoom, and MainBedroom fields that give that structure named, completion-friendly types. Their structural field names become Cluster keys. `@DisplayName`, backed by `@DefaultValues`, assigns the human-visible labels. Fixed thermostat and smoke-detector slots are validated; Window sensors stay optional because not every physical window is managed.
 
 ## Model Writer
 
