@@ -6,10 +6,11 @@ Status: Accepted
 
 Tracking issue: [#431 — Implement ADR 0004: add AsBuilder composition protocol](https://github.com/klum-dsl/klum-ast/issues/431)
 
-Implementation status: AB-1 (#436), AB-2 (#437), and AB-3 (#438) are implemented. Active-session composition, generated
-Builder projections, Template companion/copy-source separation, and the materialization scheduling boundary now have
-executable coverage. Final public-guidance and compatibility closure remains tracked by #431 and the
-[implementation context](../implementation/adr-0004-asbuilder-composition.md).
+Implementation status: Implemented. AB-1 (#436), AB-2 (#437), and AB-3 (#438) delivered active-session composition,
+generated Builder projections, Template companion/copy-source separation, and the materialization scheduling boundary.
+AB-4 (#431) reconciles the compatibility evidence, migration guidance, and release documentation; the
+[implementation context](../implementation/adr-0004-asbuilder-composition.md) records the executable coverage and the
+intentional opaque-producer boundary.
 
 Parent decisions:
 

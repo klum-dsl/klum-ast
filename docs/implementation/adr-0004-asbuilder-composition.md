@@ -4,18 +4,19 @@ This document is the pickup package for implementing
 [ADR 0004 — `AsBuilder` composition and Builder-producing factory projections](../adr/0004-asbuilder-composition-protocol.md).
 It records the investigation performed on PR #429 so the follow-up can begin from confirmed evidence instead of repeating
 repository archaeology. ADR 0003 and ADR 0004 remain authoritative when this document describes implementation options.
-Implementation is tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431), which is blocked by #416 until
-PR #429 merges.
+Implementation is tracked by [issue #431](https://github.com/klum-dsl/klum-ast/issues/431). The historical handoff below
+records why this work was split from PR #429; it is not a statement of the current delivery state.
 
 **Current status:** AB-1 was implemented by #436, AB-2 by #437, and AB-3 by #438. Persistent Template companions,
 immutable recipe serialization, copy-source modes, Template relationship/JSON rejection, and the strict phase-40
-`applyLater` boundary are covered. The investigation and historical merge recommendation below are retained as context;
-#431 retains final compatibility closure.
+`applyLater` boundary are covered. AB-4 closes the remaining compatibility and public-guidance reconciliation: the
+enabled contracts, deliberate opaque-producer rejection, Java/static-Groovy consumers, Groovy 3/4/5 lanes, and release
+documentation agree. The investigation and historical merge recommendation below are retained as context.
 
 Source positions below refer to PR #429 commit `0171fe54` unless a symbol name is given. Prefer the symbol when later edits
 move a line.
 
-## Merge and release recommendation
+## Historical PR #429 handoff
 
 PR #429 may merge without implementing ADR 0004 because adding the complete source-transformation and construction-session
 protocol would materially enlarge an already broad Builder-first change. The deferral is acceptable only when all of the
@@ -211,9 +212,11 @@ sealed/cross-session Builders. The common scheduler rejects every phase at or af
 
 ### AB-4 — Public guidance and compatibility closure
 
-Enable every ADR 0004 pending contract, retain explicit regular-Script/opaque-producer rejection coverage, update generated
-documentation, wiki migration/navigation, and `CHANGES.md`, then run Groovy 3/4/5 and the aggregate build. This slice depends
-on AB-2 and AB-3.
+All ADR 0004 target contracts are enabled. Regular-Script and opaque-producer rejection coverage remains explicit, because
+those inputs can materialize an independent completed model and are not valid composition. Generated documentation, wiki
+migration/navigation, and `CHANGES.md` describe the active-session alternative. `GeneratedDslSupportSpec` compiles the
+public Builder surface from Java and `@CompileStatic` Groovy; focused Groovy 3 coverage and the Groovy 4/5 lanes provide
+the compiler-generation evidence. This closure depends on AB-2 and AB-3 and does not own #474 relationship semantics.
 
 Do not combine all source transformations in one commit. Single-result built-ins, direct script collections, multi-result
 custom factories, and explicit converter contracts have distinct failure modes and should remain independently revertible.
@@ -235,8 +238,7 @@ The following Groovy 3 features were the executable AB-2 target contract and are
 The issue #198 `ConvenienceFactoriesSpec` rejection tests remain for regular Scripts returning completed models. They document
 the opaque-script boundary selected by ADR 0004, not the adaptable `DelegatingScript` path.
 
-When implementing, split features with multiple `when` blocks so single-result and multi-result paths can fail
-independently. Add focused coverage for:
+The following focused coverage records the completion boundary:
 
 - root `Create.From` still returning a completed model;
 - collection-local and direct `DelegatingScript` creation for List and keyed Map relationships;
@@ -246,10 +248,14 @@ independently. Add focused coverage for:
 - explicit Builder-returning converters and generated concrete return/delegate types;
 - source-visible classic converter twins and unchanged direct completed-model calls;
 - opaque/precompiled converters and regular Scripts failing with migration guidance;
-- Templates returned from converters rehydrating into independent Builder graphs;
-- ownership, breadcrumbs/model paths, cyclic relationships, active Templates, `PostCreate`/`PostApply` exactly once,
-  graph-wide `POST_TREE`, materialization, and completed-model validation;
-- rejection of cross-session Builder adoption.
+- `AsBuilderSpec`, `BuilderProjectionSpec`, `ConverterSpec`, `AlternativesSpec`, and `BuilderFirstSpec` cover owned
+  lifecycle composition, adaptable single/Collection/Map factories, generated twins, paths, and session rejection;
+- `CopySourceProtocolSpec`, `TemplateCompanionSpec`, `TemplateRecipeStateTest`, and `ApplyLaterBoundarySpec` cover
+  Model/Template/live-Builder copy semantics, serialization, Template rejection, and the phase-40 scheduler boundary;
+- `GeneratedDslSupportSpec` compiles supported public Builder APIs from Java and static Groovy without implementation
+  type leakage; and
+- `ConvenienceFactoriesSpec` and projection tests retain targeted migration guidance for regular Scripts and opaque
+  producers.
 
 Use Groovy 3 `test` as the focused baseline. Because the implementation changes AST-generated signatures and source
 transformation, run `groovy4Tests` and `groovy5Tests` after each completed transformation slice where practical and always
@@ -283,3 +289,6 @@ ADR 0004 is implemented when:
 - Template recipes retain modifying actions only in Template-specific companion state;
 - focused Groovy 3 tests and the Groovy 4/5 compatibility lanes pass;
 - wiki documentation, migration navigation, `CHANGES.md`, the tracking issue, PR issue links, and SonarCloud are current.
+
+The repository state meets the code, test, and documentation criteria above. Issue #431 remains the tracker record for
+the external review and closure operation; that tracker operation is intentionally separate from this local evidence.
