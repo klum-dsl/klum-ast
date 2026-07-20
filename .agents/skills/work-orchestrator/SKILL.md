@@ -86,6 +86,22 @@ Keep a task's assigned execution scope separate from its repository delivery sta
 
 On a user report or orchestrator refresh, verify relevant issue, PR, and merge state and ask the task to update its title when that policy requires it. Tasks need not poll continuously. Do not archive or call work done while an actionable delivery step remains; use the repository's archive-safe status prefix only after its definition is satisfied.
 
+### 8. Record post-release orchestration evidence
+
+For a release or other bounded run, require every created worker to write an append-only, machine-readable evidence event stream and to include the local evidence-stream location in its callback report. This applies to both active and finished user-visible workers; the orchestrator backfills no inferred history. Use the exact schema and a minimal valid example in [the evidence reference](references/post-release-evidence.schema.json) and [example](references/post-release-evidence.example.json).
+
+Record only events observed by the worker or orchestrator. Assign stable opaque IDs to the release, run, worker, task, event, artifact, decision, and operation; use links or artifact categories instead of copied content. Never record secrets, credentials, raw private prompts, full command output, personal assessments, or unredacted sensitive paths.
+
+Use append-only semantics: add a new event; never edit or delete an already-recorded one. Correct factual errors with a `correction` event that identifies the superseded event and replacement values. Redact unsafe detail with a `redaction` event that identifies the event/field and reason, preserves the audit trail, and replaces the detail with a safe category or stable reference. A correction or redaction must not silently rewrite timing, authorization, or outcome history.
+
+Each worker must emit `worker_started` and `worker_finished` events. Its finished summary must capture UTC start/end, actual model and reasoning, purpose, expected and actual output, and all observable worker data: visible token/quota pressure (or explicitly `unavailable` when the platform does not expose it); human intervention points and waiting duration; retries, abandoned approaches, and duplicated investigation; requested, authorized, denied, and deferred repository/remote operations; meaningful artifacts read/written; spawn rationale and why existing workers could not continue; cross-library decisions with owner and receiver acknowledgements; and other encountered problems. Capture an AFK decision record with exactly: Trigger; why this worker was needed; why existing workers could not handle it; allowed repository scope; allowed operations; operations requiring later authorization; expected stopping condition; result.
+
+Treat “mental overload” only as optional, aggregate-safe operational telemetry: counts/timing of user-facing context switches and concurrent human-decision queues (for example, switches between unrelated grill sessions). Do not infer cognition, record personal traits, or capture prompt content.
+
+The creating orchestrator must provide the release/run IDs, evidence location, callback requirement, and a worker’s permitted scope. It records orchestration-level launches, routing, authorization friction, and human-queue changes; checks callback reports for the final event location; and reconciles missing or invalid records as an explicit audit gap rather than guessing. Workers retain their normal authorization boundaries: evidence collection neither grants repository/remote operations nor changes AFK restrictions.
+
+Use two layers of storage. Keep raw runtime event streams outside product repositories, partitioned by release and run, for example `<cross-repository-runtime-evidence>/<release-id>/<run-id>/`. At release close, aggregate only sanitized, human-reviewable findings and a machine-readable summary for the proposed engineering-baseline/release-governance location; do not create that runtime store, automate collection, or mutate a product repository merely to collect evidence. The aggregation calculates wall-clock and active/wait durations, observable quota efficiency, authorization/security friction, human task-switch/queue load, retries/duplication, and AFK-policy value, while preserving `unavailable` and audit-gap states rather than fabricating precision.
+
 ## Spawn template
 
 ```text
@@ -115,6 +131,8 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] Cross-cutting candidates were routed once with the required evidence and ownership fields, then deduplicated by receivers without triggering work, GitHub writes, repository changes, or feedback loops.
 - [ ] Refreshing and rendering made no repository, tracker, project, PR, release, or task-state mutation beyond a user-authorized task lifecycle action.
 - [ ] An AFK window, when active, records an explicit deadline, capacity mode, and model/reasoning ceiling; admission evidence is fresh; every launched task is a local-only worktree task within the capacity cap; and no recurring automation or remote mutation was used.
+- [ ] A release/run evidence stream exists outside the product repository for each created worker, has valid start/finish events or an explicit audit gap, and contains no prohibited sensitive content.
+- [ ] The release-close aggregation produces only a sanitized report and machine-readable summary for the proposed engineering-baseline/release-governance location; its measurements preserve unavailable/unknown states.
 
 ## KlumAST overlay
 
