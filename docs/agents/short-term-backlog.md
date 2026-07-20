@@ -60,6 +60,15 @@ all GitHub changes.
 When a KlumAST worker completes, apply the generic `work-orchestrator` completion-handoff protocol; this overlay does not
 authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states.
 
+## KlumAST worktree overlay
+
+Maintain a stable, user-owned IDE-main checkout for ordinary KlumAST development. Every agent assignment uses a
+separate isolated worktree; a pull-request review uses a detached `review-<PR>` worktree at the reviewed PR head.
+Never run `gh pr checkout` in the IDE-main checkout. Review handoffs must state the review worktree path, the PR, its
+reviewed head commit, and the comparison base or range; implementation handoffs must state the isolated worktree path,
+branch, and final commit. Apply the generic skill's explicit, non-forced cleanup rules, while retaining worktrees when
+their delivery condition or investigation value remains active.
+
 ## Post-release orchestration evidence overlay
 
 For KlumAST 4.0, every cross-orchestrator evidence stream must carry stable `release_id` `klum-ast-4.0` and a distinct

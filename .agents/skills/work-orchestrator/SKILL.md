@@ -19,6 +19,31 @@ The spawn template below accepts only these variables:
 
 Choose and explain the appropriate model and reasoning level from the work's cost and uncertainty; it is not a template parameter. Read the selected repository-local skills completely before relying on them.
 
+## Workspace convention
+
+Keep one stable, user-owned IDE-main checkout for normal interactive development. It is the user's working
+directory, not an agent workspace: agents must not change its branch, create commits there, or use `gh pr
+checkout` there. In particular, `gh pr checkout` is never a shortcut for preparing a review in the IDE-main
+checkout, because it changes the user's checked-out branch and working context.
+
+Run each agent assignment in its own isolated worktree. Its branch, base revision, and intended lifecycle must be
+known before editing. Do not treat an agent worktree as an IDE-main replacement, and do not mix assignments in one
+worktree. Report the worktree path, branch, and final commit when handing an implementation or policy change back.
+
+Prepare pull-request review in a separate detached worktree named `review-<PR>` (or an unambiguous equivalent), at
+the precise PR head commit being reviewed. Keep the review checkout detached so it cannot accidentally advance or
+replace a local branch. A review report must identify the PR, the detached worktree path, the reviewed head commit,
+and the comparison base or range; branch names alone are not sufficient evidence of what was reviewed. Do not use
+`gh pr checkout` in the IDE-main checkout for this purpose.
+
+Treat worktrees as explicit lifecycle-managed resources. Keep an agent worktree until its handoff records its branch,
+commit, validation, and any delivery condition; keep a review worktree until the review outcome is recorded. Before
+cleanup, confirm the target path is the intended isolated worktree and that it has no needed uncommitted changes or
+unreported review context. Remove only that explicit worktree, never the IDE-main checkout; prefer ordinary
+`git worktree remove` and follow with `git worktree prune` only when stale administrative entries remain. Do not use
+forced removal to discard work. A user may retain a completed worktree for investigation; cleanup is a safe,
+intentional lifecycle step, not an automatic completion action.
+
 ## Operating protocol
 
 ### 1. Refresh evidence without mutation
