@@ -1,3 +1,15 @@
 plugins {
     id "com.blackbuild.klum-ast-model"
 }
+
+tasks.register("verifyPluginMarker") {
+    def evidenceFile = layout.buildDirectory.file("verification/plugin-marker.txt")
+    outputs.file(evidenceFile)
+
+    doLast {
+        if (!pluginManager.hasPlugin("com.blackbuild.klum-ast-model"))
+            throw new GradleException("Model plugin marker was not resolved and applied.")
+        evidenceFile.get().asFile.parentFile.mkdirs()
+        evidenceFile.get().asFile.text = "com.blackbuild.klum-ast-model\n"
+    }
+}

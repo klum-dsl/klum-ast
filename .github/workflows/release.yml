@@ -1,4 +1,4 @@
-name: Release
+name: Publish protected release
 
 on:
   workflow_dispatch:
@@ -14,28 +14,49 @@ on:
         description: "Exact immutable version to publish, for example 4.0.0-rc.1"
         required: true
         type: string
+      commit:
+        description: "Full source commit SHA on master"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.version }}
+  group: publish-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
   publish:
     name: Publish ${{ inputs.stage }} ${{ inputs.version }}
     runs-on: ubuntu-latest
-    environment:
-      name: release
-    permissions:
-      contents: write
+    timeout-minutes: 60
+    environment: ${{ inputs.stage == 'candidate' && 'release-candidate' || 'final-release' }}
+    env:
+      KLUM_AST_RELEASE_AUTHORIZED: ${{ inputs.stage }}
+      ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+      ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
+      ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
+      ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
+      GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+      GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - name: Verify the authorized source commit
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_commit=$(git rev-parse HEAD)
+          test "$actual_commit" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor "$actual_commit" origin/master
+          test -z "$(git status --porcelain=v1)"
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -61,13 +82,6 @@ jobs:
             exit 1
           }
       - name: Require every protected credential before publication
-        env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
         shell: bash
         run: |
           set -euo pipefail
@@ -84,45 +98,8 @@ jobs:
               exit 1
             }
           done
-      - name: Publish the complete product
-        env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.SIGNING_KEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.SIGNING_PASSWORD }}
-          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
+      - name: Verify, sign, stage, and publish the complete product
         run: >-
-          ./gradlew ${{ inputs.stage }} publishToSonatype closeAndReleaseSonatypeStagingRepository
-          :klum-ast-gradle-plugin:publishPlugins
+          ./gradlew ${{ inputs.stage }} publishCompleteKlumAstProduct
           -PreleaseExpectedVersion=${{ inputs.version }}
-      - name: Create immutable GitHub release record
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ inputs.stage }}" = candidate ]; then
-            gh release create "v${{ inputs.version }}" --prerelease --target "$GITHUB_SHA" --generate-notes
-          else
-            gh release create "v${{ inputs.version }}" --target "$GITHUB_SHA" --generate-notes
-          fi
-
-  resolve-back:
-    name: Resolve public product from clean repositories
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - name: Resolve Maven modules and Gradle plugin markers
-        env:
-          GRADLE_USER_HOME: ${{ runner.temp }}/gradle-user-home
-        run: >-
-          ./gradlew --refresh-dependencies -p release/consumer verifyPublicProduct
-          -PreleaseVersion=${{ inputs.version }}
+          -PreleaseStage=${{ inputs.stage }}

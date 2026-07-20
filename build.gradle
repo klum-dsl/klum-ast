@@ -70,18 +70,31 @@ releaseCheck.doLast {
 evaluationDependsOnChildren()
 
 def releaseExpectedVersion = providers.gradleProperty("releaseExpectedVersion")
+def releaseStage = providers.gradleProperty("releaseStage")
+def releaseAuthorization = providers.environmentVariable("KLUM_AST_RELEASE_AUTHORIZED")
 
 tasks.register("verifyReleaseVersion") {
     group = "verification"
-    description = "Verifies the protected release path received the exact version it is authorized to publish."
+    description = "Verifies the protected release path received the authorized stage and exact version."
 
     doLast {
         if (!releaseExpectedVersion.present)
             throw new GradleException("A release requires -PreleaseExpectedVersion=<exact version>.")
+        if (!releaseStage.present)
+            throw new GradleException("A release requires -PreleaseStage=candidate|final.")
 
         def expected = releaseExpectedVersion.get()
+        def stage = releaseStage.get()
+        if (!(stage in ["candidate", "final"]))
+            throw new GradleException("Release stage must be candidate or final: $stage")
+        if (stage == "candidate" && !(expected ==~ /\d+\.\d+\.\d+-rc\.[1-9]\d*/))
+            throw new GradleException("Candidate versions must match X.Y.Z-rc.N with N greater than zero: $expected")
+        if (stage == "final" && !(expected ==~ /\d+\.\d+\.\d+/))
+            throw new GradleException("Final versions must match X.Y.Z: $expected")
         if (version.toString() != expected)
             throw new GradleException("Release version $version does not match authorized version $expected.")
+        if (releaseAuthorization.orNull != stage)
+            throw new GradleException("Protected $stage authorization is required.")
     }
 }
 
@@ -91,11 +104,51 @@ tasks.register("verifyReleaseVersion") {
     }
 }
 
+def sonatypePublicationTasks = subprojects.findAll { project ->
+    project.tasks.names.contains("publishToSonatype")
+}.collect { project ->
+    project.tasks.named("publishToSonatype")
+}
+def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatype") {
+    group = "publishing"
+    description = "Publishes every KlumAST Maven coordinate to one protected Sonatype staging repository."
+    dependsOn tasks.named("verifyReleaseVersion")
+    dependsOn sonatypePublicationTasks
+}
 def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
 def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
+def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
+    group = "publishing"
+    description = "Publishes the complete protected KlumAST Maven and Gradle Plugin Portal product."
+    dependsOn closeSonatypeStagingRepository
+    dependsOn publishGradlePlugins
+}
+
+sonatypePublicationTasks.each { publicationTask ->
+    publicationTask.configure {
+        dependsOn tasks.named("verifyReleaseVersion")
+        doFirst {
+            if (!gradle.taskGraph.hasTask(publishMavenProductToSonatype.get()))
+                throw new GradleException("Use publishCompleteKlumAstProduct; individual Maven publication is forbidden.")
+        }
+    }
+}
+
+closeSonatypeStagingRepository.configure {
+    dependsOn tasks.named("verifyReleaseVersion"), publishMavenProductToSonatype
+    doFirst {
+        if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
+            throw new GradleException("Use publishCompleteKlumAstProduct; direct Sonatype staging release is forbidden.")
+    }
+}
 
 publishGradlePlugins.configure {
+    dependsOn tasks.named("verifyReleaseVersion")
     mustRunAfter closeSonatypeStagingRepository
+    doFirst {
+        if (!gradle.taskGraph.hasTask(publishCompleteKlumAstProduct.get()))
+            throw new GradleException("Use publishCompleteKlumAstProduct; direct Gradle Plugin Portal publication is forbidden.")
+    }
 }
 
 if (hasProperty('buildScan')) {

@@ -22,8 +22,15 @@ dependencies {
 tasks.register("verifyPublicProduct") {
     group = "verification"
     description = "Resolves every published Maven module and all declared Gradle plugin markers from public repositories."
+    def evidenceFile = layout.buildDirectory.file("verification/public-product-$releaseVersion.txt")
+    dependsOn subprojects.collect { it.tasks.named("verifyPluginMarker") }
+    outputs.file(evidenceFile)
 
     doLast {
-        configurations.publicProduct.resolve()
+        def artifacts = configurations.publicProduct.resolvedConfiguration.resolvedArtifacts
+                .collect { "${it.moduleVersion.id.group}:${it.name}:${it.moduleVersion.id.version}" }
+                .sort()
+        evidenceFile.get().asFile.parentFile.mkdirs()
+        evidenceFile.get().asFile.text = artifacts.join("\n") + "\n"
     }
 }
