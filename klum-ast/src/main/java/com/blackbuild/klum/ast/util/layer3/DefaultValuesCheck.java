@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.util.layer3;
 
+import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
 import com.blackbuild.klum.cast.checks.impl.ValidationException;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -34,8 +35,9 @@ import java.lang.annotation.Annotation;
 public class DefaultValuesCheck extends KlumCastCheck<Annotation> {
     @Override
     protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) throws ValidationException {
-        boolean controlAnnotationHasValuesMapping = annotationToCheck.getMembers().containsKey("valueTarget");
-        ClassNode targetAnnotation = (ClassNode) target;
+        boolean controlAnnotationHasValuesMapping = controlAnnotation instanceof DefaultValues
+                && !((DefaultValues) controlAnnotation).valueTarget().isEmpty();
+        ClassNode targetAnnotation = annotationToCheck.getClassNode();
         boolean targetAnnotationHasValueMember = !targetAnnotation.getMethods("value").isEmpty();
 
         if (controlAnnotationHasValuesMapping && !targetAnnotationHasValueMember)

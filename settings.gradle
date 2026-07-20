@@ -35,9 +35,10 @@ dependencyResolutionManagement {
 
             library("jb-anno", "org.jetbrains:annotations:16.0.2")
 
-            version("klum-cast", "0.3.1")
+            version("klum-cast", "0.4.0-rc.2")
             library("klum-cast-compile", "com.blackbuild.klum.cast", "klum-cast-compile").versionRef("klum-cast")
             library("klum-cast-annotations", "com.blackbuild.klum.cast", "klum-cast-annotations").versionRef("klum-cast")
+            library("klum-cast-spi", "com.blackbuild.klum.cast", "klum-cast-spi").versionRef("klum-cast")
 
             version("spock-g3", "2.4-groovy-3.0")
             version("spock-g4", "2.4-groovy-4.0")
@@ -84,4 +85,3 @@ include 'code-coverage-report'
 
 
 // includeBuild "../anno-docimal"
-

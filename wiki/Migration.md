@@ -14,6 +14,16 @@ and treat the completed-model export as a separately owned external projection. 
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
 owns source-neutral composition.
 
+## KlumCast 0.4 RC dependencies
+
+KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-annotations`, `klum-cast-spi`, and
+`klum-cast-compile`. Its stable automatic module names are `com.blackbuild.klum.cast.annotations`,
+`com.blackbuild.klum.cast.spi`, and `com.blackbuild.klum.cast.compiler`; do not substitute filename-derived names or use
+local module-path flags to compensate for an invalid dependency graph.
+
+Recompile schemas and custom checks when moving to KlumAST 4.0. Existing name-bound custom checks remain supported by
+KlumCast's temporary 0.4 migration bridge. Their migration to the durable check SPI is tracked by [#460](https://github.com/klum-dsl/klum-ast/issues/460), not by this dependency integration.
+
 # to 2.2
 
 `toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.

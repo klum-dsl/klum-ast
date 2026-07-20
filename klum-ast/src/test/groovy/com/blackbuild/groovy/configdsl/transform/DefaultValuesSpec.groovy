@@ -684,9 +684,9 @@ import java.lang.annotation.Target
         bar.name == "defaultName"
     }
 
-    @Issue("370")
+    @Issue(["370", "459"])
     def "if default-values annotation has a 'value' member, valueTarget must be set"() {
-        when: "value member is present, but valuesTarget is not set"
+        when: "a value member is present without a value target"
         createSecondaryClass '''
             package pk
 
@@ -701,11 +701,19 @@ import java.lang.annotation.*
                 String value()
             }
 '''
+        createClass '''
+            package pk
+
+            @NoValuesMappingSet
+            @DSL
+            class Foo {
+            }
+'''
 
         then:
         thrown(MultipleCompilationErrorsException)
 
-        when: "valuesTarget is set, but value member is not present"
+        when: "a value target is set without a value member"
         createSecondaryClass '''
             package pk
 
@@ -718,6 +726,14 @@ import java.lang.annotation.*
             @DefaultValues(valueTarget = "name")
             @interface MappingSetButNoValueInAnnotation {
                 String name()
+            }
+'''
+        createClass '''
+            package pk
+
+            @MappingSetButNoValueInAnnotation
+            @DSL
+            class Bar {
             }
 '''
 

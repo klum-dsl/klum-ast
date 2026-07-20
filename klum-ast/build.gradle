@@ -16,6 +16,7 @@ dependencies {
     api project(':klum-ast-annotations')
     api project(':klum-ast-runtime')
     api libs.annodocimal.global.ast
+    api libs.klum.cast.spi
     api libs.klum.cast.compile
 
     sharedTests libs.annodocimal.gradle.plugin
