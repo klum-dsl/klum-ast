@@ -4,28 +4,23 @@ This plan implements [ADR 0009](../adr/0009-jackson-interoperability.md) for can
 [#428](https://github.com/klum-dsl/klum-ast/issues/428). It retains the compatible JSON-1/#439 and JSON-2/#440 groundwork
 while replacing ADR 0007's cancelled JSON-3 round-trip closure.
 
-The JSON-3 public interface and behavior were confirmed on 2026-07-17. Production implementation remains pending.
+JSON-3/#463 delivers the confirmed public interface and managed behavior. JSON-4/#464 closes the compatibility story
+with separate import/export fixtures and the one-input YAML documentary tracer; it does not add source composition.
 
-## Current behavior and failure paths
+## Current behavior and evidence
 
-`KlumAstModule` currently replaces the root deserializer for DSL types. `KlumDeserializer` buffers an object, resolves
-effective Jackson properties, preallocates owned Builders, runs `PostCreate`, binds present values, runs `PostApply`, then
-starts one root lifecycle. Raw `ObjectMapper.readValue(DslType)` is the only public entry point.
+`KlumAstModule` replaces the root deserializer for DSL types. `KlumJacksonImporter` captures caller-owned reader
+configuration and provides root, value-only Template, active-session Builder, and existing-Builder modes. It normalizes
+one parser/tree/Map input into the resolved-property engine, which preallocates owned Builders, runs `PostCreate`, binds
+present values, runs `PostApply`, then starts one root lifecycle. Raw `ObjectMapper.readValue(DslType)` remains the
+discouraged standalone-root compatibility entry point.
 
 That implementation already proves renamed/aliased properties, naming strategies, mixins, views, unknown-property policy,
 formats, Simple Value codecs, polymorphic owned types, same-session identities, Template rejection, and explicit
 type-level deserializer opt-out. It also rejects inline `LINK` input and output lacking identity/custom property handling.
 
-The public seam is nevertheless incomplete for the confirmed use case:
-
-- a Schema Developer cannot explicitly read a root or Template through a Klum exception/diagnostic seam;
-- a Schema Developer cannot import a child Builder or apply structured input to an existing Builder;
-- raw DSL reads inside an active lifecycle can attempt a nested root instead of naming the correct import mode;
-- import I/O and mapping errors remain Jackson-first and do not contribute import-source or construction-path context;
-- construction-taking annotations do not yet fail with the complete actionable managed-import contract;
-- the wiki and release artifacts still describe persistence and round trips rather than external interoperability;
-- the module reports an unknown Jackson module version; and
-- no Klum wire metadata is emitted, but that absence is not yet documented as the deliberate compatibility contract.
+The delivered seam supplies the requested explicit modes, construction-path diagnostics, and construction-takeover guards.
+JSON-4 separately proves foreign YAML import and ordinary YAML export so neither fixture claims persistence or a round trip.
 
 ## Affected seams
 
@@ -37,7 +32,8 @@ The public seam is nevertheless incomplete for the confirmed use case:
 - generated API: `KlumFactory.BuilderFactory<T, B>` and the ADR 0005 `Foo_DSL.Builder` projection provide the precise
   Java return type. No generated import creator is added in 4.0.
 - tests: existing `ConfigurationReplaySpec`, `ConstructionOverrideSpec`, `JacksonCustomizationSpec`, `LinkIdentitySpec`,
-  and `JsonExportSpec`, plus focused importer, Java-consumer, static-Groovy, endpoint, and TestKit specifications.
+  `JsonExportSpec`, and `JacksonYamlInteroperabilityDocumentaryTest`, plus focused importer, Java-consumer, static-Groovy,
+  endpoint, and TestKit specifications.
 - user guidance: `wiki/Jackson-Integration.md`, migration navigation, and `CHANGES.md` as split between JSON-3 and JSON-4.
 
 ## Confirmed JSON-3 public interface

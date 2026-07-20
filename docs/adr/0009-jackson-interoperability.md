@@ -14,8 +14,8 @@ Tracking issues:
 
 Implementation status: JSON-1 property-aware Builder binding is implemented by
 [#439](https://github.com/klum-dsl/klum-ast/issues/439), and JSON-2 identity/customization groundwork is implemented by
-[#440](https://github.com/klum-dsl/klum-ast/issues/440). The JSON-3/#463 public importer contract was confirmed on
-2026-07-17 and remains to be implemented; JSON-4/#464 owns interoperability compatibility closure. See the
+[#440](https://github.com/klum-dsl/klum-ast/issues/440). JSON-3/#463 delivers the public importer contract. JSON-4/#464
+adds the executable asymmetric YAML compatibility tracer and the role-oriented documentation closure. See the
 [implementation plan](../implementation/adr-0009-jackson-interoperability.md).
 
 Supersedes: [ADR 0007 — Jackson deserialization as configuration replay](0007-jackson-configuration-replay.md)

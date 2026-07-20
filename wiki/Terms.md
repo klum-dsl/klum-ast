@@ -19,7 +19,9 @@ validation-result handling, and downstream serialization.
 
 ## Model Writer
 
-Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, Templates, or combinations of those inputs.
+Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, Templates, or combinations of those
+authoring forms. A Jackson import operation always consumes one external input; source composition is not a Model Writer
+promise of the Jackson adapter.
 
 # Values
 In this documentation, we differentiate between three kinds of values:

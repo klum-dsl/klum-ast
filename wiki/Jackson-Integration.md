@@ -1,8 +1,8 @@
 Jackson Integration
 ===================
 
-__This feature is considered beta. The 4.0 interoperability contract is accepted, while its explicit importer API remains
-to be implemented under issue #428.__
+The 4.0 Jackson integration is an interoperability boundary, not a persistence format. Its explicit importer API is
+available through `KlumJacksonImporter`; issue #464 supplies the executable asymmetric YAML tracer.
 
 KlumAST provides optional Jackson integration in the `klum-ast-jackson` module. Its purpose is interoperability with
 externally owned JSON/YAML formats:
@@ -105,6 +105,30 @@ Owned nested DSL values are Builders in the same Construction session. Each impo
 `KlumJacksonInput` before lifecycle completion. Top-level arrays, Maps, and YAML multi-document streams are ordinary
 Jackson structures and do not implicitly create a shared Klum lifecycle; format-specific multi-document convenience and
 ordered heterogeneous composition are later source-neutral core work (#304), not Jackson importer behavior.
+
+# One foreign YAML input, one enriched output
+
+This is the deliberately asymmetric workflow. A Client Developer owns the YAML mapper and provides exactly one input;
+the Schema Developer owns foreign names, aliases, relationships, lifecycle enrichment, and the output projection.
+
+```groovy
+def mapper = new ObjectMapper(new YAMLFactory()).findAndRegisterModules()
+def deployment = KlumJacksonImporter.using(mapper).readRoot(
+        Deployment,
+        KlumJacksonInput.parser(mapper.factory.createParser('''
+legacy_deployment: storefront
+services: [{ id: api }]
+primary: api
+''')).named("foreign-deployment.yaml"))
+
+mapper.writeValue(output, deployment) // lifecycle-derived output is an intentional addition
+```
+
+The output is not input for another lifecycle and it need not retain `legacy_deployment`; it is an ordinary Jackson
+projection of the completed model. This exact contract is exercised by
+`JacksonYamlInteroperabilityDocumentaryTest#imports one foreign YAML document through one Builder lifecycle and exports an enriched YAML projection`.
+YAML streams, repeated importer calls, and combinations of inputs do not define layering or overwrite policy; the
+source-neutral coordinator remains [#304](https://github.com/klum-dsl/klum-ast/issues/304).
 
 # Mapping a foreign schema
 
@@ -214,4 +238,4 @@ substitute for managed import of a foreign format.
 
 `KlumAstModule` can be subclassed to customize module registration. Its Builder-backed deserializer remains an internal
 implementation detail. Supported extension seams are normal Jackson property/value configuration, explicit type-level
-serializer/deserializer opt-outs, converters, and the public importer once implemented.
+serializer/deserializer opt-outs, converters, and the public importer.

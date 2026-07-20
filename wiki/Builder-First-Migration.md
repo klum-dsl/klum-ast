@@ -166,3 +166,5 @@ annotations cannot replace the Klum Builder lifecycle.
 
 Do not treat JSON/YAML output as a Klum persistence or round-trip format. Completed models serialize through ordinary
 Jackson APIs, KlumAST adds no wire metadata, and external version properties remain Schema-controlled data.
+Each importer operation accepts one input and owns one lifecycle; YAML documents and exported projections never establish
+Jackson-owned composition or cross-input overwrite semantics.
