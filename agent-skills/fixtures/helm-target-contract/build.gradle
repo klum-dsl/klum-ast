@@ -1,0 +1,15 @@
+plugins {
+    id 'com.blackbuild.klum-ast-schema'
+}
+
+repositories {
+    mavenCentral()
+}
+
+klumSchema {
+    groovyVersion = findProperty('fixtureGroovyVersion') ?: '3'
+}
+
+dependencies {
+    testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.2'
+}

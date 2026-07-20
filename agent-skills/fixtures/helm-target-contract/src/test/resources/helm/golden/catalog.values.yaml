@@ -1,0 +1,19 @@
+replicaCount: 2
+image:
+  repository: ghcr.io/acme/catalog
+  tag: 1.4.0
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+ingress:
+  enabled: true
+  hosts:
+    - host: catalog.example.test
+      paths:
+        - path: /
+          pathType: Prefix

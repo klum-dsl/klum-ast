@@ -1,0 +1,14 @@
+replicaCount: 1
+image:
+  repository: ghcr.io/acme/billing
+  tag: 2.1.3
+service:
+  type: ClusterIP
+  port: 8081
+  targetPort: 8081
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+ingress:
+  enabled: false
