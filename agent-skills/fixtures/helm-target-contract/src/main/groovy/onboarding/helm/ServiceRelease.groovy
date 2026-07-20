@@ -24,8 +24,7 @@ class ServiceRelease {
     @Default(code = { publiclyReachable ? "${name}.example.test" : null })
     String hostname
 
-    String cpuRequest = '250m'
-    String memoryRequest = '256Mi'
+    ResourceRequirements resources
 
     /**
      * Expands the concise authoring model into the Helm values contract.
@@ -36,7 +35,7 @@ class ServiceRelease {
         values.replicaCount = replicaCount
         values.image = [repository: imageRepository, tag: imageTag]
         values.service = [type: 'ClusterIP', port: containerPort, targetPort: containerPort]
-        values.resources = [requests: [cpu: cpuRequest, memory: memoryRequest]]
+        values.resources = resources.toHelmValues()
         Map<String, Object> ingress = [enabled: publiclyReachable]
         if (publiclyReachable) {
             ingress.put('hosts', [[host: hostname, paths: [[path: '/', pathType: 'Prefix']]]])
@@ -55,6 +54,54 @@ class ServiceRelease {
         }
         if (publiclyReachable && !hostname) {
             Validator.addError('publicly reachable releases need a hostname')
+        }
+        if (!resources) {
+            Validator.addError('resources with requests and limits are required')
+        }
+    }
+}
+
+@DSL
+class ResourceRequirements {
+
+    ResourceValues requests
+    ResourceValues limits
+
+    Map<String, Object> toHelmValues() {
+        [requests: requests.toHelmValues(), limits: limits.toHelmValues()]
+    }
+
+    @Validate
+    void validatesRequestsAndLimits() {
+        if (!requests) {
+            Validator.addError('resource requests are required')
+        }
+        if (!limits) {
+            Validator.addError('resource limits are required')
+        }
+        if (requests && limits && requests.memory != limits.memory) {
+            Validator.addIssue('memory limit differs from memory request', Validate.Level.WARNING)
+        }
+    }
+}
+
+@DSL
+class ResourceValues {
+
+    String cpu
+    String memory
+
+    Map<String, String> toHelmValues() {
+        [cpu: cpu, memory: memory]
+    }
+
+    @Validate
+    void requiresCpuAndMemory() {
+        if (!cpu) {
+            Validator.addError('resource cpu is required')
+        }
+        if (!memory) {
+            Validator.addError('resource memory is required')
         }
     }
 }

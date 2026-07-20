@@ -1,8 +1,10 @@
 package onboarding.helm
 
 import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.blackbuild.groovy.configdsl.transform.Validate
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Specification
@@ -25,13 +27,28 @@ class HelmTargetContractDocumentaryTest extends Specification {
 
         then:
         catalog.imageRepository == 'ghcr.io/acme/catalog'
-        catalog.cpuRequest == '250m'
-        catalog.memoryRequest == '256Mi'
+        catalog.resources.requests.cpu == '250m'
+        catalog.resources.requests.memory == '256Mi'
+        catalog.resources.limits.cpu == '500m'
+        catalog.resources.limits.memory == '256Mi'
         catalog.hostname == 'catalog.example.test'
         catalog.toHelmValues().ingress == [
             enabled: true,
             hosts  : [[host: 'catalog.example.test', paths: [[path: '/', pathType: 'Prefix']]]]
         ]
+    }
+
+    def 'retains a completed model while nested resources warn about a memory limit mismatch'() {
+        when:
+        ServiceRelease billing = RepresentativeReleases.all().last()
+        def issues = KlumObjectSupport.of(billing.resources).validation.result.issues
+
+        then:
+        billing.resources.requests.memory == '256Mi'
+        billing.resources.limits.memory == '512Mi'
+        issues.any { issue ->
+            issue.level == Validate.Level.WARNING && issue.message == 'memory limit differs from memory request'
+        }
     }
 
     @Unroll
@@ -66,6 +83,7 @@ class HelmTargetContractDocumentaryTest extends Specification {
         KlumValidationException error = thrown()
         error.message.contains('imageTag must be a semantic version')
         error.message.contains('containerPort must be between 1 and 65535')
+        error.message.contains('resources with requests and limits are required')
     }
 
     private String resourceText(String path) {
