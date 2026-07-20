@@ -28,6 +28,27 @@ def config = Config.Create.With {
 assert config.id == 'Hans' // defaults to name 
 ```
 
+For example, a release can derive an identifier from its configured name during the default phase:
+
+```groovy
+@DSL
+class Release {
+    String name
+
+    @Default(field = 'name')
+    String identifier
+}
+
+def release = Release.Create.With {
+    name 'spring-catalog'
+}
+
+assert release.identifier == 'spring-catalog'
+```
+
+The same happy path is executable in `DefaultValuesDocumentaryTest.groovy`, feature
+`defaults a release identifier from its configured name`.
+
 # Delegate fields (delegate)
 
 The default value is taken from a property with the same name of the targeted delegate. This is especially 

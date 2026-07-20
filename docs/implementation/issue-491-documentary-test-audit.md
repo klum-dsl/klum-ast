@@ -15,6 +15,7 @@ Before this slice, the executable suite contained one `@Tag("documentary")` mark
 | --- | --- | --- | --- |
 | [`Layer3.md` — Automatic creation and linking](../../wiki/Layer3.md#automatic-creation-and-linking) | #474 | `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries` | Already aligned with `@Issue`, `@Tag("documentary")`, and `@See`. #454 owns the wider Layer 3 terminology rewrite. |
 | [`Basics.md` — Factory construction](../../wiki/Basics.md#factory-construction) | #76 (closed: move creator methods into a creator class) | `FactoryTest` exercised the generated factory but did not provide a readable linked documentary example. | Aligned by this slice with `FactoryConstructionTest.builds a completed deployment configuration with Create.With`. |
+| [`Default-Values.md` — Other fields (`field`)](../../wiki/Default-Values.md#other-fields-field) | #318 (closed: make `@Default` a lifecycle method) | `DefaultValuesSpec` covered field defaults but did not provide a linked, user-oriented happy path. | Aligned by this slice with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. |
 
 ## In-scope user-visible DSL inventory
 
@@ -29,7 +30,7 @@ annotated documentary path. It is a queue for a later #491 slice, not a new beha
 | `Convenience-Factories.md` | #114, #195, #198 | `ConvenienceFactoriesSpec` | Not yet aligned. |
 | `Converters.md` | #148, #198, #243, #300, #319 | `ConverterSpec` | Not yet aligned. |
 | `Copy-Strategies.md` | #36, #309, #348, #374, #400 | `CopyHandlerTest`, `CopyHandlerRuntimeTest`, `OverwriteStrategyTest` | Not yet aligned. |
-| `Default-Values.md` | #318, #361, #370 | `DefaultValuesSpec` | Not yet aligned. |
+| `Default-Values.md` — Other fields (`field`) | #318 | `DefaultValuesSpec`, `DefaultValuesDocumentaryTest` | Aligned with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. The Layer 3 annotation variants remain separate follow-ups under #361 and #370. |
 | `Inheritance.md` | #130, #138 | `InheritanceSpec` | Not yet aligned. |
 | `Templates.md` | #82, #322, #368, #376 | `TemplatesSpec`, `BoundTemplatesSpec` | Not yet aligned; replace the stale `TemplateSpec` reference when this page is selected. |
 | `Validation.md` | #25, #125, #145, #221, #223, #276, #381, #395, #406–#407, #409, #415 | `ValidationSpec` | Not yet aligned. |
@@ -56,6 +57,6 @@ annotated documentary path. It is a queue for a later #491 slice, not a new beha
 
 No GitHub issues were created by this local-only slice. Before a subsequent #491 implementation slice, a maintainer
 should choose the next stable documentation heading and either confirm its governing historical issue or create a
-focused follow-up for an unclear contract. The clearest candidates are `Templates.md`, `Default-Values.md`, and
-`Convenience-Factories.md`; `Completed-Object-Support.md` and the legacy technique pages need ownership confirmation
-first.
+focused follow-up for an unclear contract. The clearest candidates are `Templates.md` and
+`Convenience-Factories.md`; the Layer 3 annotation variants in `Default-Values.md` remain bounded by #361/#370, while
+`Completed-Object-Support.md` and the legacy technique pages need ownership confirmation first.
