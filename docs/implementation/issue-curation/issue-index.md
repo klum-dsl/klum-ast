@@ -148,12 +148,13 @@ The evidence key in each row supplies the relevant ADR/wiki/test set; directly r
 | #471 | Teach domain-first modeling through an executable smart-home journey. | documentation / Layer 3 acceptance fixture | **Ready child of #469, blocked by #470:** prove a domain-first Layer 3 schema, configured model, and thin downstream adapter through shared executable documentation/skill evidence. It must use #454’s vocabulary without treating an example as unreviewed Layer 3 policy. | Docs, L3, Gradle; Groovy 3/4/5 | **4.0 must, ready-for-agent; blocked by #470** |
 | #472 | Teach target-contract modeling through an executable Helm journey. | documentation / target-contract acceptance fixture | **Ready child of #469, blocked by #470:** prove direct-schema target-contract modeling with representative Helm values, meaningful defaults/validation/convenience, and golden-contract checks. It must not imply a universal import/export round trip or absorb #79/#304. | Docs, Gradle; Groovy 3/4/5 | **4.0 must, ready-for-agent; blocked by #470** |
 | #474 | Preserve Layer 3 composition-or-aggregation relationships. | enhancement / breaking compatibility | **Implemented by PR #506:** `OPTIONAL_LINK` lets a relationship entry be composition or aggregation; `@LinkTo` selects it, while explicit `LINK` remains aggregation-only. Ownership is determined by same-session Builder composition claim versus an existing completed/claimed target. The delivered behavior includes generated Java/Groovy relationship method shapes, non-destructive dynamic Auto-Link fallback, collection/map semantics, migration, and ADR 0003/0004 clarification. It remains distinct from #431’s Builder-producing composition, #467’s framework naming convention, and #468’s final inventory. | AST, RT, L3, REL, J17/API; Groovy 3/4/5 | **4.0 implementation evidence complete** |
+| #483 | Define the Season 4 KlumAST/KlumCast visual family. | product branding / release finalization | **Confirmed visual-only direction:** `Season 4: The Makeover` pairs with semantic `4.0`; KlumAST and KlumCast share a visual system but retain distinct accessible marks and technical identities. Stephan owns final manifest/correction approval. ADR 0013/#456 validate and capture the local asset, digest, alternative text, and approval; #488 retains publication authority. AnnoDocimal remains a policy-aligned independent peer. | Docs, release | **4.0 visual finalization, ready-for-human; not an RC-train blocker** |
 
 ## Inventory checks
 
-- The table contains every number returned by `gh issue list --state open --limit 1000` after the 2026-07-17
-  construction-path normalization: **107/107**. Completed #251/#383/#411/#430/#447 remain absent; previously omitted
-  #467–#472 were restored to the inventory and #474 was added.
+- #483 was added during the 2026-07-21 branding normalization. Refresh the open-issue count before a later full inventory
+  sweep. Completed #251/#383/#411/#430/#447 remain absent; previously omitted #467–#472 were restored to the inventory and
+  #474 was added.
 - No external PR was treated as a request surface, per `docs/agents/issue-tracker.md`.
 - Remaining “close” recommendations are evidence-backed proposals only. The confirmed 2026-07-14 architecture normalization
   created milestone 4.0, updated #251/#305/#390/#394/#428/#431, and created #433–#441. The 2026-07-15 pass refined

@@ -399,3 +399,25 @@ ADR 0009, #463, and #464 use exactly one `KlumJacksonInput` per importer operati
 mapping/null/merge behavior for that input but does not sequence multiple inputs or define cross-layer
 overwrite/null/list/map rules. Future heterogeneous composition is #304 work. JSON-3 and JSON-4 remain 4.0 Jackson work
 and are not blocked by #304.
+
+## D-23 — Season 4 visual branding is coordinated, visual-only finalization
+
+**Decision:** Adopt **Season 4: The Makeover** as the release-facing identity paired with semantic `4.0`. It defines a
+coordinated KlumAST/KlumCast visual family for current and prospective Java/Groovy DSL users, while retaining distinct
+product marks and role subtitles. AnnoDocimal remains an independent peer with policy-level alignment only.
+
+**Technical identity and compatibility:** Retain `klum-cast` through 0.4/4.0. The already-published KlumCast RC and the
+current coordinated RC train continue unchanged. A product, repository, coordinate, package, automatic-module, or module
+rename is substantive work requiring separately authorized compatibility, migration, and affected-RC validation; it is not
+Season 4 final polish.
+
+**Manifest and ownership:** Stephan is the branding owner. He approves the final Season/logo manifest and any later
+correction record. The minimum evidence is one shared visual system, distinct accessible KlumAST/KlumCast marks, a manifest
+with Season identity/local asset path/digest/alternative text, owner approval, and rendered product-local release/documentation
+evidence. ADR 0013/#456 validate and capture the manifest; #488 and the product-local owners retain publication authority.
+After publication, corrections preserve the original identity and digest rather than rewriting an immutable snapshot.
+
+**Release placement:** #483 is the canonical cross-product decision and acceptance owner. It is a visual-only 4.0
+finalization concern, not a native RC-train blocker or release dependency. The approved final manifest is nevertheless
+required before #456's protected final documentation render. No new ADR or branding tracer is needed; #456's existing
+manifest/render fixtures cover the KlumAST proof, while KlumCast delivery stays local.
