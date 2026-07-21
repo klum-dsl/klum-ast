@@ -1,4 +1,5 @@
 import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
+import com.blackbuild.klum.ast.docs.RenderHistoricalDocumentationTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -63,6 +64,14 @@ tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask)
 tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
     group = 'verification'
     description = 'Runs hermetic acceptance fixtures for the deterministic versioned-documentation renderer.'
+}
+
+tasks.register('renderHistoricalDocumentation', RenderHistoricalDocumentationTask) {
+    group = 'documentation'
+    description = 'Renders and audits every released 2.x and 3.0.1 wiki tree with exact-version Javadocs.'
+    objectDirectory.set(layout.projectDirectory)
+    outputDirectory.set(layout.buildDirectory.dir('versioned-documentation/historical'))
+    javadocRepository.set('https://repo1.maven.org/maven2')
 }
 
 tasks.register('gitPublishPush') {

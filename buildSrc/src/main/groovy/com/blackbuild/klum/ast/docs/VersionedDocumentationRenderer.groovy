@@ -58,8 +58,10 @@ class VersionedDocumentationRenderer {
         String rendererRevision = requiredString(inputs, 'rendererRevision')
         String version = requiredString(inputs, 'version')
         String status = requiredString(inputs, 'status')
-        String brandingManifestPath = requiredRelativePath(requiredString(inputs, 'brandingManifestPath'), 'brandingManifestPath')
+        String brandingManifestPath = optionalRelativePath(inputs.brandingManifestPath, 'brandingManifestPath')
         Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
+        Map<String, String> javadocInputChecksums = new TreeMap<>(normalizedChecksums(inputs.javadocInputChecksums ?: [:]))
+        Map<String, File> additionalFiles = normalizedAdditionalFiles(inputs.additionalFiles ?: [:])
         List<String> archivedVersions = ((inputs.archivedVersions ?: []) as List<String>).collect { it.toString() }.sort()
 
         requireFullSha(revision, 'revision')
@@ -110,29 +112,44 @@ class VersionedDocumentationRenderer {
             write(exactDirectory, outputPath, content)
         }
 
-        Map<String, ?> branding = readBrandingManifest(objectDirectory, revision, brandingManifestPath)
-        String logoPath = requiredRelativePath(branding.logo?.toString(), 'branding logo')
-        String logoTarget = "assets/branding/${logoPath.tokenize('/').last()}"
-        if (!outputPaths.add(logoTarget))
-            fail("Branding logo collides with an authored output path: $logoTarget")
-        byte[] logo = gitBytes(objectDirectory, ['show', "${revision}:${logoPath}"])
-        String logoDigest = sha256(logo)
-        if (logoDigest != branding.sha256)
-            fail("Branding manifest digest does not match $logoPath")
-        write(exactDirectory, logoTarget, logo)
+        Map<String, ?> branding = [mode: 'not-applicable']
+        if (status != 'archived') {
+            if (!brandingManifestPath)
+                fail('brandingManifestPath is required for current and public-rc documentation.')
+            branding = readBrandingManifest(objectDirectory, revision, brandingManifestPath)
+            String logoPath = requiredRelativePath(branding.logo?.toString(), 'branding logo')
+            String logoTarget = "assets/branding/${logoPath.tokenize('/').last()}"
+            if (!outputPaths.add(logoTarget))
+                fail("Branding logo collides with an authored output path: $logoTarget")
+            byte[] logo = gitBytes(objectDirectory, ['show', "${revision}:${logoPath}"])
+            String logoDigest = sha256(logo)
+            if (logoDigest != branding.sha256)
+                fail("Branding manifest digest does not match $logoPath")
+            write(exactDirectory, logoTarget, logo)
+            branding = [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
+                        approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest]
+        }
 
-        Map<String, String> javadocInputChecksums = copyModuleJavadocs(exactDirectory, moduleJavadocs)
+        javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
         if (!moduleJavadocs.isEmpty())
             write(exactDirectory, 'api/index.md', apiIndex(version).getBytes(StandardCharsets.UTF_8))
 
         outputPaths.add('status.md')
         write(exactDirectory, 'status.md', statusRecord(version, status).getBytes(StandardCharsets.UTF_8))
-        if (status == 'archived')
-            archivedVersions << version
-        if (!archivedVersions.isEmpty()) {
-            write(outputDirectory, 'archive/index.md', archiveIndex(archivedVersions.unique().sort()).getBytes(StandardCharsets.UTF_8))
+        additionalFiles.each { String additionalPath, File additionalFile ->
+            requireRelativePath(additionalPath, 'additional file path')
+            if (!outputPaths.add(additionalPath))
+                fail("Additional file collides with renderer output: $additionalPath")
+            write(exactDirectory, additionalPath, additionalFile.bytes)
         }
-        write(outputDirectory, 'index.md', rootIndex(version, status).getBytes(StandardCharsets.UTF_8))
+        if (inputs.writeRootIndices != false) {
+            if (status == 'archived')
+                archivedVersions << version
+            if (!archivedVersions.isEmpty()) {
+                write(outputDirectory, 'archive/index.md', archiveIndex(archivedVersions.unique().sort()).getBytes(StandardCharsets.UTF_8))
+            }
+            write(outputDirectory, 'index.md', rootIndex(version, status).getBytes(StandardCharsets.UTF_8))
+        }
 
         Map<String, String> outputHashes = outputHashes(outputDirectory)
         outputHashes.remove("$version/source-manifest.json")
@@ -141,8 +158,7 @@ class VersionedDocumentationRenderer {
                 renderer              : [id: RENDERER_ID, revision: rendererRevision],
                 source                : [revision: revision, root: sourceRoot, treeHash: treeHash],
                 documentation         : [version: version, status: status],
-                branding              : [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
-                                         approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest],
+                branding              : branding,
                 javadocInputChecksums : new TreeMap<>(javadocInputChecksums),
                 generatedFiles        : new TreeSet<>(outputHashes.keySet()),
                 outputHashes          : new TreeMap<>(outputHashes)
@@ -219,6 +235,21 @@ class VersionedDocumentationRenderer {
                 found = true
         }
         found
+    }
+
+    private static Map<String, File> normalizedAdditionalFiles(Object values) {
+        if (!(values instanceof Map))
+            fail('Additional files must map safe output paths to existing files')
+        Map<String, File> normalized = new TreeMap<>()
+        (values as Map).each { key, value ->
+            if (!(key instanceof String))
+                fail('Additional files must use String output paths')
+            File file = requiredFile([file: value], 'file')
+            if (!file.file)
+                fail("Additional file does not exist: $file")
+            normalized[requireRelativePath(key, 'additional file path')] = file
+        }
+        normalized
     }
 
     private static String chrome(String version, String status) {
@@ -319,6 +350,11 @@ class VersionedDocumentationRenderer {
         Object value = inputs[key]
         if (!(value instanceof String) || value.trim().empty) fail("$key is required")
         value.trim()
+    }
+
+    private static String optionalRelativePath(Object value, String key) {
+        if (value == null || value.toString().trim().empty) return null
+        requireRelativePath(value.toString().trim(), key)
     }
 
     private static String requiredRelativePath(Object value, String key) {
