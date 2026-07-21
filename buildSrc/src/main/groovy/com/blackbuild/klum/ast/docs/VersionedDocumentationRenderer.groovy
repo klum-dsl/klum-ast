@@ -122,6 +122,8 @@ class VersionedDocumentationRenderer {
         write(exactDirectory, logoTarget, logo)
 
         Map<String, String> javadocInputChecksums = copyModuleJavadocs(exactDirectory, moduleJavadocs)
+        if (!moduleJavadocs.isEmpty())
+            write(exactDirectory, 'api/index.md', apiIndex(version).getBytes(StandardCharsets.UTF_8))
 
         outputPaths.add('status.md')
         write(exactDirectory, 'status.md', statusRecord(version, status).getBytes(StandardCharsets.UTF_8))
@@ -241,7 +243,14 @@ class VersionedDocumentationRenderer {
     }
 
     private static String rootIndex(String version, String status) {
-        "# KlumAST documentation snapshot\n\nThis local render contains the immutable [$version](/$version/) documentation tree with status **$status**.\n"
+        "# KlumAST documentation snapshot\n\nThis local render contains the immutable [$version](/$version/) documentation tree with status **$status**.\n\n" +
+                "Its [isolated module API reference](/$version/api/) belongs to the same exact version.\n"
+    }
+
+    private static String apiIndex(String version) {
+        "# KlumAST $version API reference\n\n" +
+                'Each published module has a distinct Javadoc base. The BOM and IDE-only source mirrors are not API inputs.\n\n' +
+                MODULE_JAVADOCS.keySet().collect { module -> "- [$module](/$version/api/$module/)" }.join('\n') + '\n'
     }
 
     private static Map<String, String> outputHashes(File root) {

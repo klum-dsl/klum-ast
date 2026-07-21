@@ -55,10 +55,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Legacy.md').exists(), '4.x render must not select wiki/')
         assertContains(new File(currentOne, '4.0.0-rc.1/source-manifest.json').text, 'Season 4: The Makeover', 'branding manifest capture')
         assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumlogo.png').file, 'logo must be local to the exact tree')
+        String apiLanding = new File(currentOne, '4.0.0-rc.1/api/index.md').text
+        assertContains(apiLanding, 'distinct Javadoc base', 'API landing policy')
         VersionedDocumentationRenderer.MODULE_JAVADOCS.each { String module, String representativeType ->
             File moduleOutput = new File(currentOne, "4.0.0-rc.1/api/$module")
             VerifyVersionedDocumentationRendererTask.assertTrue(new File(moduleOutput, representativeType).file, "representative public type must be reachable for $module")
             VerifyVersionedDocumentationRendererTask.assertContains(new File(moduleOutput, 'index.html').text, module, "isolated API base must retain $module")
+            VerifyVersionedDocumentationRendererTask.assertContains(apiLanding, "/4.0.0-rc.1/api/$module/", "API landing must link to $module")
         }
         assertTrue(!new File(currentOne, '4.0.0-rc.1/api/klum-ast-bom').exists(), 'BOM must not have an API output')
 
