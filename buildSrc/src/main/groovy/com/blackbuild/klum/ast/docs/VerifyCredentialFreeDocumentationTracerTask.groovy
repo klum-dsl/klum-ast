@@ -66,6 +66,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
         output.mkdirs()
 
         File cleanCheckout = new File(temporaryDir, 'fixed-source')
+        if (cleanCheckout.exists()) cleanCheckout.deleteDir()
         clone(source, cleanCheckout)
         Map<String, Object> evidence = new TreeMap<>()
         try {
@@ -149,7 +150,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
         builder.environment().put('GRADLE_USER_HOME', new File(temporaryDir, 'gradle-user-home').absolutePath)
         ['SONATYPE_USERNAME', 'SONATYPE_PASSWORD', 'SIGNING_KEY', 'SIGNING_PASSWORD', 'GRADLE_PUBLISH_KEY', 'GRADLE_PUBLISH_SECRET', 'KLUM_AST_RELEASE_AUTHORIZED'].each { builder.environment().remove(it) }
         builder.redirectErrorStream(true)
-        builder.redirectOutput(ProcessBuilder.Redirect.to(new File(temporaryDir, 'nested-javadoc.log')))
+        builder.redirectOutput(ProcessBuilder.Redirect.DISCARD)
         Process process = builder.start()
         if (process.waitFor() != 0)
             fail('Javadoc generation failed for the fixed documentation source revision')
@@ -216,10 +217,9 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
 
     private static void run(File directory, List<String> command, String failure) {
         ProcessBuilder builder = new ProcessBuilder(command).directory(directory).redirectErrorStream(true)
-        builder.redirectOutput(ProcessBuilder.Redirect.to(new File(directory, '.tracer-git.log')))
+        builder.redirectOutput(ProcessBuilder.Redirect.DISCARD)
         Process process = builder.start()
         if (process.waitFor() != 0) fail(failure)
-        new File(directory, '.tracer-git.log').delete()
     }
 
     private static void assertContains(File file, String expected, String description) {
