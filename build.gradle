@@ -1,5 +1,7 @@
 import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
+import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
+import org.gradle.api.tasks.javadoc.Javadoc
 
 buildscript {
     repositories {
@@ -45,15 +47,6 @@ sonar {
 def splitDocumentationProperty = { String name ->
     providers.gradleProperty(name).map { value -> value.split(',').collect { it.trim() }.findAll { it } }.orElse([])
 }
-def documentationJavadocChecksums = providers.gradleProperty('documentationJavadocChecksums').map { value ->
-    value.split(',').collect { entry ->
-        def parts = entry.split('=', 2)*.trim()
-        if (parts.size() != 2 || !parts[0] || !parts[1])
-            throw new GradleException('documentationJavadocChecksums must use module=sha256 entries.')
-        [(parts[0]): parts[1]]
-    }.collectEntries { it }
-}.orElse([:])
-
 tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
     group = 'documentation'
     description = 'Renders one immutable, exact-version documentation tree from explicit Git object inputs.'
@@ -63,7 +56,6 @@ tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask)
     status.set(providers.gradleProperty('documentationStatus'))
     brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest'))
     archivedVersions.set(splitDocumentationProperty('documentationArchivedVersions'))
-    javadocInputChecksums.set(documentationJavadocChecksums)
     objectDirectory.set(layout.dir(providers.gradleProperty('documentationObjectDirectory').map { file(it) }))
     outputDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
 }
@@ -87,6 +79,21 @@ releaseCheck.doLast {
 }
 
 evaluationDependsOnChildren()
+
+def versionedDocumentationJavadocTasks = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module ->
+    project(":$module").tasks.named('javadoc', Javadoc)
+}
+def versionedDocumentationJavadocDirectories = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collectEntries { module ->
+    [(module): project(":$module").tasks.named('javadoc', Javadoc).get().destinationDir]
+}
+tasks.named('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
+    dependsOn(versionedDocumentationJavadocTasks)
+    moduleJavadocs.from(versionedDocumentationJavadocTasks)
+    moduleJavadocDirectories.set(versionedDocumentationJavadocDirectories)
+}
+tasks.named('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
+    dependsOn(versionedDocumentationJavadocTasks)
+}
 
 def releaseExpectedVersion = providers.gradleProperty("releaseExpectedVersion")
 def releaseStage = providers.gradleProperty("releaseStage")
