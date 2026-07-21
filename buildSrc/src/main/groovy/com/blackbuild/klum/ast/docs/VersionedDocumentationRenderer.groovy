@@ -58,6 +58,7 @@ class VersionedDocumentationRenderer {
         String rendererRevision = requiredString(inputs, 'rendererRevision')
         String version = requiredString(inputs, 'version')
         String status = requiredString(inputs, 'status')
+        String archiveLink = inputs.archiveLink?.toString() ?: '/archive/'
         String brandingManifestPath = optionalRelativePath(inputs.brandingManifestPath, 'brandingManifestPath')
         Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
         Map<String, String> javadocInputChecksums = new TreeMap<>(normalizedChecksums(inputs.javadocInputChecksums ?: [:]))
@@ -108,7 +109,7 @@ class VersionedDocumentationRenderer {
                 fail("Duplicate output path: $outputPath")
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
             if (outputPath.endsWith('.md'))
-                content = (chrome(version, status) + new String(content, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8)
+                content = (chrome(version, status, archiveLink) + new String(content, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8)
             write(exactDirectory, outputPath, content)
         }
 
@@ -264,10 +265,10 @@ class VersionedDocumentationRenderer {
         normalized
     }
 
-    private static String chrome(String version, String status) {
+    private static String chrome(String version, String status, String archiveLink) {
         String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : 'Exact version'
         String notice = status == 'archived'
-                ? '> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [/archive/](/archive/).\n'
+                ? "> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [the archive](${archiveLink}).\n"
                 : status == 'public-rc'
                 ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record](/$version/status.md).\n"
                 : '> This is an immutable exact-version documentation snapshot.\n'

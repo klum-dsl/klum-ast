@@ -29,7 +29,7 @@ prose, examples, or assets.
 The task reads only the released Javadoc JAR URL shape under Maven Central and
 records each downloaded SHA-256 in its generated
 `historical-content-audit.json`. It extracts only an artifact for the same
-exact version below `/<version>/api/<module>/`.
+exact version below `archive/<version>/api/<module>/`.
 
 | Versions | Imported modules | Unavailable module |
 | --- | --- | --- |
@@ -38,6 +38,14 @@ exact version below `/<version>/api/<module>/`.
 
 The generated API landing repeats that absence rule and explicitly says that a
 4.x API tree is never substituted for an old-version request.
+
+## Historical output layout
+
+The generated historical root contains `archive/index.md` and one exact tree
+per release below `archive/<version>/`. The archive index uses a relative
+`<version>/` link; each archived page returns using a relative `../` link; and
+an API landing uses relative `<module>/` links. This makes the historical tree
+self-contained when it is published or inspected below a site subdirectory.
 
 ## GitHub-wiki migration inventory
 
