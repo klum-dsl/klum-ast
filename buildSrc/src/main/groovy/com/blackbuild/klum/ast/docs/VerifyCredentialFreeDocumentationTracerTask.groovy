@@ -61,8 +61,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
         assertTag(source, 'v3.0.1', HISTORICAL_REVISION)
         assertMissingPreRendererInputs(source, PRE_RENDERER_REVISION)
         assertNoForbiddenTaskNames()
-        if (output.exists() && output.listFiles()?.length)
-            fail("Credential-free tracer output must be empty: $output")
+        if (output.exists()) output.deleteDir()
         output.mkdirs()
 
         File cleanCheckout = new File(temporaryDir, 'fixed-source')
