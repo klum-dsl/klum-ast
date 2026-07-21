@@ -1,6 +1,10 @@
 # 4.0.0 (unreleased)
 
-This is a breaking release. See the [Builder-first construction migration](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration) for required client and extension changes.
+This is a breaking release. See the [Builder-first construction migration](docs/user/Builder-First-Migration.md) for required client and extension changes.
+
+## Documentation infrastructure
+
+- Current 4.x user documentation is authored in `docs/user/` and rendered locally from an explicit Git revision into an immutable exact-version Markdown tree. The renderer captures a deterministic source manifest and versioned Season/logo input, while the former mutable wiki publisher fails closed ([#456](https://github.com/klum-dsl/klum-ast/issues/456)).
 
 ## Dependency compatibility
 

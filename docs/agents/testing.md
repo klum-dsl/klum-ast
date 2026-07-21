@@ -73,7 +73,7 @@ Mark each documentary test with Spock's `@Tag("documentary")`. Put the tag on an
 entire specification is documentary, in which case a specification-level tag is sufficient. Use `@See` on the same
 feature or specification to link to the relevant documentation element. `@See` is represented as an attachment in Spock
 reports, so give it an absolute URL to the current documentation source and include a heading anchor when it is stable.
-Until issue #456 settles the final documentation placement, a URL to the relevant file under `wiki/` is sufficient.
+The current 4.x authoring source lives under `docs/user/`; use its repository URL until the exact rendered Pages URL exists.
 
 Documentary tests may live beside the focused behavioral tests or in a separate thematic class. Prefer a dedicated
 `<Theme>DocumentaryTest` when several examples form a coherent reading path or review entry point, share comprehensible
@@ -91,7 +91,7 @@ The normal annotation shape is:
 ```groovy
 @Issue("123")
 @Tag("documentary")
-@See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Feature.md#basic-use")
+@See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Feature.md#basic-use")
 def "demonstrates the basic feature syntax"() {
     // readable happy path
 }
@@ -104,13 +104,13 @@ A thematic class spanning issues normally looks like:
 class TemplatesDocumentaryTest extends AbstractDSLSpec {
 
     @Issue("123")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Templates.md#applying-templates")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#applying-templates")
     def "applies a named template"() {
         // first readable example
     }
 
     @Issue("124")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Templates.md#combining-templates")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#combining-templates")
     def "combines templates in declaration order"() {
         // related example from another issue
     }
@@ -123,8 +123,8 @@ specifications, so they may improve a wholly documentary specification but do no
 
 Keep the feature issue, documentary test, and user documentation mutually traceable:
 
-- The feature issue names the documentary test file and feature method, and the relevant documentation element. A wiki
-  filename is sufficient while the final documentation placement remains open.
+- The feature issue names the documentary test file and feature method, and the relevant documentation element under
+  `docs/user/` until an exact rendered URL exists.
 - The documentary test carries the driving `@Issue` number, the `documentary` tag, and an `@See` link to the relevant
   documentation file or section.
 - The documentation demonstrates the feature with an abbreviated example that may omit imports and other setup, and

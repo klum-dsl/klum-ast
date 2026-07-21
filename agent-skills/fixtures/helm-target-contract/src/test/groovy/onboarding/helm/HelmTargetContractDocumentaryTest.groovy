@@ -16,7 +16,7 @@ import java.nio.file.Path
 
 @Issue('472')
 @Tag('documentary')
-@See('https://github.com/klum-dsl/klum-ast/blob/master/wiki/Target-Contract-Modeling.md#executable-helm-journey')
+@See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Target-Contract-Modeling.md#executable-helm-journey')
 class HelmTargetContractDocumentaryTest extends Specification {
 
     private final ObjectMapper yaml = new ObjectMapper(new YAMLFactory())

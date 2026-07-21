@@ -11,11 +11,11 @@ Turn your models into supermodels!
 
 4.0 is currently in development as a breaking Builder-first release. Generated factories now configure Builders and
 materialize structurally immutable completed DSL Objects before validation. See the
-[Builder-first migration guide](https://github.com/klum-dsl/klum-ast/wiki/Builder-First-Migration).
+[Builder-first migration guide](docs/user/Builder-First-Migration.md).
 
 3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
 
-Users of 1.2.0 (or lower) should take a look at [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
+Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
 
 2.2 was the final 2.x feature release and introduced the current validation model. See
 [Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation) and the historical sections of the migration guide.
@@ -97,4 +97,4 @@ def config = Config.Create.With {
 }
 ```
 
-Find more details in our [wiki](https://github.com/klum-dsl/klum-ast/wiki).
+Find more details in the current [user documentation](docs/user/Home.md).

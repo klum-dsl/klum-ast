@@ -34,7 +34,7 @@ JSON-4 separately proves foreign YAML import and ordinary YAML export so neither
 - tests: existing `ConfigurationReplaySpec`, `ConstructionOverrideSpec`, `JacksonCustomizationSpec`, `LinkIdentitySpec`,
   `JsonExportSpec`, and `JacksonYamlInteroperabilityDocumentaryTest`, plus focused importer, Java-consumer, static-Groovy,
   endpoint, and TestKit specifications.
-- user guidance: `wiki/Jackson-Integration.md`, migration navigation, and `CHANGES.md` as split between JSON-3 and JSON-4.
+- user guidance: `docs/user/Jackson-Integration.md`, migration navigation, and `CHANGES.md` as split between JSON-3 and JSON-4.
 
 ## Confirmed JSON-3 public interface
 
@@ -234,7 +234,7 @@ must not introduce Jackson-owned layering or cross-input overwrite policy; issue
   appears.
 - `LINK` input and output choices, Template asymmetry, custom serializer/deserializer opt-outs, ordinary configurable
   fields, and public `KlumObjectSupport` use are documented consistently with tests.
-- `wiki/Jackson-Integration.md`, `wiki/Migration.md`, `wiki/Builder-First-Migration.md`, `wiki/Terms.md`, `CHANGES.md`, ADR
+- `docs/user/Jackson-Integration.md`, `docs/user/Migration.md`, `docs/user/Builder-First-Migration.md`, `docs/user/Terms.md`, `CHANGES.md`, ADR
   links, and issue relationships agree.
 - The Jackson module passes Groovy 3 `test`, `groovy4Tests`, `groovy5Tests`, and the appropriate aggregate build.
 

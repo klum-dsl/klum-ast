@@ -13,7 +13,7 @@ import spock.lang.Tag
 
 @Issue('471')
 @Tag('documentary')
-@See('https://github.com/klum-dsl/klum-ast/blob/master/wiki/Domain-First-Modeling.md#smart-home-journey')
+@See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Domain-First-Modeling.md#smart-home-journey')
 class SmartHomeJourneyDocumentaryTest extends Specification {
 
     def 'loads a floorplan-specific Model and lets a generic client inspect every window'() {

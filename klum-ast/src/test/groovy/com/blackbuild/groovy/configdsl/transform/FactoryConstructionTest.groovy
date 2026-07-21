@@ -31,7 +31,7 @@ class FactoryConstructionTest extends AbstractDSLSpec {
 
     @Issue("76")
     @Tag("documentary")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Basics.md#factory-construction")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Basics.md#factory-construction")
     def "builds a completed deployment configuration with Create.With"() {
         given:
         createClass '''
