@@ -22,9 +22,9 @@ KlumAST needs documentation and API reference that identify the exact release li
 
 ### Canonical source and destination
 
-wiki/ remains repository authoring input. Protected GitHub Pages is the canonical public destination at https://klum-dsl.github.io/klum-ast/. The mutable GitHub wiki is sunset as a content destination and retains only small, labelled deep-link migration stubs.
+The current 4.x authoring tree moves from the misleading wiki/ name to docs/user/ in the first #456 implementation slice. Protected GitHub Pages is the canonical public destination at https://klum-dsl.github.io/klum-ast/. The mutable GitHub wiki is sunset as a content destination and retains only small, labelled deep-link migration stubs. It is not a second authoring tree.
 
-The renderer consumes a checked-out revision, never implicit working-tree state. Its source manifest identifies the input revision and wiki tree, renderer revision, generated files, Javadoc inputs, and output hashes. Every rendered page visibly identifies its exact version and status.
+The renderer consumes a checked-out revision, never implicit working-tree state. For 4.x it reads docs/user/; for historical releases it reads the tagged wiki/ tree. Its source manifest identifies that source root and tree, renderer revision, generated files, Javadoc inputs, and output hashes. Every rendered page visibly identifies its exact version and status. Repository-source URLs are contributor-only and sparse; user navigation and durable external links use the canonical versioned Pages URLs.
 
 ### URL and alias contract
 
@@ -43,7 +43,7 @@ The root landing page points to /stable/ and identifies the selected version. A 
 
 ### Historical documentation and API reference
 
-For every 2.x final and 3.0.1, preserve tagged wiki/ content exactly apart from mechanical rendering and link rewriting. Do not silently correct historical prose or examples; labelled errata are separate. Generate historical API reference from released Javadoc artifacts where available and label an unavailable artifact rather than substituting current source.
+For every 2.x final and 3.0.1, preserve the tagged wiki/ content exactly apart from mechanical rendering and link rewriting. Do not silently correct historical prose or examples; labelled errata are separate. The historical wiki/ location does not keep that name as the 4.x authoring convention. Generate historical API reference from released Javadoc artifacts where available and label an unavailable artifact rather than substituting current source.
 
 Every final patch and public RC from 4.0 onward publishes matching immutable user documentation plus isolated Javadocs for klum-ast, klum-ast-runtime, klum-ast-annotations, klum-ast-jackson, klum-ast-bean-validation, and klum-ast-gradle-plugin. klum-ast-bom is dependency-management only and has no Javadoc site. There is no merged namespace and no AnnoDocimal IDE-only source mirror presented as published API.
 
@@ -64,7 +64,7 @@ AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. 
 - A reader can identify both the version and whether content is immutable, stable/line navigation, or an exact RC preview.
 - The release gate has reproducible documentation evidence before artifact publication, while aliases remain tied to #488 proof.
 - Historical content remains auditable rather than being silently upgraded to current terminology or generated API shapes.
-- The mutable wiki gitPublish path is removed only by implementation slices after migration stubs make existing links intelligible.
+- The physical source move, renderer source selection, and removal/rejection of the mutable gitPublish path are one first implementation slice, not a later cleanup. Migration stubs preserve existing public wiki links without preserving wiki/ as a live authoring root.
 
 ## Rejected alternatives
 
