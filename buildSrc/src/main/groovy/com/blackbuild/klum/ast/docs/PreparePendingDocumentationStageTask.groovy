@@ -61,7 +61,14 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
         File repository = objectDirectory.get().asFile
         validateIdentity(repository, releaseStage, version, revision, nebulaVersion.get())
 
-        File manifest = new File(renderedDocumentationDirectory.get().asFile, "$version/source-manifest.json")
+        Map<String, Object> handoff = validateRenderedManifest(renderedDocumentationDirectory.get().asFile, releaseStage, version, revision)
+        File output = handoffFile.get().asFile
+        output.parentFile.mkdirs()
+        Files.write(output.toPath(), (JsonOutput.prettyPrint(JsonOutput.toJson(handoff)) + '\n').getBytes(StandardCharsets.UTF_8))
+    }
+
+    static Map<String, Object> validateRenderedManifest(File renderedDocumentationDirectory, String releaseStage, String version, String revision) {
+        File manifest = new File(renderedDocumentationDirectory, "$version/source-manifest.json")
         if (!manifest.file)
             fail("Pending documentation render did not produce its source manifest for $version")
         Map<String, ?> parsed = new JsonSlurper().parseText(manifest.getText(StandardCharsets.UTF_8.name())) as Map<String, ?>
@@ -80,9 +87,7 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
                 exactPath      : "pending/$version/$revision/",
                 manifestSha256 : sha256(manifest.bytes)
         ]
-        File output = handoffFile.get().asFile
-        output.parentFile.mkdirs()
-        Files.write(output.toPath(), (JsonOutput.prettyPrint(JsonOutput.toJson(handoff)) + '\n').getBytes(StandardCharsets.UTF_8))
+        handoff
     }
 
     static void validateIdentity(File repository, String stage, String version, String revision, String nebulaVersion) {

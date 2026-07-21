@@ -133,6 +133,17 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         git(fixture, ['checkout', '--detach', revision])
         git(fixture, ['update-ref', 'refs/remotes/origin/master', revision])
         PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+        assertTrue(PreparePendingDocumentationStageTask.validateRenderedManifest(pending, 'candidate', '4.0.0-rc.1', revision).exactPath ==
+                "pending/4.0.0-rc.1/$revision/", 'pending handoff must bind stage, version, and SHA to its immutable path')
+        expectFailure('missing pending source manifest') {
+            PreparePendingDocumentationStageTask.validateRenderedManifest(new File(outputs, 'missing-pending-manifest'), 'candidate', '4.0.0-rc.1', revision)
+        }
+        expectFailure('malformed pending stage') {
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'preview', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+        }
+        expectFailure('malformed pending SHA') {
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', 'A' * 40, '4.0.0-rc.1')
+        }
         expectFailure('pending stage/version mismatch') {
             PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0', revision, '4.0.0')
         }
@@ -263,10 +274,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'Former mutable wiki publisher must be registered as a fail-closed task')
         String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
         assertContains(pagesWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT/', 'pending Pages path must be version and SHA scoped')
+        assertContains(pagesWorkflow, 'test ! -e "pages/$expected_path"', 'existing immutable pending Pages paths must be rejected')
         assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'stage-pending-documentation', 'artifact workflow must require the pending Pages stage')
         assertContains(releaseWorkflow, 'DOCUMENTATION_MANIFEST_SHA256', 'artifact workflow must recheck the pending manifest handoff')
+        assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, stage-pending-documentation]') <
+                releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
     }
 
     private static void initializeFixture(File repository) {
