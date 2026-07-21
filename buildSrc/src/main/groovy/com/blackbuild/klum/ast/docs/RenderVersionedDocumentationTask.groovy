@@ -24,13 +24,18 @@
 package com.blackbuild.klum.ast.docs
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 abstract class RenderVersionedDocumentationTask extends DefaultTask {
@@ -41,8 +46,11 @@ abstract class RenderVersionedDocumentationTask extends DefaultTask {
     @Input abstract Property<String> getStatus()
     @Input abstract Property<String> getBrandingManifestPath()
     @Input abstract ListProperty<String> getArchivedVersions()
-    @Input abstract MapProperty<String, String> getJavadocInputChecksums()
     @InputDirectory abstract DirectoryProperty getObjectDirectory()
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getModuleJavadocs()
+    @Internal abstract MapProperty<String, File> getModuleJavadocDirectories()
     @OutputDirectory abstract DirectoryProperty getOutputDirectory()
 
     @TaskAction
@@ -56,6 +64,6 @@ abstract class RenderVersionedDocumentationTask extends DefaultTask {
                 status               : status.get(),
                 brandingManifestPath : brandingManifestPath.get(),
                 archivedVersions     : archivedVersions.get(),
-                javadocInputChecksums: javadocInputChecksums.get())
+                moduleJavadocs       : moduleJavadocDirectories.get())
     }
 }

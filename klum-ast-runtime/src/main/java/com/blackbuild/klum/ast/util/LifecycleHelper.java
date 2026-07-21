@@ -48,7 +48,7 @@ public class LifecycleHelper {
     /**
      * Executes all methods annotated with the given annotation on the rw instance of the proxy.
      * Also executes all closures annotated with the given annotation.
-     * @param proxy the proxy for which the lifecycle methods should be executed
+     * @param builder the Builder for which the lifecycle methods should be executed
      * @param annotation the annotation that marks the lifecycle methods and closures
      */
     public static void executeLifecycleMethods(InternalKlumBuilder<?> builder, Class<? extends Annotation> annotation) {
@@ -78,7 +78,7 @@ public class LifecycleHelper {
 
     /**
      * Executes all closures annotated with the given annotation on the DSL instance of the proxy.
-     * @param proxy The proxy for which the lifecycle closures should be executed
+     * @param builder The Builder for which the lifecycle closures should be executed
      * @param annotation the annotation that marks the lifecycle closures
      */
     public static void executeLifecycleClosures(InternalKlumBuilder<?> builder, Class<? extends Annotation> annotation) {

@@ -39,6 +39,14 @@ import java.security.MessageDigest
 class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-vd-1'
+    static final Map<String, String> MODULE_JAVADOCS = [
+            'klum-ast'                : 'com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.html',
+            'klum-ast-runtime'        : 'com/blackbuild/klum/ast/KlumModelObject.html',
+            'klum-ast-annotations'    : 'com/blackbuild/groovy/configdsl/transform/DSL.html',
+            'klum-ast-jackson'        : 'com/blackbuild/klum/ast/jackson/KlumAstModule.html',
+            'klum-ast-bean-validation': 'com/blackbuild/klum/ast/validation/bean/JSR380Validator.html',
+            'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
+    ].asImmutable()
     private static final Set<String> STATUSES = ['current', 'archived', 'public-rc'] as Set
     private static final Set<String> RESERVED_PATHS = ['status.md', 'source-manifest.json'] as Set
     private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?/
@@ -51,7 +59,7 @@ class VersionedDocumentationRenderer {
         String version = requiredString(inputs, 'version')
         String status = requiredString(inputs, 'status')
         String brandingManifestPath = requiredRelativePath(requiredString(inputs, 'brandingManifestPath'), 'brandingManifestPath')
-        Map<String, String> javadocInputChecksums = normalizedChecksums(inputs.javadocInputChecksums ?: [:])
+        Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
         List<String> archivedVersions = ((inputs.archivedVersions ?: []) as List<String>).collect { it.toString() }.sort()
 
         requireFullSha(revision, 'revision')
@@ -71,6 +79,8 @@ class VersionedDocumentationRenderer {
         if (resolvedRevision != revision)
             fail("Revision must resolve to the supplied full SHA: $revision")
         git(objectDirectory, ['cat-file', '-e', "${revision}^{commit}"])
+        if (version.startsWith('4.') && git(objectDirectory, ['rev-parse', 'HEAD']).trim() != revision)
+            fail('4.x module Javadocs must be generated from the selected checked-out revision.')
 
         String sourceRoot = version.startsWith('4.') ? 'docs/user' : 'wiki'
         List<String> sourcePaths = git(objectDirectory, ['ls-tree', '-r', '--name-only', revision, '--', sourceRoot])
@@ -90,6 +100,8 @@ class VersionedDocumentationRenderer {
             requireRelativePath(outputPath, 'source path')
             if (RESERVED_PATHS.contains(outputPath))
                 fail("Source path collides with renderer-owned output: $outputPath")
+            if (outputPath == 'api' || outputPath.startsWith('api/'))
+                fail("Source path collides with renderer-owned API output: $outputPath")
             if (!outputPaths.add(outputPath))
                 fail("Duplicate output path: $outputPath")
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
@@ -108,6 +120,8 @@ class VersionedDocumentationRenderer {
         if (logoDigest != branding.sha256)
             fail("Branding manifest digest does not match $logoPath")
         write(exactDirectory, logoTarget, logo)
+
+        Map<String, String> javadocInputChecksums = copyModuleJavadocs(exactDirectory, moduleJavadocs)
 
         outputPaths.add('status.md')
         write(exactDirectory, 'status.md', statusRecord(version, status).getBytes(StandardCharsets.UTF_8))
@@ -153,16 +167,56 @@ class VersionedDocumentationRenderer {
         branding
     }
 
-    private static Map<String, String> normalizedChecksums(Object values) {
+    private static Map<String, File> requiredModuleJavadocs(Object values, File objectDirectory) {
         if (!(values instanceof Map))
-            fail('Javadoc input checksums must be a module-to-sha256 map')
-        Map<String, String> normalized = [:]
+            fail('Module Javadocs must be a module-to-directory map')
+        Map<String, File> normalized = [:]
         (values as Map).each { key, value ->
-            if (!(key instanceof String) || !key || !(value instanceof String) || !(value ==~ /[0-9a-f]{64}/))
-                fail('Javadoc input checksums must use non-empty module names and SHA-256 values')
-            normalized[key] = value
+            if (!(key instanceof String) || !MODULE_JAVADOCS.containsKey(key))
+                fail("Module Javadocs must use the explicit API allowlist: ${MODULE_JAVADOCS.keySet()}")
+            File directory = value instanceof File ? value : new File(value.toString())
+            File expectedDirectory = new File(objectDirectory, "$key/build/docs/javadoc").canonicalFile
+            if (directory.canonicalFile != expectedDirectory)
+                fail("Module Javadocs for $key must come from its selected-revision Javadoc task: $expectedDirectory")
+            if (!directory.directory)
+                fail("Module Javadoc output is missing for $key: $directory")
+            if (!new File(directory, 'index.html').file)
+                fail("Module Javadoc output is incomplete for $key: $directory")
+            if (!new File(directory, MODULE_JAVADOCS[key]).file)
+                fail("Representative public type is absent from $key Javadocs: ${MODULE_JAVADOCS[key]}")
+            if (containsMirrorJavadoc(directory))
+                fail("IDE source mirrors must not appear in $key Javadocs")
+            normalized[key] = directory.canonicalFile
         }
+        if (normalized.keySet() != MODULE_JAVADOCS.keySet())
+            fail("Module Javadocs must contain exactly the explicit API allowlist: ${MODULE_JAVADOCS.keySet()}")
+        if (normalized.values().toSet().size() != normalized.size())
+            fail('Module Javadocs must use distinct isolated module outputs')
         normalized
+    }
+
+    private static Map<String, String> copyModuleJavadocs(File exactDirectory, Map<String, File> moduleJavadocs) {
+        Map<String, String> checksums = new TreeMap<>()
+        moduleJavadocs.each { String module, File source ->
+            File target = new File(exactDirectory, "api/$module")
+            source.eachFileRecurse { File file ->
+                if (file.file) {
+                    String path = source.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/' as char)
+                    write(target, path, file.bytes)
+                }
+            }
+            checksums[module] = treeDigest(source)
+        }
+        checksums
+    }
+
+    private static boolean containsMirrorJavadoc(File directory) {
+        boolean found = false
+        directory.eachFileRecurse { File file ->
+            if (file.file && file.name.endsWith('_DSL.html'))
+                found = true
+        }
+        found
     }
 
     private static String chrome(String version, String status) {
@@ -198,6 +252,19 @@ class VersionedDocumentationRenderer {
                 hashes[root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/' as char)] = sha256(file.bytes)
         }
         hashes
+    }
+
+    private static String treeDigest(File root) {
+        MessageDigest digest = MessageDigest.getInstance('SHA-256')
+        List<File> files = []
+        root.eachFileRecurse { File file -> if (file.file) files << file }
+        files.sort { File left, File right ->
+            root.toPath().relativize(left.toPath()).toString() <=> root.toPath().relativize(right.toPath()).toString()
+        }.each { File file ->
+            digest.update(root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/' as char).getBytes(StandardCharsets.UTF_8))
+            digest.update(file.bytes)
+        }
+        digest.digest().encodeHex().toString()
     }
 
     private static String canonicalJson(Map<String, ?> value) {
