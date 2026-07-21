@@ -30,6 +30,12 @@ Run each agent assignment in its own isolated worktree. Its branch, base revisio
 known before editing. Do not treat an agent worktree as an IDE-main replacement, and do not mix assignments in one
 worktree. Report the worktree path, branch, and final commit when handing an implementation or policy change back.
 
+Treat a proposed handoff as speculative until the Hive admits it. A handoff is reviewable only when it names the
+accepted contract or issue reference, the exact base revision, the bounded local-commit outcome, and the validation
+that will establish it. The completion record then names the worktree, branch, final commit, validation, and rebase
+status against that base. If the base moved, rebase and revalidate before handoff, or record the safe stop; never
+silently substitute a moving branch name for commit-addressable evidence.
+
 Prepare pull-request review in a separate detached worktree named `review-<PR>` (or an unambiguous equivalent), at
 the precise PR head commit being reviewed. Keep the review checkout detached so it cannot accidentally advance or
 replace a local branch. A review report must identify the PR, the detached worktree path, the reviewed head commit,
@@ -64,6 +70,11 @@ For every item, distinguish:
 
 An item is `ready` only when it is actionable, has no substantive open prerequisite, and no user-visible task is already doing that work. A `not ready` item names every material open prerequisite. Never mark an issue or release delivered solely because a task reported completion.
 
+Keep bounded research questions visible in the horizon as `research` candidates, separate from ready delivery work.
+Each names its question, authoritative evidence sources, and the decision owner. Evidence-only research is not an
+implementation admission unless its expected result is a safe, non-decisional local report or commit; research that
+could decide product, compatibility, architecture, classification, scope, or publication remains in the human queue.
+
 ### 3. Render dependencies for decisions
 
 Use a compact Mermaid dependency graph when several labeled relationships make the horizon easier to understand; use a table alone for one independent item or when a graph would be decorative. Edges always run from prerequisite to dependent. Each graph node and table row carries a stable short label, issue or other owning reference, concise title, and written execution state.
@@ -83,6 +94,13 @@ Give the new task the stable short label, callback ID, a bounded outcome, local 
 
 If a task fails to report, inspect its thread before inferring status. Reconcile every report against live evidence and explain only material changes.
 
+The Hive is the sole dispatcher and authoritative worker record for this horizon. It alone records admissions,
+capacity, and completion handoffs. A worker may retain permanent authority only for the explicitly scoped local
+operations in its assignment; it cannot dispatch ordinary work. The only permitted child work is explicitly declared
+two-axis local review: before it starts, the Hive names the child, the two review axes, its scope, and its capacity
+count; its start, result, validation, and stop condition are audited in the callback/evidence record. Undeclared,
+non-review, remote, or cross-repository children are prohibited.
+
 When a worker reaches `(ready:PR)`, its final callback must also contain a concise **review/change brief**. This is a review aid, not a file-by-file changelog. Include two to five outcome bullets; key files grouped as implementation, tests, and user-facing documentation (state `none` for an absent category); grouped minor or auxiliary changes; meaningful validation; and the review focus or compatibility risk (or explicit `none`). For simple work, the brief may be copied into the draft pull-request body. For complex work, it is the executive summary while the pull request retains the fuller rationale and evidence.
 
 ### 5. Triage cross-orchestrator impact
@@ -95,15 +113,15 @@ This is automatic triage, not authorization or work dispatch: never auto-start a
 
 ### 6. Run an explicitly bounded AFK window
 
-AFK mode is an exception to the normal no-auto-start rule, not a second orchestrator. Enter it only when the user explicitly supplies all of the following: a fixed duration or deadline, a capacity mode, and a maximum model/reasoning level. Render the active window and its ceiling visibly. A request that omits capacity is **passive reconciliation-only**, not permission to launch work.
+AFK mode is an exception to the normal no-auto-start rule, not a second orchestrator. Enter it only when the user explicitly supplies all of the following: a fixed duration or deadline, a capacity mode, and a maximum model/reasoning level. Render the active window and its ceiling visibly. An AFK window is one-shot and non-renewing: a later window requires a new explicit authorization. A request that omits capacity is **passive reconciliation-only**, not permission to launch work.
 
 Capacity is a ceiling on concurrently active implementation tasks: `passive` = 0, `low` = 1, `normal` = 2, and `high` = 3. A repository overlay may lower that number for its own risk, but may never raise it. Use the least costly model and reasoning level that fits each admitted task, never exceeding the declared ceiling.
 
-Before every launch, refresh the candidate's declared evidence sources and admit it only when the evidence is fresh, the work is already fully specified, and it belongs to the allowed task class: a bounded implementation or validation/documentation follow-up whose safe delivery boundary is a local commit. A candidate requiring a product, compatibility, architecture, classification, scope, or publication decision stays in the human queue. An empty admissible queue is valid and must remain idle.
+Before every launch, refresh the candidate's declared evidence sources and admit it only when the evidence is fresh, the work is already fully specified, and it belongs to the allowed task class: a bounded implementation or validation/documentation follow-up whose safe delivery boundary is a local commit. Evidence-only research is admissible only under the conditions stated in the horizon protocol. A candidate requiring a product, compatibility, architecture, classification, scope, or publication decision stays in the human queue. An empty admissible queue is valid and must remain idle. If quota/capacity data is not exposed, record it as `unavailable`; do not estimate it or admit additional work from an inference.
 
 Every admitted task is a fresh, user-visible worktree task with a stable short label, callback ID, bounded outcome, and the normal report protocol. It may create a local branch, edit, validate, review its local history, and commit. It must not use credentials or make any remote mutation: no push; PR or issue creation; comment, closure, label, milestone, or dependency change; merge, release, workflow dispatch; or equivalent remote action. Do not treat local commits as publication authorization.
 
-An unexpected decision, exception, ambiguous evidence, failed admission check, or policy conflict is a safe stop: launch no replacement work and return the candidate with its evidence and question to the human queue. At the deadline, on an early return from AFK, or when capacity is reduced, stop new launches, let already admitted work reach its safe local boundary, and then provide the complete handoff: task reports, local branch/commit state, validation, unresolved human queue, and every external condition.
+An unexpected decision, exception, ambiguous evidence, failed admission check, or policy conflict is a safe stop: launch no replacement work and return the candidate with its evidence and question to the human queue. At the deadline, on an early return from AFK, or when capacity is reduced, stop new launches, let already admitted work reach its safe local boundary, and then provide the complete handoff: task reports, local branch/commit state, validation, unresolved human queue, and every external condition. The Hive returns the full refreshed overview and reconciled decision matrix before it presents or considers further dispatch.
 
 Use the existing orchestrator and, when the platform supports it, exactly one one-shot deadline heartbeat for the AFK window. Do not create another orchestrator, a recurring automation, or a self-renewing heartbeat. On exit, the normal no-auto-start rule immediately resumes. Cross-orchestrator impact triage remains required, but during AFK it may only route non-blocking information; it cannot dispatch remote, cross-repository, or additional work.
 
@@ -129,7 +147,7 @@ When the report ends the last substantive worker, perform a mandatory **full ref
 
 For a release or other bounded run, require every created worker to write an append-only, machine-readable evidence event stream and to include the local evidence-stream location in its callback report. This applies to both active and finished user-visible workers; the orchestrator backfills no inferred history. Use the exact schema and minimal valid examples for a [worker finish](references/post-release-evidence.example.json) and [completion handoff](references/post-release-evidence.completion-handoff.example.json).
 
-Record only events observed by the worker or orchestrator. Assign stable opaque IDs to the release, run, worker, task, event, artifact, decision, and operation; use safe summaries, links, or artifact categories instead of copied content. Never auto-collect or store raw prompts, secrets, credentials, full command output, or inferred telemetry, including inferred token/quota pressure, active/wait time, cognition, or mental state. Record only observed safe summaries or references; use `unavailable` or an `audit_gap` event when the platform does not expose the data. Apply this boundary equally to completion-handoff refresh events.
+Record only events observed by the worker or orchestrator. Assign stable opaque IDs to the release, run, worker, task, event, artifact, decision, and operation; use safe summaries, links, or artifact categories instead of copied content. The schema's optional policy context records only safe mode, window, deadline, capacity, admission-stop, and contract/rebase/validation references. Never auto-collect or store raw prompts, secrets, credentials, full command output, or inferred telemetry, including inferred token/quota pressure, active/wait time, cognition, or mental state. Record only observed safe summaries or references; use `unavailable` or an `audit_gap` event when the platform does not expose the data. Apply this boundary equally to completion-handoff refresh events.
 
 Use append-only semantics: add a new event; never edit or delete an already-recorded one. Correct factual errors with a `correction` event that identifies the superseded event and replacement values. Redact unsafe detail with a `redaction` event that identifies the event/field and reason, preserves the audit trail, and replaces the detail with a safe category or stable reference. A correction or redaction must not silently rewrite timing, authorization, or outcome history.
 
@@ -175,6 +193,8 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] Cross-cutting candidates were routed once with the required evidence and ownership fields, then deduplicated by receivers without triggering work, GitHub writes, repository changes, or feedback loops.
 - [ ] Refreshing and rendering made no repository, tracker, project, PR, release, or task-state mutation beyond a user-authorized task lifecycle action.
 - [ ] An AFK window, when active, records an explicit deadline, capacity mode, and model/reasoning ceiling; admission evidence is fresh; every launched task is a local-only worktree task within the capacity cap; and no recurring automation or remote mutation was used.
+- [ ] Every speculative handoff is commit-addressable and records contract, base, worktree/branch, validation, and rebase status; the Hive returned a full overview before any further dispatch.
+- [ ] Every local-review child was declared by name with two review axes, counted against capacity, and audited; all other child dispatch is absent.
 - [ ] A release/run evidence stream exists outside the product repository for each created worker, has valid start/finish events or an explicit audit gap, and contains no prohibited sensitive content.
 - [ ] The release-close aggregation produces only a sanitized report and machine-readable summary for the proposed engineering-baseline/release-governance location; its measurements preserve unavailable/unknown states.
 

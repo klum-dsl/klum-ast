@@ -53,9 +53,9 @@ upstream in
 [`blackbuild/engineering-baseline#2`](https://github.com/blackbuild/engineering-baseline/issues/2). The KlumAST-specific
 issue-tracker and authorization wording above remains local.
 
-The reusable AFK-window protocol is also a candidate for that same baseline issue. Its KlumAST overlay remains local:
-resource-sensitive concurrency reduction, license-policy hard stops, and human ownership of uncertain classification and
-all GitHub changes.
+The reusable AFK-window protocol, commit-addressable handoff, and safe evidence-context contract are also proposals for
+that same baseline issue. Its KlumAST overlay remains local: the exact burst/capacity limits, resource-sensitive
+concurrency reduction, license-policy hard stops, and human ownership of uncertain classification and all GitHub changes.
 
 When a KlumAST worker completes, apply the generic `work-orchestrator` completion-handoff protocol; this overlay does not
 authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states. In particular, a worker that
@@ -71,6 +71,32 @@ reviewed head commit, and the comparison base or range; implementation handoffs 
 branch, and final commit. Apply the generic skill's explicit, non-forced cleanup rules, while retaining worktrees when
 their delivery condition or investigation value remains active.
 
+## AFK-ADV-DEC local overlay
+
+The Hive is KlumAST's only dispatcher and authoritative record during an AFK burst. It may admit one non-renewing,
+90-minute window with at most three active tasks overall, at most two in this repository, and at most one
+heavy local process (for example, a full build or compatibility lane) at a time. The ceiling is GPT-5.6 Terra at
+`high` reasoning; a lower-cost model may be selected when it fits. A new window needs new explicit authorization;
+neither a heartbeat nor an early completion renews the burst.
+
+Admission is fresh and candidate-specific: the Hive must have a fully specified contract, evidence source, base revision,
+bounded local-commit output, and validation/rebase plan. It stops admission on the deadline, a capacity limit, unavailable
+quota/capacity visibility, an unexpected decision or exception, ambiguous or stale evidence, a failed check, a license
+policy conflict, or any request for remote state. It records the stop as `unavailable` or a safe evidence reference rather
+than estimating hidden quota or process state.
+
+The accepted permanent authority is local only: within its declared scope a worker may use an isolated worktree and branch,
+edit, validate, review local history, and create a local commit. It never authorizes credentials, push, GitHub changes,
+merge, release, workflow dispatch, or external evidence storage. The only children are declared two-axis local-review
+children. Before each child starts, the Hive records its name, both review axes, capacity count, local scope, and audit
+return; all other delegation is prohibited.
+
+Keep research candidates visible in the horizon with their evidence sources and human decision owner. AFK research is
+evidence-only only when the question and sources are fully specified, the result cannot decide product/compatibility/
+architecture/classification/scope/publication, and its stopping boundary is a safe local report or commit. Otherwise it
+waits in the human queue. At every AFK return, the Hive first produces the full refreshed overview and reconciled matrix;
+it does not use the return as authority to dispatch another task.
+
 ## Post-release orchestration evidence overlay
 
 For KlumAST 4.0, every cross-orchestrator evidence stream must carry stable `release_id` `klum-ast-4.0` and a distinct
@@ -83,4 +109,6 @@ Keep runtime records outside the KlumAST checkout, organized by release/run. A r
 sanitized human-reviewable report plus machine-readable summary for the engineering-baseline/release-governance location.
 This policy does not authorize creating that store, automating collection, or mutating this product repository, its
 tracker, or its remotes to gather evidence. Preserve KlumAST's normal human ownership of classification, GitHub changes,
-and publication authority.
+and publication authority. When a per-run store is explicitly authorized, use the reusable schema's safe append-only
+policy context for mode, window, deadline, capacity, admission stop, and contract/base/rebase/validation references; do
+not add prompts, secrets, credentials, raw command output, inferred quota, or inferred cognition.
