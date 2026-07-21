@@ -5,6 +5,12 @@
   "release": {"release_id": "klum-ast-4.0", "reference": "release governance run"},
   "run": {"run_id": "run-4.0-next-policy", "callback_thread_id": "019f7046-f4fb-7e01-b527-33f2938da753"},
   "worker": {"worker_id": "worker-next-pol-orchestrator", "task_id": "task-next-pol"},
+  "policy_context": {
+    "mode": "afk",
+    "window_id": "afk-window-example-001",
+    "deadline": "2026-07-20T11:30:00Z",
+    "admission_stop": {"outcome": "stopped", "reason": "Window deadline reached; no further admission.", "candidate_reference": "next-work horizon"}
+  },
   "event_type": "orchestrator",
   "event": {
     "occurred_at": "2026-07-20T10:16:00Z",

@@ -5,6 +5,15 @@
   "release": {"release_id": "klum-ast-4.0", "reference": "release governance run"},
   "run": {"run_id": "run-4.0-evidence-policy", "callback_thread_id": "019f7046-f4fb-7e01-b527-33f2938da753"},
   "worker": {"worker_id": "worker-evid-pol", "task_id": "task-evid-pol"},
+  "policy_context": {
+    "mode": "afk",
+    "window_id": "afk-window-example-001",
+    "deadline": "2026-07-20T11:30:00Z",
+    "capacity": {"mode": "high", "model_reasoning_ceiling": "GPT-5.6 Terra/high", "active_task_limit": 3, "repository_task_limit": 2, "heavy_process_limit": 1, "quota_visibility": "unavailable"},
+    "admission_stop": {"outcome": "admitted", "candidate_reference": "AFK-PERSIST local policy candidate"},
+    "pause": {"state": "resumed", "reason": "A prior safe re-policy pause was explicitly resumed.", "safe_boundary": "Commit-addressable local policy branch was revalidated.", "resume_authorization": "explicit_required"},
+    "contract_rebase_validation": {"contract_reference": "accepted AFK policy", "base_revision": "c68d2757", "worktree_reference": "isolated local worktree", "branch": "codex/afk-persist-policy", "rebase_status": "not_needed", "validation_references": ["schema validation", "documentation diff check"]}
+  },
   "event_type": "worker_finished",
   "event": {
     "occurred_at": "2026-07-20T10:15:00Z",

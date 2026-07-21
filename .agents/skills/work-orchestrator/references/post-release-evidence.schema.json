@@ -13,6 +13,7 @@
     "release": {"$ref": "#/$defs/release"},
     "run": {"$ref": "#/$defs/run"},
     "worker": {"$ref": "#/$defs/worker"},
+    "policy_context": {"$ref": "#/$defs/policyContext"},
     "event_type": {"enum": ["worker_started", "worker_finished", "orchestrator", "correction", "redaction"]},
     "event": {"type": "object"}
   },
@@ -64,6 +65,76 @@
         "worker_id": {"$ref": "#/$defs/stableId"},
         "task_id": {"$ref": "#/$defs/stableId"},
         "parent_worker_id": {"$ref": "#/$defs/stableId"}
+      }
+    },
+    "policyContext": {
+      "description": "Optional append-only, sanitized context for an admission or handoff; no prompts, secrets, raw command output, or inferred telemetry.",
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["ordinary", "afk", "evidence_only_research"]},
+        "window_id": {"$ref": "#/$defs/stableId"},
+        "deadline": {"$ref": "#/$defs/utcTimestamp"},
+        "capacity": {"$ref": "#/$defs/capacity"},
+        "admission_stop": {"$ref": "#/$defs/admissionStop"},
+        "pause": {"$ref": "#/$defs/pause"},
+        "contract_rebase_validation": {"$ref": "#/$defs/contractRebaseValidation"}
+      }
+    },
+    "capacity": {
+      "type": "object",
+      "required": ["mode", "model_reasoning_ceiling"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"$ref": "#/$defs/safeText"},
+        "model_reasoning_ceiling": {"$ref": "#/$defs/safeText"},
+        "active_task_limit": {"type": "integer", "minimum": 0},
+        "repository_task_limit": {"type": "integer", "minimum": 0},
+        "heavy_process_limit": {"type": "integer", "minimum": 0},
+        "quota_visibility": {"enum": ["observable", "unavailable"]}
+      }
+    },
+    "admissionStop": {
+      "type": "object",
+      "required": ["outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {"enum": ["admitted", "stopped", "not_applicable"]},
+        "reason": {"$ref": "#/$defs/safeText"},
+        "candidate_reference": {"$ref": "#/$defs/safeText"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "stopped"}}},
+          "then": {"required": ["reason"]}
+        }
+      ]
+    },
+    "pause": {
+      "description": "Safe record for a worker paused at a local stopping boundary; never records prompts or inferred state.",
+      "type": "object",
+      "required": ["state", "safe_boundary", "resume_authorization"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {"enum": ["paused", "resumed"]},
+        "reason": {"$ref": "#/$defs/safeText"},
+        "safe_boundary": {"$ref": "#/$defs/safeText"},
+        "resume_authorization": {"const": "explicit_required"}
+      }
+    },
+    "contractRebaseValidation": {
+      "type": "object",
+      "required": ["contract_reference", "base_revision", "rebase_status", "validation_references"],
+      "additionalProperties": false,
+      "properties": {
+        "contract_reference": {"$ref": "#/$defs/safeText"},
+        "base_revision": {"$ref": "#/$defs/stableId"},
+        "worktree_reference": {"$ref": "#/$defs/safeText"},
+        "branch": {"$ref": "#/$defs/safeText"},
+        "final_revision": {"$ref": "#/$defs/stableId"},
+        "rebase_status": {"enum": ["not_needed", "validated", "stopped", "unavailable"]},
+        "validation_references": {"$ref": "#/$defs/safeTextList"}
       }
     },
     "model": {
