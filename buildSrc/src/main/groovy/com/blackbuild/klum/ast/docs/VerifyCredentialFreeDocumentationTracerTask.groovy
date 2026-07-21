@@ -65,29 +65,29 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
             fail("Credential-free tracer output must be empty: $output")
         output.mkdirs()
 
-        File checkout = new File(temporaryDir, 'fixed-source')
-        clone(source, checkout)
+        File cleanCheckout = new File(temporaryDir, 'fixed-source')
+        clone(source, cleanCheckout)
         Map<String, Object> evidence = new TreeMap<>()
         try {
-            checkout(checkout, SUCCESSFUL_FOUR_ZERO_REVISION)
-            generateJavadocs(checkout)
+            checkout(cleanCheckout, SUCCESSFUL_FOUR_ZERO_REVISION)
+            generateJavadocs(cleanCheckout)
             File fourZeroOutput = new File(output, 'fixed-4.0')
-            renderFourZero(checkout, fourZeroOutput, SUCCESSFUL_FOUR_ZERO_REVISION)
+            renderFourZero(cleanCheckout, fourZeroOutput, SUCCESSFUL_FOUR_ZERO_REVISION)
             assertFourZeroOutput(fourZeroOutput)
 
             File historicalOutput = new File(output, 'historical-3.0.1')
-            renderHistorical(checkout, historicalOutput)
+            renderHistorical(cleanCheckout, historicalOutput)
             assertHistoricalOutput(historicalOutput)
 
             File stubs = new File(output, 'wiki-stubs')
-            GenerateGitHubWikiMigrationStubsTask.generate(new File(checkout, 'docs/user'), checkout, stubs)
+            GenerateGitHubWikiMigrationStubsTask.generate(new File(cleanCheckout, 'docs/user'), cleanCheckout, stubs)
             assertStubs(stubs)
 
-            String changedRevision = git(checkout, ['rev-parse', "${SUCCESSFUL_FOUR_ZERO_REVISION}^1"]).trim()
-            checkout(checkout, changedRevision)
-            generateJavadocs(checkout)
+            String changedRevision = git(cleanCheckout, ['rev-parse', "${SUCCESSFUL_FOUR_ZERO_REVISION}^1"]).trim()
+            checkout(cleanCheckout, changedRevision)
+            generateJavadocs(cleanCheckout)
             File changedOutput = new File(output, 'changed-input')
-            renderFourZero(checkout, changedOutput, changedRevision)
+            renderFourZero(cleanCheckout, changedOutput, changedRevision)
             String fixedManifest = sha256(new File(fourZeroOutput, "$TRACER_VERSION/source-manifest.json").bytes)
             String changedManifest = sha256(new File(changedOutput, "$TRACER_VERSION/source-manifest.json").bytes)
             if (fixedManifest == changedManifest)
@@ -104,7 +104,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
                     assertions   : ['six-isolated-api-bases', 'archived-deep-link', 'root-selector', 'labelled-wiki-stub', 'no-publish-deploy-alias-task']
             ]
         } finally {
-            if (checkout.exists()) checkout.deleteDir()
+            if (cleanCheckout.exists()) cleanCheckout.deleteDir()
         }
         write(new File(output, 'tracer-evidence.json'), JsonOutput.prettyPrint(JsonOutput.toJson(evidence)) + '\n')
     }
