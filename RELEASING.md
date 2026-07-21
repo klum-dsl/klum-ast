@@ -34,10 +34,10 @@ cannot provide one cross-registry transaction: a failure after any remote operat
 version rather than permitting a retry in place.
 
 The mutable `gitPublishPush` wiki path is deliberately not part of the protected artifact
-workflow. [#456](https://github.com/klum-dsl/klum-ast/issues/456) owns the required decision
-on versioned documentation/Javadoc source, hosting, URLs, preview lifecycle, and retention.
-Until that decision and its dedicated protected publication path exist, the current wiki is
-not a release destination.
+workflow. [ADR 0013](docs/adr/0013-versioned-documentation-and-javadocs.md) gives #456 the
+versioned documentation/Javadoc source, hosting, URL, preview, retention, and protected Pages
+stage. Until that implementation and its credential-free tracer exist, the current wiki is not a
+release destination.
 
 The repository currently uses major action tags in its workflows. Maintainers must review
 the resolved action revisions and their update policy before authorizing the first use of the
@@ -60,10 +60,10 @@ action revision during an incident.
 5. Ensure all 4.0 blockers, documentation/Javadocs, and the normal Java 17 Groovy 3/4/5
    `check` gate are ready. The workflow runs `check` and requires the computed Nebula version
    to equal the approved input before any publication task starts.
-6. Confirm #456 has delivered the accepted versioned documentation/Javadoc destination and
-   that its protected publication path has produced the exact stable or RC documentation
-   snapshot required for this version. Do not substitute the mutable wiki while this gate is
-   open.
+6. Confirm #456 has delivered the ADR 0013 versioned documentation/Javadoc destination and
+   that its protected Pages stage has produced the exact unlisted pending snapshot and manifest
+   for this stage/version/SHA before artifact publication. Do not substitute the mutable wiki.
+   Stable, line, and preview aliases remain unchanged until this release's public proof passes.
 
 ## Protected publication path
 
@@ -81,11 +81,14 @@ with no persisted GitHub credential, proves it is on `master`, and executes in i
 
 Nebula selects the candidate/final version during configuration. `verifyReleaseVersion` rejects
 a version/stage mismatch or an absent matching protected authorization before any publication
-task executes. `publishCompleteKlumAstProduct` is the sole permitted public publication entry:
-it publishes every Maven coordinate to one Sonatype staging repository, closes/releases it, and
-then publishes every Plugin Portal marker. Documentation/Javadoc publication intentionally
-remains excluded pending #456's versioned-destination decision. This does not make cross-registry
-publication reversible or claim that a final is byte-identical to its RC.
+task executes. Once #456 delivers it, its protected Pages stage independently validates the same
+stage/version/master SHA and deploys an immutable unlisted documentation/Javadoc snapshot plus
+manifest before `publishCompleteKlumAstProduct`. That task remains the sole permitted public
+artifact publication entry: it publishes every Maven coordinate to one Sonatype staging
+repository, closes/releases it, and then publishes every Plugin Portal marker. #488's successful
+public proof is the only input that may advance #456's labelled stable, line, or preview aliases.
+This does not make cross-registry publication reversible or claim that a final is byte-identical
+to its RC.
 
 After publication, wait for every Maven coordinate and every Plugin Portal marker to be
 publicly resolvable. Then dispatch [Verify public release](.github/workflows/verify-public-release.yml)
