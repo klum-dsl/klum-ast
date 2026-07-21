@@ -58,7 +58,9 @@ resource-sensitive concurrency reduction, license-policy hard stops, and human o
 all GitHub changes.
 
 When a KlumAST worker completes, apply the generic `work-orchestrator` completion-handoff protocol; this overlay does not
-authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states.
+authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states. In particular, a worker that
+reaches `(ready:PR)` provides the generic review/change brief in its final callback, then requests rather than self-applies
+archive reconciliation. The Hive alone performs the explicit final check for root `AGENTS.md`'s `(arch)` state.
 
 ## KlumAST worktree overlay
 
