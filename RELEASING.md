@@ -62,8 +62,10 @@ action revision during an incident.
    to equal the approved input before any publication task starts.
 6. Confirm #456 has delivered the ADR 0013 versioned documentation/Javadoc destination and
    that its protected Pages stage has produced the exact unlisted pending snapshot and manifest
-   for this stage/version/SHA before artifact publication. Do not substitute the mutable wiki.
-   Stable, line, and preview aliases remain unchanged until this release's public proof passes.
+   for this stage/version/SHA before artifact publication. A final additionally requires the
+   branding owner's approval of the exact Season/logo manifest captured in that snapshot. Do not
+   substitute the mutable wiki. Stable, line, and preview aliases remain unchanged until this
+   release's public proof passes.
 
 ## Protected publication path
 

@@ -48,6 +48,22 @@ The renderer adds status chrome to every rendered page; it is mechanical present
 
 An exact documentation tree and its manifest remain immutable. When #488 later proves and publishes a final from an RC, #456 appends the successor event to a site-wide version-status record rather than rewriting the RC tree. The page chrome may resolve that record to display “RC <rc> is superseded by <final>” with a link to the final; its fixed RC warning and status-record link remain the non-JavaScript fallback. The status record must not make pending, rejected, or otherwise unlisted paths discoverable.
 
+### Versioned branding
+
+Each 4.x exact documentation snapshot includes a branding manifest naming its Season identity, logo asset, accessible
+alternative text, and asset digest. The renderer copies that logo into the exact version tree and records the manifest in
+the source manifest; a versioned page must not rely on a mutable global logo URL. Site-wide layout, typography, and other
+styling may evolve later without changing this versioned branding identity.
+
+The protected final documentation stage rejects a final snapshot without a branding manifest approved by the branding
+owner. A public RC may carry candidate branding, but the final brand must be settled before its pending snapshot deploys.
+#456 validates and captures the manifest; it does not select the Season identity or logo.
+
+After publication, a logo replacement is an explicit exception rather than a silent mutation. The original branding asset
+and manifest digest remain preserved. A separately authorized correction record names the old/new digest, reason, scope,
+and approval; shared chrome may use that record to display the replacement. It must not rewrite the exact documentation
+payload, alter the Season identity, or advance aliases.
+
 ### Historical documentation and API reference
 
 For every 2.x final and 3.0.1, preserve the tagged wiki/ content exactly apart from mechanical rendering and link rewriting. Do not silently correct historical prose or examples; labelled errata are separate. The historical wiki/ location does not keep that name as the 4.x authoring convention. Generate historical API reference from released Javadoc artifacts where available and label an unavailable artifact rather than substituting current source.
@@ -72,6 +88,8 @@ AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. 
 - The release gate has reproducible documentation evidence before artifact publication, while aliases remain tied to #488 proof.
 - Historical content remains auditable rather than being silently upgraded to current terminology or generated API shapes.
 - The physical source move, renderer source selection, and removal/rejection of the mutable gitPublish path are one first implementation slice, not a later cleanup. Migration stubs preserve existing public wiki links without preserving wiki/ as a live authoring root.
+- A released Season identity remains recognizable even when the surrounding site styling evolves; any logo correction is
+  visible and auditable rather than a retrospective rewrite.
 
 ## Rejected alternatives
 
