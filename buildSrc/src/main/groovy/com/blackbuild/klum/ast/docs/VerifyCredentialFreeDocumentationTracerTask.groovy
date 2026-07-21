@@ -83,7 +83,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
             GenerateGitHubWikiMigrationStubsTask.generate(new File(cleanCheckout, 'docs/user'), cleanCheckout, stubs)
             assertStubs(stubs)
 
-            String changedRevision = git(cleanCheckout, ['rev-parse', "${SUCCESSFUL_FOUR_ZERO_REVISION}^1"]).trim()
+            String changedRevision = git(cleanCheckout, ['rev-parse', "${SUCCESSFUL_FOUR_ZERO_REVISION}^2"]).trim()
             checkout(cleanCheckout, changedRevision)
             generateJavadocs(cleanCheckout)
             File changedOutput = new File(output, 'changed-input')
