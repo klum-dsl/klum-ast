@@ -80,10 +80,10 @@ releaseCheck.doLast {
 
 evaluationDependsOnChildren()
 
-def versionedDocumentationJavadocTasks = VersionedDocumentationRenderer.MODULE_JAVADOCS.keySet().collect { module ->
+def versionedDocumentationJavadocTasks = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module ->
     project(":$module").tasks.named('javadoc', Javadoc)
 }
-def versionedDocumentationJavadocDirectories = VersionedDocumentationRenderer.MODULE_JAVADOCS.keySet().collectEntries { module ->
+def versionedDocumentationJavadocDirectories = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collectEntries { module ->
     [(module): project(":$module").tasks.named('javadoc', Javadoc).get().destinationDir]
 }
 tasks.named('renderVersionedDocumentation', RenderVersionedDocumentationTask) {

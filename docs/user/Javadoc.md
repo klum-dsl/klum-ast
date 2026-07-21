@@ -6,6 +6,14 @@ factories and generated Builders. Their base documentation comes from the corres
 
 For schema-defined methods, the Javadoc is taken from the method itself.
 
+## Versioned API reference
+
+Every exact 4.x documentation render includes an `/&lt;version&gt;/api/` landing page with separate Javadoc bases for
+`klum-ast`, `klum-ast-runtime`, `klum-ast-annotations`, `klum-ast-jackson`,
+`klum-ast-bean-validation`, and `klum-ast-gradle-plugin`. Use the module base that owns the type rather than expecting a
+merged API namespace. The dependency-management BOM has no API reference, and AnnoDocimal IDE source mirrors are not
+compiled, packaged, or presented as published API.
+
 ## Templating
 
 The Javadocs of Builder base methods use templates to reduce boilerplate and customize the generated overloads.

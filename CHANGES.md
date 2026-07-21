@@ -5,6 +5,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 ## Documentation infrastructure
 
 - Current 4.x user documentation is authored in `docs/user/` and rendered locally from an explicit Git revision into an immutable exact-version Markdown tree. The renderer captures a deterministic source manifest and versioned Season/logo input, while the former mutable wiki publisher fails closed ([#456](https://github.com/klum-dsl/klum-ast/issues/456)).
+- Exact 4.x documentation renders six isolated module-Javadoc trees below `/&lt;version&gt;/api/` for `klum-ast`, runtime, annotations, Jackson, Bean Validation, and the Gradle plugin. The BOM and IDE-only source mirrors are not public API inputs ([#456](https://github.com/klum-dsl/klum-ast/issues/456)).
 
 ## Dependency compatibility
 

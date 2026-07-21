@@ -57,7 +57,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(new File(currentOne, '4.0.0-rc.1/assets/branding/klumlogo.png').file, 'logo must be local to the exact tree')
         String apiLanding = new File(currentOne, '4.0.0-rc.1/api/index.md').text
         assertContains(apiLanding, 'distinct Javadoc base', 'API landing policy')
-        VersionedDocumentationRenderer.MODULE_JAVADOCS.each { String module, String representativeType ->
+        VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String representativeType ->
             File moduleOutput = new File(currentOne, "4.0.0-rc.1/api/$module")
             VerifyVersionedDocumentationRendererTask.assertTrue(new File(moduleOutput, representativeType).file, "representative public type must be reachable for $module")
             VerifyVersionedDocumentationRendererTask.assertContains(new File(moduleOutput, 'index.html').text, module, "isolated API base must retain $module")
@@ -148,12 +148,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 
         def renderTask = project.tasks.named('renderVersionedDocumentation').get()
         Set<String> directDependencies = renderTask.taskDependencies.getDependencies(renderTask)*.path as Set
-        Set<String> expectedDependencies = VersionedDocumentationRenderer.MODULE_JAVADOCS.keySet().collect { ":$it:javadoc".toString() } as Set
+        Set<String> expectedDependencies = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { ":$it:javadoc".toString() } as Set
         if (!directDependencies.containsAll(expectedDependencies))
             throw new GradleException("Exact-version rendering must depend on every allowed module Javadoc task; actual direct dependencies: $directDependencies")
         assertTrue(!directDependencies.contains(':klum-ast-bom:javadoc'), 'BOM must not be wired into exact-version API rendering')
         def rootProject = project
-        VersionedDocumentationRenderer.MODULE_JAVADOCS.each { String module, String representativeType ->
+        VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String representativeType ->
             def javadocTask = rootProject.project(":$module").tasks.named('javadoc').get()
             VerifyVersionedDocumentationRendererTask.assertTrue(new File(javadocTask.destinationDir, representativeType).file, "standard $module Javadocs must expose a representative public type")
             VerifyVersionedDocumentationRendererTask.assertTrue(javadocTask.source.files.every { !it.name.endsWith('_DSL.java') }, "standard $module Javadocs must exclude IDE source mirrors")
@@ -187,7 +187,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
     }
 
     private static Map<String, File> initializeModuleJavadocs(File repository) {
-        VersionedDocumentationRenderer.MODULE_JAVADOCS.collectEntries { String module, String representativeType ->
+        VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.collectEntries { String module, String representativeType ->
             File moduleRoot = new File(repository, "$module/build/docs/javadoc")
             new File(moduleRoot, 'index.html').with {
                 parentFile.mkdirs()

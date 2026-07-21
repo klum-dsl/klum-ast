@@ -39,7 +39,7 @@ import java.security.MessageDigest
 class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-vd-1'
-    static final Map<String, String> MODULE_JAVADOCS = [
+    static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
             'klum-ast'                : 'com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.html',
             'klum-ast-runtime'        : 'com/blackbuild/klum/ast/KlumModelObject.html',
             'klum-ast-annotations'    : 'com/blackbuild/groovy/configdsl/transform/DSL.html',
@@ -174,8 +174,8 @@ class VersionedDocumentationRenderer {
             fail('Module Javadocs must be a module-to-directory map')
         Map<String, File> normalized = [:]
         (values as Map).each { key, value ->
-            if (!(key instanceof String) || !MODULE_JAVADOCS.containsKey(key))
-                fail("Module Javadocs must use the explicit API allowlist: ${MODULE_JAVADOCS.keySet()}")
+            if (!(key instanceof String) || !MODULE_REPRESENTATIVE_JAVADOCS.containsKey(key))
+                fail("Module Javadocs must use the explicit API allowlist: ${MODULE_REPRESENTATIVE_JAVADOCS.keySet()}")
             File directory = value instanceof File ? value : new File(value.toString())
             File expectedDirectory = new File(objectDirectory, "$key/build/docs/javadoc").canonicalFile
             if (directory.canonicalFile != expectedDirectory)
@@ -184,14 +184,14 @@ class VersionedDocumentationRenderer {
                 fail("Module Javadoc output is missing for $key: $directory")
             if (!new File(directory, 'index.html').file)
                 fail("Module Javadoc output is incomplete for $key: $directory")
-            if (!new File(directory, MODULE_JAVADOCS[key]).file)
-                fail("Representative public type is absent from $key Javadocs: ${MODULE_JAVADOCS[key]}")
+            if (!new File(directory, MODULE_REPRESENTATIVE_JAVADOCS[key]).file)
+                fail("Representative public type is absent from $key Javadocs: ${MODULE_REPRESENTATIVE_JAVADOCS[key]}")
             if (containsMirrorJavadoc(directory))
                 fail("IDE source mirrors must not appear in $key Javadocs")
             normalized[key] = directory.canonicalFile
         }
-        if (normalized.keySet() != MODULE_JAVADOCS.keySet())
-            fail("Module Javadocs must contain exactly the explicit API allowlist: ${MODULE_JAVADOCS.keySet()}")
+        if (normalized.keySet() != MODULE_REPRESENTATIVE_JAVADOCS.keySet())
+            fail("Module Javadocs must contain exactly the explicit API allowlist: ${MODULE_REPRESENTATIVE_JAVADOCS.keySet()}")
         if (normalized.values().toSet().size() != normalized.size())
             fail('Module Javadocs must use distinct isolated module outputs')
         normalized
@@ -250,7 +250,7 @@ class VersionedDocumentationRenderer {
     private static String apiIndex(String version) {
         "# KlumAST $version API reference\n\n" +
                 'Each published module has a distinct Javadoc base. The BOM and IDE-only source mirrors are not API inputs.\n\n' +
-                MODULE_JAVADOCS.keySet().collect { module -> "- [$module](/$version/api/$module/)" }.join('\n') + '\n'
+                MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module -> "- [$module](/$version/api/$module/)" }.join('\n') + '\n'
     }
 
     private static Map<String, String> outputHashes(File root) {
