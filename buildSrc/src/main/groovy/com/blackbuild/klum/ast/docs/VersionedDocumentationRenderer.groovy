@@ -237,6 +237,18 @@ class VersionedDocumentationRenderer {
         found
     }
 
+    private static Map<String, String> normalizedChecksums(Object values) {
+        if (!(values instanceof Map))
+            fail('Javadoc input checksums must be a module-to-sha256 map')
+        Map<String, String> normalized = [:]
+        (values as Map).each { key, value ->
+            if (!(key instanceof String) || !key || !(value instanceof String) || !(value ==~ /[0-9a-f]{64}/))
+                fail('Javadoc input checksums must use non-empty module names and SHA-256 values')
+            normalized[key] = value
+        }
+        normalized
+    }
+
     private static Map<String, File> normalizedAdditionalFiles(Object values) {
         if (!(values instanceof Map))
             fail('Additional files must map safe output paths to existing files')
