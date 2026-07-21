@@ -42,10 +42,15 @@ The generated API landing repeats that absence rule and explicitly says that a
 ## Historical output layout
 
 The generated historical root contains `archive/index.md` and one exact tree
-per release below `archive/<version>/`. The archive index uses a relative
-`<version>/` link; each archived page returns using a relative `../` link; and
-an API landing uses relative `<module>/` links. This makes the historical tree
-self-contained when it is published or inspected below a site subdirectory.
+per release below `archive/<version>/`. Each exact tree exposes a generated
+`index.md` landing copied from its rendered `Home.md`. The archive index uses
+the target landing `<version>/index.md`; each archived page returns using
+`../index.md`; and an API landing uses a module `index.html`. Every ordinary
+historical page receives an explicitly labelled, mechanically converted copy
+of that tag's `_Sidebar.md`; its Home entry resolves to that exact `index.md`,
+other links resolve to the emitted page when present, and a missing target is
+visibly labelled unavailable. This makes the
+historical tree self-contained and navigable below a site subdirectory.
 
 ## GitHub-wiki migration inventory
 

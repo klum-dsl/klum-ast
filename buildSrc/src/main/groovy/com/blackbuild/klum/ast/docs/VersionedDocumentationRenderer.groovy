@@ -59,6 +59,9 @@ class VersionedDocumentationRenderer {
         String version = requiredString(inputs, 'version')
         String status = requiredString(inputs, 'status')
         String archiveLink = inputs.archiveLink?.toString() ?: '/archive/'
+        String navigationMarkdown = inputs.navigationMarkdown?.toString() ?: ''
+        Set<String> navigationExcludedPaths = ((inputs.navigationExcludedPaths ?: []) as Collection).collect { it.toString() } as Set
+        String landingSourcePath = optionalRelativePath(inputs.landingSourcePath, 'landingSourcePath')
         String brandingManifestPath = optionalRelativePath(inputs.brandingManifestPath, 'brandingManifestPath')
         Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
         Map<String, String> javadocInputChecksums = new TreeMap<>(normalizedChecksums(inputs.javadocInputChecksums ?: [:]))
@@ -108,9 +111,20 @@ class VersionedDocumentationRenderer {
             if (!outputPaths.add(outputPath))
                 fail("Duplicate output path: $outputPath")
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
-            if (outputPath.endsWith('.md'))
-                content = (chrome(version, status, archiveLink) + new String(content, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8)
+            if (outputPath.endsWith('.md')) {
+                String rendered = chrome(version, status, archiveLink) + new String(content, StandardCharsets.UTF_8)
+                if (navigationMarkdown && !navigationExcludedPaths.contains(outputPath))
+                    rendered += navigationMarkdown
+                content = rendered.getBytes(StandardCharsets.UTF_8)
+            }
             write(exactDirectory, outputPath, content)
+        }
+
+        if (landingSourcePath) {
+            File landingSource = new File(exactDirectory, landingSourcePath)
+            if (!landingSource.file)
+                fail("Landing source is absent from the rendered exact tree: $landingSourcePath")
+            write(exactDirectory, 'index.md', landingSource.bytes)
         }
 
         Map<String, ?> branding = [mode: 'not-applicable']
