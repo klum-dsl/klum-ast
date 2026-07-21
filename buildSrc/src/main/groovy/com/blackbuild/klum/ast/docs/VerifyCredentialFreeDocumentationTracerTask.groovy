@@ -178,7 +178,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
     private static void assertHistoricalOutput(File output) {
         File historicalDeepLink = new File(output, '3.0.1/Basics.md')
         assertContains(historicalDeepLink, 'Archived (legacy)', 'archived deep-link chrome')
-        assertContains(historicalDeepLink, '](/archive/)', 'archived deep-link archive target')
+        assertContains(historicalDeepLink, '](../archive/)', 'archived deep-link archive target')
         assertContains(new File(output, '3.0.1/source-manifest.json'), HISTORICAL_REVISION, 'historical tagged source identity')
     }
 
