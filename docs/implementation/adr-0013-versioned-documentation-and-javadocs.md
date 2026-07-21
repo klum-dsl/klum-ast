@@ -17,7 +17,7 @@ The failure is semantic and operational: a URL does not identify its contract ve
 | Accurate 2.x and 3.0.1 history | Tag-driven comparison permits only rendering/link changes; errata are separate; released Javadoc artifacts are used when present. | #456 |
 | Module-specific 4.x API | Six isolated Javadoc trees and version API landing; BOM absent; IDE mirrors excluded. | #456 |
 | Versioned Season branding | Exact 4.x tree contains a branding manifest with Season identity, logo, alt text, and digest; protected final rendering rejects an unapproved manifest. | Branding owner supplies input; #456 validates/captures it |
-| Reproducible pre-RC proof | Credential-free tracer renders v3.0.1 and fixed SHA 963d12dbf28ebeaf9a47e52c56465f8f27b97592, six API trees, selectors/deep links/wiki stubs, and source manifest without deployment or alias changes. | #456 |
+| Reproducible pre-RC proof | Credential-free tracer renders v3.0.1 and post-VD-3 SHA `c68d2757301f94ca65964d5fc7c4e76a4e557a8a`, six API trees, selectors/deep links/wiki stubs, and source manifest without deployment or alias changes. `963d12dbf28ebeaf9a47e52c56465f8f27b97592` remains an explicit negative fixture: it predates `docs/user/` and the renderer, so it must be rejected. | #456 |
 | Immutable protected snapshot | Protected documentation stage validates release stage/version/master SHA and deploys only an unlisted pending immutable tree plus manifest before artifacts. | #456, invoked by #488 |
 | Deliberate aliases and recovery | Promotion requires #488 public-proof result; rejected paths stay unlisted; no version/path is overwritten. | #456 consumes #488 proof |
 | README, migration, release-note, and wiki migration | Labelled wiki stubs and link inventory precede mutable-destination removal; canonical Pages URLs replace release links. | #456 and feature owners |
@@ -73,7 +73,7 @@ The 2026-07-21 maintainer decision interview fixes the renderer/build boundary w
 
 ### VD-4 — Deliver the credential-free documentation tracer
 
-**Work.** Add one unprivileged task/workflow path that obtains v3.0.1 and fixed SHA 963d12dbf28ebeaf9a47e52c56465f8f27b97592, runs VD-1–VD-3, and retains outputs/manifests as ordinary build evidence. It uses no GitHub, Pages, signing, registry, or alias credentials and never names the fixed SHA an RC.
+**Work.** Add one unprivileged task/workflow path that obtains v3.0.1 and the post-VD-3 fixed SHA `c68d2757301f94ca65964d5fc7c4e76a4e557a8a`, runs VD-1–VD-3, and retains outputs/manifests as ordinary build evidence. It uses no GitHub, Pages, signing, registry, or alias credentials and never names the fixed SHA an RC. Retain `963d12dbf28ebeaf9a47e52c56465f8f27b97592` as a negative pre-renderer fixture that proves the required 4.x `docs/user/` root and renderer are absent and therefore cannot be rendered as a successful tracer input.
 
 **Acceptance.** A clean checkout runs with no secrets; asserts both identities, six 4.0 API outputs, selector/deep-link/stub cases, and manifests. Static inspection proves no publish/deploy/alias task is in the graph. A changed input revision deliberately changes manifest.
 

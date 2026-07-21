@@ -47,9 +47,9 @@ class VersionedDocumentationRenderer {
             'klum-ast-bean-validation': 'com/blackbuild/klum/ast/validation/bean/JSR380Validator.html',
             'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
     ].asImmutable()
-    private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending'] as Set
+    private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending', 'tracer'] as Set
     private static final Set<String> RESERVED_PATHS = ['index.md', 'status.md', 'source-manifest.json'] as Set
-    private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?/
+    private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*|-tracer)?/
 
     static void render(Map<String, ?> inputs) {
         File objectDirectory = requiredDirectory(inputs, 'objectDirectory')
@@ -73,11 +73,13 @@ class VersionedDocumentationRenderer {
         requireFullSha(revision, 'revision')
         requireFullSha(rendererRevision, 'rendererRevision')
         if (!(version ==~ VERSION_PATTERN))
-            fail("Documentation version must be an exact final or RC version: $version")
+            fail("Documentation version must be an exact final, RC, or tracer version: $version")
         if (!STATUSES.contains(status))
             fail("Documentation status must be one of $STATUSES; aliases and development trees are not rendered by VD-1: $status")
         if (status == 'public-rc' && !(version ==~ /\d+\.\d+\.\d+-rc\.[1-9]\d*/))
             fail("A public-rc documentation tree requires an RC version: $version")
+        if (status == 'tracer' && !(version ==~ /\d+\.\d+\.\d+-tracer/))
+            fail("A credential-free tracer tree requires a -tracer version: $version")
         if (status == 'pending' && !(releaseStage in ['candidate', 'final']))
             fail('Pending documentation requires releaseStage=candidate|final.')
         if (status != 'pending' && releaseStage)
@@ -92,6 +94,8 @@ class VersionedDocumentationRenderer {
             fail('Only final pending documentation may supply a final branding approval.')
         if (status == 'pending' && releaseStage == 'final' && !finalBrandingApprovalPath)
             fail('Final pending documentation requires finalBrandingApprovalPath.')
+        if (status != 'tracer' && version.endsWith('-tracer'))
+            fail("A -tracer version must be rendered with tracer status: $version")
 
         if (git(objectDirectory, ['status', '--porcelain']).trim())
             fail('Documentation input worktree is dirty; render a checked-out immutable revision.')
@@ -322,11 +326,13 @@ class VersionedDocumentationRenderer {
     }
 
     private static String chrome(String version, String status, String archiveLink, String statusLink) {
-        String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : status == 'pending' ? 'Pending release evidence' : 'Exact version'
+        String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : status == 'tracer' ? 'Credential-free tracer' : status == 'pending' ? 'Pending release evidence' : 'Exact version'
         String notice = status == 'archived'
                 ? "> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [the archive](${archiveLink}).\n"
                 : status == 'public-rc'
                 ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record]($statusLink).\n"
+                : status == 'tracer'
+                ? '> **Tracer only.** This credential-free render is verification evidence, not a release or prerelease.\n'
                 : status == 'pending'
                 ? '> **Pending release evidence.** This unlisted snapshot is a protected publication gate, not a public release or alias.\n'
                 : '> This is an immutable exact-version documentation snapshot.\n'
@@ -337,6 +343,8 @@ class VersionedDocumentationRenderer {
         "# KlumAST $version version status\n\nStatus: **$status**.\n\n" +
                 (status == 'public-rc'
                         ? 'This public release candidate is a prerelease and is not stable. Any later final relationship is recorded outside this immutable tree.\n'
+                        : status == 'tracer'
+                        ? 'This credential-free tracer is local verification evidence and makes no release or prerelease claim.\n'
                         : status == 'pending'
                         ? 'This unlisted pending snapshot is release-gate evidence. It does not establish a public release or advance an alias.\n'
                         : 'This record belongs to the immutable exact documentation tree.\n')
