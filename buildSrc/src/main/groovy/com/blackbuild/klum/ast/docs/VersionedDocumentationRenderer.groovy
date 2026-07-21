@@ -48,7 +48,7 @@ class VersionedDocumentationRenderer {
             'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
     ].asImmutable()
     private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending'] as Set
-    private static final Set<String> RESERVED_PATHS = ['status.md', 'source-manifest.json'] as Set
+    private static final Set<String> RESERVED_PATHS = ['index.md', 'status.md', 'source-manifest.json'] as Set
     private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?/
 
     static void render(Map<String, ?> inputs) {
@@ -103,6 +103,8 @@ class VersionedDocumentationRenderer {
             fail('4.x module Javadocs must be generated from the selected checked-out revision.')
 
         String sourceRoot = version.startsWith('4.') ? 'docs/user' : 'wiki'
+        if (!landingSourcePath && sourceRoot == 'docs/user')
+            landingSourcePath = 'Home.md'
         List<String> sourcePaths = git(objectDirectory, ['ls-tree', '-r', '--name-only', revision, '--', sourceRoot])
                 .readLines().findAll { it }
         if (sourcePaths.isEmpty())
@@ -126,7 +128,8 @@ class VersionedDocumentationRenderer {
                 fail("Duplicate output path: $outputPath")
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
             if (outputPath.endsWith('.md')) {
-                String rendered = chrome(version, status, archiveLink) + new String(content, StandardCharsets.UTF_8)
+                String pageArchiveLink = archiveLink == '/archive/' ? relativeSiteLink(outputPath, 'archive/') : archiveLink
+                String rendered = chrome(version, status, pageArchiveLink, relativeExactLink(outputPath, 'status.md')) + new String(content, StandardCharsets.UTF_8)
                 if (navigationMarkdown && !navigationExcludedPaths.contains(outputPath))
                     rendered += navigationMarkdown
                 content = rendered.getBytes(StandardCharsets.UTF_8)
@@ -318,12 +321,12 @@ class VersionedDocumentationRenderer {
         normalized
     }
 
-    private static String chrome(String version, String status, String archiveLink) {
+    private static String chrome(String version, String status, String archiveLink, String statusLink) {
         String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : status == 'pending' ? 'Pending release evidence' : 'Exact version'
         String notice = status == 'archived'
                 ? "> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [the archive](${archiveLink}).\n"
                 : status == 'public-rc'
-                ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record](/$version/status.md).\n"
+                ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record]($statusLink).\n"
                 : status == 'pending'
                 ? '> **Pending release evidence.** This unlisted snapshot is a protected publication gate, not a public release or alias.\n'
                 : '> This is an immutable exact-version documentation snapshot.\n'
@@ -340,18 +343,27 @@ class VersionedDocumentationRenderer {
     }
 
     private static String archiveIndex(List<String> versions) {
-        "# Archived KlumAST documentation\n\n" + versions.collect { "- [$it](/$it/) — Archived (legacy)" }.join('\n') + '\n'
+        "# Archived KlumAST documentation\n\n" + versions.collect { "- [$it](../$it/) — Archived (legacy)" }.join('\n') + '\n'
     }
 
     private static String rootIndex(String version, String status) {
-        "# KlumAST documentation snapshot\n\nThis local render contains the immutable [$version](/$version/) documentation tree with status **$status**.\n\n" +
-                "Its [isolated module API reference](/$version/api/) belongs to the same exact version.\n"
+        "# KlumAST documentation snapshot\n\nThis local render contains the immutable [$version]($version/) documentation tree with status **$status**.\n\n" +
+                "Its [isolated module API reference]($version/api/) belongs to the same exact version.\n"
     }
 
     private static String apiIndex(String version) {
         "# KlumAST $version API reference\n\n" +
                 'Each published module has a distinct Javadoc base. The BOM and IDE-only source mirrors are not API inputs.\n\n' +
-                MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module -> "- [$module](/$version/api/$module/)" }.join('\n') + '\n'
+                MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module -> "- [$module]($module/)" }.join('\n') +
+                '\n\n[Documentation landing](../)\n'
+    }
+
+    private static String relativeExactLink(String sourcePath, String targetPath) {
+        ('../' * sourcePath.count('/')) + targetPath
+    }
+
+    private static String relativeSiteLink(String sourcePath, String targetPath) {
+        ('../' * (sourcePath.count('/') + 1)) + targetPath
     }
 
     private static Map<String, String> outputHashes(File root) {
