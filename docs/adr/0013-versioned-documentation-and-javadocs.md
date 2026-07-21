@@ -36,10 +36,17 @@ The renderer consumes a checked-out revision, never implicit working-tree state.
 | Current stable final | /stable/ | labelled alias |
 | Current maintained line, for example 4.0 | /4.0/ | labelled alias |
 | Exact public RC under evaluation | /preview/ | labelled alias |
+| Archived-version discovery | /archive/ | labelled index |
 
-The root landing page points to /stable/ and identifies the selected version. A manifest-driven selector distinguishes exact immutable versions, stable, maintained lines, and the one preview. It retains a same-path deep link where possible; otherwise it goes to the target version root and says the page is unavailable there.
+The root landing page points to /stable/ and identifies the selected version. A manifest-driven selector distinguishes exact immutable versions, stable, maintained lines, and the one preview. /archive/ groups 2.x and 3.0.1 as Archived (legacy), but their exact content remains at the same /<version>/ shape. It retains a same-path deep link where possible; otherwise it goes to the target version root and says the page is unavailable there.
 
 /preview/ may point only to one exact publicly resolvable RC. There is no public moving development tree. A failed, superseded, or not-yet-public candidate stays unlisted. Stable and line aliases advance only after #488's public artifact proof; preview advances only when its exact RC is public and eligible for that proof.
+
+### Version-status chrome
+
+The renderer adds status chrome to every rendered page; it is mechanical presentation, not a change to historical authored prose. Archived exact versions display an Archived (legacy) banner and link to /archive/. Every public RC snapshot contains a fixed warning that it is a prerelease, not stable, and a link to its version-status record.
+
+An exact documentation tree and its manifest remain immutable. When #488 later proves and publishes a final from an RC, #456 appends the successor event to a site-wide version-status record rather than rewriting the RC tree. The page chrome may resolve that record to display “RC <rc> is superseded by <final>” with a link to the final; its fixed RC warning and status-record link remain the non-JavaScript fallback. The status record must not make pending, rejected, or otherwise unlisted paths discoverable.
 
 ### Historical documentation and API reference
 
@@ -61,7 +68,7 @@ AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. 
 
 ## Consequences
 
-- A reader can identify both the version and whether content is immutable, stable/line navigation, or an exact RC preview.
+- A reader can identify both the version and whether content is immutable, stable/line navigation, an exact RC preview, or an archived legacy snapshot—even from a direct deep link.
 - The release gate has reproducible documentation evidence before artifact publication, while aliases remain tied to #488 proof.
 - Historical content remains auditable rather than being silently upgraded to current terminology or generated API shapes.
 - The physical source move, renderer source selection, and removal/rejection of the mutable gitPublish path are one first implementation slice, not a later cleanup. Migration stubs preserve existing public wiki links without preserving wiki/ as a live authoring root.

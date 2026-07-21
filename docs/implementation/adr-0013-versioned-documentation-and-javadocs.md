@@ -13,7 +13,7 @@ The failure is semantic and operational: a URL does not identify its contract ve
 | Confirmed requirement | Delivery and acceptance evidence | Owner |
 | --- | --- | --- |
 | Canonical hosting and version switching | Current authoring moves to docs/user/ while Pages renderer publishes immutable exact user/API trees plus labelled aliases; selector/deep-link tests exercise the contract. | #456 |
-| Stable, historical, and prerelease identity | Page chrome states exact version/status; selector labels aliases; no development alias exists. | #456 |
+| Stable, historical, and prerelease identity | Every page carries renderer-owned status chrome; /archive/ groups legacy versions, while RC snapshots carry a fixed warning and a status-record fallback. No development alias exists. | #456 |
 | Accurate 2.x and 3.0.1 history | Tag-driven comparison permits only rendering/link changes; errata are separate; released Javadoc artifacts are used when present. | #456 |
 | Module-specific 4.x API | Six isolated Javadoc trees and version API landing; BOM absent; IDE mirrors excluded. | #456 |
 | Reproducible pre-RC proof | Credential-free tracer renders v3.0.1 and fixed SHA 963d12dbf28ebeaf9a47e52c56465f8f27b97592, six API trees, selectors/deep links/wiki stubs, and source manifest without deployment or alias changes. | #456 |
@@ -34,9 +34,9 @@ The failure is semantic and operational: a URL does not identify its contract ve
 
 ### VD-1 — Pin the site contract and deterministic renderer
 
-**Work.** In the same change, move the current 4.x authoring tree from wiki/ to docs/user/, update its relative links/navigation and the contributor instructions, and add a local renderer with explicit revision, version, status, and output-directory inputs. The renderer selects docs/user/ for 4.x and does not treat wiki/ as a second current source. Replace or make the old gitPublish path fail closed so it cannot publish the prior mutable tree. Implement ADR 0013 layout, page chrome, selector, immutable-tree checks, and a machine-readable source manifest containing source-root/revision/tree hash, renderer revision, version/status, Javadoc inputs/checksums, output hashes, and no secrets.
+**Work.** In the same change, move the current 4.x authoring tree from wiki/ to docs/user/, update its relative links/navigation and the contributor instructions, and add a local renderer with explicit revision, version, status, and output-directory inputs. The renderer selects docs/user/ for 4.x and does not treat wiki/ as a second current source. Replace or make the old gitPublish path fail closed so it cannot publish the prior mutable tree. Implement page chrome for every exact version, including Archived (legacy), a fixed public-RC warning, and a status-record link; generate /archive/ from the manifest. Implement immutable-tree checks and a machine-readable source manifest containing source-root/revision/tree hash, renderer revision, version/status, Javadoc inputs/checksums, output hashes, and no secrets.
 
-**Acceptance.** Repeated render of one revision yields identical output/manifest. The 4.x fixture proves docs/user/ is the only current authoring root, while a historical fixture remains able to select tagged wiki/. Reject a dirty or unresolved input, preview not pointing to an RC, missing expected source root, duplicate path, and a development alias. Verify root, exact version, API landing, module API, alias labels, missing same-path fallback, and that the old mutable publisher cannot run.
+**Acceptance.** Repeated render of one revision yields identical output/manifest. The 4.x fixture proves docs/user/ is the only current authoring root, while a historical fixture remains able to select tagged wiki/. An archived direct deep link displays its legacy banner and /archive/ link; an RC direct deep link displays its fixed prerelease warning and status-record link. Reject a dirty or unresolved input, preview not pointing to an RC, missing expected source root, duplicate path, and a development alias. Verify root, exact version, API landing, module API, alias labels, missing same-path fallback, and that the old mutable publisher cannot run.
 
 **Commit boundary.** The source move, link/navigation rewrites, contributor-guidance correction, renderer source selection, and fail-closed old-publisher change stay together so no branch has two current authoring roots; renderer/manifest fixtures follow in the same vertical slice.
 
@@ -74,9 +74,9 @@ The failure is semantic and operational: a URL does not identify its contract ve
 
 ### VD-6 — Promote aliases only after public proof and complete migration
 
-**Work.** Define #488 proof-result handoff containing exact version/SHA and successful public artifact evidence. Only then update stable, maintained-line, eligible preview aliases, and selector index. Preserve rejected/superseded paths unlisted. Complete canonical-link migration in README, migration navigation, release guidance, and CHANGES.md; wiki migration stubs remain only for legacy deep links, not as authoring guidance.
+**Work.** Define #488 proof-result handoff containing exact version/SHA and successful public artifact evidence. Only then update stable, maintained-line, eligible preview aliases, and selector index. After a final is publicly proven, append the RC-to-final successor event to the version-status record; page chrome then links the public RC to its final without altering the immutable RC tree. Preserve rejected/superseded paths unlisted. Complete canonical-link migration in README, migration navigation, release guidance, and CHANGES.md; wiki migration stubs remain only for legacy deep links, not as authoring guidance.
 
-**Acceptance.** Alias tests reject absent/failed/mismatched proof and non-public/non-RC preview. Successful proof advances only allowed aliases and never exact content. Recovery keeps failed paths unlisted and requires a new RC/version. Link inventory shows no release-facing document names either the mutable wiki or repository source paths as canonical user documentation.
+**Acceptance.** Alias tests reject absent/failed/mismatched proof and non-public/non-RC preview. Successful proof advances only allowed aliases and never exact content. A public RC followed by its proven final gains the successor event and rendered final pointer while the RC content and manifest hashes stay unchanged; the fixed status-record link works without JavaScript. Recovery keeps failed paths unlisted and requires a new RC/version. Link inventory shows no release-facing document names either the mutable wiki or repository source paths as canonical user documentation.
 
 **Commit boundary.** Proof/alias state machine with negative tests, then migration/release documentation. The old publisher was already removed or made fail-closed in VD-1.
 
@@ -96,7 +96,7 @@ For a real RC/final, #456 validates the same values and produces only unlisted p
 
 - Pages deployment semantics, retention limits, and workflow permissions are VD-5 checks; they do not change immutable-path/alias gates.
 - A historical tag may lack a Javadoc artifact or renderable construct. The only response is labelled absence or errata, never snapshot rewrite or current-source substitution.
-- Search indexes exact visible versions but must not discover unlisted pending/rejected paths.
+- Search indexes exact visible versions and /archive/ but must not discover unlisted pending/rejected paths. Version-status records are a presentation sidecar, not documentation payloads, and must retain an accessible fixed-link fallback.
 - #456 neither designs an AnnoDocimal/KlumCast shared site nor adds IDE mirrors to public APIs. AnnoDocimal #71 and KlumCast #47 are links for deduplication only.
 - No moving development site, documentation release branch, merged API namespace, release artifact publication, tag, GitHub release, or credential handling is part of this plan.
 
