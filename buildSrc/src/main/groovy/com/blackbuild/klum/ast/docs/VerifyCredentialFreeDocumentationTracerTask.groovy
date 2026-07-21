@@ -166,7 +166,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
     private static void assertFourZeroOutput(File output, String rendererRevision) {
         File exact = new File(output, TRACER_VERSION)
         assertContains(new File(exact, 'Home.md'), 'Credential-free tracer', 'tracer status chrome')
-        assertContains(new File(output, 'index.md'), "/$TRACER_VERSION/", 'root selector')
+        assertContains(new File(output, 'index.md'), "[$TRACER_VERSION]($TRACER_VERSION/)", 'root selector')
         assertContains(new File(exact, 'source-manifest.json'), rendererRevision, 'actual renderer revision')
         VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String type ->
             if (!new File(exact, "api/$module/$type").file)
