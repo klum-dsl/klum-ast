@@ -2,6 +2,7 @@ import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
 import com.blackbuild.klum.ast.docs.RenderHistoricalDocumentationTask
 import com.blackbuild.klum.ast.docs.GenerateGitHubWikiMigrationStubsTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
+import com.blackbuild.klum.ast.docs.VerifyCredentialFreeDocumentationTracerTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.javadoc.Javadoc
 
@@ -65,6 +66,13 @@ tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask)
 tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
     group = 'verification'
     description = 'Runs hermetic acceptance fixtures for the deterministic versioned-documentation renderer.'
+}
+
+tasks.register('verifyCredentialFreeDocumentationTracer', VerifyCredentialFreeDocumentationTracerTask) {
+    group = 'verification'
+    description = 'Renders pinned historical and 4.0 documentation evidence without credentials, publication, deployment, or aliases.'
+    objectDirectory.set(layout.projectDirectory)
+    outputDirectory.set(layout.buildDirectory.dir('versioned-documentation/tracer'))
 }
 
 tasks.register('renderHistoricalDocumentation', RenderHistoricalDocumentationTask) {

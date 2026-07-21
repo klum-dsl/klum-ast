@@ -52,9 +52,14 @@ abstract class GenerateGitHubWikiMigrationStubsTask extends DefaultTask {
 
     @TaskAction
     void generateStubs() {
-        File canonicalSource = canonicalSourceDirectory.get().asFile
-        File objectDirectory = objectDirectory.get().asFile
-        File output = outputDirectory.get().asFile
+        generate(canonicalSourceDirectory.get().asFile, objectDirectory.get().asFile, outputDirectory.get().asFile)
+    }
+
+    /**
+     * Generates stubs from explicit, checked-out inputs so the credential-free
+     * tracer can exercise the same migration contract without a publishing task.
+     */
+    static void generate(File canonicalSource, File objectDirectory, File output) {
         if (output.exists() && output.listFiles()?.length)
             fail("Wiki migration-stub output must be empty: $output")
         output.mkdirs()
