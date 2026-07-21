@@ -11,6 +11,7 @@ Non-archive-safe states:
 - `(ready:PR)` — committed work still needs pushing and/or pull-request creation.
 - `(PR:open)` — a pull request exists but is not verified merged, even if assigned implementation work is finished.
 - `(needs:changes)` — substantive adjustments remain, including pull-request stabilization or review fixes.
+- `(paused)` — the worker stopped at a safe boundary under the applicable `re` policy and is waiting for an explicit resume.
 - `(blocked)` — external input or state is required.
 
 Completed and delivery states:

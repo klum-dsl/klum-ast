@@ -97,6 +97,12 @@ architecture/classification/scope/publication, and its stopping boundary is a sa
 waits in the human queue. At every AFK return, the Hive first produces the full refreshed overview and reconciled matrix;
 it does not use the return as authority to dispatch another task.
 
+If a KlumAST worker stops at a safe boundary under the applicable `re` policy, title it `(paused)` and state that it is
+waiting for an explicit resume. Its callback preserves the safe branch/commit/validation boundary and the precise resume
+precondition; a pause is not completion, cancellation, or cleanup authorization. When entering another authorized AFK
+window, the Hive refreshes and considers eligible paused workers before new candidates. It may resume one only after the
+normal fresh-admission and capacity checks still pass.
+
 ## Post-release orchestration evidence overlay
 
 For KlumAST 4.0, every cross-orchestrator evidence stream must carry stable `release_id` `klum-ast-4.0` and a distinct

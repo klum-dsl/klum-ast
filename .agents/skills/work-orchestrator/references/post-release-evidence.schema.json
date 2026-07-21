@@ -78,6 +78,7 @@
         "deadline": {"$ref": "#/$defs/utcTimestamp"},
         "capacity": {"$ref": "#/$defs/capacity"},
         "admission_stop": {"$ref": "#/$defs/admissionStop"},
+        "pause": {"$ref": "#/$defs/pause"},
         "contract_rebase_validation": {"$ref": "#/$defs/contractRebaseValidation"}
       }
     },
@@ -109,6 +110,18 @@
           "then": {"required": ["reason"]}
         }
       ]
+    },
+    "pause": {
+      "description": "Safe record for a worker paused at a local stopping boundary; never records prompts or inferred state.",
+      "type": "object",
+      "required": ["state", "safe_boundary", "resume_authorization"],
+      "additionalProperties": false,
+      "properties": {
+        "state": {"enum": ["paused", "resumed"]},
+        "reason": {"$ref": "#/$defs/safeText"},
+        "safe_boundary": {"$ref": "#/$defs/safeText"},
+        "resume_authorization": {"const": "explicit_required"}
+      }
     },
     "contractRebaseValidation": {
       "type": "object",

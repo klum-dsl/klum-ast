@@ -133,6 +133,13 @@ On a user report or orchestrator refresh, verify relevant issue, PR, and merge s
 
 Where the repository has an archive-safe terminal state, workers must request Hive reconciliation; they must not self-archive or set that terminal state as part of normal completion. The Hive makes an explicit final reconciliation before applying it: assigned execution and delivery are complete; the audit/evidence record is complete or explicitly has no unfilled required fields; no local commit, tracker or PR update, external delivery, decision, human action, or task-scope condition remains. A completed or merged-delivery title alone is not sufficient. Retain the useful completed/delivery state in the final callback and, where practical, in the archive title or evidence record.
 
+When a worker stops at a safe boundary under the applicable `re` policy, it is neither completed nor blocked: use the
+repository's `(paused)` title state and say explicitly that it is **waiting for an explicit resume**. Its callback records
+the safe boundary, branch/commit, validation, unresolved condition, and the resume precondition. Do not clean up,
+reassign, or infer resumption from the passage of time. On entry to a later authorized AFK window, the Hive refreshes the
+paused worker's evidence and considers eligible paused workers before new candidates. A resume still requires fresh
+admission, capacity, and the explicit authorization required by the local overlay.
+
 ### 8. Present next work after worker completion
 
 Treat a **completed worker** as a worker that reports `COMPLETED` after finishing its assigned bounded execution scope. It is not an issue, pull request, or release delivery claim: an open PR, review, merge, credential, or release condition remains an external delivery condition. A `NOT READY` report, an unstarted task, and a worker whose bounded scope is still active are not completed workers.
@@ -195,6 +202,7 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] An AFK window, when active, records an explicit deadline, capacity mode, and model/reasoning ceiling; admission evidence is fresh; every launched task is a local-only worktree task within the capacity cap; and no recurring automation or remote mutation was used.
 - [ ] Every speculative handoff is commit-addressable and records contract, base, worktree/branch, validation, and rebase status; the Hive returned a full overview before any further dispatch.
 - [ ] Every local-review child was declared by name with two review axes, counted against capacity, and audited; all other child dispatch is absent.
+- [ ] A safe `re`-policy stop uses the repository's `(paused)` title, says it is waiting for explicit resume, and is considered before new AFK candidates after a fresh admission check.
 - [ ] A release/run evidence stream exists outside the product repository for each created worker, has valid start/finish events or an explicit audit gap, and contains no prohibited sensitive content.
 - [ ] The release-close aggregation produces only a sanitized report and machine-readable summary for the proposed engineering-baseline/release-governance location; its measurements preserve unavailable/unknown states.
 
