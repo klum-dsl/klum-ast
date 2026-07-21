@@ -5,7 +5,7 @@ This release view is derived from the complete [open issue index](issue-index.md
 current source/tests. ADR 0007 is superseded by ADR 0009, while ADR 0008 remains a later-4.x target. ADRs 0004–0006 and
 0009 define the remaining accepted 4.0 boundaries.
 
-Proposed release name: **Season 4: The Makeover**.
+Release-facing identity: **Season 4: The Makeover**, always paired with the semantic version `4.0`.
 
 ## Release thesis
 
@@ -58,6 +58,19 @@ projected Builder signatures, while Model/Template companion changes and facade 
 Jackson groundwork is complete; #463's public API review and implementation now precede #464's compatibility closure.
 #474 is an independent public compatibility blocker: it must settle Layer 3 relationship behavior before #468 freezes the
 generated surface.
+
+## 4.0 visual finalization
+
+[#483](https://github.com/klum-dsl/klum-ast/issues/483) is the canonical visual-only finalization record for Season 4.
+It defines a coordinated KlumAST/KlumCast visual family, while retaining their distinct technical identities, artifacts,
+packages, modules, repositories, and release authorities. AnnoDocimal remains an independent peer with policy-level
+alignment only.
+
+Branding does not block the current RC train and does not create a native release dependency. Before #456 renders a final
+documentation snapshot, however, the branding owner must approve its exact Season/logo manifest. Candidate RC branding may
+remain provisional. After publication, ADR 0013's correction-record path preserves the original manifest and asset digest;
+it never rewrites an immutable snapshot. Exact assets, typography, palette, role subtitles, and product-local timing remain
+#483 delivery choices.
 
 ## Confirmed pre-release validation policy
 
