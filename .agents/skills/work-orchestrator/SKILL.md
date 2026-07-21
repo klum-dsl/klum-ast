@@ -83,6 +83,8 @@ Give the new task the stable short label, callback ID, a bounded outcome, local 
 
 If a task fails to report, inspect its thread before inferring status. Reconcile every report against live evidence and explain only material changes.
 
+When a worker reaches `(ready:PR)`, its final callback must also contain a concise **review/change brief**. This is a review aid, not a file-by-file changelog. Include two to five outcome bullets; key files grouped as implementation, tests, and user-facing documentation (state `none` for an absent category); grouped minor or auxiliary changes; meaningful validation; and the review focus or compatibility risk (or explicit `none`). For simple work, the brief may be copied into the draft pull-request body. For complex work, it is the executive summary while the pull request retains the fuller rationale and evidence.
+
 ### 5. Triage cross-orchestrator impact
 
 When creating a user-visible task and when its scope materially changes, discover and reconcile relevant active work orchestrators. Compare declared scope, repository ownership, and shared technology or policy boundaries. Choose exactly one outcome: **local only**, **cross-cutting implementation candidate**, **cross-cutting issue candidate**, or **shared policy/baseline candidate**.
@@ -109,7 +111,9 @@ Use the existing orchestrator and, when the platform supports it, exactly one on
 
 Keep a task's assigned execution scope separate from its repository delivery state. A completed task can therefore retain an external delivery condition; a task title must express the current actionable/archive state under the repository's authoritative task-title policy.
 
-On a user report or orchestrator refresh, verify relevant issue, PR, and merge state and ask the task to update its title when that policy requires it. Tasks need not poll continuously. Do not archive or call work done while an actionable delivery step remains; use the repository's archive-safe status prefix only after its definition is satisfied.
+On a user report or orchestrator refresh, verify relevant issue, PR, and merge state and ask the task to update its title when that policy requires it. Tasks need not poll continuously. Do not archive or call work done while an actionable delivery step remains.
+
+Where the repository has an archive-safe terminal state, workers must request Hive reconciliation; they must not self-archive or set that terminal state as part of normal completion. The Hive makes an explicit final reconciliation before applying it: assigned execution and delivery are complete; the audit/evidence record is complete or explicitly has no unfilled required fields; no local commit, tracker or PR update, external delivery, decision, human action, or task-scope condition remains. A completed or merged-delivery title alone is not sufficient. Retain the useful completed/delivery state in the final callback and, where practical, in the archive title or evidence record.
 
 ### 8. Present next work after worker completion
 
@@ -149,6 +153,8 @@ Read and refresh: {{local_evidence_sources}}.
 Apply these local overlays and exclusions: {{scope_overlays}}.
 
 Follow the repository-local work-orchestrator skill. Refresh without mutation; keep execution state, delivery state, and external conditions separate. Render a compact graph only when dependencies need it, followed by a concise decision table. Recommend model/reasoning before creating user-visible work, wait for explicit selection or authorization, record each created task, and reconcile callback reports with live evidence. At task creation or material scope change, perform the skill's non-blocking cross-orchestrator impact triage exactly once per unchanged candidate.
+
+When a worker reaches `(ready:PR)`, require its final callback to include a concise review/change brief: two to five outcome bullets; key files grouped as implementation, tests, and user-facing documentation (or `none`); grouped auxiliary changes; meaningful validation; and review focus or compatibility risk (or `none`). Workers request, but never self-apply, an archive-safe terminal status; the Hive applies it only after explicit final reconciliation under the repository overlay.
 ```
 
 ## Human-verifiable audit checklist
@@ -160,6 +166,8 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] Every `ready` item is actually startable, and the display does not invent work to meet a target count.
 - [ ] Each task title matches the repository's current lifecycle/archive policy; active, delivery-pending, and archive-safe work are distinguishable.
 - [ ] A reported task outcome is not mistaken for issue, PR, merge, or release delivery; live delivery state is shown separately.
+- [ ] Every `(ready:PR)` worker final callback includes a review/change brief with two to five outcomes, key files grouped as implementation/tests/user documentation (or `none`), grouped auxiliary changes, meaningful validation, and review focus or an explicit `none` risk.
+- [ ] Any archive-safe terminal title was explicitly reconciled by the Hive: execution and delivery are complete; audit/evidence is complete or has no unfilled required fields; no local, remote, external-delivery, decision, human-action, or task-scope condition remains; and useful completed/delivery history is retained.
 - [ ] Every `COMPLETED` worker report produced a read-only next-work handoff with only genuinely available choices and separately named blocked dependencies; the last substantive worker also received the mandatory full refresh, compact graph, and reconciled matrix without auto-starting work.
 - [ ] Every external condition is explicit and linked when a durable link exists.
 - [ ] Created tasks have a stable label, callback ID, thread record, and required status-reporting language; missing reports were checked rather than guessed.

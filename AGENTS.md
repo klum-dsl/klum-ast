@@ -13,13 +13,17 @@ Non-archive-safe states:
 - `(needs:changes)` — substantive adjustments remain, including pull-request stabilization or review fixes.
 - `(blocked)` — external input or state is required.
 
-Archive-safe states:
+Completed and delivery states:
 
-- `(done)` — the requested outcome is complete with no repository or delivery step pending.
+- `(done)` — the requested outcome is complete with no repository or delivery step pending; retain it when there is no more specific delivery result to show.
 - `(done:issue)` — the requested issue has been created and verified.
 - `(done:merged)` — the requested changes are verified merged, regardless of whether merge shepherding was in the original assignment.
 
-Do not use `(done:PR)`: an open pull request is not archive-safe, while a merged pull request is `(done:merged)`. Tasks need not poll merge or issue state continuously. On a user report or orchestrator refresh, verify the live state and update the title; orchestrators may initiate periodic reconciliation.
+Archive-safe terminal state:
+
+- `(arch)` — the Hive has explicitly reconciled that assigned execution and delivery are complete; the audit/evidence record is complete or explicitly has no unfilled required fields; no local commit, PR or issue update, external delivery, decision, or human action remains; and no task-scope condition remains open. Retain useful delivery history in the title or handoff (for example, `(arch) ... (merged PR #123)`).
+
+`(done)`, `(done:issue)`, and `(done:merged)` record the completed outcome or delivery result; none automatically means `(arch)`. A worker must request Hive reconciliation rather than setting `(arch)` or archiving itself as part of normal completion. The Hive performs an explicit final reconciliation and may then apply `(arch)` when every condition above is checked. Do not use `(done:PR)`: an open pull request is not archive-safe. Tasks need not poll merge or issue state continuously. On a user report or orchestrator refresh, verify the live state and update the title; orchestrators may initiate periodic reconciliation.
 
 ### Issue tracker
 
