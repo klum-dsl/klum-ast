@@ -1,6 +1,7 @@
 import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
 import com.blackbuild.klum.ast.docs.RenderHistoricalDocumentationTask
 import com.blackbuild.klum.ast.docs.GenerateGitHubWikiMigrationStubsTask
+import com.blackbuild.klum.ast.docs.PreparePendingDocumentationStageTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -57,9 +58,27 @@ tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask)
     documentationVersion.set(providers.gradleProperty('documentationVersion'))
     status.set(providers.gradleProperty('documentationStatus'))
     brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest'))
+    releaseStage.set(providers.gradleProperty('documentationReleaseStage'))
+    finalBrandingApprovalPath.set(providers.gradleProperty('documentationFinalBrandingApproval'))
     archivedVersions.set(splitDocumentationProperty('documentationArchivedVersions'))
     objectDirectory.set(layout.dir(providers.gradleProperty('documentationObjectDirectory').map { file(it) }))
     outputDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
+}
+
+def documentationReleaseStage = providers.gradleProperty('documentationReleaseStage')
+def documentationExpectedVersion = providers.gradleProperty('documentationExpectedVersion')
+def documentationExpectedRevision = providers.gradleProperty('documentationExpectedRevision')
+def pendingDocumentationHandoff = tasks.register('preparePendingDocumentationStage', PreparePendingDocumentationStageTask) {
+    group = 'documentation'
+    description = 'Validates and hands off one immutable unlisted pending documentation snapshot before artifact publication.'
+    stage.set(documentationReleaseStage)
+    expectedVersion.set(documentationExpectedVersion)
+    expectedRevision.set(documentationExpectedRevision)
+    nebulaVersion.set(providers.provider { version.toString() })
+    objectDirectory.set(layout.projectDirectory)
+    renderedDocumentationDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
+    handoffFile.set(layout.file(providers.gradleProperty('documentationHandoffFile').map { file(it) }))
+    dependsOn(tasks.named('renderVersionedDocumentation'))
 }
 
 tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {

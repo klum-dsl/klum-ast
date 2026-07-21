@@ -67,6 +67,35 @@ action revision during an incident.
    substitute the mutable wiki. Stable, line, and preview aliases remain unchanged until this
    release's public proof passes.
 
+## Protected pending documentation stage
+
+The release workflow calls the separately permissioned **Publish pending documentation** workflow
+before its credential-bearing publication job. It receives the exact `candidate` or `final` stage,
+version, and full source SHA and independently recomputes the Nebula version, proves the clean
+SHA is on `master`, and rejects malformed identity or an existing `v<version>` tag. It renders
+only that revision with status `pending`; pending chrome and the `pending/<version>/<sha>/` path
+state that this is unlisted release-gate evidence, never a public RC, stable page, or alias.
+
+The Pages job writes the rendered exact documentation/Javadocs, source manifest, and a small
+handoff below the protected `gh-pages` branch. It refuses an existing pending path, so an exact
+tree is never overwritten. Its only output to the artifact workflow is `stage`, `version`, `sha`,
+the exact path, source-manifest SHA-256, and the immutable `gh-pages` deployment commit. The
+artifact job rechecks every value before it can invoke `publishCompleteKlumAstProduct`. The Pages
+job has no artifact credentials; the artifact job has no permission to alter the Pages tree.
+
+For a final, the selected source revision must include
+`docs/branding/final-approval.json`. That approval is bound to the exact branding-manifest path
+and SHA-256 and is retained in the rendered source manifest. The current `candidate` branding
+manifest is not a final approval. #456 validates and records this evidence but does not choose
+the Season identity or approve it.
+
+If a valid pending-stage identity fails after validation, the Pages workflow records only a
+sanitized rejection record below `pending-rejected/<version>/<sha>/`; it contains the identity
+and `rejected-pending-documentation` outcome, never command output, credentials, or telemetry.
+That path is also immutable. Correct the cause and follow ADR 0012's next-version rule rather
+than overwriting a rejected or pending path. A malformed, off-master, or already tagged request
+does not create a pending or rejected Pages record.
+
 ## Protected publication path
 
 Dispatch **Publish protected release**, select `candidate` or `final`, and enter the exact
@@ -138,7 +167,7 @@ new release channel.
 | Signing or Sonatype staging fails before release | Abort/drop the staging repository using the registry's protected operation; retain the incident evidence. | Use the next RC number if a tag or any artifact was created. |
 | Maven Central succeeds but Plugin Portal fails | Stop. Do not delete, overwrite, or republish Maven coordinates. Record the partial RC as failed/superseded. | Correct the cause and issue `rc.N+1`; do not repair a different registry under the old version. |
 | Public proof fails or a tag/GitHub release record cannot be created | Stop and record the immutable RC or final incident. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
-| Versioned documentation/Javadoc destination is unavailable | Do not authorize an RC or final. #456 must supply the accepted destination and protected publication path. | No artifact publication begins, so no version is consumed. |
+| Versioned documentation/Javadoc destination is unavailable or its pending stage rejects a valid identity | Do not authorize artifact publication. Retain the sanitized `pending-rejected` evidence when the protected stage reached an accepted identity. | Correct the cause and follow the immutable next-version rule; never overwrite a pending or rejected Pages path. |
 | RC consumer resolve-back fails | Mark that RC rejected/superseded and preserve the evidence. | Any substantive change requires `rc.N+1`. |
 | Final remote verification fails | Treat the final as an incident; it is not an RC retry. | Do not remove published artifacts. A tag may be deleted only by explicit human decision when no artifact was ever published. |
 

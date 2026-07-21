@@ -47,7 +47,7 @@ class VersionedDocumentationRenderer {
             'klum-ast-bean-validation': 'com/blackbuild/klum/ast/validation/bean/JSR380Validator.html',
             'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
     ].asImmutable()
-    private static final Set<String> STATUSES = ['current', 'archived', 'public-rc'] as Set
+    private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending'] as Set
     private static final Set<String> RESERVED_PATHS = ['status.md', 'source-manifest.json'] as Set
     private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*)?/
 
@@ -63,6 +63,8 @@ class VersionedDocumentationRenderer {
         Set<String> navigationExcludedPaths = ((inputs.navigationExcludedPaths ?: []) as Collection).collect { it.toString() } as Set
         String landingSourcePath = optionalRelativePath(inputs.landingSourcePath, 'landingSourcePath')
         String brandingManifestPath = optionalRelativePath(inputs.brandingManifestPath, 'brandingManifestPath')
+        String releaseStage = inputs.releaseStage?.toString()
+        String finalBrandingApprovalPath = optionalRelativePath(inputs.finalBrandingApprovalPath, 'finalBrandingApprovalPath')
         Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
         Map<String, String> javadocInputChecksums = new TreeMap<>(normalizedChecksums(inputs.javadocInputChecksums ?: [:]))
         Map<String, File> additionalFiles = normalizedAdditionalFiles(inputs.additionalFiles ?: [:])
@@ -76,8 +78,20 @@ class VersionedDocumentationRenderer {
             fail("Documentation status must be one of $STATUSES; aliases and development trees are not rendered by VD-1: $status")
         if (status == 'public-rc' && !(version ==~ /\d+\.\d+\.\d+-rc\.[1-9]\d*/))
             fail("A public-rc documentation tree requires an RC version: $version")
-        if (status != 'public-rc' && version.contains('-rc.'))
+        if (status == 'pending' && !(releaseStage in ['candidate', 'final']))
+            fail('Pending documentation requires releaseStage=candidate|final.')
+        if (status != 'pending' && releaseStage)
+            fail('releaseStage is reserved for pending documentation.')
+        if (status == 'pending' && releaseStage == 'candidate' && !(version ==~ /\d+\.\d+\.\d+-rc\.[1-9]\d*/))
+            fail("Candidate pending documentation requires an RC version: $version")
+        if (status == 'pending' && releaseStage == 'final' && !(version ==~ /\d+\.\d+\.\d+/))
+            fail("Final pending documentation requires a final version: $version")
+        if (!(status in ['public-rc', 'pending']) && version.contains('-rc.'))
             fail("An RC version must be rendered with public-rc status: $version")
+        if (status == 'pending' && releaseStage != 'final' && finalBrandingApprovalPath)
+            fail('Only final pending documentation may supply a final branding approval.')
+        if (status == 'pending' && releaseStage == 'final' && !finalBrandingApprovalPath)
+            fail('Final pending documentation requires finalBrandingApprovalPath.')
 
         if (git(objectDirectory, ['status', '--porcelain']).trim())
             fail('Documentation input worktree is dirty; render a checked-out immutable revision.')
@@ -143,6 +157,8 @@ class VersionedDocumentationRenderer {
             write(exactDirectory, logoTarget, logo)
             branding = [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
                         approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest]
+            if (status == 'pending' && releaseStage == 'final')
+                branding.finalApproval = readFinalBrandingApproval(objectDirectory, revision, finalBrandingApprovalPath, brandingManifestPath)
         }
 
         javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
@@ -198,6 +214,29 @@ class VersionedDocumentationRenderer {
         if (!(branding.sha256 ==~ /[0-9a-f]{64}/))
             fail("Branding manifest $path has an invalid sha256")
         branding
+    }
+
+    private static Map<String, String> readFinalBrandingApproval(File objectDirectory, String revision, String path, String brandingManifestPath) {
+        byte[] approvalBytes = gitBytes(objectDirectory, ['show', "${revision}:${path}"])
+        Object parsed
+        try {
+            parsed = new JsonSlurper().parseText(new String(approvalBytes, StandardCharsets.UTF_8))
+        } catch (Exception exception) {
+            fail("Final branding approval is malformed or absent at $path: ${exception.message}")
+        }
+        if (!(parsed instanceof Map))
+            fail("Final branding approval must be an object: $path")
+        Map<String, ?> approval = parsed as Map<String, ?>
+        if (approval.schemaVersion != 1 || approval.approval != 'approved-final')
+            fail("Final branding approval $path must declare schemaVersion 1 and approval approved-final")
+        if (!(approval.owner instanceof String) || approval.owner.trim().empty)
+            fail("Final branding approval $path requires a non-empty owner")
+        if (approval.brandingManifest != brandingManifestPath)
+            fail("Final branding approval $path must name $brandingManifestPath")
+        String manifestDigest = sha256(gitBytes(objectDirectory, ['show', "${revision}:${brandingManifestPath}"]))
+        if (approval.brandingManifestSha256 != manifestDigest)
+            fail("Final branding approval $path does not match the exact branding manifest")
+        [path: path, sha256: sha256(approvalBytes), owner: approval.owner, brandingManifestSha256: manifestDigest]
     }
 
     private static Map<String, File> requiredModuleJavadocs(Object values, File objectDirectory) {
@@ -280,11 +319,13 @@ class VersionedDocumentationRenderer {
     }
 
     private static String chrome(String version, String status, String archiveLink) {
-        String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : 'Exact version'
+        String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : status == 'pending' ? 'Pending release evidence' : 'Exact version'
         String notice = status == 'archived'
                 ? "> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [the archive](${archiveLink}).\n"
                 : status == 'public-rc'
                 ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record](/$version/status.md).\n"
+                : status == 'pending'
+                ? '> **Pending release evidence.** This unlisted snapshot is a protected publication gate, not a public release or alias.\n'
                 : '> This is an immutable exact-version documentation snapshot.\n'
         "<!-- Generated by $RENDERER_ID. Do not edit this rendered copy. -->\n> **KlumAST $version — $statusLabel**\n$notice\n"
     }
@@ -293,6 +334,8 @@ class VersionedDocumentationRenderer {
         "# KlumAST $version version status\n\nStatus: **$status**.\n\n" +
                 (status == 'public-rc'
                         ? 'This public release candidate is a prerelease and is not stable. Any later final relationship is recorded outside this immutable tree.\n'
+                        : status == 'pending'
+                        ? 'This unlisted pending snapshot is release-gate evidence. It does not establish a public release or advance an alias.\n'
                         : 'This record belongs to the immutable exact documentation tree.\n')
     }
 

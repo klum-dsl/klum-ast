@@ -65,6 +65,83 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         }
         assertTrue(!new File(currentOne, '4.0.0-rc.1/api/klum-ast-bom').exists(), 'BOM must not have an API output')
 
+        File pending = new File(outputs, 'pending')
+        VersionedDocumentationRenderer.render([
+                objectDirectory      : fixture,
+                outputDirectory      : pending,
+                revision             : revision,
+                rendererRevision     : revision,
+                version              : '4.0.0-rc.1',
+                status               : 'pending',
+                releaseStage         : 'candidate',
+                brandingManifestPath : 'docs/branding/season-4-klumast.json',
+                moduleJavadocs       : moduleJavadocs])
+        assertContains(new File(pending, '4.0.0-rc.1/Home.md').text, 'Pending release evidence', 'pending chrome')
+        assertContains(new File(pending, '4.0.0-rc.1/status.md').text, 'does not establish a public release', 'pending status boundary')
+        expectFailure('final pending documentation requires an approval') {
+            VersionedDocumentationRenderer.render([
+                    objectDirectory      : fixture,
+                    outputDirectory      : new File(outputs, 'unapproved-final'),
+                    revision             : revision,
+                    rendererRevision     : revision,
+                    version              : '4.0.0',
+                    status               : 'pending',
+                    releaseStage         : 'final',
+                    brandingManifestPath : 'docs/branding/season-4-klumast.json',
+                    moduleJavadocs       : moduleJavadocs])
+        }
+        File brandingManifest = new File(fixture, 'docs/branding/season-4-klumast.json')
+        new File(fixture, 'docs/branding/final-approval.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                schemaVersion          : 1,
+                approval               : 'approved-final',
+                owner                  : 'Branding owner',
+                brandingManifest       : 'docs/branding/season-4-klumast.json',
+                brandingManifestSha256 : sha256(brandingManifest.bytes)
+        ])) + '\n'
+        git(fixture, ['add', '.'])
+        git(fixture, ['commit', '-m', 'fixture final branding approval'])
+        String finalRevision = git(fixture, ['rev-parse', 'HEAD']).trim()
+        VersionedDocumentationRenderer.render([
+                objectDirectory            : fixture,
+                outputDirectory            : new File(outputs, 'approved-final'),
+                revision                   : finalRevision,
+                rendererRevision           : finalRevision,
+                version                    : '4.0.0',
+                status                     : 'pending',
+                releaseStage               : 'final',
+                brandingManifestPath       : 'docs/branding/season-4-klumast.json',
+                finalBrandingApprovalPath  : 'docs/branding/final-approval.json',
+                moduleJavadocs             : moduleJavadocs])
+        assertContains(new File(outputs, 'approved-final/4.0.0/source-manifest.json').text, 'final-approval.json', 'final approval must be captured')
+        brandingManifest.text = brandingManifest.text.replace('Season 4: The Makeover', 'Changed Season')
+        git(fixture, ['add', '.'])
+        git(fixture, ['commit', '-m', 'fixture changed final branding'])
+        String changedBrandingRevision = git(fixture, ['rev-parse', 'HEAD']).trim()
+        expectFailure('changed final branding manifest invalidates approval') {
+            VersionedDocumentationRenderer.render([
+                    objectDirectory            : fixture,
+                    outputDirectory            : new File(outputs, 'changed-final-branding'),
+                    revision                   : changedBrandingRevision,
+                    rendererRevision           : changedBrandingRevision,
+                    version                    : '4.0.0',
+                    status                     : 'pending',
+                    releaseStage               : 'final',
+                    brandingManifestPath       : 'docs/branding/season-4-klumast.json',
+                    finalBrandingApprovalPath  : 'docs/branding/final-approval.json',
+                    moduleJavadocs             : moduleJavadocs])
+        }
+        git(fixture, ['checkout', '--detach', revision])
+        git(fixture, ['update-ref', 'refs/remotes/origin/master', revision])
+        PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+        expectFailure('pending stage/version mismatch') {
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0', revision, '4.0.0')
+        }
+        expectFailure('pending off-master revision') {
+            VerifyVersionedDocumentationRendererTask.git(fixture, ['update-ref', '-d', 'refs/remotes/origin/master'])
+            PreparePendingDocumentationStageTask.validateIdentity(fixture, 'candidate', '4.0.0-rc.1', revision, '4.0.0-rc.1')
+        }
+        git(fixture, ['update-ref', 'refs/remotes/origin/master', revision])
+
         File historical = new File(outputs, 'historical')
         File historicalArchive = new File(historical, 'archive')
         String navigation = RenderHistoricalDocumentationTask.sidebarNavigation(fixture, revision, ['_Sidebar.md', 'Home.md', 'Legacy.md'] as Set, '3.0.1')
@@ -184,6 +261,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 
         assertTrue(project.tasks.findByName('gitPublishPush')?.description?.contains('fails closed'),
                 'Former mutable wiki publisher must be registered as a fail-closed task')
+        String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
+        assertContains(pagesWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT/', 'pending Pages path must be version and SHA scoped')
+        assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
+        String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
+        assertContains(releaseWorkflow, 'stage-pending-documentation', 'artifact workflow must require the pending Pages stage')
+        assertContains(releaseWorkflow, 'DOCUMENTATION_MANIFEST_SHA256', 'artifact workflow must recheck the pending manifest handoff')
     }
 
     private static void initializeFixture(File repository) {
@@ -248,6 +331,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         try {
             action.call()
         } catch (IllegalArgumentException ignored) {
+            return
+        } catch (GradleException ignored) {
             return
         }
         throw new GradleException("Expected renderer rejection: $description")
