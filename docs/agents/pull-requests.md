@@ -65,9 +65,9 @@ marking the pull request ready for review, merging it, or expanding the assigned
 ## Changelog and migration documentation
 
 - Add user-visible features, fixes, deprecations, and compatibility breaks to the next release section in `CHANGES.md`.
-- The canonical user documentation lives in `wiki/`, not under `docs/`. Update every affected feature page as part of the behavioral change.
+- The current 4.x user documentation is authored in `docs/user/`. Tagged historical `wiki/` trees are renderer input only, not a second current authoring location. Update every affected feature page as part of the behavioral change.
 - Demonstrate new user-visible DSL features with concise examples aligned with their documentary tests, and identify the
-  corresponding documentary test file and feature method on the affected wiki page.
-- Put migration guides in `wiki/`. A substantial migration may use a dedicated page, but it must be linked from `wiki/Migration.md`.
-- Whenever a wiki page is added, renamed, or removed, update `wiki/_Sidebar.md` so the page remains discoverable.
+  corresponding documentary test file and feature method on the affected user-documentation page.
+- Put current migration guides in `docs/user/`. A substantial migration may use a dedicated page, but it must be linked from `docs/user/Migration.md`.
+- Whenever a current user page is added, renamed, or removed, update `docs/user/_Sidebar.md` so the page remains discoverable.
 - Keep provisional policies explicitly labelled and linked to the issue that will finalize them.

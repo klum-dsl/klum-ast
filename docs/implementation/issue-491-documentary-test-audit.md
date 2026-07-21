@@ -5,7 +5,7 @@ Tracking issue: [#491 — Audit DSL documentation for documentary test coverage 
 This is the repository-side inventory for the deliberate documentary-test audit. It records the evidence available on
 `master` before this slice and avoids reclassifying legacy regression tests as user documentation merely because they
 exercise the same implementation. #456 owns the eventual versioned documentation URL and hosting policy; until then,
-source links use the current `wiki/` path on `master`.
+source links use the current `docs/user/` path on `master`.
 
 ## Current documentary evidence
 
@@ -13,9 +13,9 @@ Before this slice, the executable suite contained one `@Tag("documentary")` mark
 
 | Documentation element | Responsible issue | Executable evidence | Audit result |
 | --- | --- | --- | --- |
-| [`Layer3.md` — Automatic creation and linking](../../wiki/Layer3.md#automatic-creation-and-linking) | #474 | `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries` | Already aligned with `@Issue`, `@Tag("documentary")`, and `@See`. #454 owns the wider Layer 3 terminology rewrite. |
-| [`Basics.md` — Factory construction](../../wiki/Basics.md#factory-construction) | #76 (closed: move creator methods into a creator class) | `FactoryTest` exercised the generated factory but did not provide a readable linked documentary example. | Aligned by this slice with `FactoryConstructionTest.builds a completed deployment configuration with Create.With`. |
-| [`Default-Values.md` — Other fields (`field`)](../../wiki/Default-Values.md#other-fields-field) | #318 (closed: make `@Default` a lifecycle method) | `DefaultValuesSpec` covered field defaults but did not provide a linked, user-oriented happy path. | Aligned by this slice with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. |
+| [`Layer3.md` — Automatic creation and linking](../user/Layer3.md#automatic-creation-and-linking) | #474 | `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries` | Already aligned with `@Issue`, `@Tag("documentary")`, and `@See`. #454 owns the wider Layer 3 terminology rewrite. |
+| [`Basics.md` — Factory construction](../user/Basics.md#factory-construction) | #76 (closed: move creator methods into a creator class) | `FactoryTest` exercised the generated factory but did not provide a readable linked documentary example. | Aligned by this slice with `FactoryConstructionTest.builds a completed deployment configuration with Create.With`. |
+| [`Default-Values.md` — Other fields (`field`)](../user/Default-Values.md#other-fields-field) | #318 (closed: make `@Default` a lifecycle method) | `DefaultValuesSpec` covered field defaults but did not provide a readable linked documentary example. | Aligned by this slice with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. |
 
 ## In-scope user-visible DSL inventory
 

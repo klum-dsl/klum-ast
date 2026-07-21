@@ -32,7 +32,7 @@ import spock.lang.Tag
 class OptionalLinkRelationshipTest extends AbstractDSLSpec {
 
     @Tag("documentary")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Layer3.md#automatic-creation-and-linking")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Layer3.md#automatic-creation-and-linking")
     def "optional relationships retain local composition and aggregation identity for single List and Map entries"() {
         given:
         createClass '''

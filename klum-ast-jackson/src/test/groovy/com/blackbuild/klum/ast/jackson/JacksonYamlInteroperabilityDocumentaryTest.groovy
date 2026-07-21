@@ -38,7 +38,7 @@ import spock.lang.Tag
 @Tag("documentary")
 class JacksonYamlInteroperabilityDocumentaryTest extends AbstractDSLSpec {
 
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Jackson-Integration.md#one-foreign-yaml-input-one-enriched-output")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Jackson-Integration.md#one-foreign-yaml-input-one-enriched-output")
     def "imports one foreign YAML document through one Builder lifecycle and exports an enriched YAML projection"() {
         given:
         createInteroperabilitySchema()

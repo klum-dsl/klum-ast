@@ -318,4 +318,4 @@ the following features were dropped:
   The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
   or using the new named parameters (`Model.create(copyFrom: myTemplate) {..}`)
   
-  Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism](wiki/Template-Mechanism))
+  Alternatively, the new `withTemplate(s)` mechanism can be used (see [Template Mechanism](Templates))

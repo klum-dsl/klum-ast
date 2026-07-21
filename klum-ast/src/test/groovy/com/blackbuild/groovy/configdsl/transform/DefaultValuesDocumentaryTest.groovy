@@ -32,7 +32,7 @@ class DefaultValuesDocumentaryTest extends AbstractDSLSpec {
 
     @Issue("318")
     @Tag("documentary")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/wiki/Default-Values.md#other-fields-field")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Default-Values.md#other-fields-field")
     def "defaults a release identifier from its configured name"() {
         given:
         createClass '''

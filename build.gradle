@@ -1,4 +1,5 @@
-import org.apache.tools.ant.filters.ReplaceTokens
+import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
+import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
 
 buildscript {
     repositories {
@@ -12,7 +13,6 @@ plugins {
     id 'base'
 
     id "com.github.hierynomus.license"
-    id 'org.ajoberstar.git-publish'
     id "com.github.ben-manes.versions"
     id "io.github.gradle-nexus.publish-plugin"
     id "org.sonarqube"
@@ -42,24 +42,43 @@ sonar {
     }
 }
 
-gitPublish {
-    repoUri = 'git@github.com:klum-dsl/klum-ast.wiki.git'
-    branch = 'master'
+def splitDocumentationProperty = { String name ->
+    providers.gradleProperty(name).map { value -> value.split(',').collect { it.trim() }.findAll { it } }.orElse([])
+}
+def documentationJavadocChecksums = providers.gradleProperty('documentationJavadocChecksums').map { value ->
+    value.split(',').collect { entry ->
+        def parts = entry.split('=', 2)*.trim()
+        if (parts.size() != 2 || !parts[0] || !parts[1])
+            throw new GradleException('documentationJavadocChecksums must use module=sha256 entries.')
+        [(parts[0]): parts[1]]
+    }.collectEntries { it }
+}.orElse([:])
 
-    contents {
-        from 'wiki'
-        filesMatching('*.md') {
-            filter(ReplaceTokens, tokens: [version: version.toString()])
-        }
-        from('.') {
-            include("CHANGES.md")
-            rename('CHANGES.md', "Changelog.md")
-        }
+tasks.register('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
+    group = 'documentation'
+    description = 'Renders one immutable, exact-version documentation tree from explicit Git object inputs.'
+    revision.set(providers.gradleProperty('documentationRevision'))
+    rendererRevision.set(providers.gradleProperty('documentationRendererRevision'))
+    documentationVersion.set(providers.gradleProperty('documentationVersion'))
+    status.set(providers.gradleProperty('documentationStatus'))
+    brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest'))
+    archivedVersions.set(splitDocumentationProperty('documentationArchivedVersions'))
+    javadocInputChecksums.set(documentationJavadocChecksums)
+    objectDirectory.set(layout.dir(providers.gradleProperty('documentationObjectDirectory').map { file(it) }))
+    outputDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
+}
+
+tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
+    group = 'verification'
+    description = 'Runs hermetic acceptance fixtures for the deterministic versioned-documentation renderer.'
+}
+
+tasks.register('gitPublishPush') {
+    group = 'publishing'
+    description = 'Former mutable wiki publisher; fails closed because versioned documentation owns publication inputs.'
+    doFirst {
+        throw new GradleException('gitPublishPush is disabled. Render an immutable exact-version documentation tree instead.')
     }
-
-    repoDir = layout.buildDirectory.dir("gitPublish")
-    
-    commitMessage = "updated wiki for $version"
 }
 
 releaseCheck.doLast {
@@ -167,3 +186,6 @@ if (hasProperty('buildScan')) {
 }
 
 tasks.sonar.dependsOn(project(":code-coverage-report").tasks.withType(JacocoReport))
+tasks.named('check') {
+    dependsOn(tasks.named('verifyVersionedDocumentationRenderer'))
+}
