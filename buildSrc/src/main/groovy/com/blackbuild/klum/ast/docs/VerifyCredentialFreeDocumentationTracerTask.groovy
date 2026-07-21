@@ -145,7 +145,7 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
 
     private void generateJavadocs(File checkout) {
         List<String> tasks = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { ":$it:javadoc" }
-        ProcessBuilder builder = new ProcessBuilder(['./gradlew', '--no-daemon', '--console=plain'] + tasks).directory(checkout)
+        ProcessBuilder builder = new ProcessBuilder((['./gradlew', '--no-daemon', '--console=plain'] + tasks).collect { it.toString() }).directory(checkout)
         builder.environment().put('GRADLE_USER_HOME', new File(temporaryDir, 'gradle-user-home').absolutePath)
         ['SONATYPE_USERNAME', 'SONATYPE_PASSWORD', 'SIGNING_KEY', 'SIGNING_PASSWORD', 'GRADLE_PUBLISH_KEY', 'GRADLE_PUBLISH_SECRET', 'KLUM_AST_RELEASE_AUTHORIZED'].each { builder.environment().remove(it) }
         builder.redirectErrorStream(true)
