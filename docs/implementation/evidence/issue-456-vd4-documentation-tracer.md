@@ -32,11 +32,13 @@ GitHub, Pages, signing, or alias task dependency.
 
 The retained build evidence is
 `build/versioned-documentation/tracer/tracer-evidence.json`. Its stable schema
-records only the three source identities, SHA-256 values of the rendered manifests
-and stub inventory, the changed-input manifest proof, the negative-fixture result,
-and named assertions. It does not retain process output or environment data.
+records only the three source identities, the actual renderer revision, SHA-256
+values of the rendered manifests and stub inventory, the changed-input manifest
+proof, the negative-fixture result, and named assertions. It does not retain
+process output or environment data.
 
 The tracer asserts six isolated module API bases, the absent BOM API base, an
-archived direct page, the local root selector, a labelled wiki stub that makes no
-HTTP-redirect claim, and a changed source revision producing a different source
-manifest. It neither deploys the outputs nor advances any alias.
+archived non-root deep link, the local root selector, a labelled wiki stub that
+makes no HTTP-redirect claim, and a changed source revision producing a different
+source manifest. It inspects the resolved Gradle task graph for publish, deploy,
+or alias tasks. It neither deploys the outputs nor advances any alias.
