@@ -38,3 +38,27 @@ exact version below `/<version>/api/<module>/`.
 
 The generated API landing repeats that absence rule and explicitly says that a
 4.x API tree is never substituted for an old-version request.
+
+## GitHub-wiki migration inventory
+
+`generateGitHubWikiMigrationStubs` inventories the last mutable wiki tree at
+`c033e9b668ba53cd0a86859bc773fffc99863c09`. It emits 30 labelled Markdown
+landing/deep-link stubs (including `Home.md` and the legacy `Changelog.md`) and
+a SHA-256 inventory. Each page links to an exact canonical stable-path or the
+canonical stable landing, and explicitly states that it is not an HTTP redirect.
+`_Sidebar.md`, `_Footer.md`, and binary image paths are recorded as non-page
+inputs rather than pretending they are ordinary wiki slugs.
+
+The generated migration tree is deployment input only. It does not recreate a
+repository `wiki/` authoring tree; current 4.x content remains in `docs/user/`.
+
+## Authorized handoff boundary
+
+VD-2 creates no GitHub-wiki mutation. After a future authorized wiki migration,
+the operator must generate a fresh stub tree, compare every generated page with
+`migration-stub-inventory.json`, and transfer only those labelled Markdown
+stubs. The stable targets are intentionally a VD-6 alias contract, so the
+transfer must wait until the corresponding stable alias is publicly proven.
+Any source page without a current stable same-path counterpart maps to
+`/archive/`; it is not silently redirected to a 4.x page. The old `gitPublishPush`
+route remains disabled throughout this handoff.

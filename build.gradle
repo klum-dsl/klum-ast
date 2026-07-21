@@ -1,5 +1,6 @@
 import com.blackbuild.klum.ast.docs.RenderVersionedDocumentationTask
 import com.blackbuild.klum.ast.docs.RenderHistoricalDocumentationTask
+import com.blackbuild.klum.ast.docs.GenerateGitHubWikiMigrationStubsTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -72,6 +73,14 @@ tasks.register('renderHistoricalDocumentation', RenderHistoricalDocumentationTas
     objectDirectory.set(layout.projectDirectory)
     outputDirectory.set(layout.buildDirectory.dir('versioned-documentation/historical'))
     javadocRepository.set('https://repo1.maven.org/maven2')
+}
+
+tasks.register('generateGitHubWikiMigrationStubs', GenerateGitHubWikiMigrationStubsTask) {
+    group = 'documentation'
+    description = 'Generates audited, labelled GitHub-wiki migration stubs without publishing or redirect configuration.'
+    canonicalSourceDirectory.set(layout.projectDirectory.dir('docs/user'))
+    objectDirectory.set(layout.projectDirectory)
+    outputDirectory.set(layout.buildDirectory.dir('versioned-documentation/github-wiki-stubs'))
 }
 
 tasks.register('gitPublishPush') {

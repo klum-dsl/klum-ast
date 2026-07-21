@@ -81,6 +81,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'klum-ast': [availability: 'imported', output: '/3.0.1/api/klum-ast/'],
                 'klum-ast-bean-validation': [availability: 'unavailable', reason: 'No released Javadoc JAR exists for this module and version.']
         ]), 'no 4.x API tree is substituted', 'missing historical API label')
+        assertEqual(GenerateGitHubWikiMigrationStubsTask.destinationFor('Retired.md', [] as Set),
+                "${GenerateGitHubWikiMigrationStubsTask.CANONICAL_BASE}/archive/", 'legacy page fallback')
+        assertContains(GenerateGitHubWikiMigrationStubsTask.stubContent('Basics.md',
+                "${GenerateGitHubWikiMigrationStubsTask.CANONICAL_BASE}/stable/Basics.md"),
+                'does not configure or claim an HTTP redirect', 'wiki-stub redirect boundary')
 
         expectFailure('dirty input') {
             new File(fixture, 'dirty.txt').text = 'dirty'
