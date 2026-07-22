@@ -101,11 +101,13 @@ img { max-width: 100%; height: auto; }
         String navigationMarkdown = inputs.navigationMarkdown?.toString() ?: ''
         String footerMarkdown = inputs.footerMarkdown?.toString() ?: ''
         String repositoryRevision = inputs.repositoryRevision?.toString()
+        String repositorySourcePath = inputs.repositorySourcePath?.toString()
+        String authoringRoot = inputs.authoringRoot?.toString()
 
         String prepared = expandWikiLinks(markdown, wikiPages)
         Node document = parser().parse(prepared)
         Map<Node, String> headingIds = assignHeadingIds(document)
-        rewriteLinks(document, sourcePath, outputPath, pageOutputs, repositoryRevision)
+        rewriteLinks(document, sourcePath, outputPath, pageOutputs, repositoryRevision, repositorySourcePath, authoringRoot)
         String content = htmlRenderer(headingIds).render(document)
         String navigation = renderFragment(navigationMarkdown, '_Sidebar.md', outputPath, pageOutputs, wikiPages)
         String footer = renderFragment(footerMarkdown, '_Footer.md', outputPath, pageOutputs, wikiPages)
@@ -177,7 +179,7 @@ img { max-width: 100%; height: auto; }
         if (!markdown) return ''
         Node fragment = parser().parse(expandWikiLinks(markdown, wikiPages))
         Map<Node, String> headingIds = assignHeadingIds(fragment)
-        rewriteLinks(fragment, sourcePath, outputPath, pageOutputs, null)
+        rewriteLinks(fragment, sourcePath, outputPath, pageOutputs, null, null, null)
         htmlRenderer(headingIds).render(fragment)
     }
 
@@ -229,24 +231,27 @@ img { max-width: 100%; height: auto; }
     }
 
     private static void rewriteLinks(Node document, String sourcePath, String outputPath, Map<String, String> pageOutputs,
-                                     String repositoryRevision) {
+                                     String repositoryRevision, String repositorySourcePath, String authoringRoot) {
         document.accept(new AbstractVisitor() {
             @Override
             void visit(Link link) {
-                link.destination = rewriteDestination(link.destination, sourcePath, outputPath, pageOutputs, repositoryRevision)
+                link.destination = rewriteDestination(link.destination, sourcePath, outputPath, pageOutputs,
+                        repositoryRevision, repositorySourcePath, authoringRoot)
                 visitChildren(link)
             }
 
             @Override
             void visit(Image image) {
-                image.destination = rewriteDestination(image.destination, sourcePath, outputPath, pageOutputs, repositoryRevision)
+                image.destination = rewriteDestination(image.destination, sourcePath, outputPath, pageOutputs,
+                        repositoryRevision, repositorySourcePath, authoringRoot)
                 visitChildren(image)
             }
         })
     }
 
     private static String rewriteDestination(String destination, String sourcePath, String outputPath,
-                                             Map<String, String> pageOutputs, String repositoryRevision) {
+                                             Map<String, String> pageOutputs, String repositoryRevision,
+                                             String repositorySourcePath, String authoringRoot) {
         if (!destination || destination.startsWith('#') || destination.startsWith('//') || destination ==~ /(?i)[a-z][a-z0-9+.-]*:.*/)
             return destination
         int suffixAt = [destination.indexOf('?'), destination.indexOf('#')].findAll { it >= 0 }.min() ?: -1
@@ -257,17 +262,28 @@ img { max-width: 100%; height: auto; }
         if (wikiRooted) path = path.substring(WIKI_ROOT.length())
         Path sourceParent = wikiRooted ? Paths.get('') : (Paths.get(sourcePath).parent ?: Paths.get(''))
         Path resolved = sourceParent.resolve(path).normalize()
-        if (resolved.startsWith('..')) {
-            if (!repositoryRevision) return destination
-            String repositoryPath = resolved.toString().replace('\\', '/').replaceFirst(/^(\.\.\/)+/, '')
-            if (!repositoryPath || repositoryPath.startsWith('../')) return destination
-            String kind = repositoryPath.toLowerCase(Locale.ROOT).endsWith('.md') ? 'blob' : 'tree'
-            return "https://github.com/klum-dsl/klum-ast/$kind/$repositoryRevision/$repositoryPath$suffix"
-        }
         String sourceTarget = resolved.toString().replace('\\', '/')
         String outputTarget = pageOutputs[sourceTarget]
         if (!outputTarget && !sourceTarget.toLowerCase(Locale.ROOT).endsWith('.md'))
             outputTarget = pageOutputs[sourceTarget + '.md']
+
+        if ((!outputTarget || resolved.startsWith('..')) && repositoryRevision && repositorySourcePath && authoringRoot) {
+            Path repositoryParent = wikiRooted ? Paths.get(authoringRoot) : (Paths.get(repositorySourcePath).parent ?: Paths.get(''))
+            Path repositoryResolved = repositoryParent.resolve(path).normalize()
+            Path authoringRootPath = Paths.get(authoringRoot)
+            if (repositoryResolved.startsWith(authoringRootPath)) {
+                sourceTarget = authoringRootPath.relativize(repositoryResolved).toString().replace('\\', '/')
+                outputTarget = pageOutputs[sourceTarget]
+                if (!outputTarget && !sourceTarget.toLowerCase(Locale.ROOT).endsWith('.md'))
+                    outputTarget = pageOutputs[sourceTarget + '.md']
+            } else {
+                String repositoryPath = repositoryResolved.toString().replace('\\', '/')
+                if (!repositoryPath || repositoryPath.startsWith('../')) return destination
+                String kind = repositoryPath.toLowerCase(Locale.ROOT).endsWith('.md') ? 'blob' : 'tree'
+                return "https://github.com/klum-dsl/klum-ast/$kind/$repositoryRevision/$repositoryPath$suffix"
+            }
+        }
+        if (resolved.startsWith('..') && !outputTarget) return destination
         String rewritten = relativeUrl(outputPath, outputTarget ?: sourceTarget)
         if (path.endsWith('/') && !rewritten.endsWith('/')) rewritten += '/'
         rewritten + suffix

@@ -53,6 +53,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertEqual(treeDigest(currentOne), treeDigest(currentTwo), 'Repeated exact-revision rendering must be deterministic')
         File exactLanding = new File(currentOne, '4.0.0-rc.1/index.html')
         File nestedPage = new File(currentOne, '4.0.0-rc.1/Guide/Nested/index.html')
+        File changelog = new File(currentOne, '4.0.0-rc.1/Changelog/index.html')
         assertContains(exactLanding.text, 'is a prerelease, not stable', 'RC chrome')
         assertContains(exactLanding.text, 'href="status/"', 'RC status link must remain inside the exact tree')
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
@@ -60,6 +61,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
+        assertContains(changelog.text, 'href="../Builder-First-Migration/"',
+                'repository-root changelog links into the authoring tree must become site links')
         assertContains(exactLanding.text, 'id="same-heading-1"', 'duplicate GitHub-compatible heading ids')
         assertContains(exactLanding.text, 'id="überblick"', 'Unicode heading ids')
         assertContains(exactLanding.text, '&lt;unsafe-card&gt;', 'authored raw HTML must be escaped')
@@ -335,10 +338,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 <dependencies><dependency /></dependencies>
 ```
 '''
-        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [[Home#same-heading|Current documentation]], and [source skill](../../agent-skills/example/SKILL.md).\n'
+        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).\n'
+        new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
         new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
-        new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes.\n'
+        new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes. See [migration](docs/user/Builder-First-Migration.md).\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
         new File(repository, 'wiki/Home.md').text = '# Historical home\n\nHistorical landing content.\n'

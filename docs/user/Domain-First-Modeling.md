@@ -15,7 +15,7 @@ Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundar
 
 ## Smart-home journey
 
-The executable fixture at [`agent-skills/fixtures/domain-first-smart-home`](../agent-skills/fixtures/domain-first-smart-home) follows one complete journey:
+The executable fixture at [`agent-skills/fixtures/domain-first-smart-home`](../../agent-skills/fixtures/domain-first-smart-home) follows one complete journey:
 
 1. The Domain API Developer defines generic `Home`, `Room`, `Window`, and device/provider types. Cluster projections make the fixed floorplan available without exposing its Schema classes.
 2. The Schema Developer realizes one CityFlat floorplan with named Kitchen, LivingRoom, MainBedroom, and garden/street Window fields. `@DefaultValues` supplies the Schema-owned visible labels; validation distinguishes mandatory installed-device categories from optional sensors.
@@ -28,10 +28,10 @@ The fixture's `SmartHomeJourneyDocumentaryTest` is the documentary test of that 
 ./gradlew -p agent-skills/fixtures/domain-first-smart-home test
 ```
 
-Use the portable [`build-domain-first-schema`](../agent-skills/build-domain-first-schema/SKILL.md) skill to adapt the workflow. It points to the fixture rather than copying its large example. `author-klum-model` remains the shared Model Writer workflow; use it when creating the separate registered Model script and its executable test.
+Use the portable [`build-domain-first-schema`](../../agent-skills/build-domain-first-schema/SKILL.md) skill to adapt the workflow. It points to the fixture rather than copying its large example. `author-klum-model` remains the shared Model Writer workflow; use it when creating the separate registered Model script and its executable test.
 
 The fixture stops at durable Model configuration and an API-only client boundary. A later showcase could compose provider classes with live readings, or generate OpenHAB Things/devices without a backchannel to the Model. Neither runtime behavior nor OpenHAB integration is a contract of this Layer 3 journey.
 
 ## Field test
 
-For a real-project evaluation, begin with the fixture's [field-test brief](../agent-skills/fixtures/domain-first-smart-home/field-test/SMART-HOME-BRIEF.md) and use its [prompt](../agent-skills/fixtures/domain-first-smart-home/FIELD-TEST.md). Record the project’s two architectural choices, its completed-model and API-only client evidence, and one concrete friction point. A newly exposed Layer 3 behavior or vocabulary question belongs in a focused maintainer decision, not in an accidental extension of this journey.
+For a real-project evaluation, begin with the fixture's [field-test brief](../../agent-skills/fixtures/domain-first-smart-home/field-test/SMART-HOME-BRIEF.md) and use its [prompt](../../agent-skills/fixtures/domain-first-smart-home/FIELD-TEST.md). Record the project’s two architectural choices, its completed-model and API-only client evidence, and one concrete friction point. A newly exposed Layer 3 behavior or vocabulary question belongs in a focused maintainer decision, not in an accidental extension of this journey.

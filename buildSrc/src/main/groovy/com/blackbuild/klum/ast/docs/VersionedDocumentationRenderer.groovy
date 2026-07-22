@@ -204,7 +204,9 @@ class VersionedDocumentationRenderer {
                     notice            : presentation.notice,
                     logoPath          : logoTarget,
                     logoAltText       : logoAltText,
-                    repositoryRevision: revision)
+                    repositoryRevision: revision,
+                    repositorySourcePath: sourcePath == 'Changelog.md' ? 'CHANGES.md' : "$sourceRoot/$sourcePath",
+                    authoringRoot      : sourceRoot)
             write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
         }
 
