@@ -94,7 +94,8 @@ class DocumentationSiteServer implements Closeable {
                 fragments[document].each { String fragment ->
                     Set<String> anchors = []
                     Matcher anchorMatcher = ANCHORS.matcher(html)
-                    while (anchorMatcher.find()) anchors << URLDecoder.decode(anchorMatcher.group(1), StandardCharsets.UTF_8)
+                    while (anchorMatcher.find())
+                        anchors << URLDecoder.decode(decodeHtmlAttribute(anchorMatcher.group(1)), StandardCharsets.UTF_8)
                     if (!anchors.contains(URLDecoder.decode(fragment, StandardCharsets.UTF_8)))
                         fail("Rendered documentation fragment is absent: $document#$fragment")
                 }
@@ -152,6 +153,16 @@ class DocumentationSiteServer implements Closeable {
         if (name.endsWith('.png')) return 'image/png'
         if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg'
         'application/octet-stream'
+    }
+
+    private static String decodeHtmlAttribute(String value) {
+        String decoded = value.replaceAll(/&#x([0-9a-fA-F]+);/) { String ignored, String hex ->
+            new String(Character.toChars(Integer.parseInt(hex, 16)))
+        }.replaceAll(/&#([0-9]+);/) { String ignored, String decimal ->
+            new String(Character.toChars(Integer.parseInt(decimal, 10)))
+        }
+        decoded.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"')
+                .replace('&#39;', "'").replace('&amp;', '&')
     }
 
     private static void fail(String message) {
