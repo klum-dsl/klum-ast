@@ -101,6 +101,3 @@ if (projectsWithoutClean) {
     }
 }
 ```
-
-
-Find more details on the following pages of this wiki.

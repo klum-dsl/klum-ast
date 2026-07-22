@@ -50,9 +50,22 @@ jobs:
             exit 1
           fi
 
+  stage-pending-documentation:
+    name: Stage pending documentation for ${{ inputs.version }}
+    needs: validate-release-input
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish-pending-documentation.yml
+    with:
+      stage: ${{ inputs.stage }}
+      version: ${{ inputs.version }}
+      commit: ${{ inputs.commit }}
+
   publish:
     name: Publish ${{ inputs.stage }} ${{ inputs.version }}
-    needs: validate-release-input
+    needs: [validate-release-input, stage-pending-documentation]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment:
@@ -118,6 +131,27 @@ jobs:
               exit 1
             }
           done
+      - name: Recheck the pending documentation handoff
+        env:
+          DOCUMENTATION_STAGE: ${{ needs.stage-pending-documentation.outputs.stage }}
+          DOCUMENTATION_VERSION: ${{ needs.stage-pending-documentation.outputs.version }}
+          DOCUMENTATION_COMMIT: ${{ needs.stage-pending-documentation.outputs.commit }}
+          DOCUMENTATION_EXACT_PATH: ${{ needs.stage-pending-documentation.outputs.exact_path }}
+          DOCUMENTATION_MANIFEST_SHA256: ${{ needs.stage-pending-documentation.outputs.manifest_sha256 }}
+          DOCUMENTATION_DEPLOYMENT_COMMIT: ${{ needs.stage-pending-documentation.outputs.deployment_commit }}
+          DOCUMENTATION_DEPLOYMENT_ID: ${{ needs.stage-pending-documentation.outputs.deployment_id }}
+          DOCUMENTATION_PAGE_URL: ${{ needs.stage-pending-documentation.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DOCUMENTATION_STAGE" = "${{ inputs.stage }}"
+          test "$DOCUMENTATION_VERSION" = "${{ inputs.version }}"
+          test "$DOCUMENTATION_COMMIT" = "${{ inputs.commit }}"
+          test "$DOCUMENTATION_EXACT_PATH" = "pending/${{ inputs.version }}/${{ inputs.commit }}/"
+          [[ "$DOCUMENTATION_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$DOCUMENTATION_DEPLOYMENT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$DOCUMENTATION_DEPLOYMENT_ID" =~ ^[0-9]+\.[0-9]+$ ]]
+          [[ "$DOCUMENTATION_PAGE_URL" =~ ^https:// ]]
       - name: Verify, sign, stage, and publish the complete product
         run: >-
           ./gradlew ${{ inputs.stage }} publishCompleteKlumAstProduct

@@ -89,15 +89,15 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
             generateJavadocs(cleanCheckout)
             File changedOutput = new File(output, 'changed-input')
             renderFourZero(cleanCheckout, changedOutput, changedRevision, rendererRevision)
-            String fixedManifest = sha256(new File(fourZeroOutput, "$TRACER_VERSION/source-manifest.json").bytes)
-            String changedManifest = sha256(new File(changedOutput, "$TRACER_VERSION/source-manifest.json").bytes)
+            String fixedManifest = sha256(new File(fourZeroOutput, "$TRACER_VERSION/site-manifest.json").bytes)
+            String changedManifest = sha256(new File(changedOutput, "$TRACER_VERSION/site-manifest.json").bytes)
             if (fixedManifest == changedManifest)
-                fail('A changed fixed-source revision must change the source manifest')
+                fail('A changed fixed-source revision must change the site manifest')
 
             evidence = [
                     schemaVersion: 1,
                     purpose      : 'credential-free #456 documentation tracer',
-                    historical   : [tag: 'v3.0.1', revision: HISTORICAL_REVISION, manifestSha256: sha256(new File(historicalOutput, '3.0.1/source-manifest.json').bytes)],
+                    historical   : [tag: 'v3.0.1', revision: HISTORICAL_REVISION, manifestSha256: sha256(new File(historicalOutput, '3.0.1/site-manifest.json').bytes)],
                     fixedFourZero: [revision: SUCCESSFUL_FOUR_ZERO_REVISION, rendererRevision: rendererRevision, renderedVersion: TRACER_VERSION, manifestSha256: fixedManifest],
                     negativeInput: [revision: PRE_RENDERER_REVISION, expectedSourceRoot: 'docs/user', result: 'rejected-before-renderer'],
                     migrationStubs: [inventorySha256: sha256(new File(stubs, 'migration-stub-inventory.json').bytes)],
@@ -123,8 +123,6 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
     }
 
     private void renderHistorical(File checkout, File output, String rendererRevision) {
-        String navigation = RenderHistoricalDocumentationTask.sidebarNavigation(checkout, HISTORICAL_REVISION,
-                git(checkout, ['ls-tree', '-r', '--name-only', HISTORICAL_REVISION, '--', 'wiki']).readLines() as Set, '3.0.1')
         VersionedDocumentationRenderer.render(
                 objectDirectory         : checkout,
                 outputDirectory         : output,
@@ -133,7 +131,6 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
                 version                 : '3.0.1',
                 status                  : 'archived',
                 archiveLink             : '/archive/',
-                navigationMarkdown      : navigation,
                 navigationExcludedPaths : ['_Sidebar.md', '_Footer.md'],
                 landingSourcePath       : 'Home.md')
     }
@@ -165,9 +162,9 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
 
     private static void assertFourZeroOutput(File output, String rendererRevision) {
         File exact = new File(output, TRACER_VERSION)
-        assertContains(new File(exact, 'Home.md'), 'Credential-free tracer', 'tracer status chrome')
-        assertContains(new File(output, 'index.md'), "/$TRACER_VERSION/", 'root selector')
-        assertContains(new File(exact, 'source-manifest.json'), rendererRevision, 'actual renderer revision')
+        assertContains(new File(exact, 'index.html'), 'Credential-free tracer', 'tracer status chrome')
+        assertContains(new File(output, 'index.html'), "href=\"$TRACER_VERSION/\"", 'root selector')
+        assertContains(new File(exact, 'site-manifest.json'), rendererRevision, 'actual renderer revision')
         VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String type ->
             if (!new File(exact, "api/$module/$type").file)
                 fail("Tracer omitted isolated API base for $module")
@@ -176,10 +173,10 @@ abstract class VerifyCredentialFreeDocumentationTracerTask extends DefaultTask {
     }
 
     private static void assertHistoricalOutput(File output) {
-        File historicalDeepLink = new File(output, '3.0.1/Basics.md')
+        File historicalDeepLink = new File(output, '3.0.1/Basics/index.html')
         assertContains(historicalDeepLink, 'Archived (legacy)', 'archived deep-link chrome')
-        assertContains(historicalDeepLink, '](/archive/)', 'archived deep-link archive target')
-        assertContains(new File(output, '3.0.1/source-manifest.json'), HISTORICAL_REVISION, 'historical tagged source identity')
+        assertContains(historicalDeepLink, 'href="../"', 'archived deep-link navigation target')
+        assertContains(new File(output, '3.0.1/site-manifest.json'), HISTORICAL_REVISION, 'historical tagged source identity')
     }
 
     private static void assertStubs(File stubs) {

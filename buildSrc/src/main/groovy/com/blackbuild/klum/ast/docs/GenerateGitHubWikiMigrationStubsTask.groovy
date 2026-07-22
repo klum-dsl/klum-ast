@@ -95,8 +95,12 @@ abstract class GenerateGitHubWikiMigrationStubsTask extends DefaultTask {
     }
 
     static String destinationFor(String page, Set<String> canonicalPages) {
-        if (page == 'Home.md' || page == 'Changelog.md') return "$CANONICAL_BASE/stable/"
-        canonicalPages.contains(page) ? "$CANONICAL_BASE/stable/$page" : "$CANONICAL_BASE/archive/"
+        if (page == 'Home.md') return "$CANONICAL_BASE/stable/"
+        if (page == 'Changelog.md' || canonicalPages.contains(page)) {
+            String pageDirectory = page.substring(0, page.length() - '.md'.length())
+            return "$CANONICAL_BASE/stable/$pageDirectory/"
+        }
+        "$CANONICAL_BASE/archive/"
     }
 
     static String stubContent(String page, String destination) {

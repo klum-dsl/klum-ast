@@ -139,7 +139,7 @@ When developing AST transformations:
 ### Documentation
 
 - Document public APIs with Javadoc
-- Update the wiki when adding new features
+- Update the relevant pages in `docs/user/` when adding new features
 - Include examples in documentation
 
 ### Release Process

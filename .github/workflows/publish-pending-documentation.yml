@@ -1,0 +1,275 @@
+name: Publish pending documentation
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        description: Exact protected release stage.
+        required: true
+        type: string
+      version:
+        description: Exact immutable release version.
+        required: true
+        type: string
+      commit:
+        description: Full source commit SHA on master.
+        required: true
+        type: string
+    outputs:
+      stage:
+        description: Validated release stage.
+        value: ${{ jobs.publish-pending.outputs.stage }}
+      version:
+        description: Validated exact version.
+        value: ${{ jobs.publish-pending.outputs.version }}
+      commit:
+        description: Validated exact source SHA.
+        value: ${{ jobs.publish-pending.outputs.commit }}
+      exact_path:
+        description: Immutable, unlisted Pages path.
+        value: ${{ jobs.publish-pending.outputs.exact_path }}
+      manifest_sha256:
+        description: SHA-256 of the rendered static-site manifest.
+        value: ${{ jobs.publish-pending.outputs.manifest_sha256 }}
+      deployment_commit:
+        description: Read-back-verified immutable gh-pages commit.
+        value: ${{ jobs.publish-pending.outputs.deployment_commit }}
+      deployment_id:
+        description: Pages deployment workflow run and attempt identifier.
+        value: ${{ jobs.deploy-pages.outputs.deployment_id }}
+      page_url:
+        description: URL reported by the protected Pages deployment.
+        value: ${{ jobs.deploy-pages.outputs.page_url }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pending-documentation-gh-pages
+  cancel-in-progress: false
+
+jobs:
+  validate-input:
+    name: Validate pending documentation identity
+    runs-on: ubuntu-latest
+    outputs:
+      identity_valid: ${{ steps.master.outputs.valid }}
+
+    steps:
+      - name: Require the rehearsed protected Pages contract
+        env:
+          DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DOCUMENTATION_PAGES_READY" = true || {
+            echo 'Protected documentation Pages is not rehearsed and enabled.' >&2
+            exit 1
+          }
+      - id: identity
+        env:
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_STAGE" == candidate && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$ ]] || \
+             [[ "$RELEASE_STAGE" == final && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          else
+            echo 'The requested pending documentation identity is malformed.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - id: master
+        name: Prove the requested source is clean, unused, and on master
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          test -z "$(git status --porcelain=v1)"
+          ! git show-ref --verify --quiet "refs/tags/v${{ inputs.version }}"
+          echo 'valid=true' >> "$GITHUB_OUTPUT"
+
+  publish-pending:
+    name: Publish unlisted pending documentation
+    needs: validate-input
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: documentation-pages
+    permissions:
+      contents: write
+    outputs:
+      stage: ${{ inputs.stage }}
+      version: ${{ inputs.version }}
+      commit: ${{ inputs.commit }}
+      exact_path: ${{ steps.handoff.outputs.exact_path }}
+      manifest_sha256: ${{ steps.handoff.outputs.manifest_sha256 }}
+      deployment_commit: ${{ steps.pages.outputs.deployment_commit }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Render and validate the immutable pending snapshot
+        env:
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          arguments=(
+            "-PdocumentationReleaseStage=$RELEASE_STAGE"
+            "-PdocumentationExpectedVersion=$RELEASE_VERSION"
+            "-PdocumentationExpectedRevision=$EXPECTED_COMMIT"
+            "-PdocumentationRevision=$EXPECTED_COMMIT"
+            "-PdocumentationRendererRevision=$EXPECTED_COMMIT"
+            "-PdocumentationVersion=$RELEASE_VERSION"
+            '-PdocumentationStatus=pending'
+            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json'
+            '-PdocumentationObjectDirectory=.'
+            '-PdocumentationOutputDirectory=build/pending-documentation'
+            '-PdocumentationHandoffFile=build/pending-documentation-handoff.json'
+          )
+          if [[ "$RELEASE_STAGE" == final ]]; then
+            arguments+=('-PdocumentationFinalBrandingApproval=docs/branding/final-approval.json')
+          fi
+          ./gradlew "$RELEASE_STAGE" preparePendingDocumentationStage "${arguments[@]}"
+      - uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: pages
+          persist-credentials: true
+      - id: handoff
+        name: Reject an existing immutable pending path and read the handoff
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pages/.nojekyll || {
+            echo 'The protected gh-pages ledger is not initialized with .nojekyll.' >&2
+            exit 1
+          }
+          expected_path="pending/$RELEASE_VERSION/$EXPECTED_COMMIT/"
+          test ! -e "pages/$expected_path" || {
+            echo 'The pending documentation path already exists and is immutable.' >&2
+            exit 1
+          }
+          handoff=build/pending-documentation-handoff.json
+          test "$(jq -r .stage "$handoff")" = "${{ inputs.stage }}"
+          test "$(jq -r .version "$handoff")" = "$RELEASE_VERSION"
+          test "$(jq -r .sha "$handoff")" = "$EXPECTED_COMMIT"
+          test "$(jq -r .exactPath "$handoff")" = "$expected_path"
+          manifest_sha256=$(jq -r .manifestSha256 "$handoff")
+          [[ "$manifest_sha256" =~ ^[0-9a-f]{64}$ ]]
+          echo "exact_path=$expected_path" >> "$GITHUB_OUTPUT"
+          echo "manifest_sha256=$manifest_sha256" >> "$GITHUB_OUTPUT"
+      - id: pages
+        name: Commit the unlisted immutable pending tree to gh-pages
+        env:
+          EXACT_PATH: ${{ steps.handoff.outputs.exact_path }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "pages/$EXACT_PATH"
+          cp -a "build/pending-documentation/$RELEASE_VERSION/." "pages/$EXACT_PATH"
+          cp build/pending-documentation-handoff.json "pages/$EXACT_PATH/pending-documentation-handoff.json"
+          cd pages
+          git add -- "$EXACT_PATH"
+          git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
+            commit -m "Stage pending documentation for $RELEASE_VERSION"
+          git push origin HEAD:gh-pages
+          deployment_commit=$(git rev-parse HEAD)
+          git fetch --no-tags origin gh-pages
+          test "$(git rev-parse FETCH_HEAD)" = "$deployment_commit"
+          git diff --quiet "$deployment_commit" FETCH_HEAD
+          echo "deployment_commit=$deployment_commit" >> "$GITHUB_OUTPUT"
+      - name: Upload the read-back-verified gh-pages ledger
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages
+
+  deploy-pages:
+    name: Deploy the protected gh-pages ledger
+    needs: publish-pending
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      deployment_id: ${{ github.run_id }}.${{ github.run_attempt }}
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        name: Deploy the uploaded static site to GitHub Pages
+        uses: actions/deploy-pages@v5
+
+  retain-rejected-evidence:
+    name: Retain rejected pending-stage evidence
+    needs: [validate-input, publish-pending, deploy-pages]
+    if: >-
+      ${{ always() && needs.validate-input.outputs.identity_valid == 'true' &&
+          (needs.publish-pending.result == 'failure' || needs.deploy-pages.result == 'failure') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: documentation-pages
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: pages
+          persist-credentials: true
+      - name: Burn the rejected path with sanitized evidence
+        env:
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pages/.nojekyll || {
+            echo 'The protected gh-pages ledger is not initialized with .nojekyll.' >&2
+            exit 1
+          }
+          rejected_path="pending-rejected/$RELEASE_VERSION/$EXPECTED_COMMIT"
+          test ! -e "pages/$rejected_path" || {
+            echo 'The rejected pending documentation path already exists.' >&2
+            exit 1
+          }
+          mkdir -p "pages/$rejected_path"
+          jq -n --arg stage "$RELEASE_STAGE" --arg version "$RELEASE_VERSION" --arg sha "$EXPECTED_COMMIT" \
+            '{schemaVersion: 1, stage: $stage, version: $version, sha: $sha, outcome: "rejected-pending-documentation"}' \
+            > "pages/$rejected_path/rejection.json"
+          cd pages
+          git add -- "$rejected_path/rejection.json"
+          git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
+            commit -m "Record rejected pending documentation for $RELEASE_VERSION"
+          git push origin HEAD:gh-pages

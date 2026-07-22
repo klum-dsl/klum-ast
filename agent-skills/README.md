@@ -18,7 +18,7 @@ Each directory is a standard skill: its portable `SKILL.md` is the workflow. Age
 
 When installing, record the KlumAST release and the source tag or commit of this distribution in the project's adoption notes. `feature-advisor` uses those facts to determine whether a KlumAST or skill update is needed, recommended, or unnecessary.
 
-Use documentation that matches the KlumAST version you are adopting. The linked wiki pages in these preview skills describe the current 4.0 development line; do not treat an unversioned page as a promise for another release.
+Use documentation that matches the KlumAST version you are adopting. The linked `/4.0.0/` Pages tree is the immutable documentation contract for this version-matched skill distribution.
 
 ## Exercise the fixture
 

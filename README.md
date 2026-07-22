@@ -15,10 +15,10 @@ materialize structurally immutable completed DSL Objects before validation. See 
 
 3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
 
-Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://github.com/klum-dsl/klum-ast/wiki/Migration).
+Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://klum-dsl.github.io/klum-ast/3.0.1/Migration/) guidance.
 
 2.2 was the final 2.x feature release and introduced the current validation model. See
-[Validation](https://github.com/klum-dsl/klum-ast/wiki/Validation) and the historical sections of the migration guide.
+[Validation](https://klum-dsl.github.io/klum-ast/3.0.1/Validation/) and the historical sections of the migration guide.
 
 # What is KlumAST?
 

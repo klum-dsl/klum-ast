@@ -34,6 +34,7 @@ import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -45,6 +46,8 @@ abstract class RenderVersionedDocumentationTask extends DefaultTask {
     @Input abstract Property<String> getDocumentationVersion()
     @Input abstract Property<String> getStatus()
     @Input abstract Property<String> getBrandingManifestPath()
+    @Optional @Input abstract Property<String> getReleaseStage()
+    @Optional @Input abstract Property<String> getFinalBrandingApprovalPath()
     @Input abstract ListProperty<String> getArchivedVersions()
     @InputDirectory abstract DirectoryProperty getObjectDirectory()
     @InputFiles
@@ -63,6 +66,8 @@ abstract class RenderVersionedDocumentationTask extends DefaultTask {
                 version              : documentationVersion.get(),
                 status               : status.get(),
                 brandingManifestPath : brandingManifestPath.get(),
+                releaseStage         : releaseStage.orNull,
+                finalBrandingApprovalPath: finalBrandingApprovalPath.orNull,
                 archivedVersions     : archivedVersions.get(),
                 moduleJavadocs       : moduleJavadocDirectories.get())
     }

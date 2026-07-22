@@ -9,7 +9,7 @@ Turn confirmed issue intent into durable decisions and independently verifiable 
 
 ## Establish authority
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/domain.md`, `docs/agents/commits.md`, the architecture map, canonical issues, every relevant ADR and implementation note, `wiki/Builder-First-Migration.md`, affected source, and executable specifications.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/domain.md`, `docs/agents/commits.md`, the architecture map, canonical issues, every relevant ADR and implementation note, `docs/user/Builder-First-Migration.md`, affected source, and executable specifications.
 
 Classify the work:
 
@@ -17,7 +17,7 @@ Classify the work:
 - **B — clarify or extend an ADR:** update that ADR or draft a successor, plus the implementation document.
 - **C — make a new architectural decision:** draft the next numbered `docs/adr/NNNN-<decision>.md`, plus the implementation document.
 
-Do not reopen accepted decisions without naming the conflicting evidence. Keep user guidance in `wiki/`, not `docs/`.
+Do not reopen accepted decisions without naming the conflicting evidence. Keep current user guidance in `docs/user/`, not general implementation documentation.
 
 ## Record the decision
 

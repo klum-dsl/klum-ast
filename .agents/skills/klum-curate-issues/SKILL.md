@@ -10,8 +10,8 @@ Build an evidence-backed issue inventory before interviewing the maintainer or c
 ## Load durable context
 
 1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/feature-triage.md`, and `docs/agents/domain.md`.
-2. Read `README.md`, `CHANGES.md`, `wiki/Builder-First-Migration.md`, relevant ADRs and implementation notes, and `docs/implementation/issue-curation/architecture-map.md` if present.
-3. Treat `wiki/Roadmap.md` as historical evidence unless current decisions confirm it.
+2. Read `README.md`, `CHANGES.md`, `docs/user/Builder-First-Migration.md`, relevant ADRs and implementation notes, and `docs/implementation/issue-curation/architecture-map.md` if present.
+3. Treat `docs/user/Roadmap.md` as historical evidence unless current decisions confirm it.
 
 ## Inventory and cluster
 
@@ -24,7 +24,7 @@ For each issue record:
 - affected module, domain concepts, generated/public API, and compatibility surface
 - bug, enhancement, refactoring, documentation, or design decision
 - current relevance and evidence of implementation, supersession, or rejection
-- related issues, PRs, tests, ADRs, wiki pages, and release notes
+- related issues, PRs, tests, ADRs, user-documentation pages, and release notes
 - relationship to Builder-first 4.0 and Groovy 3/4/5 compatibility
 - provisional disposition: `4.0 must`, `4.0 nice`, `4.1`, `later 4.x`, `5.0`, `completed`, `obsolete`, `duplicate`, or `maintainer decision`
 
