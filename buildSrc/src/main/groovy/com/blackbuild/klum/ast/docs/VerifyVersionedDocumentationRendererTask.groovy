@@ -58,6 +58,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
         assertContains(exactLanding.text, 'href="Guide/Nested/"', 'authored Markdown links must resolve to directory URLs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
+        assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
+                'authoring-root escapes must become immutable repository-source links')
         assertContains(exactLanding.text, 'id="same-heading-1"', 'duplicate GitHub-compatible heading ids')
         assertContains(exactLanding.text, 'id="überblick"', 'Unicode heading ids')
         assertContains(exactLanding.text, '&lt;unsafe-card&gt;', 'authored raw HTML must be escaped')
@@ -333,7 +335,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 <dependencies><dependency /></dependencies>
 ```
 '''
-        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md) and [[Home#same-heading|Current documentation]].\n'
+        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [[Home#same-heading|Current documentation]], and [source skill](../../agent-skills/example/SKILL.md).\n'
         new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes.\n'

@@ -203,7 +203,8 @@ class VersionedDocumentationRenderer {
                     statusLabel       : presentation.label,
                     notice            : presentation.notice,
                     logoPath          : logoTarget,
-                    logoAltText       : logoAltText)
+                    logoAltText       : logoAltText,
+                    repositoryRevision: revision)
             write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
         }
 
