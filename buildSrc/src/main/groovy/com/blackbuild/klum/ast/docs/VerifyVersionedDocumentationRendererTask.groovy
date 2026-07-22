@@ -377,12 +377,15 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
             File moduleRoot = new File(repository, "$module/build/docs/javadoc")
             new File(moduleRoot, 'index.html').with {
                 parentFile.mkdirs()
-                text = "<html><a href=\"$representativeType#%3Cinit%3E()\">$module</a></html>"
+                text = "<html><a href=\"$representativeType#%3Cinit%3E()\">$module</a>" +
+                        '<a href="constant-values.html#com.example">constants</a></html>'
             }
             new File(moduleRoot, representativeType).with {
                 parentFile.mkdirs()
                 text = "<html><section id=\"&lt;init&gt;()\">$module representative public type</section></html>"
             }
+            new File(moduleRoot, 'constant-values.html').text =
+                    '<html><section id="com.example.fixture">fixture constants</section></html>'
             [(module): moduleRoot]
         }
     }

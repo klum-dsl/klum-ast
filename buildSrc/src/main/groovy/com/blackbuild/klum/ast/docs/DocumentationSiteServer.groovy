@@ -96,7 +96,10 @@ class DocumentationSiteServer implements Closeable {
                     Matcher anchorMatcher = ANCHORS.matcher(html)
                     while (anchorMatcher.find())
                         anchors << URLDecoder.decode(decodeHtmlAttribute(anchorMatcher.group(1)), StandardCharsets.UTF_8)
-                    if (!anchors.contains(URLDecoder.decode(fragment, StandardCharsets.UTF_8)))
+                    String decodedFragment = URLDecoder.decode(fragment, StandardCharsets.UTF_8)
+                    boolean javadocPackageGroup = document.path.endsWith('/constant-values.html') &&
+                            anchors.any { it.startsWith("$decodedFragment.") }
+                    if (!anchors.contains(decodedFragment) && !javadocPackageGroup)
                         fail("Rendered documentation fragment is absent: $document#$fragment")
                 }
             }
