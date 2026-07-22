@@ -1,6 +1,6 @@
 # Domain-first smart-home journey
 
-This executable 4.0-preview fixture is the shared reference for the `build-domain-first-schema` skill and the [Domain-first modeling](../../../wiki/Domain-First-Modeling.md) guide. It starts from a backend-agnostic home domain, not a target document.
+This executable 4.0-preview fixture is the shared reference for the `build-domain-first-schema` skill and the [Domain-first modeling](../../../docs/user/Domain-First-Modeling.md) guide. It starts from a backend-agnostic home domain, not a target document.
 
 The four modules make the Layer 3 boundary concrete:
 

@@ -9,7 +9,7 @@ Deliver one approved behavior slice without silently making new architecture dec
 
 ## Load the contract
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/coding-style.md`, `docs/agents/testing.md`, `docs/agents/commits.md`, `docs/agents/pull-requests.md`, the canonical issue, architecture map, linked ADRs, implementation plan, and wiki contract. Confirm the requested slice and its acceptance criteria before editing.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/coding-style.md`, `docs/agents/testing.md`, `docs/agents/commits.md`, `docs/agents/pull-requests.md`, the canonical issue, architecture map, linked ADRs, implementation plan, and user-documentation contract. Confirm the requested slice and its acceptance criteria before editing.
 
 Stop and report a decision conflict when the requested behavior contradicts an ADR, Builder-first lifecycle invariant, generated/public contract, or confirmed issue. Route unresolved design back to `$klum-grill-issue` or `$klum-plan-design`.
 
@@ -36,7 +36,7 @@ Update only what the behavior requires:
 
 - formal decision in `docs/adr/`
 - implementation reasoning in `docs/implementation/`
-- user behavior or migration in `wiki/`, including `_Sidebar.md` when navigation changes
+- user behavior or migration in `docs/user/`, including `_Sidebar.md` when navigation changes
 - implemented release change in `CHANGES.md`
 - canonical issue/PR links according to `docs/agents/pull-requests.md`
 

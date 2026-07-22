@@ -103,9 +103,9 @@ This is not a new ADR. It implements the already accepted Builder-first boundary
 
 ### OPD-3 — Compatibility, documentary evidence, and guidance
 
-**Modules:** affected test fixtures and `wiki/`.
+**Modules:** affected test fixtures and `docs/user/`.
 
-1. Add a dedicated `OwnerProvidedDefaultsDocumentaryTest` with `@Issue("494")`, `@Tag("documentary")`, and `@See` pointing to the user-facing wiki material.
+1. Add a dedicated `OwnerProvidedDefaultsDocumentaryTest` with `@Issue("494")`, `@Tag("documentary")`, and `@See` pointing to the user-facing documentation.
 2. Document the current use case, defaults timing, conservative absence rule, fresh-owned-versus-`LINK` identity behavior, standalone-warning behavior, and the boundary with #414/generic mixins. Update default/copy guidance and navigation as appropriate.
 3. Add `CHANGES.md` only when the feature lands. Do not advertise the feature before implementation.
 4. Run the focused Groovy 3 tests, the affected module test suite, `groovy4Tests`, and `groovy5Tests`, then perform documentation and diff checks.

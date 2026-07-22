@@ -339,7 +339,7 @@ import java.lang.annotation.Target;
 
  <h2>On collections</h2>
 
-  <p>Although most examples in this wiki use {@code List}, basically any class implementing / sub interface of {@code Collection} can be
+  <p>Although most examples in the user documentation use {@code List}, basically any class implementing / sub interface of {@code Collection} can be
  used instead. There are a couple of points to take note, however:</p>
 
  <ul>

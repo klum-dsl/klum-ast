@@ -30,4 +30,4 @@ The composite build intentionally uses the checked-out KlumAST 4.x source baseli
 
 This fixture does not read defaults from a YAML resource; that deferred migration convenience belongs to [#79](https://github.com/klum-dsl/klum-ast/issues/79). It also does not compose base, environment, and override files; ordered composition belongs to [#304](https://github.com/klum-dsl/klum-ast/issues/304). Record either need as a focused follow-up instead of making this onboarding example promise unavailable behavior.
 
-See [Target Contract Modeling](https://github.com/klum-dsl/klum-ast/wiki/Target-Contract-Modeling) for the task guide and [`../../field-tests/target-contract-helm/`](../../field-tests/target-contract-helm/) for the later real-project evaluation starting point.
+See [Target Contract Modeling](https://klum-dsl.github.io/klum-ast/4.0/Target-Contract-Modeling/) for the task guide and [`../../field-tests/target-contract-helm/`](../../field-tests/target-contract-helm/) for the later real-project evaluation starting point.

@@ -19,7 +19,7 @@ Before this slice, the executable suite contained one `@Tag("documentary")` mark
 
 ## In-scope user-visible DSL inventory
 
-The following maps the current feature-oriented wiki corpus to the best local historical issue evidence. `Not yet
+The following maps the current feature-oriented user-documentation corpus to the best local historical issue evidence. `Not yet
 aligned` means the documentation and executable behavior exist, but this audit has not yet established a readable,
 annotated documentary path. It is a queue for a later #491 slice, not a new behavioral contract.
 

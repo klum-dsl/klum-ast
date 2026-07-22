@@ -10,7 +10,7 @@ Apply confirmed decisions while retaining useful issue history.
 ## Verify authorization and context
 
 1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, `docs/agents/feature-triage.md`, and the full target issue bodies and comments.
-2. Read the confirmed interview summary, curation indexes, linked ADRs, implementation plans, wiki contracts, tests, and release notes.
+2. Read the confirmed interview summary, curation indexes, linked ADRs, implementation plans, user-documentation contracts, tests, and release notes.
 3. Stop and return unresolved points to `$klum-grill-issue` when intent, canonical issue, closure reason, or release placement is not confirmed.
 
 ## Draft canonical issues

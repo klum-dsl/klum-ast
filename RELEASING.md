@@ -36,8 +36,8 @@ version rather than permitting a retry in place.
 The mutable `gitPublishPush` wiki path is deliberately not part of the protected artifact
 workflow. [ADR 0013](docs/adr/0013-versioned-documentation-and-javadocs.md) gives #456 the
 versioned documentation/Javadoc source, hosting, URL, preview, retention, and protected Pages
-stage. Until that implementation and its credential-free tracer exist, the current wiki is not a
-release destination.
+stage. The delivered tracer and protected Pages stage are the documentation release gates; the
+mutable wiki remains migration-stub material only and is not a release destination.
 
 The repository currently uses major action tags in its workflows. Maintainers must review
 the resolved action revisions and their update policy before authorizing the first use of the

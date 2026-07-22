@@ -25,7 +25,7 @@ Test are done via the Spock Framework. Most important tests are in the klum-ast 
 
 ## Domain glossary
 
-These terms are sourced from the project wiki and consolidated here. Use these canonical terms when writing issues, ADRs or code comments.
+These terms are sourced from the user documentation and consolidated here. Use these canonical terms when writing issues, ADRs or code comments.
 
 - Klum project naming
 
@@ -253,6 +253,6 @@ These terms are sourced from the project wiki and consolidated here. Use these c
 
 ## Where to look next
 
-- `wiki/Terms.md` — longer form notes and examples (source material for this glossary)
+- `docs/user/Terms.md` — longer form notes and examples (source material for this glossary)
 - `README.md` — project goals and examples
 - `settings.gradle` — subproject/module list and boundaries

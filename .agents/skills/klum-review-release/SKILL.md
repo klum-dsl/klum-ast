@@ -9,7 +9,7 @@ Produce the smallest coherent 4.0 scope consistent with accepted decisions and c
 
 ## Reconcile reality
 
-Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/feature-triage.md`, `docs/agents/pull-requests.md`, all curation files, open issues and milestones, recent merged PRs, current CI status, `CHANGES.md`, `README.md`, `wiki/Builder-First-Migration.md`, and relevant ADRs and implementation notes.
+Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/issue-tracker.md`, `docs/agents/feature-triage.md`, `docs/agents/pull-requests.md`, all curation files, open issues and milestones, recent merged PRs, current CI status, `CHANGES.md`, `README.md`, `docs/user/Builder-First-Migration.md`, and relevant ADRs and implementation notes.
 
 Cross-check every curation claim against current GitHub and repository state. Identify:
 
@@ -37,6 +37,6 @@ Record evidence, recommendation, owner/decision needed, and next action for each
 
 ## Propose external changes
 
-Present proposed changes to `wiki/Roadmap.md`, `CHANGES.md`, milestones, labels, and GitHub issues separately. Apply them only after explicit maintainer confirmation and through the appropriate repo-specific skill.
+Present proposed changes to `docs/user/Roadmap.md`, `CHANGES.md`, milestones, labels, and GitHub issues separately. Apply them only after explicit maintainer confirmation and through the appropriate repo-specific skill.
 
 Finish only when the issue index, release plan, repository state, and GitHub state reconcile; every 4.0 item has a disposition and evidence; and the recommended scope states its blockers, deferrals, and residual risks.

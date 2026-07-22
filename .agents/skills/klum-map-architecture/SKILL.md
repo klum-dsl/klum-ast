@@ -10,7 +10,7 @@ Build the compact architecture cache used by later issue-curation work.
 ## Establish the baseline
 
 1. Work from the repository root and read `AGENTS.md`, `CONTEXT.md`, and the agent policies they route to.
-2. Read `settings.gradle`, the root and module build files, `buildSrc/src/main/groovy/`, `.junie/guidelines.md`, `README.md`, `CHANGES.md`, `wiki/_Sidebar.md`, and `wiki/Builder-First-Migration.md`.
+2. Read `settings.gradle`, the root and module build files, `buildSrc/src/main/groovy/`, `.junie/guidelines.md`, `README.md`, `CHANGES.md`, `docs/user/_Sidebar.md`, and `docs/user/Builder-First-Migration.md`.
 3. Read every file in `docs/adr/` and `docs/implementation/`. Treat accepted ADRs as authoritative and surface contradictions.
 
 ## Trace the architecture selectively

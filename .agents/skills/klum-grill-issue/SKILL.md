@@ -11,7 +11,7 @@ Resolve maintainer decisions without asking for facts discoverable in the reposi
 
 1. Read `AGENTS.md`, `CONTEXT.md`, `docs/agents/domain.md`, `docs/agents/feature-triage.md`, and `.agents/skills/grilling/SKILL.md`.
 2. Read the complete issues and comments plus their entries in the architecture map, issue index, duplicate map, release plan, and decision log.
-3. Read linked ADRs, implementation notes, wiki pages, tests, and only enough source to establish current behavior.
+3. Read linked ADRs, implementation notes, user-documentation pages, tests, and only enough source to establish current behavior.
 
 Present a compact evidence brief before questioning:
 
