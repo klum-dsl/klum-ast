@@ -7,6 +7,7 @@ import com.blackbuild.klum.ast.docs.VerifyCredentialFreeDocumentationTracerTask
 import com.blackbuild.klum.ast.docs.VerifyRenderedDocumentationSiteTask
 import com.blackbuild.klum.ast.docs.PreviewRenderedDocumentationTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
+import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.javadoc.Javadoc
 
 buildscript {
@@ -147,6 +148,61 @@ def versionedDocumentationJavadocTasks = VersionedDocumentationRenderer.MODULE_R
 def versionedDocumentationJavadocDirectories = VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.keySet().collectEntries { module ->
     [(module): project(":$module").tasks.named('javadoc', Javadoc).get().destinationDir]
 }
+
+def localDocumentationRevision = providers.gradleProperty('documentationRevision').orElse(
+        providers.exec {
+            workingDir(rootDir)
+            commandLine('git', 'rev-parse', 'HEAD')
+        }.standardOutput.asText.map { it.trim() })
+def localDocumentationObjectDirectory = providers.gradleProperty('documentationObjectDirectory')
+        .map { file(it) }
+        .orElse(providers.provider { rootDir })
+def localDocumentationOutputDirectory = providers.gradleProperty('documentationOutputDirectory')
+        .map { file(it) }
+        .orElse(providers.provider { layout.buildDirectory.dir('versioned-documentation/local-review').get().asFile })
+
+def cleanLocalDocumentationOutput = tasks.register('cleanLocalDocumentationOutput', Delete) {
+    delete(localDocumentationOutputDirectory)
+    doFirst {
+        File output = localDocumentationOutputDirectory.get().canonicalFile
+        File allowedRoot = layout.buildDirectory.dir('versioned-documentation').get().asFile.canonicalFile
+        if (output == allowedRoot || !output.toPath().startsWith(allowedRoot.toPath()))
+            throw new GradleException("Local documentation cleanup is restricted to a subdirectory of $allowedRoot: $output")
+    }
+}
+def renderLocalDocumentationFiles = tasks.register('renderLocalDocumentationFiles', RenderVersionedDocumentationTask) {
+    description = 'Renders the local exact-version documentation tree with review-safe defaults.'
+    revision.set(localDocumentationRevision)
+    rendererRevision.set(providers.gradleProperty('documentationRendererRevision').orElse(localDocumentationRevision))
+    documentationVersion.set(providers.gradleProperty('documentationVersion').orElse('4.0.0-tracer'))
+    status.set(providers.gradleProperty('documentationStatus').orElse('tracer'))
+    brandingManifestPath.set(providers.gradleProperty('documentationBrandingManifest').orElse('docs/branding/season-4-klumast.json'))
+    releaseStage.set(providers.gradleProperty('documentationReleaseStage'))
+    finalBrandingApprovalPath.set(providers.gradleProperty('documentationFinalBrandingApproval'))
+    archivedVersions.set(splitDocumentationProperty('documentationArchivedVersions'))
+    objectDirectory.set(layout.dir(localDocumentationObjectDirectory))
+    outputDirectory.set(layout.dir(localDocumentationOutputDirectory))
+    dependsOn(cleanLocalDocumentationOutput, versionedDocumentationJavadocTasks)
+    moduleJavadocs.from(versionedDocumentationJavadocTasks)
+    moduleJavadocDirectories.set(versionedDocumentationJavadocDirectories)
+}
+def verifyLocalDocumentationSite = tasks.register('verifyLocalDocumentationSite', VerifyRenderedDocumentationSiteTask) {
+    description = 'Serves and crawls the locally rendered site under the real /klum-ast/ Pages base path.'
+    siteDirectory.set(layout.dir(localDocumentationOutputDirectory))
+    dependsOn(renderLocalDocumentationFiles)
+}
+tasks.register('renderLocalDocumentation') {
+    group = 'documentation'
+    description = 'Clears, renders, and verifies local documentation with review-safe defaults and no credentials.'
+    dependsOn(verifyLocalDocumentationSite)
+}
+tasks.register('previewLocalDocumentation', PreviewRenderedDocumentationTask) {
+    group = 'documentation'
+    description = 'Clears, renders, and serves local documentation with review-safe defaults until interrupted.'
+    siteDirectory.set(layout.dir(localDocumentationOutputDirectory))
+    dependsOn(renderLocalDocumentationFiles)
+}
+
 tasks.named('renderVersionedDocumentation', RenderVersionedDocumentationTask) {
     dependsOn(versionedDocumentationJavadocTasks)
     moduleJavadocs.from(versionedDocumentationJavadocTasks)

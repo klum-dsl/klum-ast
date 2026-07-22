@@ -284,6 +284,34 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         if (!directDependencies.containsAll(expectedDependencies))
             throw new GradleException("Exact-version rendering must depend on every allowed module Javadoc task; actual direct dependencies: $directDependencies")
         assertTrue(!directDependencies.contains(':klum-ast-bom:javadoc'), 'BOM must not be wired into exact-version API rendering')
+        def localEntryTask = project.tasks.named('renderLocalDocumentation').get()
+        def localPreviewTask = project.tasks.named('previewLocalDocumentation').get()
+        def localVerifyTask = project.tasks.named('verifyLocalDocumentationSite').get()
+        def localRenderTask = project.tasks.named('renderLocalDocumentationFiles', RenderVersionedDocumentationTask).get()
+        Set<String> localRenderDependencies = localRenderTask.taskDependencies.getDependencies(localRenderTask)*.path as Set
+        assertTrue(localEntryTask.taskDependencies.getDependencies(localEntryTask)*.name.contains('verifyLocalDocumentationSite'),
+                'local documentation entry point must verify the rendered site')
+        assertTrue(localVerifyTask.taskDependencies.getDependencies(localVerifyTask)*.name.contains('renderLocalDocumentationFiles'),
+                'local documentation verification must require the local render')
+        assertTrue(localPreviewTask.taskDependencies.getDependencies(localPreviewTask)*.name.contains('renderLocalDocumentationFiles'),
+                'local documentation preview must require the same local render')
+        assertTrue(localRenderDependencies.contains(':cleanLocalDocumentationOutput'),
+                'local documentation rendering must clear its dedicated output first')
+        assertTrue(localRenderDependencies.containsAll(expectedDependencies),
+                'local documentation rendering must include every allowed module Javadoc task')
+        assertTrue(localRenderTask.documentationVersion.get() == '4.0.0-tracer', 'local documentation version must default to 4.0.0-tracer')
+        assertTrue(localRenderTask.status.get() == 'tracer', 'local documentation status must default to tracer')
+        assertTrue(localRenderTask.brandingManifestPath.get() == 'docs/branding/season-4-klumast.json',
+                'local documentation must default to the Season 4 branding manifest')
+        assertTrue(localRenderTask.objectDirectory.get().asFile.canonicalFile == project.rootDir.canonicalFile,
+                'local documentation must default to the repository object directory')
+        assertTrue(localRenderTask.outputDirectory.get().asFile.canonicalFile ==
+                new File(project.buildDir, 'versioned-documentation/local-review').canonicalFile,
+                'local documentation must default to its dedicated review output')
+        assertTrue(localRenderTask.revision.get() == git(project.rootDir, ['rev-parse', 'HEAD']).trim(),
+                'local documentation revision must default to the full current HEAD')
+        assertTrue(localRenderTask.rendererRevision.get() == localRenderTask.revision.get(),
+                'local renderer revision must default to the rendered revision')
         def rootProject = project
         VersionedDocumentationRenderer.MODULE_REPRESENTATIVE_JAVADOCS.each { String module, String representativeType ->
             def javadocTask = rootProject.project(":$module").tasks.named('javadoc').get()
