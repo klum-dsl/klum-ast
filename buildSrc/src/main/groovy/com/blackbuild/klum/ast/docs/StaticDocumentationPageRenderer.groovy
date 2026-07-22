@@ -40,6 +40,7 @@ import org.commonmark.renderer.html.AttributeProviderContext
 import org.commonmark.renderer.html.AttributeProviderFactory
 import org.commonmark.renderer.html.HtmlRenderer
 
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.Normalizer
@@ -252,7 +253,9 @@ img { max-width: 100%; height: auto; }
     private static String rewriteDestination(String destination, String sourcePath, String outputPath,
                                              Map<String, String> pageOutputs, String repositoryRevision,
                                              String repositorySourcePath, String authoringRoot) {
-        if (!destination || destination.startsWith('#') || destination.startsWith('//') || destination ==~ /(?i)[a-z][a-z0-9+.-]*:.*/)
+        if (!destination) return destination
+        if (destination.startsWith('#')) return normalizeLocalFragment(destination)
+        if (destination.startsWith('//') || destination ==~ /(?i)[a-z][a-z0-9+.-]*:.*/)
             return destination
         int suffixAt = [destination.indexOf('?'), destination.indexOf('#')].findAll { it >= 0 }.min() ?: -1
         String path = suffixAt >= 0 ? destination.substring(0, suffixAt) : destination
@@ -280,13 +283,21 @@ img { max-width: 100%; height: auto; }
                 String repositoryPath = repositoryResolved.toString().replace('\\', '/')
                 if (!repositoryPath || repositoryPath.startsWith('../')) return destination
                 String kind = repositoryPath.toLowerCase(Locale.ROOT).endsWith('.md') ? 'blob' : 'tree'
-                return "https://github.com/klum-dsl/klum-ast/$kind/$repositoryRevision/$repositoryPath$suffix"
+                return "https://github.com/klum-dsl/klum-ast/$kind/$repositoryRevision/$repositoryPath${normalizeLocalFragment(suffix)}"
             }
         }
         if (resolved.startsWith('..') && !outputTarget) return destination
         String rewritten = relativeUrl(outputPath, outputTarget ?: sourceTarget)
         if (path.endsWith('/') && !rewritten.endsWith('/')) rewritten += '/'
-        rewritten + suffix
+        rewritten + normalizeLocalFragment(suffix)
+    }
+
+    private static String normalizeLocalFragment(String suffix) {
+        int hash = suffix.indexOf('#')
+        if (hash < 0 || hash == suffix.length() - 1) return suffix
+        String encoded = suffix.substring(hash + 1).replace('+', '%2B')
+        String fragment = URLDecoder.decode(encoded, StandardCharsets.UTF_8)
+        suffix.substring(0, hash + 1) + slug(fragment)
     }
 
     static String relativeUrl(String fromOutputPath, String targetOutputPath) {

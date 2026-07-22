@@ -81,7 +81,7 @@ def pendingDocumentationHandoff = tasks.register('preparePendingDocumentationSta
     objectDirectory.set(layout.projectDirectory)
     renderedDocumentationDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
     handoffFile.set(layout.file(providers.gradleProperty('documentationHandoffFile').map { file(it) }))
-    dependsOn(tasks.named('renderVersionedDocumentation'))
+    dependsOn('verifyRenderedDocumentationSite')
 }
 
 tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {

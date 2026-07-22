@@ -58,7 +58,9 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'href="status/"', 'RC status link must remain inside the exact tree')
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
         assertContains(exactLanding.text, 'href="Guide/Nested/"', 'authored Markdown links must resolve to directory URLs')
+        assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
+        assertContains(nestedPage.text, 'href="../../#same-heading"', 'cross-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
         assertContains(changelog.text, 'href="../Builder-First-Migration/"',
@@ -291,6 +293,9 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 
         assertTrue(project.tasks.findByName('gitPublishPush')?.description?.contains('fails closed'),
                 'Former mutable wiki publisher must be registered as a fail-closed task')
+        def pendingTask = project.tasks.named('preparePendingDocumentationStage').get()
+        assertTrue(pendingTask.taskDependencies.getDependencies(pendingTask)*.name.contains('verifyRenderedDocumentationSite'),
+                'protected pending preparation must require the HTTP presentation and link crawl')
         String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
         assertContains(pagesWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT/', 'pending Pages path must be version and SHA scoped')
         assertContains(pagesWorkflow, 'test ! -e "pages/$expected_path"', 'existing immutable pending Pages paths must be rejected')
@@ -302,6 +307,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'stage-pending-documentation', 'artifact workflow must require the pending Pages stage')
+        assertContains(releaseWorkflow, 'pages: write', 'reusable Pages workflow caller must grant Pages deployment authority')
+        assertContains(releaseWorkflow, 'id-token: write', 'reusable Pages workflow caller must grant OIDC authority')
         assertContains(releaseWorkflow, 'DOCUMENTATION_MANIFEST_SHA256', 'artifact workflow must recheck the pending manifest handoff')
         assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
@@ -318,7 +325,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         new File(repository, '.gitignore').text = '*/build/\n'
         new File(repository, 'docs/user/Home.md').text = '''# Current documentation
 
-[Nested guide](Guide/Nested.md) and [[Changelog]].
+[Nested guide](Guide/Nested.md), [same-page heading](#Same%20heading), and [[Changelog]].
 
 ![Local logo](img/klumlogo.png)
 
@@ -338,7 +345,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 <dependencies><dependency /></dependencies>
 ```
 '''
-        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).\n'
+        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [home heading](../Home.md#Same%20heading), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).\n'
         new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
         new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
