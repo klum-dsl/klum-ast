@@ -29,17 +29,23 @@ on:
         description: Immutable, unlisted Pages path.
         value: ${{ jobs.publish-pending.outputs.exact_path }}
       manifest_sha256:
-        description: SHA-256 of the rendered source manifest.
+        description: SHA-256 of the rendered static-site manifest.
         value: ${{ jobs.publish-pending.outputs.manifest_sha256 }}
+      deployment_commit:
+        description: Read-back-verified immutable gh-pages commit.
+        value: ${{ jobs.publish-pending.outputs.deployment_commit }}
       deployment_id:
-        description: Immutable gh-pages deployment commit.
-        value: ${{ jobs.publish-pending.outputs.deployment_id }}
+        description: Pages deployment workflow run and attempt identifier.
+        value: ${{ jobs.deploy-pages.outputs.deployment_id }}
+      page_url:
+        description: URL reported by the protected Pages deployment.
+        value: ${{ jobs.deploy-pages.outputs.page_url }}
 
 permissions:
   contents: read
 
 concurrency:
-  group: pending-documentation-${{ inputs.version }}
+  group: pending-documentation-gh-pages
   cancel-in-progress: false
 
 jobs:
@@ -50,6 +56,16 @@ jobs:
       identity_valid: ${{ steps.master.outputs.valid }}
 
     steps:
+      - name: Require the rehearsed protected Pages contract
+        env:
+          DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$DOCUMENTATION_PAGES_READY" = true || {
+            echo 'Protected documentation Pages is not rehearsed and enabled.' >&2
+            exit 1
+          }
       - id: identity
         env:
           RELEASE_STAGE: ${{ inputs.stage }}
@@ -98,7 +114,7 @@ jobs:
       commit: ${{ inputs.commit }}
       exact_path: ${{ steps.handoff.outputs.exact_path }}
       manifest_sha256: ${{ steps.handoff.outputs.manifest_sha256 }}
-      deployment_id: ${{ steps.pages.outputs.deployment_id }}
+      deployment_commit: ${{ steps.pages.outputs.deployment_commit }}
 
     steps:
       - uses: actions/checkout@v7
@@ -149,6 +165,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -f pages/.nojekyll || {
+            echo 'The protected gh-pages ledger is not initialized with .nojekyll.' >&2
+            exit 1
+          }
           expected_path="pending/$RELEASE_VERSION/$EXPECTED_COMMIT/"
           test ! -e "pages/$expected_path" || {
             echo 'The pending documentation path already exists and is immutable.' >&2
@@ -181,14 +201,41 @@ jobs:
           git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
             commit -m "Stage pending documentation for $RELEASE_VERSION"
           git push origin HEAD:gh-pages
-          echo "deployment_id=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          deployment_commit=$(git rev-parse HEAD)
+          git fetch --no-tags origin gh-pages
+          test "$(git rev-parse FETCH_HEAD)" = "$deployment_commit"
+          git diff --quiet "$deployment_commit" FETCH_HEAD
+          echo "deployment_commit=$deployment_commit" >> "$GITHUB_OUTPUT"
+      - name: Upload the read-back-verified gh-pages ledger
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages
+
+  deploy-pages:
+    name: Deploy the protected gh-pages ledger
+    needs: publish-pending
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      deployment_id: ${{ github.run_id }}.${{ github.run_attempt }}
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        name: Deploy the uploaded static site to GitHub Pages
+        uses: actions/deploy-pages@v5
 
   retain-rejected-evidence:
     name: Retain rejected pending-stage evidence
-    needs: [validate-input, publish-pending]
+    needs: [validate-input, publish-pending, deploy-pages]
     if: >-
       ${{ always() && needs.validate-input.outputs.identity_valid == 'true' &&
-          needs.publish-pending.result == 'failure' }}
+          (needs.publish-pending.result == 'failure' || needs.deploy-pages.result == 'failure') }}
     runs-on: ubuntu-latest
     environment:
       name: documentation-pages
@@ -208,6 +255,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -f pages/.nojekyll || {
+            echo 'The protected gh-pages ledger is not initialized with .nojekyll.' >&2
+            exit 1
+          }
           rejected_path="pending-rejected/$RELEASE_VERSION/$EXPECTED_COMMIT"
           test ! -e "pages/$rejected_path" || {
             echo 'The rejected pending documentation path already exists.' >&2

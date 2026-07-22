@@ -4,6 +4,8 @@ import com.blackbuild.klum.ast.docs.GenerateGitHubWikiMigrationStubsTask
 import com.blackbuild.klum.ast.docs.PreparePendingDocumentationStageTask
 import com.blackbuild.klum.ast.docs.VerifyVersionedDocumentationRendererTask
 import com.blackbuild.klum.ast.docs.VerifyCredentialFreeDocumentationTracerTask
+import com.blackbuild.klum.ast.docs.VerifyRenderedDocumentationSiteTask
+import com.blackbuild.klum.ast.docs.PreviewRenderedDocumentationTask
 import com.blackbuild.klum.ast.docs.VersionedDocumentationRenderer
 import org.gradle.api.tasks.javadoc.Javadoc
 
@@ -85,6 +87,20 @@ def pendingDocumentationHandoff = tasks.register('preparePendingDocumentationSta
 tasks.register('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentationRendererTask) {
     group = 'verification'
     description = 'Runs hermetic acceptance fixtures for the deterministic versioned-documentation renderer.'
+}
+
+tasks.register('verifyRenderedDocumentationSite', VerifyRenderedDocumentationSiteTask) {
+    group = 'verification'
+    description = 'Serves and crawls a rendered site under the real /klum-ast/ Pages base path.'
+    siteDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
+    dependsOn(tasks.named('renderVersionedDocumentation'))
+}
+
+tasks.register('previewRenderedDocumentation', PreviewRenderedDocumentationTask) {
+    group = 'documentation'
+    description = 'Serves a rendered site at a local /klum-ast/ URL until interrupted.'
+    siteDirectory.set(layout.dir(providers.gradleProperty('documentationOutputDirectory').map { file(it) }))
+    dependsOn(tasks.named('renderVersionedDocumentation'))
 }
 
 tasks.register('verifyCredentialFreeDocumentationTracer', VerifyCredentialFreeDocumentationTracerTask) {

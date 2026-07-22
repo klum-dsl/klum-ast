@@ -68,10 +68,12 @@ abstract class PreparePendingDocumentationStageTask extends DefaultTask {
     }
 
     static Map<String, Object> validateRenderedManifest(File renderedDocumentationDirectory, String releaseStage, String version, String revision) {
-        File manifest = new File(renderedDocumentationDirectory, "$version/source-manifest.json")
+        File manifest = new File(renderedDocumentationDirectory, "$version/site-manifest.json")
         if (!manifest.file)
-            fail("Pending documentation render did not produce its source manifest for $version")
+            fail("Pending documentation render did not produce its site manifest for $version")
         Map<String, ?> parsed = new JsonSlurper().parseText(manifest.getText(StandardCharsets.UTF_8.name())) as Map<String, ?>
+        if (parsed.schemaVersion != 2 || (parsed.renderer as Map)?.contract != StaticDocumentationPageRenderer.CONTRACT_ID)
+            fail('Pending documentation manifest does not describe the accepted static HTML render contract')
         if (parsed.documentation != [version: version, status: 'pending'])
             fail('Pending documentation manifest does not describe the requested pending snapshot')
         if ((parsed.source as Map)?.revision != revision)

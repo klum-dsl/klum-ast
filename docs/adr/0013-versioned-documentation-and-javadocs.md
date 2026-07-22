@@ -2,6 +2,8 @@
 
 Date: 2026-07-21
 
+Amended: 2026-07-22 (static-HTML presentation and Pages rehearsal contract)
+
 Status: Accepted
 
 Tracking issue: [#456 — Introduce versioned user documentation and Javadocs](https://github.com/klum-dsl/klum-ast/issues/456)
@@ -24,7 +26,15 @@ KlumAST needs documentation and API reference that identify the exact release li
 
 The current 4.x authoring tree moves from the misleading wiki/ name to docs/user/ in the first #456 implementation slice. Protected GitHub Pages is the canonical public destination at https://klum-dsl.github.io/klum-ast/. The mutable GitHub wiki is sunset as a content destination and retains only small, labelled deep-link migration stubs. It is not a second authoring tree.
 
-The renderer consumes a checked-out revision, never implicit working-tree state. For 4.x it reads docs/user/; for historical releases it reads the tagged wiki/ tree. Its source manifest identifies that source root and tree, renderer revision, generated files, Javadoc inputs, and output hashes. Every rendered page visibly identifies its exact version and status. Repository-source URLs are contributor-only and sparse; user navigation and durable external links use the canonical versioned Pages URLs.
+The renderer consumes a checked-out revision, never implicit working-tree state. For 4.x it reads docs/user/; for historical releases it reads the tagged wiki/ tree. Its site manifest identifies that source root and tree, renderer revision and contract, generated files, Javadoc inputs, and output hashes. Every rendered page visibly identifies its exact version and status. Repository-source URLs are contributor-only and sparse; user navigation and durable external links use the canonical versioned Pages URLs.
+
+### Rendered-page contract
+
+Markdown remains the authored source format, but it is not a deployable Pages payload. A pinned repository-local JVM renderer produces deterministic static HTML before publication. The exact version tree contains the rendered HTML, renderer-owned navigation/status chrome and CSS, copied local images/assets, isolated Javadocs, and one `site-manifest.json` covering every exact-tree file except itself. It has no CDN, external font, theme framework, required JavaScript, or runtime Jekyll dependency. A root `.nojekyll` belongs to the global `gh-pages` ledger and is covered by the verified deployment commit rather than an individual version manifest.
+
+Authored `Home.md` becomes `/<version>/index.html`; every other authored `path/Page.md` becomes `/<version>/path/Page/index.html`. Links use relative extensionless directory URLs, including between nested pages and the API landing. GitHub-wiki links are rewritten mechanically. Heading fragments follow GitHub-compatible lowercase punctuation/space and duplicate-suffix behavior so historical fragments remain useful. Authored raw HTML is escaped and unsafe URL schemes are sanitized. The current input contains no presentation HTML. v3.0.1 has generic type tokens such as `<Child>` in signature prose that CommonMark classifies as inline HTML, but no intended presentation markup; escaping preserves the visible notation safely.
+
+Local assets are copied within the exact version tree and manifest-covered. Diagram support is an extension point, not part of the first renderer contract: a future pinned build-time Mermaid or PlantUML adapter may emit local SVG/PNG assets that receive the same link and manifest treatment. Until then, diagram-like fenced blocks remain ordinary readable code.
 
 ### URL and alias contract
 
@@ -52,7 +62,7 @@ An exact documentation tree and its manifest remain immutable. When #488 later p
 
 Each 4.x exact documentation snapshot includes a branding manifest naming its Season identity, logo asset, accessible
 alternative text, and asset digest. The renderer copies that logo into the exact version tree and records the manifest in
-the source manifest; a versioned page must not rely on a mutable global logo URL. Site-wide layout, typography, and other
+the site manifest; a versioned page must not rely on a mutable global logo URL. Site-wide layout, typography, and other
 styling may evolve later without changing this versioned branding identity.
 
 The protected final documentation stage rejects a final snapshot without a branding manifest approved by the branding
@@ -72,13 +82,15 @@ Every final patch and public RC from 4.0 onward publishes matching immutable use
 
 ### Tracer and protected release integration
 
-Before any RC, #456 delivers a credential-free documentation tracer. It renders the v3.0.1 tag and a fixed 4.0 commit, generates six API outputs, selectors, deep-link and wiki-stub fixtures, and a source manifest. It neither publishes output nor changes aliases, and it must never call a candidate an RC.
+Before any RC, #456 delivers a credential-free documentation tracer. It renders the v3.0.1 tag and a fixed 4.0 commit, generates six API outputs, selectors, deep-link and wiki-stub fixtures, and a site manifest. It neither publishes output nor changes aliases, and it must never call a candidate an RC.
 
-The later #456 protected Pages workflow independently validates the same stage, exact version, and master SHA accepted by the release path. Before #488 starts artifact publication it deploys an immutable, unlisted pending documentation snapshot and manifest for that exact input. Deployment is not public-release proof and does not advance aliases. Only #488's post-proof signal may expose stable, line, or preview aliases. Failed paths remain rejected and unlisted; a used public version is burned under ADR 0012 rather than overwritten or repaired in place.
+The later #456 protected Pages workflow independently validates the same stage, exact version, and master SHA accepted by the release path. Before #488 starts artifact publication it commits an immutable, unlisted pending documentation snapshot and manifest for that exact input to the protected `gh-pages` ledger, reads the commit back, uploads that exact ledger through the official Pages artifact path, and completes a protected Pages deployment. Deployment is not public-release proof and does not advance aliases. Only #488's post-proof signal may expose stable, line, or preview aliases. Failed paths remain rejected and unlisted; a used public version is burned under ADR 0012 rather than overwritten or repaired in place.
+
+Because Pages was not configured when this contract was accepted, one disposable pre-contract rehearsal may publish the generated static site for manual evaluation, then unpublish Pages and delete the entire experimental branch. That rehearsal must happen before creating and protecting the canonical orphan `gh-pages` ledger. It does not use a release-like `pending/<version>/<sha>/` path and creates no immutable release evidence. The protected workflow remains fail-closed while the repository variable `DOCUMENTATION_PAGES_READY` is not `true`; maintainers set it only after the rehearsal is removed and the fresh `.nojekyll` ledger, Pages source, environments, and protection rules are verified.
 
 ### Ownership boundaries
 
-#456 owns the renderer, source manifest, site contract, historical ingestion, Javadoc layout, migration stubs, tracer, protected documentation stage, and alias implementation. #488 owns protected authorization, credentials, Maven and plugin publication, public proof, recovery record, and release-operation authority. #456 consumes #488's proof result; it neither publishes artifacts nor creates a release/tag or claims a public RC.
+#456 owns the renderer, site manifest, site contract, historical ingestion, Javadoc layout, migration stubs, tracer, protected documentation stage, and alias implementation. #488 owns protected authorization, credentials, Maven and plugin publication, public proof, recovery record, and release-operation authority. #456 consumes #488's proof result; it neither publishes artifacts nor creates a release/tag or claims a public RC.
 
 AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. They are linked for deduplication and may adopt compatible evidence, but neither changes this KlumAST URL, workflow, or ownership contract.
 
@@ -90,6 +102,12 @@ AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. 
 - The physical source move, renderer source selection, and removal/rejection of the mutable gitPublish path are one first implementation slice, not a later cleanup. Migration stubs preserve existing public wiki links without preserving wiki/ as a live authoring root.
 - A released Season identity remains recognizable even when the surrounding site styling evolves; any logo correction is
   visible and auditable rather than a retrospective rewrite.
+- The public payload is reviewable without GitHub: Gradle can render it, a JDK HTTP server serves it under the real
+  `/klum-ast/` base path, and a crawler checks internal pages, assets, directory indexes, and fragments. The one-time
+  platform rehearsal covers the remaining GitHub Pages presentation/configuration risk.
+- Changing the presentation later requires a new renderer contract for future exact versions; already published exact
+  trees remain byte-identical. Pre-1.0 tags are outside the initial retention set and are unaffected unless explicitly
+  imported by later work.
 
 ## Rejected alternatives
 
@@ -100,3 +118,7 @@ AnnoDocimal #71 and KlumCast #47 are independent repository-local counterparts. 
 **Merged module Javadocs or IDE mirrors.** Both lose module ownership and misrepresent generated completion metadata as supported API.
 
 **Alias advancement on Pages deployment.** Deployment does not prove every Maven coordinate and plugin marker is publicly usable; #488 proof is the required gate.
+
+**Deploying Markdown and relying on implicit Jekyll.** It does not prove the bytes, layout, deep links, or renderer version that readers receive and makes local verification diverge from Pages.
+
+**A permanent rehearsal namespace.** A release-like pending path is single-use evidence. The empty-site rehearsal is deliberately disposable and precedes the immutable ledger instead of weakening that rule.

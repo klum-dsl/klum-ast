@@ -33,12 +33,12 @@ import java.security.MessageDigest
 /**
  * Renders one immutable documentation tree from an explicitly named Git commit.
  *
- * The renderer deliberately handles Markdown as content. Its only presentation
- * responsibility is the stable, mechanical status chrome prepended to every page.
+ * Markdown remains the authoring format; the immutable release payload contains
+ * deterministic static HTML, local assets, isolated Javadocs, and one manifest.
  */
 class VersionedDocumentationRenderer {
 
-    static final String RENDERER_ID = 'klum-ast-buildsrc-vd-1'
+    static final String RENDERER_ID = 'klum-ast-buildsrc-static-html-v1'
     static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
             'klum-ast'                : 'com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.html',
             'klum-ast-runtime'        : 'com/blackbuild/klum/ast/KlumModelObject.html',
@@ -48,7 +48,7 @@ class VersionedDocumentationRenderer {
             'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
     ].asImmutable()
     private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending', 'tracer'] as Set
-    private static final Set<String> RESERVED_PATHS = ['index.md', 'status.md', 'source-manifest.json'] as Set
+    private static final Set<String> RESERVED_PATHS = ['index.html', 'status', 'site-manifest.json', 'assets/site.css'] as Set
     private static final String VERSION_PATTERN = /\d+\.\d+\.\d+(?:-rc\.[1-9]\d*|-tracer)?/
 
     static void render(Map<String, ?> inputs) {
@@ -68,6 +68,7 @@ class VersionedDocumentationRenderer {
         Map<String, File> moduleJavadocs = version.startsWith('4.') ? requiredModuleJavadocs(inputs.moduleJavadocs, objectDirectory) : [:]
         Map<String, String> javadocInputChecksums = new TreeMap<>(normalizedChecksums(inputs.javadocInputChecksums ?: [:]))
         Map<String, File> additionalFiles = normalizedAdditionalFiles(inputs.additionalFiles ?: [:])
+        String apiIndexMarkdown = inputs.apiIndexMarkdown?.toString() ?: ''
         List<String> archivedVersions = ((inputs.archivedVersions ?: []) as List<String>).collect { it.toString() }.sort()
 
         requireFullSha(revision, 'revision')
@@ -120,41 +121,55 @@ class VersionedDocumentationRenderer {
         outputDirectory.mkdirs()
         File exactDirectory = new File(outputDirectory, version)
 
-        Set<String> outputPaths = new TreeSet<>()
+        Map<String, byte[]> authoredMarkdown = new TreeMap<>()
+        Map<String, byte[]> authoredAssets = new TreeMap<>()
         sourcePaths.each { String sourcePath ->
-            String outputPath = sourcePath.substring(sourceRoot.length() + 1)
-            requireRelativePath(outputPath, 'source path')
-            if (RESERVED_PATHS.contains(outputPath))
-                fail("Source path collides with renderer-owned output: $outputPath")
-            if (outputPath == 'api' || outputPath.startsWith('api/'))
-                fail("Source path collides with renderer-owned API output: $outputPath")
-            if (!outputPaths.add(outputPath))
-                fail("Duplicate output path: $outputPath")
+            String relativePath = sourcePath.substring(sourceRoot.length() + 1)
+            requireRelativePath(relativePath, 'source path')
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
-            if (outputPath.endsWith('.md')) {
-                String pageArchiveLink = archiveLink == '/archive/' ? relativeSiteLink(outputPath, 'archive/') : archiveLink
-                String rendered = chrome(version, status, pageArchiveLink, relativeExactLink(outputPath, 'status.md')) + new String(content, StandardCharsets.UTF_8)
-                if (navigationMarkdown && !navigationExcludedPaths.contains(outputPath))
-                    rendered += navigationMarkdown
-                content = rendered.getBytes(StandardCharsets.UTF_8)
-            }
-            write(exactDirectory, outputPath, content)
+            if (relativePath.endsWith('.md')) authoredMarkdown[relativePath] = content
+            else authoredAssets[relativePath] = content
+        }
+        if (!landingSourcePath || !authoredMarkdown.containsKey(landingSourcePath))
+            fail("Landing source is absent from the authored tree: $landingSourcePath")
+        Map<String, String> supplementaryInputs = new TreeMap<>()
+        if (gitObjectExists(objectDirectory, revision, 'CHANGES.md')) {
+            byte[] changelog = gitBytes(objectDirectory, ['show', "${revision}:CHANGES.md"])
+            authoredMarkdown['Changelog.md'] = changelog
+            supplementaryInputs['CHANGES.md'] = sha256(changelog)
         }
 
-        if (landingSourcePath) {
-            File landingSource = new File(exactDirectory, landingSourcePath)
-            if (!landingSource.file)
-                fail("Landing source is absent from the rendered exact tree: $landingSourcePath")
-            write(exactDirectory, 'index.md', landingSource.bytes)
+        Map<String, String> pageOutputs = new TreeMap<>()
+        Map<String, String> wikiPages = new TreeMap<>()
+        authoredMarkdown.keySet().findAll { !navigationExcludedPaths.contains(it) && !(it in ['_Sidebar.md', '_Footer.md']) }.each { String sourcePath ->
+            String outputPath = StaticDocumentationPageRenderer.pageOutputPath(sourcePath, landingSourcePath)
+            if (outputPath != 'index.html' && RESERVED_PATHS.any { outputPath == it || outputPath.startsWith("$it/") })
+                fail("Source path collides with renderer-owned output: $sourcePath -> $outputPath")
+            if (outputPath == 'api/index.html' || outputPath.startsWith('api/'))
+                fail("Source path collides with renderer-owned API output: $sourcePath")
+            if (pageOutputs.containsValue(outputPath))
+                fail("Duplicate rendered output path: $outputPath")
+            pageOutputs[sourcePath] = outputPath
+            wikiPages[StaticDocumentationPageRenderer.wikiKey(sourcePath)] = sourcePath
+        }
+
+        Set<String> outputPaths = new TreeSet<>(pageOutputs.values())
+        authoredAssets.each { String assetPath, byte[] content ->
+            if (RESERVED_PATHS.any { assetPath == it || assetPath.startsWith("$it/") } || assetPath == 'api' || assetPath.startsWith('api/'))
+                fail("Authored asset collides with renderer-owned output: $assetPath")
+            if (!outputPaths.add(assetPath)) fail("Duplicate output path: $assetPath")
+            write(exactDirectory, assetPath, content)
         }
 
         Map<String, ?> branding = [mode: 'not-applicable']
+        String logoTarget
+        String logoAltText = 'KlumAST'
         if (status != 'archived') {
             if (!brandingManifestPath)
                 fail('brandingManifestPath is required for current and public-rc documentation.')
             branding = readBrandingManifest(objectDirectory, revision, brandingManifestPath)
             String logoPath = requiredRelativePath(branding.logo?.toString(), 'branding logo')
-            String logoTarget = "assets/branding/${logoPath.tokenize('/').last()}"
+            logoTarget = "assets/branding/${logoPath.tokenize('/').last()}"
             if (!outputPaths.add(logoTarget))
                 fail("Branding logo collides with an authored output path: $logoTarget")
             byte[] logo = gitBytes(objectDirectory, ['show', "${revision}:${logoPath}"])
@@ -164,16 +179,44 @@ class VersionedDocumentationRenderer {
             write(exactDirectory, logoTarget, logo)
             branding = [manifest: brandingManifestPath, season: branding.season, altText: branding.altText,
                         approval: branding.approval, sourceAsset: logoPath, outputAsset: logoTarget, sha256: logoDigest]
+            logoAltText = branding.altText
             if (status == 'pending' && releaseStage == 'final')
                 branding.finalApproval = readFinalBrandingApproval(objectDirectory, revision, finalBrandingApprovalPath, brandingManifestPath)
         }
 
-        javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
-        if (!moduleJavadocs.isEmpty())
-            write(exactDirectory, 'api/index.md', apiIndex(version).getBytes(StandardCharsets.UTF_8))
+        outputPaths.add('assets/site.css')
+        write(exactDirectory, 'assets/site.css', StaticDocumentationPageRenderer.SITE_CSS.getBytes(StandardCharsets.UTF_8))
+        String sourceNavigation = navigationMarkdown ?: (authoredMarkdown['_Sidebar.md'] ? new String(authoredMarkdown['_Sidebar.md'], StandardCharsets.UTF_8) : '')
+        String sourceFooter = authoredMarkdown['_Footer.md'] ? new String(authoredMarkdown['_Footer.md'], StandardCharsets.UTF_8) : ''
+        Map<String, String> presentation = presentation(version, status)
+        pageOutputs.each { String sourcePath, String outputPath ->
+            String html = StaticDocumentationPageRenderer.render(
+                    markdown          : new String(authoredMarkdown[sourcePath], StandardCharsets.UTF_8),
+                    sourcePath        : sourcePath,
+                    outputPath        : outputPath,
+                    pageOutputs       : pageOutputs,
+                    wikiPages         : wikiPages,
+                    navigationMarkdown: sourceNavigation,
+                    footerMarkdown    : sourceFooter,
+                    version           : version,
+                    status            : status,
+                    statusLabel       : presentation.label,
+                    notice            : presentation.notice,
+                    logoPath          : logoTarget,
+                    logoAltText       : logoAltText)
+            write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
+        }
 
-        outputPaths.add('status.md')
-        write(exactDirectory, 'status.md', statusRecord(version, status).getBytes(StandardCharsets.UTF_8))
+        javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
+        if (!moduleJavadocs.isEmpty() || apiIndexMarkdown) {
+            outputPaths.add('api/index.html')
+            writeGeneratedPage(exactDirectory, 'api/index.html', 'api-index.md', apiIndexMarkdown ?: apiIndex(version), version, status,
+                    pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
+        }
+
+        outputPaths.add('status/index.html')
+        writeGeneratedPage(exactDirectory, 'status/index.html', 'status.md', statusRecord(version, status), version, status,
+                pageOutputs, wikiPages, sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
         additionalFiles.each { String additionalPath, File additionalFile ->
             requireRelativePath(additionalPath, 'additional file path')
             if (!outputPaths.add(additionalPath))
@@ -184,24 +227,30 @@ class VersionedDocumentationRenderer {
             if (status == 'archived')
                 archivedVersions << version
             if (!archivedVersions.isEmpty()) {
-                write(outputDirectory, 'archive/index.md', archiveIndex(archivedVersions.unique().sort()).getBytes(StandardCharsets.UTF_8))
+                write(outputDirectory, 'archive/index.html', selectorPage('Archived KlumAST documentation',
+                        archiveIndex(archivedVersions.unique().sort()), "../$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
             }
-            write(outputDirectory, 'index.md', rootIndex(version, status).getBytes(StandardCharsets.UTF_8))
+            write(outputDirectory, 'index.html', selectorPage('KlumAST documentation snapshot', rootIndex(version, status),
+                    "$version/assets/site.css").getBytes(StandardCharsets.UTF_8))
         }
 
-        Map<String, String> outputHashes = outputHashes(outputDirectory)
-        outputHashes.remove("$version/source-manifest.json")
+        Map<String, String> outputHashes = outputHashes(exactDirectory)
+        outputHashes.remove('site-manifest.json')
         Map<String, ?> sourceManifest = [
-                schemaVersion         : 1,
-                renderer              : [id: RENDERER_ID, revision: rendererRevision],
-                source                : [revision: revision, root: sourceRoot, treeHash: treeHash],
+                schemaVersion         : 2,
+                renderer              : [id: RENDERER_ID, revision: rendererRevision,
+                                         contract: StaticDocumentationPageRenderer.CONTRACT_ID,
+                                         commonmarkVersion: StaticDocumentationPageRenderer.COMMONMARK_VERSION,
+                                         extensions: ['gfm-tables'], rawHtml: 'escaped', unsafeUrls: 'sanitized'],
+                source                : [revision: revision, root: sourceRoot, treeHash: treeHash,
+                                         supplementaryInputs: supplementaryInputs],
                 documentation         : [version: version, status: status],
                 branding              : branding,
                 javadocInputChecksums : new TreeMap<>(javadocInputChecksums),
                 generatedFiles        : new TreeSet<>(outputHashes.keySet()),
                 outputHashes          : new TreeMap<>(outputHashes)
         ]
-        write(exactDirectory, 'source-manifest.json', canonicalJson(sourceManifest).getBytes(StandardCharsets.UTF_8))
+        write(exactDirectory, 'site-manifest.json', canonicalJson(sourceManifest).getBytes(StandardCharsets.UTF_8))
     }
 
     private static Map<String, ?> readBrandingManifest(File objectDirectory, String revision, String path) {
@@ -317,6 +366,8 @@ class VersionedDocumentationRenderer {
         (values as Map).each { key, value ->
             if (!(key instanceof String))
                 fail('Additional files must use String output paths')
+            if (key.toLowerCase(Locale.ROOT).endsWith('.md'))
+                fail('Authored Markdown cannot be added to a deployed static-site payload')
             File file = requiredFile([file: value], 'file')
             if (!file.file)
                 fail("Additional file does not exist: $file")
@@ -325,18 +376,39 @@ class VersionedDocumentationRenderer {
         normalized
     }
 
-    private static String chrome(String version, String status, String archiveLink, String statusLink) {
+    private static Map<String, String> presentation(String version, String status) {
         String statusLabel = status == 'archived' ? 'Archived (legacy)' : status == 'public-rc' ? 'Public release candidate' : status == 'tracer' ? 'Credential-free tracer' : status == 'pending' ? 'Pending release evidence' : 'Exact version'
         String notice = status == 'archived'
-                ? "> **Archived (legacy).** This exact documentation is retained for compatibility. Browse [the archive](${archiveLink}).\n"
+                ? 'Archived (legacy). This exact documentation is retained for compatibility.'
                 : status == 'public-rc'
-                ? "> **Prerelease warning.** $version is a prerelease, not stable. See its [version-status record]($statusLink).\n"
+                ? "$version is a prerelease, not stable."
                 : status == 'tracer'
-                ? '> **Tracer only.** This credential-free render is verification evidence, not a release or prerelease.\n'
+                ? 'Tracer only. This credential-free render is verification evidence, not a release or prerelease.'
                 : status == 'pending'
-                ? '> **Pending release evidence.** This unlisted snapshot is a protected publication gate, not a public release or alias.\n'
-                : '> This is an immutable exact-version documentation snapshot.\n'
-        "<!-- Generated by $RENDERER_ID. Do not edit this rendered copy. -->\n> **KlumAST $version — $statusLabel**\n$notice\n"
+                ? 'Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias.'
+                : 'This is an immutable exact-version documentation snapshot.'
+        [label: statusLabel, notice: notice]
+    }
+
+    private static void writeGeneratedPage(File exactDirectory, String outputPath, String sourcePath, String markdown,
+                                           String version, String status, Map<String, String> pageOutputs,
+                                           Map<String, String> wikiPages, String navigationMarkdown, String footerMarkdown,
+                                           Map<String, String> presentation, String logoPath, String logoAltText) {
+        String html = StaticDocumentationPageRenderer.render(
+                markdown          : markdown,
+                sourcePath        : sourcePath,
+                outputPath        : outputPath,
+                pageOutputs       : pageOutputs,
+                wikiPages         : wikiPages,
+                navigationMarkdown: navigationMarkdown,
+                footerMarkdown    : footerMarkdown,
+                version           : version,
+                status            : status,
+                statusLabel       : presentation.label,
+                notice            : presentation.notice,
+                logoPath          : logoPath,
+                logoAltText       : logoAltText)
+        write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
     }
 
     private static String statusRecord(String version, String status) {
@@ -351,19 +423,27 @@ class VersionedDocumentationRenderer {
     }
 
     private static String archiveIndex(List<String> versions) {
-        "# Archived KlumAST documentation\n\n" + versions.collect { "- [$it](../$it/) — Archived (legacy)" }.join('\n') + '\n'
+        '<ul>' + versions.collect { "<li><a href=\"../$it/\">$it</a> — Archived (legacy)</li>" }.join('') + '</ul>'
     }
 
     private static String rootIndex(String version, String status) {
-        "# KlumAST documentation snapshot\n\nThis local render contains the immutable [$version]($version/) documentation tree with status **$status**.\n\n" +
-                "Its [isolated module API reference]($version/api/) belongs to the same exact version.\n"
+        "<p>This local render contains the immutable <a href=\"$version/\">$version</a> documentation tree with status <strong>$status</strong>.</p>" +
+                "<p>Its <a href=\"$version/api/\">isolated module API reference</a> belongs to the same exact version.</p>"
     }
 
     private static String apiIndex(String version) {
         "# KlumAST $version API reference\n\n" +
                 'Each published module has a distinct Javadoc base. The BOM and IDE-only source mirrors are not API inputs.\n\n' +
-                MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module -> "- [$module]($module/)" }.join('\n') +
+                MODULE_REPRESENTATIVE_JAVADOCS.keySet().collect { module -> "- [$module](api/$module/)" }.join('\n') +
                 '\n\n[Documentation landing](../)\n'
+    }
+
+    private static String selectorPage(String title, String body, String cssPath) {
+        """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$title</title><link rel="stylesheet" href="$cssPath"></head>
+<body><main class="content" style="width:min(70rem,calc(100% - 2rem));margin:2rem auto"><h1>$title</h1>$body</main></body></html>
+"""
     }
 
     private static String relativeExactLink(String sourcePath, String targetPath) {
@@ -418,6 +498,11 @@ class VersionedDocumentationRenderer {
         if (process.waitFor() != 0)
             fail("Git input acquisition failed (${command.join(' ')}): ${new String(output, StandardCharsets.UTF_8).trim()}")
         output
+    }
+
+    private static boolean gitObjectExists(File directory, String revision, String path) {
+        Process process = new ProcessBuilder('git', 'cat-file', '-e', "${revision}:${path}").directory(directory).start()
+        process.waitFor() == 0
     }
 
     private static String sha256(byte[] content) {

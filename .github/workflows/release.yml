@@ -136,7 +136,9 @@ jobs:
           DOCUMENTATION_COMMIT: ${{ needs.stage-pending-documentation.outputs.commit }}
           DOCUMENTATION_EXACT_PATH: ${{ needs.stage-pending-documentation.outputs.exact_path }}
           DOCUMENTATION_MANIFEST_SHA256: ${{ needs.stage-pending-documentation.outputs.manifest_sha256 }}
+          DOCUMENTATION_DEPLOYMENT_COMMIT: ${{ needs.stage-pending-documentation.outputs.deployment_commit }}
           DOCUMENTATION_DEPLOYMENT_ID: ${{ needs.stage-pending-documentation.outputs.deployment_id }}
+          DOCUMENTATION_PAGE_URL: ${{ needs.stage-pending-documentation.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
@@ -145,7 +147,9 @@ jobs:
           test "$DOCUMENTATION_COMMIT" = "${{ inputs.commit }}"
           test "$DOCUMENTATION_EXACT_PATH" = "pending/${{ inputs.version }}/${{ inputs.commit }}/"
           [[ "$DOCUMENTATION_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          [[ "$DOCUMENTATION_DEPLOYMENT_ID" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$DOCUMENTATION_DEPLOYMENT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$DOCUMENTATION_DEPLOYMENT_ID" =~ ^[0-9]+\.[0-9]+$ ]]
+          [[ "$DOCUMENTATION_PAGE_URL" =~ ^https:// ]]
       - name: Verify, sign, stage, and publish the complete product
         run: >-
           ./gradlew ${{ inputs.stage }} publishCompleteKlumAstProduct
