@@ -333,8 +333,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 <dependencies><dependency /></dependencies>
 ```
 '''
-        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md) and [[Current documentation|Home#same-heading]].\n'
-        new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Nested|Guide/Nested]]\n* [[Changelog]]\n'
+        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md) and [[Home#same-heading|Current documentation]].\n'
+        new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes.\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)

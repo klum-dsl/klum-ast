@@ -189,8 +189,8 @@ img { max-width: 100%; height: auto; }
             String destination = expression
             int separator = expression.indexOf('|')
             if (separator >= 0) {
-                label = expression.substring(0, separator).trim()
-                destination = expression.substring(separator + 1).trim()
+                destination = expression.substring(0, separator).trim()
+                label = expression.substring(separator + 1).trim()
             }
             String fragment = ''
             int hash = destination.indexOf('#')
