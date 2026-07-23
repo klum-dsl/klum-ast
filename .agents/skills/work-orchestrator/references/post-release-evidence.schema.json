@@ -78,8 +78,20 @@
         "deadline": {"$ref": "#/$defs/utcTimestamp"},
         "capacity": {"$ref": "#/$defs/capacity"},
         "admission_stop": {"$ref": "#/$defs/admissionStop"},
+        "mobile": {"$ref": "#/$defs/mobileMode"},
         "pause": {"$ref": "#/$defs/pause"},
         "contract_rebase_validation": {"$ref": "#/$defs/contractRebaseValidation"}
+      }
+    },
+    "mobileMode": {
+      "description": "Explicit, time-bounded Mobile Mode context. Stores no device, access-path, location, availability, prompt, or inferred telemetry.",
+      "type": "object",
+      "required": ["active", "until"],
+      "additionalProperties": false,
+      "properties": {
+        "active": {"type": "boolean"},
+        "until": {"$ref": "#/$defs/utcTimestamp"},
+        "desktop_review_follow_up": {"$ref": "#/$defs/safeText"}
       }
     },
     "capacity": {
