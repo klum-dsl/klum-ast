@@ -19,6 +19,17 @@ If any condition is uncertain or unmet, stop at `(ready:PR)` and ask the maintai
 This authorization covers pushing the dedicated branch and creating a draft pull request only. It does not authorize
 marking the pull request ready for review, merging it, or expanding the assigned scope.
 
+## Delivery authorization audit
+
+Before a remote delivery action, verify authorization for each channel that will perform it. A connected GitHub App
+installation and an authenticated `gh` CLI session are separate authorities: success, token presence, or a denial on one
+does not establish the other's repository capability. Record only the channel/category and safe outcome (`authorized`,
+`denied`, or `unavailable`); never store or report credentials, token scopes, or raw authentication errors.
+
+If an intended channel is denied, report the safe outcome. Use another already-authorized channel only when it performs
+the same user-authorized action; that fallback does not authorize a broader mutation. Otherwise stop at the delivery
+boundary and ask for direction.
+
 ## Pull request scope and issue links
 
 - Use closing keywords only for issues whose accepted behavior is fully delivered by the pull request.
