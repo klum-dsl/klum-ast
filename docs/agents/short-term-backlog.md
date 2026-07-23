@@ -116,7 +116,9 @@ While Mobile Mode is active, the Hive prioritizes short-confirmation work with c
 maintainer answer. A task can remain mobile-friendly while its full diff review waits for desktop use. Broad design
 grillings, large/manual comparisons, and IDE-heavy review are deprioritized. Lead with the outcome; use compact vertical
 sections; do not render Mermaid, logs, or raw long diffs unless requested; and surface at most one material decision at a
-time. A mobile-oriented `(ready:PR)` brief must state behavior, key file groups, validation, risks, and the exact
+time. When Mobile Mode begins, a worker with a pending PR, issue, or other user interaction repeats the request when it
+would help the maintainer act, stating the outcome/status, one needed action, and any desktop-review caveat in that same
+format. A mobile-oriented `(ready:PR)` brief must state behavior, key file groups, validation, risks, and the exact
 desktop-review focus in structured, skimmable sections rather than pointing at the app diff. Full desktop review and all
 normal safety/release gates remain required.
 
