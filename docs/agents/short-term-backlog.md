@@ -53,9 +53,10 @@ upstream in
 [`blackbuild/engineering-baseline#2`](https://github.com/blackbuild/engineering-baseline/issues/2). The KlumAST-specific
 issue-tracker and authorization wording above remains local.
 
-The reusable AFK-window protocol, commit-addressable handoff, and safe evidence-context contract are also proposals for
-that same baseline issue. Its KlumAST overlay remains local: the exact burst/capacity limits, resource-sensitive
-concurrency reduction, license-policy hard stops, and human ownership of uncertain classification and all GitHub changes.
+The reusable AFK-window and Mobile Mode protocols, commit-addressable handoff, and safe evidence-context contract are
+also proposals for that same baseline issue. Its KlumAST overlay remains local: the exact burst/capacity limits,
+resource-sensitive concurrency reduction, license-policy hard stops, peer-Hive classification, and human ownership of
+uncertain classification and all GitHub changes.
 
 When a KlumAST worker completes, apply the generic `work-orchestrator` completion-handoff protocol; this overlay does not
 authorize automatic follow-up work or change the root `AGENTS.md` delivery/archive states. In particular, a worker that
@@ -103,6 +104,29 @@ precondition; a pause is not completion, cancellation, or cleanup authorization.
 window, the Hive refreshes and considers eligible paused workers before new candidates. It may resume one only after the
 normal fresh-admission and capacity checks still pass.
 
+## MOBILE-POL cross-Hive local overlay
+
+Mobile Mode is explicit, time-bounded interaction context, independent from AFK Mode and combinable with it. It never
+authorizes work, changes AFK admission/capacity, or substitutes for desktop review, safety gates, or release gates. Do
+not infer it from remote access, device state, location, availability, or activity. The only safe observed context is
+active status, explicit expiry, and an optional desktop-review follow-up, recorded through the reusable evidence schema
+when evidence recording is authorized.
+
+While Mobile Mode is active, the Hive prioritizes short-confirmation work with contained diffs and no expected long
+maintainer answer. A task can remain mobile-friendly while its full diff review waits for desktop use. Broad design
+grillings, large/manual comparisons, and IDE-heavy review are deprioritized. Lead with the outcome; use compact vertical
+sections; do not render Mermaid, logs, or raw long diffs unless requested; and surface at most one material decision at a
+time. A mobile-oriented `(ready:PR)` brief must state behavior, key file groups, validation, risks, and the exact
+desktop-review focus in structured, skimmable sections rather than pointing at the app diff. Full desktop review and all
+normal safety/release gates remain required.
+
+For routine cross-Hive coordination, Asgard Support is a separate project, not a peer Hive; do not broadcast to it or
+include it in peer-Hive discovery. It may contact the KlumAST Hive for KlumAST-specific questions. Treat a future task as
+a Hive candidate only when it is named `Hive` and/or is the persistent orchestration task for a project in the
+`blackbuild` or `klum-dsl` GitHub organizations. If coordination is needed or classification is uncertain, ask the
+maintainer before treating it as a peer. The future persistent Baseline/Policy Hive owns and refines this classification
+rule after it exists.
+
 ## Post-release orchestration evidence overlay
 
 For KlumAST 4.0, every cross-orchestrator evidence stream must carry stable `release_id` `klum-ast-4.0` and a distinct
@@ -116,5 +140,6 @@ sanitized human-reviewable report plus machine-readable summary for the engineer
 This policy does not authorize creating that store, automating collection, or mutating this product repository, its
 tracker, or its remotes to gather evidence. Preserve KlumAST's normal human ownership of classification, GitHub changes,
 and publication authority. When a per-run store is explicitly authorized, use the reusable schema's safe append-only
-policy context for mode, window, deadline, capacity, admission stop, and contract/base/rebase/validation references; do
-not add prompts, secrets, credentials, raw command output, inferred quota, or inferred cognition.
+policy context for mode, window, deadline, capacity, admission stop, explicit Mobile Mode active/until context, optional
+desktop-review follow-up, and contract/base/rebase/validation references; do not add prompts, secrets, credentials, raw
+command output, device/access state, inferred quota, or inferred cognition.
