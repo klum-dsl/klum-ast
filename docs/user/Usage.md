@@ -20,7 +20,7 @@ klumSchema {
 }
 ```
 
-For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See [[Getting Started]] for
+For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See [[Getting Started|Gradle onboarding]] for
 the complete first Schema and test, [[Gradle Plugins]] for plugin details, and the model plugin when a separate configured
 Model artifact is required.
 

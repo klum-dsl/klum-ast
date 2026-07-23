@@ -5,7 +5,7 @@
 A Schema is annotated Groovy source containing the class definitions for a model's DSL Object types, fields,
 relationships, defaults, lifecycle behavior, and validation rules. It is analogous to an XSD for an XML document or a
 JSON Schema for JSON data, but is also executable source: KlumAST generates the model-construction API from it. See
-[[Basics]] and [[Getting Started]].
+[[Basics]] and [[Getting Started|Gradle onboarding]].
 
 ## Model
 

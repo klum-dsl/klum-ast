@@ -5,7 +5,7 @@
   * [[Terms]]
   * [[Usage]]
   * [[Gradle Plugins]]
-  * [[Getting Started|Gradle onboarding (4.0 preview)]]
+  * [[Getting Started|Gradle onboarding]]
   * [[Domain First Modeling]]
   * [[Target Contract Modeling]]
   * [[Basics]]

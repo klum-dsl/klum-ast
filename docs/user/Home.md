@@ -130,4 +130,4 @@ if (projectsWithoutClean) {
 }
 ```
 
-For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with [[Getting Started]].
+For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with [[Getting Started|Gradle onboarding]].
