@@ -50,12 +50,12 @@ public class Validator {
      *
      * @param instance the instance to validate the structure of. Must be a DSL object.
      * @return a list of {@link KlumValidationResult} containing validation errors.
-     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().getResults()}
+     * @deprecated use {@code KlumObjectSupport.of(instance).getValidation().getSubtreeResults()}
      */
     @Deprecated(forRemoval = true)
     @SuppressWarnings("java:S1133") // source-compatible OS-2 migration adapter
     public static List<KlumValidationResult> getValidationResultsFromStructure(Object instance) {
-        return KlumObjectSupport.of(instance).getValidation().getResults();
+        return KlumObjectSupport.of(instance).getValidation().getSubtreeResults();
     }
 
     /**
