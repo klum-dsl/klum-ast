@@ -2,19 +2,48 @@ KlumAST
 =======
 Turn your models into supermodels!
 
-# What is KlumAST?
+## What is KlumAST?
 
-KlumAST is the first part of the KlumDSL suite. It provides and easy way to create a complete DSL for a simple model class.
- 
-There are two main objectives for this project:
+KlumAST turns annotated model classes into concise, statically checked Groovy DSLs. It is designed for a
+Schema Developer to describe a model once, a Model Writer to configure it through a readable DSL, and client code to
+consume the completed model without generated mutation methods.
 
-- be as terse as possible while still being readable and using almost no boilerplate code
+The [[Terms|role guide]] defines these responsibilities and the value kinds used throughout the documentation.
 
-- Offer as much IDE-based assistance as possible. 
-    - In IDEA this works by including a custom gdsl file (mostly working)
-    - In Eclipse, inclusion of a custom dsld file is planned
+## Why models as code?
 
-Generated factories configure a mutable Builder graph and return completed, structurally immutable DSL Objects. Lifecycle work through `POST_TREE` runs on Builders; materialization happens before validation. See [[Basics]], [[Model Phases]], and the [[Builder First Migration]] guide.
+A useful model-as-code approach should be easy to author, clear to change, and safe to verify:
+
+- **Automate model construction.** Generated Builders, factories, and DSL mutators remove repetitive implementation work
+  while retaining statically checked Groovy source.
+- **Support the authoring experience.** Generated Builder documentation and IDE mirrors make the model's construction
+  surface discoverable without hand-maintained DSL stubs.
+- **Validate and test the actual model.** A Schema can declare its own constraints, and each generated root factory runs
+  validation as it materializes a completed model. Model-specific scenarios are ordinary unit tests: construct the model,
+  assert its completed state or validation result, and run the same tests locally and in a pull-request build. They
+  complement, rather than replace, integration tests against the eventual target.
+
+Typical validation output names the rule that emitted it:
+
+```text
+- ERROR #ConnectivityChecks.portMustBeInRange(): port must be between 1 and 65535
+```
+
+Construction paths retain the source context, which is especially useful when a model is split across scripts. For
+example, an illustrative failure from `models/production.groovy` could read:
+
+```text
+<root>.service($/Deployment.From:file(models/production.groovy)/service):
+- ERROR #port: Field 'port' must be set
+```
+
+Generated factories configure a mutable Builder graph and return completed, structurally immutable DSL Objects. Lifecycle
+work through `POST_TREE` runs on Builders; materialization happens before validation. See [[Basics]], [[Model Phases]], and
+the [[Builder First Migration]] guide. [[Exception Handling|Construction paths]] describe model-source locations in detail.
+
+These capabilities make KlumAST especially useful for GitOps and other `*aC` (anything-as-code) workflows. Git can record a
+configuration's structure, but a checked-in structure is not necessarily a verified model. Read
+[[Why aC is not enough|why `*aC` needs model-level tests]] before treating configuration in Git as the end of the story.
 
 ## Example
 
@@ -80,8 +109,7 @@ def config = Config.Create.With {
 }
 ```
 
-_Note that since 0.17.0, the `projects` closure is only optional syntactic sugar, `project` entry could also be out
-directly under config._
+The `projects` closure is optional syntactic sugar; `project` entries can also appear directly in the `Config` callback.
 
 Since complete objects are created, using the configuration is simple:
 
@@ -101,3 +129,5 @@ if (projectsWithoutClean) {
     }
 }
 ```
+
+For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with [[Getting Started]].

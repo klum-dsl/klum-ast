@@ -1,30 +1,27 @@
-This page contains some of the planned milestones for next versions
+# 4.0 release scope
 
-# 2.0 -> redesign
+KlumAST 4.0 is an unreleased breaking release. Its headline change is Builder-first construction: factories configure
+mutable Builders, materialize a completed structurally immutable DSL Object graph, and then validate it. Read
+[[Builder First Migration]] before moving existing Schema, client, or extension code to 4.0.
 
-2.0 marks an extensive redesign, the switch to a more modular approach and the introduction of a runtime dependency. 
-I tried to keep necessary migration steps to a minimum, but some changes are necessary, see [[Migration]] for Details.
+The current 4.0 documentation set also includes version-matched Gradle onboarding, domain-first and target-contract
+journeys, completed-object support, and the asymmetric Jackson integration. The release notes in [[Changelog]] are the
+authoritative inventory of delivered user-visible behavior.
 
-Status: Mature, I have some features that I would still like to include, but i believe I am on the finishing line now.
+## Content pending maintainer acceptance
 
-# 2.1 -> Interface Stripdown
+Before the first public RC, the documentation content requires explicit maintainer acceptance under
+[#544](https://github.com/klum-dsl/klum-ast/issues/544). Versioned rendering, Pages staging, aliases, and publication
+mechanics are owned separately by [#456](https://github.com/klum-dsl/klum-ast/issues/456).
 
-2.1 will be released almost immediately after 2.0, it will mostly be 2.0 with deprecated methods removed.
+Layer 3 terminology, variants, and representative examples remain under [#454](https://github.com/klum-dsl/klum-ast/issues/454).
+The current guidance states only the settled API–Schema–Model pattern and must not be read as a commitment to a broader
+Layer 3 contract.
 
-# 2.x -> New Features (unplanned)
+## Historical roadmap
 
-I do not plan release additional features for 2.x
-
-# 3.0 -> Drop Groovy 2 support
-
-As with 2.1, this will be released soon after 2.0 (and 2.1) and will only consist of dropping Groovy 2 support.
-
-# 4.0 -> New Features (unplanned)
-
-Some heavier features that might break compatibility, like Model/Builder separation, a clean cleint facing API, Layer 3 improvements and overall clean up.
-
-This might include some smaller quality of life improvements, like better error messages, better documentation and more examples.
-
+The 2.x and 3.0 roadmap notes were planning material for releases that are now historical. Their migration guidance is
+preserved in [[Migration]]; this page intentionally does not present those earlier plans as current commitments.
 
 
 

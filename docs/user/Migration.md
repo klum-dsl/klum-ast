@@ -1,7 +1,6 @@
-Migration Guide
----------------
+# Migration
 
-# to 4.0
+## To 4.0
 
 4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship values or ordinary Jackson export values, and deferred Builder actions cannot be scheduled at phase 40 or later. Jackson is an asymmetric external-format integration rather than Klum persistence and adds no wire metadata.
 
@@ -24,18 +23,18 @@ local module-path flags to compensate for an invalid dependency graph.
 Recompile schemas and custom checks when moving to KlumAST 4.0. Existing name-bound custom checks remain supported by
 KlumCast's temporary 0.4 migration bridge. Their migration to the durable check SPI is tracked by [#460](https://github.com/klum-dsl/klum-ast/issues/460), not by this dependency integration.
 
-# to 2.2
+## To 2.2
 
 `toString()` methods are not automatically generated anymore, to restore the old behavior, add the `@ToString` annotation to the classes.
 `manualValidation` has been dropped, as it does not work with stackable issues. This feature can be simulated by either downgrading the issues on the object at hand or skipping the Verify phase and handling errors manually
 
-# to 2.1
+## To 2.1
 
 It is strongly advised to first update to 2.0 and the to 2.1. 
 
 2.1 drops all deprecated methods of 2.0. Since they are documented, replacing them with their new counterparts should be straightforward.
 
-# to 2.0
+## To 2.0
 
 The sections below describe historical migration steps and may show APIs, such as completed-model `apply`, that were
 subsequently removed in 4.0. Apply the historical migration first, then follow [[Builder First Migration]].
@@ -44,7 +43,7 @@ subsequently removed in 4.0. Apply the historical migration first, then follow [
 
 which wraps `KlumValidationResult`s for the validated objects, each containing the relevant `KlumValidationIssue`s. Previously, an AssertionError was thrown, so calling code might need to be adjusted.
 
-## multiple inner create calls on the same field (or key in a map field) now stack instead of replacing
+## Multiple Inner Create Calls on the Same Field (or Key in a Map Field) Now Stack Instead of Replacing
 
 Previously, multiple calls to the same inner create method would replace the previous value. 
 
@@ -176,21 +175,21 @@ sounding call is deprecated and only present to allow a simple search and replac
 ## Dependency changes
 For 2.0, the single klum-ast dependency is replaced by two KlumAST is split into three distinct jars:
 
-### klum-ast-annotations
+### `klum-ast-annotations`
 
 Does not usually need to be addressed directly except in very special cases, since it is a dependency of both of
 the other jars.
 
-### klum-ast
+### `klum-ast`
 
 Contains the actual AST transformations, i.e. the core of KlumAST. These need to be present during compile-time only
 and need not be present on runtime (usually it should be safe if they are).
 
-### klum-ast-runtime
+### `klum-ast-runtime`
 
 Contains classes needed during runtime.
 
-### compileOnly vs. runtime scope
+### `compileOnly` vs. Runtime Scope
 
 Since klum-ast now relies on a runtime component, a schema now should have two separate dependencies, `klum-ast` as 
 `compileOnly` (`provided` for Maven) and and `klum-ast-runtime` as `api`  (`runtime` for Maven), i.e.:
@@ -221,7 +220,7 @@ or
 </dependencies>
 ```
 
-# to 1.2
+## To 1.2
 
 ## DelegateOnly Strategy for closures
 
@@ -276,7 +275,7 @@ eventually be replace with a compiler error). Consider using a more domain speci
 `graph` or `parent` is advisable.
 
 
-# Breaking changes since 0.98
+## Breaking changes since 0.98
 
 - Models are now read-only. That means changes to fields can only be done:
 
@@ -302,7 +301,7 @@ eventually be replace with a compiler error). Consider using a more domain speci
   }
   ```
 
-# Breaking changes since 0.17
+## Breaking changes since 0.17
 
 the following features were dropped:
 - pre using existing `create` and `apply` methods is no longer supported, this has been replaced by a lifecycle mechanism 

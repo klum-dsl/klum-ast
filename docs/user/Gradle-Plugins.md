@@ -1,14 +1,14 @@
+# Gradle plugins
+
 KlumAST provides some Gradle plugins to make the setup of a Klum project easier. They consist of the following plugins:
 
-# com.blackbuild.convention.groovy
+## `com.blackbuild.convention.groovy`
 
 This plugin is not specific to Klum and might be extracted to a separate project in the future. It basically sets the necessary dependencies for Groovy as well as a matching version of the Spock Framework.
 
 The version can be set directly via a String or int property:
 
 ```groovy
-import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
-
 plugins {
     id 'com.blackbuild.convention.groovy' version '<version>'
     id 'groovy'
@@ -30,7 +30,7 @@ Applying the plugin (provided the Groovy plugin is also applied) does the follow
 
 If the plugin is applied to a child project, it will inherit the configured Groovy versions from the root project, if applicable (even if the Groovy plugin is not applied to the root project). That way, the Groovy version can be set in a single place. In a klum project, this is usually the only situation where the convention plugin needs to be used directly, as the other two plugins will apply it automatically.
 
-# com.blackbuild.klum-ast-schema
+## `com.blackbuild.klum-ast-schema`
 
 This plugin is used in schema projects (as well as `api` as defined by [Layer3]). It does the following things:
 
@@ -61,7 +61,7 @@ publishing {
     repositories {...}
 }
 ```
-# com.blackbuild.klum-ast-model
+## `com.blackbuild.klum-ast-model`
 
 This plugin is used in model projects. It does the following things:
 
@@ -90,15 +90,13 @@ klumModel {
 }
 ```
 
-# Multi module
+## Multi module
 
 Schema and model can be combined in a multimodule project (with the pre mentioned problem of missing IDE support):
 
 Root:
 
 ```groovy
-import com.blackbuild.klum.ast.gradle.convention.GroovyVersion
-
 plugins {
     id 'com.blackbuild.convention.groovy' version '3.0.0'
 }
