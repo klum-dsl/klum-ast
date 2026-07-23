@@ -33,6 +33,7 @@ import com.blackbuild.klum.ast.util.layer3.StructureUtil
 import com.blackbuild.klum.ast.validation.KlumValidationResult
 import com.blackbuild.klum.ast.validation.Validator
 import org.jetbrains.annotations.NotNull
+import spock.lang.Issue
 
 import javax.tools.ToolProvider
 import java.lang.reflect.Modifier
@@ -60,7 +61,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         support.modelPath
         support.structure.findAll(clazz)
         def storedResult = support.validation.result
-        support.validation.results
+        support.validation.subtreeResults
         def bytes = new ByteArrayOutputStream()
         new ObjectOutputStream(bytes).withCloseable { it.writeObject(instance) }
         def dynamicLoader = loader
@@ -143,7 +144,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         ''', 'cannot find symbol')
     }
 
-    def "validation support includes clean stored results without rerunning validation"() {
+    @Issue("549")
+    def "validation support distinguishes its result from subtree results without rerunning validation"() {
         given:
         createClass '''
             @DSL class Root {
@@ -196,9 +198,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         when:
         def result = support.validation.result
-        def results = support.validation.results
+        def subtreeResults = support.validation.subtreeResults
         def deprecatedResults = Validator.getValidationResultsFromStructure(instance)
-        def subtreeResults = childSupport.validation.results
+        def childSubtreeResults = childSupport.validation.subtreeResults
         def verified = support.validation.verify()
         compileJavaConsumer('''
             import com.blackbuild.groovy.configdsl.transform.Validate;
@@ -210,7 +212,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                 public static void inspect(Root root) {
                     KlumObjectSupport.Validation<Root> validation = KlumObjectSupport.of(root).getValidation();
                     KlumValidationResult result = validation.getResult();
-                    List<KlumValidationResult> results = validation.getResults();
+                    List<KlumValidationResult> subtreeResults = validation.getSubtreeResults();
                     List<KlumValidationResult> verified = validation.verify();
                     validation.verify(Validate.Level.WARNING);
                 }
@@ -219,10 +221,12 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         then:
         result.is(storedRootResult)
-        results == [storedRootResult, storedChildResult, storedCleanResult]
-        deprecatedResults == results
-        subtreeResults == [storedChildResult]
-        verified == results
+        subtreeResults == [storedRootResult, storedChildResult, storedCleanResult]
+        deprecatedResults == subtreeResults
+        childSubtreeResults == [storedChildResult]
+        verified == subtreeResults
+        KlumObjectSupport.Validation.declaredMethods*.name.contains('getSubtreeResults')
+        !KlumObjectSupport.Validation.declaredMethods*.name.contains('getResults')
         Root.validationCalls == 1
         Child.validationCalls == 1
         CleanChild.validationCalls == 1
@@ -235,7 +239,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         then:
         def error = thrown(KlumValidationException)
-        error.validationResults == results
+        error.validationResults == subtreeResults
         Root.validationCalls == 1
         Child.validationCalls == 1
         CleanChild.validationCalls == 1

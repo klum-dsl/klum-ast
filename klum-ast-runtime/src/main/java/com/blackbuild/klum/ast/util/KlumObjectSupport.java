@@ -135,7 +135,7 @@ public final class KlumObjectSupport<T> {
          * Returns stored validation results for this object and its owned composition subtree.
          * Owner and {@code LINK} fields are not followed.
          */
-        public List<KlumValidationResult> getResults() {
+        public List<KlumValidationResult> getSubtreeResults() {
             List<KlumValidationResult> results = new ArrayList<>();
             KlumObjectSupport.of(object).getStructure().visit((path, element, container, nameOfFieldInContainer) -> {
                 KlumValidationResult result = InternalKlumObjectSupport.getValidationResult(element);
@@ -153,7 +153,7 @@ public final class KlumObjectSupport<T> {
         /** Verifies stored subtree results using {@code failLevel}. */
         public List<KlumValidationResult> verify(Validate.Level failLevel) throws KlumValidationException {
             Objects.requireNonNull(failLevel, "failLevel");
-            List<KlumValidationResult> results = getResults();
+            List<KlumValidationResult> results = getSubtreeResults();
             KlumValidationResult.throwOn(results, failLevel);
             return results;
         }
