@@ -1,8 +1,8 @@
-Jackson Integration
-===================
+# Jackson Integration
 
 The 4.0 Jackson integration is an interoperability boundary, not a persistence format. Its explicit importer API is
-available through `KlumJacksonImporter`; issue #464 supplies the executable asymmetric YAML tracer.
+available through [`KlumJacksonImporter`](https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumJacksonImporter.java);
+[issue #464](https://github.com/klum-dsl/klum-ast/issues/464) supplies the executable asymmetric YAML tracer.
 
 KlumAST provides optional Jackson integration in the `klum-ast-jackson` module. Its purpose is interoperability with
 externally owned JSON/YAML formats:
@@ -16,10 +16,10 @@ that exported data can be imported again, and does not add format or producer me
 native durable representation of a Klum model.
 
 [ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md) defines the
-interoperability contract and supersedes ADR 0007's persistence framing. Issues #439 and #440 provide the existing
+interoperability contract and supersedes ADR 0007's persistence framing. [Issues #439](https://github.com/klum-dsl/klum-ast/issues/439) and [#440](https://github.com/klum-dsl/klum-ast/issues/440) provide the existing
 resolved-property, Builder, identity, and customization groundwork.
 
-# Responsibilities by role
+## Responsibilities by Role
 
 - A **Client Developer** supplies a configured mapper, invokes managed import, and writes completed models through normal
   Jackson APIs.
@@ -30,9 +30,31 @@ resolved-property, Builder, identity, and customization groundwork.
 
 See [[Terms]] for the project-wide role definitions.
 
-# Dependency and module registration
+## Setup
 
-## Maven
+### Gradle with the Schema Plugin (Preferred)
+
+The Schema plugin imports the matching KlumAST BOM. Add the optional Jackson integration without repeating the version:
+
+```groovy
+dependencies {
+    implementation 'com.blackbuild.klum.ast:klum-ast-jackson'
+}
+```
+
+See [[Usage#gradle-setup-supported]] for the supported plugin and BOM setup.
+
+### Manual Gradle Dependency
+
+For a custom build that does not use the plugin, keep the Jackson module on the same KlumAST version as the other modules:
+
+```groovy
+dependencies {
+    implementation 'com.blackbuild.klum.ast:klum-ast-jackson:<klum-version>'
+}
+```
+
+### Maven (Auxiliary)
 
 ```xml
 <dependencies>
@@ -44,13 +66,7 @@ See [[Terms]] for the project-wide role definitions.
 </dependencies>
 ```
 
-## Gradle
-
-```groovy
-dependencies {
-  implementation 'com.blackbuild.klum.ast:klum-ast-jackson:<version>'
-}
-```
+### Module Registration
 
 Register the module through discovery or explicitly:
 
@@ -62,7 +78,7 @@ ObjectMapper explicit = new ObjectMapper().registerModule(new KlumAstModule());
 The mapper remains caller-owned. Naming strategies, mixins, views, root wrapping, unknown-property policy, formats,
 modules, and data-format factories stay under the integration's control.
 
-# Managed import
+## Managed Import
 
 `KlumJacksonImporter` resolves Jackson properties and binds them to generated Builders rather than partially initialized
 DSL Objects. Configure the caller-owned mapper with `KlumAstModule`, then capture one importer and provide one input per
@@ -83,30 +99,16 @@ Groovy may use `Child.Create.AsBuilder`. The four operations are explicit:
 3. create an imported Builder inside an active Construction session;
 4. apply an input to an existing unsealed Builder.
 
-The importer is immutable and retains a snapshot `mapper.reader()` or an untyped, non-updating `ObjectReader`. It never
-registers a module or changes mapper configuration. Parsers remain open and caller-owned; tree and Map inputs are not
-mutated. `named("config.yaml")` adds an opaque diagnostic source name. Typed or updating readers are rejected. Raw
-`ObjectMapper.readValue(DslType)` remains a discouraged standalone-root compatibility path; do not use it to start a DSL
-root inside an active Construction session.
+The importer does not register modules or change mapper configuration. Parsers remain open and caller-owned;
+`named("config.yaml")` adds a diagnostic source name. Missing properties retain the current Builder value, while present
+values follow the caller's Jackson null, merge, and replacement configuration. Each operation applies one
+`KlumJacksonInput`; arrays, Maps, and YAML multi-document streams do not create a shared Klum lifecycle.
 
-Root import uses this order:
+For the importer snapshot, binding order, and Builder-state mechanics, see
+[[Behind the Curtain#managed-jackson-import-mechanics]]. Raw `ObjectMapper.readValue(DslType)` remains a discouraged
+standalone-root compatibility path; do not use it to start a DSL root inside an active Construction session.
 
-1. allocate root and owned child Builders with their source initializers;
-2. run `PostCreate`;
-3. bind properties present in the external input;
-4. run `PostApply`;
-5. run graph phases, materialization, validation, and verification once.
-
-Missing properties leave the current Builder value unchanged. Present values use the configured Jackson null, merge, and
-replacement behavior; explicitly setting a Collection to `null` is permitted. Ambient Templates, `@Overwrite`, and
-`copyFrom` do not alter Jackson binding.
-
-Owned nested DSL values are Builders in the same Construction session. Each importer operation applies exactly one
-`KlumJacksonInput` before lifecycle completion. Top-level arrays, Maps, and YAML multi-document streams are ordinary
-Jackson structures and do not implicitly create a shared Klum lifecycle; format-specific multi-document convenience and
-ordered heterogeneous composition are later source-neutral core work (#304), not Jackson importer behavior.
-
-# One foreign YAML input, one enriched output
+## One Foreign YAML Input, One Enriched Output
 
 This is the deliberately asymmetric workflow. A Client Developer owns the YAML mapper and provides exactly one input;
 the Schema Developer owns foreign names, aliases, relationships, lifecycle enrichment, and the output projection.
@@ -130,7 +132,7 @@ projection of the completed model. This exact contract is exercised by
 YAML streams, repeated importer calls, and combinations of inputs do not define layering or overwrite policy; the
 source-neutral coordinator remains [#304](https://github.com/klum-dsl/klum-ast/issues/304).
 
-# Mapping a foreign schema
+## Mapping a Foreign Schema
 
 Use ordinary Jackson annotations and configuration to adapt an externally controlled format:
 
@@ -165,7 +167,7 @@ KlumAST still owns construction. `@JsonCreator`, direct completed-model mutation
 type-level custom deserializer is a full opt-out; it receives no additional Klum lifecycle. Prefer a converter or a
 `FieldType.BUILDER` staging field populated into real fields during `PostApply` or a later Builder phase.
 
-# LINK values
+## `LINK` Values
 
 `FieldType.LINK` is aggregation rather than owned composition. Import never interprets an inline object at a `LINK` field
 as an owned child. Use Jackson identity/reference metadata, a property converter, or lifecycle resolution; otherwise the
@@ -199,7 +201,7 @@ scalar projection, custom structure, or deliberate inline projection. A custom s
 the external format requires it, but owns recursion and cycle safety. Without an explicit choice, KlumAST fails rather than
 inventing a universal representation.
 
-# Templates
+## Templates
 
 Managed Template import is value-only and deliberately skips lifecycle processing. Applying that Template later copies its
 values and owned Template composition into fresh Builders and then follows normal Template behavior.
@@ -208,7 +210,7 @@ Normal Jackson serialization rejects a marked Template because values cannot pre
 Materialize a fresh ordinary model through `Template.With`, `copyFrom`, or another Template/copy API before serialization.
 An explicit type-level serializer is a deliberate opt-out and owns its output.
 
-# Export
+## Export
 
 There is no Klum export facade. Serialize a completed model through ordinary Jackson APIs:
 
@@ -220,7 +222,7 @@ Lifecycle-derived and Jackson read-only values may appear even though they were 
 state, and synthetic members remain omitted in 4.0. Explicit type-level serializers may project public model data and
 `KlumObjectSupport`; internal companion state is not a supported extension seam.
 
-# Errors and compatibility
+## Errors and Compatibility
 
 The 4.0 importer wraps syntax, mapping, and source-I/O failures in `KlumModelException`, preserving the original exception
 as the cause and contributing an import source plus Jackson property/index information to the construction path. Raw
@@ -234,7 +236,7 @@ custom deserializers.
 `Create.FromMap` remains a separate value-copy convenience. It does not resolve Jackson property metadata and is not a
 substitute for managed import of a foreign format.
 
-# Extend
+## Extend
 
 `KlumAstModule` can be subclassed to customize module registration. Its Builder-backed deserializer remains an internal
 implementation detail. Supported extension seams are normal Jackson property/value configuration, explicit type-level

@@ -1,3 +1,5 @@
+# Basics
+
 KlumAST consists of a number of Annotations: 
 
 - `@DSL` annotates all domain classes, i.e. classes of objects to be generated via the DSL.
@@ -7,7 +9,7 @@ KlumAST consists of a number of Annotations:
 - `@Validation` and `@Validate` provide automatic validation of model values.
 - `@PostCreate` and `@PostApply` can be used to designate lifecycle methods.
 
-# @DSL
+## `@DSL`
 DSL is used to designate a DSL/Model object, which is enriched using the AST transformation.
 
 The DSL annotation leads to the creation of a couple of useful methods.
@@ -19,6 +21,7 @@ Each instantiable DSL class gets a static field `Create` of either a subclass of
 implementation of `KlumFactory` instead.
 
 ```groovy
+given: // Schema
 @DSL
 class Config {
 }
@@ -32,6 +35,7 @@ class ConfigWithKey {
 allows to create instances with the following calls:
     
 ```groovy
+when: // Model
 Config.Create.One()
 Config.Create.With(a: 1, b: 2)
 Config.Create.With(a: 1, b: 2) { c 3 }
@@ -46,21 +50,16 @@ The optional closure to the `With` method configures the generated Builder. The 
 `With` without any given values, which makes a nicer syntax (`Config.Create.With()` seems a bit strange, 
 `Config.Create.One()` looks better). The factory materializes the completed DSL Object graph before returning it.
 
-__Note that pre 2.0 versions of KlumAST did create the methods directly as static methods of the model class. These methods 
-are now deprecated in will be removed in a future version.__
-
 If the class contains an static inner class named 'Factory' of the appropriate type or the member `factory` points
 to such a class, this class is used as a base
 for the generated factory instead. This allows adding additional methods to the factory.
-
-Completed DSL Objects do not expose a generated `apply` method. All configuration belongs in a factory callback,
-a Template recipe, or a lifecycle callback before `INSTANTIATE`.
 
 `Create.With` supports named parameters, allowing values to be set concisely. Every map element of
 the method call is converted in a setter call (actually, any method named like the key with a single argument will be called):
 
 
 ```groovy
+when: // Model
 Config.Create.With {
     name "Dieter"
     age 15
@@ -69,6 +68,7 @@ Config.Create.With {
 
 Could also be written as:
 ```groovy
+when: // Model
 Config.Create.With(name: 'Dieter', age: 15)
 ```
 
@@ -77,6 +77,7 @@ Of course, named parameters and regular calls inside the closure can be combined
 For example, a keyed deployment and its owned service can be configured together:
 
 ```groovy
+given: // Schema
 @DSL
 class Deployment {
     @Key String name
@@ -89,6 +90,7 @@ class Service {
     String image
 }
 
+when: // Model
 def deployment = Deployment.Create.With('catalog') {
     environment 'production'
     service {
@@ -113,20 +115,20 @@ Other lifecycle methods will be executed in the corresponding phase.
 Lifecycle methods must not be `private`. They are moved to the generated Builder. Mutating lifecycle work through
 `POST_TREE` receives Builders; validation receives completed DSL Objects after `INSTANTIATE`.
 
-## copyFrom() method
+## `copyFrom()` Method
 
 Each Builder gets a `copyFrom()` DSL method. This method copies fields from a DSL Object recipe into the current Builder,
 excluding key, owner and `@Role` fields, as well as fields marked `FieldType.TRANSIENT`
 or `FieldType.IGNORED`. Copying is further governed by `@Overwrite` / the configured `OverwriteStrategy`. This is done
 recursively: nested Template composition is rehydrated into fresh Builders. Completed ordinary models are not adopted as
-owned composition.
+owned composition. [[Copy Strategies]] describes the available merge behavior.
 
-## equals() method
+## `equals()` Method
 
 If not yet present, the `equals()` method is generated using the default `@EqualsAndHashCode` ASTTransformations. You
 can customize it by using the original ASTTransformation.
 
-## hashCode()
+## `hashCode()`
 A barebone hashCode is created, with a constant 0 for non-keyed objects, and the hashcode of
 the key for keyed objects. While this is correct and works with changing objects after
 adding them to a HashSet / HashMap, the performance for Sets of non-Keyed objects is severely
@@ -140,6 +142,7 @@ These methods are available only during factory, Template, or lifecycle configur
 read-only accessors.
 
 ```groovy
+given: // Schema
 @DSL
 class Config {
  String name
@@ -154,6 +157,7 @@ def name(String value)
 
 Used by:
 ```groovy
+when: // Model
 Config.Create.With {
    name "Hallo"
 }
@@ -170,6 +174,7 @@ for each simple collection, two/three methods are generated:
 
 
 ```groovy
+given: // Schema
 @DSL
 class Config {
     List<String> roles
@@ -189,6 +194,7 @@ def level(String key, Integer value)
 
 Usage:
 ```groovy
+when: // Model
 Config.Create.With {
     roles "a", "b"
     role "another"
@@ -199,7 +205,7 @@ Config.Create.With {
 
 If the collection has no initial value, it is automatically initialized.
 
-### keyMapping for simple maps
+### `keyMapping` for Simple Maps
 
 Instead of directly providing the key in the adder call, it can also be derived
 from the value itself. This is done by using the `keyMapping` attribute of the `@Field` annotation.
@@ -211,12 +217,14 @@ If a keyMapping is set for a simple type, adder methods only have a value parame
 the map adder is replaces with a collection adder.
 
 ```groovy
+given: // Schema
 @DSL class Foo {
 
     @Field(keyMapping = { it.toLowerCase() })
     Map<String, String> values
 }
 
+when: // Model
 Foo.Create.With {
     value "bla"
     value "BLUB"
@@ -232,6 +240,7 @@ additional key parameter. The relationship field holds a child Builder during co
 that Builder so further construction-time configuration can be composed.
   
 ```groovy
+given: // Schema
 @DSL
 class Config {
     UnKeyed unkeyed
@@ -259,6 +268,7 @@ def keyed(String key, @DelegatesTo(/* Keyed Builder */) Closure closure)
 
 Usage:
 ```groovy
+when: // Model
 Config.Create.With {
     unkeyed {
         name "other"
@@ -272,6 +282,7 @@ Config.Create.With {
 The closure methods return the child Builder during construction:
 
 ```groovy
+when: // Model
 Config.Create.With {
     def childBuilder = unkeyed {
         name "other"
@@ -293,6 +304,7 @@ type `SubElement`), there are several options:
 For non final field types, a polymorphic setter is created that takes the requested type as first parameter:
 
 ```groovy
+when: // Model
 Config.Create.With {
   main(SubElement) {
     ...
@@ -314,11 +326,12 @@ existing target.
 
 In addition to fields, setter like methods (i.e. methods with a single parameter) can also be annotated with `@Field`,
 making them 'virtual fields'. For virtual fields, the same dsl methods are generated as for actual fields. The name
-of the methods is the same as the method name (this is different to KlumAST 1.2, where the name was derived).
+of the methods is the same as the method name.
 
 The annotated method is automatically converted into a Mutator method.
 
 ```groovy
+given: // Schema
 @DSL class Foo {
     String value
 
@@ -332,12 +345,14 @@ The annotated method is automatically converted into a Mutator method.
     String name
 }
 
+when: // Model
 def foo = Foo.Create.With {
     bar {
         name "Hans"
     }
 }
 
+then: // Assertions
 assert foo.value == "Hans"
 ```
 
@@ -349,6 +364,7 @@ Using the `defaultImpl` attribute of the `Field` annotation, you can specify a d
 dsl methods are created as if the field were of the specified type. This is especially useful for interface as field type.
 
 ```groovy
+given: // Schema
 @DSL
 class Foo {
     @Field(defaultImpl = BarImpl)
@@ -368,6 +384,7 @@ class BarImpl implements Bar {
 Although the field is not of an DSL type, normal DSL methods are created for it:
 
 ```groovy
+when: // Model
 Foo.Create.With {
     bar(value: "Dieter")
 }
@@ -378,6 +395,7 @@ This allows models to use interfaces defined elsewhere, by providing a dslified 
 The defaultImplementation can also be set on a DSL class, providing the default implementation for all fields of that type:
 
 ```groovy
+given: // Schema
 @DSL
 class Foo {
     Bar bar
@@ -388,6 +406,7 @@ interface Bar {
     String getValue()
 }
 
+when: // Model
 Foo.Create.With {
     bar(value: "Dieter")
 }
@@ -410,6 +429,7 @@ construction can be delegated or composed without materializing an intermediate 
 be inserted into owned composition collections; a collection of existing aggregation targets must be marked `LINK`.
 
 ```groovy
+given: // Schema
 @DSL
 class Config {
     List<UnKeyed> elements
@@ -429,6 +449,7 @@ class Keyed {
     String value
 }
 
+when: // Model
 Config.Create.With {
     elements { // optional, but provides grouping and additional convenience features
         element {
@@ -451,7 +472,7 @@ Config.Create.With {
     }
 }
 
-// flat syntax without nested closures:
+when: // Alternative flat Model syntax
 Config.Create.With {
     element {
         name "an element"
@@ -473,6 +494,7 @@ In case of a keyed Map-Element, the key is automatically used as key for the map
 This can be overridden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
 
 ```groovy
+given: // Schema
 @DSL class Foo {
     @Field(keyMapping = { it.secondary })
     Map<String, Bar> bars
@@ -489,6 +511,7 @@ This can be overridden using `@Field.keyMapping`, which also allows using unkeye
     String secondary
 }
 
+when: // Model
 def instance = Foo.Create.With {
     bar {
         secondary "blub"
@@ -504,11 +527,12 @@ def instance = Foo.Create.With {
     }
 }
 
-instance.bars.blub
-instance.bars.bli
+then: // Assertions
+assert instance.bars.blub
+assert instance.bars.bli
 
-instance.twobars.blub.key == "boink"
-instance.twobars.bli.key == "bunk"
+assert instance.twobars.blub.key == "boink"
+assert instance.twobars.bli.key == "bunk"
 ```
 
 
@@ -533,7 +557,7 @@ comparator. `EnumSet` getters return defensive copies.
  (constant zero for non-keyed objects, hashCode of key for keyed objects), a (non Sorted)`Set` of
  non-Keyed model objects might result in a severe degradation of performance of that Set.
 
-# the @Key annotation
+## The `@Key` Annotation
 
 The key annotation is used to designate a special key field, making the annotated class a keyed class. This has the
 following consequences:
@@ -543,7 +567,7 @@ following consequences:
 - factory methods get an additional key parameter
 - only keyed classes are allowed as values in a Map
 
-# The @Owner annotation
+## The `@Owner` annotation
 
 DSL-Objects can have an owners field, decorated with the `@Owner` annotation.
 
@@ -555,6 +579,7 @@ all of its owner fields are automatically set to the outer object if they follow
 
 
 ```groovy
+given: // Schema
 @DSL
 class Foo {
     Bar bar
@@ -565,10 +590,12 @@ class Bar {
     @Owner Foo outer
 }
 
-def c = Config.Create.With {
+when: // Model
+def c = Foo.Create.With {
     bar {}
 }
 
+then: // Assertions
 assert c.bar.outer === c
 ```
 
@@ -595,6 +622,7 @@ With the field `transitive` of the `@Owner` annotation, the annotated field will
 in the owner chain (for owner fields and owner methods). 
 
 ```groovy
+given: // Schema
 @DSL class Parent {
     Child child
     String name
@@ -612,7 +640,8 @@ in the owner chain (for owner fields and owner methods).
     String name
 }
 
-instance = Parent.Create.With {
+when: // Model
+def instance = Parent.Create.With {
     name "Klaus"
     child {
         name "Child Level 1"
@@ -622,6 +651,7 @@ instance = Parent.Create.With {
     }
 }
 
+then: // Assertions
 assert instance.child.child.grandParent.is(instance)
 ```
 Transitive owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
@@ -633,6 +663,7 @@ With the field `root` of the `@Owner` annotation, the annotated field will be se
 This can most conveniently be done using a common baseclass for interested objects:
 
 ```groovy
+given: // Schema
 @DSL
 abstract class ModelElement {
     @Owner(root = true)
@@ -660,8 +691,7 @@ class AnotherElement extends ModelElement {
 Owner converter can be used to convert the owner object to another type before setting the field. In that case, the parameter of the converter closure is used whe determining whether the potential owner object matches (instead of the field type or the method parameter).
 
 ```groovy
-package pk
-
+given: // Schema
 @DSL
 class Parent {
     Child child
@@ -683,24 +713,24 @@ class Child {
     }
 }
 
-when:
-instance = clazz.Create.With {
+when: // Model
+def instance = Parent.Create.With {
     name "Klaus"
     child {
         name "Child"
     }
 }
 
-then:
-instance.child.parent.is(instance)
-instance.child.parentName == "Klaus"
-instance.child.upperCaseParentName == "KLAUS"
+then: // Assertions
+assert instance.child.parent.is(instance)
+assert instance.child.parentName == "Klaus"
+assert instance.child.upperCaseParentName == "KLAUS"
 ```
 
 Converting owner fields are ignored when determining the owner hierarchy, i.e. they are not considered actual parent objects.
 
 
-# Field Types
+## Field Types
 The `@Field` annotation has a value of type `FieldType` where special handling of the field
 can be configured. It currently supports the following values:
 
@@ -729,12 +759,18 @@ from inside lifecycle or mutator methods.
 create or re-own those targets. All non-`LINK` DSL Object relationships are owned composition and must be created within
 the owner's Builder lifecycle.
 
-# DSL Interfaces
-As of version 1.2.0, interfaces can me marked with `@DSL` as well. No transformation will
-be done for these interfaces, however a field with an annotated interface type will get its
+## OPTIONAL_LINK
+`OPTIONAL_LINK` accepts either a locally created child Builder as owned composition or an existing completed DSL Object
+as an aggregation target. `@LinkTo` selects this mode by default; use `@Field(FieldType.LINK) @LinkTo` when a
+relationship must be aggregation-only. See [[Layer3]] for the relationship boundary.
+
+## DSL Interfaces
+Interfaces can be marked with `@DSL`. No transformation will be done for these interfaces; however, a field with an
+annotated interface type gets its
 dsl methods generated:
 
 ```groovy
+given: // Schema
 @DSL class Outer {
     Foo foo
 }
@@ -747,6 +783,7 @@ dsl methods generated:
     String getValue()
 }
 
+when: // Model
 Outer.Create.With {
     foo(FooImpl) {
         value "name"
@@ -756,7 +793,7 @@ Outer.Create.With {
 
 Note that the usage of non-DSL classes implementing DSL interfaces might lead to runtime errors when instantiating a model.
 
-# Fixed keys
+## Fixed keys
 
 Using the `key` member of `@Field` the key of a keyed member can be set
 by to a fixed or derived value. This removes the key parameter from all 
@@ -770,6 +807,7 @@ This is useful if the member is derived from some value of the owner.
 For example, consider the following classes:
 
 ```groovy
+given: // Schema
 @DSL
 class Database {
     @Key String name
@@ -787,6 +825,7 @@ class Server {
 This allows creating the server like: 
 
 ```groovy
+when: // Model
 Server.Create.With("INT") {
     database {  // instead of database("INT") {
        //...

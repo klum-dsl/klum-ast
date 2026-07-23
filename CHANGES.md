@@ -51,14 +51,15 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)).
 - Added the Java-first `KlumObjectSupport.of(completedObject)` facade for a completed DSL Object root or subtree. Its
   construction-path getter and composition-only `Structure` helper expose paths, direct ownership, relative paths, and
-  cycle-safe typed traversal. Its `Validation` helper reads and verifies stored target/subtree results without rerunning
-  validators. Subtree result lists include every stored result, including results without issues; the deprecated
+  cycle-safe typed traversal. Its `Validation` helper exposes `getResult()` for the target and `getSubtreeResults()` for
+  the target plus owned subtree, and verifies stored results without rerunning validators. Subtree result lists include
+  every stored result, including results without issues; the deprecated
   `Validator.getValidationResultsFromStructure` and `verifyStructure` adapters now inherit that broader list contract.
   The Model companion and generic metadata access are now internal ([#435](https://github.com/klum-dsl/klum-ast/issues/435),
   [#390](https://github.com/klum-dsl/klum-ast/issues/390),
   [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)). Its sole
   public construction-string getter is `getConstructionPath()`; no `getBreadcrumbPath()` facade alias remains
-  ([#390](https://github.com/klum-dsl/klum-ast/issues/390)).
+  ([#390](https://github.com/klum-dsl/klum-ast/issues/390), [#549](https://github.com/klum-dsl/klum-ast/issues/549)).
 - Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred
   actions; every owned Template node carries persistent recipe identity and paths, while pre-existing ordinary `LINK`
   targets retain their identity. Direct Template relationship assignment, including `LINK`, is rejected with rehydration
@@ -254,39 +255,22 @@ along with their migration paths.
 - `withTemplates(Map, Closure)` now only accepts anonymous templates, i.e. the signature changed from `withTemplates(Map<Class, Object>, Closure)` to `withTemplates(Map<Class, Map<String, Object>, Closure)`. Calls using concrete templates now must use `withTemplates(List<Object>, Closure)` instead.
 
 ## Fixes
-- since rc.54
-  - `Required.value()` is correctly translated to `Validate.message()` (see [#373](https://github.com/klum-dsl/klum-ast/issues/373))
-  - CopyHandler should ignore field type IGNORED (see [#374](https://github.com/klum-dsl/klum-ast/issues/374))
-- since rc.51
-  - root objects of the wrong type should silently be ignored. This allows partial models to be created, which is especially
-    important for testing.
-- since rc.40
-  - unqualified links in KlumFactory's javadoc lead to javadoc failures
-  - gradle model plugin used the wrong class in the model descriptor (model class instead of script class)
-  - ClusterModel filtering against annotations did not always work due to the actual Field object not being retrieved
-- since rc.39
-  - correctly determine the script name if the filename contains multiple "." (see [#328](https://github.com/klum-dsl/klum-ast/issues/328))
-- since rc.33
-  - Make RW classes public, not protected. Otherwise, static type checking can fail if owner and child are in different packages 
-- since rc.32
-  - new AnnoDocimal version ([Fix for inner enum final modifier](https://github.com/blackbuild/anno-docimal/issues/31))
-- since rc.31
-  - Don't copy Overrides annotation to RW delegation methods (see [#340](https://github.com/klum-dsl/klum-ast/issues/340))
-- since rc.13
-  - Fix polymorphic virtual setters (see [#250](https://github.com/klum-dsl/klum-ast/issues/250))
-  - Converter methods should honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268))
-- since rc.12
-  - More fixes to nested generics (see [#248](https://github.com/klum-dsl/klum-ast/issues/248))
-- since rc.11
-  - Converter methods not working for maps of DSL objects (see [#242](https://github.com/klum-dsl/klum-ast/issues/242))
-  - Created class is invalid if field type is generic and contains generic factories (like `List.of`) (see [#243](https://github.com/klum-dsl/klum-ast/issues/243))
-  - Default delegate failed if delegate was a getter instead of a real field (see [#244](https://github.com/klum-dsl/klum-ast/issues/244))
-  - `apply` did not accept a Map only call (see [#241](https://github.com/klum-dsl/klum-ast/issues/241))
-- since rc.9
-  - Handling of key fields in hierarchies (see [#238](https://github.com/klum-dsl/klum-ast/issues/238))
-- since rc.5
-  - Visibility for creator methods was wrong (see [#232](https://github.com/klum-dsl/klum-ast/issues/232))
-    
-## Dependency changes/Internal
-- since rc.14
-  - Update Jackson to 2.13.3 (see [#260](https://github.com/klum-dsl/klum-ast/issues/260))
+- `Required.value()` is correctly translated to `Validate.message()` (see [#373](https://github.com/klum-dsl/klum-ast/issues/373)).
+- `CopyHandler` ignores the `IGNORED` field type (see [#374](https://github.com/klum-dsl/klum-ast/issues/374)).
+- Root objects of the wrong type are ignored, allowing partial Models for testing.
+- Unqualified links in `KlumFactory` Javadoc no longer cause Javadoc failures.
+- The Gradle model plugin uses the script class rather than the model class in its model descriptor.
+- `ClusterModel` annotation filtering retrieves the actual `Field` object.
+- Script names are determined correctly when a filename contains multiple dots (see [#328](https://github.com/klum-dsl/klum-ast/issues/328)).
+- Generated RW classes are public, so static type checking works when owner and child are in different packages.
+- The AnnoDocimal inner-enum final-modifier fix is included.
+- `@Overrides` is not copied to RW delegation methods (see [#340](https://github.com/klum-dsl/klum-ast/issues/340)).
+- Polymorphic virtual setters work correctly (see [#250](https://github.com/klum-dsl/klum-ast/issues/250)).
+- Converter methods honor default values (see [#268](https://github.com/klum-dsl/klum-ast/issues/268)).
+- Nested generic types work correctly (see [#248](https://github.com/klum-dsl/klum-ast/issues/248)).
+- Converter methods work for maps of DSL Objects (see [#242](https://github.com/klum-dsl/klum-ast/issues/242)).
+- Generated classes with generic field types and generic factories such as `List.of` are valid (see [#243](https://github.com/klum-dsl/klum-ast/issues/243)).
+- A default delegate may be a getter rather than a field (see [#244](https://github.com/klum-dsl/klum-ast/issues/244)).
+- `apply` accepts a Map-only call (see [#241](https://github.com/klum-dsl/klum-ast/issues/241)).
+- Key fields work correctly in hierarchies (see [#238](https://github.com/klum-dsl/klum-ast/issues/238)).
+- Creator-method visibility is correct (see [#232](https://github.com/klum-dsl/klum-ast/issues/232)).

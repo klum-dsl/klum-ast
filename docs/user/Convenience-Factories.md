@@ -1,8 +1,10 @@
-Since 0.16, KlumAST supports convenience factory methods that allow reading a configuration directly from a various sources:
+# Convenience factories
 
-# Script classes
+Convenience factory methods load a configuration directly from scripts, text, files, URLs, maps, or a classpath marker.
 
-`MyConfig.Create.From(Class<Script>)` runs the given Script and returns the result. The script must return the
+## Script classes
+
+`MyConfig.Create.From(Class<Script>)` runs the given `Script` and returns the result. The script must return the
 proper type, for example:
 
 ```groovy
@@ -11,12 +13,12 @@ MyConfig.Create.With {
 }
 ```
 
-# Delegating Scripts
+## Delegating Scripts
 
-if the target script is subclass of `DelegatingScript`, the script body is considered as the part inside of the 
-create closure. For keyed classes, the key value is the simple name of the script class.
+If the target script is a subclass of `DelegatingScript`, its body is considered the content of the creation closure.
+For keyed classes, the key value is the script class's simple name.
 
-In order to create a delegating script, you need to either include it explicitly via annotation: 
+To create a delegating script, include it explicitly with an annotation:
 
 ```groovy
 @BaseScript DelegatingScript base
@@ -25,10 +27,10 @@ name 'Klaus'
 ...
 ```
 
-which is not very convenient, or you have to modify the GroovyClassLoader / GroovyShell to set a BaseScript (see
-JavaDoc of DelegatingScript for details).
+or configure `GroovyClassLoader` / `GroovyShell` with a `BaseScript` (see the Javadoc of `DelegatingScript` for details).
 
-To most convenient solution is for [[Usage#schema---model---consumer]] setup to modify the model project with a compiler customizer.
+For a [[Usage#schema---model---consumer]] setup, the most convenient solution is to configure the Model project with a
+compiler customizer.
 
 See the example projects for details.
 
@@ -68,8 +70,8 @@ Container.Create.With {
 ```
 
 
-# Text
-`MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the create 
+## Text
+`MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the creation
 closure.
 
 For example
@@ -89,18 +91,18 @@ result in the following:
 assert config.value == "blub"
 ```
 
-`Create.From()` can also take an optional classloader as last parameter:
+`Create.From()` can also take an optional class loader as its last parameter:
 
 ```groovy
 Config.Create.From(content, Config.class.classLoader)
 ```
 
-If no classloader is given, the current context classloader is used.
+If no class loader is given, the current context class loader is used.
 
 
-# File or URL
+## File or URL
 
-Instead of a text, also a File or a Url can be given and in case of a keyed object, the key is derived from the filename 
+Instead of text, a `File` or `URL` can be given; for a keyed object, the key is derived from the filename
 (the first segment, in the example above, the key would be "bla"). By using a small dsld-snippet in your IDE, you even 
 get complete code completion and syntax highlighting an specialized config files.
 
@@ -116,20 +118,18 @@ Config.Create.With {
 }
 ```
  
-__Note__: Currently, `Create.From` does not support any polymorphic creation. This might be added later,
+__Note__: `Create.From` does not support polymorphic creation. This might be added later,
  see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
 
-As with `Create.From(text)`, `Create.From(File|Url)` supports an additional classloader parameter as well.
+As with `Create.From(text)`, `Create.From(File|URL)` supports an additional class-loader parameter as well.
 
-# Classpath
+## Classpath
 
-In addition, 1.2.0 introduces a new feature for instantiating a model automatically by placing
-a property file in your model library. In order for this to work, the model needs one or more single
-entry points, i.e. instances that are usually present only once (like the all encompassing Config object).
+Classpath discovery instantiates a model automatically from a properties file in the Model library. The Model needs one
+or more single entry points: instances that are usually present only once, such as the encompassing `Config` object.
 
-By placing a marker into the classpath, this class can automatically be instantiated without the consumer needing
-to know the name of the configuration class. This takes the dependency from the code into the jar-orchestration /
-the buildscript.
+By placing a marker on the classpath, a consumer can instantiate this class without knowing the configuration class name.
+This moves the dependency from code into JAR orchestration or the build script.
 
 Given the following classes:
 
@@ -150,10 +150,10 @@ Model.Create.With {
 }
 ```
 
-By including a separate properties file in the jar of [[Usage#model]], this model
-can automatically be instantiated. The file must be named `/META-INF/klum-model/<schema-classname>.properties`
-and contain a single property: `model-class`, which contains the full classname of the Entry-Point script (which
-can bea regular as well as a DelegatingScript):
+By including a separate properties file in the JAR of [[Usage#model]], this Model can automatically be instantiated. The
+file must be named `/META-INF/klum-model/<schema-classname>.properties` and contain the single `model-class` property,
+whose value is the fully qualified class name of the entry-point script (either a regular `Script` or a
+`DelegatingScript`):
 
 `/META-INF/klum-model/pk.Model.properties`
 ```properties
@@ -166,29 +166,27 @@ This allows the code consuming the model to simply obtain it via:
 def model = Model.Create.FromClasspath()
 ```
 
-Using this technique, the same consumer can work with different models (most of the time: different packages),
-without any need to change or somehow inject the name of the Model class.
+Using this technique, the same consumer can work with different Models (often from different packages) without changing
+or injecting the Model class name.
 
-In fact, this might actually become the preferred method of consuming a model.
+## Map
 
-# Map
+Using `FromMap`, an object can be created from a `Map`. This is a form of “poor man's deserialization,” where each entry
+in the `Map` is mapped to a similarly named field of the new object. The object's class can be overridden with the
+special `@type` key in the `Map`, either as a fully qualified class name or as a name relative to the base type's
+package. The type can also use the stripped name defined by `@DSL.stripSuffix()`.
 
-Using `FromMap` an object can be created from a map. This is a form of "poor man's deserialization", where each entry in
-map is mapped to a similar named field of the new object. The class of the object to be created can be overridden by
-using the special "@type" key in the map, which can either be a fully qualified class name or a class name relative to
-the base type's package. Additionally, the type can be a stripped name as defined by `@DSL.stripSuffix()`.
-
-Owner and Role fields are not set during the creation, but since FromMap is a regular creator method, objects created
-by it undergo the regular lifecycle phases, including setting of owner, role and default values.
+`@Owner` and `@Role` fields are not set during creation. Because `FromMap` is a regular creator method, objects created
+by it undergo the regular lifecycle phases, including owner, role, and default-value handling.
 
 Builder-producing extension paths can use `Create.AsBuilder.FromMap(map)` during an active root Construction session. The
 result must be attached to an owned relationship in that same session; the outer graph performs ownership, materialization,
 and validation.
 
-Special features of libraries such as renamed fields etc. can be simulated by overriding the FromMap method in a custom 
-factory and adjusting the effective map before calling the super method.
+Library-specific features such as renamed fields can be simulated by overriding `FromMap` in a custom factory and
+adjusting the effective `Map` before calling the superclass method.
 
-Note that the creation of inner objects delegates to their respective `FromMap` methods.
+Creation of inner objects delegates to their respective `FromMap` methods.
 
 ```groovy
 @DSL class Person {

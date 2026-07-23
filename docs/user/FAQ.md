@@ -1,74 +1,47 @@
-# Why and AST and not just use a ModelBuilder?
- 
-A groovy Model Builder relies heavily on dynamic methods and properties. In comparision, a model enhanced with KlumAST
-is completely static, i.e. it can easily be used with `@TypeChecked` or `@CompileStatic`. This also makes using
-a Klum-model inside the IDE at lot more convenient (KlumAST makes heavy use of `@DelegateTo` annotation of Groovy, which
-is interpreted by most modern IDEs)
+# FAQ
 
-# Why don't I get any code completion inside my IDE
+## Why an AST and not just use a ModelBuilder?
 
-Code completion for AST Transformations in the IDE can be achieved by three different ways:
+A Groovy `ModelBuilder` relies heavily on dynamic methods and properties. In comparison, KlumAST generates a statically
+described construction API that can be used with `@TypeChecked` or `@CompileStatic`. It also exposes
+`@DelegatesTo` metadata that modern IDEs can use for Builder-closure assistance.
 
-- By splitting the model classes and the actual users of the model into different projects and letting the user project
-  only rely on the compiled model, modern IDEs can provide full code completion by looking at the generated code. However
-  this might not always be the most convenient solution. see [[Usage]] for details.
-- Both Eclipse (dlsd) and IntelliJ IDEA (gdsl) provide mechanisms for providing hints to the IDE about the result of the
-  transformation. Unfortunately, there are currently two problems:
-  - Currently, there only exists a gdsl for IDEA, which is outdated and suffers from a bug/change in the newer versions 
-    (since 2016.2), which makes them useless. For that reason, the gdsl is currently not included in the KlumAST jar file
-  - Both approaches are incompatible, effectively doubling the effort of maintaining such a solution
-- A transformation-specific plugin could be implemented to encapsulate the gdsl/dlsd; however, as with solution two, 
-  this approach would need a lot of effort (contributions welcome!)
-  
-Currently, only the first approach is working, but aside of the inconvenience of maintaining two separate projects, it 
-does it rather well.
-  
-  
-# What does the name mean?
+## Why don't I get code completion in my IDE?
 
-KlumAST was formerly called ConfigDSL because its main usage was config files. While configuration files are still
-one major use case, the actual target of the project has much increased. Thus the renaming. 
+For a current IntelliJ setup, use the Gradle Schema plugin and refresh the generated source mirrors after Schema changes:
 
-Klum stands for Konfiguration Library for Unified Modelling - but it is also used to turn models into supermodels (_wink,
-wink_).  
+```shell
+./gradlew createKlumDslSourceMirrors
+```
 
+The mirrors provide generated declaration metadata for completion; they are not compiled or published source. For Quick
+Documentation on compiled declarations, install [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij)
+according to its release instructions. [[Usage#all-in-one]] describes the complete single-project setup. This is the 4.0
+preview route; [#469](https://github.com/klum-dsl/klum-ast/issues/469) owns the first-RC real-project field test.
 
-# What about the volatile deprecation strategy?
+For a separate compiled Schema artifact, a Consumer project can also obtain normal IDE assistance from the generated public
+API. The legacy GDSL/DSLD approach is not the current setup path.
 
-While evolving, KlumAST went through a lot of stages. Since the project evolution is driven by actual use cases and real
-project needs, this leads to a somewhat "hit-and-run" strategy while stabilizing the API.
+## What does the name mean?
 
-The goal is to reduce this as much as possible in the future. However, a couple of breaking changes are still on the
-list in the goal of further reducing the clutter of the model API.
+KlumAST was formerly called ConfigDSL because its main usage was configuration files. While configuration files remain
+one major use case, the project's target has broadened. Hence the renaming.
 
-As of 1.1, the basic API is somewhat stabilized, however, there are still a couple of
-open (and already implemented) changes leading to 1.2, that will unfortunately result in some
-incompatible code.
+Klum stands for Konfiguration Library for Unified Modelling — and for turning models into supermodels (_wink, wink_).
 
-# Why another library? What are the differences?
+## Why another library? What are the differences?
 
 Most DSL approaches fall into two categories:
 
-- Dynamic programming (like the Groovy NodeBuilder) framework rely strongly on dynamic features of
-  Groovy (mostly methodMissing and friends). While this works well, it has a basic disadvantage in the missing
-  IDE and compile-time check support, meaning usually no code completion and no syntax highlighting.
-  This can be somewhat solved by using IDE specific DSL descriptors (gdsl for Intellij IDEs, dsld for Eclipse),
-  however this approach does not solve compile time checks, is restricted to two specific IDEs (albeit the two
-  major ones) and writing gdsl script for IDEA is really annoying for lack of documentation and support (Eclipse
-  dslds are somewhat better, since they use elements of the Groovy AST itself).
+- Dynamic approaches, such as Groovy's `NodeBuilder`, rely on `methodMissing` and similar features. They can be concise to
+  author, but their dynamic surface limits static checks and IDE assistance. External DSL descriptors can supplement some
+  IDEs, but do not provide compile-time checking or a portable generated API.
 
-  So basically, developing a DSL with dynamic features is easy and rather straightforward, using the DSL is rather cumbersome.
+- Hard-wired DSLs define many methods with `Closure` parameters, as parts of the Gradle DSL do. They provide a strong IDE
+  experience, but require authors to maintain substantial repetitive construction code.
 
-- Hard-wired programming of the DSL, basically creating a lot of methods with `Closure` parameters. This direction
-  is, for example, taken partially by the Gradle DSL. This approach is nice for the users of such a DSL, since they get
-  all the advantages of modern IDEs, like code completion and syntax highlighting.
-  However, the cost of this approach lies in the additional efforts in actually creating the DSL-classes,
-  using lots of repetitive code.
-
-Klum AST tries to focus on the second approach and creates type safe, static models, but
-tries to reduce the boilerplate code to a minimum by using Annotation controlled AST transformation
- to auto generate it. The result is the best of both worlds: Faster, nicer and cleaner DSL classes on
-the developer side, ease of use on the user side.
+KlumAST takes the second approach and generates type-safe, static models from annotation-controlled AST transformation,
+reducing the boilerplate while retaining an IDE-friendly API.
 
 As an additional bonus, KlumAST separates mutable construction Builders from completed DSL Objects. APIs consuming a
-completed model do not see generated mutation methods, making development against a given DSL easier as well.
+completed model do not see generated mutation methods, making development against a given DSL easier.

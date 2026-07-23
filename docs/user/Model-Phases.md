@@ -1,11 +1,10 @@
-Model Phases
-============
+# Model phases
 
 Model creation goes through several phases in one Builder lifecycle. The phases are local to the current Thread. Owned
 submodels are created through the root's generated Builder methods and share that lifecycle; a nested root factory starts
 an independent lifecycle and cannot be adopted as composition.
 
-# Lifecycle annotations
+## Lifecycle annotations
 
 Many lifecycle phases have a designated annotation. Methods and/or fields annotated with these annotations are handled in the
 corresponding phase. Lifecycle annotations are annotations marked with the meta annotation `@WriteAccess(LIFECYCLE)`. Those 
@@ -21,10 +20,10 @@ instead are part of the creation phase, and run for each object separately.
 Note that lifecycle methods and closures are called unconditionally, regardless of the state of the object (for example,
 a `@Default` field will only be handled if the field is not set yet, while a `@Default` method or Closure will always be called). Thus those methods need to check for themselves if they should do anything.
 
-# Creation
+## Creation
 
 The creation phase starts with the first factory call in a thread. It creates and configures the root Builder and its owned
-Builder graph. Creating a Builder includes applying Templates, then calling `@PostCreate`, explicit configuration, and
+Builder graph. Creating a Builder includes applying [[Templates]], then calling `@PostCreate`, explicit configuration, and
 `@PostApply` methods and closures. No completed DSL Object exists yet.
 
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
@@ -41,7 +40,7 @@ PhaseActions are usually registered by using the Java ServiceLoader mechanism, s
 Each phase has an ordinal defining the execution order of those phases. Main phases are defined in the `DefaultKlumPhase` enum, but 
 there ordinals are spaced to allow for plugins to insert phases in between.
 
-# Phase Details
+## Phase Details
 
 ## ApplyLater (1)
 The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument outside of any running phase.
@@ -106,11 +105,12 @@ This could, for example, be used for logging purpose or to register the model in
 Note that the lifecycle methods for AutoCreate, AutoLink and PostTree are technically identical, the difference being
 more of a semantic nature. So AutoCreate methods should actually create objects, AutoLink methods should link existing objects.
 
-# Error Handling
+## Error handling
 
-If an exception is thrown in any Phase, the exception is wrapped in a `KlumException` or one of its subclasses (like `KlumVisitorException`). This exception contains the relevant phase as well as potentially the path to the object that caused the exception.
+Exceptions during a phase are wrapped in `KlumException` or a subclass and retain the relevant phase and, where
+available, a construction path. See [[Exception Handling]] for the hierarchy and path details.
 
-# applyLater methods
+## `applyLater` Methods
 
 Builders provide `applyLater` methods that register deferred construction actions. If no phase is specified,
 the action is executed directly after the current phase if called from within a phase; otherwise it is executed in the `ApplyLater` phase. 
@@ -155,7 +155,7 @@ class PersonText extends Specification {
 }
 ```
 
-# Methods that modify datastructures
+## Methods that modify datastructures
 
 In some (usually migration related) cases, a lifecycle methods trying to modify the list or map containing itself. This would
 lead to a concurrent modification exception. To avoid this, the code of the lifecycle method can be wrapped in an applyLater closure,

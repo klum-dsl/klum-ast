@@ -1,13 +1,16 @@
-Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
-to the completed Model companion during `INSTANTIATE`; `@Validate` methods and external `InstanceValidator`s then run on
-the completed object. Each `InstanceValidator` type is memoized once per completed model.
+# Validation
 
-# On classes
+Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
+to the completed Model companion during [[Model Phases#instantiate-40|`INSTANTIATE`]]; `@Validate` methods and external
+`InstanceValidator`s then run on the completed object. Each `InstanceValidator` type is memoized once per completed model.
+For reading stored results from a completed model, see [[Completed Object Support]].
+
+## On Classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
 against Groovy truth
  (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).
    
-# On fields
+## On Fields
 The `@Validate` annotation controls validation of a single field. If the annotation is not present, the presence on the class  
  controls whether this field will be evaluated. If present, the `value` field contains the actual validation criteria. 
  This can be one of the following:
@@ -28,8 +31,24 @@ class Figure {
 }
 ```
 
- The annotation can also contain an additional `message` value further describing the constraint, this is included in
- the error message.
+The annotation can also contain an additional `message` value further describing the constraint; this is included in
+the error message. For a field rule with an explicit message, the validation result identifies the field and gives the
+reader a direct next step:
+
+```groovy
+@DSL
+class Release {
+ @Validate(message = "A release name is required")
+ String name
+}
+```
+
+`Release.Create.One()` reports:
+
+```text
+<root>($/Release.One):
+- ERROR #name: A release name is required
+```
 
  For validation closures, it is advisable to use the message feature of the `assert` keyword instead:
 
@@ -63,7 +82,7 @@ Any failed validation is represented by a `KlumValidationIssue`, all
 issues of a single object are collected in a `KlumValidationResult`. The result is stored in the completed object's Model
 companion and is accessed through `KlumObjectSupport.of(object).getValidation().getResult()` rather than through a proxy.
 
-# `@Required` and `@Optional`
+## `@Required` and `@Optional`
 
 `@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
 
@@ -108,11 +127,11 @@ class MyModel {
 Likewise, `@Optional` is a convenient alias for `@Validate(Validate.Ignore)`, to explicitly ignore a from validation when
 `Validate` is used on a class.
 
-# On methods
+## On Methods
 
 `@Validate` can also be used on methods. In this case, any method carrying the annotation is executed during the validation phase; private methods work as well, but `static` methods are forbidden at compile time. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
 
-## Custom issues
+## Custom Issues
 
 Instead of throwing an exception, the method can also use static methods of the `Validator` class to report issues. There are several methods:
 
@@ -153,31 +172,72 @@ Additionally, there are methods to provide an explicit object to report the issu
 
 The member name is optional, if not provided, a generic `<none>` is used. Also note that there is no three argument version of `addIssueTo`, to prevent argument confusion.
 
-# On inner classes
+## On Inner Classes (Validation Classes)
 
-`@Validate` can also be placed on non-static inner classes, making the class a validation class. All public, non-static, parameterless methods
-in the class are considered validation methods, like above. 
+`@Validate` can also be placed on a public, non-static inner class, making it a **validation class**. A concrete
+validation class may declare at most one no-argument constructor; omit it unless initialization is needed. Parameterized
+constructors are not allowed. All public, non-static, parameterless methods in the class are considered validation
+methods, like above. Groovy methods are public by default unless their visibility is explicitly restricted.
 
-This allows encapsuling validation logic in a separate class, preventing further pollution of the model class when working with the source (in the final class file, validation methods are downgraded to protected methods).
+Validation classes keep validation logic out of the main model declaration and can cluster rules by topic. Their class name
+is preserved in the emitted issue target, so `ConnectivityChecks.portMustBeInRange()` identifies both the topic and the
+failing rule.
 
-During actual validation, each non-abstract inner validation class is instantiated and the validation methods are executed.
+During actual validation, each public, non-abstract validation class is instantiated and its validation methods are
+executed.
 
-There can be an unlimited number of inner validation classes, and validation classes of parent model classes are also instantiated during validation if they are not overridden by a child's validation class.
+There can be an unlimited number of validation classes, and validation classes of parent model classes are also
+instantiated during validation if they are not overridden by a child's validation class.
 
 ```groovy
+import com.blackbuild.klum.ast.validation.ValidatorBase
+
 @DSL
 class Server {
     String host
     int port
 
     @Validate
-    class Checks {
+    class ConnectivityChecks extends ValidatorBase {
         void hostMustBeSet() {
-            assert host
+            if (!host) addError("host must be set")
         }
 
         void portMustBeInRange() {
-            assert port in 1..65535
+            if (!(port in 1..65535)) addError("port must be between 1 and 65535")
+        }
+    }
+}
+```
+
+For example, `Server.Create.One()` reports both failures as one validation result:
+
+```text
+<root>($/Server.One):
+- ERROR #ConnectivityChecks.hostMustBeSet(): host must be set
+- ERROR #ConnectivityChecks.portMustBeInRange(): port must be between 1 and 65535
+```
+
+Use distinct validation classes when a model has independent concerns. This keeps each group readable and makes the
+emitting class visible in the validation output:
+
+```groovy
+@DSL
+class Deployment {
+    String image
+    int replicas
+
+    @Validate
+    class ImageChecks {
+        void imageMustBeSet() {
+            assert image
+        }
+    }
+
+    @Validate
+    class CapacityChecks {
+        void replicasMustBePositive() {
+            assert replicas > 0
         }
     }
 }
@@ -232,7 +292,7 @@ class WebComponent extends BaseComponent {
     }
 }
 ```
-## custom issues on inner classes
+## Custom Issues on Inner Classes
 
 For convenience, validation classes can inherit from `ValidatorBase`, which provides convenience methods to add issues for the outer instance. These map to `Validator` static methods. The methods available are:
 
@@ -247,7 +307,7 @@ For convenience, validation classes can inherit from `ValidatorBase`, which prov
 * `suppressFurtherIssuesOn(member, level)`
 * `suppressAllFurtherIssues(level)`
 
-# Validation of nested objects
+## Validation of Nested Objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
 phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e., validation for
 the complete model tree runs immediately before the initial create method returns.
@@ -285,7 +345,7 @@ Thanks to deferred validation, it is irrelevant whether the stages are set befor
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`. That exception contains a `List<KlumValidationResult>`, each of which contains the `KlumValidationIssue`s for a single object.
 
-# Validation levels
+## Validation Levels
 
 There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.
 
@@ -293,21 +353,22 @@ Usually, validation problems are considered errors, but you can use the `level` 
 
 In the normal case, only errors lead to a `KlumValidationException` being thrown, but all validation problems are collected
 in `KlumValidationResult` objects. Use `KlumObjectSupport.of(object).getValidation().getResult()` for one object or
-`getResults()` for its owned subtree.
+`getSubtreeResults()` for that object and its owned subtree.
 
 The level on which the validation causes an exception can be overridden by the `klum.validation.failOnLevel` system property.
 
-# Deprecations
+## Deprecations
 
 If a field is marked as deprecated, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.
 
-This happens in the early validation phase, i.e., the issue will not be raised if the field is set by a later phase (like Default, AutoCreate, or AutoLink).
+This happens in the early validation phase and therefore considers only values supplied by the Model Writer's initial
+configuration. The issue is not raised if a later phase, such as Default, AutoCreate, or AutoLink, sets the field.
 
 The warning message for a deprecated field is taken from the `@deprecated` javadoc annotation, if present.
 
 If a `@Notify` annotation is present alongside the `@Deprecated` annotation, the `@Notify` is used to determine the warning behavior.
 
-# `@Notify`
+## `@Notify`
 
 The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
 
@@ -328,28 +389,56 @@ class AnotherModel {
 
 As with most issue-related annotations, the issue level can be set via the `level` parameter. The default is WARNING.
 
-# Suppress Further issues
+## Suppress Further Issues
 
-Using the new methods `Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` it is possible to suppress further issues on a specific object (or the current object, for the one argument version). By default, all issues up to level DEPRECATION are suppressed (i.e., every but an ERROR). This can be changed by providing a different level as the last argument.
+`Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` suppress later issues on
+a specific object or, in the one-argument form, on the current object. By default, issues up to DEPRECATION are
+suppressed—everything except ERROR. Provide a different final level argument to change that threshold.
 
 Also, using the `Validator.ANY_MEMBER` as member name, all further issues on the object are suppressed.
 
-Suppression has no effect on already reported issues.
+Suppression has no effect on already reported issues. For example, this Model suppresses the later warning for `notes`
+but preserves the required `owner` error:
 
-# Validation and Verify
+```groovy
+@DSL
+class Release {
+    @Required(level = Validate.Level.WARNING)
+    String notes
+
+    @Required
+    String owner
+
+    @PostTree
+    void suppressNotesWarning() {
+        Validator.suppressFurtherIssues("notes")
+    }
+}
+```
+
+`Release.Create.One()` reports only:
+
+```text
+<root>($/Release.One):
+- ERROR #owner: Field 'owner' must be set
+```
+
+The executable example is `ValidationSpec.groovy`, feature `suppresses a later non-error issue for one member`.
+
+## Validation and Verify
 
 The collection of validation problems and the actual throwing of the KlumValidationException is done in two separate phases.
 
 The actual check against the fail level is done in the Verify phase. This allows for custom validations provided by plugins
 (like the bean validation framework) to add their own checks.
 
-# Skipping verification
+## Skipping Verification
 
 By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still
-executed. Read the stored results through `KlumObjectSupport.of(object).getValidation().getResults()`, or call `verify()`
+executed. Read the stored results through `KlumObjectSupport.of(object).getValidation().getSubtreeResults()`, or call `verify()`
 later to apply the configured failure level without rerunning validators.
 
-# JSR380 validation
+## JSR380 Validation
 
 Using the optional module `klum-ast-bean-validation` it is possible to use the JSR380 validation framework. By default, this includes Hibernate-Validator 8 as dependency, this can be exchanged using default gradle mechanisms (with version 3, this will change to hibernate validator 9).
 
@@ -364,7 +453,7 @@ import jakarta.validation.constraints.Size
 }
 ```
 
-## Validation levels and JSR380
+### Validation Levels and JSR380
 
 Levels are provided using the `jakarta.validation.Payload` interface. The class `com.blackbuild.klum.ast.validation.bean.Level` provides inner classes for each value of `Validate.Level`. When set on an annotation, an occuring violation will be set to that level:
 
@@ -380,7 +469,7 @@ import com.blackbuild.klum.ast.validation.bean.Level
 
 Note that other payloads are ignored.
 
-## Using the gradle plugin
+### Using the Gradle Plugin
 
 When using the [gradle plugin](Gradle-Plugins.md), the dependency version can be omitted:
 

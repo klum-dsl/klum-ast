@@ -1,11 +1,13 @@
-# Delegation hints for Builder closures
+# Advanced Techniques
+
+## Delegation Hints for Builder Closures
 
 Generated methods accepting configuration closures receive the appropriate `@DelegatesTo` metadata automatically, so
 modern IDEs can infer the available Builder methods.
 
 Schema-defined Mutators sometimes accept and forward their own configuration closures. The generated Builder type does
-not exist when that source method is parsed. Use `@DelegatesToBuilder` in that case. The annotation points the IDE and static type
-checker at the generated Builder, not at a mutable completed DSL Object.
+not exist when that source method is parsed. Use `@DelegatesToBuilder` in that case. It tells the IDE and static type
+checker about the generated Builder, not a mutable completed DSL Object.
 
 The optional annotation value selects the DSL Object whose Builder receives the closure:
 
@@ -28,36 +30,32 @@ class Container {
 ```
 
 Here both Mutators execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
-`@DelegatesToBuilder` does not add a completed-model `apply` or `configure` path; APIs that need to configure a DSL Object must
-participate in factory/Builder construction.
+`@DelegatesToBuilder` does not add a completed-model `apply` or `configure` path. An API that configures a DSL Object must
+participate in factory/Builder construction; see [[Builder First Migration]] for the lifecycle boundary.
 
-# Behaviour models: Parameter Hints
+## Behavior Models and Parameter Hints
 
-Fields can also contain dynamic behavior in the form of closure or
-interface parameters. That way, the actual behavior of the model
-can be injected for the model, as opposed to the schema.
+Fields can hold dynamic behavior as a closure or interface value. This lets a Model choose behavior without creating a
+new Schema type.
 
 Consider the following example:
 
 ```groovy
 class ValueProvider {
-    
     String name
-      
+
     String getDescription(Map<String, String> environment) {
-        return "Value: $name: $it.name -> $it.value"
+        "Value: $name: ${environment.name} -> ${environment.value}"
     }
 }
 ```
 
-If we want the description to continue another value, we would need a
-subclass of `ValueProvider` which is not very convenient.
+If the description must contain another value, a subclass of `ValueProvider` would be required. That is inconvenient when
+the behavior varies by Model rather than by Schema.
 
-The better solution is to make the description itself configurable 
-(Strategy pattern). This can be done with either an interface / an 
-abstract class or a closure:
+Make the description configurable instead (the Strategy pattern). Use either an interface/abstract class or a closure.
 
-## interface
+### Interface
 
 ```groovy
 interface DescriptionProvider {
@@ -65,48 +63,41 @@ interface DescriptionProvider {
 }
 
 @DSL class ValueProvider {
-    
     String name
-    
-    @Validate // or a convenient default value  
+
+    @Required
     DescriptionProvider descriptionProvider
-      
+
     String getDescription(Map<String, String> environment) {
         descriptionProvider.getDescription(environment)
     }
 }
 ```
 
-That way, in the actual model, the description algorithm can be injected. 
-Note that in Groovy any single abstract method interface (functional interface)
-can be replaced with a closure:
+The Model can now supply the description algorithm. In Groovy, a single-abstract-method (SAM) interface can be supplied
+as a closure:
 
 ```groovy
 ValueProvider.Create.With {
     name "Blub"
-    
     descriptionProvider { "Value: $name: $it.name -> $it.value" }
 }
 ```
 
-The closure in this case will automatically be resolved as having a single parameter
-of type Map and a return value of String, which will also be checked by
-the compiler.
+The closure has one `Map` parameter and returns `String`, which the compiler can check.
 
-`DescriptionProvider` could also be changed into an abstract class, which 
-would be a nice place to include [[Converters#Factory Method converters]]. 
+`DescriptionProvider` could instead be an abstract class, for example to add [[Converters#factory-method-converters]].
 
-## Closure attributes
+### Closure Attributes
 
 The description provider could also be a Closure itself:
 
 ```groovy
 @DSL class ValueProvider {
-    
     String name
-    
+
     Closure<String> descriptionProvider
-      
+
     String getDescription(Map<String, String> environment) {
         descriptionProvider.getDescription(environment)
     }
@@ -114,54 +105,42 @@ The description provider could also be a Closure itself:
 
 ValueProvider.Create.With {
     name "Blub"
-    
+
     descriptionProvider { "Value: $name: $it.name -> $it.value" }
 }
 ```
 
-Note that the model definition is the same as with an `Action` class.
-Unfortunately, with this approach, the IDE and the type checker have no
-way of knowing that the Closure parameter is of type Map, so no code completion
-is done here.
+The Model call looks the same as the SAM-interface form. With an unannotated Closure field, however, the IDE and type
+checker do not know the parameter type, so they cannot offer parameter completion.
 
-In normal Groovy, this could be solved by including the `@ClosureParams` annotation
-on the Closure parameter of the method, but since these methods are generated, this is not
-directly possible. However, KlumAST provides a workaround: the `@ParameterAnnotation`:
-
-The ParameterAnnotation is a meta-annotation that can be used to annotate
-other annotations (of ElementType METHOD and/or FIELD). If the target 
-annotation is placed on a (virtual) field of the schema, all annotation members
-of the target annotation are copied to the generated setter or single element adder. They will become parameter annotations of the single method parameter. See Javadoc for details.
-
-For our closure field, there is a pre-implemented annotation, `@ParameterAnnotation.ClosureHint`,
-that contains members for both relevant annotation types. Our example 
-can be improved with:
+In normal Groovy, a method parameter can carry `@ClosureParams`. Because this setter is generated, use
+`@ParameterAnnotation.ClosureHint` instead. For this closure field, the supplied hint carries the required parameter
+annotation:
 
 ```groovy
 @DSL class ValueProvider {
-    
     String name
- 
-    @ParameterAnnotation.ClosureHint(params=@ClosureParams(value=FromString, options="Map<String,Object>"))   
+
+    @ParameterAnnotation.ClosureHint(params = @ClosureParams(value = FromString, options = "Map<String,Object>"))
     Closure<String> descriptionProvider
-      
+
     String getDescription(Map<String, String> environment) {
         descriptionProvider.getDescription(environment)
     }
 }
 ```
 
-Which will provide code completion and type checking for the generated methods.
- 
-## When to choose: SAM interface or Closure
+This provides parameter completion and type checking for the generated methods. `@ParameterAnnotation` copies annotations
+from a Schema field to the generated setter or single-element adder; see the
+[`@ParameterAnnotation` API source and Javadoc](https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/ParameterAnnotation.java)
+for the advanced annotation-mapping rules.
 
-Usually, the SAM interface approach is nicer and cleaner, especially when used 
-together with factory converters.
+## Choosing a SAM Interface or Closure
 
-However, SAM interfaces can not really replicate the delegate mechanism 
-of Groovy closures, which can further improve the cleanliness of the generated
-DSL by completely omitting the closure parameter.
+Prefer a SAM interface when only parameter typing is needed, especially with factory converters.
 
-As a rule of thumb: When only `@ClosureParams` is needed, one should use
-SAM interfaces, when delegate mechanisms can be used to enhance the dsl,
-Closures with ParameterAnnotations should be used instead.
+Use a Closure with parameter annotations when its Groovy delegate mechanism makes the DSL materially clearer; a SAM
+interface cannot reproduce that delegate behavior.
+
+In short: use a SAM interface for ordinary typed behavior and a Closure with `@ParameterAnnotation` when delegation is
+part of the DSL.

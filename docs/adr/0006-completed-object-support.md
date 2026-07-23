@@ -54,8 +54,9 @@ relative structural paths. Java overloads include the existing four-argument `Mo
 Builder traversal remains separate.
 
 `getValidation()` returns a helper that reads stored completed-model validation only. `getResult()` returns the target's
-result, `getResults()` returns results for its owned subtree, and `verify()` / `verify(level)` inspect those results and
-throw as appropriate. These operations never rerun validators and never mutate lifecycle issue state.
+result; `getSubtreeResults()` returns the target's result together with results from its owned subtree. `verify()` /
+`verify(level)` inspect those results and throw as appropriate. These operations never rerun validators and never mutate
+lifecycle issue state.
 
 `KlumModelProxy` is strictly internal. Raw metadata read/write is removed from the supported surface as an intentional 4.0
 break because arbitrary keys and serializable values create an unsafe extension protocol. Needed features must later expose
