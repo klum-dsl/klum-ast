@@ -26,7 +26,7 @@ annotated documentary path. It is a queue for a later #491 slice, not a new beha
 | Documentation element | Responsible issue evidence | Executable coverage evidence | Status / next audit action |
 | --- | --- | --- | --- |
 | `Basics.md` — DSL object, fields, keys, owners, relationships, field types | Historical transformation issues in `TransformSpec` (including #21, #22, #35, #54, #56, #58, #80, #121, #126–#128, #172, #249–#250) | `TransformSpec`, `OwnerReferencesSpec`, `RWClassSpec` | Factory construction aligned here; split the remaining broad page by stable heading before adding documentary examples. |
-| `Alternatives-Syntax.md` | #77, #270 | `AlternativesSpec` | Not yet aligned. |
+| `Alternatives-Syntax.md` — Strip Common Suffixes | #77, #270, #544 | `AlternativesSpec` | Aligned with `AlternativesSpec.uses stripped suffixes for alternative method names`. Other alternatives sections remain candidates for later selection. |
 | `Convenience-Factories.md` | #114, #195, #198 | `ConvenienceFactoriesSpec` | Not yet aligned. |
 | `Converters.md` | #148, #198, #243, #300, #319 | `ConverterSpec` | Not yet aligned. |
 | `Copy-Strategies.md` | #36, #309, #348, #374, #400 | `CopyHandlerTest`, `CopyHandlerRuntimeTest`, `OverwriteStrategyTest` | Not yet aligned. |

@@ -23,7 +23,7 @@ Map<String, Service> services = structure.findAll(Service.class);
 
 KlumObjectSupport.Validation<Deployment> validation = support.getValidation();
 KlumValidationResult result = validation.getResult();
-List<KlumValidationResult> subtreeResults = validation.getResults();
+List<KlumValidationResult> subtreeResults = validation.getSubtreeResults();
 ```
 
 The Javadoc for `KlumObjectSupport` and its nested `Structure` and `Validation` helpers is the source of truth for complete
@@ -55,10 +55,10 @@ ensures that object graphs remain safe even when DSL types override `equals`.
 
 ## Stored validation
 
-`getValidation().getResult()` returns the result already stored for the target object. `getResults()` reads all stored
-results from the target's owned composition subtree. `verify()` uses the configured failure level, while `verify(level)`
-uses the supplied level. These operations only inspect lifecycle results: they do not execute `InstanceValidator`s, create
-results, or mutate recorded issues.
+`getValidation().getResult()` returns the result already stored for the target object.
+`getValidation().getSubtreeResults()` reads all stored results for that target and its owned composition subtree.
+`verify()` uses the configured failure level, while `verify(level)` uses the supplied level. These operations only inspect
+lifecycle results: they do not execute `InstanceValidator`s, create results, or mutate recorded issues.
 
 The facade may also start at a subtree:
 

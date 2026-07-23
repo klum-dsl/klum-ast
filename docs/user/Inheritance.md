@@ -1,3 +1,5 @@
+# Inheritance
+
 DSLObjects can inherit from other DSL-Objects (but the child class *must* be annotated with DSL as well). This
 allows polymorphic usage of fields. To allow to specify the concrete implementation, setter methods are generated
 which take an additional Class parameter.

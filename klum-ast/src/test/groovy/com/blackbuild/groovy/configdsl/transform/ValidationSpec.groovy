@@ -1692,6 +1692,36 @@ class ValidationSpec extends AbstractDSLSpec {
     }
 
     @Issue("407")
+    @Tag("documentary")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#suppress-further-issues")
+    def "suppresses a later non-error issue for one member"() {
+        given:
+        createClass('''
+            @DSL
+            class Release {
+                @Required(level = Validate.Level.WARNING)
+                String notes
+
+                @Required
+                String owner
+
+                @PostTree
+                void suppressNotesWarning() {
+                    Validator.suppressFurtherIssues("notes")
+                }
+            }
+        ''')
+
+        when:
+        clazz.Create.One()
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.message == '''<root>($/Release.One):
+- ERROR #owner: Field 'owner' must be set'''
+    }
+
+    @Issue("407")
     def "issues can be suppressed up to a certain level"() {
         given:
         createClass('''

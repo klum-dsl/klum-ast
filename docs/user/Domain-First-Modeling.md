@@ -1,14 +1,15 @@
 # Domain-first modeling (4.0 preview)
 
-> This is a 4.0 preview pending field testing. Use the documentation that matches the KlumAST version you adopt; #456 owns versioned documentation and Javadocs.
+> This is a 4.0 preview pending field testing. Use the documentation that matches the KlumAST version you adopt; [#456](https://github.com/klum-dsl/klum-ast/issues/456) owns versioned documentation and Javadocs.
 
-Domain-first modeling starts from the domain a completed model must represent. The model is the canonical abstraction, and adapters translate it for a dashboard, automation hub, report, or other target. That differs from target-contract modeling, where an existing technical contract remains authoritative.
+Domain-first modeling starts from the domain a completed model must represent. The model is the canonical abstraction, and
+adapters translate it for a dashboard, automation hub, report, or other target. That differs from [[Target Contract Modeling|target-contract modeling]], where an existing technical contract remains authoritative.
 
 ## Choose the consumer boundary
 
 Choose this independently from domain-first versus target-contract:
 
-- **Layer 3** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
+- **[[Layer3|Layer 3]]** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
 - **Direct-schema** fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.
 
 Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should not depend on concrete Schema types; it is not a requirement for every domain-first project. The wider terminology, variants, and policy remain under [#454](https://github.com/klum-dsl/klum-ast/issues/454), so this guide does not treat an example as a new contract.
@@ -28,10 +29,12 @@ The fixture's `SmartHomeJourneyDocumentaryTest` is the documentary test of that 
 ./gradlew -p agent-skills/fixtures/domain-first-smart-home test
 ```
 
-Use the portable [`build-domain-first-schema`](../../agent-skills/build-domain-first-schema/SKILL.md) skill to adapt the workflow. It points to the fixture rather than copying its large example. `author-klum-model` remains the shared Model Writer workflow; use it when creating the separate registered Model script and its executable test.
-
 The fixture stops at durable Model configuration and an API-only client boundary. A later showcase could compose provider classes with live readings, or generate OpenHAB Things/devices without a backchannel to the Model. Neither runtime behavior nor OpenHAB integration is a contract of this Layer 3 journey.
 
-## Field test
+## Agentic use
+
+Use the portable [`build-domain-first-schema`](../../agent-skills/build-domain-first-schema/SKILL.md) skill to adapt the workflow. It points to the fixture rather than copying its large example. `author-klum-model` remains the shared Model Writer workflow; use it when creating the separate registered Model script and its executable test.
+
+### Field test
 
 For a real-project evaluation, begin with the fixture's [field-test brief](../../agent-skills/fixtures/domain-first-smart-home/field-test/SMART-HOME-BRIEF.md) and use its [prompt](../../agent-skills/fixtures/domain-first-smart-home/FIELD-TEST.md). Record the project’s two architectural choices, its completed-model and API-only client evidence, and one concrete friction point. A newly exposed Layer 3 behavior or vocabulary question belongs in a focused maintainer decision, not in an accidental extension of this journey.

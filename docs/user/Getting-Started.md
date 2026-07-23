@@ -1,6 +1,6 @@
 # Gradle onboarding (4.0 preview)
 
-> This is a 4.0 preview pending field testing. Read the documentation that matches the KlumAST version you adopt; #456 owns versioned documentation and Javadocs.
+> This is a 4.0 preview pending field testing. Read the documentation that matches the KlumAST version you adopt; [#456](https://github.com/klum-dsl/klum-ast/issues/456) owns versioned documentation and Javadocs.
 
 ## Choose the model shape first
 
@@ -14,8 +14,10 @@ Before creating a Schema, answer two independent questions.
    - **Direct-schema**: Schema types are the consumer-facing API, and the Schema Developer also owns that role.
 
 Record the choices near the project architecture. Layer 3 is a modeling pattern, not a requirement for every Gradle project.
+For route-specific guidance, read [[Domain First Modeling]] or [[Target Contract Modeling]]; the settled Layer 3 pattern
+is explained in [[Layer3]].
 
-`author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use `build-domain-first-schema` with the executable [smart-home fixture](Domain-First-Modeling.md#smart-home-journey); this keeps the shared Model Writer workflow intact rather than redefining it. `build-target-contract-schema` is the target-contract Schema Developer route; its [[Target Contract Modeling|executable Helm journey]] demonstrates intentional external mappings without redefining these role boundaries. The #470 baseline established the common setup.
+`author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use `build-domain-first-schema` with the executable [smart-home fixture](Domain-First-Modeling.md#smart-home-journey); this keeps the shared Model Writer workflow intact rather than redefining it. `build-target-contract-schema` is the target-contract Schema Developer route; its [[Target Contract Modeling|executable Helm journey]] demonstrates intentional external mappings without redefining these role boundaries. The [#470](https://github.com/klum-dsl/klum-ast/issues/470) baseline established the common setup.
 
 ## Create the Gradle project
 

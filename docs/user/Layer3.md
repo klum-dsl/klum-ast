@@ -1,5 +1,4 @@
-Layer3 advanced structures
-==========================
+# Layer 3
 
 A Layer3 structure separates responsibilities that are often combined in a simpler Schema/Model design:
 
@@ -10,7 +9,7 @@ A Layer3 structure separates responsibilities that are often combined in a simpl
 - The Model Writer creates configured Model instances through scripts or structured inputs and connects them.
 - The Client Developer consumes the API layer without depending on the concrete Schema layer.
 
-The role boundaries and variants of this approach need a dedicated design pass under issue #454. The established
+The role boundaries and variants of this approach need a dedicated design pass under [issue #454](https://github.com/klum-dsl/klum-ast/issues/454). The established
 definition is the API–Schema–Model dependency pattern; it is not a package or Java-module boundary.
 
 ## Example structure
@@ -135,8 +134,10 @@ environment("dev") {
 }
 ```
 
-By default, these factories are entirely optional (like collection factories). Using 
-`@Cluster.bounded`, which can also be placed on a class, one of its superclasses or a package, makes all cluster field methods on the rw-interface `protected`, so they are only reachable from inside the factory (i.e., code completion would not present 'ddl' or 'dml' methods on a Database object, only 'users'. Users itself would only contain the actual user methods).
+By default, these factories are entirely optional (like collection factories). Using
+`@Cluster.bounded`, which can also be placed on a class, one of its superclasses, or a package, makes the cluster
+field methods on the generated Builder construction API `protected`. They are then reachable only inside the factory;
+for example, code completion presents `users` on a `Database` Builder rather than its `ddl` or `dml` members.
 
 The Environment base class contains method to access the actual applications as a Map:
 
@@ -160,7 +161,9 @@ def deploy(Environment env) {
 }
 ```
 
-Note that the `@Cluster` annotation can also be placed on a getter method (which would be called `getApplications()` in the above example), which can either be abstract or simply contain an empty body (or a body consisting only of `null`) to prevent IDEs from complaining. before rc.45, this was the only option, now using a field is considered the better option.
+`@Cluster` can also be placed on a getter method (for example, `getApplications()`), which can be abstract or have an
+empty/`null` body to satisfy an IDE. Prefer the field form for new Schemas. The roles, dependency direction, and
+variants of Layer 3 remain under the explicit terminology review in [#454](https://github.com/klum-dsl/klum-ast/issues/454).
 
 Validations in our ShippingApplication can also be done specifically for that application:
 

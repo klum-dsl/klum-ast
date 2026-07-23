@@ -26,6 +26,8 @@ package com.blackbuild.groovy.configdsl.transform
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
+import spock.lang.See
+import spock.lang.Tag
 
 import java.lang.annotation.Annotation
 
@@ -366,6 +368,44 @@ class ChildElement extends Element {
         instance.elements.size() == 2
         instance.elements.blub.class.simpleName == "SubElement"
         instance.elements.bli.class.simpleName == "ChildElement"
+    }
+
+    @Issue("544")
+    @Tag("documentary")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Alternatives-Syntax.md#strip-common-suffixes")
+    def "uses stripped suffixes for alternative method names"() {
+        given:
+        createClass('''
+            @DSL
+            class Config {
+                Map<String, Element> elements
+            }
+
+            @DSL(stripSuffix = "Element")
+            abstract class Element {
+                @Key String name
+            }
+
+            @DSL
+            class ServiceElement extends Element {
+            }
+
+            @DSL
+            class JobElement extends Element {
+            }
+        ''')
+
+        when:
+        def config = clazz.Create.With {
+            elements {
+                service("api") {}
+                job("cleanup") {}
+            }
+        }
+
+        then:
+        config.elements.api.class.simpleName == "ServiceElement"
+        config.elements.cleanup.class.simpleName == "JobElement"
     }
 
     def "alternative names can also be configured for a given field"() {

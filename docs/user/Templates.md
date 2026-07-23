@@ -1,6 +1,4 @@
-*The previous methods `createTemplate` and `createAsTemplate` has been deprecated in favor of the new mechanism described below*
-
-The system includes a simple mechanism for configuring default values (as part of the instance creation, not in the classes):
+# Templates
 
 Templates are completed DSL Objects marked as reusable construction recipes. Applying a Template copies its non-null and
 non-empty values into a fresh Builder graph. Nested DSL Objects are rehydrated recursively, Collections are copied, and
@@ -34,9 +32,10 @@ abstract class Parent {
 def template = Parent.Template.Create()
 ```
  
-Templates are also correctly applied when using inheritance, i.e. if a template is defined for the parent class,
-it is also applied when creating child class instances. Child template values can override parent templates. For examples
-see the test cases in TemplateSpec.
+Templates are also correctly applied when using inheritance: a template defined for a parent class is applied when
+creating child-class instances, and child template values can override parent templates. The executable regression
+coverage is in `BoundTemplatesSpec.groovy`; [#491](https://github.com/klum-dsl/klum-ast/issues/491) retains the task of selecting and linking a dedicated documentary
+happy path for this page.
 
 Template specific methods are pooled in the `Template` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
 
@@ -59,7 +58,7 @@ def template = Config.Template.Create {
 }
 ```
  
-# copyFrom()
+## `copyFrom()`
 
 Using `copyFrom`, one can explicitly apply a template to a single Object to be created:
 
@@ -79,14 +78,11 @@ In both notations, the `copyFrom` entry should be the first, otherwise it might 
 Template contributes both values and recipe actions. An ordinary completed model contributes values only. See
 [[Copy Strategies#copy-source-protocol]] for the complete copy-source rules.
 
-# Template.With()
+## Template.With()
  
 `Template.With()` provides scoped templates. It takes a template and a closure, and the template is automatically 
 applied to all instance creations within that closure.
  
- __A template is only applied inside the scope when using the `Create.*` methods (or one of the [[Convenience Factories]]), it is NOT invoked when using the 
- constructor directly!__ 
-
 Usage:
 ```groovy
 def template = Config.Template.Create {
@@ -106,10 +102,10 @@ Config.Template.With(template) {
 
 assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
-assert c.roles == [ "developer", "guest", "scrummaster" ]
+assert d.roles == [ "developer", "guest", "scrummaster" ]
 ```
 
-# With anonymous template
+## With an Anonymous Template
 `Template.With` can also be called using only named parameters, creating a temporary, anonymous template:
 
 ```groovy
@@ -130,7 +126,7 @@ Config.Template.With(url: "http://x.y") {
 }
 ```
 
-# templates for collection factories
+## Templates for Collection Factories
 
 When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
 specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
@@ -164,7 +160,7 @@ Config.Create.With {
 }
 ```
 
-# Template.WithAll()
+## Template.WithAll()
 
 `Template.WithAll` is a convenient way of applying multiple templates at one. It takes one of the following arguments:
 
@@ -207,7 +203,7 @@ Config.Template.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linu
 
 Note that Groovy requires the key object to be in parentheses if it is not a String.
 
-# templates for abstract classes
+## Templates for Abstract Classes
 
 For abstract classes, an inner class named `Template` is created with the following properties:
 
@@ -217,7 +213,7 @@ For abstract classes, an inner class named `Template` is created with the follow
 Anonymous templates automatically use the Template class.
 
 
-# Order of precedence
+## Order of precedence
 
 The order of precedence is
 
@@ -291,7 +287,7 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 }
 ```
 
-# ApplyLater and templates
+## `applyLater` and Templates
 
 As stated in [[Model Phases]], Templates can contain `applyLater` closures. These actions are not executed on the Template;
 they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh

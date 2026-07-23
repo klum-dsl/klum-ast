@@ -1,7 +1,7 @@
 # Copy strategies
 
 Copy strategies control how `copyFrom` applies a donor recipe to the current mutable Builder. This is mainly used for
-Templates, but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
+[[Templates]], but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
 means the Builder being configured; a completed DSL Object is never mutated.
 
 ## Copy source protocol
@@ -154,7 +154,7 @@ For non-DSL values, this behaves exactly as 'MERGE_KEYS', i.e. the values are re
 
 All entries in the donor's map whose keys are not present in the target's map are added to the target's map.
 
-# Nested Annotations
+## Nested Annotations
 
 Nested Annotations can be used to give meaningful names to a couple of strategies. For example, the `HelmOverwrite` annotation is a nested annotation that sets the strategy to `MERGE` for single object fields, `ALWAYS_REPLACE` for collections and `MERGE_VALUES` for maps, resembling the way helm merges value files.
 
@@ -174,7 +174,7 @@ public @interface HelmOverwrite {
 
 Note that only one level of nesting is supported, i.e. you cannot nest annotations inside nested annotations.
 
-# Missing field handling
+## Missing field handling
 
 The `@Overwrite` annotation as well as nested annotations can contain an additional member named `missing` of type
 `OverwriteStrategy.Missing`, which controls the handling of fields in the donor that are not present in the target

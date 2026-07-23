@@ -1,33 +1,28 @@
-### Alternatives syntax
+# Alternatives Syntax
 
-The alternatives syntax allows defining the class of the element not as an attribute to the adder method, but by using
-different methods instead:
+Alternative syntax selects a child class through the generated method name rather than an explicit class argument to the
+adder method:
 
 Given the schema:
 ```groovy
 @DSL
 class Config {
-
     String name
-
     Map<String, Element> elements
 }
 
 @DSL
 abstract class Element {
-
     @Key String name
 }
 
 @DSL
 class SubElement extends Element {
-
     String role
 }
 
 @DSL
 class ChildElement extends Element {
-
     String game
 }
 ```
@@ -54,23 +49,25 @@ Config.Create.With {
 }
 ```
 
-There are a couple of noteworthy points:
+Keep these constraints in mind:
 
 - Other than with the regular solution, the `elements` closure is no longer optional.
 - The necessary methods are only generated if `Config` and all subclasses of `Element` are compiled in __same compiler run__.
   This means that if you split your schema into different projects, you need to depend on the sources, not on the compiled
   classes of other schema parts (see [[Usage]] for details).
-- Different child classes with the same simple name (in different packages) is not allowed.
-- [[Convenience Factories]] and source-visible converter methods also work on alternative methods. In 4.0, adaptable
-  model-producing methods are rebound to active-session Builder-producing twins, so the alternative remains part of the
-  owning graph lifecycle. Opaque or precompiled model-returning methods without a Builder contract are omitted.
+- Child classes with the same simple name, even in different packages, are not allowed.
+- [[Convenience Factories]] and source-visible converter methods also work on alternative methods. For the 4.0 Builder
+  boundary and opaque-producer diagnostics, see [[Behind the Curtain#builder-projection-for-custom-producers]].
 
+## Naming Strategies
 
-There are four strategies for choosing alternative names (in order of precedence):
+KlumAST chooses the first applicable strategy below. Use the most local strategy that makes the Model readable: field
+names for one exceptional relationship, `shortName` for a Schema type's deliberate public DSL name, and `stripSuffix` for
+a repeated type-family convention.
 
-## Defining explicit names for a field
+### Defining Explicit Names for a Field
 
-Using `@Field.alternatives`, a map of String/Class can be provided, which explicitly maps method names to classes:
+Use `@Field(alternatives = ...)` to map method names explicitly to classes:
 
 ```groovy
 @DSL
@@ -81,11 +78,11 @@ class Config {
 }
 ```
 
-Note that the given map must be placed inside a closure and only contain literal Strings and literal Classes.
+The map must be inside a closure and contain only literal Strings and literal Classes.
 
-## Give explicit short names for subclasses
+### Explicit Short Names for Subclasses
 
-By using the `shortName` value of the `@DSL` annotation, the generated alternative names use that short name instead:
+Set `shortName` on `@DSL` when a subtype has a deliberate public DSL name:
 
 ```groovy
 @DSL(shortName = 'subby')
@@ -112,13 +109,49 @@ Config.Create.With {
 }
 ```
 
-## Strip common suffixes
+### Strip Common Suffixes
 
-By using the `stripSuffix` value of DSL, the given suffix is stripped from all child classes when determining the 
-method name (if a shortName is given, strip suffix is ignored). 
+`@DSL(stripSuffix = "Element")` on the common base strips the suffix from child class names when determining the
+alternative method name. An explicit `shortName` still takes precedence:
 
-## Default: derived from the class name
+```groovy
+given: // Schema
+@DSL
+class Config {
+    Map<String, Element> elements
+}
 
-In any other case, the name of the subclass with a lowercase first character is used.
+@DSL(stripSuffix = "Element")
+abstract class Element {
+    @Key String name
+}
+
+@DSL
+class ServiceElement extends Element {
+}
+
+@DSL
+class JobElement extends Element {
+}
+
+when: // Model
+def config = Config.Create.With {
+    elements {
+        service("api") {}
+        job("cleanup") {}
+    }
+}
+
+then: // Assertions
+assert config.elements.api instanceof ServiceElement
+assert config.elements.cleanup instanceof JobElement
+```
+
+The executable example is `AlternativesSpec.groovy`, feature `uses stripped suffixes for alternative method names`.
+
+### Default: Derived from the Class Name
+
+In any other case, KlumAST lowercases the first character of the subclass name. The opening `SubElement` and
+`ChildElement` example therefore produces `subElement` and `childElement`.
 
 For more complex cases, custom [[Factory Classes]] can be used.

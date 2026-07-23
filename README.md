@@ -22,16 +22,38 @@ Users of 1.2.0 (or lower) should take a look at the historical [Migration](https
 
 # What is KlumAST?
 
-KlumAST is the first part of the KlumDSL suite. It provides and easy way to create a complete DSL for a model classes.
- 
-There are two main objectives for this project:
+KlumAST turns annotated model classes into concise, statically checked Groovy DSLs.
 
-- be as terse as possible while still being readable and using almost no boilerplate code
+## Why models as code?
 
-- Offer as much IDE-based assistance as possible.
-  Since KlumAST uses AST transformations, this works out of the
-  box for all major IDEs (as long as the model classes are separated from
-  the actual configuration)
+A useful model-as-code approach should be easy to author, clear to change, and safe to verify:
+
+- **Automate model construction.** Generated Builders, factories, and DSL mutators remove repetitive implementation work
+  while retaining statically checked Groovy source.
+- **Support the authoring experience.** Generated Builder documentation and IDE mirrors make the model's construction
+  surface discoverable without hand-maintained DSL stubs.
+- **Validate and test the actual model.** A Schema can declare constraints, and each generated root factory runs
+  validation as it materializes a completed model. Model-specific scenarios are ordinary unit tests: construct a model,
+  assert its completed state or validation result, and run the same tests locally and in a pull-request build. They
+  complement, rather than replace, integration tests against the eventual target.
+
+Typical validation output names the rule that emitted it:
+
+```text
+- ERROR #ConnectivityChecks.portMustBeInRange(): port must be between 1 and 65535
+```
+
+Construction paths retain the source context, which is especially useful when a model is split across scripts. For
+example, an illustrative failure from `models/production.groovy` could read:
+
+```text
+<root>.service($/Deployment.From:file(models/production.groovy)/service):
+- ERROR #port: Field 'port' must be set
+```
+
+These capabilities make KlumAST especially useful for GitOps and other `*aC` (anything-as-code) workflows. Git can record a
+configuration's structure, but a checked-in structure is not necessarily a verified model. Read
+[why `*aC` needs model-level tests](docs/user/Why-aC-is-not-enough.md) for the rationale.
 
 ## Example
 
