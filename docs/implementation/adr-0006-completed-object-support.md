@@ -27,7 +27,7 @@ compatible. Demonstrate Java use against both a root and subtree without exposin
 
 ### OS-2 — Stored validation facade and proxy lockdown — Implemented
 
-Add `getValidation()` with target/subtree result access and non-rerunning `verify` operations. Move supported callers off
+Add `getValidation()` with `getResult()` target and `getSubtreeResults()` target-plus-subtree access, and non-rerunning `verify` operations. Move supported callers off
 `KlumModelProxy`, internalize its lookup and raw metadata, and add migration diagnostics/deprecations where source
 compatibility is feasible. Verify facade serialization does not create a second companion reference.
 
