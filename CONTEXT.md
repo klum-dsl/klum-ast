@@ -19,6 +19,9 @@ This repository is modularised into a set of focused subprojects. The main modul
 
 Agents should treat the repo as a single-context project: one `CONTEXT.md` at the root and `docs/adr/` for ADRs.
 
+Policy: All created source code must include the project license header. Contributors and automated tools should run `./gradlew licenseFormat` before committing to ensure headers are present. CI should enforce this.
+
+
 ## Tests
 
 Test are done via the Spock Framework. Most important tests are in the klum-ast module, which tests the DSL transformation and runtime behavior. The other modules have their own tests for module-specific functionality.
