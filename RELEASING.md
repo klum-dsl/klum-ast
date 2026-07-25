@@ -80,12 +80,14 @@ source to **None** and delete the complete experimental branch. Do not use `pend
 for this rehearsal and do not preserve it as release evidence.
 
 After cleanup, create a fresh orphan `gh-pages` ledger containing root `.nojekyll`, configure Pages
-to deploy through GitHub Actions, and protect both the `documentation-pages` write environment and
-the `github-pages` deployment environment. Verify that only the protected workflow may update the
-ledger/deploy Pages. Set the repository variable `DOCUMENTATION_PAGES_READY=true` only after those
-checks. Until then the workflow fails before rendering, branch mutation, Pages deployment, or
-artifact publication. Clearing the variable disables future release documentation stages without
-rewriting any retained evidence.
+to deploy through GitHub Actions, and protect both the `documentation-pages-writer` writer environment
+and the `documentation-pages` deployment environment. The writer environment holds only the
+per-library Pages-writer GitHub App credentials; its short-lived App token is the only identity allowed
+to update the ledger. The deployment environment contains no writer credential. Verify that only the
+protected workflow may update the ledger/deploy Pages. Set the repository variable
+`DOCUMENTATION_PAGES_READY=true` only after those checks. Until then the workflow fails before
+rendering, branch mutation, Pages deployment, or artifact publication. Clearing the variable disables
+future release documentation stages without rewriting any retained evidence.
 
 Credential-free local checks use only Gradle and the JDK:
 
