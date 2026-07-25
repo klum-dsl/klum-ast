@@ -81,13 +81,15 @@ for this rehearsal and do not preserve it as release evidence.
 
 After cleanup, create a fresh orphan `gh-pages` ledger containing root `.nojekyll`, configure Pages
 to deploy through GitHub Actions, and protect both the `documentation-pages-writer` writer environment
-and the `documentation-pages` deployment environment. The writer environment holds only the
-per-library Pages-writer GitHub App credentials; its short-lived App token is the only identity allowed
-to update the ledger. The deployment environment contains no writer credential. Verify that only the
-protected workflow may update the ledger/deploy Pages. Set the repository variable
-`DOCUMENTATION_PAGES_READY=true` only after those checks. Until then the workflow fails before
-rendering, branch mutation, Pages deployment, or artifact publication. Clearing the variable disables
-future release documentation stages without rewriting any retained evidence.
+and the `documentation-pages` deployment environment. The writer environment admits only `master`,
+requires maintainer review without administrator bypass, and holds only the per-library Pages-writer
+GitHub App credentials. Its short-lived App token is the sole identity allowed to update the ledger.
+The deployment environment contains no writer credential. Protect `gh-pages` against creation, update,
+deletion, and non-fast-forward changes; allow only that App integration to bypass the ruleset, never a
+human account. Verify these protections before setting the repository variable
+`DOCUMENTATION_PAGES_READY=true`. Until then the workflow fails before rendering, branch mutation,
+Pages deployment, or artifact publication. Clearing the variable disables future release documentation
+stages without rewriting any retained evidence.
 
 Credential-free local checks use only Gradle and the JDK:
 
@@ -136,9 +138,9 @@ the Season identity or approve it.
 If a valid pending-stage identity fails after validation, the Pages workflow records only a
 sanitized rejection record below `pending-rejected/<version>/<sha>/`; it contains the identity
 and `rejected-pending-documentation` outcome, never command output, credentials, or telemetry.
-That path is also immutable. Correct the cause and follow ADR 0012's next-version rule rather
-than overwriting a rejected or pending path. A malformed, off-master, or already tagged request
-does not create a pending or rejected Pages record.
+That path is also immutable. The root ledger is append-only: correct the cause and follow ADR 0012's
+next-version rule rather than repairing or overwriting a rejected or pending path. A malformed,
+off-master, or already tagged request does not create a pending or rejected Pages record.
 
 ## Protected publication path
 
@@ -162,8 +164,9 @@ manifest before `publishCompleteKlumAstProduct`. That task remains the sole perm
 artifact publication entry: it publishes every Maven coordinate to one Sonatype staging
 repository, closes/releases it, and then publishes every Plugin Portal marker. #488's successful
 public proof is the only input that may advance #456's labelled stable, line, or preview aliases.
-This does not make cross-registry publication reversible or claim that a final is byte-identical
-to its RC.
+The protected immutable proof handoff must bind the release channel, exact version, full source SHA,
+and proof-run identity; a missing or mismatched field rejects promotion. This does not make
+cross-registry publication reversible or claim that a final is byte-identical to its RC.
 
 After publication, wait for every Maven coordinate and every Plugin Portal marker to be
 publicly resolvable. Then dispatch [Verify public release](.github/workflows/verify-public-release.yml)
