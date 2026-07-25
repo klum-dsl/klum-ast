@@ -54,7 +54,7 @@ jobs:
     name: Stage pending documentation for ${{ inputs.version }}
     needs: validate-release-input
     permissions:
-      contents: write
+      contents: read
       pages: write
       id-token: write
     uses: ./.github/workflows/publish-pending-documentation.yml

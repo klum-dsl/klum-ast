@@ -105,9 +105,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment:
-      name: documentation-pages
+      name: documentation-pages-writer
     permissions:
-      contents: write
+      contents: read
     outputs:
       stage: ${{ inputs.stage }}
       version: ${{ inputs.version }}
@@ -156,7 +156,7 @@ jobs:
         with:
           ref: gh-pages
           path: pages
-          persist-credentials: true
+          persist-credentials: false
       - id: handoff
         name: Reject an existing immutable pending path and read the handoff
         env:
@@ -200,12 +200,35 @@ jobs:
           git add -- "$EXACT_PATH"
           git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
             commit -m "Stage pending documentation for $RELEASE_VERSION"
-          git push origin HEAD:gh-pages
           deployment_commit=$(git rev-parse HEAD)
-          git fetch --no-tags origin gh-pages
-          test "$(git rev-parse FETCH_HEAD)" = "$deployment_commit"
-          git diff --quiet "$deployment_commit" FETCH_HEAD
           echo "deployment_commit=$deployment_commit" >> "$GITHUB_OUTPUT"
+      - name: Require protected Pages writer credentials
+        env:
+          PAGES_WRITER_APP_ID: ${{ secrets.PAGES_WRITER_APP_ID }}
+          PAGES_WRITER_APP_PRIVATE_KEY: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_APP_ID"
+          test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
+      - name: Mint the dedicated Pages writer token
+        id: pages-writer-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PAGES_WRITER_APP_ID }}
+          private-key: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+      - name: Write and read back the immutable gh-pages commit
+        env:
+          DEPLOYMENT_COMMIT: ${{ steps.pages.outputs.deployment_commit }}
+          PAGES_WRITER_TOKEN: ${{ steps.pages-writer-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_TOKEN"
+          git -C pages push "https://x-access-token:${PAGES_WRITER_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+          git -C pages fetch --no-tags origin gh-pages
+          test "$(git -C pages rev-parse FETCH_HEAD)" = "$DEPLOYMENT_COMMIT"
+          git -C pages diff --quiet "$DEPLOYMENT_COMMIT" FETCH_HEAD
       - name: Upload the read-back-verified gh-pages ledger
         uses: actions/upload-pages-artifact@v4
         with:
@@ -220,7 +243,7 @@ jobs:
       pages: write
       id-token: write
     environment:
-      name: github-pages
+      name: documentation-pages
       url: ${{ steps.deployment.outputs.page_url }}
     outputs:
       deployment_id: ${{ github.run_id }}.${{ github.run_attempt }}
@@ -238,15 +261,15 @@ jobs:
           (needs.publish-pending.result == 'failure' || needs.deploy-pages.result == 'failure') }}
     runs-on: ubuntu-latest
     environment:
-      name: documentation-pages
+      name: documentation-pages-writer
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v7
         with:
           ref: gh-pages
           path: pages
-          persist-credentials: true
+          persist-credentials: false
       - name: Burn the rejected path with sanitized evidence
         env:
           RELEASE_STAGE: ${{ inputs.stage }}
@@ -272,4 +295,26 @@ jobs:
           git add -- "$rejected_path/rejection.json"
           git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
             commit -m "Record rejected pending documentation for $RELEASE_VERSION"
-          git push origin HEAD:gh-pages
+      - name: Require protected Pages writer credentials
+        env:
+          PAGES_WRITER_APP_ID: ${{ secrets.PAGES_WRITER_APP_ID }}
+          PAGES_WRITER_APP_PRIVATE_KEY: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_APP_ID"
+          test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
+      - name: Mint the dedicated Pages writer token
+        id: pages-writer-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PAGES_WRITER_APP_ID }}
+          private-key: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+      - name: Write the immutable rejected-evidence record
+        env:
+          PAGES_WRITER_TOKEN: ${{ steps.pages-writer-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_TOKEN"
+          git -C pages push "https://x-access-token:${PAGES_WRITER_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
