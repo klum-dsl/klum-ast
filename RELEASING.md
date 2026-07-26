@@ -122,12 +122,13 @@ state that this is unlisted release-gate evidence, never a public RC, stable pag
 
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
 and a small handoff below the protected `gh-pages` branch. It refuses an existing pending path,
-commits the new tree, and reads the pushed commit back before uploading that exact ledger with
-`actions/upload-pages-artifact` and deploying it with `actions/deploy-pages`. Its only outputs to
-the artifact workflow are `stage`, `version`, `sha`, exact path, site-manifest SHA-256, immutable
-`gh-pages` commit, Pages run/attempt identity, and reported page URL. The artifact job rechecks every
-value before it can invoke `publishCompleteKlumAstProduct`. The Pages jobs have no artifact
-credentials; the artifact job has no permission to alter the Pages tree.
+commits the new tree, and reads the pushed commit back. The staged render remains available until its
+`site-manifest.json` is byte-identical to the manifest read from that fetched ledger commit. Only then
+does it upload that exact ledger with `actions/upload-pages-artifact` and deploy it with
+`actions/deploy-pages`. Its only outputs to the artifact workflow are `stage`, `version`, `sha`, exact
+path, site-manifest SHA-256, immutable `gh-pages` commit, Pages run/attempt identity, and reported
+page URL. The artifact job rechecks every value before it can invoke `publishCompleteKlumAstProduct`.
+The Pages jobs have no artifact credentials; the artifact job has no permission to alter the Pages tree.
 
 For a final, the selected source revision must include
 `docs/branding/final-approval.json`. That approval is bound to the exact branding-manifest path

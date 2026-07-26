@@ -220,7 +220,9 @@ jobs:
       - name: Write and read back the immutable gh-pages commit
         env:
           DEPLOYMENT_COMMIT: ${{ steps.pages.outputs.deployment_commit }}
+          EXACT_PATH: ${{ steps.handoff.outputs.exact_path }}
           PAGES_WRITER_TOKEN: ${{ steps.pages-writer-token.outputs.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -229,6 +231,11 @@ jobs:
           git -C pages fetch --no-tags origin gh-pages
           test "$(git -C pages rev-parse FETCH_HEAD)" = "$DEPLOYMENT_COMMIT"
           git -C pages diff --quiet "$DEPLOYMENT_COMMIT" FETCH_HEAD
+          staged_manifest="build/pending-documentation/$RELEASE_VERSION/site-manifest.json"
+          written_manifest="$(mktemp)"
+          trap 'rm -f "$written_manifest"' EXIT
+          git -C pages show "FETCH_HEAD:${EXACT_PATH}site-manifest.json" > "$written_manifest"
+          cmp -- "$staged_manifest" "$written_manifest"
       - name: Upload the read-back-verified gh-pages ledger
         uses: actions/upload-pages-artifact@v4
         with:

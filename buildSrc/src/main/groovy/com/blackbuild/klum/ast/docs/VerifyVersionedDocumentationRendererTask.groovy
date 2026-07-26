@@ -337,6 +337,22 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(pagesWorkflow, 'actions/create-github-app-token@v1', 'gh-pages writes must use the dedicated Pages writer App')
         assertContains(pagesWorkflow, 'PAGES_WRITER_TOKEN', 'the dedicated App token must be used only for gh-pages writes')
         assertTrue(!pagesWorkflow.contains('git push origin HEAD:gh-pages'), 'the workflow token must not write the Pages ledger directly')
+        String stagedCopy = 'cp -a "build/pending-documentation/$RELEASE_VERSION/." "pages/$EXACT_PATH"'
+        String stagedManifest = 'staged_manifest="build/pending-documentation/$RELEASE_VERSION/site-manifest.json"'
+        String fetchedManifest = 'git -C pages show "FETCH_HEAD:${EXACT_PATH}site-manifest.json" > "$written_manifest"'
+        String manifestComparison = 'cmp -- "$staged_manifest" "$written_manifest"'
+        assertContains(pagesWorkflow, stagedCopy, 'the rendered pending snapshot must be copied into the ledger')
+        assertContains(pagesWorkflow, fetchedManifest, 'the manifest comparison must read the fetched ledger commit')
+        assertTrue(!pagesWorkflow.contains('mv "build/pending-documentation/$RELEASE_VERSION/."'),
+                'the staged pending snapshot must remain available for read-back verification')
+        assertTrue(pagesWorkflow.indexOf(stagedCopy) < pagesWorkflow.indexOf(stagedManifest),
+                'the staged snapshot must be copied before its manifest is retained for read-back')
+        assertTrue(pagesWorkflow.indexOf('test "$(git -C pages rev-parse FETCH_HEAD)" = "$DEPLOYMENT_COMMIT"') < pagesWorkflow.indexOf(manifestComparison),
+                'the fetched ledger identity must be verified before its manifest is compared')
+        assertTrue(pagesWorkflow.indexOf(fetchedManifest) < pagesWorkflow.indexOf(manifestComparison),
+                'the manifest comparison must use bytes read from the fetched ledger')
+        assertTrue(pagesWorkflow.indexOf(stagedManifest) < pagesWorkflow.indexOf(manifestComparison),
+                'the staged manifest must remain available until post-push byte comparison completes')
         assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         assertContains(releaseWorkflow, 'stage-pending-documentation', 'artifact workflow must require the pending Pages stage')
