@@ -94,7 +94,7 @@ After changing a Schema, refresh the generated `Foo_DSL` source mirrors and relo
 ./gradlew createKlumDslSourceMirrors
 ```
 
-The mirrors provide completion metadata and are not build or publication inputs. [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij)
+For a multi-project build, use `./gradlew generateKlumDslSourceMirrors` to refresh every Schema project's mirror, including Layer 3 `api` and `schema` projects. The root task coordinates only; mirrors remain owned by their Schema projects. They provide completion metadata and are not build or publication inputs. [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij)
 provides the complementary Quick Documentation view for compiled declarations; install it according to its current
 release instructions when you choose to use it. This 4.0 onboarding route remains a preview until a real-project field
 test after the first RC confirms it; [#469](https://github.com/klum-dsl/klum-ast/issues/469) owns that evaluation.

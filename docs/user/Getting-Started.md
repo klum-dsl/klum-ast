@@ -66,7 +66,13 @@ Import the project as a Gradle project. After changing a Schema, run the explici
 ./gradlew createKlumDslSourceMirrors
 ```
 
-In a multi-project build, use the qualified task path such as `./gradlew :schema:createKlumDslSourceMirrors`. The generated `Foo_DSL` mirrors provide IntelliJ completion only. They are not compiled, packaged, published, or added to downstream classpaths.
+In a multi-project build, use the root aggregate instead:
+
+```shell
+./gradlew generateKlumDslSourceMirrors
+```
+
+It refreshes every project that applies the Schema plugin, including both `api` and `schema` projects in a Layer 3 layout. The generated `Foo_DSL` mirrors provide IntelliJ completion only. They are not compiled, packaged, published, or added to downstream classpaths. The aggregate has no generated payload of its own; each Schema project remains the owner of its mirror task.
 
 Quick Documentation for compiled declarations is separate from these mirrors. [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij) is currently a locally installable `0.1.0-alpha.1` release candidate; Marketplace publication is pending explicit maintainer approval. Follow its current installation instructions only when you choose to install it. Other IDEs should use their ordinary Gradle import and compilation support; KlumAST makes no unverified IDE-parity claim.
 
