@@ -28,6 +28,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Issue
 
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -50,7 +51,8 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         }
     }
 
-    def "manual mirror refresh is isolated and deterministic"() {
+    @Issue('461')
+    def "manual mirror refresh is isolated deterministic and configuration-cache safe"() {
         when: 'a clean IntelliJ model is inspected before any build task runs'
         BuildResult model = run('clean', ':schema:assertKlumDslIdeModel')
 
@@ -84,15 +86,14 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         restored.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.FROM_CACHE
         sha256(mirror) == firstHash
 
-        when: 'configuration cache is probed against the real AnnoDocimal compiler hook'
-        BuildResult configurationCache = run(
-                ':schema:createKlumDslSourceMirrors', '--configuration-cache', '--configuration-cache-problems=warn')
+        when: 'configuration cache is stored and reused through the supported AnnoDocimal task'
+        BuildResult configurationCache = run(':schema:createKlumDslSourceMirrors', '--configuration-cache')
+        BuildResult configurationCacheReused = run(':schema:createKlumDslSourceMirrors', '--configuration-cache')
 
-        then: 'the build remains usable but Gradle reports AnnoDocimal 0.7.1 as the unsupported upstream seam'
+        then:
         configurationCache.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.UP_TO_DATE
-        configurationCache.output.contains('problems were found storing the configuration cache')
-        configurationCache.output.contains("Task `:schema:compileGroovy`")
-        configurationCache.output.contains("cannot serialize object of type 'org.gradle.api.internal.project.DefaultProject'")
+        !configurationCache.output.contains('problems were found storing the configuration cache')
+        configurationCacheReused.output.contains('Configuration cache entry reused.')
 
         when: 'an undeclared stale output is introduced and the task is rerun'
         File stale = new File(mirror.parentFile, 'Stale_DSL.java')

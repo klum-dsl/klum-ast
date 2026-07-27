@@ -23,7 +23,8 @@
  */
 package com.blackbuild.klum.ast.doc;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -59,7 +60,9 @@ public class DocUtil {
      * @return the display name
      */
     public static String getDisplayNameOf(AnnotatedNode field) {
-        String sentence = ASTExtractor.extractDocText(field, getName(field)).getTitle();
+        String sentence = AstDocumentation.extractExact(field)
+                .flatMap(Documentation::getSummary)
+                .orElse(getName(field));
         // TODO other punctuation?
         if (sentence.charAt(sentence.length() - 1) == '.')
             return sentence.substring(0, sentence.length() - 1);
@@ -67,12 +70,26 @@ public class DocUtil {
     }
 
     public static Map<String, String> getTemplatesFor(AnnotatedNode field) {
-        Map<String, String> result = ASTExtractor.extractDocText(field).getNamedTags("template");
+        Map<String, String> result = new java.util.LinkedHashMap<>(AstDocumentation.extractExact(field)
+                .map(Documentation::getTemplateValues)
+                .orElse(Map.of()));
+        AstDocumentation.extractExact(field).ifPresent(documentation -> documentation.getTags().stream()
+                .filter(tag -> tag.getName().equals("template"))
+                .forEach(tag -> addTemplate(result, tag.getValue())));
+        AstDocumentation.extractExact(field).ifPresent(documentation -> documentation.render().lines()
+                .filter(line -> line.startsWith("@template "))
+                .forEach(line -> addTemplate(result, line.substring("@template ".length()))));
         if (field instanceof FieldNode)
             result.putIfAbsent("singleElementName", getSingleElementDisplayNameOf((FieldNode) field));
         result.putIfAbsent("fieldDisplayName", getDisplayNameOf(field));
         result.putIfAbsent("fieldName", getName(field));
         return result;
+    }
+
+    private static void addTemplate(Map<String, String> templates, String value) {
+        int separator = value.indexOf(' ');
+        if (separator <= 0 || separator == value.length() - 1) return;
+        templates.putIfAbsent(value.substring(0, separator), value.substring(separator + 1));
     }
 
     private static String getName(AnnotatedNode annotatedNode) {

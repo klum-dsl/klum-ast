@@ -34,11 +34,11 @@ If the plugin is applied to a child project, it will inherit the configured Groo
 
 This plugin is used in schema projects (as well as `api` as defined by [Layer3]). It does the following things:
 
-- applies the annodocimal plugin for generating documentation
+- applies AnnoDocimal's Groovy plugin for generating documentation
 - applies Groovy and JavaLibrary plugins
 - activates source code and javadoc jars
 - registers `createKlumDslSourceMirrors` to refresh AnnoDocimal source mirrors for generated `Foo_DSL` support
-  namespaces. Run this task after schema changes, using the qualified task path such as
+  namespaces through AnnoDocimal's cacheable, configuration-cache-safe projection task. Run this task after schema changes, using the qualified task path such as
   `./gradlew :schema:createKlumDslSourceMirrors` in a multi-project build. It compiles the real generated interfaces first
   when necessary and exposes the mirror directory to IntelliJ as a generated source root. The mirrors are IDE metadata;
   they are not compiled, packaged, published, or added to downstream classpaths.

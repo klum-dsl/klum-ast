@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -249,7 +249,7 @@ class ConverterBuilder {
 
         method.withDocumentation(docBuilder -> {
             if (!docBuilder.isEmpty()) {
-                docBuilder.seeAlso(JavaDocUtil.toLinkString(sourceMethod));
+                docBuilder.see(AstDocumentation.referenceTo(sourceMethod));
             }
         });
         method.addTo(rwClass);

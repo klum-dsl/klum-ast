@@ -23,8 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.groovy.configdsl.transform.*;
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.KlumKeyedModelObject;
@@ -289,7 +288,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 builderBase,
                 new ClassNode[] { make(Serializable.class) },
                 MixinNode.EMPTY_ARRAY);
-        AnnoDocUtil.addDocumentation(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
+        AstDocumentation.attachText(rwClass, "The generated Builder for " + annotatedClass.getName() + ".");
 
         DslAstHelper.registerAsVerbProvider(rwClass);
         annotatedClass.getModule().addClass(rwClass);
@@ -1400,7 +1399,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
                 factoryIsGeneric ? makeClassSafeWithGenerics(factoryType, new GenericsType(defaultImpl)) : newClass(factoryType)
         );
-        AnnoDocUtil.addDocumentation(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
+        AstDocumentation.attachText(factoryClass, "Factory for creating instances of " + annotatedClass.getName());
 
         DslAstHelper.registerAsVerbProvider(factoryClass);
 
@@ -1421,7 +1420,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ctorX(factoryClass)
         );
 
-        AnnoDocUtil.addDocumentation(factoryField, "The factory for creating instances of " + annotatedClass.getName());
+        AstDocumentation.attachText(factoryField, "The factory for creating instances of " + annotatedClass.getName());
         factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         factoryClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         GeneratedDslSupport.linkFactory(annotatedClass, factoryClass);
@@ -1476,7 +1475,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode twin = source.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
         if (twin != null)
             corrected.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);
-        AnnoDocUtil.addDocumentation(corrected, ASTExtractor.extractDocumentation(source, null));
+        AstDocumentation.extractExact(source).ifPresent(documentation -> AstDocumentation.attach(corrected, documentation));
         return corrected;
     }
 
@@ -1506,8 +1505,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
         if (twin != null)
             override.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);
-        String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
-        AnnoDocUtil.addDocumentation(override, originalDocumentation);
+        AstDocumentation.extractExact(methodNode).ifPresent(documentation -> AstDocumentation.attach(override, documentation));
         factoryClass.addMethod(override);
     }
 
@@ -1533,7 +1531,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 ClassNode.EMPTY_ARRAY,
                 EmptyStatement.INSTANCE
         );
-        AnnoDocUtil.addDocumentation(accessor,
+        AstDocumentation.attachText(accessor,
                 "Returns the active-session factory for creating owned " + annotatedClass.getName() + " Builders.");
         GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addMethod(accessor);
     }
@@ -1574,8 +1572,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 methodNode.getExceptions(),
                 returnS(callSuperX(methodNode.getName(), args(parameters)))
         );
-        String originalDocumentation = ASTExtractor.extractDocumentation(methodNode, null);
-        AnnoDocUtil.addDocumentation(newMethod, originalDocumentation);
+        AstDocumentation.extractExact(methodNode).ifPresent(documentation -> AstDocumentation.attach(newMethod, documentation));
         MethodNode twin = methodNode.getNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY);
         if (twin != null)
             newMethod.setNodeMetaData(BuilderMethodProjection.TWIN_METADATA_KEY, twin);

@@ -23,10 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
-import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
-import com.blackbuild.annodocimal.ast.formatting.DocText;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.klum.ast.util.FactoryHelper;
 import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.TemplateManager;
@@ -181,29 +179,30 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     public ProxyMethodBuilder copyDocWithReMappingFrom(AnnotatedNode source) {
         if (docAlreadyCopied) return this;
-        DocText docTextOfProxyTarget = DocText.fromRawText(ASTExtractor.extractDocumentation(source, null));
-        if (docTextOfProxyTarget.isEmpty()) return this;
+        Documentation sourceDocumentation = AstDocumentation.extractExact(source).orElse(Documentation.empty());
+        if (sourceDocumentation.isEmpty()) return this;
 
         if (source instanceof MethodNode) {
             Map<String, String> mappings = getParameternameMappings((MethodNode) source);
             List<String> newParamTags = new ArrayList<>();
 
-            for (Map.Entry<String, String> targetParam : docTextOfProxyTarget.getNamedTags("param").entrySet()) {
+            Map<String, String> remappedParameters = new LinkedHashMap<>();
+            for (Map.Entry<String, String> targetParam : sourceDocumentation.getParameters().entrySet()) {
                 String targetParamName = targetParam.getKey();
                 String targetParamDoc = targetParam.getValue();
                 if (mappings.containsKey(targetParamName)) {
                     String newParamName = mappings.get(targetParamName);
                     if (newParamName != null) {
-                        newParamTags.add(newParamName + " " + targetParamDoc);
+                        remappedParameters.put(newParamName, targetParamDoc);
                     }
                 } else {
-                    newParamTags.add(targetParamName + " " + targetParamDoc);
+                    remappedParameters.put(targetParamName, targetParamDoc);
                 }
             }
-            docTextOfProxyTarget = DocText.copyAndReplaceTags(docTextOfProxyTarget, "param", newParamTags);
+            sourceDocumentation = sourceDocumentation.toBuilder().replaceParameters(remappedParameters).build();
         }
 
-        documentation.fromDocText(docTextOfProxyTarget);
+        documentation.replace(sourceDocumentation);
         docAlreadyCopied = true;
         return this;
     }
@@ -242,13 +241,13 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
             }
             addParameterJavaDocs(documentation);
             copyDocWithReMappingFrom(targetMethod);
-            AnnoDocUtil.addDocumentation(method, documentation);
+            AstDocumentation.attach(method, documentation.rendered());
         } else {
-            AnnoDocUtil.addDocumentation(method, addParameterJavaDocs(documentation.getCopy()));
+            AstDocumentation.attach(method, addParameterJavaDocs(documentation.copy()).rendered());
         }
     }
 
-    private DocBuilder addParameterJavaDocs(DocBuilder doc) {
+    private KlumDocumentation addParameterJavaDocs(KlumDocumentation doc) {
         for (ProxyMethodArgument p : params)
             p.asParameterJavaDoc().ifPresent(paramDoc -> doc.param(p.name, paramDoc));
         return doc;

@@ -24,7 +24,8 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
-import com.blackbuild.annodocimal.generator.AnnoDocGenerator
+import com.blackbuild.annodocimal.generator.ProjectionPolicy
+import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.util.DslHelper
 import com.blackbuild.klum.ast.util.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -149,7 +150,8 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         def apiMethod = getClass('sample.Root_DSL$Builder').getMethod('child', String)
         def hiddenTwin = getClass('sample.Child').declaredMethods.find { it.name == '$klum$asBuilder$fromString' }
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
-        AnnoDocGenerator.generate(new File(compilerConfiguration.targetDirectory, 'sample/Root_DSL.class'), mirrorRoot)
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(
+                new File(compilerConfiguration.targetDirectory, 'sample/Root_DSL.class').toPath(), mirrorRoot.toPath())
         String mirror = new File(mirrorRoot, 'sample/Root_DSL.java').text
 
         then:

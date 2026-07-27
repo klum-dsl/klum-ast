@@ -10,6 +10,12 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Dependency compatibility
 
+- Migrated to released [AnnoDocimal 1.0.0-rc.7](https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.0-rc.7)
+  (`11324cfea7d8b8ea27d13c6f2ffaeb370f3ef466`). KlumAST now uses its supported documentation-authoring and source-projection
+  APIs. The schema plugin retains its IDEA-only mirror policy while using the configuration-cache-safe projection task;
+  property documentation is projected verbatim to generated Model and Builder accessors unless an accessor supplies its
+  own documentation ([#461](https://github.com/klum-dsl/klum-ast/issues/461)). Final AnnoDocimal 1.0 remains a KlumAST
+  final-release prerequisite; this change validates the immutable RC train only.
 - Upgraded to the immutable [KlumCast 0.4.0-rc.2](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0-rc.2) artifact set: `klum-cast-annotations`, `klum-cast-spi`, and `klum-cast-compile`. The artifacts have stable automatic module names (`com.blackbuild.klum.cast.annotations`, `.spi`, and `.compiler`) and no split KlumCast packages. Recompile schemas and custom checks for 4.0. Existing name-bound custom checks continue through KlumCast's temporary 0.4 migration bridge; #460 owns their durable SPI migration.
 
 ## Builder-first construction

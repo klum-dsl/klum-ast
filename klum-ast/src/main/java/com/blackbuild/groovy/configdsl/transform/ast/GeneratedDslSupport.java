@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
 import com.blackbuild.klum.ast.util.InternalKlumBuilder;
 import com.blackbuild.klum.ast.util.KlumBuilder;
@@ -90,7 +90,7 @@ public final class GeneratedDslSupport {
                 ClassHelper.OBJECT_TYPE
         );
         namespace.setSourcePosition(model);
-        AnnoDocUtil.addDocumentation(namespace, "The generated DSL support namespace for " + model.getName() + ".");
+        AstDocumentation.attachText(namespace, "The generated DSL support namespace for " + model.getName() + ".");
         namespace.addAnnotation(createGeneratedAnnotation(GeneratedDslSupport.class, List.of(API_TAG, "dsl-support-role:namespace")));
         model.getModule().addClass(namespace);
 
@@ -470,7 +470,7 @@ public final class GeneratedDslSupport {
                 MixinNode.EMPTY_ARRAY
         );
         result.setSourcePosition(owner);
-        AnnoDocUtil.addDocumentation(result, documentation);
+        AstDocumentation.attachText(result, documentation);
         result.addAnnotation(createGeneratedAnnotation(GeneratedDslSupport.class, List.of(API_TAG, "dsl-support-role:" + name)));
         owner.getModule().addClass(result);
         return result;

@@ -23,7 +23,8 @@
  */
 package com.blackbuild.klum.ast.gradle
 
-import com.blackbuild.annodocimal.plugin.AnnoDocimalPlugin
+import com.blackbuild.annodocimal.plugin.AnnoDocimalGroovyPlugin
+import com.blackbuild.annodocimal.plugin.SourceProjectionTask
 import org.gradle.api.Project
 import org.gradle.api.plugins.GroovyPlugin
 import org.gradle.api.plugins.JavaLibraryPlugin
@@ -48,13 +49,13 @@ class KlumAstSchemaPluginTest extends Specification {
         given:
         project = ProjectBuilder.builder().build()
         boolean mirrorTaskRealized = false
-        project.tasks.withType(CreateKlumDslSourceMirrors).configureEach { mirrorTaskRealized = true }
+        project.tasks.withType(SourceProjectionTask).configureEach { mirrorTaskRealized = true }
 
         when:
         project.getPluginManager().apply(KlumAstSchemaPlugin)
 
         then:
-        project.plugins.hasPlugin(AnnoDocimalPlugin)
+        project.plugins.hasPlugin(AnnoDocimalGroovyPlugin)
         project.plugins.hasPlugin(IdeaPlugin)
         project.plugins.hasPlugin(JavaLibraryPlugin)
         project.plugins.hasPlugin(GroovyPlugin)
@@ -71,7 +72,7 @@ class KlumAstSchemaPluginTest extends Specification {
         project.configurations.javadocElements
 
         and:
-        def mirrors = project.tasks.named("createKlumDslSourceMirrors", CreateKlumDslSourceMirrors)
+        def mirrors = project.tasks.named("createKlumDslSourceMirrors", SourceProjectionTask)
         !mirrorTaskRealized
 
         when:

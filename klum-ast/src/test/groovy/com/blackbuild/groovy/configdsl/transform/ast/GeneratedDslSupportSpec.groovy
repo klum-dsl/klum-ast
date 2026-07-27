@@ -24,7 +24,8 @@
 package com.blackbuild.groovy.configdsl.transform.ast
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
-import com.blackbuild.annodocimal.generator.AnnoDocGenerator
+import com.blackbuild.annodocimal.generator.ProjectionPolicy
+import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.groovy.configdsl.transform.KlumGenerated
 import com.blackbuild.klum.ast.util.KlumBuilder
@@ -226,7 +227,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
 
         when:
-        AnnoDocGenerator.generate(namespaceClass, mirrorRoot)
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
         String mirror = new File(mirrorRoot, 'sample/Foo_DSL.java').text
 
         then:
