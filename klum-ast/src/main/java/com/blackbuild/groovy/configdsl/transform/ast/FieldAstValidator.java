@@ -64,6 +64,8 @@ public class FieldAstValidator implements Check {
     }
 
     protected Diagnostic extraValidateMethod(AnnotationNode annotationToCheck, MethodNode target) {
+        if (target == null)
+            return null;
         if (getFieldType(target) == FieldType.LINK && annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) != null)
             return violation(annotationToCheck, "Default Implementation is not allowed on LINK fields");
         if (target.getParameters().length == 0)
