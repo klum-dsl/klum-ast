@@ -33,9 +33,8 @@ def template = Parent.Template.Create()
 ```
  
 Templates are also correctly applied when using inheritance: a template defined for a parent class is applied when
-creating child-class instances, and child template values can override parent templates. The executable regression
-coverage is in `BoundTemplatesSpec.groovy`; [#491](https://github.com/klum-dsl/klum-ast/issues/491) retains the task of selecting and linking a dedicated documentary
-happy path for this page.
+creating child-class instances, and child template values can override parent templates. The focused regression coverage
+is in `BoundTemplatesSpec.groovy`.
 
 Template specific methods are pooled in the `Template` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
 
@@ -104,6 +103,9 @@ assert c.url == "http://x.y"
 assert c.roles == [ "developer", "guest", "productowner" ]
 assert d.roles == [ "developer", "guest", "scrummaster" ]
 ```
+
+The same happy path is executable in `TemplatesDocumentaryTest.groovy`, feature `applies one scoped template to multiple
+service configurations`.
 
 ## With an Anonymous Template
 `Template.With` can also be called using only named parameters, creating a temporary, anonymous template:
