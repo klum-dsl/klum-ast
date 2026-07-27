@@ -16,7 +16,14 @@ JSON Schema: it supplies concrete values rather than defining types. When constr
 configures its Builder graph, materializes the completed Model, and validates it before returning it. Model Writers
 create Model configuration; clients consume the resulting completed, read-only Model API.
 
-## Roles
+## Client/Consumer
+
+A Client or Consumer uses a completed Model through its public domain API. It may invoke supported construction or
+import operations, handle validation results, and serialize the completed Model for downstream systems; it does not
+depend on generated Builder implementations or Schema-only types in a Layer 3 model. See [[Layer3]] and
+[[Completed Object Support]].
+
+# Roles
 
 KlumAST documentation distinguishes four roles. One person can assume several roles in the same project.
 
@@ -41,7 +48,7 @@ Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, [
 authoring forms. A [[Jackson Integration|Jackson import operation]] always consumes one external input; source composition
 is not a Model Writer promise of the Jackson adapter.
 
-## Construction lifecycle
+# Construction lifecycle
 
 ## Lifecycle phase
 
@@ -60,8 +67,8 @@ Validation is the Schema-defined check of a completed Model. It can use field, m
 the generated root factory records the result and `VERIFY` rejects errors at the configured failure level. See
 [[Validation]].
 
-## Values
-In this documentation, we differentiate between three kinds of values:
+# Values
+In this documentation, we differentiate between these kinds of values:
 
 ## DSL-Objects
 DSL Objects are annotated with [[Basics|`@DSL`]]. These are (potentially complex) objects enhanced by the transformation. They
