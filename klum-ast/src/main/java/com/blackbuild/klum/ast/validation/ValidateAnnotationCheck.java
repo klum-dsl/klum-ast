@@ -23,56 +23,66 @@
  */
 package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import com.blackbuild.klum.cast.checks.impl.ValidationException;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
 import java.util.List;
 
-public class ValidateAnnotationCheck extends KlumCastCheck<Annotation> {
+public class ValidateAnnotationCheck implements Check {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) throws ValidationException {
+    public List<Diagnostic> check(CheckContext context) {
+        AnnotationNode annotationToCheck = context.getValidatedAnnotation();
+        AnnotatedNode target = context.getTarget();
         if (target instanceof ClassNode) {
-            if (target instanceof InnerClassNode) checkOnInnerClass((InnerClassNode) target);
-            else checkOnOuterClass(annotationToCheck);
+            if (target instanceof InnerClassNode innerClass) return checkOnInnerClass(innerClass, annotationToCheck);
+            return checkOnOuterClass(annotationToCheck);
         } else if (target instanceof MethodNode) {
-            checkOnMethod((MethodNode) target);
+            return checkOnMethod((MethodNode) target, annotationToCheck);
         } else if (target instanceof FieldNode) {
-            checkOnField((FieldNode) target);
+            return checkOnField((FieldNode) target, annotationToCheck);
         } else {
-            throw new ValidationException("@Validate can only be used on (inner) classes, methods or fields!");
+            return violation("@Validate can only be used on (inner) classes, methods or fields!", annotationToCheck);
         }
     }
 
-    private void checkOnField(FieldNode target) throws ValidationException {
+    private List<Diagnostic> checkOnField(FieldNode target, AnnotationNode annotationToCheck) {
         if (target.isStatic())
-            throw new ValidationException("@Validate can only be used on non-static fields!");
+            return violation("@Validate can only be used on non-static fields!", annotationToCheck);
+        return List.of();
     }
 
-    private void checkOnMethod(MethodNode target) throws ValidationException {
+    private List<Diagnostic> checkOnMethod(MethodNode target, AnnotationNode annotationToCheck) {
         if (target.isStatic())
-            throw new ValidationException("@Validate can only be used on non-static methods!");
+            return violation("@Validate can only be used on non-static methods!", annotationToCheck);
+        return List.of();
     }
 
-    private void checkOnOuterClass(AnnotationNode annotationToCheck) throws ValidationException {
+    private List<Diagnostic> checkOnOuterClass(AnnotationNode annotationToCheck) {
         if (annotationToCheck.getMember("level") != null)
-            throw new ValidationException("@Validate.level is not allowed on top level classes!");
+            return violation("@Validate.level is not allowed on top level classes!", annotationToCheck);
+        return List.of();
     }
 
-    private void checkOnInnerClass(InnerClassNode target) throws ValidationException {
+    private List<Diagnostic> checkOnInnerClass(InnerClassNode target, AnnotationNode annotationToCheck) {
         if ((target.getModifiers() & Opcodes.ACC_STATIC) != 0)
-            throw new ValidationException("@Validate can only be used on non-static inner classes!");
+            return violation("@Validate can only be used on non-static inner classes!", annotationToCheck);
         List<ConstructorNode> constructors = target.getDeclaredConstructors();
 
         if (!Modifier.isAbstract(target.getModifiers())) {
             if (constructors.size() > 1)
-                throw new ValidationException("@Validate can only be used on inner classes with a maximum of one constructor!", constructors.get(1));
+                return violation("@Validate can only be used on inner classes with a maximum of one constructor!", constructors.get(1));
 
             if (constructors.size() == 1 && constructors.get(0).getParameters().length > 0)
-                throw new ValidationException("@Validate can only be used on inner classes with a no-argument constructor!", constructors.get(0));
+                return violation("@Validate can only be used on inner classes with a no-argument constructor!", constructors.get(0));
         }
+        return List.of();
+    }
+
+    private List<Diagnostic> violation(String message, ASTNode node) {
+        return List.of(new Diagnostic(getClass().getName(), message, node));
     }
 }

@@ -24,96 +24,113 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.lang.reflect.Modifier.isFinal;
 
 @SuppressWarnings("unused") // see Field
-public class FieldAstValidator extends KlumCastCheck<Annotation> {
+public class FieldAstValidator implements Check {
 
     private static final String DEFAULT_IMPL_MEMBER = "defaultImpl";
 
-    private AnnotationNode annotationToCheck;
-
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        this.annotationToCheck = annotationToCheck;
+    public List<Diagnostic> check(CheckContext context) {
+        AnnotationNode annotationToCheck = context.getValidatedAnnotation();
+        AnnotatedNode target = context.getTarget();
+        Diagnostic diagnostic = null;
         if (target instanceof FieldNode)
-            extraValidateField((FieldNode) target);
+            diagnostic = extraValidateField(annotationToCheck, (FieldNode) target);
         else if (target instanceof MethodNode)
-            extraValidateMethod((MethodNode) target);
+            diagnostic = extraValidateMethod(annotationToCheck, (MethodNode) target);
+        return diagnostic == null ? List.of() : List.of(diagnostic);
     }
 
-    protected void extraValidateField(FieldNode fieldNode) {
+    protected Diagnostic extraValidateField(AnnotationNode annotationToCheck, FieldNode fieldNode) {
+        Diagnostic diagnostic;
         if (isCollectionOrMap(fieldNode.getType()))
-            validateFieldAnnotationOnCollection();
+            diagnostic = validateFieldAnnotationOnCollection(annotationToCheck);
         else
-            validateFieldAnnotationOnSingleField(fieldNode);
-        validateDefaultImpl(CommonAstHelper.getElementType(fieldNode));
+            diagnostic = validateFieldAnnotationOnSingleField(annotationToCheck, fieldNode);
+        return diagnostic == null ? validateDefaultImpl(annotationToCheck, CommonAstHelper.getElementType(fieldNode)) : diagnostic;
     }
 
-    protected void extraValidateMethod(MethodNode target) {
+    protected Diagnostic extraValidateMethod(AnnotationNode annotationToCheck, MethodNode target) {
+        if (target == null)
+            return null;
         if (getFieldType(target) == FieldType.LINK && annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) != null)
-            throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
-        validateDefaultImpl(target.getParameters()[0].getType());
+            return violation(annotationToCheck, "Default Implementation is not allowed on LINK fields");
+        if (target.getParameters().length == 0)
+            return null;
+        return validateDefaultImpl(annotationToCheck, target.getParameters()[0].getType());
     }
 
-    private void validateDefaultImpl(ClassNode fieldType) {
-        if (annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) == null) return;
+    private Diagnostic validateDefaultImpl(AnnotationNode annotationToCheck, ClassNode fieldType) {
+        if (annotationToCheck.getMember(DEFAULT_IMPL_MEMBER) == null) return null;
 
         @NotNull ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, DEFAULT_IMPL_MEMBER, null);
 
         if (isFinal(fieldType.getModifiers()))
-            throw new IllegalStateException(String.format(
-                   "annotated field %s is final and cannot be overridden.",
+            return violation(annotationToCheck, String.format(
+                    "annotated field %s is final and cannot be overridden.",
                     fieldType.getName())
             );
 
         if (!isDSLObject(defaultImpl))
-            throw new IllegalStateException(
+            return violation(annotationToCheck,
                     "Default Implementation must be an DSL-Object"
-            ) ;
+            );
 
         if (!isAssignableTo(defaultImpl, fieldType))
-            throw new IllegalStateException(String.format(
+            return violation(annotationToCheck, String.format(
                 "Annotated Default Implementation %s of %s is not a valid subtype of it.", defaultImpl.getName(), fieldType.getName()
             ));
 
         if (getFieldType(fieldType) == FieldType.LINK)
-            throw new IllegalStateException("Default Implementation is not allowed on LINK fields");
+            return violation(annotationToCheck, "Default Implementation is not allowed on LINK fields");
 
         if (isDSLObject(fieldType) && isKeyed(defaultImpl) && !isKeyed(fieldType))
-            throw new IllegalStateException(
+            return violation(annotationToCheck,
                     String.format("Default Implementation %s is keyed, but field %s is not.",
                             defaultImpl.getName(), fieldType.getName()));
 
         if (!isInstantiable(defaultImpl))
-            throw new IllegalStateException(
+            return violation(annotationToCheck,
                     String.format("Default Implementation %s is not instantiable.", defaultImpl.getName())
             );
+
+        return null;
     }
 
-    private void validateFieldAnnotationOnSingleField(FieldNode fieldNode) {
+    private Diagnostic validateFieldAnnotationOnSingleField(AnnotationNode annotationToCheck, FieldNode fieldNode) {
         if (annotationToCheck.getMembers().containsKey("members"))
-            throw new IllegalStateException(String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()));
+            return violation(annotationToCheck, String.format("@Field.members is only valid for List or Map fields, but field %s is of type %s", fieldNode.getName(), fieldNode.getType().getName()));
 
         if (annotationToCheck.getMembers().containsKey("key") && !isKeyed(fieldNode.getType()))
-            throw new IllegalStateException("@Field.key is only valid for keyed dsl fields");
+            return violation(annotationToCheck, "@Field.key is only valid for keyed dsl fields");
 
         if (annotationToCheck.getMembers().containsKey("keyMapping") && !isMap(fieldNode.getType()))
-            throw new IllegalStateException("@Field.keyMapping is only valid for Map fields");
+            return violation(annotationToCheck, "@Field.keyMapping is only valid for Map fields");
+
+        return null;
     }
 
-    private void validateFieldAnnotationOnCollection() {
+    private Diagnostic validateFieldAnnotationOnCollection(AnnotationNode annotationToCheck) {
         if (annotationToCheck.getMembers().containsKey("key"))
-            throw new IllegalStateException("@Field.key is only allowed for non collection fields.");
+            return violation(annotationToCheck, "@Field.key is only allowed for non collection fields.");
+        return null;
+    }
+
+    private Diagnostic violation(AnnotationNode annotationToCheck, String message) {
+        return new Diagnostic(getClass().getName(), message, annotationToCheck);
     }
 
 }

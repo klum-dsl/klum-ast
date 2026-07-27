@@ -23,23 +23,22 @@
  */
 package com.blackbuild.klum.ast.validation;
 
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.FieldNode;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
-public class CheckForPrimitiveBoolean extends KlumCastCheck<Annotation> {
+public class CheckForPrimitiveBoolean implements Check {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        if (((FieldNode) target).getType().equals(ClassHelper.boolean_TYPE))
-            throw new IllegalStateException("Validation is not valid on 'boolean' fields, use 'Boolean' instead.");
-    }
-
-    @Override
-    protected boolean isValidFor(AnnotatedNode target) {
-        return target instanceof FieldNode;
+    public List<Diagnostic> check(CheckContext context) {
+        if (!(context.getTarget() instanceof FieldNode))
+            return List.of();
+        FieldNode target = (FieldNode) context.getTarget();
+        if (target.getType().equals(ClassHelper.boolean_TYPE))
+            return List.of(new Diagnostic(getClass().getName(), "Validation is not valid on 'boolean' fields, use 'Boolean' instead.", context.getValidatedAnnotation()));
+        return List.of();
     }
 }

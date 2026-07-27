@@ -24,26 +24,30 @@
 package com.blackbuild.groovy.configdsl.transform.ast.mutators;
 
 import com.blackbuild.groovy.configdsl.transform.WriteAccess;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.MethodNode;
 
-import static java.util.Objects.requireNonNull;
+import java.util.List;
 
-public class WriteAccessMethodCheck extends KlumCastCheck<WriteAccess> {
+public class WriteAccessMethodCheck implements Check {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        MethodNode method = (MethodNode) target;
+    public List<Diagnostic> check(CheckContext context) {
+        MethodNode method = (MethodNode) context.getTarget();
 
         if (method.isPrivate())
-            throw new IllegalStateException("Lifecycle methods must not be private!");
+            return List.of(new Diagnostic(getClass().getName(), "Lifecycle methods must not be private!", context.getValidatedAnnotation()));
 
-        if (requireNonNull(controlAnnotation).value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
-            throw new IllegalStateException(String.format(
-                    "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
-                    method.getDeclaringClass().getName(),
-                    method.getName()
-            ));
+        if (context.getControlAnnotation(WriteAccess.class)
+                .orElseThrow(() -> new IllegalStateException("WriteAccessMethodCheck requires a WriteAccess control annotation"))
+                .value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
+            return List.of(new Diagnostic(getClass().getName(), String.format(
+                "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
+                method.getDeclaringClass().getName(),
+                method.getName()
+            ), context.getValidatedAnnotation()));
+
+        return List.of();
     }
 }

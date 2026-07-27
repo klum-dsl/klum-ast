@@ -25,25 +25,27 @@ package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 
-public class OverwriteMapCheck extends KlumCastCheck<Annotation> {
+public class OverwriteMapCheck implements Check {
 
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        FieldNode field = (FieldNode) target;
+    public List<Diagnostic> check(CheckContext context) {
+        FieldNode field = (FieldNode) context.getTarget();
+        var annotationToCheck = context.getValidatedAnnotation();
         OverwriteStrategy.Map strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Map.INHERIT);
         ClassNode elementType = getElementType(field);
 
         if (strategy == OverwriteStrategy.Map.MERGE_VALUES && !DslAstHelper.isDSLObject(elementType))
-            throw new IllegalArgumentException("MERGE_VALUES is only allowed for DSL objects");
+            return List.of(new Diagnostic(getClass().getName(), "MERGE_VALUES is only allowed for DSL objects", annotationToCheck));
+        return List.of();
     }
 }

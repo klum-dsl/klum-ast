@@ -20,8 +20,9 @@ KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-an
 `com.blackbuild.klum.cast.spi`, and `com.blackbuild.klum.cast.compiler`; do not substitute filename-derived names or use
 local module-path flags to compensate for an invalid dependency graph.
 
-Recompile schemas and custom checks when moving to KlumAST 4.0. Existing name-bound custom checks remain supported by
-KlumCast's temporary 0.4 migration bridge. Their migration to the durable check SPI is tracked by [#460](https://github.com/klum-dsl/klum-ast/issues/460), not by this dependency integration.
+Recompile schemas and custom checks when moving to KlumAST 4.0. KlumAST's built-in name-bound checks use KlumCast's
+durable stateless `Check` SPI and report structured, source-positioned diagnostics. Custom checks must implement that SPI;
+the deprecated compatibility adapter is only a temporary migration aid for external consumers ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
 
 ## To 2.2
 

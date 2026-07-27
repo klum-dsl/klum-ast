@@ -24,29 +24,33 @@
 package com.blackbuild.klum.ast.util.layer3;
 
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import com.blackbuild.klum.cast.checks.impl.ValidationException;
-import org.codehaus.groovy.ast.AnnotatedNode;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
-public class DefaultValuesCheck extends KlumCastCheck<Annotation> {
+public class DefaultValuesCheck implements Check {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) throws ValidationException {
-        boolean controlAnnotationHasValuesMapping = controlAnnotation instanceof DefaultValues
-                && !((DefaultValues) controlAnnotation).valueTarget().isEmpty();
+    public List<Diagnostic> check(CheckContext context) {
+        boolean controlAnnotationHasValuesMapping = context.getControlAnnotation(DefaultValues.class)
+                .map(DefaultValues::valueTarget)
+                .filter(valueTarget -> !valueTarget.isEmpty())
+                .isPresent();
+        AnnotationNode annotationToCheck = context.getValidatedAnnotation();
         ClassNode targetAnnotation = annotationToCheck.getClassNode();
         boolean targetAnnotationHasValueMember = !targetAnnotation.getMethods("value").isEmpty();
 
         if (controlAnnotationHasValuesMapping && !targetAnnotationHasValueMember)
-            throw new ValidationException(
-                String.format("DefaultValues has a 'valueTarget' member, but the target annotation %s does not have a 'value' member", targetAnnotation.getName()), target);
+            return List.of(new Diagnostic(getClass().getName(),
+                String.format("DefaultValues has a 'valueTarget' member, but the target annotation %s does not have a 'value' member", targetAnnotation.getName()), context.getTarget()));
 
         if (!controlAnnotationHasValuesMapping && targetAnnotationHasValueMember)
-            throw new ValidationException(
-                String.format("Target annotation %s does have a 'value' member, but DefaultValues does not have a 'valueTarget' member", targetAnnotation.getName()), target);
+            return List.of(new Diagnostic(getClass().getName(),
+                String.format("Target annotation %s does have a 'value' member, but DefaultValues does not have a 'valueTarget' member", targetAnnotation.getName()), context.getTarget()));
 
+        return List.of();
     }
 }
