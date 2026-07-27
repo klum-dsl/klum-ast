@@ -13,7 +13,9 @@ Deferred `applyLater` actions live only in immutable Template recipe state, neve
 closures are detached and their captured graph is checked when the Template materializes. Captured Builders and
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
 Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
- 
+
+## Creating templates
+
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
  templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
  with the following differences:
@@ -23,27 +25,39 @@ Construction sessions, active Template scopes, and mutable recipe collections ar
  - The template does not participate in KlumPhases (especially: no validation is performed)
  - provides a non-abstract implementation for abstract classes, implementing all possible methods empty or returning null
  
- ```groovy
+(See: `TemplatesDocumentaryTest#'creates an unkeyed reusable template without lifecycle callbacks'`.)
+
+```groovy
 @DSL
-abstract class Parent {
-    abstract int calcValue()
+class ServiceConfiguration {
+    @Key String name
+    String region
 }
 
-def template = Parent.Template.Create()
+def template = ServiceConfiguration.Template.Create {
+    region 'eu-central'
+}
+
+assert template.name == null
 ```
- 
+
 Templates are also correctly applied when using inheritance: a template defined for a parent class is applied when
-creating child-class instances, and child template values can override parent templates. The executable regression
-coverage is in `BoundTemplatesSpec.groovy`; [#491](https://github.com/klum-dsl/klum-ast/issues/491) retains the task of selecting and linking a dedicated documentary
-happy path for this page.
+creating child-class instances, and child template values can override parent templates. The focused regression coverage
+is in `BoundTemplatesSpec.groovy`.
 
 Template specific methods are pooled in the `Template` field of each DSL class, which points to an instance of `BoundTemplateHandler` - so similar to Type.Create.* methods, there are Type.Template.* methods described below.
 
-As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and or configuration
-closure, or by using the `Template.CreateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
+As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and/or configuration
+closure, or by using the `Template.CreateFrom` method, which takes a file or URL that is parsed as a DelegatingScript,
 similar to the `Create.From` methods.
 
-There currently four options to apply templates, all examples use the following class and template:
+(See: `TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'`.)
+
+```groovy
+def template = ServiceConfiguration.Template.CreateFrom(new File('service-template.groovy'))
+```
+
+There are currently four options to apply templates; all examples use the following class and template:
 
 ```groovy
 @DSL
@@ -61,6 +75,8 @@ def template = Config.Template.Create {
 ## `copyFrom()`
 
 Using `copyFrom`, one can explicitly apply a template to a single Object to be created:
+
+(See: `TemplatesDocumentaryTest#'copies a template into one completed service configuration'`.)
 
 ```groovy
 def c = Config.Create.With {
@@ -84,6 +100,9 @@ Template contributes both values and recipe actions. An ordinary completed model
 applied to all instance creations within that closure.
  
 Usage:
+
+(See: `TemplatesDocumentaryTest#'applies one scoped template to multiple service configurations'`.)
+
 ```groovy
 def template = Config.Template.Create {
     url "http://x.y"
@@ -118,6 +137,8 @@ Config.Template.With(Config.Template.Create(url: "http://x.y")) {
 
 could be written as:
 
+(See: `TemplatesDocumentaryTest#'applies named values through an anonymous scoped template'`.)
+
 ```groovy
 Config.Template.With(url: "http://x.y") {
     c = Config.Create.With {
@@ -131,6 +152,8 @@ Config.Template.With(url: "http://x.y") {
 When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
 specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
 that are created inside this collection factory:
+
+(See: `TemplatesDocumentaryTest#'applies one collection-factory template to every created server'`.)
 
 ```groovy
 Config.Create.With {
@@ -184,6 +207,8 @@ Environment.Template.With(defaultEnvironment) {
 
 One can also write:
 
+(See: `TemplatesDocumentaryTest#'applies templates for multiple configuration types in one scope'`.)
+
 ```groovy
 Config.Template.WithAll([defaultEnvironment, defaultServer, defaultHost]) {
     Config.Create.With {
@@ -212,6 +237,20 @@ For abstract classes, an inner class named `Template` is created with the follow
 
 Anonymous templates automatically use the Template class.
 
+(See: `TemplatesDocumentaryTest#'creates a template implementation for an abstract configuration type'`.)
+
+```groovy
+@DSL
+abstract class RetryPolicy {
+    String name
+    abstract int retries()
+}
+
+def template = RetryPolicy.Template.Create {
+    name 'resilient'
+}
+```
+
 
 ## Order of precedence
 
@@ -223,7 +262,10 @@ The order of precedence is
 - own templates
 - explicit setter methods
 
-I.e., given the following code:
+The following example shows a child template overriding parent defaults, with an explicit configuration value taking
+highest precedence.
+
+(See: `TemplatesDocumentaryTest#'lets child templates and explicit configuration override parent defaults'`.)
 
 ```groovy
 @DSL
@@ -258,7 +300,10 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 
 ```
 
-Note that templates for collections **replace** lower precedence, i.e., the most specific template wins. This behavior can be altered using [[Copy Strategies]]. 
+Collection values from Templates and DSL adder methods are added in declaration order. To replace inherited collection
+values, assign the collection directly; `Copy Strategies` can also alter the behavior.
+
+(See: `TemplatesDocumentaryTest#'lets explicit collection assignment replace inherited template values'`.)
 
 ```groovy
 @DSL
@@ -275,12 +320,12 @@ def parentTemplate = Parent.Template.Create {
 }
 
 def childTemplate = Child.Template.Create {
-    names "child" // replaces parent template value
+    names = ["child"] // replaces parent template values
 }
 
 Child.Template.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.With {
-    name "explicit" // replaces template value
+    names = ["explicit"] // replaces template values
   }
 
   assert c.names == ["explicit"]
@@ -293,3 +338,22 @@ As stated in [[Model Phases]], Templates can contain `applyLater` closures. Thes
 they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh
 Builder through its delegate. Capturing any Builder, even through a serializable holder, is rejected. Other captured values
 must be serializable so the Template recipe remains serializable with its companion state.
+
+(See: `TemplatesDocumentaryTest#'replays a template applyLater recipe for each completed configuration'`.)
+
+```groovy
+def template = ServiceConfiguration.Template.Create {
+    applyLater {
+        identifier name.toUpperCase()
+    }
+}
+
+def catalog, billing
+ServiceConfiguration.Template.With(template) {
+    catalog = ServiceConfiguration.Create.With { name 'catalog' }
+    billing = ServiceConfiguration.Create.With { name 'billing' }
+}
+
+assert catalog.identifier == 'CATALOG'
+assert billing.identifier == 'BILLING'
+```

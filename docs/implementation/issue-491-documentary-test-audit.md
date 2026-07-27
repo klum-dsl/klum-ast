@@ -17,6 +17,14 @@ The following aligned examples are already present in the executable suite:
 | [`Layer3.md` — Automatic creation and linking](../user/Layer3.md#automatic-creation-and-linking) | #474 | `OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries` | Already aligned with `@Issue`, `@Tag("documentary")`, and `@See`. #454 owns the wider Layer 3 terminology rewrite. |
 | [`Basics.md` — Factory construction](../user/Basics.md#factory-construction) | #76 (closed: move creator methods into a creator class) | `FactoryTest` exercised the generated factory but did not provide a readable linked documentary example. | Aligned by this slice with `FactoryConstructionTest.builds a completed deployment configuration with Create.With`. |
 | [`Default-Values.md` — Other fields (`field`)](../user/Default-Values.md#other-fields-field) | #318 (closed: make `@Default` a lifecycle method) | `DefaultValuesSpec` covered field defaults but did not provide a readable linked documentary example. | Aligned by this slice with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. |
+| [`Templates.md` — Creating templates](../user/Templates.md#creating-templates) | #491 audit selection; #322 for `CreateFrom` | `TemplatesSpec`, `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.creates an unkeyed reusable template without lifecycle callbacks` and `creates a template from a DelegatingScript file`. |
+| [`Templates.md` — `copyFrom()`](../user/Templates.md#copyfrom) | #491 audit selection | `TemplatesSpec`, `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.copies a template into one completed service configuration`. |
+| [`Templates.md` — Template.With() and anonymous templates](../user/Templates.md#templatewith) | #376 (closed: Closure Templates) | `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.applies one scoped template to multiple service configurations` and `applies named values through an anonymous scoped template`. |
+| [`Templates.md` — Collection factories](../user/Templates.md#templates-for-collection-factories) | #82 (closed: collection factory closure contract) | `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.applies one collection-factory template to every created server`. |
+| [`Templates.md` — Template.WithAll()](../user/Templates.md#templatewithall) | #376 (closed: Closure Templates) | `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.applies templates for multiple configuration types in one scope`. |
+| [`Templates.md` — Abstract classes](../user/Templates.md#templates-for-abstract-classes) | #491 audit selection | `TemplatesSpec`, `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.creates a template implementation for an abstract configuration type`. |
+| [`Templates.md` — Order of precedence](../user/Templates.md#order-of-precedence) | #491 audit selection | `TemplatesSpec`, `BoundTemplatesSpec` | Aligned with `TemplatesDocumentaryTest.lets child templates and explicit configuration override parent defaults`. |
+| [`Templates.md` — `applyLater`](../user/Templates.md#applylater-and-templates) | #376 (closed: Closure Templates) | `BoundTemplatesSpec`, `ApplyLaterBoundarySpec` | Aligned with `TemplatesDocumentaryTest.replays a template applyLater recipe for each completed configuration`; rejection and capture-boundary cases remain focused regression coverage. |
 | [`Validation.md` — Suppress Further Issues](../user/Validation.md#suppress-further-issues) | #407 | `ValidationSpec.suppresses a later non-error issue for one member` | Partially aligned: the feature already carries `@Issue("407")`, `@Tag("documentary")`, and an `@See` to this heading. The other Validation examples remain queued for a later #491 selection. |
 
 ## In-scope user-visible DSL inventory
@@ -34,7 +42,7 @@ annotated documentary path. It is a queue for a later #491 slice, not a new beha
 | `Copy-Strategies.md` | #36, #309, #348, #374, #400 | `CopyHandlerTest`, `CopyHandlerRuntimeTest`, `OverwriteStrategyTest` | Not yet aligned. |
 | `Default-Values.md` — Other fields (`field`) | #318 | `DefaultValuesSpec`, `DefaultValuesDocumentaryTest` | Aligned with `DefaultValuesDocumentaryTest.defaults a release identifier from its configured name`. The Layer 3 annotation variants remain separate follow-ups under #361 and #370. |
 | `Inheritance.md` | #130, #138 | `InheritanceSpec` | Not yet aligned. |
-| `Templates.md` | #82, #322, #368, #376 | `TemplatesSpec`, `BoundTemplatesSpec` | Not yet aligned; replace the stale `TemplateSpec` reference when this page is selected. |
+| `Templates.md` — Templates cohort: creation, copying, scoped/anonymous/collection templates, WithAll, abstract classes, precedence, and `applyLater` | #491 audit selection; #82, #322, #376 | `TemplatesSpec`, `BoundTemplatesSpec`, `ApplyLaterBoundarySpec`, `TemplatesDocumentaryTest` | Aligned as one dedicated documentary cohort. Internal identity, relationship rejection, serialization, and capture-rejection boundaries remain focused regression coverage rather than tutorial paths. |
 | `Validation.md` | #25, #125, #145, #221, #223, #276, #381, #395, #406–#407, #409, #415 | `ValidationSpec` | Partially aligned for **Suppress Further Issues** through the #407-tagged documentary feature above. The other Validation examples remain queued. |
 | `Model-Phases.md` | #64, #138, #376 | `LifecycleSpec`, phase tests | Not yet aligned. |
 | `Layer3.md` | #454 owns terminology/documentation placement; #474 owns the existing optional-link example | `OptionalLinkRelationshipTest` | One narrow section aligned; defer broader example changes until #454's required terminology grilling. |
@@ -67,6 +75,6 @@ annotated documentary path. It is a queue for a later #491 slice, not a new beha
 
 No GitHub issues were created by this local-only slice. Before a subsequent #491 implementation slice, a maintainer
 should choose the next stable documentation heading and either confirm its governing historical issue or create a
-focused follow-up for an unclear contract. The clearest candidates are `Templates.md` and
-`Convenience-Factories.md`; the Layer 3 annotation variants in `Default-Values.md` remain bounded by #361/#370, while
-`Completed-Object-Support.md` and the legacy technique pages need ownership confirmation first.
+focused follow-up for an unclear contract. The Templates cohort is complete; the clearest next candidate is `Convenience-Factories.md`; the Layer 3
+annotation variants in `Default-Values.md` remain bounded by #361/#370, while `Completed-Object-Support.md` and the
+legacy technique pages need ownership confirmation first.
