@@ -45,7 +45,13 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
             class ServiceConfiguration {
                 @Key String name
                 String region
+                boolean postApplyCalled
                 boolean postCreateCalled
+
+                @PostApply
+                void recordPostApply() {
+                    postApplyCalled = true
+                }
 
                 @PostCreate
                 void recordPostCreate() {
@@ -62,6 +68,7 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         then:
         template.name == null
         template.region == 'eu-central'
+        !template.postApplyCalled
         !template.postCreateCalled
     }
 
@@ -322,6 +329,39 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         explicit.environment == 'preview'
     }
 
+    @Issue("491")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#order-of-precedence")
+    def "lets explicit collection assignment replace inherited template values"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class ParentConfiguration {
+                List<String> regions = ['development']
+            }
+
+            @DSL
+            class ServiceConfiguration extends ParentConfiguration {
+            }
+        '''
+        def parentType = getClass('pk.ParentConfiguration')
+        def serviceType = getClass('pk.ServiceConfiguration')
+        def parentTemplate = parentType.Template.Create { regions 'shared' }
+        def serviceTemplate = serviceType.Template.Create { regions 'production' }
+
+        when:
+        def explicit
+        serviceType.Template.WithAll([parentTemplate, serviceTemplate]) {
+            explicit = serviceType.Create.With {
+                regions = ['preview']
+            }
+        }
+
+        then:
+        explicit.regions == ['preview']
+    }
+
     @Issue("376")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Templates.md#applylater-and-templates")
     def "replays a template applyLater recipe for each completed configuration"() {
@@ -342,14 +382,20 @@ class TemplatesDocumentaryTest extends AbstractDSLSpec {
         }
 
         when:
-        def service = clazz.Template.With(template) {
-            clazz.Create.With {
+        def catalog
+        def billing
+        clazz.Template.With(template) {
+            catalog = clazz.Create.With {
                 name 'catalog'
+            }
+            billing = clazz.Create.With {
+                name 'billing'
             }
         }
 
         then:
         template.identifier == null
-        service.identifier == 'CATALOG'
+        catalog.identifier == 'CATALOG'
+        billing.identifier == 'BILLING'
     }
 }

@@ -280,7 +280,8 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 
 ```
 
-Note that templates for collections **replace** lower precedence, i.e., the most specific template wins. This behavior can be altered using [[Copy Strategies]]. 
+Collection values from Templates and DSL adder methods are added in declaration order. To replace inherited collection
+values, assign the collection directly; `Copy Strategies` can also alter the behavior.
 
 ```groovy
 @DSL
@@ -297,20 +298,20 @@ def parentTemplate = Parent.Template.Create {
 }
 
 def childTemplate = Child.Template.Create {
-    names "child" // replaces parent template value
+    names = ["child"] // replaces parent template values
 }
 
 Child.Template.WithAll([parentTemplate, childTemplate]) {
   def c = Child.Create.With {
-    name "explicit" // replaces template value
+    names = ["explicit"] // replaces template values
   }
 
   assert c.names == ["explicit"]
 }
 ```
 
-The executable example is `TemplatesDocumentaryTest.groovy`, feature `lets child templates and explicit configuration
-override parent defaults`.
+The executable examples are `TemplatesDocumentaryTest.groovy`, features `lets child templates and explicit configuration
+override parent defaults` and `lets explicit collection assignment replace inherited template values`.
 
 ## `applyLater` and Templates
 
