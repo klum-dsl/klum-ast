@@ -153,7 +153,7 @@ class ConverterBuilder {
                 .withDocumentation(doc -> doc
                                 .title("Converter method for " + elementType.getName() + " created from closure in " + fieldNode.getName())
                                 .p("Since this is derived from a closure, no detailed javadoc can be provided.")
-                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + "}.")
+                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + " }.")
                         .seeAlso(elementType.getName() + "#" + fieldNode.getName())
                 )
                 .addTo(converterClass);

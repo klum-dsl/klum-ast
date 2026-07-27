@@ -66,7 +66,7 @@ class PropertyAccessors {
         String fieldName = modelField.getName();
         int visibility = isProtected(modelField) ? Opcodes.ACC_PROTECTED : Opcodes.ACC_PUBLIC;
 
-        MethodNode getter = createMethod(getGetterName(fieldName))
+        createMethod(getGetterName(fieldName))
                 .mod(visibility)
                 .returning(builderField.getType())
                 .linkToField(modelField)
@@ -83,7 +83,7 @@ class PropertyAccessors {
                     .doReturn(attrX(varX("this"), constX(fieldName)))
                     .addTo(transformation.rwClass);
 
-        MethodNode setter = createMethod(DslAstHelper.getSetterName(fieldName))
+        createMethod(DslAstHelper.getSetterName(fieldName))
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(builderField.getType(), VALUE_PARAMETER)
