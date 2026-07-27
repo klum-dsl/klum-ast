@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.klum.ast.compiler.internal.validation;
 
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;

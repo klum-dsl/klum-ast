@@ -21,33 +21,37 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.klum.ast.compiler.internal.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
-import org.codehaus.groovy.ast.FieldNode;
+import org.codehaus.groovy.ast.AnnotationNode;
+import org.codehaus.groovy.ast.ClassNode;
 
 import java.util.List;
 
-import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeEnumMemberValue;
-import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
+import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
+import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
 
-public class OverwriteSingleCheck implements Check {
-
+public class CheckDslAnnotation implements Check {
     @Override
     public List<Diagnostic> check(CheckContext context) {
-        FieldNode field = (FieldNode) context.getTarget();
-        var annotationToCheck = context.getValidatedAnnotation();
-        OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Single.INHERIT);
-
-        if (isCollectionOrMap(field.getType()))
-            return List.of(new Diagnostic(getClass().getName(), "Single overwrite strategy is not allowed for collections or maps", annotationToCheck));
-
-        if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
-            return List.of(new Diagnostic(getClass().getName(), "MERGE is only allowed for DSL objects", annotationToCheck));
+        AnnotationNode annotationToCheck = context.getValidatedAnnotation();
+        ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);
+        if (defaultImpl == null) return List.of();
+        if (!isAssignableTo(defaultImpl, (ClassNode) context.getTarget()))
+            return violation(context, "defaultImpl must be a subtype of the annotated class!");
+        if (!isDSLObject(defaultImpl))
+            return violation(context, "defaultImpl must be a DSLObject!");
+        if (!DslAstHelper.isInstantiable(defaultImpl))
+            return violation(context, "defaultImpl must be instantiable!");
         return List.of();
+    }
+
+    private List<Diagnostic> violation(CheckContext context, String message) {
+        return List.of(new Diagnostic(getClass().getName(), message, context.getValidatedAnnotation()));
     }
 }
