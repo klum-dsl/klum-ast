@@ -177,7 +177,7 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
 
     @Issue('559')
     def "root aggregate refreshes every Schema project in a Layer 3 layout"() {
-        given: 'an API and a Schema project that both use the Schema plugin'
+        given: 'a Layer 3 API, Schema, and API-only consumer relationship'
         addLayer3ApiProject()
 
         when: 'the root entry point runs once for the Layer 3 build'
@@ -193,12 +193,14 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
 
         when: 'the aggregate contains both Schema-owned producer tasks and no payload'
         BuildResult inspected = run(
-                ':assertKlumDslSourceMirrorAggregate', '-PexpectedKlumDslSourceMirrorProjects=:api,:schema')
+                ':assertKlumDslSourceMirrorAggregate', ':consumer:assertKlumDslDownstreamIsolation',
+                '-PexpectedKlumDslSourceMirrorProjects=:api,:schema')
 
         then:
         inspected.output.contains('aggregate.actions=true')
         inspected.output.contains('aggregate.outputs=true')
         inspected.output.contains('aggregate.dependencies=:api:createKlumDslSourceMirrors,:schema:createKlumDslSourceMirrors')
+        inspected.output.readLines().findAll { it.startsWith('downstream.') }.every { it.endsWith('=false') }
 
         when: 'the Layer 3 aggregate is run again with the configuration cache'
         BuildResult reused = run('generateKlumDslSourceMirrors', '--configuration-cache')
@@ -228,6 +230,12 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         }
         File settings = new File(testProject, 'settings.gradle')
         settings.text += "\ninclude 'api'\n"
+        File schemaBuild = new File(schema, 'build.gradle')
+        schemaBuild.text = schemaBuild.text.replace(
+                "publishing {",
+                "dependencies {\n    api project(':api')\n}\n\npublishing {")
+        File consumerBuild = new File(testProject, 'consumer/build.gradle')
+        consumerBuild.text = consumerBuild.text.replaceAll("':schema'", "':api'")
     }
 
     private boolean publishedArchivesContainNoMirror() {
