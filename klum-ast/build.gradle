@@ -11,6 +11,15 @@ test {
     outputs.dir layout.buildDirectory.dir("test-classes")
 }
 
+gradle.projectsEvaluated {
+    tasks.withType(Test).configureEach {
+        dependsOn tasks.named('jar')
+        dependsOn ':klum-ast-runtime:jar'
+        systemProperty('klumCompilerJar', tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumRuntimeJar', project(':klum-ast-runtime').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+    }
+}
+
 dependencies {
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     api project(':klum-ast-annotations')

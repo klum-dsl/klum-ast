@@ -131,8 +131,8 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NumberOfParameters(0)
-@KlumCastValidator("com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean")
-@KlumCastValidator("com.blackbuild.klum.ast.validation.ValidateAnnotationCheck")
+@KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.validation.CheckForPrimitiveBoolean")
+@KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.validation.ValidateAnnotationCheck")
 @Documented
 public @interface Validate {
 

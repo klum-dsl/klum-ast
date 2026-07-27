@@ -21,31 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation;
+package com.blackbuild.klum.ast.compiler.internal.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
-import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;
 
 import java.util.List;
 
-import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeEnumMemberValue;
+import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
 
-public class OverwriteMapCheck implements Check {
+public class OverwriteSingleCheck implements Check {
 
     @Override
     public List<Diagnostic> check(CheckContext context) {
         FieldNode field = (FieldNode) context.getTarget();
         var annotationToCheck = context.getValidatedAnnotation();
-        OverwriteStrategy.Map strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Map.INHERIT);
-        ClassNode elementType = getElementType(field);
+        OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Single.INHERIT);
 
-        if (strategy == OverwriteStrategy.Map.MERGE_VALUES && !DslAstHelper.isDSLObject(elementType))
-            return List.of(new Diagnostic(getClass().getName(), "MERGE_VALUES is only allowed for DSL objects", annotationToCheck));
+        if (isCollectionOrMap(field.getType()))
+            return List.of(new Diagnostic(getClass().getName(), "Single overwrite strategy is not allowed for collections or maps", annotationToCheck));
+
+        if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
+            return List.of(new Diagnostic(getClass().getName(), "MERGE is only allowed for DSL objects", annotationToCheck));
         return List.of();
     }
 }

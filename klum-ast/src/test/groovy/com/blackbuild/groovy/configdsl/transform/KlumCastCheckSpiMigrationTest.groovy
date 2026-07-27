@@ -28,11 +28,11 @@ import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodC
 import com.blackbuild.klum.ast.util.copy.Overwrite
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
 import com.blackbuild.klum.ast.util.layer3.DefaultValuesCheck
-import com.blackbuild.klum.ast.validation.CheckDslAnnotation
-import com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean
-import com.blackbuild.klum.ast.validation.OverwriteMapCheck
-import com.blackbuild.klum.ast.validation.OverwriteSingleCheck
-import com.blackbuild.klum.ast.validation.ValidateAnnotationCheck
+import com.blackbuild.klum.ast.compiler.internal.validation.CheckDslAnnotation
+import com.blackbuild.klum.ast.compiler.internal.validation.CheckForPrimitiveBoolean
+import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteMapCheck
+import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteSingleCheck
+import com.blackbuild.klum.ast.compiler.internal.validation.ValidateAnnotationCheck
 import com.blackbuild.klum.cast.KlumCastValidator
 import com.blackbuild.klum.cast.spi.Check
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
