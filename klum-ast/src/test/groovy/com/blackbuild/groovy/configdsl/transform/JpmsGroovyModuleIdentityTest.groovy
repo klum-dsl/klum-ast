@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform
 
 import groovy.lang.GroovyObjectSupport
+import groovy.lang.GroovySystem
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
@@ -36,7 +37,14 @@ import javax.tools.ToolProvider
 @Issue("391")
 class JpmsGroovyModuleIdentityTest extends Specification {
 
+    private static final Set<String> PORTABILITY_WORKAROUNDS = ["--add-reads", "--add-exports", "--patch-module"]
+
     @Rule TemporaryFolder temporaryFolder = new TemporaryFolder()
+
+    def "each compatibility lane exposes the documented Groovy module identity"() {
+        expect:
+        moduleName(groovyJar()) == (GroovySystem.version.startsWith("3.") ? "org.codehaus.groovy" : "org.apache.groovy")
+    }
 
     def "a named module must require the matching Groovy module identity"() {
         given:
@@ -74,13 +82,15 @@ class JpmsGroovyModuleIdentityTest extends Specification {
         """.stripIndent().trim() + System.lineSeparator()
 
         and: "the module descriptor is deliberately compiled separately from the Groovy-referencing class"
-        assert ToolProvider.systemJavaCompiler.run(null, null, null,
+        assert compile([
                 "-classpath", groovyJar().toString(),
                 "-d", libraryClassesDirectory.toString(),
-                boundary.toString()) == 0
-        assert ToolProvider.systemJavaCompiler.run(null, null, null,
+                boundary.toString()
+        ]) == 0
+        assert compile([
                 "-d", libraryClassesDirectory.toString(),
-                new File(librarySourceDirectory, "module-info.java").toString()) == 0
+                new File(librarySourceDirectory, "module-info.java").toString()
+        ]) == 0
 
         and: "the consumer itself reads Groovy and the library"
         File consumerSourceDirectory = temporaryFolder.newFolder("consumer-source")
@@ -104,23 +114,64 @@ class JpmsGroovyModuleIdentityTest extends Specification {
             }
         """.stripIndent().trim() + System.lineSeparator()
         String modulePath = [libraryClassesDirectory, groovyJar()].join(File.pathSeparator)
-        assert ToolProvider.systemJavaCompiler.run(null, null, null,
+        assert compile([
                 "--module-path", modulePath,
                 "-d", consumerClassesDirectory.toString(),
                 new File(consumerSourceDirectory, "module-info.java").toString(),
-                main.toString()) == 0
+                main.toString()
+        ]) == 0
 
         when:
-        Process process = new ProcessBuilder(
+        List<String> arguments = [
                 javaExecutable(),
                 "--module-path", [consumerClassesDirectory, libraryClassesDirectory, groovyJar()].join(File.pathSeparator),
-                "-m", "example.consumer/example.consumer.Main")
-                .redirectErrorStream(true)
-                .start()
-        process.inputStream.text
+                "-m", "example.consumer/example.consumer.Main"
+        ]
+        Process process = startJava(arguments)
+        String output = process.inputStream.text
 
         then:
         process.waitFor() != 0
+        output.contains("does not read module")
+    }
+
+    def "the Groovy-referencing class remains usable on the ordinary classpath"() {
+        given:
+        File sourceDirectory = temporaryFolder.newFolder("classpath-source")
+        File classesDirectory = temporaryFolder.newFolder("classpath-classes")
+        File packageDirectory = new File(sourceDirectory, "example/tracer")
+        assert packageDirectory.mkdirs()
+        File boundary = new File(packageDirectory, "Boundary.java")
+        boundary.text = """
+            package example.tracer;
+
+            import groovy.lang.GroovyObjectSupport;
+
+            public class Boundary extends GroovyObjectSupport {
+                public static void main(String[] arguments) {
+                    System.out.println(Boundary.class.getSuperclass().getName());
+                }
+            }
+        """.stripIndent().trim() + System.lineSeparator()
+
+        expect:
+        compile([
+                "-classpath", groovyJar().toString(),
+                "-d", classesDirectory.toString(),
+                boundary.toString()
+        ]) == 0
+
+        when:
+        Process process = startJava([
+                javaExecutable(),
+                "-classpath", [classesDirectory, groovyJar()].join(File.pathSeparator),
+                "example.tracer.Boundary"
+        ])
+        String output = process.inputStream.text
+
+        then:
+        process.waitFor() == 0
+        output.trim() == "groovy.lang.GroovyObjectSupport"
     }
 
     private boolean compilesAgainst(String groovyModuleName) {
@@ -143,14 +194,12 @@ class JpmsGroovyModuleIdentityTest extends Specification {
             }
         """.stripIndent().trim() + System.lineSeparator()
 
-        ToolProvider.systemJavaCompiler.run(
-                null,
-                null,
-                null,
+        compile([
                 "--module-path", groovyJar().toString(),
                 "-d", classesDirectory.toString(),
                 new File(sourceDirectory, "module-info.java").toString(),
-                new File(packageDirectory, "Boundary.java").toString()) == 0
+                new File(packageDirectory, "Boundary.java").toString()
+        ]) == 0
     }
 
     private static Path groovyJar() {
@@ -163,5 +212,23 @@ class JpmsGroovyModuleIdentityTest extends Specification {
 
     private static String javaExecutable() {
         Path.of(System.getProperty("java.home"), "bin", "java").toString()
+    }
+
+    private static int compile(List<String> arguments) {
+        assertNoPortabilityWorkarounds(arguments)
+        ToolProvider.systemJavaCompiler.run(null, null, null, *arguments)
+    }
+
+    private static Process startJava(List<String> arguments) {
+        assertNoPortabilityWorkarounds(arguments)
+        new ProcessBuilder(arguments)
+                .redirectErrorStream(true)
+                .start()
+    }
+
+    private static void assertNoPortabilityWorkarounds(Collection<String> arguments) {
+        assert arguments.every { argument -> PORTABILITY_WORKAROUNDS.every { workaround ->
+            argument != workaround && !argument.startsWith("${workaround}=")
+        } }
     }
 }
