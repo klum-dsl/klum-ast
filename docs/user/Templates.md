@@ -13,7 +13,9 @@ Deferred `applyLater` actions live only in immutable Template recipe state, neve
 closures are detached and their captured graph is checked when the Template materializes. Captured Builders and
 non-serializable values are rejected. Template identity and recipe state survive Java serialization; Builders,
 Construction sessions, active Template scopes, and mutable recipe collections are not serialized.
- 
+
+## Creating templates
+
  Ignorable fields of the template (key, owner, transient or marked as `FieldType.Ignore`) are never copied over. To make creating
  templates easier, the `Template.Create` and `Template.CreateFrom` methods are provided, which behave like normal factory methods
  with the following differences:
@@ -41,6 +43,9 @@ Template specific methods are pooled in the `Template` field of each DSL class, 
 As with normal factory methods, templates can be created using the `Template.Create` method by applying a map and or configuration
 closure, or by using the `Template.CreateFrom` method, which take a file or URL which is parsed as a DelegatingScript, 
 similar to the `Create.From` methods.
+
+The executable examples are `TemplatesDocumentaryTest.groovy`, features `creates an unkeyed reusable template without
+lifecycle callbacks` and `creates a template from a DelegatingScript file`.
 
 There currently four options to apply templates, all examples use the following class and template:
 
@@ -76,6 +81,9 @@ def c2 = Config.Create.With(copyFrom: template) {
 In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. A marked
 Template contributes both values and recipe actions. An ordinary completed model contributes values only. See
 [[Copy Strategies#copy-source-protocol]] for the complete copy-source rules.
+
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `copies a template into one completed service
+configuration`.
 
 ## Template.With()
  
@@ -128,6 +136,9 @@ Config.Template.With(url: "http://x.y") {
 }
 ```
 
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `applies named values through an anonymous scoped
+template`.
+
 ## Templates for Collection Factories
 
 When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
@@ -142,6 +153,9 @@ Config.Create.With {
     }
 }
 ```
+
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `applies one collection-factory template to every
+created server`.
 
 Since the collection factory can be called multiple times, this allows a very concise syntax:
 
@@ -205,6 +219,9 @@ Config.Template.WithAll((Environment) : [status: 'valid'], (Server) : [os: 'linu
 
 Note that Groovy requires the key object to be in parentheses if it is not a String.
 
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `applies templates for multiple configuration types
+in one scope`.
+
 ## Templates for Abstract Classes
 
 For abstract classes, an inner class named `Template` is created with the following properties:
@@ -213,6 +230,9 @@ For abstract classes, an inner class named `Template` is created with the follow
 - validation is turned of
 
 Anonymous templates automatically use the Template class.
+
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `creates a template implementation for an abstract
+configuration type`.
 
 
 ## Order of precedence
@@ -289,9 +309,15 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 }
 ```
 
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `lets child templates and explicit configuration
+override parent defaults`.
+
 ## `applyLater` and Templates
 
 As stated in [[Model Phases]], Templates can contain `applyLater` closures. These actions are not executed on the Template;
 they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh
 Builder through its delegate. Capturing any Builder, even through a serializable holder, is rejected. Other captured values
 must be serializable so the Template recipe remains serializable with its companion state.
+
+The executable example is `TemplatesDocumentaryTest.groovy`, feature `replays a template applyLater recipe for each
+completed configuration`.
