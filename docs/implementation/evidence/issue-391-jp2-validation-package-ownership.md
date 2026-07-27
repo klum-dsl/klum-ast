@@ -35,7 +35,7 @@ module descriptors in every Groovy lane. It asserts that the runtime package is
 present only in the runtime artifact and the compiler checks are present only
 in the compiler artifact.
 
-This is intentionally not a positive named-schema fixture. The independent
-`com.blackbuild.klum.ast.util.layer3` split still prevents the current runtime
-and compiler artifacts from resolving together; JP-3 must also establish the
-descriptor set before the JP-1b fixture can become positive evidence.
+This is intentionally not a positive named-schema fixture. JP-2b removes the
+independent `com.blackbuild.klum.ast.util.layer3` split; JP-3 must still
+establish the descriptor set before the JP-1b fixture can become positive
+evidence.

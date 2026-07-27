@@ -39,7 +39,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @DefaultValues(valueTarget = "apply")
 @Documented
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.util.layer3.ApplyDefaultTransformation")
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.layer3.ApplyDefaultTransformation")
 public @interface DefaultApply {
 
     /**

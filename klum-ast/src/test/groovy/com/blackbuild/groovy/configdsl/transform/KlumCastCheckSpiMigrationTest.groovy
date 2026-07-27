@@ -27,7 +27,7 @@ import com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator
 import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck
 import com.blackbuild.klum.ast.util.copy.Overwrite
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
-import com.blackbuild.klum.ast.util.layer3.DefaultValuesCheck
+import com.blackbuild.klum.ast.compiler.internal.layer3.DefaultValuesCheck
 import com.blackbuild.klum.ast.compiler.internal.validation.CheckDslAnnotation
 import com.blackbuild.klum.ast.compiler.internal.validation.CheckForPrimitiveBoolean
 import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteMapCheck

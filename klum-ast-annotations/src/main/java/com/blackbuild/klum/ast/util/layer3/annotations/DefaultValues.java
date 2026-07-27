@@ -38,7 +38,7 @@ import java.lang.annotation.Target;
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
 @KlumCastValidated
-@KlumCastValidator("com.blackbuild.klum.ast.util.layer3.DefaultValuesCheck")
+@KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.layer3.DefaultValuesCheck")
 public @interface DefaultValues {
     /**
      * If false (default), the setting will fail if a matching field in the target object does not exist.

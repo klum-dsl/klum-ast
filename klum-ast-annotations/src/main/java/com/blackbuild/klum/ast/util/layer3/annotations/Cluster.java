@@ -112,8 +112,8 @@ import java.util.Map;
 @Documented
 @Inherited
 @GroovyASTTransformationClass({
-        "com.blackbuild.klum.ast.util.layer3.ClusterFieldTransformation",
-        "com.blackbuild.klum.ast.util.layer3.ClusterTransformation"
+        "com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFieldTransformation",
+        "com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation"
         })
 @KlumCastValidated
 @NeedsType(Map.class)

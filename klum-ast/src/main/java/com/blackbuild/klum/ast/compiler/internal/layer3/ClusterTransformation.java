@@ -21,8 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.compiler.internal.layer3;
 
+import com.blackbuild.klum.ast.util.layer3.ClusterModel;
 import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;

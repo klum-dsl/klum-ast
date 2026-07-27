@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.compiler.internal.layer3;
 
 import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
 import com.blackbuild.klum.cast.spi.Check;
