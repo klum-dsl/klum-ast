@@ -38,7 +38,7 @@ public class ValidateAnnotationCheck implements Check {
         AnnotationNode annotationToCheck = context.getValidatedAnnotation();
         AnnotatedNode target = context.getTarget();
         if (target instanceof ClassNode) {
-            if (target instanceof InnerClassNode) return checkOnInnerClass((InnerClassNode) target, annotationToCheck);
+            if (target instanceof InnerClassNode innerClass) return checkOnInnerClass(innerClass, annotationToCheck);
             return checkOnOuterClass(annotationToCheck);
         } else if (target instanceof MethodNode) {
             return checkOnMethod((MethodNode) target, annotationToCheck);

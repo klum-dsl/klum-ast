@@ -27,8 +27,6 @@ import com.blackbuild.groovy.configdsl.transform.WriteAccess;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.MethodNode;
 
 import java.util.List;

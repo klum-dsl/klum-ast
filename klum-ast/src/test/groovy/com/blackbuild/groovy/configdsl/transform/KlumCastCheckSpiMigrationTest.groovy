@@ -222,6 +222,22 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
         '''
     }
 
+    def "zero-argument virtual field keeps its parameter-contract diagnostic"() {
+        expect:
+        def error = compilationError '''
+            @DSL
+            class DefaultImplementation { }
+
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = DefaultImplementation)
+                void value() { }
+            }
+        '''
+        error.message.contains("must have 1 parameters")
+        !error.message.contains("Technical failure")
+    }
+
     private static Check newInstance(Class<? extends Check> checkType) {
         checkType.getDeclaredConstructor().newInstance()
     }
