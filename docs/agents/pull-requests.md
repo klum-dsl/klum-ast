@@ -32,7 +32,16 @@ boundary and ask for direction.
 
 ## Pull request scope and issue links
 
-- Use closing keywords only for issues whose accepted behavior is fully delivered by the pull request.
+- Every ready-for-PR handoff declares its tracker impact. The Hive selects the pull-request relationship before remote
+  delivery: `Closes #123`, `Related: #123`, or no issue reference.
+- Use a closing keyword only when merging the pull request completes every accepted issue criterion and leaves no
+  post-merge human-action, external-evidence, review, release, or follow-up condition. Assigned code completion alone
+  is insufficient.
+- Use `Related: #123` for a partial slice, parent, release gate, deferred follow-up, or any issue deliberately left open.
+  Workers do not select closing syntax or close an issue autonomously; the Hive reconciles delivery and acceptance.
+- When a change materially alters a release gate, dependency, owner, acceptance status, or published release fact, the
+  Hive decides whether the feature pull request updates curation, a bounded reconciliation follow-up owns it, or no
+  curation update is needed. Ordinary localized work needs only the declared no-impact result.
 - Treat GitHub closing keywords as mechanical syntax, not prose. In pull-request titles and bodies, never place `close`,
   `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, or `resolved` before an issue reference unless the
   pull request is intended to close that issue automatically. Negation, quotation, code formatting, and explanatory

@@ -105,7 +105,24 @@ When a worker reaches `(ready:PR)`, its final callback must also contain a conci
 
 When Mobile Mode is active, make that brief a skimmable, vertical review brief rather than a link to the app diff or a prose wall. State the changed behavior, key file groups, validation, risks, and the exact desktop-review focus. Mobile reading may establish context or a short confirmation, but a full desktop diff review and every normal safety and release gate remain required.
 
-### 4a. Audit remote-delivery authorization by channel
+### 4a. Select tracker impact before a draft pull request
+
+Every `(ready:PR)` callback must state a **tracker impact** with two fields: issue relationship (`none`, `related issue`,
+or `closure candidate`) and curation impact (`none`, `feature pull-request update`, or `bounded follow-up`). It names the
+affected issue(s), whether the assigned outcome changes a release gate, dependency, owner, acceptance status, or
+published release fact, and the evidence for that assessment.
+
+The Hive—not the worker—selects the pull-request relationship before remote delivery: `Closes #n` only when merging the
+pull request completes every accepted criterion and leaves no condition after merge for human action, external evidence,
+review, release, or follow-up; `Related: #n` for partial, parent, deferred, or still-open work; otherwise no issue
+reference. A worker must not add closing syntax or close an issue merely because its assigned code is complete.
+
+When an outcome materially changes release or issue-curation state, the Hive also selects one of: update the curation
+record in the feature pull request, create a bounded reconciliation follow-up, or record why no curation change is
+needed. Do not add release-plan churn for ordinary localized work. A tracker-impact declaration is mandatory; a
+curation-file edit is conditional.
+
+### 4b. Audit remote-delivery authorization by channel
 
 Before an authorized remote mutation, verify the required capability on each intended delivery channel. Authentication and authorization do not transfer between channels: for GitHub, a connected GitHub App installation and the authenticated `gh` CLI session are separate authorities, even when they target the same repository. A success or denial on one must not be inferred for the other.
 
@@ -210,6 +227,7 @@ Before handing off an overview or an orchestrator task, verify:
 - [ ] Each task title matches the repository's current lifecycle/archive policy; active, delivery-pending, and archive-safe work are distinguishable.
 - [ ] A reported task outcome is not mistaken for issue, PR, merge, or release delivery; live delivery state is shown separately.
 - [ ] Every `(ready:PR)` worker final callback includes a review/change brief with two to five outcomes, key files grouped as implementation/tests/user documentation (or `none`), grouped auxiliary changes, meaningful validation, and review focus or an explicit `none` risk.
+- [ ] Every `(ready:PR)` worker final callback declares tracker impact; before a draft PR, the Hive selected `Closes`, `Related`, or no issue reference and decided whether a curation/release-index update belongs in that work or a bounded follow-up.
 - [ ] Before every authorized remote delivery action, the required authority was checked separately for each intended channel; a GitHub App and `gh` CLI session were not treated as interchangeable, and the audit records only safe channel/outcome facts.
 - [ ] Mobile Mode, when active, was explicitly requested with a recorded expiry, did not infer device/access state or change AFK/release authority, used compact vertical output without Mermaid/logs/raw long diffs unless requested, and presented at most one material decision.
 - [ ] On Mobile Mode entry, every worker with a still-pending PR, issue, or other user interaction repeated the request when useful in the compact mobile format, including the single needed action and any desktop-review caveat.
