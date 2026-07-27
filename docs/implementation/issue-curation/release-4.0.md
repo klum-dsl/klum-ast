@@ -1,9 +1,10 @@
-# Provisional 4.0 issue slate
+# 4.0 issue slate
 
 This release view is derived from the complete [open issue index](issue-index.md), not from the outdated version plan in
 `docs/user/Roadmap.md`. The policy baseline is README/CHANGES, the Builder-first migration guide, accepted ADRs 0003–0009, and
 current source/tests. ADR 0007 is superseded by ADR 0009, while ADR 0008 remains a later-4.x target. ADRs 0004–0006 and
-0009 define the remaining accepted 4.0 boundaries.
+0009 define the accepted Builder-first boundaries. The dated live reconciliation below is authoritative where older
+delivery-history prose in this document has not yet been rewritten.
 
 Release-facing identity: **Season 4: The Makeover**, always paired with the semantic version `4.0`.
 
@@ -17,6 +18,21 @@ Release-facing identity: **Season 4: The Makeover**, always paired with the sema
 4. completed-model companion and Jackson interoperability behavior are documented contracts rather than provisional implementation details;
 5. the handwritten package surface and Java module identities are intentional rather than accidental;
 6. Java 17 and Groovy 3/4/5 remain supported.
+
+## Live reconciliation — 2026-07-27
+
+Live GitHub and `origin/master` were reconciled after PRs #545, #551, and #554–#562. This is the release-facing state;
+the detailed sections below preserve the decisions and historical delivery rationale.
+
+| Disposition | Issues | Current release meaning |
+| --- | --- | --- |
+| **Closed, delivered** | #394, #428, #435, #450, #459, #460, #461, #468, #488, #559 | The generated DSL surface, Jackson contract, completed-object facade, integration audit, upstream RC integrations, durable Check migration, public-interface inventory, release path, and root source-mirror aggregate are delivered. Final-coordinate upstream promotions remain #523/#524, not reopened through #459/#461. |
+| **Implementation remains** | #391 | ADR 0014 and PR #561 settle the Groovy boundary: Groovy 4/5 named modules; Groovy 3 classpath support. Execute JP-1 through JP-5: package/import inventory, ownership moves/descriptors, named-schema fixtures, and descriptor/migration validation. |
+| **First-RC gates** | #456, #491, #544, #512, #521 | #456 infrastructure and protected Pages controls are ready; its first exact pending snapshot runs with the RC. #544 needs explicit maintainer content acceptance, accepting #491's documented documentary-test queue/deferrals. #512 then owns clean external-consumer validation and #521 the manual IntelliJ check. |
+| **Post-initial-RC / final gates** | #469, #546, #483, #523–#525 | #469's three onboarding tracers are delivered; field evidence is post-RC. #546 is discovery-only agent-adopter evidence. #483 supplies the approved final Season/logo manifest. #523/#524 promote upstream finals, then #525 validates the final-coordinate KlumAST RC before 4.0.0. |
+
+No unmilestoned issue was promoted into 4.0 in this reconciliation. The post-closure open inventory is 111 issues: 12 in
+milestone 4.0, 3 in 2.x, 1 in 3.0, and 95 unmilestoned legacy/future items.
 
 ## 4.0 must
 

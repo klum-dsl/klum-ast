@@ -1,8 +1,28 @@
 # Open issue index for the 4.0 release
 
-Snapshot refreshed 2026-07-17: 109 open issues in `klum-dsl/klum-ast`, inspected from repository base `65f7a99b` and the live issue tracker. The original inventory was read-only; later confirmed normalization actions are recorded below.
+Snapshot refreshed 2026-07-27: 111 open issues in `klum-dsl/klum-ast`, reconciled against live GitHub and `origin/master`
+at `5a5a61b1`. The original inventory was read-only; later confirmed normalization actions are recorded below. The
+2026-07-27 live reconciliation takes precedence over historical rows that describe now-delivered implementation work.
 
 All dispositions are provisional maintainer recommendations. “Relevant” means that the current source still lacks the requested capability or still contains the reported risk; it does not mean that the issue is accepted product policy. The historical 2.x/3.x sections of `docs/user/Roadmap.md` were not used as current policy.
+
+## Live 4.0 reconciliation — 2026-07-27
+
+The following table is the authoritative current release slice. It prevents a historical planning row from making a
+closed issue look active again.
+
+| Issue(s) | Live state | Reconciliation |
+| --- | --- | --- |
+| #394, #428, #435, #450, #459, #460, #461, #468, #488, #559 | closed / delivered | The generated DSL namespace, Jackson parent, completed-object tracer, integration audit, upstream RC integrations, durable Check migration, public inventory, protected release path, and root mirror aggregate are all delivered. #523 and #524 own later final-coordinate promotions. |
+| #391 | open — 4.0 implementation | PR #561 records ADR 0014: Groovy 4/5 have the named-module target; Groovy 3 remains classpath-only. JP-1 through JP-5 remain: inventory, ownership moves/descriptors, named fixtures, and plugin/migration validation. |
+| #456 | open — release operation | Renderer, historical/API evidence, Pages writer/service boundary, protection runbook, and manifest read-back seam are delivered. The first exact pending snapshot and proof-gated aliases remain release-time work. |
+| #491, #544 | open — content acceptance | #545 and #551 delivered the content audit and documentary inventory. #491 retains the selected-documentary queue; #544 needs explicit maintainer acceptance of that queue and the #454/#456 deferrals before the first RC. |
+| #469, #483, #546 | open — bounded post-RC/final evidence | #469's three onboarding tracers are delivered; its field evidence follows an RC. #483 owns the final Season/logo asset and manifest. #546 is non-blocking adopter-exercise evidence after an RC. |
+| #512, #521 | open — initial RC gate | Publish one KlumAST RC, then run clean external-consumer validation and the manual IntelliJ mirror check. Closed #459/#461/#488 are satisfied inputs; #456's exact pending snapshot remains a non-native release prerequisite. |
+| #523, #524, #525 | open — final release gate | Promote upstream final coordinates after the accepted initial train, then validate a final-coordinate KlumAST RC before 4.0.0. |
+
+The remaining open backlog is intentionally unchanged: 95 unmilestoned issues, 3 milestone-2.x issues, and one
+milestone-3.0 issue. No legacy issue was silently promoted into the 4.0 train.
 
 ## Evidence and compatibility keys
 
