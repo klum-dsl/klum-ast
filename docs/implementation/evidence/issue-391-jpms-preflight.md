@@ -67,10 +67,7 @@ For each lane it proves all of the following:
 The matching names are `org.codehaus.groovy` for Groovy 3 and
 `org.apache.groovy` for Groovy 4 and 5. Therefore, an explicit KlumAST
 descriptor that directly reads Groovy cannot name one fixed `requires` target
-and compile against all supported Groovy generations. The positive tracer must
-now determine whether a portable descriptor can avoid that direct read without
-breaking runtime access; otherwise #391 returns explicit descriptors for an
-ADR decision and retains only stable module identities.
+and compile against all supported Groovy generations.
 
 The second probe separately compiles the Groovy-referencing class on the
 classpath, then supplies a descriptor without a Groovy requirement. A named
@@ -85,6 +82,9 @@ runtime's `KlumFactory` directly exposes Groovy types, and the compiler's
 `DSLASTTransformation` uses Groovy AST types extensively. Any future explicit
 descriptor would need a separately approved change that removes or isolates
 those dependencies from the descriptor-owning module.
+
+ADR 0014 records the resulting 4.0 decision: explicit named-module support is
+for Groovy 4/5, while Groovy 3 remains a supported classpath configuration.
 
 ## Confirmed scope boundary
 
