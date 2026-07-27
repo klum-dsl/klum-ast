@@ -26,7 +26,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor
+import com.blackbuild.annodocimal.ast.AstDocumentation
 import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
 import com.blackbuild.klum.ast.util.InternalKlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
@@ -68,7 +68,7 @@ class AnnoDocTest extends AbstractDSLSpec {
 
     String methodDoc(String methodName, Class... params) {
         def methodNode = getMethod(classNode, methodName, params)
-        return ASTExtractor.extractDocumentation(methodNode)
+        return AstDocumentation.extractExact(methodNode).get().render()
     }
 
     String rwMethodDoc(String methodName, Class... params) {
@@ -81,7 +81,7 @@ class AnnoDocTest extends AbstractDSLSpec {
 
     String creatorDoc(String methodName, Class... params) {
         def methodNode = getMethod(factoryClassNode, methodName, params)
-        return ASTExtractor.extractDocumentation(methodNode)
+        return AstDocumentation.extractExact(methodNode).get().render()
     }
 
     String altCreatorDoc(String methodName, Class... params) {
@@ -95,15 +95,15 @@ class AnnoDocTest extends AbstractDSLSpec {
     }
 
     String fieldDoc(String fieldName) {
-        return ASTExtractor.extractDocumentation(classNode.getDeclaredField(fieldName),)
+        return AstDocumentation.extractExact(classNode.getDeclaredField(fieldName)).get().render()
     }
 
     String classDoc() {
-        return ASTExtractor.extractDocumentation(classNode)
+        return AstDocumentation.extractExact(classNode).get().render()
     }
 
     String rwClassDoc() {
-        return ASTExtractor.extractDocumentation(rwClassNode)
+        return AstDocumentation.extractExact(rwClassNode).get().render()
     }
 
     def "javadoc reflects the model and Builder API split"() {
@@ -125,6 +125,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         !clazz.declaredMethods*.name.contains("apply")
         rwClazz.getMethod("apply", Map).declaringClass == InternalKlumBuilder
         rwMethodDoc("copyFrom", clazz) == """Copies all non-null/non-empty recipe values from the template to this Builder.
+
 @param template the recipe to apply"""
 
     }
@@ -151,23 +152,58 @@ import com.blackbuild.groovy.configdsl.transform.DSL
 }
 ''')
 
-        then: "completed-model getters are documented"
-        methodDoc("getName") == "Returns the display name."
-        methodDoc("getActive") == "Returns the active flag."
-        methodDoc("isActive") == "Returns the active flag."
-        methodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
+        then: "property documentation is projected verbatim to completed-model getters"
+        methodDoc("getName") == "display name."
+        methodDoc("getActive") == "active flag."
+        methodDoc("isActive") == "active flag."
+        methodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
 
-        and: "Builder implementation getters are documented"
-        rwMethodDoc("getName") == "Returns the display name."
-        rwMethodDoc("getActive") == "Returns the active flag."
-        rwMethodDoc("isActive") == "Returns the active flag."
-        rwMethodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
+        and: "Builder implementation getters and setters retain the property wording"
+        rwMethodDoc("getName") == "display name."
+        rwMethodDoc("getActive") == "active flag."
+        rwMethodDoc("isActive") == "active flag."
+        rwMethodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
+        rwMethodDoc("setName", String) == "display name."
+        rwMethodDoc("setActive", boolean) == "active flag."
+        rwMethodDoc("setLegacyName", String) == "legacy name.\n\n@deprecated Use name instead."
 
-        and: "public Builder contract getters carry the same documentation"
-        builderMethodDoc("getName") == "Returns the display name."
-        builderMethodDoc("getActive") == "Returns the active flag."
-        builderMethodDoc("isActive") == "Returns the active flag."
-        builderMethodDoc("getLegacyName") == "Returns the legacy name.\n@deprecated Use name instead."
+        and: "public Builder contracts expose the same generated-Javadoc evidence"
+        builderMethodDoc("getName") == "display name."
+        builderMethodDoc("getActive") == "active flag."
+        builderMethodDoc("isActive") == "active flag."
+        builderMethodDoc("getLegacyName") == "legacy name.\n\n@deprecated Use name instead."
+        builderMethodDoc("setName", String) == "display name."
+        builderMethodDoc("setActive", boolean) == "active flag."
+        builderMethodDoc("setLegacyName", String) == "legacy name.\n\n@deprecated Use name instead."
+    }
+
+    @Issue("461")
+    def "explicit accessor documentation wins over property documentation"() {
+        when:
+        createClass("dummy/Foo.groovy", '''
+package dummy
+
+import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.groovy.configdsl.transform.Mutator
+
+@DSL class Foo {
+    /** The banner displayed to readers. */
+    private String banner
+
+    /** Reads the banner from the configured model. */
+    String getBanner() { banner }
+
+    /** Replaces the banner in the configured model. */
+    @Mutator void setBanner(String value) { banner = value }
+}
+''')
+
+        then:
+        methodDoc("getBanner") == "Reads the banner from the configured model."
+        rwMethodDoc("getBanner") == "Reads the banner from the configured model."
+        rwMethodDoc("setBanner", String) == "Replaces the banner in the configured model."
+        builderMethodDoc("getBanner") == "Reads the banner from the configured model."
+        builderMethodDoc("setBanner", String) == "Replaces the banner in the configured model."
     }
 
     def "javadoc for auto overridden creator"() {
@@ -226,6 +262,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 
         then:
         creatorDoc("WithIt", Closure) == """New text.
+
 @param configuration The configuration closure to apply to the model.
 @return The instantiated object."""
     }
@@ -244,21 +281,23 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 
         then:
         rwMethodDoc("bar", Closure) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
-<p>
-The newly created Builder is configured by the optional values and closure.
-</p>
+
+<p>The newly created Builder is configured by the optional values and closure.</p>
+
 @param closure the closure to configure the new element
 @return the newly created Builder"""
         rwMethodDoc("bar", Map) == """Creates a new 'bar' Builder and adds it to the Builder's 'bars' collection.
-<p>
-The newly created Builder is configured by the optional values and closure.
-</p>
+
+<p>The newly created Builder is configured by the optional values and closure.</p>
+
 @param values the optional parameters
 @param closure the closure to configure the new element
 @return the newly created Builder""" // closures has a default value, so during ast it is a single method
         rwMethodDoc("bars", getArrayClass("dummy.Bar\$Builder")) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+
 @param values the elements to add"""
         rwMethodDoc("bars", Iterable) == """Adds one or more 'bar' Builders to the Builder's 'bars' collection.
+
 @param values the elements to add"""
 
     }
@@ -286,9 +325,9 @@ The newly created Builder is configured by the optional values and closure.
 
         then:
         rwMethodDoc("bar", long) == """Creates an unsealed Builder in the active construction session and attaches it to this relationship.
-<p>
-The returned Builder remains attached to the current construction session; it cannot be independently materialized or validated.
-</p>
+
+<p>The returned Builder remains attached to the current construction session; it cannot be independently materialized or validated.</p>
+
 @param value the timestamp
 @return the attached, unsealed Builder
 @see Bar#fromLong(long)"""
@@ -309,9 +348,9 @@ The returned Builder remains attached to the current construction session; it ca
 
         then:
         rwMethodDoc("berry", Closure) == """Creates a new 'berry' Builder and adds it to the Builder's 'berries' collection.
-<p>
-The newly created Builder is configured by the optional values and closure.
-</p>
+
+<p>The newly created Builder is configured by the optional values and closure.</p>
+
 @param closure the closure to configure the new element
 @return the newly created Builder"""
     }
@@ -336,9 +375,9 @@ The newly created Builder is configured by the optional values and closure.
 
         then:
         rwMethodDoc("berry", Closure) == """Creates a new 'Yummy Berry' Builder and adds it to the Builder's 'Yummy Berries' collection.
-<p>
-The newly created Builder is configured by the optional values and closure.
-</p>
+
+<p>The newly created Builder is configured by the optional values and closure.</p>
+
 @param closure the closure to configure the new element
 @return the newly created Builder"""
     }

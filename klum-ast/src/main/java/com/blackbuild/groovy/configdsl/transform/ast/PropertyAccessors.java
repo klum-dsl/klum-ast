@@ -23,10 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
-import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
-import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import groovyjarjarasm.asm.Opcodes;
@@ -73,16 +71,16 @@ class PropertyAccessors {
                 .mod(visibility)
                 .returning(builderField.getType())
                 .linkToField(modelField)
-                .withDocumentation(documentation -> documentGetter(documentation, modelField))
+                .withDocumentation(documentation -> documentAccessor(documentation, modelField, getGetterName(fieldName)))
                 .doReturn(attrX(varX("this"), constX(fieldName)))
                 .addTo(transformation.rwClass);
 
         if (ClassHelper.boolean_TYPE.equals(builderField.getType()) || ClassHelper.Boolean_TYPE.equals(builderField.getType()))
             createMethod(getBooleanGetterName(fieldName))
-                    .mod(visibility)
-                    .returning(builderField.getType())
-                    .linkToField(modelField)
-                    .withDocumentation(documentation -> documentGetter(documentation, modelField))
+                .mod(visibility)
+                .returning(builderField.getType())
+                .linkToField(modelField)
+                .withDocumentation(documentation -> documentAccessor(documentation, modelField, getBooleanGetterName(fieldName)))
                     .doReturn(attrX(varX("this"), constX(fieldName)))
                     .addTo(transformation.rwClass);
 
@@ -90,17 +88,19 @@ class PropertyAccessors {
                 .mod(visibility)
                 .returning(ClassHelper.VOID_TYPE)
                 .param(builderField.getType(), VALUE_PARAMETER)
+                .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
                 .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
                 .addTo(transformation.rwClass);
 
         // Existing completed values enter through KlumBuilder, which seals LINK targets.
         if (!builderField.getType().equals(modelField.getType()))
             createMethod(DslAstHelper.getSetterName(fieldName))
-                    .mod(visibility)
-                    .returning(ClassHelper.VOID_TYPE)
-                    .param(modelField.getType(), VALUE_PARAMETER)
-                    .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
-                    .addTo(transformation.rwClass);
+                .mod(visibility)
+                .returning(ClassHelper.VOID_TYPE)
+                .param(modelField.getType(), VALUE_PARAMETER)
+                .withDocumentation(documentation -> documentAccessor(documentation, modelField, DslAstHelper.getSetterName(fieldName)))
+                .statement(callThisX("setInstanceAttribute", args(constX(fieldName), varX(VALUE_PARAMETER))))
+                .addTo(transformation.rwClass);
     }
 
     private void makeModelPropertyReadOnly(PropertyNode property) {
@@ -129,14 +129,28 @@ class PropertyAccessors {
         MethodNode getter = transformation.annotatedClass.getDeclaredMethod(getterName, Parameter.EMPTY_ARRAY);
         if (getter == null)
             throw new IllegalStateException("Generated model getter not found: " + transformation.annotatedClass.getName() + "#" + getterName);
-        JavadocDocBuilder documentation = new JavadocDocBuilder();
-        documentGetter(documentation, field);
-        AnnoDocUtil.addDocumentation(getter, documentation);
+        KlumDocumentation documentation = new KlumDocumentation();
+        documentAccessor(documentation, field, getterName);
+        AstDocumentation.attach(getter, documentation.rendered());
     }
 
-    private static void documentGetter(DocBuilder documentation, FieldNode field) {
+    private static void documentAccessor(KlumDocumentation documentation, FieldNode field, String accessorName) {
+        Parameter[] parameters = accessorName.startsWith("set")
+                ? new Parameter[] { new Parameter(field.getType(), VALUE_PARAMETER) }
+                : Parameter.EMPTY_ARRAY;
+        MethodNode explicitAccessor = field.getOwner().getDeclaredMethod(accessorName, parameters);
+        Documentation explicitDocumentation = explicitAccessor == null ? null : AstDocumentation.extractExact(explicitAccessor).orElse(null);
+        if (explicitDocumentation != null) {
+            documentation.replace(explicitDocumentation);
+            return;
+        }
+        Documentation fieldDocumentation = AstDocumentation.extractExact(field).orElse(null);
+        if (fieldDocumentation != null) {
+            documentation.replace(fieldDocumentation);
+            return;
+        }
         documentation.title(DocUtil.getGetterText(field));
         if (!field.getAnnotations(AbstractMethodBuilder.DEPRECATED_NODE).isEmpty())
-            documentation.deprecated(ASTExtractor.extractDocText(field).getTag("deprecated").orElse(null));
+            documentation.deprecated("");
     }
 }

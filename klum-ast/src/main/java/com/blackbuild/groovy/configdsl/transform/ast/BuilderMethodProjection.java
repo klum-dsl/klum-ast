@@ -23,9 +23,8 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.DocText;
-import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
 import com.blackbuild.klum.ast.util.KlumBuilder;
 import com.blackbuild.klum.ast.util.KlumFactory;
@@ -165,7 +164,7 @@ final class BuilderMethodProjection {
     }
 
     static void documentComposition(AbstractMethodBuilder<?> method, MethodNode source, ClassNode producerReturnType) {
-        DocText sourceDoc = ASTExtractor.extractDocText(source);
+        Documentation sourceDoc = AstDocumentation.extractExact(source).orElse(Documentation.empty());
         boolean mapResult = isMap(producerReturnType);
         boolean collectionResult = isCollection(producerReturnType);
 
@@ -182,16 +181,15 @@ final class BuilderMethodProjection {
                                 + "it cannot be independently materialized or validated.");
             }
 
-            sourceDoc.getNamedTags("param").forEach(doc::param);
-            sourceDoc.getNamedTags("throws").forEach(doc::throwsException);
-            sourceDoc.getNamedTags("exception").forEach(doc::throwsException);
+            sourceDoc.getParameters().forEach(doc::param);
+            sourceDoc.getExceptions().forEach(doc::throwsException);
             if (mapResult)
                 doc.returnType("the producer's original map with its original keys and attached, unsealed Builder values");
             else if (collectionResult)
                 doc.returnType("the producer's original container of attached, unsealed Builders");
             else
                 doc.returnType("the attached, unsealed Builder");
-            doc.seeAlso(JavaDocUtil.toLinkString(source));
+            doc.see(AstDocumentation.referenceTo(source));
         });
     }
 

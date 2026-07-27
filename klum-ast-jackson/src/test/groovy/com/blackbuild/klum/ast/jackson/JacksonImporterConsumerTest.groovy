@@ -120,7 +120,7 @@ class JacksonImporterConsumerTest extends Specification {
                         System.getProperty('klumAnnotationsJar'),
                         System.getProperty('klumRuntimeJar'),
                         System.getProperty('klumJacksonJar'))
-                implementation 'com.blackbuild.annodocimal:anno-docimal-ast:0.7.1'
+                implementation 'com.blackbuild.annodocimal:anno-docimal-ast:1.0.0-rc.7'
                 implementation 'org.codehaus.groovy:groovy:3.0.25'
                 implementation "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
             }

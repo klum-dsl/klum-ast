@@ -23,10 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.extractor.ASTExtractor;
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
-import com.blackbuild.annodocimal.ast.formatting.DocBuilder;
-import com.blackbuild.annodocimal.ast.formatting.JavadocDocBuilder;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.common.MethodBuilderException;
@@ -64,7 +61,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     protected DeprecationType deprecationType;
     protected boolean optional;
     protected ASTNode sourceLinkTo;
-    protected DocBuilder documentation = new JavadocDocBuilder();
+    protected KlumDocumentation documentation = new KlumDocumentation();
     protected GenericsType[] genericsTypes;
 
     protected AbstractMethodBuilder(String name) {
@@ -115,7 +112,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
         return (T) this;
     }
 
-    public T withDocumentation(Consumer<DocBuilder> action) {
+    public T withDocumentation(Consumer<KlumDocumentation> action) {
         action.accept(documentation);
         return (T) this;
     }
@@ -208,7 +205,7 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
     }
 
     protected void postProcessMethod(MethodNode method) {
-        AnnoDocUtil.addDocumentation(method, documentation);
+        AstDocumentation.attach(method, documentation.rendered());
     }
 
     protected abstract Parameter[] getMethodParameters();
@@ -219,12 +216,12 @@ public abstract class AbstractMethodBuilder<T extends AbstractMethodBuilder<?>> 
      * Copies the documentation from the given source element.
      */
     public T copyDocFrom(AnnotatedNode source) {
-        documentation.fromRawText(ASTExtractor.extractDocumentation(source));
+        AstDocumentation.extractExact(source).ifPresent(documentation::replace);
         return (T) this;
     }
 
     public T copyDocTemplatesFrom(AnnotatedNode source) {
-        documentation.templatesFrom(ASTExtractor.extractDocText(source));
+        AstDocumentation.extractExact(source).ifPresent(sourceDocumentation -> documentation.templates(sourceDocumentation.getTemplateValues()));
         return (T) this;
     }
 }

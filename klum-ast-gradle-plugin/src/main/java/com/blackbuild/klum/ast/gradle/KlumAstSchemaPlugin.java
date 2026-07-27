@@ -23,7 +23,8 @@
  */
 package com.blackbuild.klum.ast.gradle;
 
-import com.blackbuild.annodocimal.plugin.AnnoDocimalPlugin;
+import com.blackbuild.annodocimal.plugin.AnnoDocimalGroovyPlugin;
+import com.blackbuild.annodocimal.plugin.SourceProjectionTask;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaPluginExtension;
@@ -33,6 +34,8 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
+
+import java.util.Set;
 
 @NonNullApi
 public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
@@ -44,7 +47,7 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
     protected void addDependentPlugins() {
         PluginManager pluginManager = project.getPluginManager();
-        pluginManager.apply(AnnoDocimalPlugin.class);
+        pluginManager.apply(AnnoDocimalGroovyPlugin.class);
         pluginManager.apply(IdeaPlugin.class);
     }
 
@@ -64,11 +67,13 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                 project.getLayout().getBuildDirectory().dir("generated/sources/klum-dsl-ide/main");
         project.getTasks().register(
                 "createKlumDslSourceMirrors",
-                CreateKlumDslSourceMirrors.class,
+                SourceProjectionTask.class,
                 task -> {
                     task.setGroup("klum");
                     task.setDescription("Refreshes IDE-only AnnoDocimal source mirrors for generated Foo_DSL namespaces.");
-                    task.classes(main.getOutput().getClassesDirs());
+                    task.getClassesDirectories().from(main.getOutput().getClassesDirs());
+                    task.getIncludes().set(Set.of("**/*_DSL.class"));
+                    task.getExcludes().set(Set.of("**/*$*"));
                     task.getOutputDirectory().convention(mirrorDirectory);
                 });
 

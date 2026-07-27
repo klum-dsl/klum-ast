@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.formatting.AnnoDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.util.BoundTemplateHandler;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
@@ -72,7 +72,7 @@ class TemplateMethods {
                 ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
         );
 
-        AnnoDocUtil.addDocumentation(templateField, "Assign templates to new objects.");
+        AstDocumentation.attachText(templateField, "Assign templates to new objects.");
         templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         annotatedClass.addField(templateField);
     }

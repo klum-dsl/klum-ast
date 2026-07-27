@@ -23,7 +23,7 @@
  */
 package com.blackbuild.groovy.configdsl.transform.ast;
 
-import com.blackbuild.annodocimal.ast.formatting.JavaDocUtil;
+import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.groovy.configdsl.transform.Converter;
 import com.blackbuild.groovy.configdsl.transform.Converters;
 import com.blackbuild.klum.common.CommonAstHelper;
@@ -153,7 +153,7 @@ class ConverterBuilder {
                 .withDocumentation(doc -> doc
                                 .title("Converter method for " + elementType.getName() + " created from closure in " + fieldNode.getName())
                                 .p("Since this is derived from a closure, no detailed javadoc can be provided.")
-                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + "}.")
+                                .p("The closure code is {@code " + CommonAstHelper.getFullClosureText(converter) + " }.")
                         .seeAlso(elementType.getName() + "#" + fieldNode.getName())
                 )
                 .addTo(converterClass);
@@ -249,7 +249,7 @@ class ConverterBuilder {
 
         method.withDocumentation(docBuilder -> {
             if (!docBuilder.isEmpty()) {
-                docBuilder.seeAlso(JavaDocUtil.toLinkString(sourceMethod));
+                docBuilder.see(AstDocumentation.referenceTo(sourceMethod));
             }
         });
         method.addTo(rwClass);
