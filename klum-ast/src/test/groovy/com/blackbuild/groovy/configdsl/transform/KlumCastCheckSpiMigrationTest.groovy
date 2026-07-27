@@ -162,6 +162,66 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
         error.message.contains("@ line")
     }
 
+    @Unroll
+    def "Field defaultImpl #description is rejected with a structured diagnostic"() {
+        expect:
+        def error = compilationError(source)
+        error.message.contains(FieldAstValidator.name)
+        error.message.contains(message)
+        error.message.contains("@ line")
+
+        where:
+        description       | message                                                | source
+        "targets final type" | "is final and cannot be overridden"                | '''
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = String) String value
+            }
+        '''
+        "is not assignable" | "is not a valid subtype"                           | '''
+            @DSL
+            class DefaultImplementation { }
+
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = DefaultImplementation) Runnable value
+            }
+        '''
+        "is used on a LINK method" | "Default Implementation is not allowed on LINK fields" | '''
+            @DSL
+            class DefaultImplementation { }
+
+            @DSL
+            class BrokenModel {
+                @Field(value = FieldType.LINK, defaultImpl = DefaultImplementation)
+                void linked(DefaultImplementation value) { }
+            }
+        '''
+        "changes keyedness" | "is keyed, but field"                              | '''
+            @DSL
+            abstract class Base { }
+
+            @DSL
+            class KeyedImplementation extends Base {
+                @Key String id
+            }
+
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = KeyedImplementation) Base value
+            }
+        '''
+        "is not instantiable" | "is not instantiable"                              | '''
+            @DSL
+            abstract class AbstractImplementation { }
+
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = AbstractImplementation) AbstractImplementation value
+            }
+        '''
+    }
+
     private static Check newInstance(Class<? extends Check> checkType) {
         checkType.getDeclaredConstructor().newInstance()
     }
