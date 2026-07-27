@@ -53,6 +53,39 @@ classpath fixtures required by #391.
 The tracer must not use `--add-reads`, `--add-exports`, `--patch-module`, or a
 repackaged upstream dependency to hide this failure.
 
+## Cross-Groovy descriptor probe
+
+`JpmsGroovyModuleIdentityTest` compiles a tiny named Java module whose class
+extends `GroovyObjectSupport`. It runs in the existing Groovy 3, 4, and 5 lanes.
+For each lane it proves all of the following:
+
+- compilation succeeds only when `module-info.java` requires the module found
+  in that lane's Groovy JAR;
+- compilation fails with the other generation's identity; and
+- compilation fails when the descriptor omits a Groovy requirement.
+
+The matching names are `org.codehaus.groovy` for Groovy 3 and
+`org.apache.groovy` for Groovy 4 and 5. Therefore, an explicit KlumAST
+descriptor that directly reads Groovy cannot name one fixed `requires` target
+and compile against all supported Groovy generations. The positive tracer must
+now determine whether a portable descriptor can avoid that direct read without
+breaking runtime access; otherwise #391 returns explicit descriptors for an
+ADR decision and retains only stable module identities.
+
+The second probe separately compiles the Groovy-referencing class on the
+classpath, then supplies a descriptor without a Groovy requirement. A named
+consumer that itself requires Groovy still fails to load that class with an
+`IllegalAccessError`: a consumer cannot donate its read edge to the library.
+This rules out attaching a descriptor after ordinary compilation as a portable
+workaround.
+
+This applies directly to KlumAST rather than only to the synthetic fixture:
+the annotation artifact contains Groovy `Closure`-based annotation helpers,
+runtime's `KlumFactory` directly exposes Groovy types, and the compiler's
+`DSLASTTransformation` uses Groovy AST types extensively. Any future explicit
+descriptor would need a separately approved change that removes or isolates
+those dependencies from the descriptor-owning module.
+
 ## Confirmed scope boundary
 
 `InternalKlumBuilder` remains internal in 4.0. No general Builder-phase
