@@ -17,7 +17,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   own documentation ([#461](https://github.com/klum-dsl/klum-ast/issues/461)). Final AnnoDocimal 1.0 remains a KlumAST
   final-release prerequisite; this change validates the immutable RC train only.
 - Upgraded to the immutable [KlumCast 0.4.0-rc.2](https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0-rc.2) artifact set: `klum-cast-annotations`, `klum-cast-spi`, and `klum-cast-compile`. The artifacts have stable automatic module names (`com.blackbuild.klum.cast.annotations`, `.spi`, and `.compiler`) and no split KlumCast packages. Recompile schemas and custom checks for 4.0.
-- Migrated KlumAST's eight name-bound compiler checks to KlumCast's stateless `Check` SPI. Their expected violations now emit source-positioned structured diagnostics; diagnostic codes are the check implementation names, while unexpected failures remain technical errors with their causes ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
+- Migrated KlumAST's eight name-bound compiler checks to KlumCast's stateless `Check` SPI. Their expected violations now emit source-positioned structured diagnostics; diagnostic codes are the check implementation names, while unexpected failures remain technical errors with their causes. Invalid `@Overwrite.Single(MERGE)` strategies on non-DSL fields are rejected during compilation ([#460](https://github.com/klum-dsl/klum-ast/issues/460)).
 
 ## Builder-first construction
 

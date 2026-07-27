@@ -41,7 +41,7 @@ public class OverwriteSingleCheck implements Check {
     public List<Diagnostic> check(CheckContext context) {
         FieldNode field = (FieldNode) context.getTarget();
         var annotationToCheck = context.getValidatedAnnotation();
-        OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "single", OverwriteStrategy.Single.INHERIT);
+        OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "value", OverwriteStrategy.Single.INHERIT);
 
         if (isCollectionOrMap(field.getType()))
             return List.of(new Diagnostic(getClass().getName(), "Single overwrite strategy is not allowed for collections or maps", annotationToCheck));

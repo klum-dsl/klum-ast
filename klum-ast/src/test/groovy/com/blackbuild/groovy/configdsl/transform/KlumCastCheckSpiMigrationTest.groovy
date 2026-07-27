@@ -33,33 +33,35 @@ import com.blackbuild.klum.ast.validation.CheckForPrimitiveBoolean
 import com.blackbuild.klum.ast.validation.OverwriteMapCheck
 import com.blackbuild.klum.ast.validation.OverwriteSingleCheck
 import com.blackbuild.klum.ast.validation.ValidateAnnotationCheck
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck
 import com.blackbuild.klum.cast.KlumCastValidator
 import com.blackbuild.klum.cast.spi.Check
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
+import spock.lang.Unroll
 
 @Issue("460")
 class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
 
+    private static final CHECK_TYPES = [
+            FieldAstValidator,
+            WriteAccessMethodCheck,
+            DefaultValuesCheck,
+            CheckDslAnnotation,
+            CheckForPrimitiveBoolean,
+            OverwriteMapCheck,
+            OverwriteSingleCheck,
+            ValidateAnnotationCheck,
+    ]
+
     def "all name-bound KlumAST checks implement the durable SPI directly"() {
         expect:
         Check.isAssignableFrom(checkType)
-        !KlumCastCheck.isAssignableFrom(checkType)
+        checkType.superclass == Object
         checkType.getDeclaredConstructor()
         newInstance(checkType).diagnosticDefinitions*.code == [checkType.name]
 
         where:
-        checkType << [
-                FieldAstValidator,
-                WriteAccessMethodCheck,
-                DefaultValuesCheck,
-                CheckDslAnnotation,
-                CheckForPrimitiveBoolean,
-                OverwriteMapCheck,
-                OverwriteSingleCheck,
-                ValidateAnnotationCheck,
-        ]
+        checkType << CHECK_TYPES
     }
 
     def "annotation artifact retains the eight supported name bindings"() {
@@ -68,38 +70,108 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
                 .collect { it.getAnnotationsByType(KlumCastValidator).toList() }
                 .flatten()
                 .collect { it.value() }
-                .toSet() == checkTypes*.name.toSet()
+                .toSet() == CHECK_TYPES*.name.toSet()
 
         where:
         annotationTypes = [Field, DSL, WriteAccess, Validate, Overwrite.Single, Overwrite.Map, DefaultValues]
-        checkTypes = [
-                FieldAstValidator,
-                WriteAccessMethodCheck,
-                DefaultValuesCheck,
-                CheckDslAnnotation,
-                CheckForPrimitiveBoolean,
-                OverwriteMapCheck,
-                OverwriteSingleCheck,
-                ValidateAnnotationCheck,
-        ]
     }
 
-    def "name-bound validation check emits a positioned structured diagnostic"() {
-        when:
-        createClass '''
+    @Unroll
+    def "name-bound #checkType.simpleName check emits a positioned structured diagnostic"() {
+        expect:
+        def error = compilationError(source)
+        error.message.contains(checkType.name)
+        error.message.contains(message)
+        error.message.contains("@ line")
+
+        where:
+        checkType                 | message                                         | source
+        CheckDslAnnotation        | "defaultImpl must be a subtype"                | '''
+            @DSL(defaultImpl = String)
+            interface BrokenModel { }
+        '''
+        FieldAstValidator          | "Default Implementation must be an DSL-Object" | '''
+            @DSL
+            class BrokenModel {
+                @Field(defaultImpl = String) CharSequence value
+            }
+        '''
+        WriteAccessMethodCheck     | "Lifecycle methods must not be private"        | '''
+            @DSL
+            class BrokenModel {
+                @PostCreate private void initialize() { }
+            }
+        '''
+        CheckForPrimitiveBoolean   | "Validation is not valid on 'boolean' fields"  | '''
             @DSL
             class BrokenModel {
                 @Validate boolean enabled
             }
         '''
+        ValidateAnnotationCheck    | "@Validate can only be used on non-static fields" | '''
+            @DSL
+            class BrokenModel {
+                @Validate static String enabled
+            }
+        '''
+        OverwriteSingleCheck       | "MERGE is only allowed for DSL objects"        | '''
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+
+            @DSL
+            class BrokenModel {
+                @Overwrite.Single(OverwriteStrategy.Single.MERGE) String title
+            }
+        '''
+        OverwriteMapCheck          | "MERGE_VALUES is only allowed for DSL objects" | '''
+            import com.blackbuild.klum.ast.util.copy.Overwrite
+            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+
+            @DSL
+            class BrokenModel {
+                @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES) Map<String, String> values
+            }
+        '''
+    }
+
+    def "name-bound DefaultValues check emits a positioned structured diagnostic"() {
+        given:
+        createSecondaryClass '''
+            import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+            import java.lang.annotation.*
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE])
+            @DefaultValues
+            @interface BrokenDefaults {
+                String value()
+            }
+        '''
+
+        when:
+        createClass '''
+            @BrokenDefaults
+            @DSL
+            class BrokenModel { }
+        '''
 
         then:
         def error = thrown(MultipleCompilationErrorsException)
-        error.message.contains(CheckForPrimitiveBoolean.name)
-        error.message.contains("Validation is not valid on 'boolean' fields")
+        error.message.contains(DefaultValuesCheck.name)
+        error.message.contains("does have a 'value' member")
+        error.message.contains("@ line")
     }
 
     private static Check newInstance(Class<? extends Check> checkType) {
         checkType.getDeclaredConstructor().newInstance()
+    }
+
+    private MultipleCompilationErrorsException compilationError(String source) {
+        try {
+            createClass(source)
+        } catch (MultipleCompilationErrorsException error) {
+            return error
+        }
+        throw new AssertionError("Expected compilation to fail")
     }
 }

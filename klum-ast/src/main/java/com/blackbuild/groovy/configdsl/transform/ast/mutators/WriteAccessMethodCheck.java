@@ -41,7 +41,9 @@ public class WriteAccessMethodCheck implements Check {
         if (method.isPrivate())
             return List.of(new Diagnostic(getClass().getName(), "Lifecycle methods must not be private!", context.getValidatedAnnotation()));
 
-        if (context.getControlAnnotation(WriteAccess.class).map(WriteAccess::value).orElse(null) == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
+        if (context.getControlAnnotation(WriteAccess.class)
+                .orElseThrow(() -> new IllegalStateException("WriteAccessMethodCheck requires a WriteAccess control annotation"))
+                .value() == WriteAccess.Type.LIFECYCLE && method.getParameters().length > 0)
             return List.of(new Diagnostic(getClass().getName(), String.format(
                 "Method %s.%s is annotated with @WriteAccess(LIFECYCLE) but has parameters",
                 method.getDeclaringClass().getName(),
