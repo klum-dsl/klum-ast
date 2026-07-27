@@ -184,8 +184,6 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
         if (source instanceof MethodNode) {
             Map<String, String> mappings = getParameternameMappings((MethodNode) source);
-            List<String> newParamTags = new ArrayList<>();
-
             Map<String, String> remappedParameters = new LinkedHashMap<>();
             for (Map.Entry<String, String> targetParam : sourceDocumentation.getParameters().entrySet()) {
                 String targetParamName = targetParam.getKey();

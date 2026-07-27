@@ -24,6 +24,7 @@
 package com.blackbuild.groovy.configdsl.transform.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.groovy.configdsl.transform.FieldType;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import groovyjarjarasm.asm.Opcodes;
@@ -138,12 +139,14 @@ class PropertyAccessors {
                 ? new Parameter[] { new Parameter(field.getType(), VALUE_PARAMETER) }
                 : Parameter.EMPTY_ARRAY;
         MethodNode explicitAccessor = field.getOwner().getDeclaredMethod(accessorName, parameters);
-        if (explicitAccessor != null && AstDocumentation.extractExact(explicitAccessor).isPresent()) {
-            documentation.replace(AstDocumentation.extractExact(explicitAccessor).get());
+        Documentation explicitDocumentation = explicitAccessor == null ? null : AstDocumentation.extractExact(explicitAccessor).orElse(null);
+        if (explicitDocumentation != null) {
+            documentation.replace(explicitDocumentation);
             return;
         }
-        if (AstDocumentation.extractExact(field).isPresent()) {
-            documentation.replace(AstDocumentation.extractExact(field).get());
+        Documentation fieldDocumentation = AstDocumentation.extractExact(field).orElse(null);
+        if (fieldDocumentation != null) {
+            documentation.replace(fieldDocumentation);
             return;
         }
         documentation.title(DocUtil.getGetterText(field));
