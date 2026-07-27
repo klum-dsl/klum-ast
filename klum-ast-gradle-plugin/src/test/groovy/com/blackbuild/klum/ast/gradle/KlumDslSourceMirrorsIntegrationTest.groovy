@@ -141,6 +141,72 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         mirror.text.contains('Updated documentation for Foo_DSL')
     }
 
+    @Issue('559')
+    def "root aggregate refreshes one Schema mirror without producing a payload"() {
+        when: 'the root entry point refreshes the Schema-owned mirror'
+        BuildResult generated = run('generateKlumDslSourceMirrors', '--configuration-cache')
+
+        then:
+        generated.task(':generateKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        !generated.output.contains('problems were found storing the configuration cache')
+        new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java').file
+
+        when: 'the aggregate has no payload and the producers retain their mirror isolation'
+        BuildResult inspected = run(':assertKlumDslSourceMirrorAggregate', ':schema:assertKlumDslIsolation')
+
+        then:
+        inspected.output.contains('aggregate.actions=true')
+        inspected.output.contains('aggregate.outputs=true')
+        inspected.output.contains('aggregate.dependencies=:schema:createKlumDslSourceMirrors')
+        inspected.output.readLines().findAll { it.startsWith('isolation.') }.every { it.endsWith('=false') }
+
+        when: 'the aggregate configuration cache is reused'
+        BuildResult reused = run('generateKlumDslSourceMirrors', '--configuration-cache')
+
+        then:
+        reused.output.contains('Configuration cache entry reused.')
+
+        when: 'ordinary production work runs after the aggregate refresh'
+        BuildResult production = run(':schema:classes', ':schema:jar', ':schema:sourcesJar', ':schema:javadocJar')
+
+        then:
+        production.task(':generateKlumDslSourceMirrors') == null
+        production.task(':schema:createKlumDslSourceMirrors') == null
+    }
+
+    @Issue('559')
+    def "root aggregate refreshes every Schema project in a Layer 3 layout"() {
+        given: 'an API and a Schema project that both use the Schema plugin'
+        addLayer3ApiProject()
+
+        when: 'the root entry point runs once for the Layer 3 build'
+        BuildResult generated = run('generateKlumDslSourceMirrors', '--configuration-cache')
+
+        then:
+        generated.task(':generateKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':api:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        !generated.output.contains('problems were found storing the configuration cache')
+        new File(testProject, 'api/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java').file
+        new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java').file
+
+        when: 'the aggregate contains both Schema-owned producer tasks and no payload'
+        BuildResult inspected = run(
+                ':assertKlumDslSourceMirrorAggregate', '-PexpectedKlumDslSourceMirrorProjects=:api,:schema')
+
+        then:
+        inspected.output.contains('aggregate.actions=true')
+        inspected.output.contains('aggregate.outputs=true')
+        inspected.output.contains('aggregate.dependencies=:api:createKlumDslSourceMirrors,:schema:createKlumDslSourceMirrors')
+
+        when: 'the Layer 3 aggregate is run again with the configuration cache'
+        BuildResult reused = run('generateKlumDslSourceMirrors', '--configuration-cache')
+
+        then:
+        reused.output.contains('Configuration cache entry reused.')
+    }
+
     private BuildResult run(String... arguments) {
         GradleRunner.create()
                 .withProjectDir(testProject)
@@ -148,6 +214,20 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
                 .withPluginClasspath()
                 .forwardOutput()
                 .build()
+    }
+
+    private void addLayer3ApiProject() {
+        File schema = new File(testProject, 'schema')
+        File api = new File(testProject, 'api')
+        schema.eachFileRecurse { source ->
+            if (source.file) {
+                File target = new File(api, schema.relativePath(source))
+                target.parentFile.mkdirs()
+                target.bytes = source.bytes
+            }
+        }
+        File settings = new File(testProject, 'settings.gradle')
+        settings.text += "\ninclude 'api'\n"
     }
 
     private boolean publishedArchivesContainNoMirror() {

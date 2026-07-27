@@ -31,6 +31,7 @@ import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.plugins.PluginManager;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
@@ -65,7 +66,7 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
         SourceSet main = java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
         Provider<Directory> mirrorDirectory =
                 project.getLayout().getBuildDirectory().dir("generated/sources/klum-dsl-ide/main");
-        project.getTasks().register(
+        TaskProvider<SourceProjectionTask> createMirrors = project.getTasks().register(
                 "createKlumDslSourceMirrors",
                 SourceProjectionTask.class,
                 task -> {
@@ -76,6 +77,10 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                     task.getExcludes().set(Set.of("**/*$*"));
                     task.getOutputDirectory().convention(mirrorDirectory);
                 });
+        project.getRootProject().getPluginManager().apply(KlumDslSourceMirrorsAggregationPlugin.class);
+        project.getRootProject().getTasks()
+                .named(KlumDslSourceMirrorsAggregationPlugin.TASK_NAME)
+                .configure(task -> task.dependsOn(createMirrors));
 
         IdeaModel moduleIdea = project.getExtensions().getByType(IdeaModel.class);
         moduleIdea.getModule().getSourceDirs().add(mirrorDirectory.get().getAsFile());
