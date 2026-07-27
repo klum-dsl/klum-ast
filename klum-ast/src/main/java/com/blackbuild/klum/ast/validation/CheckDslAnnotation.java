@@ -24,27 +24,35 @@
 package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
 import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
 
-public class CheckDslAnnotation extends KlumCastCheck<Annotation> {
+public class CheckDslAnnotation implements Check {
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
+    public List<Diagnostic> check(CheckContext context) {
+        AnnotationNode annotationToCheck = context.getValidatedAnnotation();
         ClassNode defaultImpl = getNullSafeClassMember(annotationToCheck, "defaultImpl", null);
-        if (defaultImpl == null) return;
-        if (!isAssignableTo(defaultImpl, (ClassNode) target))
-            throw new IllegalStateException("defaultImpl must be a subtype of the annotated class!");
+        if (defaultImpl == null) return List.of();
+        if (!isAssignableTo(defaultImpl, (ClassNode) context.getTarget()))
+            return violation(context, "defaultImpl must be a subtype of the annotated class!");
         if (!isDSLObject(defaultImpl))
-            throw new IllegalStateException("defaultImpl must be a DSLObject!");
+            return violation(context, "defaultImpl must be a DSLObject!");
         if (!DslAstHelper.isInstantiable(defaultImpl))
-            throw new IllegalStateException("defaultImpl must be instantiable!");
+            return violation(context, "defaultImpl must be instantiable!");
+        return List.of();
+    }
+
+    private List<Diagnostic> violation(CheckContext context, String message) {
+        return List.of(new Diagnostic(getClass().getName(), message, context.getValidatedAnnotation()));
     }
 }

@@ -25,27 +25,29 @@ package com.blackbuild.klum.ast.validation;
 
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
 import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
-import com.blackbuild.klum.cast.checks.impl.KlumCastCheck;
-import org.codehaus.groovy.ast.AnnotatedNode;
-import org.codehaus.groovy.ast.AnnotationNode;
+import com.blackbuild.klum.cast.spi.Check;
+import com.blackbuild.klum.cast.spi.CheckContext;
+import com.blackbuild.klum.cast.spi.Diagnostic;
 import org.codehaus.groovy.ast.FieldNode;
 
-import java.lang.annotation.Annotation;
+import java.util.List;
 
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeEnumMemberValue;
 import static com.blackbuild.klum.common.CommonAstHelper.isCollectionOrMap;
 
-public class OverwriteSingleCheck extends KlumCastCheck<Annotation> {
+public class OverwriteSingleCheck implements Check {
 
     @Override
-    protected void doCheck(AnnotationNode annotationToCheck, AnnotatedNode target) {
-        FieldNode field = (FieldNode) target;
+    public List<Diagnostic> check(CheckContext context) {
+        FieldNode field = (FieldNode) context.getTarget();
+        var annotationToCheck = context.getValidatedAnnotation();
         OverwriteStrategy.Single strategy = getNullSafeEnumMemberValue(annotationToCheck, "single", OverwriteStrategy.Single.INHERIT);
 
         if (isCollectionOrMap(field.getType()))
-            throw new IllegalArgumentException("Single overwrite strategy is not allowed for collections or maps");
+            return List.of(new Diagnostic(getClass().getName(), "Single overwrite strategy is not allowed for collections or maps", annotationToCheck));
 
         if (strategy == OverwriteStrategy.Single.MERGE && !DslAstHelper.isDSLObject(field.getType()))
-            throw new IllegalArgumentException("MERGE is only allowed for DSL objects");
+            return List.of(new Diagnostic(getClass().getName(), "MERGE is only allowed for DSL objects", annotationToCheck));
+        return List.of();
     }
 }
