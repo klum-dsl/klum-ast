@@ -30,8 +30,10 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
+import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import groovy.lang.DelegatesTo
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
@@ -150,6 +152,49 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [root, child].every { type ->
             classFileConstants(type).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedModelSupport')
         }
+    }
+
+    @Issue('391')
+    def "generated breadcrumb owners use only the reviewed bridge and preserve nested diagnostics"() {
+        given:
+        List<String> paths = []
+
+        when:
+        def foo = getClass('sample.Foo').Create.With {
+            kids {
+                kid {
+                    paths << BreadcrumbCollector.instance.fullPath
+                    name 'list child'
+                }
+            }
+            services {
+                primary {
+                    paths << BreadcrumbCollector.instance.fullPath
+                    name 'cluster child'
+                }
+            }
+        }
+
+        then: 'factory/Builder registration and collection/Cluster scopes no longer name runtime internals'
+        def generatedArtifacts = [
+                getClass('sample.Foo$_Factory'),
+                getClass('sample.Foo$Builder'),
+                getClass('sample.Foo$_kids'),
+                getClass('sample.Foo$_services')
+        ]
+        generatedArtifacts.every { type ->
+            def owners = classFileOwners(type)
+            owners.contains('com/blackbuild/klum/ast/runtime/generated/GeneratedBreadcrumbs') &&
+                    owners.every { owner ->
+                        !owner.contains('com/blackbuild/klum/ast/runtime/internal/BreadCrumbVerbInterceptor') &&
+                                !owner.contains('com/blackbuild/klum/ast/runtime/internal/process/BreadcrumbCollector')
+                    }
+        }
+
+        and: 'the bridge retains nested collection and Cluster breadcrumb scopes'
+        paths == ['$/s.Foo.With/kids/kid', '$/s.Foo.With/services/primary']
+        foo.kids*.name == ['list child']
+        foo.primary.name == 'cluster child'
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
@@ -353,6 +398,15 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     }
 
     private Set<String> classFileConstants(Class<?> type) {
+        new LinkedHashSet<>(classFileEntries(type).utf8Constants.values())
+    }
+
+    private Set<String> classFileOwners(Class<?> type) {
+        def entries = classFileEntries(type)
+        entries.classNameIndexes.collect { entries.utf8Constants[it] }.findAll { it != null } as Set<String>
+    }
+
+    private Map classFileEntries(Class<?> type) {
         File classFile = new File(compilerConfiguration.targetDirectory, type.name.replace('.', '/') + '.class')
         assert classFile.isFile()
         classFile.withInputStream { input ->
@@ -361,11 +415,12 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             data.readUnsignedShort()
             data.readUnsignedShort()
             int constantPoolCount = data.readUnsignedShort()
-            Set<String> utf8Constants = [] as Set
+            Map<Integer, String> utf8Constants = [:]
+            List<Integer> classNameIndexes = []
             for (int index = 1; index < constantPoolCount; index++) {
                 switch (data.readUnsignedByte()) {
                     case 1:
-                        utf8Constants << data.readUTF()
+                        utf8Constants[index] = data.readUTF()
                         break
                     case 3:
                     case 4:
@@ -377,6 +432,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                         index++
                         break
                     case 7:
+                        classNameIndexes << data.readUnsignedShort()
+                        break
                     case 8:
                     case 16:
                     case 19:
@@ -400,7 +457,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                         assert false: "Unexpected class-file constant tag"
                 }
             }
-            utf8Constants
+            [utf8Constants: utf8Constants, classNameIndexes: classNameIndexes]
         }
     }
 
