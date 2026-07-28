@@ -38,6 +38,7 @@ import com.blackbuild.klum.ast.runtime.generated.GeneratedOmittedProjectionSuppo
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import groovy.lang.DelegatesTo
+import groovy.transform.CompileStatic
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
 
@@ -238,6 +239,17 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         and: 'the unsupported-projection diagnostic remains unchanged'
         error.message.contains('omitted Builder-producing projection opaqueChild(java.lang.String)')
         error.message.contains('active-session Create.AsBuilder')
+    }
+
+    @Issue('391')
+    def "generated omitted projection bridge delegates an unmatched fallback"() {
+        when:
+        invokeOmittedProjectionBridge(this)
+
+        then:
+        def error = thrown(MissingMethodException)
+        error.method == 'unprojected'
+        error.type == getClass()
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
@@ -449,6 +461,11 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         type.methods.collect { Method method ->
             ([method.genericReturnType.typeName] + method.genericParameterTypes*.typeName).join(' ')
         }
+    }
+
+    @CompileStatic
+    private static Object invokeOmittedProjectionBridge(Object receiver) {
+        GeneratedOmittedProjectionSupport.$klum$handle(receiver, 'unprojected', null, '')
     }
 
     private Set<String> classFileConstants(Class<?> type) {
