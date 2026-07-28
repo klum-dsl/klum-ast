@@ -13,6 +13,9 @@ MyConfig.Create.With {
 }
 ```
 
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `loads a completed deployment from a
+script class`.
+
 ## Delegating Scripts
 
 If the target script is a subclass of `DelegatingScript`, its body is considered the content of the creation closure.
@@ -33,6 +36,9 @@ For a [[Usage#schema---model---consumer]] setup, the most convenient solution is
 compiler customizer.
 
 See the example projects for details.
+
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `uses a DelegatingScript class as keyed
+configuration content`.
 
 ## Script and delegating script for collections and maps
 
@@ -69,6 +75,10 @@ Container.Create.With {
 }
 ```
 
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `applies DelegatingScript recipes to
+list and map relationship factories`. Materializing regular Script programs remain deliberately covered by the focused
+rejection tests in `ConvenienceFactoriesSpec`.
+
 
 ## Text
 `MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the creation
@@ -99,6 +109,8 @@ Config.Create.From(content, Config.class.classLoader)
 
 If no class loader is given, the current context class loader is used.
 
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `loads keyed configuration from text`.
+
 
 ## File or URL
 
@@ -122,6 +134,9 @@ __Note__: `Create.From` does not support polymorphic creation. This might be add
  see: ([#43](https://github.com/klum-dsl/klum-core/issues/43))
 
 As with `Create.From(text)`, `Create.From(File|URL)` supports an additional class-loader parameter as well.
+
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `derives a keyed configuration name
+from a file or URL`.
 
 ## Classpath
 
@@ -169,6 +184,9 @@ def model = Model.Create.FromClasspath()
 Using this technique, the same consumer can work with different Models (often from different packages) without changing
 or injecting the Model class name.
 
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `discovers a deployment entry point
+from its classpath marker`.
+
 ## Map
 
 Using `FromMap`, an object can be created from a `Map`. This is a form of “poor man's deserialization,” where each entry
@@ -212,6 +230,9 @@ def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller
 assert person.firstName == 'Klaus'
 assert person.lastName == 'Müller'
 ```
+
+The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `adapts external map keys in a custom
+factory`.
 
 For String values, some simple transformations are applied:
 
