@@ -64,16 +64,27 @@ together.
 
 ### JP-3 — Move compiler and adapters; add descriptors
 
-Move compiler implementation into its internal package, create its descriptor
-with `org.apache.groovy`, and declare its transformation provider. Move Jackson
-and Bean Validation implementation linkage to internal packages, retaining only
-their documented public adapters. Add exact descriptors, qualified runtime
-exports to compiler/Jackson only where bytecode proves they are necessary, and
-all `uses`/`provides` declarations.
+Move compiler implementation into its internal package and create its
+Groovy-4/5 descriptor with `org.apache.groovy`. Compiler transformations remain
+annotation-triggered local transforms: open `compiler.internal.ast`,
+`.ast.converters`, `.ast.mutators`, and `.layer3` only to `org.apache.groovy`;
+open `compiler.internal.validation` only to
+`com.blackbuild.klum.cast.compiler` for the established
+`@KlumCastValidator`-based reflective validator binding. The latter is not an
+export or generic reflection opening. Do not declare a global
+`ASTTransformation` provider or export compiler implementation packages. Groovy
+3 retains the common classpath artifact with no descriptor alternative. Move Jackson and Bean Validation implementation
+linkage to internal packages, retaining only their documented public adapters.
+Add exact descriptors, qualified runtime exports to compiler/Jackson only where
+bytecode proves they are necessary, and all runtime/Jackson/Bean
+`uses`/`provides` declarations.
 
 **Acceptance:** `jar --describe-module` reports the five canonical names and
 the intended exports/services; no package is split; no unqualified internal
-export exists.
+export exists. A Groovy 4/5 named-module probe activates DSL/mutator, converter,
+and Layer 3 annotations without `--add-reads`, `--add-exports`,
+`--patch-module`, or equivalent flags; the matching ordinary classpath evidence
+remains green in Groovy 3, 4, and 5.
 
 **Commit boundary:** compiler descriptor/move, then adapter descriptor/service
 work. Each commit retains a buildable descriptor set.

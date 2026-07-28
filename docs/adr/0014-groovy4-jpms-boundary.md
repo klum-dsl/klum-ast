@@ -96,9 +96,23 @@ Klum-Wrap is completely separate and is not a qualified-export consumer.
 The runtime descriptor declares `uses` for phase actions and instance
 validators and `provides` its built-in implementations. The Bean Validation
 module provides `InstanceValidator`; the Jackson module provides the Jackson
-`Module`; compiler activation remains a descriptor-owned Groovy transformation
-provider. Fixture evidence, rather than resource discovery by accident,
-establishes each declaration.
+`Module`.
+
+KlumAST compiler transformations are annotation-triggered local transforms,
+not global `META-INF/services` transforms. For Groovy 4/5, the compiler module
+requires `org.apache.groovy` and opens `compiler.internal.ast`,
+`.ast.converters`, `.ast.mutators`, and `.layer3` only to that module, allowing
+Groovy to instantiate the transformations named by the public annotations. It
+also opens `compiler.internal.validation` only to
+`com.blackbuild.klum.cast.compiler`: the established
+`@KlumCastValidator` bindings require Klum Cast to reflectively instantiate
+their internal validation checks. That narrow reflective opening is neither an
+export nor generic reflection access. The compiler exports none of these
+implementation packages and declares no
+`provides org.codehaus.groovy.transform.ASTTransformation` clause. Groovy 3
+has no descriptor alternative and remains classpath-only.
+The named-module fixture proves activation for DSL/mutator, converter, and
+Layer 3 annotations rather than relying on resource discovery by accident.
 
 `module-info.java` belongs to a Schema Developer. A Groovy 4/5 schema requires
 the annotations and runtime modules, `requires static` compiler support, and
@@ -138,3 +152,9 @@ decision outside #391's accepted artifact set.
 **Making Groovy 3 module-path support work with flags.** `--add-reads`,
 `--add-exports`, patched modules, or generated descriptor variants hide the
 unsupported dependency graph and are not portable consumer contracts.
+
+**Publishing compiler transformations as global services or exports.** A
+global transform service would run for every source unit rather than only where
+the public marker annotation applies. Exporting the implementation packages
+would make compiler mechanics a consumer interface. Narrow Groovy-qualified
+opens preserve the existing activation semantics without either leak.
