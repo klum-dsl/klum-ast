@@ -20,6 +20,49 @@ instead are part of the creation phase, and run for each object separately.
 Note that lifecycle methods and closures are called unconditionally, regardless of the state of the object (for example,
 a `@Default` field will only be handled if the field is not set yet, while a `@Default` method or Closure will always be called). Thus those methods need to check for themselves if they should do anything.
 
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
+```groovy
+@DSL
+class Deployment {
+    String environment
+    Component component
+
+    @AutoCreate
+    void chooseEnvironment() {
+        environment ?= 'production'
+    }
+
+    @PostTree
+    void finishTree() {
+        // all owned Builders have been configured
+    }
+
+    @Validate
+    void validateCompletedModel() {
+        assert component.environment == environment
+    }
+}
+
+@DSL
+class Component {
+    @Owner Deployment deployment
+    String environment
+
+    @AutoLink
+    void inheritEnvironment() {
+        environment = deployment.environment
+    }
+}
+
+def deployment = Deployment.Create.With {
+    component {}
+}
+
+assert deployment.component.deployment.is(deployment)
+assert deployment.component.environment == 'production'
+```
+
 ## Creation
 
 The creation phase starts with the first factory call in a thread. It creates and configures the root Builder and its owned
@@ -44,6 +87,18 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 
 ## ApplyLater (1)
 The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument outside of any running phase.
+
+(See: `ModelPhasesDocumentaryTest#'applies a deferred deployment setting before automatic lifecycle work'`.)
+
+```groovy
+def deployment = Deployment.Create.With {
+    applyLater {
+        environment 'production'
+    }
+}
+
+assert deployment.environment == 'production'
+```
 
 ## Early Validation (5)
 
@@ -82,6 +137,8 @@ to create interlinking between objects that are too complex for AutoLink/AutoCre
 The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
 assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
 Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.
+
+(See: `ModelPhasesDocumentaryTest#'materializes a release plan into an independent completed snapshot'`.)
 
 ## Validation (50)
 
