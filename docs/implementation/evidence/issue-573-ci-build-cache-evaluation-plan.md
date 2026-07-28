@@ -81,3 +81,34 @@ is green and the repeat-run reduction is material should a follow-up replace the
 temporary switch with the one-line unconditional `--build-cache` invocation.
 
 Retain the uncommitted `CI-PERF-DEC` memo until its raw hosted-run identifiers, timings, and candidate ranking are copied or reconciled into a committed decision record. This plan does not supersede evidence that is not available in the evaluated worktree.
+
+## Hosted experiment result (2026-07-28)
+
+The temporary manual-dispatch workflow at commit `3babb60309419c3c1640fbde475e3dee42978d8b`
+ran the unchanged CI graph twice and that same graph with only `--build-cache` added
+twice. All four runs succeeded, published the JUnit report and compatibility-lane
+artifact, and reported successful Sonar analysis. Each reported **104 actionable
+tasks: 82 executed, 22 up-to-date**. The observed Gradle wall times were:
+
+| Cohort | Run | Gradle wall time | Result |
+| --- | --- | ---: | --- |
+| Baseline | [#451](https://github.com/klum-dsl/klum-ast/actions/runs/30345894511) | 9m 42s | success |
+| Baseline | [#452](https://github.com/klum-dsl/klum-ast/actions/runs/30346041165) | 6m 57s | success |
+| `--build-cache` | [#453](https://github.com/klum-dsl/klum-ast/actions/runs/30346076395) | 9m 32s | success |
+| `--build-cache` | [#454](https://github.com/klum-dsl/klum-ast/actions/runs/30346113013) | 9m 14s | success |
+
+The baseline median is **8m 20s** and the explicit-cache median is **9m 23s**;
+the explicit flag was therefore **63s slower** in this sample, not a win. The logs do
+show one existing `FROM-CACHE` task in every cohort, including the baseline, so it is
+not evidence created by the explicit flag. `setup-gradle` also reported its cache as
+read-only on the experiment branch, so neither concurrent cache-mode run could
+persist outputs for the other. Sonar analysis remained successful (44.671s baseline
+#452; 60.513s and 62.023s in the explicit-cache runs); its variation is not a
+task-output-cache signal.
+
+**Decision:** do not add unconditional `--build-cache`, do not split lanes, and do not
+alter coverage, JaCoCo, Sonar, documentation/Javadocs, or release verification. The
+safe implementation plan is now **no permanent CI change**; retain this temporary
+manual-dispatch branch only as reproducible evidence until the Hive decides its normal
+branch cleanup. `CI-PERF-DEC` should be retained, then superseded only by a committed
+decision record that reconciles its historic timings with the four raw run IDs above.
