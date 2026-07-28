@@ -21,6 +21,19 @@ The prior CI-PERF evidence records successful ordinary hosted Gradle times from
 **6m 49s to 10m 48s**, with median **8m 53s**. Those are observational samples, not a
 controlled cache comparison.
 
+| Ordinary CI run | Gradle wall time |
+| --- | ---: |
+| [#30342782434](https://github.com/klum-dsl/klum-ast/actions/runs/30342782434) | 10m 48s |
+| [#30338387169](https://github.com/klum-dsl/klum-ast/actions/runs/30338387169) | 6m 49s |
+| [#30337647854](https://github.com/klum-dsl/klum-ast/actions/runs/30337647854) | 8m 53s |
+| [#30334703528](https://github.com/klum-dsl/klum-ast/actions/runs/30334703528) | 8m 52s |
+| [#30300480070](https://github.com/klum-dsl/klum-ast/actions/runs/30300480070) | 8m 55s |
+| [#30298672786](https://github.com/klum-dsl/klum-ast/actions/runs/30298672786) | 7m 08s |
+
+These six ordinary-CI observations underpin the stated range and median. They are
+neither controlled experiments nor attribution evidence for a particular task, cache,
+or runner characteristic.
+
 The latest ordinary diagnostic completed in **10m 46s** and recorded a Sonar package
 cache hit of **279 MB in about 3s**, followed by Sonar analysis of about **45s**. Its
 build scan is [bxwzqhzfo5w4g](https://gradle.com/s/bxwzqhzfo5w4g). Six Javadocs and
