@@ -275,7 +275,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         foo.getField('Template').type == template
         template.interface && Modifier.isPublic(template.modifiers)
         template.isAssignableFrom(adapter)
-        !Modifier.isPublic(adapter.modifiers)
+        Modifier.isPublic(adapter.modifiers)
+        Modifier.isPublic(adapter.getDeclaredConstructor().modifiers)
 
         and: 'the full Template capability remains present and only configuration closures expose Builder typing'
         template.getMethod('With', base, Closure).genericReturnType.typeName == 'C'

@@ -196,9 +196,9 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
 
     /** Internal Builder hook that assigns one completed relationship without exposing a model mutator. */
     protected final void $assignMaterializedRelationship(String fieldName) {
-        CachedField target = DslHelper.getCachedField(completedModel.getClass(), fieldName)
+        Field target = DslHelper.getField(completedModel.getClass(), fieldName)
                 .orElseThrow(() -> new MissingPropertyException(fieldName, completedModel.getClass()));
-        target.setProperty(completedModel, $materializeRelationship(fieldName));
+        setFieldValue(completedModel, target, $materializeRelationship(fieldName));
     }
 
     private static List<InternalKlumBuilder<?>> collectGraph(InternalKlumBuilder<?> root) {
@@ -386,13 +386,13 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     public <T> T getInstanceAttribute(String attributeName) {
-        return (T) getCachedField(attributeName).getProperty(this);
+        return (T) getFieldValue(this, getField(attributeName));
     }
 
     public <T> T getInstanceAttributeOrGetter(String attributeName) {
-        Optional<CachedField> field = DslHelper.getCachedField(getClass(), attributeName);
+        Optional<Field> field = DslHelper.getField(getClass(), attributeName);
         if (field.isPresent())
-            return (T) field.get().getProperty(this);
+            return (T) getFieldValue(this, field.get());
         return (T) InvokerHelper.getProperty(this, attributeName);
     }
 
@@ -404,7 +404,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         assertMutable();
         Field schemaField = DslHelper.getField(modelType, name).orElse(null);
         Object normalized = schemaField != null ? normalizeForField(schemaField, value) : value;
-        getCachedField(name).setProperty(this, normalized);
+        setFieldValue(this, getField(name), normalized);
     }
 
     public Field getField(String name) {

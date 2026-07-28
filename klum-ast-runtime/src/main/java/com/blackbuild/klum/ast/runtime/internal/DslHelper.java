@@ -149,9 +149,29 @@ public class DslHelper {
     }
 
     public static <T> T getFieldValue(Object container, String name) {
-        return (T) DslHelper.getCachedField(container.getClass(), name)
-                .map(f -> f.getProperty(container))
+        return (T) getField(container.getClass(), name)
+                .map(field -> getFieldValue(container, field))
                 .orElse(null);
+    }
+
+    static Object getFieldValue(Object container, Field field) {
+        try {
+            if (!field.trySetAccessible())
+                throw new KlumModelException("Cannot access field " + field);
+            return field.get(container);
+        } catch (IllegalAccessException exception) {
+            throw new KlumModelException("Could not read field " + field, exception);
+        }
+    }
+
+    static void setFieldValue(Object container, Field field, Object value) {
+        try {
+            if (!field.trySetAccessible())
+                throw new KlumModelException("Cannot access field " + field);
+            field.set(container, value);
+        } catch (IllegalAccessException exception) {
+            throw new KlumModelException("Could not write field " + field, exception);
+        }
     }
 
     public static FieldType getKlumFieldType(Field field) {
@@ -301,11 +321,11 @@ public class DslHelper {
     }
 
     public static Object getAttributeValue(String name, Object instance) {
-        Optional<CachedField> cachedField = getCachedField(instance.getClass(), name);
+        Optional<Field> field = getField(instance.getClass(), name);
 
         // cannot use .map, because value can be null
-        if (cachedField.isPresent())
-            return cachedField.get().getProperty(instance);
+        if (field.isPresent())
+            return getFieldValue(instance, field.get());
 
         throw new MissingPropertyException(name, instance.getClass());
     }

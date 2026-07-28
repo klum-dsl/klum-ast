@@ -1415,8 +1415,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         DslAstHelper.registerAsVerbProvider(factoryClass);
 
         if (factoryIsGeneric)
-            factoryClass.addConstructor(0, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
+            factoryClass.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY,
                     ctorSuperS(classX(annotatedClass)));
+        else
+            factoryClass.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, ClassNode.EMPTY_ARRAY, block());
 
         overrideFactoryMethods(factoryClass, defaultImpl);
         createAsBuilderFactoryAccessor(defaultImpl);
