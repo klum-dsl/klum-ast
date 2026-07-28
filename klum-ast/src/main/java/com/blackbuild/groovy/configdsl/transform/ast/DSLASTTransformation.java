@@ -437,7 +437,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         );
         builderField.addAnnotations(modelField.getAnnotations().stream()
                 .filter(AnnotationCopyExceptions::shouldCopy)
-                .collect(toList()));
+                .toList());
         builderField.setSourcePosition(modelField);
         rwClass.addField(builderField);
         builderFields.put(modelField, builderField);
