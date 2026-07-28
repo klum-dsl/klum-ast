@@ -90,9 +90,3 @@ Allowed future work is evidence-led only:
 The temporary experiment branch and workflow remain available solely as reproducible
 hosted evidence. Their removal, branch deletion, or any hosted workflow change needs
 separate cleanup authority.
-
-## Relationship to prior memo
-
-Keep the older uncommitted `CI-PERF-DEC` memo unchanged. This committed record
-supersedes its explicit build-cache hypothesis and implementation plan only; it does
-not silently delete, rewrite, or discard the earlier ordinary-CI observations.
