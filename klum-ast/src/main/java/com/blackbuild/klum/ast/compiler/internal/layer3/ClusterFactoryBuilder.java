@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3;
+package com.blackbuild.klum.ast.compiler.internal.layer3;
 
 import com.blackbuild.groovy.configdsl.transform.ast.AbstractFactoryBuilder;
 import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
@@ -37,7 +37,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.klum.ast.util.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
+import static com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
