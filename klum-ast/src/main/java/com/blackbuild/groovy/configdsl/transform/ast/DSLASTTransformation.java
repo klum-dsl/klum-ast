@@ -435,13 +435,26 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 rwClass,
                 modelField.getInitialExpression()
         );
-        builderField.addAnnotations(modelField.getAnnotations());
+        // Bean Validation inspects the materialized model; mirroring its constraints onto the Builder
+        // makes Groovy 5 emit duplicate metadata.
+        builderField.addAnnotations(modelField.getAnnotations().stream()
+                .filter(annotation -> !isBeanValidationAnnotation(annotation))
+                .collect(toList()));
         builderField.setSourcePosition(modelField);
         rwClass.addField(builderField);
         builderFields.put(modelField, builderField);
 
         // Source code is evaluated exactly once, as part of Builder construction.
         modelField.setInitialValueExpression(null);
+    }
+
+    private static boolean isBeanValidationAnnotation(AnnotationNode annotation) {
+        String name = annotation.getClassNode().getName();
+        if (name.startsWith("jakarta.validation.") || name.startsWith("javax.validation."))
+            return true;
+        return annotation.getClassNode().getAnnotations().stream()
+                .anyMatch(metaAnnotation -> metaAnnotation.getClassNode().getName().equals("jakarta.validation.Constraint")
+                        || metaAnnotation.getClassNode().getName().equals("javax.validation.Constraint"));
     }
 
     private void validateSupportedCollectionDeclaration(FieldNode field) {
