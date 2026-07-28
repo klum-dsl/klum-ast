@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.klum.ast.FieldType;
-import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
@@ -153,7 +153,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         propX(varX(closureVarName), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
-                .callMethod(classX(BreadcrumbCollector.class), "withBreadcrumb",
+                .callMethod(classX(GeneratedBreadcrumbs.class), "$klum$withBreadcrumb",
                         args(constX(fieldNode.getName()), constX(null), constX(null), varX(closureVarName))
                 )
                 .withDocumentation(doc -> doc

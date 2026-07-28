@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.KlumGenerated;
-import com.blackbuild.klum.ast.runtime.internal.BreadCrumbVerbInterceptor;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.internal.LanguageHelper;
 import com.blackbuild.klum.ast.layer3.LinkTo;
@@ -58,7 +58,7 @@ public class DslAstHelper {
     public static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
-    private static final ClassNode BREADCRUMB_VERB_INTERCEPTOR = ClassHelper.make(BreadCrumbVerbInterceptor.class);
+    private static final ClassNode GENERATED_BREADCRUMBS = ClassHelper.make(GeneratedBreadcrumbs.class);
 
     private DslAstHelper() {}
 
@@ -431,7 +431,7 @@ public class DslAstHelper {
     }
 
     public static void registerAsVerbProvider(ClassNode clazz) {
-        clazz.addStaticInitializerStatements(Collections.singletonList(stmt(callX(BREADCRUMB_VERB_INTERCEPTOR, "registerClass", args(classX(clazz))))), false);
+        clazz.addStaticInitializerStatements(Collections.singletonList(stmt(callX(GENERATED_BREADCRUMBS, "$klum$registerVerbProvider", args(classX(clazz))))), false);
     }
 
 }

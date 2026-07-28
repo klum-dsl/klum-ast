@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.layer3;
 import com.blackbuild.klum.ast.compiler.internal.ast.AbstractFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import com.blackbuild.klum.ast.compiler.internal.ast.MethodBuilder;
-import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -111,7 +111,7 @@ public class ClusterFactoryBuilder extends AbstractFactoryBuilder {
                         propX(varX(closureVarName), "resolveStrategy"),
                         propX(classX(ClassHelper.CLOSURE_TYPE), "DELEGATE_ONLY")
                 )
-                .callMethod(classX(BreadcrumbCollector.class), "withBreadcrumb",
+                .callMethod(classX(GeneratedBreadcrumbs.class), "$klum$withBreadcrumb",
                         args(constX(fieldName), constX(null), constX(null), varX(closureVarName))
                 )
                 .withDocumentation(doc -> doc
