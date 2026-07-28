@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.CopyHandler
-import com.blackbuild.klum.ast.util.FactoryHelper
+import com.blackbuild.klum.ast.runtime.internal.CopyHandler
+import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
 import spock.lang.Issue
 import spock.lang.Unroll
 
@@ -60,8 +60,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Foo {
                 @Overwrite.Single(OverwriteStrategy.Single.$strategy)
@@ -95,8 +95,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @Overwrite(singles = @Overwrite.Single(OverwriteStrategy.Single.$strategy))
             @DSL class Foo {
@@ -130,8 +130,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Inner {
                 String foo
@@ -190,8 +190,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Foo {
                 @Overwrite.Collection(OverwriteStrategy.Collection.$strategy)
@@ -236,8 +236,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Foo {
                 @Overwrite.Map(OverwriteStrategy.Map.$strategy)
@@ -285,8 +285,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Inner {
                 @Key String key
@@ -359,8 +359,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Inner {
                 Integer foo
@@ -398,8 +398,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Inner {
                 Integer foo
@@ -439,8 +439,8 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         createClass """
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
             
             @DSL class Inner {
                 @Key String key

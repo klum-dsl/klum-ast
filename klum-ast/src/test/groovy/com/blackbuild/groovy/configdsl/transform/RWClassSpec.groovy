@@ -21,16 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumBuilder
-import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import groovyjarjarasm.asm.Opcodes
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Issue
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsTo
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class RWClassSpec extends AbstractDSLSpec {

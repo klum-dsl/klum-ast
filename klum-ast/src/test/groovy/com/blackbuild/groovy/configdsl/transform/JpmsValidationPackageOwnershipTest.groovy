@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import spock.lang.Issue
 import spock.lang.Specification
@@ -32,7 +32,7 @@ import java.nio.file.Path
 @Issue("391")
 class JpmsValidationPackageOwnershipTest extends Specification {
 
-    private static final String RUNTIME_VALIDATION_PACKAGE = 'com.blackbuild.klum.ast.validation'
+    private static final String RUNTIME_VALIDATION_PACKAGE = 'com.blackbuild.klum.ast.runtime.internal.validation'
     private static final String COMPILER_VALIDATION_PACKAGE = 'com.blackbuild.klum.ast.compiler.internal.validation'
 
     def "the runtime artifact exclusively owns the runtime validation package"() {

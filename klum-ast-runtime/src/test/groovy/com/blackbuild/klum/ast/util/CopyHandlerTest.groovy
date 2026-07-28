@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import spock.lang.Issue
 
 class CopyHandlerTest extends AbstractRuntimeTest {
@@ -43,7 +44,8 @@ class CopyHandlerTest extends AbstractRuntimeTest {
         createClass('''
             package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Outer implements KlumModelObject {
@@ -92,7 +94,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -164,7 +167,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -216,7 +220,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -262,7 +267,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -315,7 +321,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -360,9 +367,10 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.copy.Overwrite
-import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
+import com.blackbuild.klum.ast.copy.Overwrite
+import com.blackbuild.klum.ast.copy.OverwriteStrategy
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -409,9 +417,10 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.copy.Overwrite
-import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
+import com.blackbuild.klum.ast.copy.Overwrite
+import com.blackbuild.klum.ast.copy.OverwriteStrategy
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -463,9 +472,10 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Field
-            import com.blackbuild.groovy.configdsl.transform.FieldType
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
+            import com.blackbuild.klum.ast.Field
+            import com.blackbuild.klum.ast.FieldType
 
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
@@ -506,7 +516,8 @@ import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
         createClass('''
             package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
             @SuppressWarnings('UnnecessaryQualifiedReference')
             @DSL
             class Foo implements KlumModelObject {

@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import org.jetbrains.annotations.NotNull
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
 class StructureUtilDSLTest extends AbstractDSLSpec {
@@ -37,7 +37,7 @@ class StructureUtilDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-import com.blackbuild.groovy.configdsl.transform.Owner
+import com.blackbuild.klum.ast.Owner
 
             @DSL
             class Config {

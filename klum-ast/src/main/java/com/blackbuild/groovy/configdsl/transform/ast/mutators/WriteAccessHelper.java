@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.klum.ast.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.WriteAccess;
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.WriteAccess;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;

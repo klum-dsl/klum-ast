@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import spock.lang.Issue
 
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
@@ -35,7 +35,7 @@ class AutoCreateDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.layer3.AutoCreate
 
             @DSL
             class Config {
@@ -73,7 +73,7 @@ class AutoCreateDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.layer3.AutoCreate
 
             @DSL
             class Config {
@@ -111,7 +111,7 @@ class AutoCreateDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.layer3.AutoCreate
 
             @DSL
             class Config {
@@ -150,8 +150,8 @@ class AutoCreateDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoCreate
 
             @DSL
             class Config {
@@ -188,9 +188,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL
             abstract class AbstractConfig {
@@ -225,9 +225,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL
             abstract class AbstractConfig {
@@ -264,9 +264,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
         createClass('''
             package tmp
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.layer3.Cluster
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -307,8 +307,8 @@ import java.lang.annotation.RetentionPolicy
         createClass('''
             package tmp
             
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.AutoCreate
 
             @DSL
             class Container {

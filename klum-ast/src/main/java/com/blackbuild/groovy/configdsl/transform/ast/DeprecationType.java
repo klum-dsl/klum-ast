@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.AbstractMethodBuilder.DEPRECATED_NODE;
+import static com.blackbuild.klum.ast.ast.AbstractMethodBuilder.DEPRECATED_NODE;
 
 public enum DeprecationType {
 

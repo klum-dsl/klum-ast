@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.doc;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.FieldNode;

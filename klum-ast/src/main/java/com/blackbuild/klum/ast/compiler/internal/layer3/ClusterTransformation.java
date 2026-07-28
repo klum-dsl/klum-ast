@@ -23,8 +23,8 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.layer3;
 
-import com.blackbuild.klum.ast.util.layer3.ClusterModel;
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster;
+import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
+import com.blackbuild.klum.ast.layer3.Cluster;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;

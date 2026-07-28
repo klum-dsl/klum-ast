@@ -21,10 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.groovy.configdsl.transform.Validate
-import com.blackbuild.klum.ast.validation.SingleObjectValidationHandler
+import com.blackbuild.klum.ast.Validate
+import com.blackbuild.klum.ast.runtime.internal.validation.SingleObjectValidationHandler
+import com.blackbuild.klum.ast.runtime.KlumValidationException
 import spock.lang.Issue
 
 @SuppressWarnings("GrPackage")
@@ -51,7 +52,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         given:
         createInstance('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.klum.ast.Validate
 
             @DSL
             class Foo extends TestObject {
@@ -79,7 +80,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         given:
         createInstance('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.klum.ast.Validate
 
             @DSL
             class Foo extends TestObject {
@@ -109,7 +110,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         given:
         createClass('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.klum.ast.Validate
 
             @DSL
             class Foo extends TestObject {
@@ -142,7 +143,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         given:
         createClass('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.klum.ast.Validate
 
             @DSL
             class Foo extends TestObject {
@@ -179,7 +180,7 @@ class ValidatorTest extends AbstractRuntimeTest {
         given:
         createClass('''
             package pk
-            import com.blackbuild.groovy.configdsl.transform.Validate
+            import com.blackbuild.klum.ast.Validate
 
             @DSL
             @Validate

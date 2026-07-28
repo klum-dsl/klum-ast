@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.klum.ast.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.WriteAccess;
+import com.blackbuild.klum.ast.WriteAccess;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;

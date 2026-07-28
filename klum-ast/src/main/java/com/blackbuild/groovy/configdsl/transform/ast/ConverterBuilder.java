@@ -21,11 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
-import com.blackbuild.groovy.configdsl.transform.Converter;
-import com.blackbuild.groovy.configdsl.transform.Converters;
+import com.blackbuild.klum.ast.Converter;
+import com.blackbuild.klum.ast.Converters;
 import com.blackbuild.klum.common.CommonAstHelper;
 import com.blackbuild.klum.common.Groovy3To4MigrationHelper;
 import org.codehaus.groovy.ast.*;
@@ -38,12 +38,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
+import static com.blackbuild.klum.ast.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.*;
+import static com.blackbuild.klum.ast.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static com.blackbuild.klum.common.Groovy3To4MigrationHelper.getMemberStringList;
-import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
+import static com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Arrays.asList;

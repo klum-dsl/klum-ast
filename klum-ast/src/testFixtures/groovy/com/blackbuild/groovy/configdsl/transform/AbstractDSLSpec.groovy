@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.process.BreadcrumbCollector
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.runtime.InvokerHelper
@@ -51,7 +51,7 @@ class AbstractDSLSpec extends Specification {
         oldLoader = Thread.currentThread().contextClassLoader
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
-                "com.blackbuild.groovy.configdsl.transform",
+                "com.blackbuild.klum.ast",
                 this.getClass().getPackageName()
         )
 

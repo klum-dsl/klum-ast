@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 
 import org.codehaus.groovy.ast.ClassNode
@@ -43,7 +43,7 @@ class CollectionFactoriesAstTest extends Specification {
     SourceUnit sourceUnit = Stub(SourceUnit)
 
     def withClassCode(@Language("Groovy") String text) {
-        def textWithImports = 'import com.blackbuild.groovy.configdsl.transform.*\n' + text
+        def textWithImports = 'import com.blackbuild.klum.ast.*\n' + text
         clazz = new AstBuilder().buildFromString(CompilePhase.CANONICALIZATION, textWithImports)[1] as ClassNode
     }
 

@@ -23,12 +23,12 @@
  */
 //file:noinspection GrPackage
 //file:noinspection GrMethodMayBeStatic
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 
-import com.blackbuild.klum.ast.util.KlumValidationException
-import com.blackbuild.klum.ast.validation.KlumValidationResult
-import com.blackbuild.klum.ast.validation.Validator
+import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
+import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.*
 import uk.org.webcompere.systemstubs.properties.SystemProperties
@@ -46,7 +46,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
     @Override
     String[] getAdditionalImports() {
-        return ["com.blackbuild.klum.ast.validation.Validator"]
+        return ["com.blackbuild.klum.ast.runtime.internal.validation.Validator"]
     }
 
     def "validation with Groovy Truth"() {
@@ -1424,7 +1424,7 @@ class ValidationSpec extends AbstractDSLSpec {
     @Issue("415")
     def "custom issues in validation inner classes"() {
         given:
-        createClass('''import com.blackbuild.klum.ast.validation.ValidatorBase
+        createClass('''import com.blackbuild.klum.ast.runtime.internal.validation.ValidatorBase
             @DSL
             class Foo {
                 String value1
@@ -1651,7 +1651,7 @@ class ValidationSpec extends AbstractDSLSpec {
     def "verify can be redone using Validated.verifyStructure"() {
         given:
         sysProps.set("klum.validation.skipVerify", "true")
-        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+        createClass('''import com.blackbuild.klum.ast.layer3.AutoCreate
             @DSL
             class Foo {
                 @Required String name
@@ -1784,7 +1784,7 @@ class ValidationSpec extends AbstractDSLSpec {
     @Issue("407")
     def "Notify allows to explicitly raise an issue if a values is set or not set manually"() {
         given:
-        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+        createClass('''import com.blackbuild.klum.ast.layer3.Notify
             @DSL
             class Foo {
                 @Notify(ifSet = "Should not be set manually")
@@ -1811,7 +1811,7 @@ class ValidationSpec extends AbstractDSLSpec {
     @Issue("407")
     def "Notify overrules deprecated"() {
         given:
-        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+        createClass('''import com.blackbuild.klum.ast.layer3.Notify
             @DSL
             class Foo {
                 @Notify(ifSet = "Overridden deprecation", level = Validate.Level.INFO)
@@ -1835,7 +1835,7 @@ class ValidationSpec extends AbstractDSLSpec {
     @Issue("407")
     def "Notify with level NONE overrules deprecated"() {
         given:
-        createClass('''import com.blackbuild.klum.ast.util.layer3.annotations.Notify
+        createClass('''import com.blackbuild.klum.ast.layer3.Notify
             @DSL
             class Foo {
                 @Notify(ifSet = "ignore", level = Validate.Level.NONE)

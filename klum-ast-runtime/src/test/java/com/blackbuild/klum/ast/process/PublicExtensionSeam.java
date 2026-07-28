@@ -21,11 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process;
+package com.blackbuild.klum.ast.runtime.internal.process;
 
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.validation.InstanceValidator;
-import com.blackbuild.klum.ast.validation.KlumValidationResult;
+import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
+import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
+import com.blackbuild.klum.ast.runtime.ModelVisitingPhaseAction;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
 
 final class PublicExtensionSeam {
 

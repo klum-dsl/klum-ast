@@ -21,14 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.InternalKlumBuilder
-import com.blackbuild.klum.ast.util.KlumBuilder
-import com.blackbuild.klum.ast.util.FactoryHelper
-import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumObjectSupport
-import com.blackbuild.klum.ast.validation.Validator
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -243,8 +243,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         then:
         instance.result == "MODEL"
         KlumObjectSupport.of(instance).object.is(instance)
-        !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredFields*.name.contains("applyLaterClosures")
-        !Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').declaredMethods*.name.contains("getApplyLaterClosures")
+        !Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumModelProxy').declaredFields*.name.contains("applyLaterClosures")
+        !Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumModelProxy').declaredMethods*.name.contains("getApplyLaterClosures")
         !InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredFields*.name.contains("applyLaterClosures")
         !InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }.declaredMethods*.name.contains("getApplyLaterClosures")
     }
@@ -610,7 +610,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         createClass '''
             package pk
 
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
 
             @DSL
             class Root {
@@ -686,8 +686,8 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         createClass '''
             package pk
 
-            import com.blackbuild.klum.ast.util.KlumBuilder
-            import com.blackbuild.klum.ast.validation.Validator
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 
             @DSL
             class ValidatedModel {
@@ -722,7 +722,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         result.issues*.message.any { it.contains("deprecated") }
 
         when: "the internal completed-model validation handler is invoked again"
-        def handlerClass = Class.forName("com.blackbuild.klum.ast.validation.SingleObjectValidationHandler")
+        def handlerClass = Class.forName("com.blackbuild.klum.ast.runtime.internal.validation.SingleObjectValidationHandler")
         def constructor = handlerClass.getDeclaredConstructor(Object)
         constructor.accessible = true
         def execute = handlerClass.getDeclaredMethod("execute")

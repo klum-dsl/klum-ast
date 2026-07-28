@@ -23,12 +23,12 @@
  */
 //file:noinspection GrPackage
 //file:noinspection UnnecessaryQualifiedReference
-package com.blackbuild.groovy.configdsl.transform.ast
+package com.blackbuild.klum.ast.ast
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.ast.AstDocumentation
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.util.InternalKlumBuilder
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.MethodNode
@@ -111,7 +111,7 @@ class AnnoDocTest extends AbstractDSLSpec {
         createClass("dummy/Foo.groovy", '''
 package dummy 
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
 
 /**
  * This is a class
@@ -135,7 +135,7 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass("dummy/Foo.groovy", '''
 package dummy
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
 
 @DSL class Foo {
     /** display name. */
@@ -183,8 +183,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass("dummy/Foo.groovy", '''
 package dummy
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.groovy.configdsl.transform.Mutator
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Mutator
 
 @DSL class Foo {
     /** The banner displayed to readers. */
@@ -211,7 +211,7 @@ import com.blackbuild.groovy.configdsl.transform.Mutator
         createClass("dummy/Foo.groovy", '''
 package dummy 
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
 
 /**
  * This is a class
@@ -231,9 +231,9 @@ import com.blackbuild.groovy.configdsl.transform.DSL
         createClass("dummy/Foo.groovy", '''
 package dummy 
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.groovy.configdsl.transform.DelegatesToRW
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.DelegatesToRW
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 /**
  * This is a class
@@ -335,7 +335,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 
     def "documentation with custom member name"() {
         when:
-        createClass("dummy/Foo.groovy", '''import com.blackbuild.groovy.configdsl.transform.Field
+        createClass("dummy/Foo.groovy", '''import com.blackbuild.klum.ast.Field
             @DSL class Foo {
                 @Field(members = "berry")
                 List<Berry> berries
@@ -357,7 +357,7 @@ class MyFactory extends KlumFactory.Unkeyed<Foo> {
 
     def "documentation with template tags"() {
         when:
-        createClass("dummy/Foo.groovy", '''import com.blackbuild.groovy.configdsl.transform.Field
+        createClass("dummy/Foo.groovy", '''import com.blackbuild.klum.ast.Field
             @DSL class Foo {
                 /**
                 * The berries in the bag. 

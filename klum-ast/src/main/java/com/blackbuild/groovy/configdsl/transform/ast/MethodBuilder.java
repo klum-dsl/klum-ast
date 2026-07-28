@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
-import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
+import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy;
+import com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovyjarjarasm.asm.Opcodes;
@@ -43,9 +43,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.blackbuild.klum.ast.util.KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy.NAME_OF_MODEL_FIELD_IN_RW_CLASS;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.hasAnnotation;
 import static org.codehaus.groovy.ast.ClassHelper.CLASS_Type;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 import static org.codehaus.groovy.ast.tools.GenericsUtils.*;

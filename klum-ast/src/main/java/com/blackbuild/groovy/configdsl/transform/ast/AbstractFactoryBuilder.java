@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -31,8 +31,8 @@ import org.codehaus.groovy.ast.Parameter;
 
 import java.util.Arrays;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.getRwClassOf;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.OBJECT_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;

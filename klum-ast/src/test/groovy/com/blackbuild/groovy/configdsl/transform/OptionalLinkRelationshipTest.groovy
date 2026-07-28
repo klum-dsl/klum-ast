@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
@@ -38,7 +38,7 @@ class OptionalLinkRelationshipTest extends AbstractDSLSpec {
         createClass '''
             package pk
 
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class Graph {
                 Node owned

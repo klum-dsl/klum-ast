@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 /**
  * A simple test to demonstrate how to write tests for KlumAST.
@@ -33,7 +33,7 @@ class JunieGuidelineTest extends AbstractDSLSpec {
         createClass('''
             package demo
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
 
             @DSL
             class Person {

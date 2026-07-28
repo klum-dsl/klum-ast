@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.ast.util.KlumInstanceProxy;
+import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.tools.GeneralUtils;

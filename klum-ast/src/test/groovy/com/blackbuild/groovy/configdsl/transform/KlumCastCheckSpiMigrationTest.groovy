@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.groovy.configdsl.transform.ast.FieldAstValidator
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodCheck
-import com.blackbuild.klum.ast.util.copy.Overwrite
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.ast.FieldAstValidator
+import com.blackbuild.klum.ast.ast.mutators.WriteAccessMethodCheck
+import com.blackbuild.klum.ast.copy.Overwrite
+import com.blackbuild.klum.ast.layer3.DefaultValues
 import com.blackbuild.klum.ast.compiler.internal.layer3.DefaultValuesCheck
 import com.blackbuild.klum.ast.compiler.internal.validation.CheckDslAnnotation
 import com.blackbuild.klum.ast.compiler.internal.validation.CheckForPrimitiveBoolean
@@ -115,8 +115,8 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
             }
         '''
         OverwriteSingleCheck       | "MERGE is only allowed for DSL objects"        | '''
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
 
             @DSL
             class BrokenModel {
@@ -124,8 +124,8 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
             }
         '''
         OverwriteMapCheck          | "MERGE_VALUES is only allowed for DSL objects" | '''
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
 
             @DSL
             class BrokenModel {
@@ -137,7 +137,7 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
     def "name-bound DefaultValues check emits a positioned structured diagnostic"() {
         given:
         createSecondaryClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+            import com.blackbuild.klum.ast.layer3.DefaultValues
             import java.lang.annotation.*
 
             @Retention(RetentionPolicy.RUNTIME)

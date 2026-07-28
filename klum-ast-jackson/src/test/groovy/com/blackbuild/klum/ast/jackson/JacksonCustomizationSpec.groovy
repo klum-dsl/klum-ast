@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 
@@ -37,7 +37,7 @@ class JacksonCustomizationSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
             import com.fasterxml.jackson.annotation.JsonSubTypes
             import com.fasterxml.jackson.annotation.JsonTypeInfo
 

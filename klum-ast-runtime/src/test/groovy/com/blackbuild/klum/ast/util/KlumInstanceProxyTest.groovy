@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
+import com.blackbuild.klum.ast.runtime.KlumException
 import spock.lang.Subject
 
 import java.lang.reflect.Modifier

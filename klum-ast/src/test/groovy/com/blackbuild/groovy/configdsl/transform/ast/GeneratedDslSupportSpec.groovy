@@ -21,14 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast
+package com.blackbuild.klum.ast.ast
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.groovy.configdsl.transform.KlumGenerated
-import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.KlumGenerated
+import com.blackbuild.klum.ast.runtime.KlumBuilder
 import groovy.lang.DelegatesTo
 import org.intellij.lang.annotations.Language
 
@@ -95,7 +95,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         expect:
         baseBuilder.typeParameters*.name == ['SELF']
         baseBuilder.typeParameters[0].bounds*.typeName == ['sample.Base']
-        baseBuilder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<SELF>')
+        baseBuilder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.runtime.KlumBuilder<SELF>')
         fooBuilder.typeParameters*.name == ['SELF']
         fooBuilder.typeParameters[0].bounds*.typeName == ['sample.Foo']
         fooBuilder.genericInterfaces*.typeName.contains('sample.Base_DSL$Builder<SELF>')
@@ -104,11 +104,11 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         and: 'hidden implementations thread the same leaf model type without a second capability'
         baseImplementation.typeParameters*.name == ['SELF']
-        baseImplementation.genericSuperclass.typeName == 'com.blackbuild.klum.ast.util.InternalKlumBuilder<SELF>'
+        baseImplementation.genericSuperclass.typeName == 'com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder<SELF>'
         fooImplementation.typeParameters*.name == ['SELF']
         fooImplementation.typeParameters[0].bounds*.typeName == ['sample.Foo']
         fooImplementation.genericSuperclass.typeName == 'sample.Base$Builder<SELF>'
-        !fooImplementation.genericInterfaces*.typeName.any { it.startsWith('com.blackbuild.klum.ast.util.KlumBuilder') }
+        !fooImplementation.genericInterfaces*.typeName.any { it.startsWith('com.blackbuild.klum.ast.runtime.KlumBuilder') }
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
@@ -119,7 +119,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         KlumBuilder.isAssignableFrom(builder)
         KlumBuilder.declaredMethods.length == 0
         builder.typeParameters*.name == ['SELF']
-        builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.util.KlumBuilder<SELF>')
+        builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.runtime.KlumBuilder<SELF>')
     }
 
     def "Java and statically compiled Groovy consume only the public namespace"() {
@@ -184,8 +184,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         compileJavaConsumer('''
             package sample;
 
-            import com.blackbuild.klum.ast.util.KlumBuilder;
-            import com.blackbuild.klum.ast.util.KlumFactory;
+            import com.blackbuild.klum.ast.runtime.KlumBuilder;
+            import com.blackbuild.klum.ast.runtime.KlumFactory;
             import java.util.Map;
 
             public final class JavaDslConsumer {
@@ -245,8 +245,8 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         createClass '''
             package sample
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Base {
                 String label

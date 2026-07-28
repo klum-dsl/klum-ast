@@ -21,14 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
-import com.blackbuild.klum.ast.util.FactoryHelper;
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.util.TemplateManager;
-import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
+import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.internal.TemplateManager;
+import com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
@@ -39,7 +39,7 @@ import org.codehaus.groovy.ast.tools.GeneralUtils;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.hasAnnotation;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.hasAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC;
 import static groovyjarjarasm.asm.Opcodes.ACC_STATIC;
 import static java.util.Collections.singletonList;

@@ -23,12 +23,13 @@
  */
 package com.blackbuild.klum.ast.jackson;
 
-import com.blackbuild.klum.ast.process.PhaseDriver;
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumException;
-import com.blackbuild.klum.ast.util.KlumFactory;
-import com.blackbuild.klum.ast.util.KlumModelException;
+import com.blackbuild.klum.ast.jackson.internal.KlumDeserializer;
+import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumException;
+import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonDeserializer;

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
@@ -43,8 +43,8 @@ abstract class AbstractRuntimeTest extends Specification {
         oldLoader = Thread.currentThread().contextClassLoader
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
-                "com.blackbuild.groovy.configdsl.transform",
-                "com.blackbuild.klum.ast.util",
+                "com.blackbuild.klum.ast",
+                "com.blackbuild.klum.ast.runtime.internal",
                 "com.blackbuild.klum.ast",
                 this.getClass().getPackage().name
         )
@@ -60,12 +60,12 @@ abstract class AbstractRuntimeTest extends Specification {
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
 
-        createDummyTransformations("com.blackbuild.groovy.configdsl.transform.ast",
+        createDummyTransformations("com.blackbuild.klum.ast.ast",
                 "DSLASTTransformation",
                 "DelegatesToRWTransformation",
                 "AddJacksonIgnoresTransformation",
                 "FieldAstValidator")
-        createDummyTransformations("com.blackbuild.groovy.configdsl.transform.ast.mutators",
+        createDummyTransformations("com.blackbuild.klum.ast.ast.mutators",
                 "ModelVerifierTransformation")
     }
 
@@ -73,7 +73,7 @@ abstract class AbstractRuntimeTest extends Specification {
         def typeDef = """
 package $packageName
 import org.codehaus.groovy.transform.GroovyASTTransformation
-import com.blackbuild.klum.ast.util.DummyAstTransformation
+import com.blackbuild.klum.ast.runtime.internal.DummyAstTransformation
 """
         for (className in classNames)
             typeDef += "@GroovyASTTransformation class $className extends DummyAstTransformation {}\n"

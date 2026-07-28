@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 class ScriptTest extends AbstractDSLSpec {
 

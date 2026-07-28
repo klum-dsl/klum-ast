@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -146,8 +146,8 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.klum.ast.util.copy.Overwrite
-            import com.blackbuild.klum.ast.util.copy.OverwriteStrategy
+            import com.blackbuild.klum.ast.copy.Overwrite
+            import com.blackbuild.klum.ast.copy.OverwriteStrategy
 
             @DSL
             class ContainerValue {
@@ -291,7 +291,7 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
             import com.fasterxml.jackson.annotation.JsonProperty
 
             @DSL
@@ -487,7 +487,7 @@ class ConfigurationReplaySpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.FieldType
+            import com.blackbuild.klum.ast.FieldType
 
             @DSL
             class FieldSurface {

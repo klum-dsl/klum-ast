@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 class BuilderProjectionWithFilesSpec extends AbstractFileBasedDSLSpec {
 
@@ -30,8 +30,8 @@ class BuilderProjectionWithFilesSpec extends AbstractFileBasedDSLSpec {
         withFile 'Child.groovy', '''
             package child
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.klum.ast.util.KlumFactory
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.runtime.KlumFactory
 
             @DSL class Child {
                 String label
@@ -49,7 +49,7 @@ class BuilderProjectionWithFilesSpec extends AbstractFileBasedDSLSpec {
             package root
 
             import child.Child
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
 
             @DSL class Root {
                 List<Child> children

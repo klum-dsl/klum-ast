@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
-import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.util.KlumBuilder;
+import com.blackbuild.klum.ast.KlumGenerated;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -52,9 +52,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.getRwClassOf;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static groovyjarjarasm.asm.Opcodes.ACC_ABSTRACT;
 import static groovyjarjarasm.asm.Opcodes.ACC_INTERFACE;

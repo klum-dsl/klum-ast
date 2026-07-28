@@ -21,13 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
 import com.blackbuild.annodocimal.generator.ProjectionPolicy
 import com.blackbuild.annodocimal.generator.SourceProjector
-import com.blackbuild.klum.ast.util.DslHelper
-import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.DslHelper
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 
 class BuilderProjectionSpec extends AbstractDSLSpec {
@@ -35,7 +35,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     def "declared KlumBuilder generic projects to the concrete public Builder interface"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
 
             @DSL class Root {
                 Child child
@@ -64,7 +64,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     def "raw KlumBuilder element type produces a targeted compilation diagnostic"() {
         when:
         createClass '''
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
 
             @DSL class Root {
                 Child child
@@ -87,7 +87,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     def "wildcard Builder container values produce a targeted compilation diagnostic"() {
         when:
         createClass '''
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
 
             @DSL class Root {
                 List<Child> children
@@ -181,8 +181,8 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     def "Collection and Map KlumBuilder values retain their declared outer types and map keys"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.KlumBuilder
-            import com.blackbuild.klum.ast.util.KlumFactory
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumFactory
 
             @DSL class Root {
                 List<Child> children
@@ -252,7 +252,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     def "Cluster delegates retain Builder-producing converter composition"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL class Root {
                 Child first

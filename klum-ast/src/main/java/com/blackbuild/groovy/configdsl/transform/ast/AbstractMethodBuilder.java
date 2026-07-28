@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
-import com.blackbuild.groovy.configdsl.transform.ParameterAnnotation;
+import com.blackbuild.klum.ast.ParameterAnnotation;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import com.blackbuild.klum.common.MethodBuilderException;
 import groovy.lang.DelegatesTo;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.*;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 @SuppressWarnings("unchecked")

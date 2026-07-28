@@ -21,13 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.validation.bean
+package com.blackbuild.klum.ast.runtime.internal.validation.bean
 
-import com.blackbuild.groovy.configdsl.transform.Validate
-import com.blackbuild.klum.ast.util.AbstractRuntimeTest
-import com.blackbuild.klum.ast.util.KlumValidationException
-import com.blackbuild.klum.ast.validation.KlumValidationResult
-import com.blackbuild.klum.ast.validation.SingleObjectValidationHandler
+import com.blackbuild.klum.ast.Validate
+import com.blackbuild.klum.ast.validation.bean.Level
+import com.blackbuild.klum.ast.runtime.internal.AbstractRuntimeTest
+import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
+import com.blackbuild.klum.ast.runtime.internal.validation.SingleObjectValidationHandler
 import spock.lang.Issue
 
 @Issue("258")
@@ -56,6 +57,7 @@ class JSR380ValidatorTest extends AbstractRuntimeTest {
             package pk
 
 import jakarta.validation.constraints.Min
+            import com.blackbuild.klum.ast.validation.bean.Level
 
             @DSL
             class Foo extends TestObject {
@@ -86,6 +88,7 @@ import jakarta.validation.constraints.Min
             package pk
 
 import jakarta.validation.constraints.Min
+            import com.blackbuild.klum.ast.validation.bean.Level
 
             @DSL
             class Foo extends TestObject {
@@ -141,6 +144,7 @@ import jakarta.validation.constraints.Min
             package pk
 
             import jakarta.validation.constraints.Min
+            import com.blackbuild.klum.ast.validation.bean.Level
 
             @DSL
             class Foo extends TestObject {

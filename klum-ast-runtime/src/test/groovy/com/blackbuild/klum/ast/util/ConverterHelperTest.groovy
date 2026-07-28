@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 //file:noinspection GroovyMissingReturnStatement
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
 import java.lang.reflect.Constructor
 
@@ -63,7 +63,7 @@ class ConverterHelperTest extends AbstractRuntimeTest {
     def "ConverterHelper default converter methods and constructors"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Converters
+            import com.blackbuild.klum.ast.Converters
             
             @Converters(includeConstructors = true)
             class Test {
@@ -91,7 +91,7 @@ class ConverterHelperTest extends AbstractRuntimeTest {
     def "additionalIncludes"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Converters
+            import com.blackbuild.klum.ast.Converters
             
             @Converters(includeMethods = ["ignored"])
             class Test {
@@ -115,7 +115,7 @@ class ConverterHelperTest extends AbstractRuntimeTest {
     def "additionalIncludes and excludes"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Converters
+            import com.blackbuild.klum.ast.Converters
             
             @Converters(includeMethods = ["ignored"], excludeMethods = ["from"])
             class Test {
@@ -139,7 +139,7 @@ class ConverterHelperTest extends AbstractRuntimeTest {
     def "additionalIncludes without default includes"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Converters
+            import com.blackbuild.klum.ast.Converters
             
             @Converters(includeMethods = ["ignored"], excludeDefaultPrefixes = true)
             class Test {

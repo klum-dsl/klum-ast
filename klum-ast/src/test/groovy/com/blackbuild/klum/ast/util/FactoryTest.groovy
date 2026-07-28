@@ -22,9 +22,11 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.KlumFactory
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import spock.lang.Issue
 
 @Issue("76")
@@ -32,7 +34,7 @@ class FactoryTest extends AbstractDSLSpec {
 
     def "Create field is created and initialized"() {
         when:
-        createClass '''import com.blackbuild.groovy.configdsl.transform.DSL
+        createClass '''import com.blackbuild.klum.ast.DSL
 @DSL abstract class AnAbstractClass {}
 
 @DSL class NonAbstractSubclassOfAnAbstractClass extends AnAbstractClass {}
@@ -76,7 +78,7 @@ abstract class AbstractWithDefaultImpl {}
     def "basic test"() {
         given:
         createClass '''
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
 
 @DSL class AClass {}
 '''
@@ -90,8 +92,8 @@ import com.blackbuild.groovy.configdsl.transform.DSL
     def "allow overriding of factory base class with ungeneric factory"() {
         given:
         createClass '''
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL(factory = MyClassFactory)
 class MyClass {
@@ -123,8 +125,8 @@ class MyClassFactory extends KlumFactory.Unkeyed<MyClass> {
     def "allow overriding of factory base class with generic factory"() {
         given:
         createClass '''
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL(factory = MyClassFactory)
 class MyClass {
@@ -156,8 +158,8 @@ class MyClassFactory<T> extends KlumFactory.Unkeyed<T> {
     def "allow overriding of factory base class with implicit factory"() {
         given:
         createClass '''
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL
 class MyClass {
@@ -190,8 +192,8 @@ class MyClass {
     def "allow overriding of factory base class with for abstract classes"() {
         given:
         createClass '''
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL
 abstract class MyClass {
@@ -228,8 +230,8 @@ abstract class MyClass {
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
 
 @DSL class Outer {
     String name
@@ -285,8 +287,8 @@ import com.blackbuild.groovy.configdsl.transform.Key
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.Key
 
 @DSL class Outer {
     String name
@@ -324,7 +326,7 @@ import com.blackbuild.groovy.configdsl.transform.Key
     def "convert map before creating instance"() {
         given:
         createClass '''
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL class Person {
     String firstName
@@ -356,7 +358,7 @@ import com.blackbuild.klum.ast.util.KlumFactory
     def "nested maps do not start an independent child factory lifecycle"() {
         given:
         createClass '''
-import com.blackbuild.klum.ast.util.KlumFactory
+import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL class Person {
     String firstName

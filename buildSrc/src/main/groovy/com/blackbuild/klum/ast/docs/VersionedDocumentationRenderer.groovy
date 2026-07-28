@@ -40,11 +40,11 @@ class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-static-html-v1'
     static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
-            'klum-ast'                : 'com/blackbuild/groovy/configdsl/transform/ast/DSLASTTransformation.html',
-            'klum-ast-runtime'        : 'com/blackbuild/klum/ast/KlumModelObject.html',
-            'klum-ast-annotations'    : 'com/blackbuild/groovy/configdsl/transform/DSL.html',
+            'klum-ast'                : 'com/blackbuild/klum/ast/ast/DSLASTTransformation.html',
+            'klum-ast-runtime'        : 'com/blackbuild/klum/ast/runtime/KlumModelObject.html',
+            'klum-ast-annotations'    : 'com/blackbuild/klum/ast/DSL.html',
             'klum-ast-jackson'        : 'com/blackbuild/klum/ast/jackson/KlumAstModule.html',
-            'klum-ast-bean-validation': 'com/blackbuild/klum/ast/validation/bean/JSR380Validator.html',
+            'klum-ast-bean-validation': 'com/blackbuild/klum/ast/validation/bean/Level.html',
             'klum-ast-gradle-plugin'  : 'com/blackbuild/klum/ast/gradle/KlumAstSchemaPlugin.html'
     ].asImmutable()
     private static final Set<String> STATUSES = ['current', 'archived', 'public-rc', 'pending', 'tracer'] as Set

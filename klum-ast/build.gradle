@@ -14,9 +14,15 @@ test {
 gradle.projectsEvaluated {
     tasks.withType(Test).configureEach {
         dependsOn tasks.named('jar')
+        dependsOn ':klum-ast-annotations:jar'
         dependsOn ':klum-ast-runtime:jar'
+        dependsOn ':klum-ast-jackson:jar'
+        dependsOn ':klum-ast-bean-validation:jar'
+        systemProperty('klumAnnotationsJar', project(':klum-ast-annotations').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumCompilerJar', tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumRuntimeJar', project(':klum-ast-runtime').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumJacksonJar', project(':klum-ast-jackson').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('klumBeanValidationJar', project(':klum-ast-bean-validation').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
     }
 }
 
