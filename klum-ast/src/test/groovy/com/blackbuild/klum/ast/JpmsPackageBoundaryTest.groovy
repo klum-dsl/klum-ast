@@ -177,7 +177,7 @@ class JpmsPackageBoundaryTest extends Specification {
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
 
         and: 'the positive fixture remains pending until every generated artifact has no internal runtime linkage'
-        !namedGroovy || Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
+        !namedGroovy || !Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
             paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith('.class') }
                     .any { classFile ->
                         new String(Files.readAllBytes(classFile), StandardCharsets.ISO_8859_1)
