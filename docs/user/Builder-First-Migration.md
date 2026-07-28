@@ -37,6 +37,20 @@ Compile and execute at least one real root configuration. A unit test that calls
 simplest repeatable migration check; an existing root script is equally suitable. A project-less script can also obtain
 KlumAST with `@Grab`, but the complete standalone-script setup will be documented separately.
 
+Build owned children through the generated method on that root Builder, so the entire configuration shares one lifecycle.
+(See: `BuilderFirstMigrationDocumentaryTest#'builds a representative deployment through one Builder lifecycle'`.)
+
+```groovy
+def deployment = Deployment.Create.With {
+    environment 'production'
+    service {
+        image 'catalog:1.0'
+    }
+}
+
+assert deployment.service.image == 'catalog:1.0'
+```
+
 | Runtime failure | What to do |
 | --- | --- |
 | An independent factory cannot start while construction is active | A nested `Child.Create.With` would start a second lifecycle, which is forbidden. Call the generated child method on the parent Builder. Framework extensions can use `Child.Create.AsBuilder` and attach the result in the same session. |
