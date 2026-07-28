@@ -214,7 +214,9 @@ This attribute accepts a closure that gets a single parameter of the value type 
 of the key type.
 
 If a keyMapping is set for a simple type, adder methods only have a value parameter (instead of key and value),
-the map adder is replaces with a collection adder.
+and the map adder is replaced with a collection adder.
+
+(See: `BasicsKeyMappingDocumentaryTest#'derives simple map keys from configured values'`.)
 
 ```groovy
 given: // Schema
@@ -492,6 +494,8 @@ Config.Create.With {
 #### Automatic Key determination for DSL-Map entries
 In case of a keyed Map-Element, the key is automatically used as key for the map entry.
 This can be overridden using `@Field.keyMapping`, which also allows using unkeyed elements in Maps.
+
+(See: `BasicsKeyMappingDocumentaryTest#'uses default and configured keys for DSL map entries'`.)
 
 ```groovy
 given: // Schema
