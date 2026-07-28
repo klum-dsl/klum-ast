@@ -240,7 +240,7 @@ class DefaultValuesDocumentaryTest extends AbstractDSLSpec {
             @Target(ElementType.TYPE)
             @DefaultValues
             @interface CapacityDefaults {
-                Class<? extends Closure> capacity() default NoClosure
+                Class<? extends Closure> capacity()
             }
         '''
         createClass '''
