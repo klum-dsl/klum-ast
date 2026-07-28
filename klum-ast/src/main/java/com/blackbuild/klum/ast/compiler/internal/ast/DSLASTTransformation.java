@@ -33,8 +33,10 @@ import com.blackbuild.klum.ast.compiler.internal.doc.DocUtil;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
-import com.blackbuild.klum.ast.runtime.internal.KlumObjectCompanion;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -115,7 +117,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
     public static final ClassNode KLUM_BUILDER = make(InternalKlumBuilder.class);
     public static final ClassNode GENERATED_KLUM_BUILDER = make(GeneratedKlumBuilder.class);
-    public static final ClassNode OBJECT_COMPANION = make(KlumObjectCompanion.class);
+    public static final ClassNode GENERATED_OBJECT_STATE = make(GeneratedObjectState.class);
+    public static final ClassNode GENERATED_MODEL_SUPPORT = make(GeneratedModelSupport.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
     public static final String RW_CLASS_SUFFIX = "$Builder";
@@ -128,7 +131,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KLUM_KEYED_MODEL_OBJECT = make(KlumKeyedModelObject.class);
     public static final ClassNode KLUM_MODEL_OBJECT = make(KlumModelObject.class);
     public static final ClassNode KLUM_UNKEYED_MODEL_OBJECT = make(KlumUnkeyedModelObject.class);
-    static final ClassNode MATERIALIZATION_TOKEN = make(InternalKlumBuilder.MaterializationToken.class);
+    static final ClassNode MATERIALIZATION_TOKEN = make(GeneratedMaterializationToken.class);
     public static final String APPLY_LATER = "applyLater";
 
     ClassNode annotatedClass;
@@ -295,7 +298,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         DslAstHelper.registerAsVerbProvider(rwClass);
         annotatedClass.getModule().addClass(rwClass);
         if (dslParent == null)
-            annotatedClass.addField(KlumObjectCompanion.NAME_IN_MODEL, ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, OBJECT_COMPANION, null);
+            annotatedClass.addField("$state", ACC_PRIVATE | ACC_SYNTHETIC | ACC_FINAL, GENERATED_OBJECT_STATE, null);
 
         ClassNode parentProxy = annotatedClass.getNodeMetaData(RWCLASS_METADATA_KEY);
         if (parentProxy == null)
@@ -546,8 +549,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         else {
             body.addStatement(ctorSuperS());
             body.addStatement(stmt(callX(
-                    classX(KLUM_BUILDER),
-                    "$requireMaterializationToken",
+                    classX(GENERATED_MODEL_SUPPORT),
+                    "$klum$requireMaterializationToken",
                     args(varX(MATERIALIZATION_TOKEN_PARAMETER))
             )));
         }
@@ -557,14 +560,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 return;
             body.addStatement(assignS(
                     attrX(varX("this"), constX(modelField.getName())),
-                    castX(modelField.getType(), callX(varX(BUILDER_PARAMETER), "$snapshotField", args(constX(modelField.getName()))))
+                    castX(modelField.getType(), callX(
+                            classX(GENERATED_MODEL_SUPPORT),
+                            "$klum$snapshotField",
+                            args(varX(BUILDER_PARAMETER), constX(modelField.getName()))
+                    ))
             ));
         });
 
         if (dslParent == null)
             body.addStatement(assignS(
-                    attrX(varX("this"), constX(KlumObjectCompanion.NAME_IN_MODEL)),
-                    callX(varX(BUILDER_PARAMETER), "$createCompanion", args(varX("this")))
+                    attrX(varX("this"), constX("$state")),
+                    callX(classX(GENERATED_MODEL_SUPPORT), "$klum$createState", args(varX(BUILDER_PARAMETER), varX("this")))
             ));
 
         annotatedClass.addConstructor(

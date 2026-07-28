@@ -27,36 +27,27 @@ them; the compiler's access to them is not enough.
 
 | Emitted use | Current runtime symbol(s) | Why it is ABI-relevant |
 | --- | --- | --- |
-| Hidden `Foo$Builder` superclass and generated mutable DSL methods | `runtime.internal.InternalKlumBuilder<SELF>`; its collection/map/field/link/copy and `scheduleApplyLater` hooks | The hidden Builder extends this type. Generated proxy methods invoke its concrete hooks, including `setSingleField`, `addNewDslElementToCollection`, `addNewDslElementToMap`, `addElementsFromScriptsToCollection`, and `addElementsFromScriptsToMap`. [Generated hierarchy](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupport.java), [proxy generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/ProxyMethodBuilder.java), [runtime hooks](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder.java). |
-| Protected synthetic model and template constructors; root-model state | `InternalKlumBuilder.MaterializationToken`, `InternalKlumBuilder.$requireMaterializationToken`, `$snapshotField`, `$createCompanion`, and `runtime.internal.KlumObjectCompanion` | The transform emits a constructor with the token in its descriptor, calls the three internal hooks, and declares a synthetic companion field with the internal companion type. Private or synthetic does not remove those constant-pool/linkage references. [Model generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/DSLASTTransformation.java). |
+| Hidden `Foo$Builder` superclass and generated mutable DSL methods | `runtime.generated.GeneratedKlumBuilder<SELF>` | The hidden Builder extends the generated-runtime bridge. Its emitted hooks retain the reviewed Builder lifecycle surface while `InternalKlumBuilder` stays an implementation type and `KlumBuilder<T>` remains zero-operation for clients. [Generated hierarchy](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/GeneratedDslSupport.java), [proxy generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/ProxyMethodBuilder.java), [bridge](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder.java). |
+| Protected synthetic model constructors; root-model state | `GeneratedMaterializationToken`, `GeneratedModelSupport`, and `GeneratedObjectState` in `runtime.generated` | The transform emits the opaque token in synthetic constructor descriptors, calls role-specific reserved model-support hooks, and declares a private synthetic `$state` field with the opaque state descriptor. Runtime-internal Model/Template companions retain the actual path, validation, identity, and recipe mechanics. [Model generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/DSLASTTransformation.java). |
 | Public `Foo.Template` field (current implementation) and template methods | `runtime.internal.BoundTemplateHandler<T>` | `Foo.Template` is currently a public static field whose declared type is `BoundTemplateHandler<T>`. This is both a public descriptor leak and generated execution linkage, despite ADR 0005 reserving a future public `Foo_DSL.Template` contract. `TemplateManager` is an implementation dependency of that handler, not a direct emitted-schema reference. [Template generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/TemplateMethods.java), [handler](../../../klum-ast-runtime/src/main/java/com/blackbuild/klum/ast/runtime/internal/BoundTemplateHandler.java), [ADR 0005](../../adr/0005-generated-dsl-support-api.md). |
 | Generated collection/cluster factory methods | `runtime.internal.process.BreadcrumbCollector` | Collection/cluster closure methods call `BreadcrumbCollector.withBreadcrumb(...)`. `FactoryHelper` is not listed: its `ProxyMethodBuilder` helper has no current generated call site, so it is runtime implementation rather than proven direct schema-bytecode linkage. [Collection generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/AlternativesClassBuilder.java), [cluster generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/layer3/ClusterFactoryBuilder.java), [proxy builder](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/ProxyMethodBuilder.java). |
 | `@Cluster` model methods and omitted Builder-projection fallback | `runtime.internal.layer3.ClusterModel`, `runtime.internal.OmittedProjectionSupport` | Generated method bodies call `ClusterModel` query methods and synthetic `methodMissing` calls `OmittedProjectionSupport.handle`. [Cluster generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/layer3/ClusterTransformation.java), [fallback generation](../../../klum-ast/src/main/java/com/blackbuild/klum/ast/compiler/internal/ast/OmittedProjectionCatalog.java). |
 
 ## JPMS decision constraint
 
-The present runtime descriptor exports only `runtime` and `runtime.validation`
-to all consumers. Its `runtime.internal` and `.internal.process` packages are
+The runtime descriptor exports `runtime`, `runtime.generated`, and
+`runtime.validation` to all consumers. Its `runtime.internal` and `.internal.process` packages are
 qualified only to the compiler and Jackson modules; `.internal.layer3` is
 qualified only to the compiler module. [Runtime descriptor](../../../klum-ast-runtime/src/main/module-info/module-info.java).
 
 Consequently, those qualified exports do not authorize generated bytecode
-defined in an arbitrary named schema module. A Groovy 4/5 named-schema fixture
-must therefore prove a deliberate generated-runtime linkage boundary. The
-decision needs to choose one of these bounded outcomes before descriptors
-freeze:
-
-1. Move/introduce the minimum generated-bytecode hooks in a dedicated runtime
-   package exported to schema modules, with a stable 4.x compatibility policy;
-   or
-2. Eliminate each direct generated reference in favor of an already exported
-   runtime façade.
-
-Do not solve this by broadly exporting the current `internal` packages or by
-using `--add-exports`/patch-module flags. Those options conflict with ADR 0014's
-positive export list and portable named-schema requirement. The resulting
-generated-linkage package, if one remains necessary, is a tightly scoped ABI
-for compiler-emitted code—not a general SPI or client extension surface.
+defined in an arbitrary named schema module. The approved
+`runtime.generated` bridge carries migrated generated linkage without broadly
+exporting the current `internal` packages or adding flags. The remaining direct
+internal references—Template, breadcrumbs, Cluster, and omitted projection—must
+migrate through their separately approved bridges before the Groovy 4/5
+named-schema fixture can pass. The generated-linkage package is a tightly scoped
+ABI for compiler-emitted code—not a general SPI or client extension surface.
 [ADR 0014](../../adr/0014-groovy4-jpms-boundary.md), [#468 export handoff](../issue-468-jvm-public-inventory.md).
 
 ## Compatibility baseline

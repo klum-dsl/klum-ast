@@ -24,16 +24,19 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.runtime.KlumModelObject
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder
+import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
+import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 
 class TestObject implements KlumModelObject {
-    public final KlumObjectCompanion $proxy
+    public final GeneratedObjectState $state
 
     TestObject() {
         def stateCarrier = new CompanionStateCarrier(getClass() as Class<TestObject>)
-        $proxy = stateCarrier.$createCompanion(this)
+        $state = GeneratedModelSupport.$klum$createState(stateCarrier, this)
     }
 
-    private static final class CompanionStateCarrier extends InternalKlumBuilder<TestObject> {
+    private static final class CompanionStateCarrier extends GeneratedKlumBuilder<TestObject> {
         CompanionStateCarrier(Class<TestObject> modelType) {
             super(modelType)
         }

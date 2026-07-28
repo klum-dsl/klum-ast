@@ -21,27 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.runtime.internal;
-
-import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState;
-import groovy.lang.GroovyObject;
-
-import java.io.Serializable;
+package com.blackbuild.klum.ast.runtime.generated;
 
 /**
- * Internal state associated with a materialized DSL Object.
+ * Opaque authority carried only through generated model constructors during Materialization.
  *
- * <p>This type is public only because generated DSL Objects can live in arbitrary packages.
- * It is a generated-code linkage type, not supported client API.</p>
+ * <p>This generated-code linkage type is not a client construction API. Its sole instance is
+ * retained by {@link GeneratedModelSupport}.</p>
  */
-public sealed interface KlumObjectCompanion extends GeneratedObjectState, Serializable permits KlumModelProxy, KlumTemplateProxy {
+public final class GeneratedMaterializationToken {
 
-    /** Generated private field name; public only for compiler/runtime linkage. */
-    String NAME_IN_MODEL = "$state";
-
-    GroovyObject getObject();
-
-    String getBreadcrumbPath();
-
-    String getModelPath();
+    GeneratedMaterializationToken() {
+    }
 }

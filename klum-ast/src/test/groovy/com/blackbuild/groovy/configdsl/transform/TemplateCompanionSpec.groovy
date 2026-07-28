@@ -28,14 +28,17 @@ import com.blackbuild.klum.ast.runtime.internal.DslHelper
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.internal.KlumObjectCompanion
+import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.internal.KlumTemplateProxy
 import com.blackbuild.klum.ast.runtime.internal.TemplateManager
+import spock.lang.Issue
 
 import java.lang.reflect.Modifier
 
 class TemplateCompanionSpec extends AbstractDSLSpec {
 
+    @Issue('391')
     def "generated models use the sealed common companion path contract"() {
         given:
         createClass '''
@@ -50,13 +53,13 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
         when:
         def model = clazz.Create.With { value "model" }
         def template = clazz.Template.Create { value "template" }
-        def companionField = clazz.getDeclaredField('$proxy')
+        def companionField = clazz.getDeclaredField('$state')
         companionField.accessible = true
         KlumObjectCompanion modelCompanion = companionField.get(model)
         KlumObjectCompanion templateCompanion = companionField.get(template)
 
         then:
-        companionField.type == KlumObjectCompanion
+        companionField.type == GeneratedObjectState
         Modifier.isPrivate(companionField.modifiers)
         Modifier.isFinal(companionField.modifiers)
         companionField.synthetic

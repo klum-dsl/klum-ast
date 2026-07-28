@@ -26,6 +26,8 @@ import com.blackbuild.klum.ast.runtime.ModelVisitingPhaseAction;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.KlumException;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.NoClosure;
@@ -59,9 +61,7 @@ import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -104,17 +104,6 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     private final Map<String, Serializable> metadata = new HashMap<>();
     private final Map<Integer, List<Closure<?>>> applyLaterClosures = new TreeMap<>();
     private final List<InternalKlumBuilder<?>> virtualChildren = new ArrayList<>();
-
-    private static final MaterializationToken MATERIALIZATION_TOKEN = new MaterializationToken();
-
-    /**
-     * Unforgeable capability required by generated model constructors.
-     * The type is public solely so generated classes in arbitrary packages can use it in an internal signature.
-     */
-    public static final class MaterializationToken {
-        private MaterializationToken() {
-        }
-    }
 
     protected InternalKlumBuilder(Class<M> modelType) {
         this.modelType = Objects.requireNonNull(modelType);
@@ -170,35 +159,12 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     /** Identifies the generated model implementation. Allocation remains private to graph materialization. */
     protected abstract Class<? extends M> $modelImplementationType();
 
-    /**
-     * Validates the capability passed through a generated model constructor chain.
-     * Client calls can name the token type but cannot obtain the required instance.
-     */
-    public static void $requireMaterializationToken(MaterializationToken token) {
-        if (token != MATERIALIZATION_TOKEN)
-            throw new KlumModelException("DSL Objects can only be constructed by internal materialization");
-    }
-
     private M instantiateModel() {
         Class<? extends M> implementationType = Objects.requireNonNull(
                 $modelImplementationType(), "Generated Builder returned no model implementation type");
-        Constructor<?> constructor = Arrays.stream(implementationType.getDeclaredConstructors())
-                .filter(candidate -> candidate.getParameterCount() == 2)
-                .filter(candidate -> candidate.getParameterTypes()[0].isInstance(this))
-                .filter(candidate -> candidate.getParameterTypes()[1] == MaterializationToken.class)
-                .findFirst()
-                .orElseThrow(() -> new KlumModelException("No internal Builder constructor found for " + implementationType.getName()));
-        try {
-            if (!constructor.trySetAccessible())
-                throw new KlumModelException("Cannot access internal Builder constructor for " + implementationType.getName());
-            return (M) constructor.newInstance(this, MATERIALIZATION_TOKEN);
-        } catch (InvocationTargetException exception) {
-            if (exception.getCause() instanceof RuntimeException runtimeException)
-                throw runtimeException;
-            throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception.getCause());
-        } catch (ReflectiveOperationException exception) {
-            throw new KlumModelException("Could not instantiate internal model implementation " + implementationType.getName(), exception);
-        }
+        if (!(this instanceof GeneratedKlumBuilder<?> generatedBuilder))
+            throw new KlumModelException("Only generated Builders can materialize DSL Objects");
+        return GeneratedModelSupport.$klum$instantiate(generatedBuilder, implementationType);
     }
 
     /** Assigns relationship fields after every object in the graph was allocated. */

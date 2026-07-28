@@ -29,6 +29,9 @@ import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
+import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
+import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import groovy.lang.DelegatesTo
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
@@ -118,6 +121,35 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             classFileConstants(implementation).every { !it.contains('com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder') }
         }
         classFileConstants(baseImplementation).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder')
+    }
+
+    @Issue('391')
+    def "generated model state links only opaque generated-runtime contracts"() {
+        given:
+        Class<?> root = getClass('sample.Base')
+        Class<?> model = getClass('sample.Foo')
+        Class<?> child = getClass('sample.Child')
+        Class<?> rootBuilder = getClass('sample.Foo$Builder')
+
+        expect: 'the accepted 4.0 layout keeps state private and does not retain the historical descriptor'
+        root.getDeclaredField('$state').type == GeneratedObjectState
+        !root.declaredFields*.name.contains('$proxy')
+        root.declaredConstructors*.parameterTypes.any { parameters ->
+            parameters.contains(GeneratedMaterializationToken)
+        }
+
+        and: 'model constructors and generated implementations use the reviewed model-state bridge, never its internal delegates'
+        [root, model, child, rootBuilder].every { type ->
+            classFileConstants(type).every { constant ->
+                !constant.contains('com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder') &&
+                        !constant.contains('com/blackbuild/klum/ast/runtime/internal/KlumObjectCompanion')
+            }
+        }
+        classFileConstants(root).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedObjectState')
+        classFileConstants(model).any { it.contains('com/blackbuild/klum/ast/runtime/generated/GeneratedMaterializationToken') }
+        [root, child].every { type ->
+            classFileConstants(type).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedModelSupport')
+        }
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {

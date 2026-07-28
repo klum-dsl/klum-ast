@@ -39,7 +39,7 @@ Confirmed generated artifacts:
 - a hidden generated `Foo$Builder` implementation that mirrors the inherited Builder hierarchy and implements `Foo_DSL.Builder`; `KlumBuilder<T>` is its zero-operation public capability rather than a mutable implementation base;
 - a hidden generated factory implementation and public static `Create` field, with keyed, unkeyed, or abstract/custom factory behavior;
 - a public static `Template` handler, collection-local factory types, closure delegate metadata, converters, alternatives, copy methods, and lifecycle/mutator methods on the Builder;
-- an internal model constructor guarded by `InternalKlumBuilder.MaterializationToken`, plus generated allocation/relationship-assignment hooks;
+- an internal model constructor guarded by opaque `GeneratedMaterializationToken` linkage, plus generated allocation/relationship-assignment hooks;
 - an artificial `$Template` implementation when an abstract DSL type needs a materializable recipe.
 
 The supported client interface is the schema annotations plus generated `Foo_DSL` interfaces (`Factory`, `Builder`, and
@@ -77,7 +77,7 @@ Additional invariants:
 - Source initializers execute once when a Builder is allocated. `FieldType.BUILDER` state is omitted from the model. Non-transient, non-relationship model fields become final.
 - Builder relationship storage contains Builders. A pre-existing completed DSL Object is wrapped by a sealed Builder and accepted only for `FieldType.LINK` or `OPTIONAL_LINK`; owned composition must be created in the owner's session. Nested root factories are rejected. `@LinkTo` selects `OPTIONAL_LINK` unless explicitly overridden: a fresh same-session Builder is claimed as composition, while an already claimed Builder or a completed model is aggregation. A fresh Builder remains invalid for aggregation-only `LINK`.
 - Materialization publishes independent read-only snapshots for `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`; comparators are retained. `EnumSet` is defensive. Unsupported concrete/custom collection declarations fail schema compilation. Simple Values are retained, not deep-copied.
-- Generated models retain a sealed internal `KlumObjectCompanion`. The package-internal Model companion stores ordinary
+- Generated root models retain opaque `GeneratedObjectState` backed by a sealed internal `KlumObjectCompanion`. The package-internal Model companion stores ordinary
   completed-model paths, metadata, validation results, and validator memoization without deferred actions; `KlumTemplateProxy` stores graph-wide
   Template identity and immutable serializable `TemplateRecipeState`. Neither retains the creating Builder.
 - `KlumObjectSupport.Validation` reads stored target/subtree results and verifies them without executing validators or
