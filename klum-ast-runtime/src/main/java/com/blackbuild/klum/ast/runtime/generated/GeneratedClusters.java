@@ -35,6 +35,7 @@ import java.util.Map;
  * <p>This is not a supported handwritten client API or extension SPI. Generated Cluster accessors
  * use these query operations while the reflection and Builder-aware query mechanics remain internal.</p>
  */
+@SuppressWarnings("java:S100") // reserved generated-code ABI hooks
 public final class GeneratedClusters {
 
     private GeneratedClusters() {
