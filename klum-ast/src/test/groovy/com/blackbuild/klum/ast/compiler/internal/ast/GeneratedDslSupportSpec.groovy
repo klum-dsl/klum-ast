@@ -31,6 +31,7 @@ import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs
+import com.blackbuild.klum.ast.runtime.generated.GeneratedClusters
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
@@ -195,6 +196,26 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         paths == ['$/s.Foo.With/kids/kid', '$/s.Foo.With/services/primary']
         foo.kids*.name == ['list child']
         foo.primary.name == 'cluster child'
+    }
+
+    @Issue('391')
+    def "generated Cluster accessors use only the reviewed bridge and preserve query results"() {
+        given:
+        Class<?> fooType = getClass('sample.Foo')
+
+        when:
+        def foo = fooType.Create.With {
+            primary { name 'primary' }
+            secondary { name 'secondary' }
+        }
+
+        then: 'the generated model class names the generated bridge, never the internal query helper'
+        def owners = classFileOwners(fooType)
+        owners.contains(GeneratedClusters.name.replace('.', '/'))
+        !owners.contains('com/blackbuild/klum/ast/runtime/internal/layer3/ClusterModel')
+
+        and: 'the Layer 3 accessor keeps its established non-null property projection'
+        foo.services == [primary: foo.primary, secondary: foo.secondary]
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {

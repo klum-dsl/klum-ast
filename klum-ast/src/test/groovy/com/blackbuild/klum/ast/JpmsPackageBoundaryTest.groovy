@@ -158,7 +158,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
     @PendingFeatureIf(
             value = { GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.') },
-            reason = 'Related #391: remaining public generated-runtime ABI migration still leaves generated runtime.internal bytecode links; restore this positive Groovy 4/5 named-schema check to ordinary passing coverage once all generated runtime.internal bytecode links are migrated.'
+            reason = 'Related #391: omitted Builder-projection fallback still leaves generated runtime.internal bytecode links; restore this positive Groovy 4/5 named-schema check to ordinary passing coverage once that final ABI link is migrated.'
     )
     def "Groovy 4 and 5 activate local transformations from the named compiler module"() {
         given:
@@ -176,11 +176,14 @@ class JpmsPackageBoundaryTest extends Specification {
         !namedGroovy || namedModuleResult.exitCode == 0
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
 
-        and: 'the positive fixture remains pending until its generated model has no internal runtime linkage'
-        !namedGroovy || !new String(
-                Files.readAllBytes(namedModuleResult.outputDirectory.resolve('NamedRoot.class')),
-                StandardCharsets.ISO_8859_1
-        ).contains('com/blackbuild/klum/ast/runtime/internal')
+        and: 'the positive fixture remains pending until every generated artifact has no internal runtime linkage'
+        !namedGroovy || !Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
+            paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith('.class') }
+                    .any { classFile ->
+                        new String(Files.readAllBytes(classFile), StandardCharsets.ISO_8859_1)
+                                .contains('com/blackbuild/klum/ast/runtime/internal')
+                    }
+        }
     }
 
     private static Map<String, Set<String>> packageOwners(Map<String, Set<String>> packagesByArtifact) {
@@ -268,9 +271,18 @@ class JpmsPackageBoundaryTest extends Specification {
             @DSL class NamedRoot {
                 @Required String name
                 @Cluster Map<String, NamedChild> children
+                NamedChild child
             }
 
-            @DSL class NamedChild {}
+            @DSL class NamedChild {
+                static NamedChild fromString(String value) {
+                    return materialize(value)
+                }
+
+                private static NamedChild materialize(String value) {
+                    return NamedChild.Create.With()
+                }
+            }
         '''.stripIndent())
 
         List<String> command = [Path.of(System.getProperty('java.home'), 'bin', 'java').toString()]
