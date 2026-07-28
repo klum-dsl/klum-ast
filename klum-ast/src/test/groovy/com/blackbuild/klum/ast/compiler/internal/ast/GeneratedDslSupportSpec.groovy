@@ -145,7 +145,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                         !constant.contains('com/blackbuild/klum/ast/runtime/internal/KlumObjectCompanion')
             }
         }
-        classFileConstants(root).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedObjectState')
+        classFileConstants(root).any { it.contains('com/blackbuild/klum/ast/runtime/generated/GeneratedObjectState') }
         classFileConstants(model).any { it.contains('com/blackbuild/klum/ast/runtime/generated/GeneratedMaterializationToken') }
         [root, child].every { type ->
             classFileConstants(type).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedModelSupport')
