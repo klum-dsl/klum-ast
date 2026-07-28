@@ -215,12 +215,14 @@ class JpmsPackageBoundaryTest extends Specification {
     }
 
     private static ProcessResult compileNamedSchema() {
-        compileSchema([
+        List<String> command = [
                 '--module-path', modulePathEntries().join(File.pathSeparator),
                 '--add-modules', 'ALL-MODULE-PATH',
                 '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler',
                 '--classpath', modulePathEntries().join(File.pathSeparator)
-        ])
+        ]
+        assertNamedModuleCommand(command)
+        compileSchema(command)
     }
 
     private static ProcessResult compileClasspathSchema() {
@@ -258,6 +260,19 @@ class JpmsPackageBoundaryTest extends Specification {
         builder.environment().remove('CLASSPATH')
         Process process = builder.start()
         new ProcessResult(process.waitFor(), process.inputStream.text, output)
+    }
+
+    private static void assertNamedModuleCommand(List<String> command) {
+        assert command.containsAll([
+                '--module-path',
+                '--add-modules', 'ALL-MODULE-PATH',
+                '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler'
+        ])
+        assert !command.any { option ->
+            ['--add-reads', '--add-exports', '--patch-module'].any { forbidden ->
+                option == forbidden || option.startsWith("${forbidden}=")
+            }
+        }
     }
 
     private static List<String> modulePathEntries() {
