@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.compiler.internal.validation.CheckDslAnnotation
 import com.blackbuild.klum.ast.compiler.internal.validation.CheckForPrimitiveBoolean
 import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteMapCheck
 import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteSingleCheck
+import com.blackbuild.klum.ast.compiler.internal.validation.OverwriteStrategiesCheck
 import com.blackbuild.klum.ast.compiler.internal.validation.ValidateAnnotationCheck
 import com.blackbuild.klum.cast.KlumCastValidator
 import com.blackbuild.klum.cast.spi.Check
@@ -50,6 +51,7 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
             CheckForPrimitiveBoolean,
             OverwriteMapCheck,
             OverwriteSingleCheck,
+            OverwriteStrategiesCheck,
             ValidateAnnotationCheck,
     ]
 
@@ -64,7 +66,7 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
         checkType << CHECK_TYPES
     }
 
-    def "annotation artifact retains the eight supported name bindings"() {
+    def "annotation artifact retains the nine supported name bindings"() {
         expect:
         annotationTypes
                 .collect { it.getAnnotationsByType(KlumCastValidator).toList() }
@@ -73,7 +75,7 @@ class KlumCastCheckSpiMigrationTest extends AbstractDSLSpec {
                 .toSet() == CHECK_TYPES*.name.toSet()
 
         where:
-        annotationTypes = [Field, DSL, WriteAccess, Validate, Overwrite.Single, Overwrite.Map, DefaultValues]
+        annotationTypes = [Field, DSL, WriteAccess, Validate, Overwrite, Overwrite.Single, Overwrite.Map, DefaultValues]
     }
 
     @Unroll

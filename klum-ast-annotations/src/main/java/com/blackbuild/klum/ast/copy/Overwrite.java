@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.copy;
 import com.blackbuild.klum.ast.internal.cast.NeedsDSLClass;
 import com.blackbuild.klum.cast.KlumCastValidated;
 import com.blackbuild.klum.cast.KlumCastValidator;
-import com.blackbuild.klum.cast.checks.NeedsOneOf;
 import com.blackbuild.klum.cast.checks.NeedsType;
 
 import java.lang.annotation.ElementType;
@@ -37,11 +36,11 @@ import java.lang.annotation.Target;
 /**
  * Handles how values are copied from one object to another.
  */
-@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
+@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE, ElementType.ANNOTATION_TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @KlumCastValidated
 @NeedsDSLClass
-@NeedsOneOf(value = {"singles", "collections", "maps"})
+@KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.validation.OverwriteStrategiesCheck")
 public @interface Overwrite {
 
     Overwrite.Single singles() default @Overwrite.Single(OverwriteStrategy.Single.INHERIT);
