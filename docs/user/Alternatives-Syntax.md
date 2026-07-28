@@ -4,6 +4,9 @@ Alternative syntax selects a child class through the generated method name rathe
 adder method:
 
 Given the schema:
+
+(See: `AlternativesDocumentaryTest#'uses alternative names derived from child class names'`.)
+
 ```groovy
 @DSL
 class Config {
@@ -69,6 +72,8 @@ a repeated type-family convention.
 
 Use `@Field(alternatives = ...)` to map method names explicitly to classes:
 
+(See: `AlternativesDocumentaryTest#'uses field-local alternative names for one endpoint relationship'`.)
+
 ```groovy
 @DSL
 class Config {
@@ -99,6 +104,8 @@ class ChildElement extends Element {
 ```
 
 allows:
+
+(See: `AlternativesDocumentaryTest#'uses deliberate subtype short names for endpoint alternatives'`.)
 
 ```groovy
 Config.Create.With {
@@ -153,5 +160,7 @@ The executable example is `AlternativesSpec.groovy`, feature `uses stripped suff
 
 In any other case, KlumAST lowercases the first character of the subclass name. The opening `SubElement` and
 `ChildElement` example therefore produces `subElement` and `childElement`.
+
+The executable example is `AlternativesDocumentaryTest.groovy`, feature `uses alternative names derived from child class names`.
 
 For more complex cases, custom [[Factory Classes]] can be used.
