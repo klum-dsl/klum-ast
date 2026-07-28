@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
-import com.blackbuild.klum.ast.runtime.internal.OmittedProjectionSupport;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedOmittedProjectionSupport;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
@@ -92,8 +92,8 @@ final class OmittedProjectionCatalog {
 
     private static MethodCallExpression createHandlerCall(String catalog) {
         return callX(
-                classX(ClassHelper.make(OmittedProjectionSupport.class)),
-                "handle",
+                classX(ClassHelper.make(GeneratedOmittedProjectionSupport.class)),
+                "$klum$handle",
                 args(varX("this"), varX("name"), varX("arguments"), constX(catalog)));
     }
 

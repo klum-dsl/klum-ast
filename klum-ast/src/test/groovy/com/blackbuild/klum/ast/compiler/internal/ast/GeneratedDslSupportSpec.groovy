@@ -29,10 +29,12 @@ import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs
 import com.blackbuild.klum.ast.runtime.generated.GeneratedClusters
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport
+import com.blackbuild.klum.ast.runtime.generated.GeneratedOmittedProjectionSupport
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import groovy.lang.DelegatesTo
@@ -218,6 +220,26 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         foo.services == [primary: foo.primary, secondary: foo.secondary]
     }
 
+    @Issue('391')
+    def "generated omitted projection fallback uses only the reviewed bridge and preserves its diagnostic"() {
+        given:
+        Class<?> fooType = getClass('sample.Foo')
+        Class<?> builderType = getClass('sample.Foo$Builder')
+
+        when:
+        fooType.Create.With { opaqueChild 'nested' }
+
+        then: 'the emitted methodMissing owner is the generated bridge, never the internal diagnostic helper'
+        def error = thrown(KlumModelException)
+        def owners = classFileOwners(builderType)
+        owners.contains(GeneratedOmittedProjectionSupport.name.replace('.', '/'))
+        !owners.contains('com/blackbuild/klum/ast/runtime/internal/OmittedProjectionSupport')
+
+        and: 'the unsupported-projection diagnostic remains unchanged'
+        error.message.contains('omitted Builder-producing projection opaqueChild(java.lang.String)')
+        error.message.contains('active-session Create.AsBuilder')
+    }
+
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
         given:
         Class<?> builder = getClass('sample.Child_DSL$Builder')
@@ -398,7 +420,18 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 List<Child> kids
                 Child primary
                 Child secondary
+                OpaqueChild opaqueChild
                 @Cluster Map<String, Child> services
+            }
+
+            @DSL class OpaqueChild {
+                static OpaqueChild fromString(String value) {
+                    return materialize(value)
+                }
+
+                private static OpaqueChild materialize(String value) {
+                    return OpaqueChild.Create.With()
+                }
             }
         '''
     }
