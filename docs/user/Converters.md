@@ -14,6 +14,8 @@ is added to the adder as well.
 
 Examples:
 
+(See: `ConvertersDocumentaryTest#'converts timestamp input for a simple field and map entry'`.)
+
 ```groovy
 @DSL class Foo {
   @Field(converters = [
@@ -61,6 +63,8 @@ adder.
 For a DSL Object relationship, a recognized static factory method can be used inside the owning Model just like a normal
 child creator. The same method still returns a completed object when called as a root factory:
 
+(See: `ConvertersDocumentaryTest#'uses a named factory method as an owned DSL relationship creator'`.)
+
 ```groovy
 given: // Schema
 @DSL
@@ -73,7 +77,7 @@ class Endpoint {
     int port
 
     static Endpoint fromPort(int port) {
-        Endpoint.Create.With { port port }
+        Endpoint.Create.With(port: port)
     }
 }
 
@@ -101,10 +105,13 @@ Declare additional factory classes with `@Converters`, either for a complete DSL
 By default, KlumAST uses public static factory methods that return the expected type or a subtype, have a recognized
 prefix, or carry `@Converter`.
 
+(See: `ConvertersDocumentaryTest#'uses a converter factory class for convention and annotation-based inputs'`.)
+
 ```groovy
 import java.text.SimpleDateFormat
 
-@DSL(converters = [BarUtil]) class Foo {
+@Converters(BarUtil)
+@DSL class Foo {
     Bar bar
 }
 
