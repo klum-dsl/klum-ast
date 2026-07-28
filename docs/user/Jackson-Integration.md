@@ -84,6 +84,8 @@ modules, and data-format factories stay under the integration's control.
 DSL Objects. Configure the caller-owned mapper with `KlumAstModule`, then capture one importer and provide one input per
 operation:
 
+(See: `JacksonImporterDocumentaryTest#'imports a completed release through the managed importer'`.)
+
 ```java
 KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
 Order order = importer.readRoot(Order.class, KlumJacksonInput.parser(parser));
