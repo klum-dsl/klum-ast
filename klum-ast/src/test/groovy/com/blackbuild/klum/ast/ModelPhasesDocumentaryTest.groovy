@@ -31,8 +31,17 @@ import spock.lang.Tag
 @Tag("documentary")
 class ModelPhasesDocumentaryTest extends AbstractDSLSpec {
 
-    @Issue("64")
-    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#lifecycle-annotations")
+    @Issue("491")
+    @See([
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#lifecycle-annotations",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#creation",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#autocreate-10",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#owner-15",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#autolink-20",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#default-25",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#posttree-30",
+            "https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Model-Phases.md#validation-50"
+    ])
     def "runs a deployment lifecycle on Builders before completing its model"() {
         given:
         createClass '''

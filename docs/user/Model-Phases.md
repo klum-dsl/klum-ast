@@ -69,6 +69,8 @@ The creation phase starts with the first factory call in a thread. It creates an
 Builder graph. Creating a Builder includes applying [[Templates]], then calling `@PostCreate`, explicit configuration, and
 `@PostApply` methods and closures. No completed DSL Object exists yet.
 
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
 later phases.
 
@@ -110,6 +112,8 @@ i.e., everything provided by a user-provided script or code. This includes check
 The AutoCreate phase will create objects that are marked with `@AutoCreate` and have not been created yet. It also runs
 any lifecycle methods and Closures that are marked with `@AutoCreate`.
 
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
 ## Owner (15)
 
 The Owner phase is a special variant of the AutoLink phase in that it links objects together, in that case fields
@@ -118,19 +122,27 @@ heavy use of the owner field.
 
 Also resolves `@Role` fields and methods, which are technically special case `@Owner` elements.
 
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
 ## AutoLink (20)
 
 The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
 by annotating fields with `@LinkTo`. Also, regular lifecycle methods and Closure fields can be annotated with `@AutoLink` to be executed.
 
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
 ## Default (25)
 
 The Default phase is used to set default values. See [Default Values](Default-Values.md) for details. This includes `@DefaultValues` as well as `@Default` field, delegate and code defaults. As with all lifecycle annotations, methods and Closure fields annotated with `@Default` will also be executed during this phase.
+
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
 
 ## PostTree (30)
 
 The PostTree phase allows executing actions on a completely configured Builder tree. This can be used
 to create interlinking between objects that are too complex for AutoLink/AutoCreate.
+
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
 
 ## Instantiate (40)
 
@@ -147,6 +159,8 @@ Validates the correctness of completed DSL Objects according to the presence of 
 are transferred during materialization, and each `InstanceValidator` runs at most once per completed object. The validation
 phase and custom validation phases only collect problems; the Verify phase throws. The ordinal band 51-60 is free for
 plugin-provided validation phases.
+
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
 
 ## Verify (80)
 
