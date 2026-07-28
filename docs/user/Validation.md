@@ -7,8 +7,23 @@ For reading stored results from a completed model, see [[Completed Object Suppor
 
 ## On Classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
-against Groovy truth
- (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).
+against Groovy truth (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).
+
+(See: `ValidationDocumentaryTest#'validates unannotated fields when a class is marked for validation'`.)
+
+```groovy
+@DSL
+@Validate
+class Release {
+    String name
+
+    @Optional
+    String notes
+}
+```
+
+`Release.Create.One()` reports that `name` must be set, while `Release.Create.With { name "spring-catalog" }`
+accepts the omitted optional `notes` field.
    
 ## On Fields
 The `@Validate` annotation controls validation of a single field. If the annotation is not present, the presence on the class  
@@ -20,20 +35,21 @@ The `@Validate` annotation controls validation of a single field. If the annotat
  * A closure that takes a single argument, the value of the field. This closure must either be a single expression that
    is evaluated against Groovy Truth or else an `assert` statement itself.
 
+(See: `ValidationDocumentaryTest#'validates a numeric field with a closure'`.)
+
 ```groovy
 @DSL
 class Figure {
- @Validate({ it > 2})
- int edges
-
- @Validate({ assert defining <= edges })
- int defining
+    @Validate({ it > 2 })
+    int edges
 }
 ```
 
 The annotation can also contain an additional `message` value further describing the constraint; this is included in
 the error message. For a field rule with an explicit message, the validation result identifies the field and gives the
 reader a direct next step:
+
+(See: `ValidationDocumentaryTest#'reports an explicit validation message for a field'`.)
 
 ```groovy
 @DSL
@@ -86,6 +102,8 @@ companion and is accessed through `KlumObjectSupport.of(object).getValidation().
 
 `@Required` is a convenient alias for `@Validate` with an empty value (i.e., default validation), also with an optional message and level.
 
+(See: `ValidationDocumentaryTest#'uses Required as the concise Groovy-truth field rule'`.)
+
 ```groovy
 @DSL
 class MyModel {
@@ -124,8 +142,21 @@ class MyModel {
 }
 ```
 
-Likewise, `@Optional` is a convenient alias for `@Validate(Validate.Ignore)`, to explicitly ignore a from validation when
-`Validate` is used on a class.
+Likewise, `@Optional` is a convenient alias for `@Validate(Validate.Ignore)`, to explicitly ignore a field from validation
+when `Validate` is used on a class.
+
+(See: `ValidationDocumentaryTest#'excludes an optional field from class-wide validation'`.)
+
+```groovy
+@DSL
+@Validate
+class Release {
+    String name
+
+    @Optional
+    String notes
+}
+```
 
 ## On Methods
 
