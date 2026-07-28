@@ -13,8 +13,11 @@ before delivery review.
 
 JP-ABI-6 omitted-projection base: `7617170107533bc937e9ae784424e9a882b55bb3`
 (`codex/jp-abi-5-generated-clusters`, local, 2026-07-28). This local-only
-slice starts exactly from the completed JP-ABI-5 bridge and must rebase exactly
-onto refreshed merged master before final validation and delivery review.
+slice started exactly from the completed JP-ABI-5 bridge.
+
+JP-ABI-6 final rebase base: `398f2f933266e491b66524e5cac132646b813eda`
+(`origin/master`, merged PR #593, 2026-07-28). The local branch rebased once
+exactly onto this merged master state before final validation and delivery review.
 
 This is a local decision record, not an ADR amendment. It inventories framework
 types that the DSL transformation places in a Schema Developer's generated
@@ -37,16 +40,16 @@ JP-ABI-1 through JP-ABI-5 migrate the Builder, model-state, Materialization,
 Template, breadcrumb, and Cluster entries below to the generated-runtime
 bridge. JP-ABI-6 migrates the final omitted-projection entry. Its class-file
 owner scanner records the generated bridge owner and rejects the internal
-owner; JP-1b retains the end-to-end named-schema acceptance restoration.
+owner; the restored JP-1b named-schema fixture verifies every emitted class
+owner on the Groovy 4 and 5 module paths.
 This record does not claim a current module-path execution result.
 
 ## Remaining direct emitted linkage
 
 None. JP-ABI-6 removes the final inventory entry; the synthetic `methodMissing`
 fallback now names the reviewed generated bridge while retaining its existing
-unsupported-projection diagnostic. This clears only the direct emitted-internal-linkage
-prerequisite for JP-1b's pending named-schema fixture; JP-1b owns restoring its
-ordinary passing end-to-end acceptance coverage.
+unsupported-projection diagnostic. This clears the direct emitted-internal-linkage
+prerequisite and restores JP-1b's ordinary passing end-to-end acceptance coverage.
 
 ## Migrated generated-runtime linkage
 

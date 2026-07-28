@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast
 
 import spock.lang.Issue
-import spock.lang.PendingFeatureIf
 import spock.lang.Specification
 
 import java.lang.module.ModuleFinder
@@ -156,10 +155,6 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @PendingFeatureIf(
-            value = { GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.') },
-            reason = 'Related #391: omitted Builder-projection fallback still leaves generated runtime.internal bytecode links; restore this positive Groovy 4/5 named-schema check to ordinary passing coverage once that final ABI link is migrated.'
-    )
     def "Groovy 4 and 5 activate local transformations from the named compiler module"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -176,7 +171,7 @@ class JpmsPackageBoundaryTest extends Specification {
         !namedGroovy || namedModuleResult.exitCode == 0
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
 
-        and: 'the positive fixture remains pending until every generated artifact has no internal runtime linkage'
+        and: 'every generated named-schema class names no runtime-internal owner'
         !namedGroovy || !Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
             paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith('.class') }
                     .any { classFile ->
