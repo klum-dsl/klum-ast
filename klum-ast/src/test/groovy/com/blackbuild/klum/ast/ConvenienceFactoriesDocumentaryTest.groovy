@@ -74,15 +74,16 @@ class ConvenienceFactoriesDocumentaryTest extends AbstractDSLSpec {
                 String endpoint
             }
         '''
-        def deploymentScript = createSecondaryClass '''
-            @groovy.transform.BaseScript(DelegatingScript)
-            import groovy.util.DelegatingScript
+        def serviceScript = createSecondaryClass '''
+            import groovy.transform.BaseScript
+
+            @BaseScript(DelegatingScript) import groovy.util.DelegatingScript
 
             endpoint 'https://catalog.example.test'
         ''', 'CatalogService.groovy'
 
         when:
-        def service = clazz.Create.From(deploymentScript)
+        def service = clazz.Create.From(serviceScript)
 
         then:
         service.name == 'CatalogService'
@@ -114,26 +115,30 @@ class ConvenienceFactoriesDocumentaryTest extends AbstractDSLSpec {
             }
         '''
         def catalogService = createSecondaryClass '''
-            @groovy.transform.BaseScript(DelegatingScript)
-            import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+
+            @BaseScript(DelegatingScript) import groovy.util.DelegatingScript
 
             endpoint 'https://catalog.example.test'
         ''', 'CatalogService.groovy'
         def billingService = createSecondaryClass '''
-            @groovy.transform.BaseScript(DelegatingScript)
-            import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+
+            @BaseScript(DelegatingScript) import groovy.util.DelegatingScript
 
             endpoint 'https://billing.example.test'
         ''', 'BillingService.groovy'
         def catalogWorker = createSecondaryClass '''
-            @groovy.transform.BaseScript(DelegatingScript)
-            import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+
+            @BaseScript(DelegatingScript) import groovy.util.DelegatingScript
 
             queue 'catalog'
         ''', 'CatalogWorker.groovy'
         def billingWorker = createSecondaryClass '''
-            @groovy.transform.BaseScript(DelegatingScript)
-            import groovy.util.DelegatingScript
+            import groovy.transform.BaseScript
+
+            @BaseScript(DelegatingScript) import groovy.util.DelegatingScript
 
             queue 'billing'
         ''', 'BillingWorker.groovy'
