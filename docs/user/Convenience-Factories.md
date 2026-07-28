@@ -7,6 +7,8 @@ Convenience factory methods load a configuration directly from scripts, text, fi
 `MyConfig.Create.From(Class<Script>)` runs the given `Script` and returns the result. The script must return the
 proper type, for example:
 
+(See: `ConvenienceFactoriesDocumentaryTest#'loads a completed deployment from a script class'`.)
+
 ```groovy
 MyConfig.Create.With {
   value("bla")
@@ -19,6 +21,8 @@ If the target script is a subclass of `DelegatingScript`, its body is considered
 For keyed classes, the key value is the script class's simple name.
 
 To create a delegating script, include it explicitly with an annotation:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'uses a DelegatingScript class as keyed configuration content'`.)
 
 ```groovy
 @BaseScript DelegatingScript base
@@ -51,6 +55,8 @@ opaque and are rejected with migration guidance. See
 
 The intended `DelegatingScript` behavior allows splitting a bigger model into separate files:
 
+(See: `ConvenienceFactoriesDocumentaryTest#'applies DelegatingScript recipes to list and map relationship factories'`.)
+
 With the DSL
 
 ```groovy
@@ -69,25 +75,26 @@ Container.Create.With {
 }
 ```
 
+Materializing regular Script programs remain deliberately covered by the focused rejection tests in
+`ConvenienceFactoriesSpec`.
+
 
 ## Text
 `MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the creation
 closure.
 
-For example
+For example (see: `ConvenienceFactoriesDocumentaryTest#'loads keyed configuration from text'`):
 
 ```groovy
-def config = Config.Create.From(new File("bla.groovy").text)
-```
+given:
+def content = '''
+    value("blub")
+'''
 
-and the file bla.groovy
-```groovy
-value("blub")
-```
+when:
+def config = Config.Create.From(content)
 
-result in the following:
-
-```groovy
+then:
 assert config.value == "blub"
 ```
 
@@ -107,7 +114,9 @@ Instead of text, a `File` or `URL` can be given; for a keyed object, the key is 
 get complete code completion and syntax highlighting an specialized config files.
 
 This allows splitting configurations into different files, which might be automatically resolved by something like:
- 
+
+(See: `ConvenienceFactoriesDocumentaryTest#'derives a keyed configuration name from a file or URL'`.)
+
 ```groovy
 Config.Create.With {
     environments {
@@ -132,6 +141,8 @@ By placing a marker on the classpath, a consumer can instantiate this class with
 This moves the dependency from code into JAR orchestration or the build script.
 
 Given the following classes:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'discovers a deployment entry point from its classpath marker'`.)
 
 `Model.groovy`:
 ```groovy
@@ -187,6 +198,8 @@ Library-specific features such as renamed fields can be simulated by overriding 
 adjusting the effective `Map` before calling the superclass method.
 
 Creation of inner objects delegates to their respective `FromMap` methods.
+
+(See: `ConvenienceFactoriesDocumentaryTest#'adapts external map keys in a custom factory'`.)
 
 ```groovy
 @DSL class Person {

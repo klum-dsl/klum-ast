@@ -130,6 +130,10 @@ Keep the feature issue, documentary test, and user documentation mutually tracea
 - The documentation demonstrates the feature with an abbreviated example that may omit imports and other setup, and
   refers to the documentary test file and feature method. Align the example with the test where practical so executable
   coverage guards the documented usage.
+- Place that reference immediately before the corresponding example in the form
+  `(See: \`ThemeDocumentaryTest#'demonstrates the feature'\`.)`, following the `Templates.md` convention. Keep an
+  example's logical setup, invocation, and assertion in one Groovy block; use `given:`, `when:`, and `then:` labels when
+  they help the reader distinguish those parts rather than splitting them across separate blocks.
 
 When the outcome itself clarifies the contract, the documentation may also show an abbreviated `then:` assertion from the
 documentary test. For a more complex resulting graph, a concise logical representation of the completed model may be
