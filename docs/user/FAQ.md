@@ -6,6 +6,24 @@ A Groovy `ModelBuilder` relies heavily on dynamic methods and properties. In com
 described construction API that can be used with `@TypeChecked` or `@CompileStatic`. It also exposes
 `@DelegatesTo` metadata that modern IDEs can use for Builder-closure assistance.
 
+(See: `FAQDocumentaryTest#'configures a generated Builder from a type-checked model script'`.)
+
+```groovy
+@DSL
+class Deployment {
+    String environment
+}
+
+@TypeChecked
+class TypeCheckedDeploymentConfiguration {
+    static Deployment create() {
+        Deployment.Create.With {
+            environment 'production'
+        }
+    }
+}
+```
+
 ## Why don't I get code completion in my IDE?
 
 For a current IntelliJ setup, use the Gradle Schema plugin and refresh the generated source mirrors after Schema changes:
