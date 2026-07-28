@@ -50,6 +50,36 @@ The strategy is determined by checking in the following order and using the firs
 
 The strategy can be one of the following:
 
+(See: `CopyStrategiesDocumentaryTest#'merges a nested service configuration from a template'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Endpoint {
+    String host
+    Integer port
+}
+
+@DSL
+class Service {
+    @Overwrite.Single(OverwriteStrategy.Single.MERGE)
+    Endpoint endpoint
+}
+
+when: // Model
+def baseline = Service.Template.Create {
+    endpoint { host 'catalog.example.test' }
+}
+def service = Service.Create.With {
+    endpoint { port 8443 }
+    copyFrom baseline
+}
+
+then:
+assert service.endpoint.host == 'catalog.example.test'
+assert service.endpoint.port == 8443
+```
+
 ### INHERIT
 
 Not a strategy in itself, should no be used directly.
@@ -85,6 +115,29 @@ The strategy is determined in exactly the same way as for single object fields, 
 The default strategy is `REPLACE`.
 
 The strategy can be one of the following:
+
+(See: `CopyStrategiesDocumentaryTest#'adds template roles to a service configuration'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Service {
+    @Overwrite.Collection(OverwriteStrategy.Collection.ADD)
+    List<String> roles
+}
+
+when: // Model
+def baseline = Service.Template.Create {
+    roles 'observer'
+}
+def service = Service.Create.With {
+    roles 'operator'
+    copyFrom baseline
+}
+
+then:
+assert service.roles == ['operator', 'observer']
+```
 
 ### INHERIT
 
@@ -124,6 +177,37 @@ As with collections, DSL Object values are rehydrated into fresh child Builders 
 
 The strategies are as follows:
 
+(See: `CopyStrategiesDocumentaryTest#'merges environment map values from a template'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Environment {
+    @Key String name
+    String region
+    Integer replicas
+}
+
+@DSL
+class Deployment {
+    @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES)
+    Map<String, Environment> environments
+}
+
+when: // Model
+def baseline = Deployment.Template.Create {
+    environment('production') { region 'eu-central' }
+}
+def deployment = Deployment.Create.With {
+    environment('production') { replicas 3 }
+    copyFrom baseline
+}
+
+then:
+assert deployment.environments.production.region == 'eu-central'
+assert deployment.environments.production.replicas == 3
+```
+
 ### INHERIT
 
 Not a strategy in itself, should no be used directly.
@@ -157,6 +241,49 @@ All entries in the donor's map whose keys are not present in the target's map ar
 ## Nested Annotations
 
 Nested Annotations can be used to give meaningful names to a couple of strategies. For example, the `HelmOverwrite` annotation is a nested annotation that sets the strategy to `MERGE` for single object fields, `ALWAYS_REPLACE` for collections and `MERGE_VALUES` for maps, resembling the way helm merges value files.
+
+(See: `CopyStrategiesDocumentaryTest#'applies the packaged Helm copy policy to a deployment'`.)
+
+```groovy
+import com.blackbuild.klum.ast.copy.HelmOverwrite
+
+given: // Schema
+@DSL
+class Service {
+    @Key String name
+    String host
+    String port
+}
+
+@HelmOverwrite
+@DSL
+class Deployment {
+    String image
+    List<String> arguments
+    Map<String, Service> services
+}
+
+when: // Model
+def baseline = Deployment.Template.Create {
+    image 'catalog:2.0'
+    arguments = []
+    service('web') { port '8443' }
+    service('metrics') { host 'metrics.example.test' }
+}
+def deployment = Deployment.Create.With {
+    image 'catalog:1.0'
+    arguments '--verbose'
+    service('web') { host 'catalog.example.test' }
+    copyFrom baseline
+}
+
+then:
+assert deployment.image == 'catalog:2.0'
+assert deployment.arguments == []
+assert deployment.services.web.host == 'catalog.example.test'
+assert deployment.services.web.port == '8443'
+assert deployment.services.metrics.host == 'metrics.example.test'
+```
 
 It is defined as follows:
 
