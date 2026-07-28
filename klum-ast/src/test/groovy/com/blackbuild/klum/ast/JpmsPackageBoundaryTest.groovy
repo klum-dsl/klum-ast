@@ -30,6 +30,7 @@ import spock.lang.Specification
 import java.lang.module.ModuleFinder
 import java.nio.file.Path
 import java.nio.file.Files
+import java.nio.charset.StandardCharsets
 import java.util.jar.JarFile
 
 @Issue("391")
@@ -56,6 +57,7 @@ class JpmsPackageBoundaryTest extends Specification {
         packagesByArtifact.annotations.contains('com.blackbuild.klum.ast')
         !packagesByArtifact.runtime.contains('com.blackbuild.klum.ast')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime')
+        packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.generated')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.validation')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.layer3')
@@ -117,6 +119,7 @@ class JpmsPackageBoundaryTest extends Specification {
         ] as Set
         exportedPackages(descriptors.runtime) == [
                 'com.blackbuild.klum.ast.runtime',
+                'com.blackbuild.klum.ast.runtime.generated',
                 'com.blackbuild.klum.ast.runtime.validation'
         ] as Set
         exportedPackages(descriptors.compiler).empty
@@ -172,6 +175,12 @@ class JpmsPackageBoundaryTest extends Specification {
         and: 'Groovy 3 remains classpath-only while Groovy 4 and 5 also prove the named-module path.'
         !namedGroovy || namedModuleResult.exitCode == 0
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
+
+        and: 'the positive fixture remains pending until its generated model has no internal runtime linkage'
+        !namedGroovy || !new String(
+                Files.readAllBytes(namedModuleResult.outputDirectory.resolve('NamedRoot.class')),
+                StandardCharsets.ISO_8859_1
+        ).contains('com/blackbuild/klum/ast/runtime/internal')
     }
 
     private static Map<String, Set<String>> packageOwners(Map<String, Set<String>> packagesByArtifact) {

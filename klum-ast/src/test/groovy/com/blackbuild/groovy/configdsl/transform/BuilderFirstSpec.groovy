@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
 import com.blackbuild.klum.ast.runtime.KlumModelException
@@ -42,6 +43,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         Object value
     }
 
+    @Issue('391')
     def "factory configures a Builder and returns a completed model"() {
         given:
         createClass '''
@@ -75,7 +77,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         }
 
         then:
-        rwClazz.superclass == InternalKlumBuilder
+        rwClazz.superclass == GeneratedKlumBuilder
         instance.value == "configured:builder-only"
         clazz.initializerCalls == 1
         clazz.declaredFields*.name.contains("scratch") == false

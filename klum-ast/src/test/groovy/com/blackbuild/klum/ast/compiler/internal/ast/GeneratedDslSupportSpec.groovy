@@ -87,6 +87,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         [builder, collectionFactory, clusterFactory].every { publicSignatures(it).every { !it.contains('\$_') } }
     }
 
+    @Issue('391')
     def "preserves inherited Builder self-model typing"() {
         given:
         Class<?> baseBuilder = getClass('sample.Base_DSL$Builder')
@@ -106,11 +107,17 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         and: 'hidden implementations thread the same leaf model type without a second capability'
         baseImplementation.typeParameters*.name == ['SELF']
-        baseImplementation.genericSuperclass.typeName == 'com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder<SELF>'
+        baseImplementation.genericSuperclass.typeName == 'com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder<SELF>'
         fooImplementation.typeParameters*.name == ['SELF']
         fooImplementation.typeParameters[0].bounds*.typeName == ['sample.Foo']
         fooImplementation.genericSuperclass.typeName == 'sample.Base$Builder<SELF>'
         !fooImplementation.genericInterfaces*.typeName.any { it.startsWith('com.blackbuild.klum.ast.runtime.KlumBuilder') }
+
+        and: 'the hidden Builder implementation links only the reviewed generated-runtime bridge'
+        [baseImplementation, fooImplementation].every { implementation ->
+            classFileConstants(implementation).every { !it.contains('com/blackbuild/klum/ast/runtime/internal/InternalKlumBuilder') }
+        }
+        classFileConstants(baseImplementation).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder')
     }
 
     def "public Builder contracts expose the zero-operation KlumBuilder capability"() {
