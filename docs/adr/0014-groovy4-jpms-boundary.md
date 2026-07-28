@@ -101,13 +101,23 @@ module provides `InstanceValidator`; the Jackson module provides the Jackson
 KlumAST compiler transformations are annotation-triggered local transforms,
 not global `META-INF/services` transforms. For Groovy 4/5, the compiler module
 requires `org.apache.groovy` and opens `compiler.internal.ast`,
-`.ast.converters`, `.ast.mutators`, and `.layer3` only to that module, allowing
-Groovy to instantiate the transformations named by the public annotations. It
-also opens `compiler.internal.validation` only to
-`com.blackbuild.klum.cast.compiler`: the established
-`@KlumCastValidator` bindings require Klum Cast to reflectively instantiate
-their internal validation checks. That narrow reflective opening is neither an
-export nor generic reflection access. The compiler exports none of these
+`.ast.converters`, `.ast.mutators`, and `.layer3` to that module, allowing
+Groovy to instantiate the transformations named by the public annotations.
+
+The established `@KlumCastValidator` route separately requires Klum Cast to
+reflectively instantiate exactly these compiler-internal checks:
+
+| Package | Check classes | Qualified target |
+| --- | --- | --- |
+| `compiler.internal.ast` | `FieldAstValidator` | `com.blackbuild.klum.cast.compiler` |
+| `compiler.internal.ast.mutators` | `WriteAccessMethodCheck` | `com.blackbuild.klum.cast.compiler` |
+| `compiler.internal.layer3` | `DefaultValuesCheck` | `com.blackbuild.klum.cast.compiler` |
+| `compiler.internal.validation` | `CheckDslAnnotation`, `CheckForPrimitiveBoolean`, `OverwriteMapCheck`, `OverwriteSingleCheck`, `ValidateAnnotationCheck` | `com.blackbuild.klum.cast.compiler` |
+
+The validation package was already opened to that exact target; JP-3b adds the
+three missing package-target directives, starting with the mutator check that
+exposed the named-schema failure. These narrow reflective openings are neither
+exports nor generic reflection access. The compiler exports none of these
 implementation packages and declares no
 `provides org.codehaus.groovy.transform.ASTTransformation` clause. Groovy 3
 has no descriptor alternative and remains classpath-only.

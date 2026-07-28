@@ -122,10 +122,19 @@ class JpmsPackageBoundaryTest extends Specification {
         exportedPackages(descriptors.jackson) == ['com.blackbuild.klum.ast.jackson'] as Set
         exportedPackages(descriptors.beanValidation) == ['com.blackbuild.klum.ast.validation.bean'] as Set
         qualifiedOpenTargets(descriptors.compiler) == [
-                'com.blackbuild.klum.ast.compiler.internal.ast'           : ['org.apache.groovy'] as Set,
+                'com.blackbuild.klum.ast.compiler.internal.ast'           : [
+                        'org.apache.groovy',
+                        'com.blackbuild.klum.cast.compiler'
+                ] as Set,
                 'com.blackbuild.klum.ast.compiler.internal.ast.converters': ['org.apache.groovy'] as Set,
-                'com.blackbuild.klum.ast.compiler.internal.ast.mutators'  : ['org.apache.groovy'] as Set,
-                'com.blackbuild.klum.ast.compiler.internal.layer3'        : ['org.apache.groovy'] as Set,
+                'com.blackbuild.klum.ast.compiler.internal.ast.mutators'  : [
+                        'org.apache.groovy',
+                        'com.blackbuild.klum.cast.compiler'
+                ] as Set,
+                'com.blackbuild.klum.ast.compiler.internal.layer3'        : [
+                        'org.apache.groovy',
+                        'com.blackbuild.klum.cast.compiler'
+                ] as Set,
                 'com.blackbuild.klum.ast.compiler.internal.validation'    : ['com.blackbuild.klum.cast.compiler'] as Set
         ]
         !descriptors.compiler.provides().any { it.service() == 'org.codehaus.groovy.transform.ASTTransformation' }

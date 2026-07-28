@@ -50,6 +50,24 @@ proves the bounded runtime-internal linkage candidates:
 Those observations are inputs to JP-3's qualified exports, not authorization
 to add a broad export or a third-party SPI.
 
+## KlumCast reflective-validator inventory
+
+The public annotation bindings name eight compiler implementation checks. Klum
+Cast reflectively instantiates them through the established
+`@KlumCastValidator` route; they are not exported APIs:
+
+| Compiler package | Bound checks | JP-3b qualified opening |
+| --- | --- | --- |
+| `compiler.internal.ast` | `FieldAstValidator` | Add `com.blackbuild.klum.cast.compiler` alongside the existing Groovy target. |
+| `compiler.internal.ast.mutators` | `WriteAccessMethodCheck` | Add `com.blackbuild.klum.cast.compiler` alongside the existing Groovy target. |
+| `compiler.internal.layer3` | `DefaultValuesCheck` | Add `com.blackbuild.klum.cast.compiler` alongside the existing Groovy target. |
+| `compiler.internal.validation` | `CheckDslAnnotation`, `CheckForPrimitiveBoolean`, `OverwriteMapCheck`, `OverwriteSingleCheck`, `ValidateAnnotationCheck` | Already open only to `com.blackbuild.klum.cast.compiler`. |
+
+`compiler.internal.ast.converters` has no `@KlumCastValidator` binding and
+remains open only to Groovy. No other compiler package is a reflected KlumCast
+validator category, so no further directive or architectural decision is
+required.
+
 ## Blocking descriptor ambiguity
 
 The relocation is clean, but the full ADR conformance check is **not clean**.
