@@ -31,8 +31,10 @@ import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import groovy.lang.DelegatesTo
 import org.intellij.lang.annotations.Language
+import spock.lang.Issue
 
 import javax.tools.ToolProvider
+import java.io.DataInputStream
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
@@ -120,6 +122,37 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         KlumBuilder.declaredMethods.length == 0
         builder.typeParameters*.name == ['SELF']
         builder.genericInterfaces*.typeName.contains('com.blackbuild.klum.ast.runtime.KlumBuilder<SELF>')
+    }
+
+    @Issue('391')
+    def "Template uses the model-package contract and generated runtime bridge without internal leakage"() {
+        given:
+        Class<?> base = getClass('sample.Base')
+        Class<?> foo = getClass('sample.Foo')
+        Class<?> template = getClass('sample.Foo_DSL$Template')
+        Class<?> adapter = getClass('sample.Foo$_Template')
+
+        expect: 'the public model descriptor names only the model-package Template contract'
+        foo.getField('Template').type == template
+        template.interface && Modifier.isPublic(template.modifiers)
+        template.isAssignableFrom(adapter)
+        !Modifier.isPublic(adapter.modifiers)
+
+        and: 'the full Template capability remains present and only configuration closures expose Builder typing'
+        template.getMethod('With', base, Closure).genericReturnType.typeName == 'C'
+        template.getMethod('WithAll', Map, Closure).genericReturnType.typeName == 'C'
+        template.getMethod('WithAll', List, Closure).genericReturnType.typeName == 'C'
+        template.getMethod('Create')
+        closureDelegate(template.getMethod('Create', Closure)) == getClass('sample.Foo_DSL$Builder')
+        closureDelegate(template.getMethod('Create', Map, Closure)) == getClass('sample.Foo_DSL$Builder')
+        template.getMethod('CreateFrom', File)
+        template.getMethod('CreateFrom', File, ClassLoader)
+        template.getMethod('CreateFrom', URL)
+        template.getMethod('CreateFrom', URL, ClassLoader)
+
+        and: 'the generated Template artifacts link only the reviewed public bridge, never runtime internals'
+        [template, adapter].every { classFileConstants(it).every { !it.contains('com/blackbuild/klum/ast/runtime/internal') } }
+        classFileConstants(adapter).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedTemplateSupport')
     }
 
     def "Java and statically compiled Groovy consume only the public namespace"() {
@@ -277,6 +310,58 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     private static List<String> publicSignatures(Class<?> type) {
         type.methods.collect { Method method ->
             ([method.genericReturnType.typeName] + method.genericParameterTypes*.typeName).join(' ')
+        }
+    }
+
+    private Set<String> classFileConstants(Class<?> type) {
+        File classFile = new File(compilerConfiguration.targetDirectory, type.name.replace('.', '/') + '.class')
+        assert classFile.isFile()
+        classFile.withInputStream { input ->
+            DataInputStream data = new DataInputStream(input)
+            assert data.readInt() == (int) 0xCAFEBABE
+            data.readUnsignedShort()
+            data.readUnsignedShort()
+            int constantPoolCount = data.readUnsignedShort()
+            Set<String> utf8Constants = [] as Set
+            for (int index = 1; index < constantPoolCount; index++) {
+                switch (data.readUnsignedByte()) {
+                    case 1:
+                        utf8Constants << data.readUTF()
+                        break
+                    case 3:
+                    case 4:
+                        data.readInt()
+                        break
+                    case 5:
+                    case 6:
+                        data.readLong()
+                        index++
+                        break
+                    case 7:
+                    case 8:
+                    case 16:
+                    case 19:
+                    case 20:
+                        data.readUnsignedShort()
+                        break
+                    case 9:
+                    case 10:
+                    case 11:
+                    case 12:
+                    case 17:
+                    case 18:
+                        data.readUnsignedShort()
+                        data.readUnsignedShort()
+                        break
+                    case 15:
+                        data.readUnsignedByte()
+                        data.readUnsignedShort()
+                        break
+                    default:
+                        assert false: "Unexpected class-file constant tag"
+                }
+            }
+            utf8Constants
         }
     }
 
