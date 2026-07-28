@@ -23,8 +23,8 @@
  */
 package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.ast.FieldAstValidator
-import com.blackbuild.klum.ast.ast.mutators.WriteAccessMethodCheck
+import com.blackbuild.klum.ast.compiler.internal.ast.FieldAstValidator
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodCheck
 import com.blackbuild.klum.ast.copy.Overwrite
 import com.blackbuild.klum.ast.layer3.DefaultValues
 import com.blackbuild.klum.ast.compiler.internal.layer3.DefaultValuesCheck

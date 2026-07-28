@@ -56,7 +56,7 @@ import java.lang.annotation.*;
 @KlumCastValidated
 @NumberOfParameters(1)
 @NeedsDSLClass
-@KlumCastValidator("com.blackbuild.klum.ast.ast.FieldAstValidator")
+@KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.ast.FieldAstValidator")
 @Documented
 public @interface Field {
 

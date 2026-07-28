@@ -35,9 +35,13 @@ class JpmsPackageBoundaryTest extends Specification {
 
     private static final Set<String> LEGACY_PREFIXES = [
             'com.blackbuild.groovy.configdsl',
+            'com.blackbuild.klum.ast.ast',
+            'com.blackbuild.klum.ast.doc',
             'com.blackbuild.klum.ast.util',
             'com.blackbuild.klum.ast.process',
-            'com.blackbuild.klum.ast.validation'
+            'com.blackbuild.klum.ast.validation',
+            'com.blackbuild.klum.ast.runtime.internal.reflect',
+            'com.blackbuild.klum.common'
     ] as Set
 
     def "migrated artifacts own distinct final package families"() {
@@ -55,9 +59,25 @@ class JpmsPackageBoundaryTest extends Specification {
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.layer3')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.process')
         packagesByArtifact.runtime.contains('com.blackbuild.klum.ast.runtime.internal.validation')
-        ['annotations', 'runtime'].every { artifact ->
-            packagesByArtifact[artifact].every { packageName ->
-                LEGACY_PREFIXES.every { prefix -> !packageName.startsWith(prefix) }
+        packagesByArtifact.compiler.containsAll([
+                'com.blackbuild.klum.ast.compiler.internal.ast',
+                'com.blackbuild.klum.ast.compiler.internal.ast.converters',
+                'com.blackbuild.klum.ast.compiler.internal.ast.mutators',
+                'com.blackbuild.klum.ast.compiler.internal.common',
+                'com.blackbuild.klum.ast.compiler.internal.doc',
+                'com.blackbuild.klum.ast.compiler.internal.layer3',
+                'com.blackbuild.klum.ast.compiler.internal.reflect',
+                'com.blackbuild.klum.ast.compiler.internal.validation'
+        ])
+        packagesByArtifact.compiler.every { packageName ->
+            packageName.startsWith('com.blackbuild.klum.ast.compiler.internal')
+        }
+        packagesByArtifact.every { artifact, packageNames ->
+            packageNames.every { packageName ->
+                LEGACY_PREFIXES.every { prefix ->
+                    !packageName.startsWith(prefix) ||
+                            artifact == 'beanValidation' && packageName.startsWith('com.blackbuild.klum.ast.validation.bean')
+                }
             }
         }
         packageOwners(packagesByArtifact).every { packageName, owners -> owners.size() == 1 }

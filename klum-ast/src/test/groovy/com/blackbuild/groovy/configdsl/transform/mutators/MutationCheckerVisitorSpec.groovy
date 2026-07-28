@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.mutators
 
-import com.blackbuild.klum.ast.ast.mutators.ModelVerificationVisitor
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.ModelVerificationVisitor
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.control.CompilePhase

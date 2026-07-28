@@ -366,9 +366,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited // This is currently not used, see https://issues.apache.org/jira/browse/GROOVY-6765
 @GroovyASTTransformationClass({
-        "com.blackbuild.klum.ast.ast.DSLASTTransformation",
-        "com.blackbuild.klum.ast.ast.mutators.ModelVerifierTransformation",
-        "com.blackbuild.klum.ast.ast.DelegatesToRWTransformation",
+        "com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation",
+        "com.blackbuild.klum.ast.compiler.internal.ast.mutators.ModelVerifierTransformation",
+        "com.blackbuild.klum.ast.compiler.internal.ast.DelegatesToRWTransformation",
 })
 @KlumCastValidated
 @KlumCastValidator("com.blackbuild.klum.ast.compiler.internal.validation.CheckDslAnnotation")

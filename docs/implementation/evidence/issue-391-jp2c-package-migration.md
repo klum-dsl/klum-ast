@@ -22,7 +22,8 @@ add `module-info.java` files or choose JP-3's qualified exports.
 | `com.blackbuild.klum.ast.process` | `com.blackbuild.klum.ast.runtime` or `com.blackbuild.klum.ast.runtime.internal.process` | runtime | retain `PhaseAction`, `BuilderVisitingPhaseAction`, and `ModelVisitingPhaseAction` as the bounded extension seam; move phase mechanics under `internal` |
 | `com.blackbuild.klum.ast.util.layer3` | `com.blackbuild.klum.ast.runtime.internal.layer3` | runtime | move Layer 3 runtime mechanics; `ModelVisitor` is not exported |
 | `com.blackbuild.klum.ast.validation` | `com.blackbuild.klum.ast.runtime.validation` or `com.blackbuild.klum.ast.runtime.internal.validation` | runtime | retain the result/issue/exception and `InstanceValidator` API; move validation mechanics under `internal` |
-| `com.blackbuild.groovy.configdsl.transform.ast…` | `com.blackbuild.klum.ast.compiler.internal…` | compiler | JP-3 destination; update imports and generated references in JP-2c without moving compiler sources or adding a descriptor |
+| `com.blackbuild.groovy.configdsl.transform.ast…` (including the accidental interim `com.blackbuild.klum.ast.ast…` family) | `com.blackbuild.klum.ast.compiler.internal.ast…` | compiler | relocate the AST transformation implementation, imports, and generated class-name bindings; no legacy or interim alias remains |
+| `com.blackbuild.klum.common`, `com.blackbuild.klum.ast.doc`, and `com.blackbuild.klum.ast.runtime.internal.reflect` compiler helpers | corresponding `com.blackbuild.klum.ast.compiler.internal.common`, `.doc`, and `.reflect` packages | compiler | relocate every remaining compiler implementation helper into the compiler-owned internal family |
 | `com.blackbuild.klum.ast.jackson` helper/modifier types | `com.blackbuild.klum.ast.jackson.internal` | Jackson | JP-3 destination; retain the documented importer and `KlumAstModule` API |
 | `com.blackbuild.klum.ast.validation.bean` | unchanged public adapter package | Bean Validation | no source move in JP-2c |
 
@@ -52,5 +53,5 @@ names. The existing generated Java/static-Groovy and service tests remain the
 behavioral proof across Groovy 3, 4, and 5.
 
 JP-3 consumes this map when it creates descriptors. It must not restore a
-legacy package, add an alias, or use an `--add-reads`, `--add-exports`, or
-`--patch-module` workaround.
+legacy or interim compiler package, add an alias, or use an `--add-reads`,
+`--add-exports`, or `--patch-module` workaround.

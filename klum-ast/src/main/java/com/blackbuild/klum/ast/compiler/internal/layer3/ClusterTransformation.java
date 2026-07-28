@@ -43,7 +43,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.Collection;
 
-import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isAssignableTo;
 import static java.lang.String.format;
 import static org.codehaus.groovy.ast.ClassHelper.MAP_TYPE;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;

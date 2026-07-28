@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.validation;
 
-import com.blackbuild.klum.ast.ast.DslAstHelper;
+import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
@@ -32,9 +32,9 @@ import org.codehaus.groovy.ast.ClassNode;
 
 import java.util.List;
 
-import static com.blackbuild.klum.ast.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
-import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getNullSafeClassMember;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isAssignableTo;
 
 public class CheckDslAnnotation implements Check {
     @Override
