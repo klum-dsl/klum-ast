@@ -23,10 +23,10 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.layer3;
 
-import com.blackbuild.groovy.configdsl.transform.ast.AbstractFactoryBuilder;
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder;
-import com.blackbuild.klum.ast.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.ast.AbstractFactoryBuilder;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
+import com.blackbuild.klum.ast.ast.MethodBuilder;
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.klum.ast.ast.MethodBuilder.createOptionalPublicMethod;
 import static com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;

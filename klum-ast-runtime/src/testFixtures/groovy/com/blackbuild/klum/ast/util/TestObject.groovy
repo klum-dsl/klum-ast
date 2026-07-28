@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.klum.ast.KlumModelObject
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
 class TestObject implements KlumModelObject {
     public final KlumObjectCompanion $proxy

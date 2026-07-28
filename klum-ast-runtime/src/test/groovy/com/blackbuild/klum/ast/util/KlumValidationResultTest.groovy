@@ -21,11 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.groovy.configdsl.transform.Validate
-import com.blackbuild.klum.ast.validation.KlumValidationIssue
-import com.blackbuild.klum.ast.validation.KlumValidationResult
+import com.blackbuild.klum.ast.Validate
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
 import spock.lang.Specification
 
 

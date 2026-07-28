@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.ObjectMapper
 
@@ -430,7 +430,7 @@ class LinkIdentitySpec extends AbstractDSLSpec {
             import com.fasterxml.jackson.annotation.JsonIdentityInfo
             import com.fasterxml.jackson.annotation.JsonIdentityReference
             import com.fasterxml.jackson.annotation.ObjectIdGenerators
-            import com.blackbuild.klum.ast.util.KlumBuilder
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
 
             @DSL
             class IdentityRoot {

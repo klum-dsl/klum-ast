@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
 class DslHelperTest extends AbstractRuntimeTest {
 
@@ -90,10 +90,11 @@ class DslHelperTest extends AbstractRuntimeTest {
     def "getMatchingMethod with subclass Parameter"() {
         given:
         createClass('''
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.runtime.KlumModelObject
             @DSL
             class Dummy implements KlumModelObject {
-                @com.blackbuild.groovy.configdsl.transform.Field
+                @com.blackbuild.klum.ast.Field
                 void doIt(Parent parent) {}
             }
             

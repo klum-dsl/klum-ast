@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.klum.ast.util.AbstractRuntimeTest
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor.Action
+import com.blackbuild.klum.ast.runtime.internal.AbstractRuntimeTest
+import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor.Action
 import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
@@ -139,8 +139,8 @@ class StructureUtilTest extends AbstractRuntimeTest {
     @Issue("396")
     def "structureUtil should ignore owner fields and link only fields"() {
         given:
-        createClass '''import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.KlumModelObject
+        createClass '''import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.runtime.KlumModelObject
 
             class Container implements KlumModelObject {
                 String name

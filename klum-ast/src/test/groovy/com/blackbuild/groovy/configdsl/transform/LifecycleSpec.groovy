@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase
-import com.blackbuild.klum.ast.process.KlumPhase
-import com.blackbuild.klum.ast.process.PhaseDriver
+import com.blackbuild.klum.ast.runtime.DefaultKlumPhase
+import com.blackbuild.klum.ast.runtime.KlumPhase
+import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
@@ -570,7 +570,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         createClass('''
             package pk
             
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.layer3.AutoCreate
     
             @DSL
             class Foo {
@@ -617,7 +617,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         createClass('''
             package pk
             
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.layer3.AutoCreate
     
             @DSL
             class Foo {
@@ -640,8 +640,8 @@ class LifecycleSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-            import com.blackbuild.klum.ast.process.DefaultKlumPhase
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            import com.blackbuild.klum.ast.runtime.DefaultKlumPhase
             
             @DSL
             class Foo {
@@ -681,8 +681,8 @@ class LifecycleSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-            import com.blackbuild.klum.ast.process.*
-            import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.runtime.internal.process.*
+            import com.blackbuild.klum.ast.layer3.AutoCreate
             
             @DSL
             class Foo {
@@ -704,7 +704,7 @@ class LifecycleSpec extends AbstractDSLSpec {
         instance = clazz.Create.One()
 
         then:
-        instance.action == "com.blackbuild.klum.ast.process.ApplyLaterPhase"
+        instance.action == "com.blackbuild.klum.ast.runtime.internal.process.ApplyLaterPhase"
     }
 
 }

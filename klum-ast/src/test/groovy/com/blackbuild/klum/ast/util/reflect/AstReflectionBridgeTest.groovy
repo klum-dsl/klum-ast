@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.reflect
+package com.blackbuild.klum.ast.runtime.internal.reflect
 
-import com.blackbuild.klum.ast.util.InternalKlumBuilder
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.MethodNode
 import spock.lang.Specification

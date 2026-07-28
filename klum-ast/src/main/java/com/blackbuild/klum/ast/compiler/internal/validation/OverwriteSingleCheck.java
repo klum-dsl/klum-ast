@@ -23,8 +23,8 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.validation;
 
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
-import com.blackbuild.klum.ast.util.copy.OverwriteStrategy;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
+import com.blackbuild.klum.ast.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;

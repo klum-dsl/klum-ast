@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.layer3;
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues;
+import com.blackbuild.klum.ast.layer3.DefaultValues;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;

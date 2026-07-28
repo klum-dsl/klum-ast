@@ -21,13 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.klum.ast.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.groovy.configdsl.transform.Owner;
-import com.blackbuild.groovy.configdsl.transform.WriteAccess;
-import com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation;
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.Owner;
+import com.blackbuild.klum.ast.WriteAccess;
+import com.blackbuild.klum.ast.ast.DSLASTTransformation;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -42,8 +42,8 @@ import org.codehaus.groovy.ast.expr.VariableExpression;
 import java.util.ArrayList;
 import java.util.Optional;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
+import static com.blackbuild.klum.ast.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.klum.ast.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
 import static com.blackbuild.klum.common.CommonAstHelper.getAnnotation;
 import static com.blackbuild.klum.common.CommonAstHelper.getNullSafeClassMember;
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED;

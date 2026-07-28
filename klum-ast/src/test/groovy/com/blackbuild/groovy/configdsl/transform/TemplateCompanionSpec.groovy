@@ -21,16 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.process.ConstructionSession
-import com.blackbuild.klum.ast.util.DslHelper
-import com.blackbuild.klum.ast.util.KlumBuilder
-import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumObjectCompanion
-import com.blackbuild.klum.ast.util.KlumObjectSupport
-import com.blackbuild.klum.ast.util.KlumTemplateProxy
-import com.blackbuild.klum.ast.util.TemplateManager
+import com.blackbuild.klum.ast.runtime.internal.process.ConstructionSession
+import com.blackbuild.klum.ast.runtime.internal.DslHelper
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.internal.KlumObjectCompanion
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.internal.KlumTemplateProxy
+import com.blackbuild.klum.ast.runtime.internal.TemplateManager
 
 import java.lang.reflect.Modifier
 
@@ -69,7 +69,7 @@ class TemplateCompanionSpec extends AbstractDSLSpec {
                 'getBreadcrumbPath',
                 'getModelPath'
         ] as Set
-        Modifier.isFinal(Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy').modifiers)
+        Modifier.isFinal(Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumModelProxy').modifiers)
         Modifier.isFinal(KlumTemplateProxy.modifiers)
 
         and:

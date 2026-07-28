@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
 import spock.lang.Ignore
 import spock.lang.Issue
 
 import java.lang.annotation.Annotation
 
-import static com.blackbuild.klum.ast.util.AnnotationHelper.getNonDefaultMembers
+import static com.blackbuild.klum.ast.runtime.internal.AnnotationHelper.getNonDefaultMembers
 
 class AnnotationHelperTest extends AbstractRuntimeTest {
 

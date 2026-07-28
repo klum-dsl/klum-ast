@@ -21,19 +21,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
-import com.blackbuild.klum.ast.util.BoundTemplateHandler;
+import com.blackbuild.klum.ast.runtime.internal.BoundTemplateHandler;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.*;
-import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.klum.ast.ast.ProxyMethodBuilder.*;
+import static com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static org.codehaus.groovy.ast.ClassHelper.*;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;

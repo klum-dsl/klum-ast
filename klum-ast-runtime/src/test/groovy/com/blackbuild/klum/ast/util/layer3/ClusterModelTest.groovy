@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.klum.ast.util.AbstractRuntimeTest
+import com.blackbuild.klum.ast.runtime.internal.AbstractRuntimeTest
 import org.codehaus.groovy.runtime.DefaultGroovyMethods
 
 import java.lang.annotation.Annotation

@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process
+package com.blackbuild.klum.ast.runtime.internal.process
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.util.DslHelper
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.internal.DslHelper
 import spock.lang.Issue
 
 class BreadcrumbDSLTest extends AbstractDSLSpec {
@@ -35,7 +35,7 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
 
     def "normal create sets breadcrumb"() {
         given:
-        createClass '''import com.blackbuild.groovy.configdsl.transform.DSL
+        createClass '''import com.blackbuild.klum.ast.DSL
             @DSL class Foo {
                 String name
             }
@@ -54,8 +54,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "create with key sets keyed breadcrumb"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             @DSL class Foo {
                 @Key String name
             }
@@ -74,8 +74,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "nested objects breadcrumbs are correct"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             @DSL class Foo {
                 String name
                 Bar bar
@@ -101,8 +101,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "nested collection objects breadcrumbs are correct"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             @DSL class Foo {
                 String name
                 List<Bar> bar
@@ -133,8 +133,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "nested collection of keyed objects uses name instead of index"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             @DSL class Foo {
                 String name
                 List<Bar> bar
@@ -171,8 +171,8 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "nested map objects breadcrumbs are correct"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             @DSL class Foo {
                 String name
                 Map<String, Bar> bar
@@ -203,9 +203,9 @@ class BreadcrumbDSLTest extends AbstractDSLSpec {
     def "breadcrumbs for auto created instances are correct"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+import com.blackbuild.klum.ast.layer3.AutoCreate
             @DSL class Foo {
                 @AutoCreate Bar bar
             }

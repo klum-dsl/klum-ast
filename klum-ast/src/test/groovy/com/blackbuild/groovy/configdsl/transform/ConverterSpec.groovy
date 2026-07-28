@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 //file:noinspection GrDeprecatedAPIUsage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import groovy.time.TimeCategory
 import spock.lang.Issue
 
 import java.time.Duration
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsTo
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 @Issue("148")
@@ -571,7 +571,7 @@ class Other<E> {
     @Issue(["300", "319"])
     def "methods of the factory are included in collection factories"() {
         when:
-        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+        createClass '''import com.blackbuild.klum.ast.runtime.KlumFactory
 
 import java.time.Duration
 @DSL class Foo {
@@ -629,7 +629,7 @@ import java.time.Duration
     @Issue(["300", "319"])
     def "methods of the factory are included in collection factories for maps"() {
         when:
-        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+        createClass '''import com.blackbuild.klum.ast.runtime.KlumFactory
 
 import java.time.Duration
 @DSL class Foo {
@@ -688,7 +688,7 @@ import java.time.Duration
     @Issue("300")
     def "methods of the factory of abstract classes are included in collection factories"() {
         when:
-        createClass '''import com.blackbuild.klum.ast.util.KlumFactory
+        createClass '''import com.blackbuild.klum.ast.runtime.KlumFactory
 
 @DSL class Foo {
     List<Bar> bars

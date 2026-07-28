@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.converters;
+package com.blackbuild.klum.ast.ast.converters;
 
-import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.Validate;
 import org.codehaus.groovy.ast.ASTNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
@@ -37,7 +37,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import static org.codehaus.groovy.ast.ClassHelper.make;
 
 /**
- * Converter Transformation for {@link com.blackbuild.groovy.configdsl.transform.Optional} into {@link Validate}.
+ * Converter Transformation for {@link com.blackbuild.klum.ast.Optional} into {@link Validate}.
  */
 @GroovyASTTransformation(phase = CompilePhase.SEMANTIC_ANALYSIS)
 public class OptionalToValidateTransformation extends AbstractASTTransformation {

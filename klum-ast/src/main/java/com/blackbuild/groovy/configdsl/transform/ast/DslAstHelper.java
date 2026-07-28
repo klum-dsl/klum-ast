@@ -21,15 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
-import com.blackbuild.groovy.configdsl.transform.Field;
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.groovy.configdsl.transform.KlumGenerated;
-import com.blackbuild.klum.ast.util.BreadCrumbVerbInterceptor;
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.util.LanguageHelper;
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo;
+import com.blackbuild.klum.ast.Field;
+import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.KlumGenerated;
+import com.blackbuild.klum.ast.runtime.internal.BreadCrumbVerbInterceptor;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.internal.LanguageHelper;
+import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;

@@ -23,11 +23,11 @@
  */
 //file:noinspection GrPackage
 //file:noinspection GroovyVariableNotAssigned
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
-import com.blackbuild.klum.ast.util.KlumException
-import com.blackbuild.klum.ast.util.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy
+import com.blackbuild.klum.ast.runtime.KlumException
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -1298,8 +1298,8 @@ class BoundTemplatesSpec extends AbstractDSLSpec {
         createClass('''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-import com.blackbuild.klum.ast.util.KlumInstanceProxy
+import com.blackbuild.klum.ast.layer3.AutoCreate
+import com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy
 
             @DSL
             class Foo {

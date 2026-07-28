@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
@@ -31,7 +31,7 @@ import spock.lang.Tag
 
 import java.lang.annotation.Annotation
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
+import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsTo
 
 class AlternativesSpec extends AbstractDSLSpec {
 

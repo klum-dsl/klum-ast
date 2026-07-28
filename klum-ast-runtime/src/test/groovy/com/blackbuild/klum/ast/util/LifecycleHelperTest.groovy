@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.groovy.configdsl.transform.Validate
+import com.blackbuild.klum.ast.Validate
 
 class LifecycleHelperTest extends AbstractRuntimeTest {
 
@@ -31,7 +31,7 @@ class LifecycleHelperTest extends AbstractRuntimeTest {
         given:
         createClass '''
     package pk
-    import com.blackbuild.groovy.configdsl.transform.Validate
+    import com.blackbuild.klum.ast.Validate
     class MyClass {
         @Validate class NonStatic {}
         @Validate static class StaticClass {}
@@ -52,7 +52,7 @@ class LifecycleHelperTest extends AbstractRuntimeTest {
         given:
         createClass '''
     package pk
-    import com.blackbuild.groovy.configdsl.transform.Validate
+    import com.blackbuild.klum.ast.Validate
     class Parent {
         @Validate class ParentInner {}
     }
@@ -73,7 +73,7 @@ class LifecycleHelperTest extends AbstractRuntimeTest {
         given:
         createClass '''
     package pk
-    import com.blackbuild.groovy.configdsl.transform.Validate
+    import com.blackbuild.klum.ast.Validate
     class Parent {
         @Validate class ParentInner {}
     }

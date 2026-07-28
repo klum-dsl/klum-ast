@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.layer3.KlumVisitorException
+import com.blackbuild.klum.ast.runtime.internal.layer3.KlumVisitorException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Ignore
 import spock.lang.Issue
@@ -323,7 +323,7 @@ class DefaultValuesSpec extends AbstractDSLSpec {
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -367,7 +367,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -408,7 +408,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -449,7 +449,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -491,7 +491,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -535,7 +535,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -581,7 +581,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -630,7 +630,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -690,7 +690,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.*
 
@@ -717,7 +717,7 @@ import java.lang.annotation.*
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.*
 
@@ -744,7 +744,7 @@ import java.lang.annotation.*
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.*
 
@@ -766,7 +766,7 @@ import java.lang.annotation.*
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -807,7 +807,7 @@ import java.lang.annotation.Target
         createSecondaryClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultValues
+import com.blackbuild.klum.ast.layer3.DefaultValues
 
 import java.lang.annotation.ElementType
 import java.lang.annotation.Retention
@@ -851,7 +851,7 @@ import java.lang.annotation.Target
         createClass '''
             package pk
 
-import com.blackbuild.klum.ast.util.layer3.annotations.DefaultApply
+import com.blackbuild.klum.ast.layer3.DefaultApply
 
             @DSL
             class Foo {

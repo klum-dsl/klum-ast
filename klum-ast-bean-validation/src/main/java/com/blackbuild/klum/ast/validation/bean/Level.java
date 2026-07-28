@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.validation.bean;
 
-import com.blackbuild.groovy.configdsl.transform.Validate;
+import com.blackbuild.klum.ast.Validate;
 import jakarta.validation.Payload;
 
 import java.util.Map;
@@ -51,7 +51,7 @@ public final class Level {
         /* This utility class should not be instantiated */
     }
 
-    static Validate.Level getLevelForPayload(Class<? extends Payload> payload) {
+    public static Validate.Level getLevelForPayload(Class<? extends Payload> payload) {
         return MAPPING.getOrDefault(payload, Validate.Level.NONE);
     }
 

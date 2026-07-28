@@ -24,7 +24,7 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.fasterxml.jackson.databind.ObjectMapper
 
 class ConstructionOverrideSpec extends AbstractDSLSpec {

@@ -21,12 +21,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.groovy.configdsl.transform.NoClosure
-import com.blackbuild.klum.ast.util.FactoryHelper
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.NoClosure
+import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
+import com.blackbuild.klum.ast.layer3.LinkTo
 import spock.lang.Issue
 
 // is in klum-ast, because the tests are a lot better readable using the actual DSL.
@@ -38,9 +38,9 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -83,9 +83,9 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -127,10 +127,10 @@ class AutoLinkDSLTest extends AbstractDSLSpec {
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkSource
+import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -172,9 +172,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -215,10 +215,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -265,10 +265,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -312,10 +312,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -360,10 +360,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -409,10 +409,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -457,11 +457,11 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkSource
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkSource
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -506,10 +506,10 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class User {
                 @Key String name
@@ -552,9 +552,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
 
             @DSL class User {
                 @Key String name
@@ -613,9 +613,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package tmp
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
             @DSL class Container {
                 Map<String, Service> services
@@ -656,9 +656,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
 
             @DSL class House {
@@ -696,9 +696,9 @@ import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
         createClass('''
             package pk
 
-            import com.blackbuild.groovy.configdsl.transform.Key
-            import com.blackbuild.groovy.configdsl.transform.Owner
-            import com.blackbuild.klum.ast.util.layer3.annotations.LinkTo
+            import com.blackbuild.klum.ast.Key
+            import com.blackbuild.klum.ast.Owner
+            import com.blackbuild.klum.ast.layer3.LinkTo
 
 
             @DSL class House {

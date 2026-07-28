@@ -35,7 +35,7 @@ import org.codehaus.groovy.transform.AbstractASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.getRwClassOf;
 
 /**
  * Helper transformation for static type checking. Sets the DelegationMetadata (via reflection, since package local) for

@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 //file:noinspection GrPackage
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.process.DefaultKlumPhase
-import com.blackbuild.klum.ast.process.KlumPhase
-import com.blackbuild.klum.ast.process.PhaseDriver
-import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.runtime.DefaultKlumPhase
+import com.blackbuild.klum.ast.runtime.KlumPhase
+import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import org.codehaus.groovy.runtime.typehandling.GroovyCastException
 import spock.lang.Ignore

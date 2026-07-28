@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.mutators;
+package com.blackbuild.klum.ast.ast.mutators;
 
-import com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper;
+import com.blackbuild.klum.ast.ast.DslAstHelper;
 import org.codehaus.groovy.ast.ClassNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
@@ -37,7 +37,7 @@ import org.codehaus.groovy.transform.stc.AbstractTypeCheckingExtension;
 import java.util.Collections;
 import java.util.List;
 
-import static com.blackbuild.klum.ast.util.KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
+import static com.blackbuild.klum.ast.runtime.internal.KlumInstanceProxy.NAME_OF_RW_FIELD_IN_MODEL_CLASS;
 
 /**
  * Created by stephan on 12.04.2017.

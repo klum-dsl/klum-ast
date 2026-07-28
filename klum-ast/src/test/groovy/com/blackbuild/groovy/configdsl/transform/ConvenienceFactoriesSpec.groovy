@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumValidationException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue

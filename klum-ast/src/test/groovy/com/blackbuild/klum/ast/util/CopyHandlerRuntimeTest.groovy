@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import spock.lang.Issue
 
 @SuppressWarnings('GrPackage')
@@ -35,7 +35,7 @@ class CopyHandlerRuntimeTest extends AbstractDSLSpec {
         createClass('''
             package pk
 
-import com.blackbuild.groovy.configdsl.transform.DSL
+import com.blackbuild.klum.ast.DSL
 
             @DSL
             class Outer {

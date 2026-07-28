@@ -21,17 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumBuilder
-import com.blackbuild.klum.ast.util.InternalKlumBuilder
-import com.blackbuild.klum.ast.util.KlumObjectSupport
-import com.blackbuild.klum.ast.util.KlumException
-import com.blackbuild.klum.ast.util.KlumValidationException
-import com.blackbuild.klum.ast.util.layer3.ModelVisitor
-import com.blackbuild.klum.ast.util.layer3.StructureUtil
-import com.blackbuild.klum.ast.validation.KlumValidationResult
-import com.blackbuild.klum.ast.validation.Validator
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.KlumException
+import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor
+import com.blackbuild.klum.ast.runtime.internal.layer3.StructureUtil
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
+import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
@@ -95,7 +95,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
     def "completed companion lookup and raw metadata are not client API"() {
         given:
-        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
+        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumModelProxy')
         Class<?> modelStateClass = InternalKlumBuilder.declaredClasses.find { it.simpleName == 'ModelState' }
 
         expect:
@@ -112,7 +112,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         and: 'Java source receives an immediate migration diagnostic instead of companion access'
         compileJavaConsumerFails('''
-            import com.blackbuild.klum.ast.util.KlumModelProxy;
+            import com.blackbuild.klum.ast.runtime.internal.KlumModelProxy;
 
             public final class JavaObjectSupportConsumer {
                 public static Object inspect(Object model) {
@@ -123,7 +123,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         and: 'raw Builder metadata is likewise absent from Java source API'
         compileJavaConsumerFails('''
-            import com.blackbuild.klum.ast.util.KlumBuilder;
+            import com.blackbuild.klum.ast.runtime.KlumBuilder;
 
             public final class JavaObjectSupportConsumer {
                 public static Object inspect(KlumBuilder<?> builder) {
@@ -134,7 +134,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
         and: 'the materialization state carrier cannot bypass that lockdown'
         compileJavaConsumerFails('''
-            import com.blackbuild.klum.ast.util.KlumBuilder;
+            import com.blackbuild.klum.ast.runtime.KlumBuilder;
 
             public final class JavaObjectSupportConsumer {
                 public static Object inspect(KlumBuilder<?> builder) {
@@ -203,9 +203,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         def childSubtreeResults = childSupport.validation.subtreeResults
         def verified = support.validation.verify()
         compileJavaConsumer('''
-            import com.blackbuild.groovy.configdsl.transform.Validate;
-            import com.blackbuild.klum.ast.util.KlumObjectSupport;
-            import com.blackbuild.klum.ast.validation.KlumValidationResult;
+            import com.blackbuild.klum.ast.Validate;
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
             import java.util.List;
 
             public final class JavaObjectSupportConsumer {
@@ -251,7 +251,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     def "Java and static Groovy callers use the construction-path getter for a root and subtree without proxy access"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.Owner
 
             @DSL class Root {
                 Child child
@@ -268,9 +268,9 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         }
         def rootSupport = KlumObjectSupport.of(instance)
         def childSupport = KlumObjectSupport.of(instance.child)
-        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.util.KlumModelProxy')
+        Class<?> modelProxyClass = Class.forName('com.blackbuild.klum.ast.runtime.internal.KlumModelProxy')
         compileJavaConsumer('''
-            import com.blackbuild.klum.ast.util.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
 
             public final class JavaObjectSupportConsumer {
                 public static void inspect(Root root, Child child) {
@@ -285,7 +285,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
             }
         ''')
         Class<?> staticConsumer = createSecondaryClass('''
-            import com.blackbuild.klum.ast.util.KlumObjectSupport
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport
             import groovy.transform.CompileStatic
 
             @CompileStatic
@@ -340,8 +340,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     def "structure support exposes composition owners, relative paths, and typed traversal"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.FieldType
-            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.FieldType
+            import com.blackbuild.klum.ast.Owner
 
             @DSL class Root {
                 Child primary
@@ -380,8 +380,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         def typedPaths = []
         support.structure.visit(Child) { path, child -> typedPaths << path }
         compileJavaConsumer('''
-            import com.blackbuild.klum.ast.util.KlumObjectSupport;
-            import com.blackbuild.klum.ast.util.layer3.ModelVisitor;
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
             import java.util.List;
             import java.util.Map;
             import java.util.Optional;
@@ -444,7 +444,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
     def "structure support separates direct and transitive owners"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.Owner
+            import com.blackbuild.klum.ast.Owner
 
             @DSL class Root {
                 Branch branch

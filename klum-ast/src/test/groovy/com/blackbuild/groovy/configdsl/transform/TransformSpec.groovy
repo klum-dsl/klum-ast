@@ -23,10 +23,10 @@
  */
 //file:noinspection GrPackage
 //file:noinspection GroovyVariableNotAssigned
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumBuilder
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FromString
 import org.codehaus.groovy.control.CompilePhase
@@ -36,9 +36,9 @@ import spock.lang.Issue
 
 import java.lang.reflect.Method
 
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsTo
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.delegatesToPointsToDelegateTarget
-import static com.blackbuild.groovy.configdsl.transform.TestHelper.hasDelegatesToTargetAnnotation
+import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsTo
+import static com.blackbuild.klum.ast.TestHelper.delegatesToPointsToDelegateTarget
+import static com.blackbuild.klum.ast.TestHelper.hasDelegatesToTargetAnnotation
 import static groovyjarjarasm.asm.Opcodes.ACC_PROTECTED
 import static groovyjarjarasm.asm.Opcodes.ACC_PUBLIC
 

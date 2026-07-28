@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.mutators
+package com.blackbuild.klum.ast.mutators
 
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.ModelVerificationVisitor
+import com.blackbuild.klum.ast.ast.mutators.ModelVerificationVisitor
 import org.codehaus.groovy.ast.ClassNode
 import org.codehaus.groovy.ast.builder.AstBuilder
 import org.codehaus.groovy.control.CompilePhase
@@ -45,7 +45,7 @@ class MutationCheckerVisitorSpec extends Specification {
     ModelVerificationVisitor visitor
 
     def withClassCode(String text) {
-        def textWithImports = 'import com.blackbuild.groovy.configdsl.transform.*\n' + text
+        def textWithImports = 'import com.blackbuild.klum.ast.*\n' + text
 
         clazz = new AstBuilder().buildFromString(CompilePhase.INSTRUCTION_SELECTION, textWithImports)[1] as ClassNode
         visitor = new ModelVerificationVisitor(sourceUnit, clazz)

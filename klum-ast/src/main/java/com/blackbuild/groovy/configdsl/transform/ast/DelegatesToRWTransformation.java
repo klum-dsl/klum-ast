@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
-import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
-import com.blackbuild.groovy.configdsl.transform.DelegatesToBuilder;
+import com.blackbuild.klum.ast.DelegatesToRW;
+import com.blackbuild.klum.ast.DelegatesToBuilder;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.*;
@@ -36,8 +36,8 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getRwClassOf;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.getRwClassOf;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.isDSLObject;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
 
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)

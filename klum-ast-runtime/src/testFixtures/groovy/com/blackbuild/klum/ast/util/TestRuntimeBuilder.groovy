@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util
+package com.blackbuild.klum.ast.runtime.internal
 
 /** Minimal mutable Builder used by runtime-only tests that deliberately stub the AST transform. */
 class TestRuntimeBuilder<M> extends InternalKlumBuilder<M> {

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.process
+package com.blackbuild.klum.ast.runtime.internal.process
 
 import spock.lang.Specification
 import spock.lang.Subject

@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.klum.ast.util.layer3
+package com.blackbuild.klum.ast.runtime.internal.layer3
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
+import com.blackbuild.klum.ast.AbstractDSLSpec
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -35,7 +35,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
     def "Cluster annotation on Map resolves correctly"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Named {
                 @Cluster abstract Map<String, String> getStrings()
@@ -65,7 +65,7 @@ class ClusterTransformationTest extends AbstractDSLSpec {
     def "Cluster factories are created"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Named {
                 @Cluster Map<String, String> names
@@ -98,8 +98,8 @@ class ClusterTransformationTest extends AbstractDSLSpec {
         given:
         createSecondaryClass '''
             
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.Cluster
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -213,8 +213,8 @@ import java.lang.annotation.RetentionPolicy
         given:
         createSecondaryClass '''
             
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.Cluster
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -261,8 +261,8 @@ import java.lang.annotation.RetentionPolicy
         given:
         createSecondaryClass '''
             
-import com.blackbuild.groovy.configdsl.transform.DSL
-import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+import com.blackbuild.klum.ast.DSL
+import com.blackbuild.klum.ast.layer3.Cluster
 
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -309,7 +309,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map field is correctly resolved"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Named {
                 @Cluster Map<String, String> strings
@@ -345,7 +345,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation with nonNull on Map resolves correctly"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Named {
                 @Cluster(includeNulls = false) abstract Map<String, String> getStrings()
@@ -373,7 +373,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation with null values on Map resolves correctly"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             @DSL abstract class Named {
                 @Cluster abstract Map<String, String> getStrings()
@@ -401,8 +401,8 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map with filter resolves correctly"() {
         given:
         createClass '''
-            import com.blackbuild.groovy.configdsl.transform.DSL
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.layer3.Cluster
 
             import java.lang.annotation.*
            
@@ -440,7 +440,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map works with various return values"() {
         when:
         createSecondaryClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
             abstract class Named {
                 @Cluster Map<String, String> getStringsWithEmpty() {}
                 @Cluster Map<String, String> getStringsWithNull() {null}
@@ -456,7 +456,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map fails with actual content"() {
         when:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
             abstract class Named {
                 @Cluster Map<String, String> getStringsWithEmpty() { [a: "b"] }
             }'''
@@ -468,7 +468,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map of collections works"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
             @DSL abstract class Named {
                 @Cluster abstract Map<String, List<String>> getStringLists()
             }
@@ -495,7 +495,7 @@ import java.lang.annotation.RetentionPolicy
     def "Cluster annotation on Map of collections without generics works"() {
         given:
         createClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
             @DSL abstract class Named {
                 @Cluster abstract Map<String, List> getLists()
             }
@@ -522,7 +522,7 @@ import java.lang.annotation.RetentionPolicy
     def "Corner Case: Cluster annotation on Map of Ungeneric sublass of collection works"() {
         given: // no DSL classes, because currently we do not support ungeneric subcollections
         createSecondaryClass '''
-            import com.blackbuild.klum.ast.util.layer3.annotations.Cluster
+            import com.blackbuild.klum.ast.layer3.Cluster
             class StringList extends ArrayList<String> {
                 StringList(Collection<String> elements) {
                     super(elements)

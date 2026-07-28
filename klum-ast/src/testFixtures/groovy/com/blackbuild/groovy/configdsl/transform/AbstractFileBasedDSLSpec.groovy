@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.CompilationUnit
 import org.codehaus.groovy.control.CompilerConfiguration
@@ -51,7 +51,7 @@ class AbstractFileBasedDSLSpec extends Specification {
         classpath = tmp.newFolder(name.methodName)
         def importCustomizer = new ImportCustomizer()
         importCustomizer.addStarImports(
-                "com.blackbuild.groovy.configdsl.transform"
+                "com.blackbuild.klum.ast"
         )
 
         compilerConfiguration = new CompilerConfiguration()

@@ -21,13 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast.process
+package com.blackbuild.klum.ast.ast.process
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.process.BreadcrumbCollector
-import com.blackbuild.klum.ast.util.KlumModelException
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
+import com.blackbuild.klum.ast.runtime.KlumModelException
 
-import static com.blackbuild.klum.ast.util.DslHelper.getBreadcrumbPath
+import static com.blackbuild.klum.ast.runtime.internal.DslHelper.getBreadcrumbPath
 
 @SuppressWarnings("GrPackage")
 class BreadcrumbCollectorRuntimeTest extends AbstractDSLSpec {
@@ -61,7 +61,7 @@ class Foo {
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.Key
 
 @DSL
 class Foo {
@@ -84,7 +84,7 @@ class Foo {
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.Key
 
 @DSL
 class Foo {
@@ -178,7 +178,7 @@ class Bar {
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.Key
 
 @DSL
 class Model {
@@ -218,7 +218,7 @@ class Inner {
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.Key
 
 @DSL
 class Model {
@@ -313,7 +313,7 @@ value "bla"
         createClass '''
 package pk
 
-import com.blackbuild.groovy.configdsl.transform.Key
+import com.blackbuild.klum.ast.Key
 
 @DSL
 class Model {

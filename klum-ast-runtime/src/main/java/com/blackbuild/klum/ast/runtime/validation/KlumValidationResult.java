@@ -1,0 +1,135 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast.runtime.validation;
+
+import com.blackbuild.klum.ast.Validate;
+import com.blackbuild.klum.ast.runtime.KlumValidationException;
+import com.blackbuild.klum.ast.runtime.internal.validation.Validator;
+
+import java.io.Serializable;
+import java.util.*;
+
+/**
+ * Validation results for a single object.
+ */
+public class KlumValidationResult implements Serializable {
+    public static final String METADATA_KEY = KlumValidationResult.class.getName();
+    private final NavigableSet<KlumValidationIssue> issued = new TreeSet<>();
+    private final String breadcrumbPath;
+    private final Map<String, Validate.Level> suppressedIssues = new HashMap<>();
+
+    public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) {
+        boolean failuresEncountered = results.stream().flatMap(r -> r.getIssues().stream())
+                .anyMatch(kvi -> kvi.getLevel().equalOrWorseThen(failLevel));
+        if (failuresEncountered)
+            throw new KlumValidationException(results);
+    }
+
+    public KlumValidationResult(String breadcrumbPath) {
+        this.breadcrumbPath = breadcrumbPath;
+    }
+
+    public String getBreadcrumbPath() {
+        return breadcrumbPath;
+    }
+
+    public void addIssue(KlumValidationIssue problem) {
+        if (!isSuppressed(problem.getMember(), problem.getLevel()))
+            this.issued.add(problem);
+    }
+
+    private boolean isSuppressed(String member, Validate.Level level) {
+        if (level == Validate.Level.NONE) return true;
+        return suppressedIssues.getOrDefault(member, Validate.Level.NONE)
+                .combine(suppressedIssues.getOrDefault(Validator.ANY_MEMBER, Validate.Level.NONE))
+                .equalOrWorseThen(level);
+    }
+
+    public Validate.Level getMaxLevel() {
+        return issued.stream()
+                .map(KlumValidationIssue::getLevel)
+                .max(Validate.Level::compareTo)
+                .orElse(Validate.Level.NONE);
+    }
+
+    public String getMessage(Validate.Level minimumLevel) {
+        if (breadcrumbPath == null)
+            return getMessageWithFullPaths();
+
+        if (issued.isEmpty())
+            return breadcrumbPath + ": NONE";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(breadcrumbPath).append(":\n");
+        for (KlumValidationIssue e : issued)
+            if (e.getLevel().equalOrWorseThen(minimumLevel))
+                sb.append("- ")
+                        .append(e.getLocalMessage())
+                        .append("\n");
+        // remove trailing newline
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    public String getMessage() {
+        return getMessage(Validate.Level.NONE);
+    }
+
+    String getMessageWithFullPaths(Validate.Level minimumLevel) {
+        if (issued.isEmpty())
+            return "";
+
+        StringBuilder sb = new StringBuilder();
+        for (KlumValidationIssue e : issued)
+            if (e.getLevel().equalOrWorseThen(minimumLevel))
+                sb.append(e.getFullMessage()).append("\n");
+        sb.setLength(sb.length() - 1);
+        return sb.toString();
+    }
+
+    String getMessageWithFullPaths() {
+        return getMessageWithFullPaths(Validate.Level.NONE);
+    }
+
+    public boolean has(Validate.Level level) {
+        return getMaxLevel().equalOrWorseThen(level);
+    }
+
+    public void throwOn(Validate.Level level) throws KlumValidationException {
+        if (getMaxLevel().equalOrWorseThen(level))
+            throw new KlumValidationException(List.of(this));
+    }
+
+    public Collection<KlumValidationIssue> getIssues() {
+        return issued;
+    }
+
+    public void suppressIssues(String member) {
+        suppressIssues(member, Validate.Level.DEPRECATION);
+    }
+
+    public void suppressIssues(String member, Validate.Level upToLevel) {
+        suppressedIssues.merge(member, upToLevel, (old, newValue) -> newValue.combine(old) );
+    }
+}

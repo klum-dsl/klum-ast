@@ -1,4 +1,4 @@
-import com.blackbuild.groovy.configdsl.transform.*
+import com.blackbuild.klum.ast.*
 
 @DSL
 class Config {

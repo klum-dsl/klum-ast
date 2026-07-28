@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
 import spock.lang.Issue
 import spock.lang.Specification
@@ -32,7 +32,7 @@ import java.nio.file.Path
 @Issue("391")
 class JpmsLayer3PackageOwnershipTest extends Specification {
 
-    private static final String RUNTIME_LAYER3_PACKAGE = 'com.blackbuild.klum.ast.util.layer3'
+    private static final String RUNTIME_LAYER3_PACKAGE = 'com.blackbuild.klum.ast.runtime.internal.layer3'
     private static final String COMPILER_LAYER3_PACKAGE = 'com.blackbuild.klum.ast.compiler.internal.layer3'
 
     def "the runtime artifact exclusively owns the Layer 3 runtime package"() {

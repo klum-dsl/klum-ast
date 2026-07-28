@@ -21,13 +21,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
-import com.blackbuild.groovy.configdsl.transform.DelegatesToRW;
-import com.blackbuild.klum.ast.util.KlumBuilder;
-import com.blackbuild.klum.ast.util.KlumFactory;
+import com.blackbuild.klum.ast.DelegatesToRW;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumFactory;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
@@ -69,11 +69,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.createGeneratedAnnotation;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.getKeyField;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.isDSLObject;
-import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.getKeyField;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementTypeForCollection;
 import static com.blackbuild.klum.common.CommonAstHelper.getElementTypeForMap;
 import static com.blackbuild.klum.common.CommonAstHelper.isAssignableTo;

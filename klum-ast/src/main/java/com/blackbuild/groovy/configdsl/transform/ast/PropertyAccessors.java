@@ -21,11 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
-import com.blackbuild.groovy.configdsl.transform.FieldType;
+import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.doc.DocUtil;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.ClassHelper;
@@ -38,8 +38,8 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createMethod;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.*;
+import static com.blackbuild.klum.ast.ast.MethodBuilder.createMethod;
 import static com.blackbuild.klum.common.CommonAstHelper.replaceProperties;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 

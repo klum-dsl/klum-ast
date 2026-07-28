@@ -24,11 +24,11 @@
 //file:noinspection GrPackage
 package com.blackbuild.klum.ast.jackson
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.process.PhaseDriver
-import com.blackbuild.klum.ast.util.FactoryHelper
-import com.blackbuild.klum.ast.util.KlumBuilder
-import com.blackbuild.klum.ast.util.TemplateManager
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver
+import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.internal.TemplateManager
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper

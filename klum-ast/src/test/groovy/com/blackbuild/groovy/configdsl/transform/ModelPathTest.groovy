@@ -21,10 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform
+package com.blackbuild.klum.ast
 
-import com.blackbuild.klum.ast.util.KlumModelException
-import com.blackbuild.klum.ast.util.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 
 class ModelPathTest extends AbstractDSLSpec {
 
@@ -254,7 +254,7 @@ class ModelPathTest extends AbstractDSLSpec {
 
     def "model path is set correctly when using nested AutoCreate"() {
         given:
-        createClass '''import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
+        createClass '''import com.blackbuild.klum.ast.layer3.AutoCreate
 
 import java.util.logging.Level
 @DSL class Model {

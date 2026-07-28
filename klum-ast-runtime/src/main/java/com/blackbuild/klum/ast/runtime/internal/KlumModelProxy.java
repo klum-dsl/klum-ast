@@ -1,0 +1,185 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast.runtime.internal;
+import com.blackbuild.klum.ast.runtime.KlumModelException;
+import com.blackbuild.klum.ast.runtime.KlumException;
+
+import com.blackbuild.klum.ast.NoClosure;
+import com.blackbuild.klum.ast.Owner;
+import groovy.lang.GroovyObject;
+
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.lang.String.format;
+
+/**
+ * Serializable technical state belonging to a completed DSL Object.
+ *
+ * <p>This companion deliberately contains no construction-time mutation API and
+ * never retains the Builder that created the model.</p>
+ */
+final class KlumModelProxy implements KlumObjectCompanion {
+
+    static final String NAME_IN_MODEL = KlumObjectCompanion.NAME_IN_MODEL;
+
+    @SuppressWarnings("java:S1948") // generated DSL model implementations are always Serializable
+    private final GroovyObject model;
+    private final String breadcrumbPath;
+    private String modelPath;
+    private final Map<String, Serializable> metadata;
+    private final Set<Class<?>> executedValidators = new HashSet<>();
+
+    KlumModelProxy(GroovyObject model, InternalKlumBuilder.ModelState state) {
+        this.model = model;
+        this.breadcrumbPath = state.getBreadcrumbPath();
+        this.modelPath = state.getModelPath();
+        this.metadata = new HashMap<>(state.getMetadata());
+    }
+
+    /**
+     * Returns the companion for a completed DSL Object.
+     */
+    static KlumModelProxy getProxyFor(Object target) {
+        KlumObjectCompanion companion = KlumTemplateProxy.companionFor(target);
+        if (companion instanceof KlumModelProxy modelProxy)
+            return modelProxy;
+        throw new KlumException(format("Completed DSL Object %s is a Template, not an ordinary model", target.getClass().getName()));
+    }
+
+    @Override
+    public GroovyObject getObject() {
+        return model;
+    }
+
+    /** @deprecated use the common internal companion identity operation. */
+    @Deprecated(forRemoval = true)
+    @SuppressWarnings({"java:S4144", "java:S1133"}) // accepted #435 migration alias until its scheduled removal
+    public GroovyObject getModel() {
+        return model;
+    }
+
+    @Override
+    public String getBreadcrumbPath() {
+        return breadcrumbPath;
+    }
+
+    @Override
+    public String getModelPath() {
+        return modelPath;
+    }
+
+    void setModelPathIfAbsent(String path) {
+        if (modelPath == null)
+            modelPath = path;
+    }
+
+    boolean hasMetaData(String key) {
+        return metadata.containsKey(key);
+    }
+
+    /**
+     * Returns technical metadata serialized with this completed DSL Object and its companion.
+     * The complete metadata value graph is checked for Java serialization when stored. Callers
+     * must not subsequently mutate an accepted value so it contains non-serializable state.
+     *
+     * @param key metadata key
+     * @param type expected value type
+     * @return the stored value, or {@code null} if no value is stored
+     * @throws KlumException if the stored value is not of the requested type
+     */
+    <T> T getMetaData(String key, Class<T> type) {
+        Object value = metadata.get(key);
+        if (value == null)
+            return null;
+        if (!type.isInstance(value))
+            throw new KlumException(format("Metadata value for key '%s' is not of type %s", key, type.getName()));
+        return type.cast(value);
+    }
+
+    /**
+     * Stores technical metadata that is serialized with the completed DSL Object.
+     *
+     * @param key metadata key
+     * @param value a value whose complete object graph is serializable, or {@code null}
+     * @throws KlumException if {@code value} or anything reachable from it is not serializable
+     */
+    void setMetaData(String key, Object value) {
+        metadata.put(key, requireSerializableMetadataValue(key, value));
+    }
+
+    static Serializable requireSerializableMetadataValue(String key, Object value) {
+        if (value == null)
+            return null;
+        if (!(value instanceof Serializable serializable))
+            throw new KlumException(format("Metadata value for key '%s' must be Serializable", key));
+        verifySerializableGraph(key, serializable);
+        return serializable;
+    }
+
+    private static void verifySerializableGraph(String key, Serializable value) {
+        try (ObjectOutputStream output = new ObjectOutputStream(OutputStream.nullOutputStream())) {
+            output.writeObject(value);
+        } catch (IOException exception) {
+            throw new KlumException(format(
+                    "Metadata value for key '%s' must have a fully Serializable object graph", key), exception);
+        }
+    }
+
+    /**
+     * Marks a validator as executed for this completed model.
+     *
+     * @return true only for the first execution of the validator type
+     */
+    boolean markValidatorExecuted(Class<?> validatorType) {
+        return executedValidators.add(validatorType);
+    }
+
+    Object getSingleOwner() {
+        Set<Object> owners = getOwners();
+        if (owners.size() > 1)
+            throw new KlumModelException("Object has more than one distinct owner");
+        return owners.stream().findFirst().orElse(null);
+    }
+
+    Set<Object> getOwners() {
+        return DslHelper.getFieldsAnnotatedWith(model.getClass(), Owner.class)
+                .filter(field -> field.getAnnotation(Owner.class).converter() == NoClosure.class)
+                .filter(field -> !field.getAnnotation(Owner.class).transitive())
+                .filter(field -> !field.getAnnotation(Owner.class).root())
+                .map(Field::getName)
+                .map(name -> DslHelper.getFieldValue(model, name))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+}

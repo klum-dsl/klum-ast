@@ -21,11 +21,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
-import com.blackbuild.groovy.configdsl.transform.FieldType;
-import com.blackbuild.klum.ast.process.BreadcrumbCollector;
-import com.blackbuild.klum.ast.util.KlumFactory;
+import com.blackbuild.klum.ast.FieldType;
+import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
+import com.blackbuild.klum.ast.runtime.KlumFactory;
 import com.blackbuild.klum.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.ClosureExpression;
@@ -37,11 +37,11 @@ import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import java.beans.Introspector;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.createOptionalPublicMethod;
-import static com.blackbuild.klum.ast.util.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
+import static com.blackbuild.klum.ast.ast.DSLASTTransformation.DSL_CONFIG_ANNOTATION;
+import static com.blackbuild.klum.ast.ast.DSLASTTransformation.DSL_FIELD_ANNOTATION;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.*;
+import static com.blackbuild.klum.ast.ast.MethodBuilder.createOptionalPublicMethod;
+import static com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static groovyjarjarasm.asm.Opcodes.*;
 import static java.lang.String.format;
@@ -180,7 +180,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         .title(format("Handles the creation/setting of the instances for the %s field using the given anonymous template.", factoryMethod))
                         .p(format("Creates an anonymous template of type {@link %s} from the given map and applies it for the closure.", elementType.getName()))
                         .p(format(factoryExplanation, memberName, factoryMethod))
-                        .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Map,Closure)")
+                        .seeAlso("com.blackbuild.klum.ast.runtime.internal.TemplateManager#withTemplate(Class,Map,Closure)")
                         .param(templateMapVarName, "The anonymous template to use for the creation/setting of the instances.")
                         .param(closureVarName, closureVarDescription)
                 )
@@ -202,7 +202,7 @@ class AlternativesClassBuilder extends AbstractFactoryBuilder {
                         .title(format("Handles the creation/setting of the instances for the %s field using the given template.", factoryMethod))
                         .p("Applies the given template to the closure.")
                         .p(format(factoryExplanation, memberName, factoryMethod))
-                        .seeAlso("com.blackbuild.klum.ast.util.TemplateManager#withTemplate(Class,Object,Closure)")
+                        .seeAlso("com.blackbuild.klum.ast.runtime.internal.TemplateManager#withTemplate(Class,Object,Closure)")
                         .param(templateVarName, "The anonymous template to use for the creation/setting of the instances.")
                         .param(closureVarName, closureVarDescription)
                 )

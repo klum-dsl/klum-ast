@@ -21,21 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package com.blackbuild.groovy.configdsl.transform.ast;
+package com.blackbuild.klum.ast.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
-import com.blackbuild.groovy.configdsl.transform.*;
-import com.blackbuild.groovy.configdsl.transform.ast.mutators.WriteAccessMethodsMover;
-import com.blackbuild.klum.ast.KlumKeyedModelObject;
-import com.blackbuild.klum.ast.KlumModelObject;
-import com.blackbuild.klum.ast.KlumUnkeyedModelObject;
+import com.blackbuild.klum.ast.*;
+import com.blackbuild.klum.ast.ast.mutators.WriteAccessMethodsMover;
+import com.blackbuild.klum.ast.runtime.KlumKeyedModelObject;
+import com.blackbuild.klum.ast.runtime.KlumModelObject;
+import com.blackbuild.klum.ast.runtime.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.doc.DocUtil;
-import com.blackbuild.klum.ast.process.DefaultKlumPhase;
-import com.blackbuild.klum.ast.util.InternalKlumBuilder;
-import com.blackbuild.klum.ast.util.KlumFactory;
-import com.blackbuild.klum.ast.util.KlumObjectCompanion;
+import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
+import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.internal.KlumObjectCompanion;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
-import com.blackbuild.klum.ast.util.reflect.AstReflectionBridge;
+import com.blackbuild.klum.ast.runtime.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.common.CommonAstHelper;
 import groovy.lang.Closure;
 import groovy.transform.EqualsAndHashCode;
@@ -60,9 +60,9 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.*;
 
-import static com.blackbuild.groovy.configdsl.transform.ast.DslAstHelper.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.MethodBuilder.*;
-import static com.blackbuild.groovy.configdsl.transform.ast.ProxyMethodBuilder.createProxyMethod;
+import static com.blackbuild.klum.ast.ast.DslAstHelper.*;
+import static com.blackbuild.klum.ast.ast.MethodBuilder.*;
+import static com.blackbuild.klum.ast.ast.ProxyMethodBuilder.createProxyMethod;
 import static com.blackbuild.klum.ast.compiler.internal.layer3.ClusterTransformation.CLUSTER_ANNOTATION_TYPE;
 import static com.blackbuild.klum.common.CommonAstHelper.*;
 import static java.util.stream.Collectors.toList;

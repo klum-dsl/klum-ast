@@ -131,7 +131,7 @@ class JacksonImporterConsumerTest extends Specification {
         writeSource('model/src/main/groovy/example/ExternalValue.groovy', '''
             package example
 
-            import com.blackbuild.groovy.configdsl.transform.DSL
+            import com.blackbuild.klum.ast.DSL
 
             @DSL
             class ExternalValue {
