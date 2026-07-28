@@ -32,6 +32,7 @@ import com.blackbuild.klum.ast.runtime.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.compiler.internal.doc.DocUtil;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
 import com.blackbuild.klum.ast.runtime.internal.KlumObjectCompanion;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
@@ -113,6 +114,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode KEYED_BUILDER_FACTORY = make(KlumFactory.KeyedBuilderFactory.class);
     public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
     public static final ClassNode KLUM_BUILDER = make(InternalKlumBuilder.class);
+    public static final ClassNode GENERATED_KLUM_BUILDER = make(GeneratedKlumBuilder.class);
     public static final ClassNode OBJECT_COMPANION = make(KlumObjectCompanion.class);
     public static final ClassNode EQUALS_HASHCODE_ANNOT = make(EqualsAndHashCode.class);
     public static final ClassNode TOSTRING_ANNOT = make(ToString.class);
@@ -278,7 +280,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (parentRW != null) {
             builderBase = parentRW.getPlainNodeReference();
         } else {
-            builderBase = KLUM_BUILDER;
+            builderBase = GENERATED_KLUM_BUILDER;
         }
 
         rwClass = new InnerClassNode(

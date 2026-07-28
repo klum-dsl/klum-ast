@@ -26,8 +26,8 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.annodocimal.ast.Documentation;
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper;
-import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.internal.TemplateManager;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
@@ -53,7 +53,7 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private static final ClassNode FACTORY_HELPER_TYPE = make(FactoryHelper.class);
     private static final ClassNode TEMPLATE_MANAGER_TYPE = make(TemplateManager.class);
-    private static final ClassNode KLUM_BUILDER_TYPE = make(InternalKlumBuilder.class);
+    private static final ClassNode KLUM_BUILDER_TYPE = make(GeneratedKlumBuilder.class);
 
     private final String proxyMethodName;
     private final Expression proxyTarget;
@@ -71,13 +71,22 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name, String proxyMethodName) {
-        return new ProxyMethodBuilder(varX("this"), name, proxyMethodName)
+        return new ProxyMethodBuilder(varX("this"), name, generatedBuilderHook(proxyMethodName))
                 .targetType(KLUM_BUILDER_TYPE);
     }
 
     public static ProxyMethodBuilder createProxyMethod(String name) {
-        return new ProxyMethodBuilder(varX("this"), name, name)
+        return new ProxyMethodBuilder(varX("this"), name, generatedBuilderHook(name))
                 .targetType(KLUM_BUILDER_TYPE);
+    }
+
+    private static String generatedBuilderHook(String methodName) {
+        return switch (methodName) {
+            case "copyFromRecipe" -> "$copyFromRecipe";
+            case "setSingleField" -> "$setSingleField";
+            case "scheduleApplyLater" -> "$scheduleApplyLater";
+            default -> methodName;
+        };
     }
 
     public static ProxyMethodBuilder createFactoryMethod(String name, ClassNode factoryType) {
