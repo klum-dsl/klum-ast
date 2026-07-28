@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.layer3;
 
-import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedClusters;
 import com.blackbuild.klum.ast.layer3.Cluster;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
@@ -52,7 +52,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
 public class ClusterTransformation extends AbstractASTTransformation {
 
     public static final ClassNode CLUSTER_ANNOTATION_TYPE = ClassHelper.make(Cluster.class);
-    private static final ClassNode CLUSTER_MODEL_TYPE = ClassHelper.make(ClusterModel.class);
+    private static final ClassNode GENERATED_CLUSTERS_TYPE = ClassHelper.make(GeneratedClusters.class);
     public static final ClassNode COLLECTION_TYPE = ClassHelper.make(Collection.class);
 
     @Override
@@ -140,7 +140,7 @@ public class ClusterTransformation extends AbstractASTTransformation {
         if (filterAnnotation != null)
             args.addExpression(classX(filterAnnotation));
 
-       return returnS(callX(CLUSTER_MODEL_TYPE, targetMethod, args));
+       return returnS(callX(GENERATED_CLUSTERS_TYPE, "$klum$" + targetMethod, args));
     }
 
 }
