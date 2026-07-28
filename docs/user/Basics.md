@@ -857,6 +857,8 @@ This is useful if the member is derived from some value of the owner.
 
 For example, consider the following classes:
 
+(See: `FixedKeysDocumentaryTest#'derives a keyed database name from its server'`.)
+
 ```groovy
 given: // Schema
 @DSL
