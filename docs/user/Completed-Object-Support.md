@@ -53,6 +53,35 @@ validation location. Neither is a substitute for the construction or structural 
 Traversal follows composed DSL values only. Owner and `LINK` edges are not followed, and identity-based cycle protection
 ensures that object graphs remain safe even when DSL types override `equals`.
 
+(See: `CompletedObjectSupportDocumentaryTest#'traverses a deployment composition without following linked services'`.)
+
+```groovy
+@DSL class Deployment {
+    Service api
+    List<Service> services
+    @Field(FieldType.LINK) Service catalogService
+}
+
+@DSL class Service {
+    @Key String name
+    @Owner Deployment deployment
+}
+
+def catalog = Service.Create.With('catalog') {}
+def deployment = Deployment.Create.With {
+    api('api') {}
+    services {
+        service('worker') {}
+    }
+    catalogService catalog
+}
+def structure = KlumObjectSupport.of(deployment).structure
+
+assert structure.getRelativePath(deployment.services[0]) == 'services[0]'
+assert KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deployment)
+assert structure.findAll(Service).keySet() == ['<root>.api', '<root>.services[0]']
+```
+
 ## Stored validation
 
 (See: `CompletedObjectSupportDocumentaryTest#'reads stored validation results for a completed deployment'`.)
