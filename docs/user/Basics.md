@@ -332,30 +332,35 @@ of the methods is the same as the method name.
 
 The annotated method is automatically converted into a Mutator method.
 
+(See: `VirtualFieldsDocumentaryTest#'configures a virtual field with a concrete article type'`.)
+
 ```groovy
 given: // Schema
-@DSL class Foo {
-    String value
+@DSL class Feed {
+    String headline
 
     @Field
-    void addBar(Bar bar) {
-        this.value = bar.name
+    void article(Article article) {
+        headline = article.headline
     }
 }
 
-@DSL class Bar {
-    String name
+@DSL abstract class Article {
+    String headline
+}
+
+@DSL class ReleaseNote extends Article {
 }
 
 when: // Model
-def foo = Foo.Create.With {
-    bar {
-        name "Hans"
+def feed = Feed.Create.With {
+    article(ReleaseNote) {
+        headline 'KlumAST 4.0 is available'
     }
 }
 
 then: // Assertions
-assert foo.value == "Hans"
+assert feed.headline == 'KlumAST 4.0 is available'
 ```
 
 Note that, as in the above example, this behaviour, while working with non dsl arguments as well, makes the most sense for actual DSL arguments.
