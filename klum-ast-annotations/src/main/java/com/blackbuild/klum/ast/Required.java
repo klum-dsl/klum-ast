@@ -40,7 +40,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-@GroovyASTTransformationClass("com.blackbuild.klum.ast.ast.converters.RequiredToValidateTransformation")
+@GroovyASTTransformationClass("com.blackbuild.klum.ast.compiler.internal.ast.converters.RequiredToValidateTransformation")
 @Documented
 @KlumCastValidated
 @NotTogetherWith(Validate.class)

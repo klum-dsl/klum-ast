@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.validation;
 
-import com.blackbuild.klum.ast.ast.DslAstHelper;
+import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import com.blackbuild.klum.ast.copy.OverwriteStrategy;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
@@ -33,7 +33,7 @@ import org.codehaus.groovy.ast.FieldNode;
 
 import java.util.List;
 
-import static com.blackbuild.klum.common.CommonAstHelper.*;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.*;
 
 public class OverwriteMapCheck implements Check {
 

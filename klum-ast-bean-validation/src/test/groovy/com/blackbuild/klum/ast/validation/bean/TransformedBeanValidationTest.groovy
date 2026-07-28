@@ -23,8 +23,8 @@
  */
 package com.blackbuild.klum.ast.validation.bean
 
-import com.blackbuild.groovy.configdsl.transform.AbstractDSLSpec
-import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.AbstractDSLSpec
+import com.blackbuild.klum.ast.runtime.KlumValidationException
 import spock.lang.Issue
 
 @Issue("391")

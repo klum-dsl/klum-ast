@@ -23,7 +23,7 @@
  */
 package com.blackbuild.klum.ast.compiler.internal.layer3;
 
-import com.blackbuild.klum.ast.ast.mutators.WriteAccessMethodsMover;
+import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.layer3.Cluster;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.stmt.BlockStatement;

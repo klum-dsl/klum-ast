@@ -60,12 +60,12 @@ abstract class AbstractRuntimeTest extends Specification {
         outputDirectory.mkdirs()
         compilerConfiguration.targetDirectory = outputDirectory
 
-        createDummyTransformations("com.blackbuild.klum.ast.ast",
+        createDummyTransformations("com.blackbuild.klum.ast.compiler.internal.ast",
                 "DSLASTTransformation",
                 "DelegatesToRWTransformation",
                 "AddJacksonIgnoresTransformation",
                 "FieldAstValidator")
-        createDummyTransformations("com.blackbuild.klum.ast.ast.mutators",
+        createDummyTransformations("com.blackbuild.klum.ast.compiler.internal.ast.mutators",
                 "ModelVerifierTransformation")
     }
 

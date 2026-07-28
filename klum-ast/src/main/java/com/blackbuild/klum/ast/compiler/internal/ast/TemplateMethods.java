@@ -1,0 +1,180 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015-2026 Stephan Pauxberger
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+package com.blackbuild.klum.ast.compiler.internal.ast;
+
+import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.klum.ast.runtime.internal.BoundTemplateHandler;
+import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
+import org.codehaus.groovy.ast.*;
+import org.codehaus.groovy.runtime.StringGroovyMethods;
+
+import java.util.List;
+
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
+import static com.blackbuild.klum.ast.compiler.internal.ast.ProxyMethodBuilder.*;
+import static com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
+import static groovyjarjarasm.asm.Opcodes.*;
+import static org.codehaus.groovy.ast.ClassHelper.*;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.*;
+import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
+
+@SuppressWarnings("java:S1192")
+class TemplateMethods {
+    public static final String TEMPLATE_FIELD_NAME = "Template";
+    public static final ClassNode TEMPLATE_TYPE = make(BoundTemplateHandler.class);
+
+    public static final String COPY_FROM = "copyFrom";
+    private final ClassNode annotatedClass;
+    private ClassNode templateClass;
+    private final ClassNode dslAncestor;
+    private final InnerClassNode rwClass;
+
+    public TemplateMethods(DSLASTTransformation transformation) {
+        annotatedClass = transformation.annotatedClass;
+        rwClass = transformation.rwClass;
+        dslAncestor = DslAstHelper.getHighestAncestorDSLObject(annotatedClass);
+    }
+
+    public ClassNode invoke() {
+        createImplementationForAbstractClassIfNecessary();
+        copyFromMethods();
+        createTemplateField();
+        return templateClass;
+    }
+
+    private void createTemplateField() {
+        FieldNode templateField = new FieldNode(
+                TEMPLATE_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                makeClassSafeWithGenerics(TEMPLATE_TYPE, new GenericsType(annotatedClass)),
+                annotatedClass,
+                ctorX(TEMPLATE_TYPE, args(classX(annotatedClass)))
+        );
+
+        AstDocumentation.attachText(templateField, "Assign templates to new objects.");
+        templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
+        annotatedClass.addField(templateField);
+    }
+
+    private void createImplementationForAbstractClassIfNecessary() {
+        if (!DslAstHelper.isInstantiable(annotatedClass))
+            createTemplateClass();
+        else
+            templateClass = annotatedClass;
+    }
+
+    private void copyFromMethods() {
+        createProxyMethod(COPY_FROM, "copyFromRecipe")
+                .mod(ACC_PUBLIC)
+                .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
+                .param(newClass(dslAncestor), "template", "the recipe to apply")
+                .addTo(rwClass);
+        ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
+        createProxyMethod(COPY_FROM, "copyFromRecipe")
+                .mod(ACC_PUBLIC)
+                .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
+                .param(mapOfStringsAndObjects, "template", "the recipe to apply")
+                .addTo(rwClass);
+     }
+
+    private void createTemplateClass() {
+        templateClass = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$Template",
+                ACC_STATIC | ACC_SYNTHETIC | ACC_PUBLIC,
+                newClass(annotatedClass));
+
+        templateClass.addConstructor(
+                ACC_SYNTHETIC | ACC_PROTECTED,
+                params(
+                        param(rwClass.getPlainNodeReference(), "builder"),
+                        param(DSLASTTransformation.MATERIALIZATION_TOKEN, "materializationToken")
+                ),
+                CommonAstHelper.NO_EXCEPTIONS,
+                block(ctorSuperS(args(varX("builder"), varX("materializationToken"))))
+        );
+
+        List<MethodNode> abstractMethods = annotatedClass.getAbstractMethods();
+        if (abstractMethods != null)
+            abstractMethods.forEach(this::implementAbstractMethod);
+
+        templateClass.addAnnotation(createGeneratedAnnotation(TemplateMethods.class));
+        annotatedClass.getModule().addClass(templateClass);
+    }
+
+    private void implementAbstractMethod(MethodNode abstractMethod) {
+        if (methodIsAnAlreadyImplementedInterfaceMethod(abstractMethod))
+            return;
+        templateClass.addMethod(
+                abstractMethod.getName(),
+                abstractMethod.getModifiers() ^ ACC_ABSTRACT,
+                abstractMethod.getReturnType(),
+                cloneParamsWithAdjustedNames(abstractMethod),
+                abstractMethod.getExceptions(),
+                block()
+        );
+    }
+
+    @SuppressWarnings({"RedundantIfStatement", "java:S1126"})
+    private boolean methodIsAnAlreadyImplementedInterfaceMethod(MethodNode abstractMethod) {
+        if (!abstractMethod.getDeclaringClass().isInterface())
+            return false;
+
+        MethodNode existingMethod = annotatedClass.getMethod(abstractMethod.getName(), abstractMethod.getParameters());
+
+        if (existingMethod != null && existingMethod.isAbstract())
+            return false;
+
+        if (existingMethod != null)
+            return true;
+
+        String fieldName = fieldForGetter(abstractMethod);
+
+        if (fieldName == null)
+            return false;
+
+        if (annotatedClass.getField(fieldName) != null)
+            return true;
+
+        return false;
+    }
+
+    private String fieldForGetter(MethodNode method) {
+        if (ClassHelper.VOID_TYPE.equals(method.getReturnType()))
+            return null;
+
+        if (method.getParameters().length != 0)
+            return null;
+
+        if (method.getName().startsWith("is")) {
+            return StringGroovyMethods.uncapitalize(method.getName().substring(2));
+        } else if (method.getName().startsWith("get")) {
+            return StringGroovyMethods.uncapitalize(method.getName().substring(3));
+        } else {
+            return null;
+        }
+    }
+
+
+}

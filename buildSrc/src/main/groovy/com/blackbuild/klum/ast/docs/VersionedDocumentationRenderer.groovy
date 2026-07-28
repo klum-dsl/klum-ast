@@ -40,7 +40,7 @@ class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-static-html-v1'
     static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
-            'klum-ast'                : 'com/blackbuild/klum/ast/ast/DSLASTTransformation.html',
+            'klum-ast'                : 'com/blackbuild/klum/ast/compiler/internal/ast/DSLASTTransformation.html',
             'klum-ast-runtime'        : 'com/blackbuild/klum/ast/runtime/KlumModelObject.html',
             'klum-ast-annotations'    : 'com/blackbuild/klum/ast/DSL.html',
             'klum-ast-jackson'        : 'com/blackbuild/klum/ast/jackson/KlumAstModule.html',
