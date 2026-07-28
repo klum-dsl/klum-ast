@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast.runtime.internal;
 
 import com.blackbuild.klum.ast.runtime.KlumModelObject;
 import com.blackbuild.klum.ast.runtime.KlumException;
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
 import groovy.lang.GroovyObject;
 
 import java.util.Collections;
