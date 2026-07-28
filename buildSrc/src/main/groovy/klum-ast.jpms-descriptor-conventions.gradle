@@ -1,0 +1,48 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
+/**
+ * Compiles explicit module descriptors against Groovy 4 without changing the
+ * Groovy 3 compilation or classpath artifact. The descriptor compiler sees the
+ * normal compiled packages only to validate exports and emits a separate
+ * module-info.class.
+ */
+configurations {
+    jpmsModulePath {
+        canBeConsumed = false
+        canBeResolved = true
+        extendsFrom api, implementation, compileOnly
+        exclude group: 'org.codehaus.groovy'
+        exclude group: 'com.github.adedayo.intellij.sdk'
+    }
+}
+
+dependencies {
+    jpmsModulePath platform(libs.groovy.v4.bom)
+    jpmsModulePath libs.groovy.v4
+}
+
+def compileModuleInfo = tasks.register('compileModuleInfo', JavaCompile) {
+    description = 'Compiles and validates the JPMS descriptor against Groovy 4.'
+    source(fileTree('src/main/module-info'))
+    classpath = sourceSets.main.output
+    destinationDirectory = layout.buildDirectory.dir('classes/java/jpms')
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    options.release = 17
+    options.compilerArgs.addAll(['--module-path', configurations.jpmsModulePath.asPath])
+    dependsOn(configurations.jpmsModulePath)
+}
+
+tasks.named('jar') {
+    dependsOn(compileModuleInfo)
+    from(compileModuleInfo) {
+        include 'module-info.class'
+    }
+}
+
+tasks.named('sourcesJar') {
+    from('src/main/module-info') {
+        include 'module-info.java'
+    }
+}

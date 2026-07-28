@@ -1,5 +1,6 @@
 plugins {
     id "klum-ast.multigroovy-conventions"
+    id "klum-ast.jpms-descriptor-conventions"
     id "klum-ast.jacoco-conventions"
     id "java-test-fixtures"
 }
@@ -23,6 +24,10 @@ gradle.projectsEvaluated {
         systemProperty('klumRuntimeJar', project(':klum-ast-runtime').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumJacksonJar', project(':klum-ast-jackson').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
         systemProperty('klumBeanValidationJar', project(':klum-ast-bean-validation').tasks.named('jar').flatMap { it.archiveFile }.get().asFile)
+        systemProperty('jpmsAdapterModulePath', files(
+                project(':klum-ast-jackson').configurations.runtimeClasspath,
+                project(':klum-ast-bean-validation').configurations.runtimeClasspath
+        ).asPath)
     }
 }
 
