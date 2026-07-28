@@ -7,14 +7,13 @@ Convenience factory methods load a configuration directly from scripts, text, fi
 `MyConfig.Create.From(Class<Script>)` runs the given `Script` and returns the result. The script must return the
 proper type, for example:
 
+(See: `ConvenienceFactoriesDocumentaryTest#'loads a completed deployment from a script class'`.)
+
 ```groovy
 MyConfig.Create.With {
   value("bla")
 }
 ```
-
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `loads a completed deployment from a
-script class`.
 
 ## Delegating Scripts
 
@@ -22,6 +21,8 @@ If the target script is a subclass of `DelegatingScript`, its body is considered
 For keyed classes, the key value is the script class's simple name.
 
 To create a delegating script, include it explicitly with an annotation:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'uses a DelegatingScript class as keyed configuration content'`.)
 
 ```groovy
 @BaseScript DelegatingScript base
@@ -36,9 +37,6 @@ For a [[Usage#schema---model---consumer]] setup, the most convenient solution is
 compiler customizer.
 
 See the example projects for details.
-
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `uses a DelegatingScript class as keyed
-configuration content`.
 
 ## Script and delegating script for collections and maps
 
@@ -56,6 +54,8 @@ opaque and are rejected with migration guidance. See
 [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
 The intended `DelegatingScript` behavior allows splitting a bigger model into separate files:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'applies DelegatingScript recipes to list and map relationship factories'`.)
 
 With the DSL
 
@@ -75,29 +75,26 @@ Container.Create.With {
 }
 ```
 
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `applies DelegatingScript recipes to
-list and map relationship factories`. Materializing regular Script programs remain deliberately covered by the focused
-rejection tests in `ConvenienceFactoriesSpec`.
+Materializing regular Script programs remain deliberately covered by the focused rejection tests in
+`ConvenienceFactoriesSpec`.
 
 
 ## Text
 `MyConfig.Create.From(text)` or `MyConfig.Create.From(key, text)` handles the given text as the content of the creation
 closure.
 
-For example
+For example (see: `ConvenienceFactoriesDocumentaryTest#'loads keyed configuration from text'`):
 
 ```groovy
-def config = Config.Create.From(new File("bla.groovy").text)
-```
+given:
+def content = '''
+    value("blub")
+'''
 
-and the file bla.groovy
-```groovy
-value("blub")
-```
+when:
+def config = Config.Create.From(content)
 
-result in the following:
-
-```groovy
+then:
 assert config.value == "blub"
 ```
 
@@ -109,8 +106,6 @@ Config.Create.From(content, Config.class.classLoader)
 
 If no class loader is given, the current context class loader is used.
 
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `loads keyed configuration from text`.
-
 
 ## File or URL
 
@@ -119,7 +114,9 @@ Instead of text, a `File` or `URL` can be given; for a keyed object, the key is 
 get complete code completion and syntax highlighting an specialized config files.
 
 This allows splitting configurations into different files, which might be automatically resolved by something like:
- 
+
+(See: `ConvenienceFactoriesDocumentaryTest#'derives a keyed configuration name from a file or URL'`.)
+
 ```groovy
 Config.Create.With {
     environments {
@@ -135,9 +132,6 @@ __Note__: `Create.From` does not support polymorphic creation. This might be add
 
 As with `Create.From(text)`, `Create.From(File|URL)` supports an additional class-loader parameter as well.
 
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `derives a keyed configuration name
-from a file or URL`.
-
 ## Classpath
 
 Classpath discovery instantiates a model automatically from a properties file in the Model library. The Model needs one
@@ -147,6 +141,8 @@ By placing a marker on the classpath, a consumer can instantiate this class with
 This moves the dependency from code into JAR orchestration or the build script.
 
 Given the following classes:
+
+(See: `ConvenienceFactoriesDocumentaryTest#'discovers a deployment entry point from its classpath marker'`.)
 
 `Model.groovy`:
 ```groovy
@@ -184,9 +180,6 @@ def model = Model.Create.FromClasspath()
 Using this technique, the same consumer can work with different Models (often from different packages) without changing
 or injecting the Model class name.
 
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `discovers a deployment entry point
-from its classpath marker`.
-
 ## Map
 
 Using `FromMap`, an object can be created from a `Map`. This is a form of “poor man's deserialization,” where each entry
@@ -205,6 +198,8 @@ Library-specific features such as renamed fields can be simulated by overriding 
 adjusting the effective `Map` before calling the superclass method.
 
 Creation of inner objects delegates to their respective `FromMap` methods.
+
+(See: `ConvenienceFactoriesDocumentaryTest#'adapts external map keys in a custom factory'`.)
 
 ```groovy
 @DSL class Person {
@@ -230,9 +225,6 @@ def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller
 assert person.firstName == 'Klaus'
 assert person.lastName == 'Müller'
 ```
-
-The executable example is `ConvenienceFactoriesDocumentaryTest.groovy`, feature `adapts external map keys in a custom
-factory`.
 
 For String values, some simple transformations are applied:
 
