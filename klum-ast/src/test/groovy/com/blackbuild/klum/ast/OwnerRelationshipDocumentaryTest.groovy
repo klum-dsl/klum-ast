@@ -104,7 +104,17 @@ class OwnerRelationshipDocumentaryTest extends AbstractDSLSpec {
             package pk
 
             @DSL
-            class Platform {
+            class Estate extends Region {
+                Platform platform
+            }
+
+            @DSL
+            abstract class Region {
+            }
+
+            @DSL
+            class Platform extends Region {
+                @Owner Estate estate
                 Deployment deployment
             }
 
@@ -117,20 +127,22 @@ class OwnerRelationshipDocumentaryTest extends AbstractDSLSpec {
             @DSL
             class Service {
                 @Owner Deployment deployment
-                @Owner(transitive = true) Platform platform
+                @Owner(transitive = true) Region region
             }
         '''
 
         when:
-        def platform = clazz.Create.With {
-            deployment {
-                service {}
+        def estate = clazz.Create.With {
+            platform {
+                deployment {
+                    service {}
+                }
             }
         }
 
         then:
-        platform.deployment.service.deployment.is(platform.deployment)
-        platform.deployment.service.platform.is(platform)
+        estate.platform.deployment.service.deployment.is(estate.platform.deployment)
+        estate.platform.deployment.service.region.is(estate.platform)
     }
 
     @Issue("491")
