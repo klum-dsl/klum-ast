@@ -36,6 +36,7 @@ import groovy.lang.Closure;
  *
  * @param <M> the completed model type
  */
+@SuppressWarnings({"java:S100", "java:S1185"}) // generated-code ABI hooks and owner bridges
 public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
 
     protected GeneratedKlumBuilder(Class<M> modelType) {
