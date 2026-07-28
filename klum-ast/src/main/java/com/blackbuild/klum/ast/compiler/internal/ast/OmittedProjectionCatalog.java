@@ -42,7 +42,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.args;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.callX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.classX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.constX;
-import static org.codehaus.groovy.ast.tools.GeneralUtils.returnS;
+import static org.codehaus.groovy.ast.tools.GeneralUtils.throwS;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /** Compile-time catalog for dynamic diagnostics of intentionally omitted projection methods. */
@@ -75,7 +75,7 @@ final class OmittedProjectionCatalog {
         String catalog = entries.stream().map(Entry::encode).collect(Collectors.joining(";"));
         MethodNode existing = target.getNodeMetaData(METHOD_METADATA_KEY);
         if (existing != null) {
-            existing.setCode(returnS(createHandlerCall(catalog)));
+            existing.setCode(throwS(createHandlerCall(catalog)));
             return;
         }
 
@@ -83,7 +83,7 @@ final class OmittedProjectionCatalog {
                 .returning(ClassHelper.OBJECT_TYPE)
                 .param(ClassHelper.STRING_TYPE, "name")
                 .param(ClassHelper.OBJECT_TYPE, "arguments")
-                .doReturn(createHandlerCall(catalog))
+                .statement(throwS(createHandlerCall(catalog)))
                 .addTo(target);
         methodMissing.setModifiers(methodMissing.getModifiers() | Opcodes.ACC_SYNTHETIC);
         methodMissing.setSynthetic(true);

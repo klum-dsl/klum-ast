@@ -37,8 +37,8 @@ public final class GeneratedOmittedProjectionSupport {
     private GeneratedOmittedProjectionSupport() {
     }
 
-    /** Reports the established diagnostic for one generated omitted Builder-producing projection. */
-    public static Object $klum$handle(Object receiver, String methodName, Object arguments, String encodedCatalog) {
+    /** Supplies the established diagnostic for one generated omitted Builder-producing projection. */
+    public static RuntimeException $klum$handle(Object receiver, String methodName, Object arguments, String encodedCatalog) {
         return OmittedProjectionSupport.handle(receiver, methodName, arguments, encodedCatalog);
     }
 }

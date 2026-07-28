@@ -46,16 +46,16 @@ public final class OmittedProjectionSupport {
     private OmittedProjectionSupport() {
     }
 
-    public static Object handle(Object receiver, String methodName, Object arguments, String encodedCatalog) {
+    public static RuntimeException handle(Object receiver, String methodName, Object arguments, String encodedCatalog) {
         Object[] actualArguments = normalizeArguments(arguments);
         for (String encodedEntry : encodedCatalog.split(";")) {
             if (!encodedEntry.isEmpty()) {
                 CatalogEntry entry = CatalogEntry.decode(encodedEntry);
                 if (entry.matches(receiver.getClass().getClassLoader(), methodName, actualArguments))
-                    throw entry.toException();
+                    return entry.toException();
             }
         }
-        throw new MissingMethodException(methodName, receiver.getClass(), actualArguments);
+        return new MissingMethodException(methodName, receiver.getClass(), actualArguments);
     }
 
     private static boolean matches(ClassLoader loader, Object[] arguments, List<String> parameterTypeNames,

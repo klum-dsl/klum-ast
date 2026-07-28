@@ -242,12 +242,12 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     }
 
     @Issue('391')
-    def "generated omitted projection bridge delegates an unmatched fallback"() {
+    def "generated omitted projection bridge supplies an unmatched fallback"() {
         when:
-        invokeOmittedProjectionBridge(this)
+        def error = invokeOmittedProjectionBridge(this)
 
         then:
-        def error = thrown(MissingMethodException)
+        error instanceof MissingMethodException
         error.method == 'unprojected'
         error.type == getClass()
     }
@@ -464,7 +464,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     }
 
     @CompileStatic
-    private static Object invokeOmittedProjectionBridge(Object receiver) {
+    private static RuntimeException invokeOmittedProjectionBridge(Object receiver) {
         GeneratedOmittedProjectionSupport.$klum$handle(receiver, 'unprojected', null, '')
     }
 
