@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.internal.CopyHandler
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
+import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 import spock.lang.Unroll
 
@@ -472,6 +473,77 @@ class OverwriteStrategyTest extends AbstractDSLSpec {
         then:
         instance.inners.a.foo == 1
         instance.inners.a.bar == 2
+    }
+
+    @Issue("581")
+    def "Helm overwrite compiles dynamically and applies its packaged strategies"() {
+        given:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.copy.HelmOverwrite
+
+            @DSL class Service {
+                @Key String key
+                String host
+                String port
+            }
+
+            @HelmOverwrite
+            @DSL class Configuration {
+                String image
+                List<String> args
+                Map<String, Service> services
+            }
+        """
+
+        when:
+        def target = builder(Configuration) {
+            image "target"
+            args = ["target"]
+            service("web") {
+                host "target"
+            }
+        }
+        def source = builder(Configuration) {
+            image "source"
+            args = []
+            service("web") {
+                port "source"
+            }
+            service("metrics") {
+                host "metrics"
+            }
+        }
+        CopyHandler.copyToFrom(target, source)
+
+        then: "MERGE replaces simple scalar values and merges DSL map values"
+        target.image == "source"
+        target.services.web.host == "target"
+        target.services.web.port == "source"
+        target.services.metrics.host == "metrics"
+
+        and: "ALWAYS_REPLACE accepts an empty donor collection"
+        target.args == []
+    }
+
+    @Issue("581")
+    def "incomplete direct overwrite declaration remains rejected"() {
+        when:
+        createClass """
+            package pk
+
+            import com.blackbuild.klum.ast.copy.Overwrite
+
+            @Overwrite
+            @DSL class IncompleteConfiguration {
+                String image
+            }
+        """
+
+        then:
+        def error = thrown(MultipleCompilationErrorsException)
+        error.message.contains("At least one of [singles, collections, maps] must be set")
     }
 
 }
