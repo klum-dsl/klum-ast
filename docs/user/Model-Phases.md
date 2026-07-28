@@ -4,6 +4,11 @@ Model creation goes through several phases in one Builder lifecycle. The phases 
 submodels are created through the root's generated Builder methods and share that lifecycle; a nested root factory starts
 an independent lifecycle and cannot be adopted as composition.
 
+This page is an explicit documentary-test exception: rather than repeat an abbreviated lifecycle example at every heading,
+[`ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`](../../klum-ast/src/test/groovy/com/blackbuild/klum/ast/ModelPhasesDocumentaryTest.groovy)
+is one end-to-end example for the lifecycle headings. The test retains exact links to each heading; its abbreviated form is
+shown in [Complete lifecycle example](#complete-lifecycle-example).
+
 ## Lifecycle annotations
 
 Many lifecycle phases have a designated annotation. Methods and/or fields annotated with these annotations are handled in the
@@ -45,6 +50,18 @@ there ordinals are spaced to allow for plugins to insert phases in between.
 ## ApplyLater (1)
 The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the `applyLater` method without a phase argument outside of any running phase.
 
+(See: `ModelPhasesDocumentaryTest#'applies a deferred deployment setting before automatic lifecycle work'`.)
+
+```groovy
+def deployment = Deployment.Create.With {
+    applyLater {
+        environment 'production'
+    }
+}
+
+assert deployment.environment == 'production'
+```
+
 ## Early Validation (5)
 
 The early validation phase is used to validate everything model supplied (as opposed to auto created, which are supplied by the schema),
@@ -82,6 +99,8 @@ to create interlinking between objects that are too complex for AutoLink/AutoCre
 The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
 assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
 Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.
+
+(See: `ModelPhasesDocumentaryTest#'materializes a release plan into an independent completed snapshot'`.)
 
 ## Validation (50)
 
@@ -176,3 +195,63 @@ causing it to run directly after the current phase has finished.
 ```
 
 Note that this example could have been better realized in a parent's autolink method, removing the need for the applyLater closure.
+
+## Complete lifecycle example
+
+(See: `ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'`.)
+
+```groovy
+@DSL
+class Deployment {
+    String environment
+    Component component
+
+    @PostCreate
+    void beginConfiguration() {
+        // Builder-specific initialization
+    }
+
+    @PostApply
+    void finishConfiguration() {
+        // explicit DSL configuration is now available
+    }
+
+    @AutoCreate
+    void chooseEnvironment() {
+        environment ?= 'production'
+    }
+
+    @PostTree
+    void finishTree() {
+        // every owned Builder is configured
+    }
+
+    @Validate
+    void validateCompletedModel() {
+        assert component.environment == environment
+    }
+}
+
+@DSL
+class Component {
+    @Owner Deployment deployment
+    String environment
+
+    @AutoLink
+    void inheritEnvironment() {
+        environment = deployment.environment
+    }
+
+    @Default
+    void useInheritedEnvironment() {
+        environment ?= deployment.environment
+    }
+}
+
+def deployment = Deployment.Create.With {
+    component {}
+}
+
+assert deployment.component.deployment.is(deployment)
+assert deployment.component.environment == 'production'
+```
