@@ -386,6 +386,18 @@ In the normal case, only errors lead to a `KlumValidationException` being thrown
 in `KlumValidationResult` objects. Use `KlumObjectSupport.of(object).getValidation().getResult()` for one object or
 `getSubtreeResults()` for that object and its owned subtree.
 
+(See: `ValidationPolicyDocumentaryTest#'records a warning-level validation result without failing construction'`.)
+
+```groovy
+@DSL
+class Release {
+    @Required(level = Validate.Level.WARNING)
+    String releaseNotes
+}
+```
+
+`Release.Create.One()` succeeds and retains a `WARNING` issue for `releaseNotes` in its stored validation result.
+
 The level on which the validation causes an exception can be overridden by the `klum.validation.failOnLevel` system property.
 
 ## Deprecations
@@ -399,26 +411,59 @@ The warning message for a deprecated field is taken from the `@deprecated` javad
 
 If a `@Notify` annotation is present alongside the `@Deprecated` annotation, the `@Notify` is used to determine the warning behavior.
 
+(See: `ValidationPolicyDocumentaryTest#'reports a documented deprecation only for a manually configured legacy field'`.)
+
+```groovy
+@DSL
+class Release {
+    /**
+     * @deprecated Use releaseChannel instead.
+     */
+    @Deprecated
+    String legacyChannel
+}
+```
+
+When a Model Writer sets `legacyChannel`, the stored result records a `DEPRECATION` issue with the documented replacement.
+
 ## `@Notify`
 
 The `@Notify` annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with `@Default` and layer3 annotations `@AutoCreate` and `@LinkTo`.
+
+(See: `ValidationPolicyDocumentaryTest#'reports a missing manually configured field'`.)
 
 ```groovy
 @DSL
 class MyModel {
     @AutoCreate
-    @Notify(isUnset = "Value will be autocreated, which might lead to unexpected behavior")
+    @Notify(ifUnset = "Value will be autocreated, which might lead to unexpected behavior")
     String shouldBeSetManually
 }
 @DSL
 class AnotherModel {
     @LinkTo
-    @Notify(isSet = "This value will usually be linked automatically, and should only be set manually if you know what you are doing", level = Validate.Level.INFO)
+    @Notify(ifSet = "This value will usually be linked automatically, and should only be set manually if you know what you are doing", level = Validate.Level.INFO)
     String autoLinked
 }
 ```
 
 As with most issue-related annotations, the issue level can be set via the `level` parameter. The default is WARNING.
+
+`@Notify` can deliberately replace the default `@Deprecated` behavior for the same field:
+
+(See: `ValidationPolicyDocumentaryTest#'uses Notify to replace the default deprecated-field policy'`.)
+
+```groovy
+@DSL
+class Release {
+    @Notify(ifSet = "Use releaseChannel instead.", level = Validate.Level.INFO)
+    @Deprecated
+    String legacyChannel
+}
+```
+
+When a Model Writer sets `legacyChannel`, the stored result contains the `INFO` issue from `@Notify`, rather than a
+`DEPRECATION` issue.
 
 ## Suppress Further Issues
 
