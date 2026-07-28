@@ -55,6 +55,21 @@ ensures that object graphs remain safe even when DSL types override `equals`.
 
 ## Stored validation
 
+(See: `CompletedObjectSupportDocumentaryTest#'reads stored validation results for a completed deployment'`.)
+
+```groovy
+def deployment = Deployment.Create.With {
+    service {}
+}
+def validation = KlumObjectSupport.of(deployment).validation
+
+assert validation.result.issues
+assert validation.subtreeResults == [
+    validation.result,
+    KlumObjectSupport.of(deployment.service).validation.result
+]
+```
+
 `getValidation().getResult()` returns the result already stored for the target object.
 `getValidation().getSubtreeResults()` reads all stored results for that target and its owned composition subtree.
 `verify()` uses the configured failure level, while `verify(level)` uses the supplied level. These operations only inspect
