@@ -502,13 +502,13 @@ import com.blackbuild.klum.ast.validation.bean.Level
 }
 ```
 
-The resulting issue names the constrained member and retains the constraint message. Payloads other than the provided `Level` types are not mapped to a Klum validation level.
+The resulting issue names the constrained member and retains the constraint message.
 
 ### Using the Gradle Plugin
 
 When using the [gradle plugin](Gradle-Plugins.md), the dependency version can be omitted:
 
-(See: `KlumAstSchemaPluginTest#'schema plugin aligns an optional Bean Validation module to its BOM'`.)
+(See: `BeanValidationGradleDocumentaryTest#'schema plugin aligns an optional Bean Validation module to its BOM'`.)
 
 ```groovy
 plugins {
