@@ -8,6 +8,9 @@ members; each produces a value that is coerced to the field's type.
 
 The values can be set using the following strategies:
 
+The executable `DefaultValuesDocumentaryTest` cohort covers the `@Default` strategies below and the
+`@DefaultValues` variants later on this page; each example links directly to its feature method.
+
 ## Other Fields (`field`)
 The default value is taken from the value of the target field (of the same instance):
 
@@ -92,6 +95,8 @@ then: // Assertions
 assert container.element.name == 'cont' // defaults to owner.name
 ```
 
+(See: `DefaultValuesDocumentaryTest#'defaults a component name from its owning container'`.)
+
 Note that since the default phase runs after `Owner` as well as `AutoLink` and `AutoCreate` phases, the Default
 annotation can make use of fields set in those phases.
 
@@ -121,10 +126,14 @@ then: // Assertions
 assert config.lower == 'hans' // defaults to lowercase name
 ```
 
+(See: `DefaultValuesDocumentaryTest#'derives a normalized release identifier with default code'`.)
+
 ## Default as Lifecycle Annotation
 
 As with other annotations, `@Default` can also annotate parameterless methods or Closure fields that run in the
 Default phase. See [[Model Phases]] for more information.
+
+(See: `DefaultValuesDocumentaryTest#'runs a default lifecycle method when a value is absent'`.)
 
 ## `@DefaultValues` Annotation
 
@@ -140,7 +149,13 @@ for each room in a house. Each `Room` needs default display values. Instead of a
 use an `@DefaultValues` annotation:
 
 ```groovy
-// Retentention/Target
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.FIELD])
 @DefaultValues // makes this annotation a default-value provider
 @interface HomeDefaults {
     String displayName() default ""
@@ -168,6 +183,8 @@ This is more concise than abstract getters or `@Default` methods and avoids repe
 subclass of `Room` to use the annotation. In this Layer 3 style, related room classes commonly live together, so reviewers
 can assess that choice locally.
 
+(See: `DefaultValuesDocumentaryTest#'applies a default-values annotation to a configuration class'`.)
+
 ### Field Annotation
 
 Default-value annotations can also target a field to configure that field's object. Unlike the class annotation, this is
@@ -188,6 +205,8 @@ class Bathroom extends Room {
 }
 ```
 
+(See: `DefaultValuesDocumentaryTest#'applies a default-values annotation to a child field'`.)
+
 ### Closure and Coercion
 
 KlumAST coerces the default value to the target type on a best-effort basis. If an annotation member has type `Class` and
@@ -206,10 +225,14 @@ class Bathroom extends Room {
 }
 ```
 
+(See: `DefaultValuesDocumentaryTest#'evaluates a default-values closure and coerces its result'`.)
+
 ### `ignoreUnknownFields`
 
 If a member of a default-value annotation targets a field that does not exist, KlumAST throws an exception. Set
 `DefaultValues.ignoreUnknownFields` to `true` to suppress it.
+
+(See: `DefaultValuesDocumentaryTest#'ignores unmatched default-values members when configured'`.)
 
 ### `valueTarget`
 
@@ -231,6 +254,8 @@ field. This enables concise single-value annotations such as `@DisplayName`.
 ```
 
 If the targeted field is named `value`, the control annotation must still set `valueTarget = 'value'`, or validation fails.
+
+(See: `DefaultValuesDocumentaryTest#'maps a concise annotation value to a default field'`.)
 
 ## `@DefaultApply`
 
@@ -268,3 +293,5 @@ then: // Assertions
 assert foo.bar.name == "defaultName"
 assert foo.bar.age == 42
 ```
+
+(See: `DefaultValuesDocumentaryTest#'applies default configuration to a child object'`.)
