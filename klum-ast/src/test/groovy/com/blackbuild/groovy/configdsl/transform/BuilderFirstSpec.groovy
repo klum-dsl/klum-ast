@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder
+import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
 import com.blackbuild.klum.ast.runtime.KlumModelException
@@ -140,6 +141,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         constructorError.message.contains("DSL Objects cannot declare constructors")
     }
 
+    @Issue('391')
     def "Builder allocation and graph materialization are not public construction entrypoints"() {
         given:
         createClass '''
@@ -157,7 +159,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         when: "same-package or subclass code tries to invoke the internal model constructor"
         def builder = FactoryHelper.createBuilder(clazz, null)
-        def constructor = clazz.getDeclaredConstructor(rwClazz, InternalKlumBuilder.MaterializationToken)
+        def constructor = clazz.getDeclaredConstructor(rwClazz, GeneratedMaterializationToken)
         constructor.accessible = true
         constructor.newInstance(builder, null)
 

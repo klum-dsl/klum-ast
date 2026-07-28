@@ -51,7 +51,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
             }
         '''
         instance = clazz.Create.One()
-        def companionField = clazz.getDeclaredField('$proxy')
+        def companionField = clazz.getDeclaredField('$state')
         companionField.accessible = true
         def companion = companionField.get(instance)
         def support = KlumObjectSupport.of(instance)
@@ -328,7 +328,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         error.message.contains('not a completed DSL Object')
 
         when: 'the internal companion itself is supplied'
-        def companionField = instance.class.getDeclaredField('$proxy')
+        def companionField = instance.class.getDeclaredField('$state')
         companionField.accessible = true
         KlumObjectSupport.of(companionField.get(instance))
 
