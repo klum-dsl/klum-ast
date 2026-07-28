@@ -581,6 +581,7 @@ all of its owner fields are automatically set to the outer object if they follow
 - The field is unset, i.e. has the value null
 - The field can legally hold the owner object
 
+(See: `OwnerRelationshipDocumentaryTest#'assigns each matching owner field for an owned service'`.)
 
 ```groovy
 given: // Schema
@@ -619,11 +620,42 @@ all matching Owner methods are called if the object is added to another DSL obje
 the Container object ist assignable to the method parameter type). Owner methods are
 mutator methods and thus moved into the Builder.
 
+(See: `OwnerRelationshipDocumentaryTest#'derives service metadata in an owner method'`.)
+
+```groovy
+given: // Schema
+@DSL
+class Deployment {
+    String name
+    Service service
+}
+
+@DSL
+class Service {
+    String deploymentName
+
+    @Owner
+    void recordDeployment(Deployment deployment) {
+        deploymentName = deployment.name
+    }
+}
+
+when: // Model
+def deployment = Deployment.Create.With {
+    name 'catalog'
+    service {}
+}
+
+then: // Assertions
+assert deployment.service.deploymentName == 'catalog'
+```
 
 ## Transitive owners
 
 With the field `transitive` of the `@Owner` annotation, the annotated field will be set to the first matching instance
 in the owner chain (for owner fields and owner methods). 
+
+(See: `OwnerRelationshipDocumentaryTest#'finds the first matching transitive owner in a deployment path'`.)
 
 ```groovy
 given: // Schema
@@ -666,6 +698,8 @@ With the field `root` of the `@Owner` annotation, the annotated field will be se
 
 This can most conveniently be done using a common baseclass for interested objects:
 
+(See: `OwnerRelationshipDocumentaryTest#'makes the root deployment available without a direct owner path'`.)
+
 ```groovy
 given: // Schema
 @DSL
@@ -676,23 +710,31 @@ abstract class ModelElement {
 
 @DSL
 class MyModel {
-    ...
+    SomeElement someElement
 }
 
 @DSL
 class SomeElement extends ModelElement {
-    ...
 }
 
 @DSL
 class AnotherElement extends ModelElement {
-    ...
 }
+
+when: // Model
+def model = MyModel.Create.With {
+    someElement {}
+}
+
+then: // Assertions
+assert model.someElement.root.is(model)
 ```
 
 ## Owner converters
 
 Owner converter can be used to convert the owner object to another type before setting the field. In that case, the parameter of the converter closure is used whe determining whether the potential owner object matches (instead of the field type or the method parameter).
+
+(See: `OwnerRelationshipDocumentaryTest#'converts an owner into readable service metadata'`.)
 
 ```groovy
 given: // Schema
