@@ -40,8 +40,9 @@ JP-ABI-1 through JP-ABI-5 migrate the Builder, model-state, Materialization,
 Template, breadcrumb, and Cluster entries below to the generated-runtime
 bridge. JP-ABI-6 migrates the final omitted-projection entry. Its class-file
 owner scanner records the generated bridge owner and rejects the internal
-owner; the restored JP-1b named-schema fixture verifies every emitted class
-owner on the Groovy 4 and 5 module paths.
+owner; the restored ordinary named-schema acceptance gate parses every emitted
+class file's constant pool (including owner and descriptor constants) on the
+Groovy 4 and 5 module paths.
 This record does not claim a current module-path execution result.
 
 ## Remaining direct emitted linkage
@@ -49,7 +50,8 @@ This record does not claim a current module-path execution result.
 None. JP-ABI-6 removes the final inventory entry; the synthetic `methodMissing`
 fallback now names the reviewed generated bridge while retaining its existing
 unsupported-projection diagnostic. This clears the direct emitted-internal-linkage
-prerequisite and restores JP-1b's ordinary passing end-to-end acceptance coverage.
+prerequisite only. JP-1b retains ownership of restoring and proving its broader
+named-schema end-to-end acceptance fixture.
 
 ## Migrated generated-runtime linkage
 

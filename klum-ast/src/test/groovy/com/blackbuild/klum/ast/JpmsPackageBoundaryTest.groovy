@@ -29,7 +29,7 @@ import spock.lang.Specification
 import java.lang.module.ModuleFinder
 import java.nio.file.Path
 import java.nio.file.Files
-import java.nio.charset.StandardCharsets
+import java.io.DataInputStream
 import java.util.jar.JarFile
 
 @Issue("391")
@@ -171,13 +171,66 @@ class JpmsPackageBoundaryTest extends Specification {
         !namedGroovy || namedModuleResult.exitCode == 0
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
 
-        and: 'every generated named-schema class names no runtime-internal owner'
+        and: 'the class-file owner and descriptor scanner finds no runtime-internal reference in any generated named-schema class'
         !namedGroovy || !Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
             paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith('.class') }
-                    .any { classFile ->
-                        new String(Files.readAllBytes(classFile), StandardCharsets.ISO_8859_1)
-                                .contains('com/blackbuild/klum/ast/runtime/internal')
-                    }
+                    .any(this::hasRuntimeInternalReference)
+        }
+    }
+
+    private static boolean hasRuntimeInternalReference(Path classFile) {
+        classFileConstants(classFile).any { constant ->
+            constant.contains('com/blackbuild/klum/ast/runtime/internal')
+        }
+    }
+
+    private static Set<String> classFileConstants(Path classFile) {
+        Files.newInputStream(classFile).withCloseable { input ->
+            DataInputStream data = new DataInputStream(input)
+            assert data.readInt() == (int) 0xCAFEBABE
+            data.readUnsignedShort()
+            data.readUnsignedShort()
+            int constantPoolCount = data.readUnsignedShort()
+            Set<String> constants = new LinkedHashSet<>()
+            for (int index = 1; index < constantPoolCount; index++) {
+                switch (data.readUnsignedByte()) {
+                    case 1:
+                        constants << data.readUTF()
+                        break
+                    case 3:
+                    case 4:
+                        data.readInt()
+                        break
+                    case 5:
+                    case 6:
+                        data.readLong()
+                        index++
+                        break
+                    case 7:
+                    case 8:
+                    case 16:
+                    case 19:
+                    case 20:
+                        data.readUnsignedShort()
+                        break
+                    case 9:
+                    case 10:
+                    case 11:
+                    case 12:
+                    case 17:
+                    case 18:
+                        data.readUnsignedShort()
+                        data.readUnsignedShort()
+                        break
+                    case 15:
+                        data.readUnsignedByte()
+                        data.readUnsignedShort()
+                        break
+                    default:
+                        assert false: "Unexpected class-file constant tag"
+                }
+            }
+            constants
         }
     }
 
