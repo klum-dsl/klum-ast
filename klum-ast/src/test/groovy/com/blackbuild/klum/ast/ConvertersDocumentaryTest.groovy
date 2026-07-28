@@ -133,4 +133,27 @@ class ConvertersDocumentaryTest extends AbstractDSLSpec {
         numbered.edition.label == 'release-4'
         named.edition.label == 'stable'
     }
+
+    @Issue("148")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Converters.md#customization")
+    def "uses an opt-in URI constructor as a converter"() {
+        given:
+        createClass '''
+            package pk
+
+            @Converters(includeConstructors = true)
+            @DSL
+            class RemoteService {
+                URI endpoint
+            }
+        '''
+
+        when:
+        def service = clazz.Create.With {
+            endpoint 'https', 'config.example.test', '/v1', 'stable'
+        }
+
+        then:
+        service.endpoint == new URI('https', 'config.example.test', '/v1', 'stable')
+    }
 }

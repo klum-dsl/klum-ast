@@ -140,3 +140,21 @@ For a Map of simple elements, KlumAST prepends the key parameter to the converte
 `excludeDefaultPrefixes` change method selection, while `includeConstructors` exposes constructors as converters. See the
 [`@Converters` API source and Javadoc](https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/Converters.java)
 for every option and its default.
+
+For example, opt into constructors when a value type has a useful multi-argument constructor.
+
+(See: `ConvertersDocumentaryTest#'uses an opt-in URI constructor as a converter'`.)
+
+```groovy
+@Converters(includeConstructors = true)
+@DSL
+class RemoteService {
+    URI endpoint
+}
+
+def service = RemoteService.Create.With {
+    endpoint 'https', 'config.example.test', '/v1', 'stable'
+}
+
+assert service.endpoint == new URI('https', 'config.example.test', '/v1', 'stable')
+```
