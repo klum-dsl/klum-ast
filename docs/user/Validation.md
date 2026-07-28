@@ -471,47 +471,53 @@ later to apply the configured failure level without rerunning validators.
 
 ## JSR380 Validation
 
-Using the optional module `klum-ast-bean-validation` it is possible to use the JSR380 validation framework. By default, this includes Hibernate-Validator 8 as dependency, this can be exchanged using default gradle mechanisms (with version 3, this will change to hibernate validator 9).
+The optional `klum-ast-bean-validation` module adds Jakarta Bean Validation support. It exposes the Jakarta Validation API and includes Hibernate Validator as its implementation.
 
-With the dependency in the classpath, JSR380 annotations are automatically evaluated during the validation phase in addition to standard klum validation.
+With the module on the classpath, Jakarta constraint annotations are evaluated during the validation phase in addition to standard Klum validation.
+
+(See: `BeanValidationDocumentaryTest#'accepts a release with a satisfied Jakarta validation constraint'`.)
 
 ```groovy
 import jakarta.validation.constraints.Size
 
-@DSL class Foo {
-    @Size(min = 2, max = 4, message = "Must be between 2 and 4 values")
-    List<String> values
+@DSL class Release {
+    @Size(min = 2, max = 4, message = "Choose between two and four approvers")
+    List<String> approvers
 }
 ```
 
 ### Validation Levels and JSR380
 
-Levels are provided using the `jakarta.validation.Payload` interface. The class `com.blackbuild.klum.ast.validation.bean.Level` provides inner classes for each value of `Validate.Level`. When set on an annotation, an occuring violation will be set to that level:
+Levels are provided using the `jakarta.validation.Payload` interface. The class `com.blackbuild.klum.ast.validation.bean.Level` provides inner classes for each value of `Validate.Level`. When set on a constraint, a violation is recorded at that level.
+
+(See: `BeanValidationDocumentaryTest#'records a Jakarta constraint violation at its payload-selected level'`.)
 
 ```groovy
 import jakarta.validation.constraints.Size
 import com.blackbuild.klum.ast.validation.bean.Level
 
-@DSL class Foo {
-    @Size(min = 2, payload = Level.ERROR)
-    List<String> values
+@DSL class Release {
+    @Size(min = 2, payload = Level.WARNING, message = "Choose at least two approvers")
+    List<String> approvers
 }
 ```
 
-Note that other payloads are ignored.
+The resulting issue names the constrained member and retains the constraint message. Payloads other than the provided `Level` types are not mapped to a Klum validation level.
 
 ### Using the Gradle Plugin
 
 When using the [gradle plugin](Gradle-Plugins.md), the dependency version can be omitted:
 
+(See: `KlumAstSchemaPluginTest#'schema plugin aligns an optional Bean Validation module to its BOM'`.)
+
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema:2.2.0'
-    id "maven-publish"
+    id 'com.blackbuild.klum-ast-schema'
 }
 
 dependencies {
-    // will be set to the version of the plugin (2.2.0)
-    api 'com.blackbuild.klum:klum-ast-bean-validation'
+    api 'com.blackbuild.klum.ast:klum-ast-bean-validation'
 }
 ```
+
+The schema plugin imports the matching `klum-ast-bom`, which supplies the optional module version.

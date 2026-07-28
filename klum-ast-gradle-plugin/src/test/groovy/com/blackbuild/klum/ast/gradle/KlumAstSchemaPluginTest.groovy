@@ -33,7 +33,10 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
+import spock.lang.Issue
+import spock.lang.See
 import spock.lang.Specification
+import spock.lang.Tag
 
 class KlumAstSchemaPluginTest extends Specification {
 
@@ -100,6 +103,25 @@ class KlumAstSchemaPluginTest extends Specification {
 
         then:
         project.publishing.publications.size() == 1
+    }
+
+    @Issue("491")
+    @Tag("documentary")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#using-the-gradle-plugin")
+    def "schema plugin aligns an optional Bean Validation module to its BOM"() {
+        given:
+        project.getPluginManager().apply(KlumAstSchemaPlugin)
+
+        when:
+        project.dependencies.add("api", "com.blackbuild.klum.ast:klum-ast-bean-validation")
+
+        then:
+        project.configurations.api.dependencies.any {
+            it.group == "com.blackbuild.klum.ast" && it.name == "klum-ast-bean-validation" && it.version == null
+        }
+        project.configurations.api.dependencies.any {
+            it.group == "com.blackbuild.klum.ast" && it.name == "klum-ast-bom" && it.version == version
+        }
     }
 
 }
