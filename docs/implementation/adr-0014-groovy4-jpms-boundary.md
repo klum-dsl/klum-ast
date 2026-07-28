@@ -67,11 +67,19 @@ together.
 Move compiler implementation into its internal package and create its
 Groovy-4/5 descriptor with `org.apache.groovy`. Compiler transformations remain
 annotation-triggered local transforms: open `compiler.internal.ast`,
-`.ast.converters`, `.ast.mutators`, and `.layer3` only to `org.apache.groovy`;
+`.ast.converters`, `.ast.mutators`, and `.layer3` to `org.apache.groovy`;
 open `compiler.internal.validation` only to
 `com.blackbuild.klum.cast.compiler` for the established
-`@KlumCastValidator`-based reflective validator binding. The latter is not an
-export or generic reflection opening. Do not declare a global
+`@KlumCastValidator`-based reflective validator binding. The complete
+KlumCast-reflected inventory is `FieldAstValidator` in `compiler.internal.ast`,
+`WriteAccessMethodCheck` in `compiler.internal.ast.mutators`,
+`DefaultValuesCheck` in `compiler.internal.layer3`, and
+`CheckDslAnnotation`, `CheckForPrimitiveBoolean`, `OverwriteMapCheck`,
+`OverwriteSingleCheck`, and `ValidateAnnotationCheck` in
+`compiler.internal.validation`. Therefore `ast`, `ast.mutators`, and `layer3`
+also open only to `com.blackbuild.klum.cast.compiler`; `validation` already has
+that directive. `ast.converters` remains Groovy-only. These openings are not
+exports or generic reflection access. Do not declare a global
 `ASTTransformation` provider or export compiler implementation packages. Groovy
 3 retains the common classpath artifact with no descriptor alternative. Move Jackson and Bean Validation implementation
 linkage to internal packages, retaining only their documented public adapters.
@@ -85,6 +93,11 @@ export exists. A Groovy 4/5 named-module probe activates DSL/mutator, converter,
 and Layer 3 annotations without `--add-reads`, `--add-exports`,
 `--patch-module`, or equivalent flags; the matching ordinary classpath evidence
 remains green in Groovy 3, 4, and 5.
+
+**JP-3b boundary acceptance:** descriptor evidence asserts the complete
+compiler `opens` map, including the three KlumCast-qualified validator packages
+and the Groovy-only converter package, so a future check cannot widen the
+boundary by adding an unqualified open or another target.
 
 **Commit boundary:** compiler descriptor/move, then adapter descriptor/service
 work. Each commit retains a buildable descriptor set.
