@@ -3,6 +3,7 @@ module com.blackbuild.klum.ast.runtime {
     requires transitive org.apache.groovy;
     requires static com.blackbuild.annodocimal.annotations;
     exports com.blackbuild.klum.ast.runtime;
+    exports com.blackbuild.klum.ast.runtime.generated;
     exports com.blackbuild.klum.ast.runtime.validation;
     exports com.blackbuild.klum.ast.runtime.internal to
             com.blackbuild.klum.ast.compiler,

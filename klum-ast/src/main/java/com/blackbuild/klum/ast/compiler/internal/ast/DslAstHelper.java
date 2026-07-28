@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.Field;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.KlumGenerated;
 import com.blackbuild.klum.ast.runtime.internal.BreadCrumbVerbInterceptor;
-import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.internal.LanguageHelper;
 import com.blackbuild.klum.ast.layer3.LinkTo;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -94,7 +94,7 @@ public class DslAstHelper {
         // fields still hold the common Builder abstraction until a concrete subtype is chosen.
         if (classNode.isInterface())
             return GenericsUtils.makeClassSafeWithGenerics(
-                    ClassHelper.make(InternalKlumBuilder.class),
+                    ClassHelper.make(GeneratedKlumBuilder.class),
                     new GenericsType(classNode.getPlainNodeReference())
             );
 

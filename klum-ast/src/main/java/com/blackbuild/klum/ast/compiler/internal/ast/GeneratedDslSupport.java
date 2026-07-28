@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.KlumGenerated;
-import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
@@ -274,7 +274,7 @@ public final class GeneratedDslSupport {
         ClassNode parent = model.getUnresolvedSuperClass(false);
         if (!DslAstHelper.isDSLObject(parent)) {
             builderImplementation.setSuperClass(GenericsUtils.makeClassSafeWithGenerics(
-                    ClassHelper.make(InternalKlumBuilder.class),
+                    ClassHelper.make(GeneratedKlumBuilder.class),
                     new GenericsType(implementationSelfModel)
             ));
             return implementationSelfModel;
