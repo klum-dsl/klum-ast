@@ -60,7 +60,7 @@ Groovy 4 and 5 may use a named Schema module. Its descriptor requires the
 annotations and runtime modules, `requires static com.blackbuild.klum.ast.compiler`,
 and `org.apache.groovy`; when the project declares the Jackson or Bean Validation
 adapter, it must also require that adapter and open each Schema package to its
-reflection target. See [[Migration#Named modules and Groovy]] for a complete
+reflection target. See [[Migration#named-modules-and-groovy]] for a complete
 descriptor example.
 
 Groovy 3 is classpath-only for KlumAST Schema projects. If it finds a descriptor,
@@ -73,7 +73,7 @@ This means that a fully working schema project can be set up with the following 
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema'
+    id 'com.blackbuild.klum-ast-schema' version '<matching-klum-version>'
     id "maven-publish"
 }
 
@@ -96,7 +96,7 @@ A simple model project can look like:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-model' version "3.0.0"
+    id 'com.blackbuild.klum-ast-model' version '<matching-klum-version>'
     id "maven-publish"
 }
 
@@ -113,12 +113,14 @@ klumModel {
 ## Multi module
 
 Schema and model can be combined in a multimodule project (with the pre mentioned problem of missing IDE support):
+Because the root project applies the shared convention plugin at the matching KlumAST version, its child Schema and
+Model projects can use the packaged plugin IDs without repeating that version.
 
 Root:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.convention.groovy' version '3.0.0'
+    id 'com.blackbuild.convention.groovy' version '<matching-klum-version>'
 }
 
 groovyDependencies {
