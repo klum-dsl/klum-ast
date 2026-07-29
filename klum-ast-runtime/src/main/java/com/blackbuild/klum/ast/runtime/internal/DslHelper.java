@@ -404,6 +404,6 @@ public class DslHelper {
             valueType = fieldAnnotation.defaultImpl();
         else if (valueType.isAnnotationPresent(DSL.class))
             valueType = FactoryHelper.getTypeOrDefaultType(valueType);
-        return isDslType(valueType);
+        return isDslType(valueType) || valueType.isAnnotationPresent(DSL.class);
     }
 }

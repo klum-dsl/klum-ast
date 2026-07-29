@@ -1998,6 +1998,36 @@ import org.codehaus.groovy.control.CompilePhase
         rwClazz.metaClass.getMetaMethod("foo", Closure) == null
     }
 
+    @Issue('https://github.com/klum-dsl/klum-ast/issues/611')
+    def 'DSL-interface child creation materializes the configured implementation'() {
+        given:
+        createClass('''
+            @DSL class Service {
+                Endpoint endpoint
+            }
+
+            @DSL class HttpEndpoint implements Endpoint {
+                String url
+            }
+
+            @DSL interface Endpoint {
+                String getUrl()
+            }
+        ''')
+
+        when:
+        def httpEndpoint = getClass('HttpEndpoint')
+        instance = clazz.Create.With {
+            endpoint(httpEndpoint) {
+                url 'https://example.test'
+            }
+        }
+
+        then:
+        getClass('HttpEndpoint').isInstance(instance.endpoint)
+        instance.endpoint.url == 'https://example.test'
+    }
+
     def 'classloader is injectable for copyFrom'() {
         given:
         def loader = GroovySpy(GroovyClassLoader)
