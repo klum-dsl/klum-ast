@@ -35,6 +35,28 @@ The final 4.0 facade names the Builder/factory call path `getConstructionPath()`
 through which the object was created. `getModelPath()` reports the object's structural location in the completed model.
 These answer different questions and are not interchangeable.
 
+(See: `CompletedObjectSupportDocumentaryTest#'reports distinct construction and structural paths for a completed deployment'`.)
+
+```groovy
+@DSL class Deployment {
+    Service service
+}
+
+@DSL class Service {
+}
+
+def deployment = Deployment.Create.With {
+    service {}
+}
+def deploymentSupport = KlumObjectSupport.of(deployment)
+def serviceSupport = KlumObjectSupport.of(deployment.service)
+
+assert deploymentSupport.constructionPath == '$/Deployment.With'
+assert serviceSupport.constructionPath == '$/Deployment.With/service'
+assert deploymentSupport.modelPath == '<root>'
+assert serviceSupport.modelPath == '<root>.service'
+```
+
 There is no public `getBreadcrumbPath()` alias. `BreadcrumbCollector` remains an internal implementation name. The
 construction path is not provenance: KlumAST does not retain a source-lineage, applied-Template, or lifecycle-event
 record.

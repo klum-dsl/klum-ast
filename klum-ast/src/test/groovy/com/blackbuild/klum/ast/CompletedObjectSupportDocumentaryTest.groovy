@@ -31,6 +31,35 @@ import spock.lang.Tag
 @Tag("documentary")
 class CompletedObjectSupportDocumentaryTest extends AbstractDSLSpec {
 
+    @Issue("390")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Completed-Object-Support.md#construction-and-structural-model-paths")
+    def "reports distinct construction and structural paths for a completed deployment"() {
+        given:
+        createClass '''
+            @DSL class Deployment {
+                Service service
+            }
+
+            @DSL class Service {
+            }
+        '''
+
+        when:
+        def deployment = clazz.Create.With {
+            service {}
+        }
+        def deploymentSupport = KlumObjectSupport.of(deployment)
+        def serviceSupport = KlumObjectSupport.of(deployment.service)
+
+        then:
+        deploymentSupport.constructionPath == '$/Deployment.With'
+        serviceSupport.constructionPath == '$/Deployment.With/service'
+        deploymentSupport.modelPath == '<root>'
+        serviceSupport.modelPath == '<root>.service'
+        deploymentSupport.constructionPath != deploymentSupport.modelPath
+        serviceSupport.constructionPath != serviceSupport.modelPath
+    }
+
     @Issue("491")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Completed-Object-Support.md#ownership-paths-and-traversal")
     def "traverses a deployment composition without following linked services"() {
