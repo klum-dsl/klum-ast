@@ -110,10 +110,19 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
                 methodName,
                 args(args)
         );
+        if (isGeneratedBuilderHook())
+            callExpression.setMethodTarget(MethodAstHelper.findMatchingMethod(targetType, methodName, getProxyArgumentTypes()));
         if (!returnType.equals(ClassHelper.VOID_TYPE))
             return returnS(callExpression);
         else
             return stmt(callExpression);
+    }
+
+    private boolean isGeneratedBuilderHook() {
+        return targetType.equals(KLUM_BUILDER_TYPE) && switch (proxyMethodName) {
+            case "$copyFromRecipe", "$setSingleField", "$scheduleApplyLater" -> true;
+            default -> false;
+        };
     }
 
     public ProxyMethodBuilder targetType(ClassNode targetType) {
