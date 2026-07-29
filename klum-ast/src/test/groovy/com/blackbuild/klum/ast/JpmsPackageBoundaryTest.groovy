@@ -35,6 +35,12 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.jar.JarFile
 
+import groovyjarjarasm.asm.ClassReader
+import groovyjarjarasm.asm.ClassVisitor
+import groovyjarjarasm.asm.Handle
+import groovyjarjarasm.asm.MethodVisitor
+import groovyjarjarasm.asm.Opcodes
+
 @Issue("391")
 class JpmsPackageBoundaryTest extends Specification {
 
@@ -212,6 +218,40 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    private static void assertGeneratedSetterDirectlyInvokesRuntimeHook(Path classes) {
+        List<String> unresolvedSetters = []
+        List<String> directlyLinkedSetters = []
+        Path builderClass = classes.resolve('fixture/schema/Station$Builder.class')
+
+        Files.newInputStream(builderClass).withCloseable { input ->
+            new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM7) {
+                @Override
+                MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    new MethodVisitor(Opcodes.ASM7) {
+                        @Override
+                        void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
+                                                    Object... bootstrapMethodArguments) {
+                            if (bootstrapMethodArguments.contains('$setSingleField'))
+                                unresolvedSetters << "$name$descriptor"
+                        }
+
+                        @Override
+                        void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
+                                             boolean isInterface) {
+                            if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
+                                    methodName == '$setSingleField')
+                                directlyLinkedSetters << "$name$descriptor"
+                        }
+                    }
+                }
+            }, 0)
+        }
+
+        assert unresolvedSetters.empty: "Generated setters must not use invokedynamic for \$setSingleField: $unresolvedSetters"
+        assert directlyLinkedSetters.any { it.toString() == 'name(Ljava/lang/String;)Ljava/lang/String;' }:
+                "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
+    }
+
     private static boolean hasRuntimeInternalReference(Path classFile) {
         classFileConstants(classFile).any { constant ->
             constant.contains('com/blackbuild/klum/ast/runtime/internal')
@@ -320,7 +360,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
     private static void assertFixtureOutput(ProcessResult result) {
         assert result.output.readLines().contains(
-                'java=true;station=North;events=create,tree,validate;phase=true;validator=true;json=true') : result.output
+                'java=true;station=Java;events=create,tree,validate;phase=true;validator=true;json=true') : result.output
         assert result.output.readLines().last() == 'static=true' : result.output
     }
 
@@ -383,6 +423,8 @@ class JpmsPackageBoundaryTest extends Specification {
 
         if (named)
             assertProtectedLifecycleContract(schemaClasses)
+        if (named)
+            assertGeneratedSetterDirectlyInvokesRuntimeHook(schemaClasses)
 
         Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
 
@@ -619,15 +661,18 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.fasterxml.jackson.databind.ObjectMapper;
             import fixture.schema.Station;
+            import fixture.schema.Station_DSL;
 
             import java.util.List;
+            import java.util.Map;
             import java.util.ServiceLoader;
 
             public class Main {
                 public static void main(String[] arguments) throws Exception {
-                    Station station = Station.Create.One();
-                    if (!"North".equals(station.getName()))
-                        throw new AssertionError("Generated factory did not materialize the schema default");
+                    Station_DSL.Factory factory = Station.Create;
+                    Station station = factory.With(Map.of("name", "Java"));
+                    if (!"Java".equals(station.getName()))
+                        throw new AssertionError("Generated factory did not apply the Java map value");
                     if (station.getCapacity() != 4)
                         throw new AssertionError("Bean Validation schema value was not materialized");
                     if (!Station.eventLog().equals(List.of("create", "tree", "validate")))
@@ -643,9 +688,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     if (!beanValidatorLoaded)
                         throw new AssertionError("Bean Validation provider was not discovered");
                     String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(station);
-                    if (!json.contains("\\\"name\\\":\\\"North\\\"") || !json.contains("\\\"capacity\\\":4"))
+                    if (!json.contains("\\\"name\\\":\\\"Java\\\"") || !json.contains("\\\"capacity\\\":4"))
                         throw new AssertionError("Jackson did not export the opened schema package: " + json);
-                    System.out.println("java=true;station=North;events=create,tree,validate;phase=true;validator=true;json=true");
+                    System.out.println("java=true;station=Java;events=create,tree,validate;phase=true;validator=true;json=true");
                 }
             }
         '''.stripIndent()
@@ -741,7 +786,7 @@ class JpmsPackageBoundaryTest extends Specification {
 
     private static void assertNoPortabilityWorkarounds(Collection<String> command) {
         assert !command.any { option ->
-            ['--add-reads', '--add-exports', '--patch-module'].any { forbidden ->
+            ['--add-reads', '--add-exports', '--add-opens', '--patch-module'].any { forbidden ->
                 option == forbidden || option.startsWith("${forbidden}=")
             }
         }
