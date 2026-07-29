@@ -2,14 +2,14 @@
 
 ## Delegation Hints for Builder Closures
 
-Generated methods accepting configuration closures receive the appropriate `@DelegatesTo` metadata automatically, so
-modern IDEs can infer the available Builder methods.
+Generated DSL methods that accept configuration closures automatically receive the appropriate `@DelegatesTo` metadata,
+so modern IDEs can infer the available Builder methods.
 
-Schema-defined Mutators sometimes accept and forward their own configuration closures. The generated Builder type does
-not exist when that source method is parsed. Use `@DelegatesToBuilder` in that case. It tells the IDE and static type
-checker about the generated Builder, not a mutable completed DSL Object.
+Schema-defined Mutators can also accept and forward configuration closures. Because the generated Builder type does not
+exist when that source method is parsed, use `@DelegatesToBuilder` for those parameters. It tells the IDE and static type
+checker about the generated Builder; it does not make the completed DSL Object mutable.
 
-The optional annotation value selects the DSL Object whose Builder receives the closure:
+The optional annotation value names the DSL Object whose Builder receives the closure:
 
 ```groovy
 @DSL
@@ -25,7 +25,6 @@ class Container {
     def square(@DelegatesToBuilder(Element) Closure body) {
         element(type: 'square', body)
     }
-// ...
 }
 ```
 
@@ -35,8 +34,8 @@ participate in factory/Builder construction; see [[Builder First Migration]] for
 
 ## Behavior Models and Parameter Hints
 
-Fields can hold dynamic behavior as a closure or interface value. This lets a Model choose behavior without creating a
-new Schema type.
+Fields can hold behavior as a closure or interface value. This lets a Model choose an algorithm without creating a new
+Schema type.
 
 Consider the following example:
 
@@ -50,10 +49,11 @@ class ValueProvider {
 }
 ```
 
-If the description must contain another value, a subclass of `ValueProvider` would be required. That is inconvenient when
-the behavior varies by Model rather than by Schema.
+If different Models need different descriptions, this design could require a subclass of `ValueProvider` for each
+algorithm. That is inconvenient when the behavior varies by Model rather than by Schema.
 
-Make the description configurable instead (the Strategy pattern). Use either an interface/abstract class or a closure.
+Make the description algorithm configurable instead (the Strategy pattern). Use either an interface or abstract class,
+or a closure.
 
 ### Interface
 
@@ -74,8 +74,8 @@ interface DescriptionProvider {
 }
 ```
 
-The Model can now supply the description algorithm. In Groovy, a single-abstract-method (SAM) interface can be supplied
-as a closure:
+The Model can now supply the description algorithm. In Groovy, a closure can implement a single-abstract-method (SAM)
+interface:
 
 ```groovy
 ValueProvider.Create.With {
@@ -84,7 +84,7 @@ ValueProvider.Create.With {
 }
 ```
 
-The closure has one `Map` parameter and returns `String`, which the compiler can check.
+The closure has one `Map` parameter and returns `String`, so the compiler can check both parts of the contract.
 
 `DescriptionProvider` could instead be an abstract class, for example to add [[Converters#factory-method-converters]].
 
@@ -111,11 +111,11 @@ ValueProvider.Create.With {
 ```
 
 The Model call looks the same as the SAM-interface form. With an unannotated Closure field, however, the IDE and type
-checker do not know the parameter type, so they cannot offer parameter completion.
+checker do not know the parameter type. `Closure<String>` describes the return type, not the parameter type, so they
+cannot offer parameter completion.
 
-In normal Groovy, a method parameter can carry `@ClosureParams`. Because this setter is generated, use
-`@ParameterAnnotation.ClosureHint` instead. For this closure field, the supplied hint carries the required parameter
-annotation:
+In normal Groovy, a method parameter can carry `@ClosureParams`. Because KlumAST generates this setter, use
+`@ParameterAnnotation.ClosureHint` on the field instead. The hint supplies the required parameter annotation:
 
 ```groovy
 @DSL class ValueProvider {
