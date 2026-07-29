@@ -63,7 +63,6 @@ public abstract class ValidateKlumSchemaModule extends DefaultTask {
             "com.blackbuild.klum.ast.jackson", "com.fasterxml.jackson.databind",
             "com.blackbuild.klum.ast.validation.bean", "org.hibernate.validator");
     private static final Pattern REQUIRES = Pattern.compile("\\brequires\\s+((?:static\\s+transitive|transitive\\s+static|static|transitive)\\s+)?([\\w.]+)\\s*;");
-    private static final Pattern OPENS = Pattern.compile("\\bopens\\s+([\\w.]+)\\s+to\\s+((?:[\\w.]+\\s*,\\s*)*[\\w.]+)\\s*;");
     private static final Pattern PACKAGE = Pattern.compile("^\\s*package\\s+([\\w.]+)\\s*(?:;|$)", Pattern.MULTILINE);
 
     @InputFiles
@@ -165,12 +164,17 @@ public abstract class ValidateKlumSchemaModule extends DefaultTask {
 
     private static Map<String, Set<String>> openedPackages(String source) {
         Map<String, Set<String>> packages = new LinkedHashMap<>();
-        Matcher matcher = OPENS.matcher(withoutComments(source));
-        while (matcher.find()) {
+        for (String directive : withoutComments(source).split(";")) {
+            String trimmed = directive.trim();
+            if (!trimmed.startsWith("opens "))
+                continue;
+            int targetSeparator = trimmed.indexOf(" to ");
+            if (targetSeparator < 0)
+                continue;
             Set<String> targets = new LinkedHashSet<>();
-            for (String target : matcher.group(2).split(","))
+            for (String target : trimmed.substring(targetSeparator + " to ".length()).split(","))
                 targets.add(target.trim());
-            packages.put(matcher.group(1), targets);
+            packages.put(trimmed.substring("opens ".length(), targetSeparator).trim(), targets);
         }
         return packages;
     }
