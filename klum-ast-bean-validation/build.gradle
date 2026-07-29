@@ -10,6 +10,7 @@ dependencies {
     api project(':klum-ast-runtime')
     api 'jakarta.validation:jakarta.validation-api:3.0.2'
     implementation 'org.hibernate.validator:hibernate-validator:8.0.3.Final'
+    implementation 'com.fasterxml:classmate:1.5.1'
 
     sharedTests project(':klum-ast')
     // just to make intellij happy, base classes are actually included as sources

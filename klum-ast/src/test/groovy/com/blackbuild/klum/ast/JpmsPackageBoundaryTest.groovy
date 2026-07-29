@@ -26,10 +26,13 @@ package com.blackbuild.klum.ast
 import spock.lang.Issue
 import spock.lang.Specification
 
-import java.lang.module.ModuleFinder
-import java.nio.file.Path
-import java.nio.file.Files
 import java.io.DataInputStream
+import java.lang.module.ModuleFinder
+import java.lang.module.ModuleDescriptor
+import java.lang.reflect.Modifier
+import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.jar.JarFile
 
 @Issue("391")
@@ -124,6 +127,9 @@ class JpmsPackageBoundaryTest extends Specification {
         exportedPackages(descriptors.compiler).empty
         exportedPackages(descriptors.jackson) == ['com.blackbuild.klum.ast.jackson'] as Set
         exportedPackages(descriptors.beanValidation) == ['com.blackbuild.klum.ast.validation.bean'] as Set
+        descriptors.beanValidation.requires()*.name().contains('com.fasterxml.classmate')
+        !descriptors.beanValidation.requires().find { it.name() == 'com.fasterxml.classmate' }
+                .modifiers().contains(ModuleDescriptor.Requires.Modifier.TRANSITIVE)
         qualifiedOpenTargets(descriptors.compiler) == [
                 'com.blackbuild.klum.ast.compiler.internal.ast'           : [
                         'org.apache.groovy',
@@ -172,9 +178,37 @@ class JpmsPackageBoundaryTest extends Specification {
         !namedGroovy || Files.exists(namedModuleResult.outputDirectory.resolve('NamedRoot.class'))
 
         and: 'the class-file owner and descriptor scanner finds no runtime-internal reference in any generated named-schema class'
-        !namedGroovy || !Files.walk(namedModuleResult.outputDirectory).withCloseable { paths ->
+        if (namedGroovy) {
+            assertNoRuntimeInternalReferences(namedModuleResult.outputDirectory)
+            assertGeneratedHelperContract(namedModuleResult.outputDirectory, 'NamedRoot', '$_Template', true)
+            assertGeneratedHelperContract(namedModuleResult.outputDirectory, 'NamedRoot', '$_Factory', false)
+        }
+    }
+
+    private static void assertNoRuntimeInternalReferences(Path classes) {
+        assert !Files.walk(classes).withCloseable { paths ->
             paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith('.class') }
                     .any(this::hasRuntimeInternalReference)
+        }
+    }
+
+    private static void assertGeneratedHelperContract(Path classes, String modelName, String suffix, boolean synthetic) {
+        new URLClassLoader([classes.toUri().toURL()] as URL[], JpmsPackageBoundaryTest.classLoader).withCloseable { loader ->
+            Class<?> helper = Class.forName(modelName + suffix, false, loader)
+            assert Modifier.isPublic(helper.modifiers)
+            assert Modifier.isStatic(helper.modifiers)
+            assert Modifier.isFinal(helper.modifiers)
+            assert helper.synthetic == synthetic
+            assert Modifier.isPublic(helper.getDeclaredConstructor().modifiers)
+        }
+    }
+
+    private static void assertProtectedLifecycleContract(Path classes) {
+        new URLClassLoader([classes.toUri().toURL()] as URL[], JpmsPackageBoundaryTest.classLoader).withCloseable { loader ->
+            Class<?> builder = Class.forName('fixture.schema.Station$Builder', false, loader)
+            ['recordCreate', 'recordTree'].each { methodName ->
+                assert Modifier.isProtected(builder.getDeclaredMethod(methodName).modifiers)
+            }
         }
     }
 
@@ -234,6 +268,24 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    def "a real schema and consumer prove the classpath and named-module contracts"() {
+        given:
+        boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
+
+        when:
+        ProcessResult classpathResult = executeRealSchemaFixture(false)
+        ProcessResult namedModuleResult = namedGroovy ? executeRealSchemaFixture(true) : null
+
+        then: 'all supported Groovy generations retain the ordinary classpath consumer contract'
+        assert classpathResult.exitCode == 0 : classpathResult.output
+        assertFixtureOutput(classpathResult)
+
+        and: 'only Groovy 4 and 5 prove the user-owned schema on the module path'
+        !namedGroovy || namedModuleResult.exitCode == 0
+        if (namedGroovy)
+            assertFixtureOutput(namedModuleResult)
+    }
+
     private static Map<String, Set<String>> packageOwners(Map<String, Set<String>> packagesByArtifact) {
         Map<String, Set<String>> owners = new LinkedHashMap<>()
         packagesByArtifact.each { artifact, packageNames ->
@@ -264,6 +316,12 @@ class JpmsPackageBoundaryTest extends Specification {
                 entry.name.startsWith('META-INF/services/') && !entry.directory
             }.collect { it.name } as Set
         }
+    }
+
+    private static void assertFixtureOutput(ProcessResult result) {
+        assert result.output.readLines().contains(
+                'java=true;station=North;events=create,tree,validate;phase=true;validator=true;json=true') : result.output
+        assert result.output.readLines().last() == 'static=true' : result.output
     }
 
     private static Map<String, Path> artifacts() {
@@ -304,6 +362,333 @@ class JpmsPackageBoundaryTest extends Specification {
                 '--class-path', modulePathEntries().join(File.pathSeparator),
                 'org.codehaus.groovy.tools.FileSystemCompiler'
         ])
+    }
+
+    private static ProcessResult executeRealSchemaFixture(boolean named) {
+        Path fixture = Files.createTempDirectory(named ? 'klum-jpms-named-schema' : 'klum-classpath-schema')
+        Path schemaSources = fixture.resolve('schema-sources')
+        Path schemaClasses = fixture.resolve('schema-classes')
+        Path consumerSources = fixture.resolve('consumer-sources')
+        Path consumerClasses = fixture.resolve('consumer-classes')
+        Files.createDirectories(schemaSources.resolve('fixture/schema'))
+        Files.createDirectories(schemaClasses)
+        Files.createDirectories(consumerSources.resolve('fixture/consumer'))
+        Files.createDirectories(consumerClasses)
+        Files.writeString(schemaSources.resolve('fixture/schema/Station.groovy'), realSchemaSource())
+        Files.writeString(consumerSources.resolve('fixture/consumer/StaticConsumer.groovy'), staticGroovyConsumerSource())
+
+        ProcessResult schemaCompilation = compileGroovySchema(schemaSources, schemaClasses, named)
+        if (schemaCompilation.exitCode != 0)
+            return schemaCompilation
+
+        if (named)
+            assertProtectedLifecycleContract(schemaClasses)
+
+        Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
+
+        ProcessResult staticConsumerCompilation = compileStaticGroovyConsumer(
+                schemaArtifact, consumerSources, consumerClasses, named)
+        if (staticConsumerCompilation.exitCode != 0)
+            return staticConsumerCompilation
+
+        Files.writeString(consumerSources.resolve('fixture/consumer/Main.java'), realConsumerSource())
+        if (named)
+            Files.writeString(consumerSources.resolve('module-info.java'), namedConsumerDescriptor())
+
+        ProcessResult consumerCompilation = compileConsumer(schemaArtifact, consumerSources, consumerClasses, named)
+        if (consumerCompilation.exitCode != 0)
+            return consumerCompilation
+        runConsumer(schemaArtifact, consumerClasses, named)
+    }
+
+    private static ProcessResult compileGroovySchema(Path sources, Path output, boolean named) {
+        List<String> compilerCommand = named ? [
+                '--module-path', modulePathEntries().join(File.pathSeparator),
+                '--add-modules', 'ALL-MODULE-PATH',
+                '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler',
+                '--classpath', modulePathEntries().join(File.pathSeparator)
+        ] : [
+                '--class-path', modulePathEntries().join(File.pathSeparator),
+                'org.codehaus.groovy.tools.FileSystemCompiler'
+        ]
+        if (named)
+            assertNamedModuleCommand(compilerCommand)
+        List<String> command = [javaExecutable()]
+        command.addAll(compilerCommand)
+        command.addAll([
+                '-d', output.toString(),
+                sources.resolve('fixture/schema/Station.groovy').toString()
+        ])
+        execute(command, output)
+    }
+
+    private static Path compileAndPackageNamedSchema(Path sources, Path classes) {
+        Files.writeString(sources.resolve('module-info.java'), namedSchemaDescriptor())
+        List<String> descriptorArguments = [
+                '--module-path', modulePathEntries().join(File.pathSeparator),
+                '-d', classes.toString(),
+                sources.resolve('module-info.java').toString()
+        ]
+        assertNoPortabilityWorkarounds(descriptorArguments)
+        ProcessResult descriptorCompilation = compileJava(descriptorArguments, classes)
+        assert descriptorCompilation.exitCode == 0 : descriptorCompilation.output
+
+        Path archive = classes.parent.resolve('fixture.schema.jar')
+        ProcessResult packaging = execute([
+                jarExecutable(), '--create', '--file', archive.toString(), '-C', classes.toString(), '.'
+        ], classes)
+        assert packaging.exitCode == 0 : packaging.output
+        assertNamedSchemaDescriptor(archive)
+        assertNoRuntimeInternalReferences(classes)
+        archive
+    }
+
+    private static ProcessResult compileStaticGroovyConsumer(Path schemaArtifact, Path sources, Path output, boolean named) {
+        List<String> compilerCommand = named ? [
+                '--module-path', modulePath(schemaArtifact),
+                '--add-modules', 'ALL-MODULE-PATH',
+                '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler',
+                '--classpath', modulePath(schemaArtifact)
+        ] : [
+                '--class-path', classpath(schemaArtifact),
+                'org.codehaus.groovy.tools.FileSystemCompiler'
+        ]
+        if (named)
+            assertNamedModuleCommand(compilerCommand)
+        List<String> command = [javaExecutable()]
+        command.addAll(compilerCommand)
+        command.addAll([
+                '-d', output.toString(),
+                sources.resolve('fixture/consumer/StaticConsumer.groovy').toString()
+        ])
+        execute(command, output)
+    }
+
+    private static ProcessResult compileConsumer(Path schemaArtifact, Path sources, Path output, boolean named) {
+        List<String> arguments = named ? [
+                '--module-path', modulePath(schemaArtifact),
+                '-d', output.toString(),
+                sources.resolve('module-info.java').toString(),
+                sources.resolve('fixture/consumer/Main.java').toString()
+        ] : [
+                '--class-path', classpath(schemaArtifact),
+                '-d', output.toString(),
+                sources.resolve('fixture/consumer/Main.java').toString()
+        ]
+        if (named)
+            assertNoPortabilityWorkarounds(arguments)
+        compileJava(arguments, output)
+    }
+
+    private static ProcessResult runConsumer(Path schemaArtifact, Path consumerClasses, boolean named) {
+        List<String> javaCommand = named ? [
+                javaExecutable(),
+                '--module-path', modulePath(schemaArtifact, consumerClasses),
+                '-m', 'fixture.consumer/fixture.consumer.Main'
+        ] : [
+                javaExecutable(),
+                '--class-path', [consumerClasses, schemaArtifact, *modulePathEntries()].join(File.pathSeparator),
+                'fixture.consumer.Main'
+        ]
+        if (named)
+            assertNoPortabilityWorkarounds(javaCommand)
+        ProcessResult javaConsumer = execute(javaCommand, consumerClasses)
+        if (javaConsumer.exitCode != 0)
+            return javaConsumer
+
+        List<String> staticGroovyCommand = named ? [
+                javaExecutable(),
+                '--module-path', modulePath(schemaArtifact, consumerClasses),
+                '-m', 'fixture.consumer/fixture.consumer.StaticConsumer'
+        ] : [
+                javaExecutable(),
+                '--class-path', [consumerClasses, schemaArtifact, *modulePathEntries()].join(File.pathSeparator),
+                'fixture.consumer.StaticConsumer'
+        ]
+        if (named)
+            assertNoPortabilityWorkarounds(staticGroovyCommand)
+        ProcessResult staticConsumer = execute(staticGroovyCommand, consumerClasses)
+        new ProcessResult(staticConsumer.exitCode, javaConsumer.output + staticConsumer.output, consumerClasses)
+    }
+
+    private static ProcessResult compileJava(List<String> arguments, Path output) {
+        List<String> command = [javacExecutable()]
+        command.addAll(arguments)
+        execute(command, output)
+    }
+
+    private static ProcessResult execute(List<String> command, Path output) {
+        ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true)
+        builder.environment().remove('CLASSPATH')
+        Process process = builder.start()
+        new ProcessResult(process.waitFor(), process.inputStream.text, output)
+    }
+
+    private static String modulePath(Path... additionalEntries) {
+        [*additionalEntries, *modulePathEntries()].join(File.pathSeparator)
+    }
+
+    private static String classpath(Path schemaArtifact) {
+        [schemaArtifact, *modulePathEntries()].join(File.pathSeparator)
+    }
+
+    private static String realSchemaSource() {
+        '''
+            package fixture.schema
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.PostCreate
+            import com.blackbuild.klum.ast.PostTree
+            import com.blackbuild.klum.ast.Validate
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import jakarta.validation.constraints.Min
+
+            import java.util.List
+
+            @DSL
+            class Station {
+                static final List<String> EVENTS = []
+
+                String name = 'North'
+
+                @Min(1L)
+                int capacity = 4
+
+                @PostCreate
+                void recordCreate() {
+                    assert this instanceof KlumBuilder
+                    Station.EVENTS << 'create'
+                }
+
+                @PostTree
+                void recordTree() {
+                    assert this instanceof KlumBuilder
+                    Station.EVENTS << 'tree'
+                }
+
+                @Validate
+                void recordValidation() {
+                    assert !(this instanceof KlumBuilder)
+                    Station.EVENTS << 'validate'
+                }
+
+                static List<String> eventLog() {
+                    EVENTS
+                }
+            }
+        '''.stripIndent()
+    }
+
+    private static String namedSchemaDescriptor() {
+        '''
+            module fixture.schema {
+                requires com.blackbuild.klum.ast.annotations;
+                requires com.blackbuild.klum.ast.runtime;
+                requires static com.blackbuild.klum.ast.compiler;
+                requires com.blackbuild.klum.ast.jackson;
+                requires com.blackbuild.klum.ast.validation.bean;
+                requires org.apache.groovy;
+
+                exports fixture.schema;
+                opens fixture.schema to com.blackbuild.klum.ast.runtime, com.fasterxml.jackson.databind, org.hibernate.validator;
+            }
+        '''.stripIndent()
+    }
+
+    private static String namedConsumerDescriptor() {
+        '''
+            module fixture.consumer {
+                requires fixture.schema;
+                requires com.blackbuild.klum.ast.runtime;
+                requires com.blackbuild.klum.ast.jackson;
+                requires com.blackbuild.klum.ast.validation.bean;
+                requires com.fasterxml.jackson.databind;
+                requires org.apache.groovy;
+
+                uses com.blackbuild.klum.ast.runtime.PhaseAction;
+                uses com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
+            }
+        '''.stripIndent()
+    }
+
+    private static String realConsumerSource() {
+        '''
+            package fixture.consumer;
+
+            import com.blackbuild.klum.ast.runtime.PhaseAction;
+            import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
+            import com.fasterxml.jackson.databind.ObjectMapper;
+            import fixture.schema.Station;
+
+            import java.util.List;
+            import java.util.ServiceLoader;
+
+            public class Main {
+                public static void main(String[] arguments) throws Exception {
+                    Station station = Station.Create.One();
+                    if (!"North".equals(station.getName()))
+                        throw new AssertionError("Generated factory did not materialize the schema default");
+                    if (station.getCapacity() != 4)
+                        throw new AssertionError("Bean Validation schema value was not materialized");
+                    if (!Station.eventLog().equals(List.of("create", "tree", "validate")))
+                        throw new AssertionError("Builder lifecycle and model validation did not run in order");
+                    boolean phaseActionLoaded = ServiceLoader.load(PhaseAction.class).stream()
+                            .anyMatch(provider -> provider.type().getName()
+                                    .equals("com.blackbuild.klum.ast.runtime.internal.validation.ValidationPhase"));
+                    if (!phaseActionLoaded)
+                        throw new AssertionError("Runtime phase action was not discovered");
+                    boolean beanValidatorLoaded = ServiceLoader.load(InstanceValidator.class).stream()
+                            .anyMatch(provider -> provider.type().getName()
+                                    .equals("com.blackbuild.klum.ast.validation.bean.internal.JSR380Validator"));
+                    if (!beanValidatorLoaded)
+                        throw new AssertionError("Bean Validation provider was not discovered");
+                    String json = new ObjectMapper().findAndRegisterModules().writeValueAsString(station);
+                    if (!json.contains("\\\"name\\\":\\\"North\\\"") || !json.contains("\\\"capacity\\\":4"))
+                        throw new AssertionError("Jackson did not export the opened schema package: " + json);
+                    System.out.println("java=true;station=North;events=create,tree,validate;phase=true;validator=true;json=true");
+                }
+            }
+        '''.stripIndent()
+    }
+
+    private static String staticGroovyConsumerSource() {
+        '''
+            package fixture.consumer
+
+            import fixture.schema.Station
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticConsumer {
+                static void main(String[] arguments) {
+                    Station station = Station.Create.One()
+                    assert station.name == 'North'
+                    assert station.capacity == 4
+                    println 'static=true'
+                }
+            }
+        '''.stripIndent()
+    }
+
+    private static void assertNamedSchemaDescriptor(Path archive) {
+        def descriptor = ModuleFinder.of(archive).findAll().first().descriptor()
+        assert descriptor.name() == 'fixture.schema'
+        assert descriptor.requires()*.name().containsAll([
+                'com.blackbuild.klum.ast.annotations',
+                'com.blackbuild.klum.ast.runtime',
+                'com.blackbuild.klum.ast.compiler',
+                'com.blackbuild.klum.ast.jackson',
+                'com.blackbuild.klum.ast.validation.bean',
+                'org.apache.groovy'
+        ])
+        assert exportedPackages(descriptor) == ['fixture.schema'] as Set
+        assert qualifiedOpenTargets(descriptor) == [
+                'fixture.schema': [
+                        'com.blackbuild.klum.ast.runtime',
+                        'com.fasterxml.jackson.databind',
+                        'org.hibernate.validator'
+                ] as Set
+        ]
     }
 
     private static ProcessResult compileSchema(List<String> compilerCommand) {
@@ -351,11 +736,27 @@ class JpmsPackageBoundaryTest extends Specification {
                 '--add-modules', 'ALL-MODULE-PATH',
                 '-m', 'org.apache.groovy/org.codehaus.groovy.tools.FileSystemCompiler'
         ])
+        assertNoPortabilityWorkarounds(command)
+    }
+
+    private static void assertNoPortabilityWorkarounds(Collection<String> command) {
         assert !command.any { option ->
             ['--add-reads', '--add-exports', '--patch-module'].any { forbidden ->
                 option == forbidden || option.startsWith("${forbidden}=")
             }
         }
+    }
+
+    private static String javaExecutable() {
+        Path.of(System.getProperty('java.home'), 'bin', 'java').toString()
+    }
+
+    private static String javacExecutable() {
+        Path.of(System.getProperty('java.home'), 'bin', 'javac').toString()
+    }
+
+    private static String jarExecutable() {
+        Path.of(System.getProperty('java.home'), 'bin', 'jar').toString()
     }
 
     private static List<String> modulePathEntries() {

@@ -68,8 +68,8 @@ public class TemplateManager {
     public static boolean isTemplate(Object value) {
         return value != null
                 && DslHelper.isDslObject(value)
-                && DslHelper.getCachedField(value.getClass(), KlumModelProxy.NAME_IN_MODEL)
-                .map(field -> field.getProperty(value))
+                && DslHelper.getField(value.getClass(), KlumModelProxy.NAME_IN_MODEL)
+                .map(field -> DslHelper.getFieldValue(value, field))
                 .filter(KlumTemplateProxy.class::isInstance)
                 .isPresent();
     }

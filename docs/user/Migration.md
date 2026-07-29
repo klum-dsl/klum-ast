@@ -13,6 +13,37 @@ and treat the completed-model export as a separately owned external projection. 
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)
 owns source-neutral composition.
 
+### Named modules and Groovy
+
+Groovy 3 remains an ordinary-classpath configuration. Do not add a KlumAST
+`module-info.java` to a Groovy 3 schema or compensate with JVM module flags.
+
+Groovy 4 and 5 schemas may be named modules and must require
+`org.apache.groovy`, the annotations/runtime modules, and `requires static
+com.blackbuild.klum.ast.compiler`; add adapter modules only when used. A schema
+that uses Jackson and Jakarta Bean Validation has this narrow descriptor shape:
+
+```java
+module example.schema {
+    requires com.blackbuild.klum.ast.annotations;
+    requires com.blackbuild.klum.ast.runtime;
+    requires static com.blackbuild.klum.ast.compiler;
+    requires com.blackbuild.klum.ast.jackson;
+    requires com.blackbuild.klum.ast.validation.bean;
+    requires org.apache.groovy;
+
+    exports example.schema;
+    opens example.schema to com.blackbuild.klum.ast.runtime,
+        com.fasterxml.jackson.databind,
+        org.hibernate.validator;
+}
+```
+
+Keep the runtime opening for generated Builder lifecycle/materialization. Add
+the Jackson and Hibernate Validator targets only when those adapters inspect
+the schema; do not substitute `--add-reads`, `--add-exports`, or
+`--patch-module` flags.
+
 ## KlumCast 0.4 RC dependencies
 
 KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-annotations`, `klum-cast-spi`, and

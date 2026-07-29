@@ -23,13 +23,14 @@
  */
 package com.blackbuild.klum.ast.runtime.internal;
 
+import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
 import groovy.lang.Closure;
-import org.codehaus.groovy.runtime.InvokerHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -56,15 +57,41 @@ public class LifecycleHelper {
         DslHelper.getMethodsAnnotatedWith(rw.getClass(), annotation)
                 .map(Method::getName)
                 .distinct()
+                .map(name -> resolveLifecycleMethod(rw.getClass(), name))
                 .forEach(method -> {
                     try {
-                        PhaseDriver.setCurrentMember(method);
-                        InvokerHelper.invokeMethod(rw, method, null);
+                        PhaseDriver.setCurrentMember(method.getName());
+                        invokeLifecycleMethod(rw, method);
                     } finally {
                         PhaseDriver.setCurrentMember(null);
                     }
                 });
         executeLifecycleClosures(builder, annotation);
+    }
+
+    private static Method resolveLifecycleMethod(Class<?> type, String name) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            try {
+                return current.getDeclaredMethod(name);
+            } catch (NoSuchMethodException ignored) {
+                // continue through the Builder hierarchy to preserve virtual lifecycle dispatch
+            }
+        }
+        throw new KlumModelException("No lifecycle method named " + name + " found on " + type.getName());
+    }
+
+    private static void invokeLifecycleMethod(Object target, Method method) {
+        try {
+            if (!method.trySetAccessible())
+                throw new KlumModelException("Cannot access lifecycle method " + method);
+            method.invoke(target);
+        } catch (InvocationTargetException exception) {
+            if (exception.getCause() instanceof RuntimeException runtimeException)
+                throw runtimeException;
+            throw new KlumModelException("Could not execute lifecycle method " + method, exception.getCause());
+        } catch (IllegalAccessException exception) {
+            throw new KlumModelException("Could not execute lifecycle method " + method, exception);
+        }
     }
 
     /**

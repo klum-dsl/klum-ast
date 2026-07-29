@@ -92,7 +92,7 @@ class TemplateMethods {
         templateAdapter = new InnerClassNode(
                 annotatedClass,
                 annotatedClass.getName() + "$_Template",
-                ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
                 OBJECT_TYPE,
                 new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateInterface() },
                 MixinNode.EMPTY_ARRAY

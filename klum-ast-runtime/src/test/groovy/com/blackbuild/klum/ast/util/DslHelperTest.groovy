@@ -23,7 +23,36 @@
  */
 package com.blackbuild.klum.ast.runtime.internal
 
+import com.blackbuild.klum.ast.runtime.KlumModelException
+import spock.lang.Issue
+
 class DslHelperTest extends AbstractRuntimeTest {
+
+    @Issue("391")
+    def "field value access reports an inaccessible field"() {
+        given:
+        def field = String.getDeclaredField('value')
+
+        when:
+        DslHelper.getFieldValue('value', field)
+
+        then:
+        def exception = thrown(KlumModelException)
+        exception.message.startsWith('Cannot access field')
+    }
+
+    @Issue("391")
+    def "field value assignment reports an inaccessible field"() {
+        given:
+        def field = String.getDeclaredField('value')
+
+        when:
+        DslHelper.setFieldValue('value', field, null)
+
+        then:
+        def exception = thrown(KlumModelException)
+        exception.message.startsWith('Cannot access field')
+    }
 
     void "getField returns correct Field"() {
         given:
