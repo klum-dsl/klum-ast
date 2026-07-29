@@ -26,7 +26,7 @@ import com.blackbuild.klum.ast.runtime.ModelVisitingPhaseAction;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.KlumException;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
-import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 
@@ -702,10 +702,14 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
      */
     @SuppressWarnings("unchecked")
     public Object createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
-                                    KlumFactory.BuilderFactoryProvider<?, ?> factory,
+                                    BuilderFactoryProvider<?, ?> factory,
                                     String key, Closure<?> body) {
         return createSingleChild(namedParams, fieldOrMethodName,
-                factory.getAsBuilder().getModelType(), true, key, (Closure) body);
+                selectedModelType(factory), true, key, (Closure) body);
+    }
+
+    private static Class<?> selectedModelType(BuilderFactoryProvider<?, ?> factory) {
+        return factory.getAsBuilder().getModelType();
     }
 
     private ChildTarget resolveSingleChildTarget(String fieldOrMethodName, Class<?> type) {
@@ -845,10 +849,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     /** Adds an owned collection child selected by its generated factory in the current session. */
     @SuppressWarnings("unchecked")
     public Object addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
-                                                KlumFactory.BuilderFactoryProvider<?, ?> factory,
+                                                BuilderFactoryProvider<?, ?> factory,
                                                 String key, Closure<?> body) {
         return addNewDslElementToCollection(namedParams, collectionName,
-                factory.getAsBuilder().getModelType(), true, key, (Closure) body);
+                selectedModelType(factory), true, key, (Closure) body);
     }
 
     private InternalKlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
@@ -943,10 +947,10 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     /** Adds an owned map child selected by its generated factory in the current session. */
     @SuppressWarnings("unchecked")
     public Object addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
-                                         KlumFactory.BuilderFactoryProvider<?, ?> factory,
+                                         BuilderFactoryProvider<?, ?> factory,
                                          String key, Closure<?> body) {
         return addNewDslElementToMap(namedParams, mapName,
-                factory.getAsBuilder().getModelType(), true, key, (Closure) body);
+                selectedModelType(factory), true, key, (Closure) body);
     }
 
     public <K, V> V addElementToMap(String fieldName, K key, V value) {

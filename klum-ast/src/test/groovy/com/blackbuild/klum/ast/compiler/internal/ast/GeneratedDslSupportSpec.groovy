@@ -30,6 +30,7 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumFactory
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs
@@ -410,7 +411,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
         and: 'the relationship method carries source-valid type variables and exact delegate metadata'
         Method endpointMethod = deploymentBuilder.declaredMethods.find {
-            it.name == 'endpoint' && it.parameterTypes.toList() == [KlumFactory.BuilderFactoryProvider, Closure]
+            it.name == 'endpoint' && it.parameterTypes.toList() == [BuilderFactoryProvider, Closure]
         }
         endpointMethod.typeParameters*.name == ['T', 'B']
         endpointMethod.typeParameters[0].bounds*.typeName == ['sample.Endpoint']

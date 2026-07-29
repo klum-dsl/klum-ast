@@ -322,6 +322,8 @@ base Builder.
 
 Under static compilation, pass the selected type's generated `Create` factory instead:
 
+(See: `BasicsStaticPolymorphismDocumentaryTest#'selects a polymorphic child with its generated factory under static compilation'`.)
+
 ```groovy
 when: // Model
 Config.Create.With {

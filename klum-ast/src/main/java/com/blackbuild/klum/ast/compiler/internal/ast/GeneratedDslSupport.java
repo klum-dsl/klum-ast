@@ -27,7 +27,7 @@ import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.KlumGenerated;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
-import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -74,7 +74,7 @@ public final class GeneratedDslSupport {
 
     private static final ClassNode KLUM_GENERATED = ClassHelper.make(KlumGenerated.class);
     private static final ClassNode KLUM_BUILDER = ClassHelper.make(KlumBuilder.class);
-    private static final ClassNode BUILDER_FACTORY_PROVIDER = ClassHelper.make(KlumFactory.BuilderFactoryProvider.class);
+    private static final ClassNode BUILDER_FACTORY_PROVIDER = ClassHelper.make(BuilderFactoryProvider.class);
     private static final ClassNode DELEGATES_TO = ClassHelper.make(DelegatesTo.class);
 
     private final ClassNode model;

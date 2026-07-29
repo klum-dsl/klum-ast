@@ -38,6 +38,7 @@ import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -120,7 +121,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode BUILDER_FACTORY = make(KlumFactory.BuilderFactory.class);
     public static final ClassNode KEYED_BUILDER_FACTORY = make(KlumFactory.KeyedBuilderFactory.class);
     public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
-    public static final ClassNode BUILDER_FACTORY_PROVIDER = make(KlumFactory.BuilderFactoryProvider.class);
+    public static final ClassNode BUILDER_FACTORY_PROVIDER = make(BuilderFactoryProvider.class);
     public static final ClassNode PUBLIC_KLUM_BUILDER = make(KlumBuilder.class);
     public static final ClassNode KLUM_BUILDER = make(InternalKlumBuilder.class);
     public static final ClassNode GENERATED_KLUM_BUILDER = make(GeneratedKlumBuilder.class);

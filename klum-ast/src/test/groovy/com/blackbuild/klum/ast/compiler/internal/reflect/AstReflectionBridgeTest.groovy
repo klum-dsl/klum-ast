@@ -26,12 +26,10 @@ package com.blackbuild.klum.ast.compiler.internal.reflect
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import org.codehaus.groovy.ast.ClassHelper
 import org.codehaus.groovy.ast.MethodNode
-import spock.lang.Issue
 import spock.lang.Specification
 
 class AstReflectionBridgeTest extends Specification {
 
-    @Issue("620")
     def "correct parameter names are extracted"() {
         given:
         MethodNode methodNode = ClassHelper.make(InternalKlumBuilder)
