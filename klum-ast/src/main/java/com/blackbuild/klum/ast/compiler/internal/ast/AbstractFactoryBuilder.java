@@ -59,6 +59,7 @@ public abstract class AbstractFactoryBuilder {
                     .linkToMethod(targetMethod)
                     .optional()
                     .mod(targetMethod.getModifiers() & ~ACC_ABSTRACT)
+                    .setGenericsTypes(targetMethod.getGenericsTypes())
                     .returning(targetMethod.getReturnType())
                     .paramsFromWithoutDefaults(targetMethod, numberOfDefaultParams)
                     .addTo(collectionFactory);

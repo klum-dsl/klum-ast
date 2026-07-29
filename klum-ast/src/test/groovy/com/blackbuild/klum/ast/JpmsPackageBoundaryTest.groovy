@@ -308,6 +308,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
+    @Issue("620")
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -618,6 +619,20 @@ class JpmsPackageBoundaryTest extends Specification {
                     EVENTS
                 }
             }
+
+            @DSL
+            class Deployment {
+                Endpoint endpoint
+            }
+
+            @DSL
+            abstract class Endpoint {
+            }
+
+            @DSL
+            class HttpEndpoint extends Endpoint {
+                String url
+            }
         '''.stripIndent()
     }
 
@@ -658,8 +673,11 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.consumer;
 
             import com.blackbuild.klum.ast.runtime.PhaseAction;
+            import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.fasterxml.jackson.databind.ObjectMapper;
+            import fixture.schema.HttpEndpoint;
+            import fixture.schema.HttpEndpoint_DSL;
             import fixture.schema.Station;
             import fixture.schema.Station_DSL;
 
@@ -670,6 +688,10 @@ class JpmsPackageBoundaryTest extends Specification {
             public class Main {
                 public static void main(String[] arguments) throws Exception {
                     Station_DSL.Factory factory = Station.Create;
+                    BuilderFactoryProvider<HttpEndpoint, HttpEndpoint_DSL.Builder<HttpEndpoint>> endpointFactory =
+                            HttpEndpoint.Create;
+                    if (endpointFactory.getAsBuilder().getModelType() != HttpEndpoint.class)
+                        throw new AssertionError("Generated typed relationship provider did not link through JPMS");
                     Station station = factory.With(Map.of("name", "Java"));
                     if (!"Java".equals(station.getName()))
                         throw new AssertionError("Generated factory did not apply the Java map value");
@@ -700,11 +722,23 @@ class JpmsPackageBoundaryTest extends Specification {
         '''
             package fixture.consumer
 
+            import fixture.schema.Deployment
+            import fixture.schema.HttpEndpoint
+            import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
             import groovy.transform.CompileStatic
 
             @CompileStatic
             class StaticConsumer {
+                static Deployment createTypedEndpoint() {
+                    Deployment.Create.With {
+                        HttpEndpoint_DSL.Builder<HttpEndpoint> selected = endpoint(HttpEndpoint.Create) {
+                            url 'https://example.test/health'
+                        }
+                        assert selected != null
+                    }
+                }
+
                 static void main(String[] arguments) {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
