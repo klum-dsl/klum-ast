@@ -36,8 +36,8 @@ klumSchema {
 For a new project, Groovy 3 is the justified default: it is KlumAST's baseline and keeps the first build small. Keep an existing supported Groovy line instead. Groovy 3 uses `org.codehaus.groovy`; Groovy 4 and 5 use `org.apache.groovy`. The plugin selects matching Groovy and Spock dependencies.
 
 If this Schema must be a Java named module, use Groovy 4 or 5 and add the
-user-owned `src/main/java/module-info.java` described in [[Migration#Named
-modules and Groovy]]. The Schema plugin validates that descriptor as part of
+user-owned `src/main/java/module-info.java` described in [[Migration#named-modules-and-groovy]].
+The Schema plugin validates that descriptor as part of
 `check` (and Maven publication) but never writes it. Groovy 3 remains an
 ordinary-classpath setup; do not create a descriptor or add JPMS workaround
 flags for it.

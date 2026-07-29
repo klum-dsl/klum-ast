@@ -132,7 +132,7 @@ In normal Groovy, a method parameter can carry `@ClosureParams`. Because KlumAST
 
 This provides parameter completion and type checking for the generated methods. `@ParameterAnnotation` copies annotations
 from a Schema field to the generated setter or single-element adder; see the
-[`@ParameterAnnotation` API source and Javadoc](https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-annotations/src/main/java/com/blackbuild/groovy/configdsl/transform/ParameterAnnotation.java)
+[`@ParameterAnnotation` API source and Javadoc](https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-annotations/src/main/java/com/blackbuild/klum/ast/ParameterAnnotation.java)
 for the advanced annotation-mapping rules.
 
 ## Choosing a SAM Interface or Closure

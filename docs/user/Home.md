@@ -1,6 +1,6 @@
 KlumAST
 =======
-Turn your models into supermodels!
+> **Turn your models into supermodels!**
 
 ## What is KlumAST?
 
@@ -8,7 +8,8 @@ KlumAST turns annotated model classes into concise, statically checked Groovy DS
 Schema Developer to describe a model once, a Model Writer to configure it through a readable DSL, and client code to
 consume the completed model without generated mutation methods.
 
-The [[Terms|role guide]] defines these responsibilities and the value kinds used throughout the documentation.
+The [[Terms|Terms and role guide]] defines the core terms — especially Schema and Model — along with these responsibilities
+and the value kinds used throughout the documentation.
 
 ## Why models as code?
 
