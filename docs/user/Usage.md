@@ -56,6 +56,12 @@ The model is than packed into a jar file (for convenience a shadowed jar contain
 If the model has single entry points, i.e. instances of classes that are only present once in the
 model (which is usually the case), the model can make use of the new `Create.FromClasspath` feature, see
 [[Convenience Factories#classpath]] for details.
+
+(See: `UsageDocumentaryTest#'loads a configured model through its classpath entry point'`.)
+
+```groovy
+def deployment = Deployment.Create.FromClasspath()
+```
  
 #### Consumer
 
