@@ -56,6 +56,7 @@ ensures that object graphs remain safe even when DSL types override `equals`.
 (See: `CompletedObjectSupportDocumentaryTest#'traverses a deployment composition without following linked services'`.)
 
 ```groovy
+given:
 @DSL class Deployment {
     Service api
     List<Service> services
@@ -68,6 +69,8 @@ ensures that object graphs remain safe even when DSL types override `equals`.
 }
 
 def catalog = Service.Create.With('catalog') {}
+
+when:
 def deployment = Deployment.Create.With {
     api('api') {}
     services {
@@ -77,6 +80,7 @@ def deployment = Deployment.Create.With {
 }
 def structure = KlumObjectSupport.of(deployment).structure
 
+then:
 assert structure.getRelativePath(deployment.services[0]) == 'services[0]'
 assert KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deployment)
 assert structure.findAll(Service).keySet() == ['<root>.api', '<root>.services[0]']
