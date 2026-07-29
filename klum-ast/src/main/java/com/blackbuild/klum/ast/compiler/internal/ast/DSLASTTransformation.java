@@ -91,6 +91,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String MATERIALIZATION_TOKEN_PARAMETER = "materializationToken";
     private static final String ADD_ELEMENT_TO_COLLECTION = "addElementToCollection";
     private static final String ADD_ELEMENT_TO_MAP = "addElementToMap";
+    private static final String ADD_NEW_DSL_ELEMENT_TO_MAP = "addNewDslElementToMap";
+    private static final String CREATE_SINGLE_CHILD = "createSingleChild";
+    private static final String FACTORY_NAME = "factory";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
     private static final String CONFIGURATION_CLOSURE_DOCUMENTATION = "the closure to configure the new element";
@@ -1161,7 +1164,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!linkField) {
             if (isInstantiable(defaultImpl)) {
-                createProxyMethod(methodName, "addNewDslElementToMap")
+                createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -1181,7 +1184,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
-                createProxyMethod(methodName, "addNewDslElementToMap")
+                createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -1200,7 +1203,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .delegatingClosureParam()
                         .addTo(rwClass);
 
-                createTypedFactoryProviderMethod(methodName, "addNewDslElementToMap",
+                createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
                         fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
                         MAP_DOCUMENTATION_SUFFIX);
 
@@ -1296,7 +1299,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (isInstantiable(defaultImpl)) {
-            createProxyMethod(fieldName, "createSingleChild")
+            createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1311,7 +1314,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(targetFieldType)) {
-            createProxyMethod(fieldName, "createSingleChild")
+            createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1331,7 +1334,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .delegatingClosureParam()
                     .addTo(rwClass);
 
-            createTypedFactoryProviderMethod(fieldName, "createSingleChild", fieldNode, dslBaseType, fieldName,
+            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
                     targetKeyFieldName, " to this Builder.");
 
         }
@@ -1353,14 +1356,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                                 "overload, which retains the relationship's declared base Builder type, this closure " +
                                 "delegates to the exact selected public Builder. Child creation belongs to this Builder's " +
                                 "current Construction session and never starts a root lifecycle.")
-                        .param("factory", "the generated Factory selecting the concrete DSL Object type")
+                        .param(FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
                         .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION)
                         .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION))
                 .namedParams("values")
                 .constantParam(fieldName)
-                .delegationTargetParam(types.providerType(), "factory", "the generated Factory selecting the concrete DSL Object type")
+                .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
                 .optionalStringParam(keyName, keyName != null)
-                .delegatingClosureParam("factory", 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
+                .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
                 .addTo(rwClass);
     }
 
@@ -1404,8 +1407,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
-    private record GenericFactoryMethodTypes(GenericsType[] methodTypeParameters, ClassNode returnType,
-                                             ClassNode providerType) {
+    private static final class GenericFactoryMethodTypes {
+        private final GenericsType[] methodTypeParameters;
+        private final ClassNode returnType;
+        private final ClassNode providerType;
+
+        private GenericFactoryMethodTypes(GenericsType[] methodTypeParameters, ClassNode returnType,
+                                          ClassNode providerType) {
+            this.methodTypeParameters = methodTypeParameters;
+            this.returnType = returnType;
+            this.providerType = providerType;
+        }
+
+        private GenericsType[] methodTypeParameters() {
+            return methodTypeParameters;
+        }
+
+        private ClassNode returnType() {
+            return returnType;
+        }
+
+        private ClassNode providerType() {
+            return providerType;
+        }
     }
 
     private ClassNode getDslBaseType(ClassNode targetFieldType, ClassNode defaultImpl) {
@@ -1543,7 +1567,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
-        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factory");
+        ClassNode factoryBase = getMemberClassValue(dslAnnotation, FACTORY_NAME);
         if (factoryBase == null) factoryBase = getInnerClass(annotatedClass, "Factory");
 
         if (!isInstantiable(defaultImpl)) {
