@@ -31,8 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.StringTokenizer;
 
 /**
  * Pure policy for validating a user-owned Schema module descriptor.
@@ -48,12 +47,7 @@ final class SchemaModuleValidation {
     private static final Map<String, String> ADAPTER_OPEN_TARGETS = Map.of(
             "com.blackbuild.klum.ast.jackson", "com.fasterxml.jackson.databind",
             "com.blackbuild.klum.ast.validation.bean", "org.hibernate.validator");
-    private static final Pattern REQUIRES = Pattern.compile(
-            "\\brequires\\s+((?:(?:static|transitive)\\s+)*)((?:[A-Za-z_$][\\w$]*\\.)*[A-Za-z_$][\\w$]*)\\s*;");
-    private static final Pattern OPENS = Pattern.compile(
-            "\\bopens\\s+((?:[A-Za-z_$][\\w$]*\\.)*[A-Za-z_$][\\w$]*)\\s+to\\s+([^;]+);");
-    private static final Pattern PACKAGE = Pattern.compile(
-            "(?m)^\\s*package\\s+([A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*)\\s*;?");
+    private static final String TOKEN_DELIMITERS = " \t\r\n{};,";
 
     private SchemaModuleValidation() {
         // Utility class
@@ -106,29 +100,53 @@ final class SchemaModuleValidation {
 
     private static Map<String, Set<String>> requiredModules(String descriptor) {
         Map<String, Set<String>> modules = new LinkedHashMap<>();
-        Matcher matcher = REQUIRES.matcher(descriptor);
-        while (matcher.find()) {
-            Set<String> modifiers = modules.computeIfAbsent(matcher.group(2), ignored -> new LinkedHashSet<>());
-            for (String modifier : matcher.group(1).trim().split("\\s+")) {
-                if (!modifier.isEmpty())
-                    modifiers.add(modifier);
-            }
-        }
+        statements(descriptor).forEach(statement -> addRequirement(modules, words(statement)));
         return modules;
     }
 
     private static Map<String, Set<String>> openedPackages(String descriptor) {
         Map<String, Set<String>> packages = new LinkedHashMap<>();
-        Matcher matcher = OPENS.matcher(descriptor);
-        while (matcher.find()) {
-            Set<String> targets = packages.computeIfAbsent(matcher.group(1), ignored -> new LinkedHashSet<>());
-            for (String target : matcher.group(2).split(",")) {
-                String trimmed = target.trim();
-                if (!trimmed.isEmpty())
-                    targets.add(trimmed);
-            }
-        }
+        statements(descriptor).forEach(statement -> addOpenedPackage(packages, words(statement)));
         return packages;
+    }
+
+    private static void addRequirement(Map<String, Set<String>> modules, List<String> words) {
+        int requiresIndex = words.indexOf("requires");
+        if (requiresIndex < 0 || requiresIndex + 1 >= words.size())
+            return;
+
+        int firstModifierIndex = requiresIndex + 1;
+        String firstModifier = words.get(firstModifierIndex);
+        int moduleIndex = isModifier(firstModifier) ? firstModifierIndex + 1 : firstModifierIndex;
+        String secondModifier = moduleIndex < words.size() ? words.get(moduleIndex) : "";
+        if (isModifier(firstModifier) && isModifier(secondModifier))
+            moduleIndex++;
+        if (moduleIndex >= words.size())
+            return;
+
+        Set<String> modifiers = modules.computeIfAbsent(words.get(moduleIndex), ignored -> new LinkedHashSet<>());
+        addModifier(modifiers, firstModifier);
+        addModifier(modifiers, secondModifier);
+    }
+
+    private static void addOpenedPackage(Map<String, Set<String>> packages, List<String> words) {
+        int opensIndex = words.indexOf("opens");
+        int targetIndex = words.indexOf("to");
+        if (opensIndex < 0 || targetIndex <= opensIndex + 1)
+            return;
+
+        Set<String> targets = packages.computeIfAbsent(words.get(opensIndex + 1), ignored -> new LinkedHashSet<>());
+        for (int index = targetIndex + 1; index < words.size(); index++)
+            targets.add(words.get(index));
+    }
+
+    private static boolean isModifier(String word) {
+        return "static".equals(word) || "transitive".equals(word);
+    }
+
+    private static void addModifier(Set<String> modifiers, String word) {
+        if (isModifier(word))
+            modifiers.add(word);
     }
 
     private static Set<String> adapterModules(Collection<String> configuredModules, Set<String> declaredModules) {
@@ -159,13 +177,45 @@ final class SchemaModuleValidation {
         if (sources == null)
             return packages;
         for (String source : sources) {
-            if (source == null)
-                continue;
-            Matcher matcher = PACKAGE.matcher(withoutComments(source));
-            if (matcher.find())
-                packages.add(matcher.group(1).replaceAll("\\s+", ""));
+            if (source != null)
+                schemaPackage(withoutComments(source)).ifPresent(packages::add);
         }
         return packages;
+    }
+
+    private static Optional<String> schemaPackage(String source) {
+        List<String> words = words(source);
+        int packageIndex = words.indexOf("package");
+        if (packageIndex < 0 || packageIndex + 1 >= words.size())
+            return Optional.empty();
+
+        StringBuilder packageName = new StringBuilder(words.get(packageIndex + 1));
+        for (int index = packageIndex + 2; index < words.size(); index++) {
+            String part = words.get(index);
+            if (part.equals(".") || part.startsWith(".") || packageName.charAt(packageName.length() - 1) == '.')
+                packageName.append(part);
+            else
+                break;
+        }
+        return packageName.charAt(packageName.length() - 1) == '.'
+                ? Optional.empty()
+                : Optional.of(packageName.toString());
+    }
+
+    private static List<String> statements(String source) {
+        List<String> statements = new ArrayList<>();
+        StringTokenizer tokenizer = new StringTokenizer(source, ";");
+        while (tokenizer.hasMoreTokens())
+            statements.add(tokenizer.nextToken());
+        return statements;
+    }
+
+    private static List<String> words(String source) {
+        List<String> words = new ArrayList<>();
+        StringTokenizer tokenizer = new StringTokenizer(source, TOKEN_DELIMITERS);
+        while (tokenizer.hasMoreTokens())
+            words.add(tokenizer.nextToken());
+        return words;
     }
 
     private static String remediation(Input input, List<String> problems, Set<String> adapterModules, Set<String> openTargets) {
@@ -194,38 +244,72 @@ final class SchemaModuleValidation {
 
     private static String withoutComments(String source) {
         StringBuilder result = new StringBuilder();
-        boolean lineComment = false;
-        boolean blockComment = false;
-        for (int index = 0; index < source.length(); index++) {
-            char current = source.charAt(index);
-            char next = index + 1 < source.length() ? source.charAt(index + 1) : '\0';
-            if (lineComment) {
-                if (current == '\n' || current == '\r') {
-                    lineComment = false;
-                    result.append(current);
-                }
-                continue;
-            }
-            if (blockComment) {
-                if (current == '*' && next == '/') {
-                    blockComment = false;
-                    index++;
-                } else if (current == '\n' || current == '\r') {
-                    result.append(current);
-                }
-                continue;
-            }
-            if (current == '/' && next == '/') {
-                lineComment = true;
-                index++;
-            } else if (current == '/' && next == '*') {
-                blockComment = true;
-                index++;
-            } else {
-                result.append(current);
-            }
+        CommentCursor cursor = new CommentCursor(source);
+        while (cursor.hasRemaining()) {
+            if (cursor.startsLineComment())
+                cursor.skipLineComment();
+            else if (cursor.startsBlockComment())
+                cursor.skipBlockComment(result);
+            else
+                cursor.copyCurrent(result);
         }
         return result.toString();
+    }
+
+    private static final class CommentCursor {
+
+        private final String source;
+        private int position;
+
+        private CommentCursor(String source) {
+            this.source = source;
+        }
+
+        private boolean hasRemaining() {
+            return position < source.length();
+        }
+
+        private boolean startsLineComment() {
+            return source.startsWith("//", position);
+        }
+
+        private boolean startsBlockComment() {
+            return source.startsWith("/*", position);
+        }
+
+        private void skipLineComment() {
+            position = nextLineBreak(position + 2);
+        }
+
+        private void skipBlockComment(StringBuilder result) {
+            int commentEnd = source.indexOf("*/", position + 2);
+            int contentEnd = commentEnd < 0 ? source.length() : commentEnd;
+            appendLineBreaks(result, position + 2, contentEnd);
+            position = commentEnd < 0 ? source.length() : commentEnd + 2;
+        }
+
+        private void copyCurrent(StringBuilder result) {
+            result.append(source.charAt(position));
+            position++;
+        }
+
+        private int nextLineBreak(int start) {
+            int carriageReturn = source.indexOf('\r', start);
+            int lineFeed = source.indexOf('\n', start);
+            if (carriageReturn < 0)
+                return lineFeed < 0 ? source.length() : lineFeed;
+            if (lineFeed < 0)
+                return carriageReturn;
+            return Math.min(carriageReturn, lineFeed);
+        }
+
+        private void appendLineBreaks(StringBuilder result, int start, int end) {
+            for (int index = start; index < end; index++) {
+                char character = source.charAt(index);
+                if (character == '\r' || character == '\n')
+                    result.append(character);
+            }
+        }
     }
 
     record Input(

@@ -32,12 +32,32 @@ import java.util.Optional
 @Issue('391')
 class SchemaModuleValidationTest extends Specification {
 
-    def "accepts valid Groovy 4 and 5 core-only Schema modules"(int groovyMajor) {
+    def "accepts a valid Groovy 4 core-only Schema module"() {
         expect:
-        !diagnostic(groovyMajor, coreDescriptor()).present
+        !SchemaModuleValidation.diagnostic(new SchemaModuleValidation.Input(
+                ':schema',
+                4,
+                '''
+                    module example.schema {
+                        requires com.blackbuild.klum.ast.annotations;
+                        requires com.blackbuild.klum.ast.runtime;
+                        requires static com.blackbuild.klum.ast.compiler;
+                        requires org.apache.groovy;
 
-        where:
-        groovyMajor << [4, 5]
+                        opens example.schema to com.blackbuild.klum.ast.runtime;
+                    }
+                ''',
+                ['''
+                    package example.schema
+
+                    class Example {}
+                '''],
+                [])).present
+    }
+
+    def "accepts a valid Groovy 5 core-only Schema module"() {
+        expect:
+        !diagnostic(5, coreDescriptor()).present
     }
 
     def "rejects a Groovy 3 named Schema module with classpath remediation"() {
