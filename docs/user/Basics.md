@@ -370,6 +370,8 @@ Note that, as in the above example, this behaviour, while working with non dsl a
 Using the `defaultImpl` attribute of the `Field` annotation, you can specify a default implementation for a field. That way,
 dsl methods are created as if the field were of the specified type. This is especially useful for interface as field type.
 
+(See: `BasicsDefaultImplementationDocumentaryTest#'configures a default implementation through an interface field'`.)
+
 ```groovy
 given: // Schema
 @DSL
