@@ -252,6 +252,45 @@ class JpmsPackageBoundaryTest extends Specification {
                 "Generated setter must directly link \$setSingleField: $directlyLinkedSetters"
     }
 
+    private static void assertGeneratedRelationshipHooksDirectlyInvokeRuntimeHooks(Path classes) {
+        Set<String> relationshipHooks = [
+                '$createSingleChild',
+                '$addNewDslElementToCollection',
+                '$addNewDslElementToMap',
+                '$assignMaterializedRelationship'
+        ] as Set
+        Set<String> unresolvedHooks = [] as Set
+        Set<String> directlyLinkedHooks = [] as Set
+        Path builderClass = classes.resolve('fixture/schema/Deployment$Builder.class')
+
+        Files.newInputStream(builderClass).withCloseable { input ->
+            new ClassReader(input).accept(new ClassVisitor(Opcodes.ASM7) {
+                @Override
+                MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    new MethodVisitor(Opcodes.ASM7) {
+                        @Override
+                        void visitInvokeDynamicInsn(String methodName, String methodDescriptor, Handle bootstrapMethodHandle,
+                                                    Object... bootstrapMethodArguments) {
+                            unresolvedHooks.addAll(relationshipHooks.findAll { bootstrapMethodArguments.contains(it) })
+                        }
+
+                        @Override
+                        void visitMethodInsn(int opcode, String owner, String methodName, String methodDescriptor,
+                                             boolean isInterface) {
+                            if (owner == 'com/blackbuild/klum/ast/runtime/generated/GeneratedKlumBuilder' &&
+                                    relationshipHooks.contains(methodName))
+                                directlyLinkedHooks << methodName
+                        }
+                    }
+                }
+            }, 0)
+        }
+
+        assert unresolvedHooks.empty: "Generated relationship hooks must not use invokedynamic: $unresolvedHooks"
+        assert directlyLinkedHooks.containsAll(relationshipHooks):
+                "Generated relationship hooks must directly link the generated runtime bridge: $directlyLinkedHooks"
+    }
+
     private static boolean hasRuntimeInternalReference(Path classFile) {
         classFileConstants(classFile).any { constant ->
             constant.contains('com/blackbuild/klum/ast/runtime/internal')
@@ -308,7 +347,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue("620")
+    @Issue(["620", "622"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -426,6 +465,8 @@ class JpmsPackageBoundaryTest extends Specification {
             assertProtectedLifecycleContract(schemaClasses)
         if (named)
             assertGeneratedSetterDirectlyInvokesRuntimeHook(schemaClasses)
+        if (named)
+            assertGeneratedRelationshipHooksDirectlyInvokeRuntimeHooks(schemaClasses)
 
         Path schemaArtifact = named ? compileAndPackageNamedSchema(schemaSources, schemaClasses) : schemaClasses
 
@@ -580,6 +621,7 @@ class JpmsPackageBoundaryTest extends Specification {
             package fixture.schema
 
             import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Key
             import com.blackbuild.klum.ast.PostCreate
             import com.blackbuild.klum.ast.PostTree
             import com.blackbuild.klum.ast.Validate
@@ -622,7 +664,34 @@ class JpmsPackageBoundaryTest extends Specification {
 
             @DSL
             class Deployment {
-                Endpoint endpoint
+                HttpEndpoint endpoint
+                List<HttpEndpoint> routes
+                Map<String, KeyedEndpoint> keyedEndpoints
+                Endpoint classEndpoint
+                List<Endpoint> classRoutes
+                Map<String, KeyedEndpoint> classKeyedEndpoints
+
+                @PostCreate
+                void addOwnedRelationships() {
+                    endpoint(HttpEndpoint.Create) {
+                        url 'https://direct.example.test'
+                    }
+                    routes {
+                        route(HttpEndpoint.Create) {
+                            url 'https://list.example.test'
+                        }
+                    }
+                    keyedEndpoints {
+                        keyedEndpoint(NamedHttpEndpoint.Create, 'named') {
+                            url 'https://map.example.test'
+                        }
+                    }
+                }
+            }
+
+            @DSL
+            class HttpEndpoint {
+                String url
             }
 
             @DSL
@@ -630,8 +699,38 @@ class JpmsPackageBoundaryTest extends Specification {
             }
 
             @DSL
-            class HttpEndpoint extends Endpoint {
+            class DynamicHttpEndpoint extends Endpoint {
                 String url
+            }
+
+            @DSL
+            abstract class KeyedEndpoint {
+                @Key String name
+            }
+
+            @DSL
+            class NamedHttpEndpoint extends KeyedEndpoint {
+                String url
+            }
+
+            class DynamicSchemaConsumer {
+                static Deployment create() {
+                    Deployment.Create.With {
+                        classEndpoint(DynamicHttpEndpoint) {
+                            url 'https://class-direct.example.test'
+                        }
+                        classRoutes {
+                            classRoute(DynamicHttpEndpoint) {
+                                url 'https://class-list.example.test'
+                            }
+                        }
+                        classKeyedEndpoints {
+                            classKeyedEndpoint(NamedHttpEndpoint, 'class-named') {
+                                url 'https://class-map.example.test'
+                            }
+                        }
+                    }
+                }
             }
         '''.stripIndent()
     }
@@ -676,6 +775,9 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.fasterxml.jackson.databind.ObjectMapper;
+            import fixture.schema.Deployment;
+            import fixture.schema.DynamicHttpEndpoint;
+            import fixture.schema.DynamicSchemaConsumer;
             import fixture.schema.HttpEndpoint;
             import fixture.schema.HttpEndpoint_DSL;
             import fixture.schema.Station;
@@ -699,6 +801,16 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Bean Validation schema value was not materialized");
                     if (!Station.eventLog().equals(List.of("create", "tree", "validate")))
                         throw new AssertionError("Builder lifecycle and model validation did not run in order");
+                    Deployment deployment = Deployment.Create.One();
+                    if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
+                            !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
+                            !"named".equals(deployment.getKeyedEndpoints().get("named").getName()))
+                        throw new AssertionError("Owned relationships did not materialize");
+                    Deployment dynamicDeployment = DynamicSchemaConsumer.create();
+                    if (!"https://class-direct.example.test".equals(((DynamicHttpEndpoint) dynamicDeployment.getClassEndpoint()).getUrl()) ||
+                            !"https://class-list.example.test".equals(((DynamicHttpEndpoint) dynamicDeployment.getClassRoutes().get(0)).getUrl()) ||
+                            !"class-named".equals(dynamicDeployment.getClassKeyedEndpoints().get("class-named").getName()))
+                        throw new AssertionError("Dynamic Class relationship selection did not materialize");
                     boolean phaseActionLoaded = ServiceLoader.load(PhaseAction.class).stream()
                             .anyMatch(provider -> provider.type().getName()
                                     .equals("com.blackbuild.klum.ast.runtime.internal.validation.ValidationPhase"));

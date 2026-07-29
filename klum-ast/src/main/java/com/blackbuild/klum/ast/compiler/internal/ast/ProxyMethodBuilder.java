@@ -84,6 +84,9 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
         return switch (methodName) {
             case "copyFromRecipe" -> "$copyFromRecipe";
             case "setSingleField" -> "$setSingleField";
+            case "createSingleChild" -> "$createSingleChild";
+            case "addNewDslElementToCollection" -> "$addNewDslElementToCollection";
+            case "addNewDslElementToMap" -> "$addNewDslElementToMap";
             case "scheduleApplyLater" -> "$scheduleApplyLater";
             default -> methodName;
         };
@@ -120,7 +123,8 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
 
     private boolean isGeneratedBuilderHook() {
         return targetType.equals(KLUM_BUILDER_TYPE) && switch (proxyMethodName) {
-            case "$copyFromRecipe", "$setSingleField", "$scheduleApplyLater" -> true;
+            case "$copyFromRecipe", "$setSingleField", "$createSingleChild",
+                    "$addNewDslElementToCollection", "$addNewDslElementToMap", "$scheduleApplyLater" -> true;
             default -> false;
         };
     }
