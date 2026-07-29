@@ -301,7 +301,7 @@ An already completed DSL Object cannot be adopted as owned composition. Existing
 To create subclasses of the requested element (the field is of type `Element`, but we want the value to be of
 type `SubElement`), there are several options:
 
-##### Typed factory methods
+##### Dynamic Class selection
 
 For non final field types, a polymorphic setter is created that takes the requested type as first parameter:
 
@@ -314,13 +314,35 @@ Config.Create.With {
 }
 ```
 
-This keeps the subclass in the parent's Builder lifecycle. IDE presentation of the generated concrete Builder type is
-still being finalized together with its public name and placement.
+This dynamic form remains supported and keeps the subclass in the parent's Builder lifecycle. Because the implementation
+is supplied as a `Class` value, static compilation types the configuration closure against the relationship's declared
+base Builder.
+
+##### Typed Factory selection
+
+Under static compilation, pass the selected type's generated `Create` factory instead:
+
+```groovy
+when: // Model
+Config.Create.With {
+  main(SubElement.Create) {
+    subElementOnlyProperty 'value'
+  }
+}
+```
+
+`SubElement.Create` implements the public generated factory-provider contract, so the method returns
+`SubElement_DSL.Builder<SubElement>` and delegates the closure to that exact public Builder. The provider only selects the
+implementation for this relationship; child creation still belongs to the current parent Construction session and never
+starts a root lifecycle. The same form is available for collection and map relationships, including named parameters and
+keys. Use the `Class` form when selection is intentionally dynamic and the `Create` form when static Builder precision is
+needed.
 
 ##### Existing completed values
 
 Starting `SubElement.Create.With` inside an active parent factory starts an independent lifecycle and cannot produce a
-newly owned child. Create polymorphic composition through the parent's typed child method instead. If the relationship is
+newly owned child. Passing `SubElement.Create` to the parent's relationship method is contextual selection, not a nested
+factory call, and therefore remains in the parent's lifecycle. If the relationship is
 aggregation rather than composition, annotate it with `@Field(LINK)` and pass the independently completed object as its
 existing target.
 

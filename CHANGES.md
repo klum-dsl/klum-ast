@@ -56,6 +56,11 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   configuration, and `PostApply` once without starting a nested lifecycle. Calls outside the session, across root sessions,
   or after lifecycle completion fail with migration guidance; ordinary materializing Scripts remain root-only
   ([#436](https://github.com/klum-dsl/klum-ast/issues/436)).
+- Added statically precise polymorphic relationship selection with `child(ConcreteChild.Create) { ... }`. Generated
+  factories expose the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` through a public provider contract, while
+  single, collection, map, named-parameter, and keyed child creation stays in the current parent session. The dynamic
+  `child(ConcreteChild) { ... }` Class selector remains supported and unchanged
+  ([#620](https://github.com/klum-dsl/klum-ast/issues/620)).
 - Restored Builder-first collection, map, Cluster, direct `DelegatingScript`, converter, alternative, and custom-factory
   composition. Source-visible model-producing methods receive synthetic `$klum$asBuilder$...` twins linked through AST
   metadata; generated public contracts expose concrete `Foo_DSL.Builder` results while direct root factory behavior remains
