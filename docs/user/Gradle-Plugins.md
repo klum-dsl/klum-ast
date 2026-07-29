@@ -50,6 +50,25 @@ This plugin is used in schema projects (as well as `api` as defined by [Layer3])
   - `klum-ast-runtime` as api dependency
   - both dependencies are added without explicit versions; the version is enforced by importing the `klum-ast-bom` platform at the plugin's version
 
+### Named Schema modules
+
+The Schema plugin validates a user-owned `src/main/java/module-info.java` through
+`validateKlumSchemaModule`. It is included in `check` and, when `maven-publish`
+is applied, before Maven publication. The task never edits the descriptor.
+
+Groovy 4 and 5 may use a named Schema module. Its descriptor requires the
+annotations and runtime modules, `requires static com.blackbuild.klum.ast.compiler`,
+and `org.apache.groovy`; when the project declares the Jackson or Bean Validation
+adapter, it must also require that adapter and open each Schema package to its
+reflection target. See [[Migration#Named modules and Groovy]] for a complete
+descriptor example.
+
+Groovy 3 is classpath-only for KlumAST Schema projects. If it finds a descriptor,
+the validation task fails with a copyable remediation: remove `module-info.java`
+and use the ordinary classpath, or move the Schema to Groovy 4 or 5. Do not add
+`--add-reads`, `--add-exports`, `--patch-module`, or similar workaround flags.
+Generated `Foo_DSL` mirrors remain IntelliJ metadata, never module sources.
+
 This means that a fully working schema project can be set up with the following minimal build.gradle:
 
 ```groovy
