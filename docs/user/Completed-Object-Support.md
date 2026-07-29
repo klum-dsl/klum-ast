@@ -38,6 +38,7 @@ These answer different questions and are not interchangeable.
 (See: `CompletedObjectSupportDocumentaryTest#'reports distinct construction and structural paths for a completed deployment'`.)
 
 ```groovy
+given:
 @DSL class Deployment {
     Service service
 }
@@ -45,12 +46,14 @@ These answer different questions and are not interchangeable.
 @DSL class Service {
 }
 
+when:
 def deployment = Deployment.Create.With {
     service {}
 }
 def deploymentSupport = KlumObjectSupport.of(deployment)
 def serviceSupport = KlumObjectSupport.of(deployment.service)
 
+then:
 assert deploymentSupport.constructionPath == '$/Deployment.With'
 assert serviceSupport.constructionPath == '$/Deployment.With/service'
 assert deploymentSupport.modelPath == '<root>'
