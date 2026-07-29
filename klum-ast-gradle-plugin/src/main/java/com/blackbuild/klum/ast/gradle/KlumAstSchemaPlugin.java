@@ -25,6 +25,9 @@ package com.blackbuild.klum.ast.gradle;
 
 import com.blackbuild.annodocimal.plugin.AnnoDocimalGroovyPlugin;
 import com.blackbuild.annodocimal.plugin.SourceProjectionTask;
+import com.blackbuild.klum.ast.gradle.convention.GroovyDependenciesExtension;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.file.Directory;
 import org.gradle.api.plugins.JavaPluginExtension;
@@ -33,6 +36,7 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.javadoc.Javadoc;
+import org.gradle.api.publish.maven.tasks.AbstractPublishToMaven;
 import org.gradle.plugins.ide.idea.IdeaPlugin;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
@@ -64,6 +68,23 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
         java.withJavadocJar();
 
         SourceSet main = java.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+        TaskProvider<ValidateKlumSchemaModule> validateModule = project.getTasks().register(
+                "validateKlumSchemaModule",
+                ValidateKlumSchemaModule.class,
+                task -> {
+                    task.setGroup("verification");
+                    task.setDescription("Validates a user-owned Schema module descriptor for the configured Groovy generation.");
+                    task.getDescriptorFiles().from(main.getAllSource().matching(pattern -> pattern.include("**/module-info.java")));
+                    task.getSchemaSources().from(project.fileTree("src/main", tree -> {
+                        tree.include("**/*.java", "**/*.groovy");
+                        tree.exclude("**/module-info.java");
+                    }), main.getAllSource().matching(pattern -> pattern.exclude("**/module-info.java")));
+                    task.getGroovyVersion().convention(project.getExtensions()
+                            .getByType(GroovyDependenciesExtension.class).getGroovyVersion());
+                    task.getOptionalAdapterModules().addAll(project.provider(this::optionalAdapterModules));
+                });
+        project.getTasks().named("check", task -> task.dependsOn(validateModule));
+        project.getTasks().withType(AbstractPublishToMaven.class).configureEach(task -> task.dependsOn(validateModule));
         Provider<Directory> mirrorDirectory =
                 project.getLayout().getBuildDirectory().dir("generated/sources/klum-dsl-ide/main");
         TaskProvider<SourceProjectionTask> createMirrors = project.getTasks().register(
@@ -87,5 +108,23 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
         moduleIdea.getModule().getGeneratedSourceDirs().add(mirrorDirectory.get().getAsFile());
 
         project.getTasks().named("javadoc", Javadoc.class, task -> task.exclude("**/*_DSL.java"));
+    }
+
+    private Set<String> optionalAdapterModules() {
+        Set<String> modules = new java.util.LinkedHashSet<>();
+        for (String configurationName : Set.of("api", "implementation", "compileOnly")) {
+            Configuration configuration = project.getConfigurations().findByName(configurationName);
+            if (configuration == null)
+                continue;
+            for (Dependency dependency : configuration.getDependencies()) {
+                if (!"com.blackbuild.klum.ast".equals(dependency.getGroup()))
+                    continue;
+                if ("klum-ast-jackson".equals(dependency.getName()))
+                    modules.add("com.blackbuild.klum.ast.jackson");
+                if ("klum-ast-bean-validation".equals(dependency.getName()))
+                    modules.add("com.blackbuild.klum.ast.validation.bean");
+            }
+        }
+        return modules;
     }
 }

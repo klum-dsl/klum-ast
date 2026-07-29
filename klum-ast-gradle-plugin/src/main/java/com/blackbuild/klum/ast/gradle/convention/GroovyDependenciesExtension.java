@@ -57,6 +57,15 @@ public abstract class GroovyDependenciesExtension {
         return getGroovyVersionInternal().map(Version::fromString).map(Version::getGroovyBom);
     }
 
+    /**
+     * Returns the configured Groovy version in the form supplied by the build.
+     *
+     * @return configured Groovy version
+     */
+    public Provider<String> getGroovyVersion() {
+        return getGroovyVersionInternal();
+    }
+
     @SuppressWarnings("java:S5411")
     public Provider<String> getSpockVersionDependency() {
         // if skipSpock is true, return null, otherwise return the spock dependency
