@@ -15,6 +15,11 @@ materialize structurally immutable completed DSL Objects before validation. See 
 
 3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
 
+For 4.0 Schema projects, Groovy 4/5 support named Java modules while Groovy 3
+remains classpath-only. The Gradle Schema plugin validates a user-owned
+`module-info.java`; see the [Gradle plugin guide](docs/user/Gradle-Plugins.md)
+and [migration guidance](docs/user/Migration.md).
+
 Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://klum-dsl.github.io/klum-ast/3.0.1/Migration/) guidance.
 
 2.2 was the final 2.x feature release and introduced the current validation model. See

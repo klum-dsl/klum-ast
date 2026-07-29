@@ -21,7 +21,7 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Java modules
 
-- Named schema modules are supported with Groovy 4 and 5; Groovy 3 remains supported on the ordinary classpath. A named schema requires the documented `org.apache.groovy` dependency and a qualified `opens` directive to KlumAST runtime, Jackson when used, and Hibernate Validator when Bean Validation is used. No JVM module-path workaround flags are required ([#391](https://github.com/klum-dsl/klum-ast/issues/391)).
+- Named schema modules are supported with Groovy 4 and 5; Groovy 3 remains supported on the ordinary classpath. The Schema plugin validates the user-owned descriptor as part of `check` and Maven publication, reporting copyable missing directives without editing it. A named schema requires the documented `org.apache.groovy` dependency and a qualified `opens` directive to KlumAST runtime, Jackson when used, and Hibernate Validator when Bean Validation is used. No JVM module-path workaround flags are required ([#391](https://github.com/klum-dsl/klum-ast/issues/391)).
 
 ## Builder-first construction
 

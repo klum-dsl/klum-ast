@@ -44,6 +44,16 @@ the Jackson and Hibernate Validator targets only when those adapters inspect
 the schema; do not substitute `--add-reads`, `--add-exports`, or
 `--patch-module` flags.
 
+The Schema plugin validates this user-owned descriptor through
+`validateKlumSchemaModule`, which is part of `check` and Maven publication. It
+reports copyable missing `requires` and qualified `opens` directives but never
+rewrites `module-info.java`. The generated `Foo_DSL` mirrors used for IntelliJ
+completion are not module sources, compiler inputs, or publication inputs.
+
+Recompile schemas and clients for 4.0. Java-serialized 3.x graphs are not 4.0
+migration inputs, and Java serialization is not a cross-version persistence
+format; own external compatibility data and migrations in the Schema.
+
 ## KlumCast 0.4 RC dependencies
 
 KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-annotations`, `klum-cast-spi`, and
