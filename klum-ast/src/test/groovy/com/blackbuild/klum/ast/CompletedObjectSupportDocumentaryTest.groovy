@@ -32,6 +32,49 @@ import spock.lang.Tag
 class CompletedObjectSupportDocumentaryTest extends AbstractDSLSpec {
 
     @Issue("491")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Completed-Object-Support.md#ownership-paths-and-traversal")
+    def "traverses a deployment composition without following linked services"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.FieldType
+            import com.blackbuild.klum.ast.Owner
+
+            @DSL class Deployment {
+                Service api
+                List<Service> services
+                @Field(FieldType.LINK) Service catalogService
+            }
+
+            @DSL class Service {
+                @Key String name
+                @Owner Deployment deployment
+            }
+        '''
+        def catalog = Service.Create.With('catalog') {}
+
+        when:
+        def deployment = clazz.Create.With {
+            api('api') {}
+            services {
+                service('worker') {}
+            }
+            catalogService catalog
+        }
+        def structure = KlumObjectSupport.of(deployment).structure
+        def visitedServicePaths = []
+        structure.visit(Service) { path, service -> visitedServicePaths << path }
+
+        then:
+        KlumObjectSupport.of(deployment.api).structure.singleOwner.get().is(deployment)
+        structure.getRelativePath(deployment.services[0]) == 'services[0]'
+        structure.findAll(Service) == [
+                '<root>.api'       : deployment.api,
+                '<root>.services[0]': deployment.services[0],
+        ]
+        visitedServicePaths == ['<root>.api', '<root>.services[0]']
+    }
+
+    @Issue("491")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Completed-Object-Support.md#stored-validation")
     def "reads stored validation results for a completed deployment"() {
         given:
