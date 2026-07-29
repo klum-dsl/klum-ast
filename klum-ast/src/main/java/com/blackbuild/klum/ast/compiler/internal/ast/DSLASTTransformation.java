@@ -1407,28 +1407,29 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         return result;
     }
 
-    private static final class GenericFactoryMethodTypes {
-        private final GenericsType[] methodTypeParameters;
-        private final ClassNode returnType;
-        private final ClassNode providerType;
+    private record GenericFactoryMethodTypes(GenericsType[] methodTypeParameters, ClassNode returnType,
+                                             ClassNode providerType) {
 
-        private GenericFactoryMethodTypes(GenericsType[] methodTypeParameters, ClassNode returnType,
-                                          ClassNode providerType) {
-            this.methodTypeParameters = methodTypeParameters;
-            this.returnType = returnType;
-            this.providerType = providerType;
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof GenericFactoryMethodTypes that)) return false;
+            return Arrays.equals(methodTypeParameters, that.methodTypeParameters)
+                    && Objects.equals(returnType, that.returnType)
+                    && Objects.equals(providerType, that.providerType);
         }
 
-        private GenericsType[] methodTypeParameters() {
-            return methodTypeParameters;
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(methodTypeParameters);
+            result = 31 * result + Objects.hashCode(returnType);
+            return 31 * result + Objects.hashCode(providerType);
         }
 
-        private ClassNode returnType() {
-            return returnType;
-        }
-
-        private ClassNode providerType() {
-            return providerType;
+        @Override
+        public String toString() {
+            return "GenericFactoryMethodTypes[methodTypeParameters=" + Arrays.toString(methodTypeParameters)
+                    + ", returnType=" + returnType + ", providerType=" + providerType + ']';
         }
     }
 
