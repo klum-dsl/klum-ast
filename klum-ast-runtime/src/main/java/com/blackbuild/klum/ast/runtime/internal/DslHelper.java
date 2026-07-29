@@ -164,6 +164,8 @@ public class DslHelper {
         }
     }
 
+    // User-owned schema modules open their packages to this runtime for model access.
+    @SuppressWarnings("java:S3011")
     static void setFieldValue(Object container, Field field, Object value) {
         try {
             if (!field.trySetAccessible())

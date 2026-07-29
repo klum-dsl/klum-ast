@@ -25,6 +25,7 @@ package com.blackbuild.klum.ast
 
 
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase
+import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumPhase
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
@@ -411,6 +412,52 @@ class LifecycleSpec extends AbstractDSLSpec {
         then:
         instance.caller == ["FromOverridden", "otherParent", "child"]
 
+    }
+
+    @Issue("391")
+    def "lifecycle runtime exceptions are preserved"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                void postCreate() {
+                    throw new IllegalStateException('expected lifecycle failure')
+                }
+            }
+        '''
+
+        when:
+        create('pk.Foo') {}
+
+        then:
+        def exception = thrown(IllegalStateException)
+        exception.message == 'expected lifecycle failure'
+    }
+
+    @Issue("391")
+    def "lifecycle checked exceptions are wrapped"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Foo {
+                @PostCreate
+                void postCreate() {
+                    throw new Exception('expected checked lifecycle failure')
+                }
+            }
+        '''
+
+        when:
+        create('pk.Foo') {}
+
+        then:
+        def exception = thrown(KlumModelException)
+        exception.cause.message == 'expected checked lifecycle failure'
     }
 
     def "lifecycle methods are moved to RW class and made protected"() {
