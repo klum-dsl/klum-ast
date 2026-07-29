@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -52,16 +53,17 @@ import java.util.regex.Pattern;
  */
 public abstract class ValidateKlumSchemaModule extends DefaultTask {
 
+    private static final String COMPILER_MODULE = "com.blackbuild.klum.ast.compiler";
     private static final Set<String> REQUIRED_MODULES = Set.of(
             "com.blackbuild.klum.ast.annotations",
             "com.blackbuild.klum.ast.runtime",
-            "com.blackbuild.klum.ast.compiler",
+            COMPILER_MODULE,
             "org.apache.groovy");
     private static final Map<String, String> ADAPTER_OPEN_TARGETS = Map.of(
             "com.blackbuild.klum.ast.jackson", "com.fasterxml.jackson.databind",
             "com.blackbuild.klum.ast.validation.bean", "org.hibernate.validator");
-    private static final Pattern REQUIRES = Pattern.compile("\\brequires\\s+((?:(?:static|transitive)\\s+)*)?([\\w.]+)\\s*;");
-    private static final Pattern OPENS = Pattern.compile("\\bopens\\s+([\\w.]+)\\s+to\\s+([^;]+);");
+    private static final Pattern REQUIRES = Pattern.compile("\\brequires\\s+((?:static\\s+transitive|transitive\\s+static|static|transitive)\\s+)?([\\w.]+)\\s*;");
+    private static final Pattern OPENS = Pattern.compile("\\bopens\\s+([\\w.]+)\\s+to\\s+((?:[\\w.]+\\s*,\\s*)*[\\w.]+)\\s*;");
     private static final Pattern PACKAGE = Pattern.compile("^\\s*package\\s+([\\w.]+)\\s*(?:;|$)", Pattern.MULTILINE);
 
     @InputFiles
@@ -150,8 +152,7 @@ public abstract class ValidateKlumSchemaModule extends DefaultTask {
             Set<String> modifiers = new LinkedHashSet<>();
             String declaredModifiers = matcher.group(1);
             if (declaredModifiers != null)
-                for (String modifier : declaredModifiers.trim().split("\\s+"))
-                    modifiers.add(modifier);
+                Collections.addAll(modifiers, declaredModifiers.trim().split("\\s+"));
             modules.put(matcher.group(2), modifiers);
         }
         return modules;
@@ -159,7 +160,7 @@ public abstract class ValidateKlumSchemaModule extends DefaultTask {
 
     private static boolean isRequired(Map<String, Set<String>> modules, String module) {
         Set<String> modifiers = modules.get(module);
-        return modifiers != null && (!"com.blackbuild.klum.ast.compiler".equals(module) || modifiers.contains("static"));
+        return modifiers != null && (!COMPILER_MODULE.equals(module) || modifiers.contains("static"));
     }
 
     private static Map<String, Set<String>> openedPackages(String source) {
@@ -204,6 +205,6 @@ public abstract class ValidateKlumSchemaModule extends DefaultTask {
     }
 
     private static String requiresDirective(String module) {
-        return "requires " + ("com.blackbuild.klum.ast.compiler".equals(module) ? "static " : "") + module + ";";
+        return "requires " + (COMPILER_MODULE.equals(module) ? "static " : "") + module + ";";
     }
 }

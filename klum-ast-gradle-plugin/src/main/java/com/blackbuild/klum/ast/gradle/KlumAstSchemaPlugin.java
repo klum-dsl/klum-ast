@@ -45,6 +45,8 @@ import java.util.Set;
 @NonNullApi
 public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
 
+    private static final String MODULE_INFO = "**/module-info.java";
+
     @Override
     protected void registerExtension() {
         extension = project.getExtensions().create("klumSchema", KlumExtension.class);
@@ -74,11 +76,11 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                 task -> {
                     task.setGroup("verification");
                     task.setDescription("Validates a user-owned Schema module descriptor for the configured Groovy generation.");
-                    task.getDescriptorFiles().from(main.getAllSource().matching(pattern -> pattern.include("**/module-info.java")));
+                    task.getDescriptorFiles().from(main.getAllSource().matching(pattern -> pattern.include(MODULE_INFO)));
                     task.getSchemaSources().from(project.fileTree("src/main", tree -> {
                         tree.include("**/*.java", "**/*.groovy");
-                        tree.exclude("**/module-info.java");
-                    }), main.getAllSource().matching(pattern -> pattern.exclude("**/module-info.java")));
+                        tree.exclude(MODULE_INFO);
+                    }), main.getAllSource().matching(pattern -> pattern.exclude(MODULE_INFO)));
                     task.getGroovyVersion().convention(project.getExtensions()
                             .getByType(GroovyDependenciesExtension.class).getGroovyVersion());
                     task.getOptionalAdapterModules().addAll(project.provider(this::optionalAdapterModules));
