@@ -32,7 +32,9 @@ class AstReflectionBridgeTest extends Specification {
 
     def "correct parameter names are extracted"() {
         given:
-        MethodNode methodNode = ClassHelper.make(InternalKlumBuilder).getDeclaredMethods(InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION).first()
+        MethodNode methodNode = ClassHelper.make(InternalKlumBuilder)
+                .getDeclaredMethods(InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
+                .find { it.parameters.size() == 6 }
 
         when:
         def parameterNames = AstReflectionBridge.cloneParamsWithAdjustedNames(methodNode)*.name

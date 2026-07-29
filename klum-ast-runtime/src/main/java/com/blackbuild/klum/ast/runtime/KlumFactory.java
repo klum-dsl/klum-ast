@@ -55,9 +55,38 @@ public class KlumFactory<T> {
         this.type = FactoryHelper.getTypeOrDefaultType(type);
     }
 
+    /** Returns the DSL Object type selected by this factory. */
+    public final Class<T> getModelType() {
+        return type;
+    }
+
     /** Returns the active-session factory used to create owned child Builders. */
     public BuilderFactory<T, KlumBuilder<T>> getAsBuilder() {
         return new BuilderFactory<T, KlumBuilder<T>>(type);
+    }
+
+    /**
+     * Public factory capability used by generated polymorphic relationship methods.
+     *
+     * <p>Passing a generated {@code Foo.Create} to such a method selects {@code Foo} while the
+     * method creates and attaches the child through this factory's {@link #getAsBuilder()} view in
+     * the owning Construction session. It never starts a root factory lifecycle.</p>
+     *
+     * @param <T> the selected DSL Object type
+     * @param <B> the selected public Builder type
+     */
+    public interface BuilderFactoryProvider<T, B extends KlumBuilder<T>> {
+
+        /**
+         * Returns the selected DSL Object type.
+         *
+         * <p>This second capability also keeps the provider distinct from a Groovy SAM, so an
+         * ordinary configuration closure cannot be coerced into polymorphic factory selection.</p>
+         */
+        Class<T> getModelType();
+
+        /** Returns the active-session Builder factory for the selected DSL Object type. */
+        BuilderFactory<T, B> getAsBuilder();
     }
 
     /** Active-session Builder-producing operations shared by keyed and unkeyed factories. */
@@ -66,6 +95,11 @@ public class KlumFactory<T> {
 
         protected BuilderFactory(Class<T> type) {
             this.type = type;
+        }
+
+        /** Returns the DSL Object type selected by this active-session factory. */
+        public final Class<T> getModelType() {
+            return type;
         }
 
         public B FromMap(Map<String, Object> configMap) {

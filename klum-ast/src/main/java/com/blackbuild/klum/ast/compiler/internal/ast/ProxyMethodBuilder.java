@@ -443,6 +443,16 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
     }
 
     /**
+     * Adds a parameter used as the named target of a generic {@link DelegatesTo} annotation.
+     */
+    public ProxyMethodBuilder delegationTargetParam(ClassNode type, String name, String doc) {
+        AnnotationNode target = new AnnotationNode(DELEGATES_TO_TARGET_ANNOTATION);
+        target.setMember("value", constX(name));
+        params.add(new ProxiedArgument(name, type, singletonList(target), doc));
+        return this;
+    }
+
+    /**
      * Add a parameter to the method signature with an optional default value.
      * @param type The type of the parameter
      * @param name The name of the parameter
@@ -506,6 +516,20 @@ public final class ProxyMethodBuilder extends AbstractMethodBuilder<ProxyMethodB
      */
     public ProxyMethodBuilder delegatingClosureParam() {
         return delegatingClosureParam(null, null);
+    }
+
+    /** Creates a delegating closure parameter for a specific generic type of a {@link DelegatesTo.Target} parameter. */
+    public ProxyMethodBuilder delegatingClosureParam(String targetName, int genericTypeIndex, String doc) {
+        AnnotationNode annotation = createDelegatesToAnnotation(null);
+        annotation.setMember("target", constX(targetName));
+        annotation.setMember("genericTypeIndex", constX(genericTypeIndex));
+        params.add(new ProxiedArgument(
+                "closure",
+                nonGeneric(ClassHelper.CLOSURE_TYPE),
+                singletonList(annotation),
+                ConstantExpression.NULL,
+                doc));
+        return this;
     }
 
     private AnnotationNode createDelegatesToAnnotation(ClassNode target) {

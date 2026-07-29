@@ -26,6 +26,7 @@ import com.blackbuild.klum.ast.runtime.ModelVisitingPhaseAction;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 import com.blackbuild.klum.ast.runtime.KlumException;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 
@@ -35,7 +36,6 @@ import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.PostApply;
 import com.blackbuild.klum.ast.runtime.KlumModelObject;
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector;
-import com.blackbuild.klum.ast.runtime.internal.process.ConstructionSession;
 import com.blackbuild.klum.ast.runtime.internal.process.ConstructionSession;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.KlumPhase;
@@ -693,6 +693,25 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         });
     }
 
+    /**
+     * Creates an owned child selected by its generated factory without opening a root lifecycle.
+     *
+     * <p>The provider exposes the factory's active-session view. Its selected public Builder type
+     * is preserved for generated static signatures while this method keeps the existing child
+     * creation and materialization path.</p>
+     */
+    @SuppressWarnings("unchecked")
+    public Object createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
+                                    BuilderFactoryProvider<?, ?> factory,
+                                    String key, Closure<?> body) {
+        return createSingleChild(namedParams, fieldOrMethodName,
+                selectedModelType(factory), true, key, (Closure) body);
+    }
+
+    private static Class<?> selectedModelType(BuilderFactoryProvider<?, ?> factory) {
+        return factory.getAsBuilder().getModelType();
+    }
+
     private ChildTarget resolveSingleChildTarget(String fieldOrMethodName, Class<?> type) {
         Optional<Field> field = DslHelper.getField(modelType, fieldOrMethodName);
         if (field.isPresent())
@@ -827,6 +846,15 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
         });
     }
 
+    /** Adds an owned collection child selected by its generated factory in the current session. */
+    @SuppressWarnings("unchecked")
+    public Object addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
+                                                BuilderFactoryProvider<?, ?> factory,
+                                                String key, Closure<?> body) {
+        return addNewDslElementToCollection(namedParams, collectionName,
+                selectedModelType(factory), true, key, (Closure) body);
+    }
+
     private InternalKlumBuilder<?> createNewBuilderFromParamsAndClosure(Class<?> type, String key, Map<String, Object> namedParams, Closure<?> body) {
         return FactoryHelper.prepareNestedBuilder(type, key, template, builder -> builder.applyOnly(namedParams, body));
     }
@@ -914,6 +942,15 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
             doAddElementToMap(mapName, key, created);
             return (T) created;
         });
+    }
+
+    /** Adds an owned map child selected by its generated factory in the current session. */
+    @SuppressWarnings("unchecked")
+    public Object addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
+                                         BuilderFactoryProvider<?, ?> factory,
+                                         String key, Closure<?> body) {
+        return addNewDslElementToMap(namedParams, mapName,
+                selectedModelType(factory), true, key, (Closure) body);
     }
 
     public <K, V> V addElementToMap(String fieldName, K key, V value) {

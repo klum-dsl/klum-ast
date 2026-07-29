@@ -29,6 +29,8 @@ import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.KlumGenerated
 import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumFactory
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken
 import com.blackbuild.klum.ast.runtime.generated.GeneratedBreadcrumbs
@@ -394,6 +396,127 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue('620')
+    def "typed relationship factories select the public Builder delegate without a root lifecycle"() {
+        given:
+        Class<?> factory = getClass('sample.HttpEndpoint_DSL$Factory')
+        Class<?> deploymentBuilder = getClass('sample.Deployment_DSL$Builder')
+
+        expect: 'generated factories expose one generic active-session provider contract'
+        factory.typeParameters.length == 0
+        factory.genericInterfaces*.typeName == [
+                'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactoryProvider<sample.HttpEndpoint, sample.HttpEndpoint_DSL$Builder<sample.HttpEndpoint>>'
+        ]
+        getClass('sample.HttpEndpoint').getField('Create').type == factory
+
+        and: 'the relationship method carries source-valid type variables and exact delegate metadata'
+        Method endpointMethod = deploymentBuilder.declaredMethods.find {
+            it.name == 'endpoint' && it.parameterTypes.toList() == [BuilderFactoryProvider, Closure]
+        }
+        endpointMethod.typeParameters*.name == ['T', 'B']
+        endpointMethod.typeParameters[0].bounds*.typeName == ['sample.Endpoint']
+        endpointMethod.typeParameters[1].bounds*.typeName ==
+                ['com.blackbuild.klum.ast.runtime.KlumBuilder<T>']
+        endpointMethod.genericReturnType.typeName == 'B'
+        endpointMethod.genericParameterTypes[0].typeName ==
+                'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactoryProvider<T, B>'
+        endpointMethod.parameters[1].getAnnotation(DelegatesTo).with {
+            target() == 'factory' && genericTypeIndex() == 1 && strategy() == Closure.DELEGATE_ONLY
+        }
+        endpointMethod.getAnnotation(AnnoDoc).value().with {
+            contains('dynamic Class overload') && contains('exact selected public Builder') &&
+                    contains('current Construction session') && contains('never starts a root lifecycle')
+        }
+        Method dynamicEndpointMethod = deploymentBuilder.getMethod('endpoint', Class, Closure)
+        dynamicEndpointMethod.getAnnotation(AnnoDoc).value().with {
+            contains('Class value') && contains('declared base public Builder') &&
+                    contains('generated Create Factory') && contains('without starting a root lifecycle')
+        }
+
+        when: 'Java sees the exact selected Builder return type'
+        compileJavaConsumer('''
+            package sample;
+
+            import groovy.lang.Closure;
+
+            public final class JavaDslConsumer {
+                public static HttpEndpoint_DSL.Builder<HttpEndpoint> endpoint(
+                        Deployment_DSL.Builder<Deployment> deployment, Closure<?> configuration) {
+                    return deployment.endpoint(HttpEndpoint.Create, configuration);
+                }
+            }
+        ''')
+
+        and: 'static Groovy configures every polymorphic relationship shape through Create'
+        Class<?> consumer = createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticTypedRelationshipConsumer {
+                static Deployment createSingle() {
+                    Deployment.Create.With {
+                        endpoint(HttpEndpoint.Create) {
+                            url 'https://direct.example.test'
+                        }
+                    }
+                }
+
+                static Deployment createCollection() {
+                    Deployment.Create.With {
+                        routes {
+                            route(HttpEndpoint.Create, url: 'https://list.example.test')
+                        }
+                    }
+                }
+
+                static Deployment createMap() {
+                    Deployment.Create.With {
+                        keyedEndpoints {
+                            keyedEndpoint(NamedHttpEndpoint.Create, 'named', url: 'https://map.example.test')
+                        }
+                    }
+                }
+            }
+        ''', 'sample/StaticTypedRelationshipConsumer.groovy')
+
+        and: 'the established dynamic Class selector remains available'
+        Class<?> dynamicConsumer = createSecondaryClass('''
+            package sample
+
+            class DynamicTypedRelationshipConsumer {
+                static Deployment create() {
+                    Deployment.Create.With {
+                        endpoint(HttpEndpoint) {
+                            url 'https://dynamic.example.test'
+                        }
+                    }
+                }
+            }
+        ''', 'sample/DynamicTypedRelationshipConsumer.groovy')
+
+        then:
+        def single = consumer.createSingle()
+        getClass('sample.HttpEndpoint').isInstance(single.endpoint)
+        single.endpoint.url == 'https://direct.example.test'
+
+        and:
+        def collection = consumer.createCollection()
+        collection.routes*.url == ['https://list.example.test']
+
+        and:
+        def keyed = consumer.createMap()
+        keyed.keyedEndpoints.keySet() == ['named'] as Set
+        keyed.keyedEndpoints.named.url == 'https://map.example.test'
+
+        and:
+        def dynamic = dynamicConsumer.create()
+        getClass('sample.HttpEndpoint').isInstance(dynamic.endpoint)
+        dynamic.endpoint.url == 'https://dynamic.example.test'
+        !dynamicEndpointMethod.isAnnotationPresent(Deprecated)
+    }
+
     def "AnnoDocimal source mirror matches the bytecode namespace and nested documentation"() {
         given:
         File mirrorRoot = new File(tempFolder.root, 'mirrors')
@@ -435,6 +558,27 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 Child secondary
                 OpaqueChild opaqueChild
                 @Cluster Map<String, Child> services
+            }
+
+            @DSL class Deployment {
+                Endpoint endpoint
+                List<Endpoint> routes
+                Map<String, KeyedEndpoint> keyedEndpoints
+            }
+
+            @DSL abstract class Endpoint {
+            }
+
+            @DSL class HttpEndpoint extends Endpoint {
+                String url
+            }
+
+            @DSL abstract class KeyedEndpoint {
+                @Key String name
+            }
+
+            @DSL class NamedHttpEndpoint extends KeyedEndpoint {
+                String url
             }
 
             @DSL class OpaqueChild {

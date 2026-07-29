@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.*;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodsMover;
 import com.blackbuild.klum.ast.runtime.KlumKeyedModelObject;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelObject;
 import com.blackbuild.klum.ast.runtime.KlumUnkeyedModelObject;
 import com.blackbuild.klum.ast.compiler.internal.doc.DocUtil;
@@ -37,6 +38,7 @@ import com.blackbuild.klum.ast.runtime.generated.GeneratedMaterializationToken;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedModelSupport;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedObjectState;
 import com.blackbuild.klum.ast.runtime.KlumFactory;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import com.blackbuild.klum.ast.compiler.internal.layer3.ClusterFactoryBuilder;
 import com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -89,12 +91,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String MATERIALIZATION_TOKEN_PARAMETER = "materializationToken";
     private static final String ADD_ELEMENT_TO_COLLECTION = "addElementToCollection";
     private static final String ADD_ELEMENT_TO_MAP = "addElementToMap";
+    private static final String ADD_NEW_DSL_ELEMENT_TO_MAP = "addNewDslElementToMap";
+    private static final String CREATE_SINGLE_CHILD = "createSingleChild";
+    private static final String FACTORY_NAME = "factory";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
     private static final String CONFIGURATION_CLOSURE_DOCUMENTATION = "the closure to configure the new element";
     private static final String ELEMENTS_TO_ADD_DOCUMENTATION = "the elements to add";
     private static final String NEW_BUILDER_RETURN_DOCUMENTATION = "the newly created Builder";
     private static final String NEW_BUILDER_CONFIGURATION_DOCUMENTATION = "The newly created Builder is configured by the optional values and closure.";
+    private static final String DYNAMIC_TYPE_SELECTION_DOCUMENTATION = "Selects the implementation dynamically through " +
+            "a Class value, so the closure retains the relationship's declared base public Builder type. Pass the " +
+            "selected type's generated Create Factory for the exact selected public Builder. Both forms create the " +
+            "owned child in the current Construction session without starting a root lifecycle.";
     private static final String CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION = "Creates a new '{{singleElementName}}' Builder and adds it";
     private static final String CLOSURE_PARAMETER = "closure";
     private static final String ADDS_ONE_OR_MORE = "Adds one or more ";
@@ -115,6 +124,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final ClassNode BUILDER_FACTORY = make(KlumFactory.BuilderFactory.class);
     public static final ClassNode KEYED_BUILDER_FACTORY = make(KlumFactory.KeyedBuilderFactory.class);
     public static final ClassNode UNKEYED_BUILDER_FACTORY = make(KlumFactory.UnkeyedBuilderFactory.class);
+    public static final ClassNode BUILDER_FACTORY_PROVIDER = make(BuilderFactoryProvider.class);
+    public static final ClassNode PUBLIC_KLUM_BUILDER = make(KlumBuilder.class);
     public static final ClassNode KLUM_BUILDER = make(InternalKlumBuilder.class);
     public static final ClassNode GENERATED_KLUM_BUILDER = make(GeneratedKlumBuilder.class);
     public static final ClassNode GENERATED_OBJECT_STATE = make(GeneratedObjectState.class);
@@ -976,6 +987,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + COLLECTION_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
+                                .p(DYNAMIC_TYPE_SELECTION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
@@ -985,6 +997,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optionalStringParam(fieldKeyName, fieldKey != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
+
+                createTypedFactoryProviderMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION,
+                        fieldNode, dslBaseType, fieldName, fieldKeyName, COLLECTION_DOCUMENTATION_SUFFIX);
+
             }
 
             createProxyMethod(fieldName, InternalKlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_COLLECTION)
@@ -1148,7 +1164,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
         if (!linkField) {
             if (isInstantiable(defaultImpl)) {
-                createProxyMethod(methodName, "addNewDslElementToMap")
+                createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -1168,7 +1184,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             }
 
             if (!isFinal(elementType)) {
-                createProxyMethod(methodName, "addNewDslElementToMap")
+                createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
                         .mod(visibility)
                         .linkToField(fieldNode)
@@ -1176,6 +1192,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .withDocumentation(doc -> doc
                                 .title(CREATE_NEW_ELEMENT_BUILDER_DOCUMENTATION + MAP_DOCUMENTATION_SUFFIX)
                                 .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
+                                .p(DYNAMIC_TYPE_SELECTION_DOCUMENTATION)
                                 .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION)
                                 .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION))
                         .namedParams("values")
@@ -1185,6 +1202,11 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         .optionalStringParam("key", elementKeyField != null)
                         .delegatingClosureParam()
                         .addTo(rwClass);
+
+                createTypedFactoryProviderMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP,
+                        fieldNode, dslBaseType, fieldName, elementKeyField != null ? "key" : null,
+                        MAP_DOCUMENTATION_SUFFIX);
+
             }
 
             createProxyMethod(fieldName, InternalKlumBuilder.ADD_ELEMENTS_FROM_SCRIPTS_TO_MAP)
@@ -1277,7 +1299,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
 
         if (isInstantiable(defaultImpl)) {
-            createProxyMethod(fieldName, "createSingleChild")
+            createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
@@ -1292,11 +1314,18 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         }
 
         if (!isFinal(targetFieldType)) {
-            createProxyMethod(fieldName, "createSingleChild")
+            createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetRwType)
+                    .withDocumentation(doc -> doc
+                            .title("Creates a new '{{singleElementName}}' Builder to this Builder.")
+                            .p(NEW_BUILDER_CONFIGURATION_DOCUMENTATION)
+                            .p(DYNAMIC_TYPE_SELECTION_DOCUMENTATION)
+                            .param("typeToCreate", "the Class selecting the concrete DSL Object type")
+                            .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION)
+                            .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION))
                     .namedParams("values")
                     .constantParam(fieldName)
                     .delegationTargetClassParam("typeToCreate", dslBaseType)
@@ -1304,6 +1333,103 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                     .optionalStringParam(targetKeyFieldName, needKeyParameter)
                     .delegatingClosureParam()
                     .addTo(rwClass);
+
+            createTypedFactoryProviderMethod(fieldName, CREATE_SINGLE_CHILD, fieldNode, dslBaseType, fieldName,
+                    targetKeyFieldName, " to this Builder.");
+
+        }
+    }
+
+    private void createTypedFactoryProviderMethod(String methodName, String runtimeMethod, AnnotatedNode fieldNode,
+                                                   ClassNode dslBaseType, String fieldName, String keyName,
+                                                   String documentationSuffix) {
+        GenericFactoryMethodTypes types = genericFactoryMethodTypes(dslBaseType);
+        createProxyMethod(methodName, runtimeMethod)
+                .optional()
+                .mod(DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC)
+                .linkToField(fieldNode)
+                .setGenericsTypes(types.methodTypeParameters())
+                .returning(types.returnType(), NEW_BUILDER_RETURN_DOCUMENTATION)
+                .withDocumentation(doc -> doc
+                        .title("Creates a new '{{singleElementName}}' Builder" + documentationSuffix)
+                        .p("Selects the implementation statically through the generated Factory. Unlike the dynamic Class " +
+                                "overload, which retains the relationship's declared base Builder type, this closure " +
+                                "delegates to the exact selected public Builder. Child creation belongs to this Builder's " +
+                                "current Construction session and never starts a root lifecycle.")
+                        .param(FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
+                        .param(CLOSURE_PARAMETER, CONFIGURATION_CLOSURE_DOCUMENTATION)
+                        .param("values", OPTIONAL_PARAMETERS_DOCUMENTATION))
+                .namedParams("values")
+                .constantParam(fieldName)
+                .delegationTargetParam(types.providerType(), FACTORY_NAME, "the generated Factory selecting the concrete DSL Object type")
+                .optionalStringParam(keyName, keyName != null)
+                .delegatingClosureParam(FACTORY_NAME, 1, CONFIGURATION_CLOSURE_DOCUMENTATION)
+                .addTo(rwClass);
+    }
+
+    private GenericFactoryMethodTypes genericFactoryMethodTypes(ClassNode dslBaseType) {
+        ClassNode modelPlaceholder = genericPlaceholder("T", dslBaseType);
+        GenericsType modelParameter = genericVariable("T", modelPlaceholder, new ClassNode[] { dslBaseType });
+        GenericsType modelUse = genericVariable("T", modelPlaceholder, null);
+
+        ClassNode builderBound = makeClassSafeWithGenerics(PUBLIC_KLUM_BUILDER, modelUse);
+        ClassNode builderPlaceholder = genericPlaceholder("B", PUBLIC_KLUM_BUILDER);
+        GenericsType builderParameter = genericVariable("B", builderPlaceholder, new ClassNode[] { builderBound });
+        GenericsType builderUse = genericVariable("B", builderPlaceholder, null);
+
+        ClassNode returnType = genericPlaceholder("B", PUBLIC_KLUM_BUILDER);
+        returnType.setGenericsTypes(new GenericsType[] { builderParameter });
+        returnType.setUsingGenerics(true);
+
+        ClassNode providerType = makeClassSafeWithGenerics(
+                BUILDER_FACTORY_PROVIDER,
+                modelUse,
+                builderUse
+        );
+        return new GenericFactoryMethodTypes(
+                new GenericsType[] { modelParameter, builderParameter },
+                returnType,
+                providerType
+        );
+    }
+
+    private static ClassNode genericPlaceholder(String name, ClassNode erasure) {
+        ClassNode result = ClassHelper.makeWithoutCaching(name);
+        result.setGenericsPlaceHolder(true);
+        result.setRedirect(erasure);
+        return result;
+    }
+
+    private static GenericsType genericVariable(String name, ClassNode type, ClassNode[] upperBounds) {
+        GenericsType result = new GenericsType(type, upperBounds, null);
+        result.setName(name);
+        result.setPlaceholder(true);
+        return result;
+    }
+
+    private record GenericFactoryMethodTypes(GenericsType[] methodTypeParameters, ClassNode returnType,
+                                             ClassNode providerType) {
+
+        @Override
+        public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof GenericFactoryMethodTypes that)) return false;
+            return Arrays.equals(methodTypeParameters, that.methodTypeParameters)
+                    && Objects.equals(returnType, that.returnType)
+                    && Objects.equals(providerType, that.providerType);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(methodTypeParameters);
+            result = 31 * result + Objects.hashCode(returnType);
+            return 31 * result + Objects.hashCode(providerType);
+        }
+
+        @Override
+        public String toString() {
+            return "GenericFactoryMethodTypes[methodTypeParameters=" + Arrays.toString(methodTypeParameters)
+                    + ", returnType=" + returnType + ", providerType=" + providerType + ']';
         }
     }
 
@@ -1437,12 +1563,12 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         factoryField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         factoryClass.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         GeneratedDslSupport.linkFactory(annotatedClass, factoryClass);
-        factoryField.setType(GeneratedDslSupport.of(annotatedClass).getFactoryInterface());
+        factoryField.setType(GeneratedDslSupport.of(annotatedClass).getFactoryInterface().getPlainNodeReference());
         annotatedClass.addField(factoryField);
     }
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
-        ClassNode factoryBase = getMemberClassValue(dslAnnotation, "factory");
+        ClassNode factoryBase = getMemberClassValue(dslAnnotation, FACTORY_NAME);
         if (factoryBase == null) factoryBase = getInnerClass(annotatedClass, "Factory");
 
         if (!isInstantiable(defaultImpl)) {

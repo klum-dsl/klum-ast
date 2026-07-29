@@ -80,6 +80,24 @@ consumer fixture, document which interfaces clients may name but not implement, 
 `CHANGES.md`, and run Groovy 3/4/5 plus Gradle plugin scenarios. The generated mirror directory must remain absent from
 Java/Groovy compilation, source JARs, published variants, and downstream task inputs.
 
+### [DSL-4 — Statically precise polymorphic relationship factories](https://github.com/klum-dsl/klum-ast/issues/620)
+
+Generate one public, non-generic `Foo_DSL.Factory` that extends the concretely parameterized
+`KlumFactory.BuilderFactoryProvider<Foo, Foo_DSL.Builder<Foo>>`, and type `Foo.Create` with that generated interface.
+For polymorphic single, collection, and map relationship creation, add generic Factory-provider overloads whose
+`@DelegatesTo` metadata selects the provider's Builder argument. This makes `child(Foo.Create) { ... }` return and delegate
+to the exact public `Foo_DSL.Builder<Foo>` under Java and static Groovy compilation, including named-parameter and keyed
+forms.
+
+The provider exposes the existing `AsBuilder` view. Runtime dispatch reuses the current-session child creation paths with
+an explicit selected type; it never invokes a root factory lifecycle. The established dynamic `child(Foo) { ... }` Class
+selector remains unchanged and is not deprecated. Exact concrete/default-implementation closure-only shapes remain
+unchanged. The generated method placeholders deliberately retain source-shaped `T` and `B` bounds so Groovy 3, 4, and 5
+emit a valid public generic signature.
+
+**Implemented:** #620 adds the provider contract, generated signatures and AnnoDoc, Java/static-Groovy and dynamic
+regression coverage, and named-module linkage evidence without changing module descriptors or adding portability flags.
+
 ### [DSL-G — IDE-only Gradle source-mirror lifecycle](https://github.com/klum-dsl/klum-ast/issues/434)
 
 DSL-G selects a compiled-contract-to-IDE-mirror lifecycle:
