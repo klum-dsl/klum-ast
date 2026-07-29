@@ -822,6 +822,8 @@ Interfaces can be marked with `@DSL`. No transformation will be done for these i
 annotated interface type gets its
 dsl methods generated:
 
+(See: `BasicsDslInterfacesDocumentaryTest#'configures a DSL interface through a concrete implementation'`.)
+
 ```groovy
 given: // Schema
 @DSL class Outer {
