@@ -31,7 +31,6 @@ import com.blackbuild.klum.ast.runtime.KlumValidationException
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructureUtil
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
-import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
@@ -199,7 +198,6 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         when:
         def result = support.validation.result
         def subtreeResults = support.validation.subtreeResults
-        def deprecatedResults = Validator.getValidationResultsFromStructure(instance)
         def childSubtreeResults = childSupport.validation.subtreeResults
         def verified = support.validation.verify()
         compileJavaConsumer('''
@@ -222,7 +220,6 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         then:
         result.is(storedRootResult)
         subtreeResults == [storedRootResult, storedChildResult, storedCleanResult]
-        deprecatedResults == subtreeResults
         childSubtreeResults == [storedChildResult]
         verified == subtreeResults
         KlumObjectSupport.Validation.declaredMethods*.name.contains('getSubtreeResults')

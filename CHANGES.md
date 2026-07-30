@@ -24,6 +24,13 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 - Named schema modules are supported with Groovy 4 and 5; Groovy 3 remains supported on the ordinary classpath. The Schema plugin validates the user-owned descriptor as part of `check` and Maven publication, reporting copyable missing directives without editing it. A named schema requires the documented `org.apache.groovy` dependency and a qualified `opens` directive to KlumAST runtime, Jackson when used, and Hibernate Validator when Bean Validation is used. No JVM module-path workaround flags are required ([#391](https://github.com/klum-dsl/klum-ast/issues/391)).
 - Fixed Groovy 4/5 named-schema materialization for owned direct, collection, and keyed relationships without changing the approved module descriptors or requiring consumer flags ([#622](https://github.com/klum-dsl/klum-ast/issues/622)).
 
+## Validation
+
+- Added the supported `KlumSchemaSupport`/`KlumValidationReporter` facade for custom lifecycle diagnostics, including
+  explicit target reporting, suppression, and configured fail-level access. The preliminary `Validator` and
+  `ValidatorBase` types are removed with direct 4.0 migration guidance; #406 remains the separate compile-time
+  placement rule ([#626](https://github.com/klum-dsl/klum-ast/issues/626)).
+
 ## Builder-first construction
 
 - Added the portable `build-domain-first-schema` skill, task-oriented domain-first guidance, and an executable Layer 3 smart-home journey. The fixture separates generic API, fixed floorplan Schema, registered Model script, and API-only `client-demo`; it covers Cluster projection, provider-polymorphic Builder calls, `@DefaultValues` labels, and a bounded field-test artifact ([#471](https://github.com/klum-dsl/klum-ast/issues/471)).

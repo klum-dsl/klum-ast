@@ -27,6 +27,7 @@ import com.blackbuild.annodocimal.annotations.AnnoDoc;
 import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.runtime.DefaultKlumPhase;
 import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
+import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.internal.layer3.ClusterModel;
 import com.blackbuild.klum.ast.layer3.Notify;
@@ -62,9 +63,9 @@ public class EarlyValidationPhase extends BuilderVisitingPhaseAction {
         boolean shouldBeEmpty = !isEmpty(notify.ifSet());
 
         if (valueIsEmpty && !shouldBeEmpty) {
-            Validator.addIssueToMember(fieldName, notify.ifUnset(), notify.level());
+            KlumSchemaSupport.klumValidationForObject(element).issueAt(fieldName, notify.ifUnset(), notify.level());
         } else if (!valueIsEmpty && shouldBeEmpty) {
-            Validator.addIssueToMember(fieldName, notify.ifSet(), notify.level());
+            KlumSchemaSupport.klumValidationForObject(element).issueAt(fieldName, notify.ifSet(), notify.level());
         }
     }
 
@@ -83,7 +84,7 @@ public class EarlyValidationPhase extends BuilderVisitingPhaseAction {
 
         String message = getDeprecationMessage(field);
 
-        Validator.addIssueToMember(fieldName, message, Validate.Level.DEPRECATION);
+        KlumSchemaSupport.klumValidationForObject(element).issueAt(fieldName, message, Validate.Level.DEPRECATION);
     }
 
     private String getDeprecationMessage(Field field) {

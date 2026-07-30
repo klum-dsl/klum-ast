@@ -125,8 +125,8 @@ getter is `getConstructionPath()`; see [#390](https://github.com/klum-dsl/klum-a
 
 `getValidation().getSubtreeResults()` returns the target's result and every stored result in its owned subtree, including
 clean results without issues.
-This is broader than the old `Validator.getValidationResultsFromStructure` and `verifyStructure` list contract; their
-deprecated adapters now return the facade's complete stored-result list.
+Use `KlumObjectSupport.getValidation()` directly; the preliminary `Validator` result readers are removed in 4.0 rather
+than retained as deprecated adapters.
 
 Jackson import now binds externally owned data to public Builder configuration through resolved property metadata. Missing input preserves source
 initializers and later defaults; present values, `null`, and containers replace current Builder state authoritatively between

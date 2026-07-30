@@ -54,6 +54,16 @@ Recompile schemas and clients for 4.0. Java-serialized 3.x graphs are not 4.0
 migration inputs, and Java serialization is not a cross-version persistence
 format; own external compatibility data and migrations in the Schema.
 
+### Custom validation reporting
+
+`Validator` and `ValidatorBase` are removed in 4.0; there is no source or binary compatibility adapter. In lifecycle
+methods, lifecycle closures, and validation classes, replace their shortcuts with
+`KlumSchemaSupport.getKlumValidation()` (Groovy's `klumValidation` property) and its `error`, `errorAt`, `issue`,
+`issueAt`, `suppressOn`, or `suppressAll` operations. Use
+`KlumSchemaSupport.klumValidationForObject(target)` only when a lifecycle callback must report an issue on an explicit
+object. It retains that object's construction path and does not alter lifecycle ordering. The separate #406 compiler
+restriction remains a later placement check; it is not a migration fallback.
+
 ## KlumCast 0.4 RC dependencies
 
 KlumAST 4.0 uses the immutable KlumCast `0.4.0-rc.2` artifact set: `klum-cast-annotations`, `klum-cast-spi`, and

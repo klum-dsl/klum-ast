@@ -347,7 +347,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622"])
+    @Issue(["620", "622", "626"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -626,6 +626,7 @@ class JpmsPackageBoundaryTest extends Specification {
             import com.blackbuild.klum.ast.PostTree
             import com.blackbuild.klum.ast.Validate
             import com.blackbuild.klum.ast.runtime.KlumBuilder
+            import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
             import jakarta.validation.constraints.Min
 
             import java.util.List
@@ -643,6 +644,7 @@ class JpmsPackageBoundaryTest extends Specification {
                 void recordCreate() {
                     assert this instanceof KlumBuilder
                     Station.EVENTS << 'create'
+                    klumValidation.issue('early lifecycle diagnostic', Validate.Level.INFO)
                 }
 
                 @PostTree
@@ -771,8 +773,11 @@ class JpmsPackageBoundaryTest extends Specification {
         '''
             package fixture.consumer;
 
+            import com.blackbuild.klum.ast.Validate;
             import com.blackbuild.klum.ast.runtime.PhaseAction;
             import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.KlumSchemaSupport;
             import com.blackbuild.klum.ast.runtime.validation.InstanceValidator;
             import com.fasterxml.jackson.databind.ObjectMapper;
             import fixture.schema.Deployment;
@@ -801,6 +806,11 @@ class JpmsPackageBoundaryTest extends Specification {
                         throw new AssertionError("Bean Validation schema value was not materialized");
                     if (!Station.eventLog().equals(List.of("create", "tree", "validate")))
                         throw new AssertionError("Builder lifecycle and model validation did not run in order");
+                    if (KlumObjectSupport.of(station).getValidation().getResult().getIssues().stream()
+                            .noneMatch(issue -> issue.getMessage().equals("early lifecycle diagnostic")))
+                        throw new AssertionError("Named schema could not retain the reporter diagnostic");
+                    if (KlumSchemaSupport.klumValidationForObject(station).getFailLevel() != Validate.Level.ERROR)
+                        throw new AssertionError("Named Java consumer could not access the validation reporter");
                     Deployment deployment = Deployment.Create.One();
                     if (!"https://direct.example.test".equals(deployment.getEndpoint().getUrl()) ||
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
@@ -838,7 +848,9 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint
             import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
+            import com.blackbuild.klum.ast.Validate
             import groovy.transform.CompileStatic
+            import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
 
             @CompileStatic
             class StaticConsumer {
@@ -855,6 +867,7 @@ class JpmsPackageBoundaryTest extends Specification {
                     Station station = Station.Create.One()
                     assert station.name == 'North'
                     assert station.capacity == 4
+                    assert klumValidation.failLevel == Validate.Level.ERROR
                     println 'static=true'
                 }
             }

@@ -21,7 +21,7 @@ non-exported `com.blackbuild.klum.ast.compiler.internal.validation` package.
 
 | Artifact owner | Package in this slice | Types |
 | --- | --- | --- |
-| `klum-ast-runtime` | `com.blackbuild.klum.ast.validation` | `EarlyValidationPhase`, `InstanceValidator`, `KlumAnnotationsValidator`, `KlumFieldAnnotationsValidator`, `KlumInnerClassValidator`, `KlumLayeredAnnotationsValidator`, `KlumMethodAnnotationsValidator`, `KlumValidationException`, `KlumValidationIssue`, `KlumValidationResult`, `SingleObjectValidationHandler`, `ValidationPhase`, `Validator`, `ValidatorBase` |
+| `klum-ast-runtime` | `com.blackbuild.klum.ast.validation` | `EarlyValidationPhase`, `InstanceValidator`, `KlumAnnotationsValidator`, `KlumFieldAnnotationsValidator`, `KlumInnerClassValidator`, `KlumLayeredAnnotationsValidator`, `KlumMethodAnnotationsValidator`, `KlumValidationException`, `KlumValidationIssue`, `KlumValidationResult`, `SingleObjectValidationHandler`, `ValidationPhase`; later package migration places the supported #626 `KlumSchemaSupport`/`KlumValidationReporter` facade in the runtime API package and removes `Validator`/`ValidatorBase` without a bridge. |
 | `klum-ast` compiler | `com.blackbuild.klum.ast.compiler.internal.validation` | `CheckDslAnnotation`, `CheckForPrimitiveBoolean`, `OverwriteMapCheck`, `OverwriteSingleCheck`, `ValidateAnnotationCheck` |
 
 The annotations artifact retains name-based `@KlumCastValidator` bindings, now
