@@ -150,5 +150,5 @@ String pathFromDeployment = support.getStructure().getRelativePath(service);
 `KlumObjectSupport` directly. `KlumModelProxy` and its raw metadata are internal implementation details and are not a
 supported client extension API.
 
-The former `Validator.getValidationResult`, `getValidationResultsFromStructure`, and `verifyStructure` readers remain as
-deprecated adapters. New completed-object code uses `KlumObjectSupport.getValidation()` as described in [[Validation]].
+`Validator` result readers are removed in 4.0 with no compatibility adapter. Completed-object code uses
+`KlumObjectSupport.getValidation()` as described in [[Validation]].

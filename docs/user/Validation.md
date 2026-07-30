@@ -164,44 +164,49 @@ class Release {
 
 ## Custom Issues
 
-Instead of throwing an exception, the method can also use static methods of the `Validator` class to report issues. There are several methods:
+Instead of throwing an exception, report a custom diagnostic through `KlumSchemaSupport`. Its current-object reporter is
+available in every framework-managed lifecycle callback and closure, including early Builder phases and completed-model
+validation. It preserves the callback's target and member; it does not create a lifecycle or change validation timing.
 
-* `Validator.addError(String)`
-* `Validator.addErrorToMember(String, String)`
-* `Validator.addIssue(String, Validate.Level)`
-* `Validator.addIssueToMember(String, String, Validate.Level)`
+For Java helpers, obtain the reporter through the gateway:
 
-These add the issue to the object whose method lifecycle is currently being executed. The `*toMember` variants allow 
-specifying the field name of the member that caused the issue, the other to use the lifecycle method's name.
+```java
+KlumSchemaSupport.klumValidationForObject(child)
+    .error("child needs a release name");
+```
+
+In Groovy, statically import the `klumValidation` property for the current lifecycle target:
 
 ```groovy
+import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
+
 @DSL
-class AnObject {
-    
+class Release {
     List<String> values
-    
+
     @Validate
-    void validate() {
+    void validateValues() {
         if (values.size() < 2)
-            Validator.addError("Need at least two values")
+            klumValidation.error("Need at least two values")
         values.each {
             if (it.size() < 3)
-                Validator.addErrorToMember("values", "$it: Need at least three characters")
+                klumValidation.errorAt("values", "$it: Need at least three characters")
         }
-    }    
-    
+    }
 }
 ```
 
-Using these methods, it is possible to report multiple issues in the same method.
+The reporter operations are `error`/`errorAt`, `issue`/`issueAt`, `suppressOn`/`suppressAll`, and `getFailLevel`.
+The `*At` operations name a member directly. Current-object operations use the lifecycle member when no member is given;
+explicit-target operations use `<none>` unless an `*At` operation supplies a member. Suppression affects only later
+issues, as before.
 
-Additionally, there are methods to provide an explicit object to report the issue on, this allows for a upper level object to report issues on a lower level object.
+Use `KlumSchemaSupport.klumValidationForObject(target)` when a callback needs to report a diagnostic on another object
+in the same construction graph. That object's own construction path is retained in the diagnostic. The reporter can be
+called by helpers reached from a lifecycle callback, but it is not a general out-of-lifecycle validation API; issue
+[#406](https://github.com/klum-dsl/klum-ast/issues/406) separately owns compile-time placement enforcement.
 
-* `Validator.addErrorTo(Object, String)`
-* `Validator.addErrorTo(Object, String, String)`
-* `Validator.addIssueTo(Object, String, String, Validate.Level)`
-
-The member name is optional, if not provided, a generic `<none>` is used. Also note that there is no three argument version of `addIssueTo`, to prevent argument confusion.
+(See: `KlumValidationReporterTest#'reports a current validation-method issue through the static Groovy property'`.)
 
 ## On Inner Classes (Validation Classes)
 
@@ -221,7 +226,7 @@ There can be an unlimited number of validation classes, and validation classes o
 instantiated during validation if they are not overridden by a child's validation class.
 
 ```groovy
-import com.blackbuild.klum.ast.validation.ValidatorBase
+import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
 
 @DSL
 class Server {
@@ -229,13 +234,13 @@ class Server {
     int port
 
     @Validate
-    class ConnectivityChecks extends ValidatorBase {
+    class ConnectivityChecks {
         void hostMustBeSet() {
-            if (!host) addError("host must be set")
+            if (!host) klumValidation.error("host must be set")
         }
 
         void portMustBeInRange() {
-            if (!(port in 1..65535)) addError("port must be between 1 and 65535")
+            if (!(port in 1..65535)) klumValidation.error("port must be between 1 and 65535")
         }
     }
 }
@@ -325,18 +330,9 @@ class WebComponent extends BaseComponent {
 ```
 ## Custom Issues on Inner Classes
 
-For convenience, validation classes can inherit from `ValidatorBase`, which provides convenience methods to add issues for the outer instance. These map to `Validator` static methods. The methods available are:
-
-* `addError(message)`
-* `addErrorToMember(message, member)`
-* `addIssue(message, level)`
-* `addIssueToMember(message, member, level)`
-* `addWarning(message)`
-* `addWarningToMember(message, member)`
-* `suppressFurtherIssuesOn(member)`
-* `suppressAllFurtherIssues()`
-* `suppressFurtherIssuesOn(member, level)`
-* `suppressAllFurtherIssues(level)`
+Validation classes use the same `klumValidation` reporter as validation methods. They no longer extend `ValidatorBase`:
+that preliminary base type and `Validator` are not part of the 4.0 API and have no compatibility bridge. Replace their
+shortcut methods with the reporter operations shown above.
 
 ## Validation of Nested Objects
 Validation is done in a separate [phase](Model-Phases.md) after all child objects are created and other relevant
