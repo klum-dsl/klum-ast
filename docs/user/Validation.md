@@ -162,6 +162,39 @@ class Release {
 
 `@Validate` can also be used on methods. In this case, any method carrying the annotation is executed during the validation phase; private methods work as well, but `static` methods are forbidden at compile time. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
 
+A failed `assert` becomes a validation issue at the method's configured `level` (`ERROR` by default). An explicit
+assertion message is retained in the issue message. Without one, KlumAST retains Groovy's power-assertion message,
+including the failed expression and its values.
+
+(See: `ValidationDocumentaryTest#'reports failed validation-method assertions at their configured levels'`.)
+
+```groovy
+@DSL
+class Release {
+    int replicas
+
+    @Validate(level = Validate.Level.WARNING)
+    void replicasShouldBeConfigured() {
+        assert replicas > 0 : 'Configure at least one replica'
+    }
+
+    @Validate
+    void requiresTwoReplicas() {
+        assert replicas >= 2
+    }
+}
+```
+
+For `Release.Create.With { replicas 0 }`, the first assertion produces a `WARNING` whose Groovy assertion message includes
+`Configure at least one replica`. The default-level assertion produces an `ERROR` whose message starts with Groovy's power
+assertion:
+
+```text
+assert replicas >= 2
+       |        |
+       0        false
+```
+
 ## Custom Issues
 
 Instead of throwing an exception, report a custom diagnostic through `KlumSchemaSupport`. Its current-object reporter is
@@ -354,34 +387,31 @@ the complete model tree runs immediately before the initial create method return
 
 This means that nested objects can make use of the complete model tree (provided they have an owner field).
 
+(See: `ValidationDocumentaryTest#'validates a child against parent state configured after the child'`.)
+
 ```groovy
-@DSL
-class Component {
-    @Owner project
-    Map<String, Stage> stages
-    List<Helper> helpers
-
-    Map<String, Stage> getAllStages() {
-        owner.stages + stages
-    }
+@DSL class ReleasePlan {
+    String releaseName
+    ReleaseCheck check
 }
 
-@DSL class Stage {
-    @Key String name
-}
-
-@DSL class Helper {
-    @Owner Component component
-    Pattern validForStages
+@DSL class ReleaseCheck {
+    @Owner ReleasePlan releasePlan
 
     @Validate
-    void patternMustMatchAtLeastOneStage() {
-        assert component.allStages.keySet().any { it ==~ validForStages }
+    void releaseNameWasConfigured() {
+        assert releasePlan.releaseName == '2026.2'
     }
+}
+
+def releasePlan = ReleasePlan.Create.With {
+    check {}
+    releaseName '2026.2'
 }
 ```
 
-Thanks to deferred validation, it is irrelevant whether the stages are set before or after the helpers.
+The child check succeeds although `releaseName` is configured after `check {}`: validation waits until the complete
+owned tree is materialized.
 
 Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a `KlumValidationException`. That exception contains a `List<KlumValidationResult>`, each of which contains the `KlumValidationIssue`s for a single object.
 
@@ -524,6 +554,23 @@ The actual check against the fail level is done in the Verify phase. This allows
 By setting the system property `klum.validation.skipVerify` to `true`, the verify phase is skipped. Validation is still
 executed. Read the stored results through `KlumObjectSupport.of(object).getValidation().getSubtreeResults()`, or call `verify()`
 later to apply the configured failure level without rerunning validators.
+
+(See: `ValidationDocumentaryTest#'verifies stored results without rerunning validators'`.)
+
+```groovy
+System.setProperty('klum.validation.skipVerify', 'true')
+
+def model = Release.Create.One()
+def validation = KlumObjectSupport.of(model).validation
+assert validation.result.issues.size() == 1
+
+try {
+    validation.verify()
+    assert false: 'the stored error should fail verification'
+} catch (KlumValidationException ignored) {
+    // verify() inspected the stored result; it did not rerun validation methods
+}
+```
 
 ## JSR380 Validation
 

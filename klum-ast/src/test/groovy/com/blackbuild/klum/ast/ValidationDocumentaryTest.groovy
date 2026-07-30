@@ -23,13 +23,23 @@
  */
 package com.blackbuild.klum.ast
 
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumValidationException
+import spock.lang.AutoCleanup
 import spock.lang.Issue
 import spock.lang.See
 import spock.lang.Tag
+import uk.org.webcompere.systemstubs.properties.SystemProperties
 
 @Tag("documentary")
 class ValidationDocumentaryTest extends AbstractDSLSpec {
+
+    @AutoCleanup("teardown") SystemProperties systemProperties = new SystemProperties()
+
+    @Override
+    def setup() {
+        systemProperties.setup()
+    }
 
     @Issue("276")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#on-classes")
@@ -170,5 +180,119 @@ class ValidationDocumentaryTest extends AbstractDSLSpec {
         then:
         release.name == 'spring-catalog'
         release.notes == null
+    }
+
+    @Issue("491")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#on-methods")
+    def "reports failed validation-method assertions at their configured levels"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Release {
+                int replicas
+
+                @Validate(level = Validate.Level.WARNING)
+                void replicasShouldBeConfigured() {
+                    assert replicas > 0 : 'Configure at least one replica'
+                }
+
+                @Validate
+                void requiresTwoReplicas() {
+                    assert replicas >= 2
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.With {
+            replicas 0
+        }
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.message.contains('- WARNING #replicasShouldBeConfigured(): java.lang.AssertionError: Configure at least one replica')
+        exception.message.contains('- ERROR #requiresTwoReplicas(): Assertion failed:')
+        exception.message.contains('assert replicas >= 2')
+        exception.message.contains('replicas = 0')
+    }
+
+    @Issue("624")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#validation-of-nested-objects")
+    def "validates a child against parent state configured after the child"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class ReleasePlan {
+                String releaseName
+                ReleaseCheck check
+            }
+
+            @DSL
+            class ReleaseCheck {
+                @Owner ReleasePlan releasePlan
+
+                @Validate
+                void releaseNameWasConfigured() {
+                    assert releasePlan.releaseName == '2026.2'
+                }
+            }
+        '''
+
+        when:
+        def releasePlan = clazz.Create.With {
+            check {}
+            releaseName '2026.2'
+        }
+
+        then:
+        releasePlan.check.releasePlan.is(releasePlan)
+        releasePlan.releaseName == '2026.2'
+    }
+
+    @Issue("624")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#skipping-verification")
+    def "verifies stored results without rerunning validators"() {
+        given:
+        systemProperties.set('klum.validation.skipVerify', 'true')
+        createClass '''
+            package pk
+
+            @DSL
+            class Release {
+                static int validationRuns
+
+                @Required
+                String releaseName
+
+                @Validate
+                void countValidation() {
+                    validationRuns++
+                }
+            }
+        '''
+
+        when:
+        def model = clazz.Create.One()
+        def validation = KlumObjectSupport.of(model).validation
+        def storedResult = validation.result
+        def storedIssues = storedResult.issues.toList()
+
+        then:
+        storedIssues.size() == 1
+        clazz.validationRuns == 1
+
+        when:
+        validation.verify()
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.validationResults == [storedResult]
+        clazz.validationRuns == 1
+        validation.result.is(storedResult)
+        storedResult.issues.toList() == storedIssues
     }
 }
