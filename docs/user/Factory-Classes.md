@@ -1,7 +1,7 @@
 # Factory classes
 
-Creator methods are encapsulated in a generated static inner class of the Model class (named `_Factory`). A single
-instance is placed on the Model class as the static `Create` field, enabling the convenient creation syntax.
+Creator methods are encapsulated in a generated static inner class of the DSL Object class (named `_Factory`). A single
+instance is placed on the DSL Object class as the static `Create` field, enabling the convenient creation syntax.
 
 This factory is by default a subclass of:
 
@@ -18,6 +18,11 @@ This class can be generic, in which case it must have a constructor with a singl
 assign the base class's type parameter, in which case it must have a no-argument constructor.
 
 The creator class is either implicitly taken from a static inner class named `Factory` or explicitly set via the `factory` member of the `@DSL` annotation.
+
+KlumFactory methods use capitalized names. Follow that convention for custom creator methods so they read as factory
+operations alongside `Create.With`, `Create.One`, and `Create.From`.
+
+(See: `FactoryTest#'allow overriding of factory base class with implicit factory'`.)
 
 ```groovy
 @DSL

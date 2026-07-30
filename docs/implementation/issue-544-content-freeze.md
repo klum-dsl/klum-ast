@@ -2,10 +2,12 @@
 
 Tracking issue: [#544 — Finalize KlumAST 4.0 user-documentation content before the first RC](https://github.com/klum-dsl/klum-ast/issues/544)
 
-Review basis: `origin/master` at `45f2167e` (2026-07-29), including the merged #491 inventory
-([PR #610](https://github.com/klum-dsl/klum-ast/pull/610)) and the closed #391 JPMS/module work
-([PR #614](https://github.com/klum-dsl/klum-ast/pull/614)). This is a content review of current `docs/user/`; #456
-continues to own rendered form, versioning, hosting, aliases, and publication.
+Review basis: `origin/master` at `0778c174` (2026-07-30), including the merged #491 inventory
+([PR #610](https://github.com/klum-dsl/klum-ast/pull/610)), the closed #391 JPMS/module work
+([PR #614](https://github.com/klum-dsl/klum-ast/pull/614)), and the merged #624/#626 validation-documentary and
+validation-reporter corrections ([PRs #628 and #627](https://github.com/klum-dsl/klum-ast/pulls?q=is%3Apr+is%3Amerged+%28624+OR+626%29)).
+This is a content review of current `docs/user/`; #456 continues to own rendered form, versioning, hosting, aliases, and
+publication.
 
 ## Accepted content inventory
 
@@ -26,6 +28,17 @@ continues to own rendered form, versioning, hosting, aliases, and publication.
   retaining version inheritance in the multi-module child-project example.
 - Corrected the rendered named-module migration links to their generated heading anchor.
 
+## Legacy-technique dispositions
+
+| Page | Disposition | Evidence and boundary |
+| --- | --- | --- |
+| `Factory-Classes.md` | Stable advanced-authoring path | `FactoryTest.allow overriding of factory base class with implicit factory` is now the selected documentary mapping for the nested `Factory` convention (#76). Generic and abstract variants remain focused coverage. |
+| `Behind-the-Curtain.md` | Durable reference exception | The page deliberately explains Builder projection, managed import, and materialization boundaries rather than defining a direct authoring API. `BuilderProjectionSpec`, `BuilderProjectionWithFilesSpec`, and the importer tests remain focused technical evidence; the page instead routes readers to the supported user paths. |
+| `Javadoc.md` | Stable Schema-authoring path | `AnnoDocTest.generated getters document model and Builder values` is now the selected documentary mapping for property-comment projection (#197). Generated overload templates remain compiler-level evidence. |
+
+The durable #491 audit records each disposition and its exact test or exception. No product behavior or new tutorial-only
+test was created for the reference page.
+
 ## Deliberate residual ownership
 
 | Remaining substantive gap or acceptance | Existing owner | #544 disposition |
@@ -34,10 +47,14 @@ continues to own rendered form, versioning, hosting, aliases, and publication.
 | Publish/version/stage the reviewed source and verify the rendered exact-version site. | [#456](https://github.com/klum-dsl/klum-ast/issues/456) | Renderer and publication work remain separate. |
 | Field-test the portable onboarding routes and refine them from adoption evidence. | [#469](https://github.com/klum-dsl/klum-ast/issues/469) | The current routes are consistent; this review does not extend them. |
 | State and prove the supported Gradle-version range. | [#389](https://github.com/klum-dsl/klum-ast/issues/389) | No range is claimed here. |
-| Reconcile the merged #491 documentary audit's tracker acceptance/closure. | [#491](https://github.com/klum-dsl/klum-ast/issues/491) | Its merged inventory is accepted evidence for #544; this review does not reopen the audit. |
-| Accept this content freeze before the first public RC. | [#544](https://github.com/klum-dsl/klum-ast/issues/544) maintainer | Pending explicit maintainer acceptance. |
+| Reconcile the merged #491 documentary audit's tracker acceptance/closure. | [#491](https://github.com/klum-dsl/klum-ast/issues/491) | The final legacy-page dispositions are now recorded in its durable inventory; tracker acceptance/closure remains separate. |
+| Accept this content freeze before the first public RC. | [#544](https://github.com/klum-dsl/klum-ast/issues/544) maintainer | Conditionally accepted on 2026-07-30; only the explicitly unmilestoned #454 Layer 3 work remains outside the frozen content. |
 
-## Maintainer acceptance request
+## Conditional maintainer acceptance
 
-Please confirm that this inventory is accepted as the pre-RC 4.0 user-documentation content freeze. Subsequent changes
-should be limited to the accepted RC-promotion correction policy or to the separately owned issues above.
+The maintainer accepted this inventory as the pre-RC 4.0 content freeze on 2026-07-30. All settled 4.0 content is now
+frozen.
+
+The terminology, variants, and `@Cluster.bounded` example on `Layer3.md` are explicitly deferred to unmilestoned
+[#454](https://github.com/klum-dsl/klum-ast/issues/454). This is not a hidden 4.0 prerequisite. If #454 later changes a
+frozen 4.0-facing claim, make that correction through the normal correction path rather than reopening this freeze.

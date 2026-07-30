@@ -26,19 +26,17 @@ the detailed sections below preserve the decisions and historical delivery ratio
 
 | Disposition | Issues | Current release meaning |
 | --- | --- | --- |
-| **Closed, delivered** | #394, #428, #435, #450, #459, #460, #461, #468, #488, #559 | The generated DSL surface, Jackson contract, completed-object facade, integration audit, upstream RC integrations, durable Check migration, public-interface inventory, release path, and root source-mirror aggregate are delivered. Final-coordinate upstream promotions remain #523/#524, not reopened through #459/#461. |
-| **Implementation remains** | #391 | ADR 0014 and PR #561 settle the Groovy boundary: Groovy 4/5 named modules; Groovy 3 classpath support. Execute JP-1 through JP-5: package/import inventory, ownership moves/descriptors, named-schema fixtures, and descriptor/migration validation. |
-| **First-RC gates** | #456, #491, #544, #512, #521 | #456 infrastructure and protected Pages controls are ready; its first exact pending snapshot runs with the RC. #544 needs explicit maintainer content acceptance, accepting #491's documented documentary-test queue/deferrals. #512 then owns clean external-consumer validation and #521 the manual IntelliJ check. |
+| **Closed, delivered** | #391, #394, #428, #435, #450, #459, #460, #461, #468, #488, #559 | The JPMS/schema-plugin work, generated DSL surface, Jackson contract, completed-object facade, integration audit, upstream RC integrations, durable Check migration, public-interface inventory, release path, and root source-mirror aggregate are delivered. Final-coordinate upstream promotions remain #523/#524, not reopened through #459/#461. |
+| **First-RC gates** | #456, #491, #512, #521 | #456 infrastructure and protected Pages controls are ready; its first exact pending snapshot runs with the RC. #544's settled content is conditionally accepted; its only deferred Layer 3 terminology, variants, and `@Cluster.bounded` example remain unmilestoned #454 work and do not block 4.0. #491 retains tracker reconciliation of the documented mappings/exceptions. #512 then owns clean external-consumer validation and #521 the manual IntelliJ check. |
 | **Post-initial-RC / final gates** | #469, #546, #483, #523–#525 | #469's three onboarding tracers are delivered; field evidence is post-RC. #546 is discovery-only agent-adopter evidence. #483 supplies the approved final Season/logo manifest. #523/#524 promote upstream finals, then #525 validates the final-coordinate KlumAST RC before 4.0.0. |
 
-No unmilestoned issue was promoted into 4.0 in this reconciliation. The post-closure open inventory is 111 issues: 12 in
-milestone 4.0, 3 in 2.x, 1 in 3.0, and 95 unmilestoned legacy/future items.
+No unmilestoned issue was promoted into 4.0 in this reconciliation. The remaining release work is limited to the
+first-RC and final-coordinate gates above; the older detailed sections retain their delivery rationale.
 
 ## 4.0 must
 
 | Issue | Why it blocks 4.0 | Required evidence before release | Dependencies / ordering |
 |---|---|---|---|
-| #391 — Java modules and final packages | Shipping the legacy `configdsl` namespace, split packages, or broad accidental exports would freeze the wrong handwritten interface and force another major break later. | One artifact set proven as named modules with Groovy 3/4/5 plus classpath fixtures; stable module names; qualified schema opening; no split/legacy packages; positive export allowlists; schema-plugin validation; ADR, tracer-bullet plan, import map, migration/CHANGES. | [#459](https://github.com/klum-dsl/klum-ast/issues/459) supplies KlumCast 0.4's stable artifact/module contract and [#461](https://github.com/klum-dsl/klum-ast/issues/461) supplies AnnoDocimal 1.0/#36. The prototype precedes the ADR and mass package movement; #394 remains the separate generated-interface boundary. |
 | #394 — ADR 0005 generated DSL namespace | Decision is complete, but shipping current `$_RW`/markers would freeze the wrong API and same-project IDE completion remains broken. | [#433 DSL-1](https://github.com/klum-dsl/klum-ast/issues/433), DSL-2/DSL-3, and [#434 DSL-G](https://github.com/klum-dsl/klum-ast/issues/434): truthful interfaces/mirrors, narrow `KlumBuilder`, annotation migration, proven IDE-only Gradle wiring, migration/CHANGES, Groovy 3/4/5. | #433 precedes #437. #434 is implemented; final AnnoDocimal 1.0 adoption/task replacement is tracked by [#461](https://github.com/klum-dsl/klum-ast/issues/461). |
 | #459 — KlumCast 0.4 artifact adoption | #391 cannot prove portable module-path behavior while KlumCast 0.3.1 has split packages and unstable automatic names. | Published 0.4.x satisfying `klum-cast#12/#24`; resolved package ownership/module names; service loading and ordinary classpath behavior; Groovy 3/4/5 consumer evidence. | Upstream #12/#24 precede #459; #459 precedes #391's final tracer. The durable check-SPI migration remains separate #460. |
 | #461 — AnnoDocimal 1.0 adoption | AnnoDocimal explicitly requires final 1.0 before KlumAST 4.0; current 0.7.1 helpers, task workaround, configuration-cache limitation, and module identities are provisional. | Final 1.0.0 satisfying upstream tracker #47; supported API migration; reusable filtered task; strict configuration-cache reuse; projection/module/capture evidence; preserved IDEA-only mirror isolation. | Upstream #47 precedes #461; #461 then feeds #391 and #394. Development may test pre-releases, but release validation uses final artifacts. |
@@ -54,9 +52,7 @@ milestone 4.0, 3 in 2.x, 1 in 3.0, and 95 unmilestoned legacy/future items.
 ### Recommended must-item sequence
 
 ```text
-#459 KlumCast 0.4 ──> #391 JPMS tracer
-#461 AnnoDocimal 1.0 ─┬─> #391 JPMS tracer
-                       └─> #394 DSL-3
+#461 AnnoDocimal 1.0 ──> #394 DSL-3
 #433 DSL-1 (done) ──> #437 AB-2 (done) ──> compatibility closure
 #436 AB-1 (done) ─────────────────────────> compatibility closure
 #435 OS-1 (done) ──> #390 OS-3 terminology/API closure <──> #438 AB-3 (done)
@@ -68,12 +64,8 @@ milestone 4.0, 3 in 2.x, 1 in 3.0, and 95 unmilestoned legacy/future items.
                          └─> #472 target-contract journey
 ```
 
-The Builder-first decisions are no longer blockers; the shown implementation seams are. #391 additionally requires a
-module-path feasibility proof before its package ADR can be finalized. The generated namespace must exist before
-projected Builder signatures, while Model/Template companion changes and facade lockdown must share one internal boundary.
-Jackson groundwork is complete; #463's public API review and implementation now precede #464's compatibility closure.
-#474 is an independent public compatibility blocker: it must settle Layer 3 relationship behavior before #468 freezes the
-generated surface.
+The Builder-first decisions and their implementation seams are delivered. The remaining first-RC gates are the exact
+documentation snapshot and content acceptance, followed by clean external-consumer and manual IntelliJ evidence.
 
 ## 4.0 visual finalization
 
@@ -170,9 +162,8 @@ The confirmed Jackson normalization completed #251, #430, and #447. The remainin
 - #142: Is arbitrary annotation injection still a desired extension seam after Jackson moved to `KlumAnnotationIntrospector`, and if so which generated targets/retention rules are required?
 - #399: Provide a current PostCreate reproduction and the exact expected breadcrumb; the old lifecycle architecture no longer applies unchanged.
 
-The Builder-first architecture decisions are complete in ADRs 0004–0009, with ADR 0007 superseded by ADR 0009. #391's maintainer intent is also confirmed, but
-its dedicated package/module ADR follows the mandatory cross-Groovy prototype. These issues remain release blockers because
-implementation, compatibility evidence, and user-facing migration work are still outstanding.
+The Builder-first architecture decisions are complete in ADRs 0004–0009, with ADR 0007 superseded by ADR 0009. #391's
+cross-Groovy prototype, package/module ADR, compatibility evidence, and user-facing migration work are delivered.
 
 ## Compatibility gate for release
 

@@ -36,6 +36,8 @@ import org.codehaus.groovy.ast.Parameter
 import org.codehaus.groovy.ast.tools.GeneralUtils
 import org.intellij.lang.annotations.Language
 import spock.lang.Issue
+import spock.lang.See
+import spock.lang.Tag
 
 import java.lang.reflect.Array
 
@@ -130,6 +132,8 @@ import com.blackbuild.klum.ast.DSL
 
     }
 
+    @Tag("documentary")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Javadoc.md#javadoc-for-models")
     def "generated getters document model and Builder values"() {
         when:
         createClass("dummy/Foo.groovy", '''
