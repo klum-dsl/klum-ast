@@ -75,6 +75,30 @@ class KlumValidationReporterTest extends AbstractDSLSpec {
         exception.message.endsWith('- ERROR #nameMustBePresent(): name must be present')
     }
 
+    def "supports an alias for the static Groovy reporter property import"() {
+        given:
+        createClass '''
+            package pk
+
+            import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation as report
+
+            @DSL
+            class Release {
+                @Validate
+                void reportDiagnostic() {
+                    report.error('Mööp')
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.One()
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.message.endsWith('- ERROR #reportDiagnostic(): Mööp')
+    }
+
     def "retains early lifecycle diagnostics and applies reporter suppression and fail level"() {
         given:
         createClass '''

@@ -196,6 +196,19 @@ class Release {
 }
 ```
 
+Groovy also supports an alias for this static property import when a shorter local name reads better:
+
+```groovy
+import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation as report
+
+@Validate
+void validateRelease() {
+    report.error("Mööp")
+}
+```
+
+(See: `KlumValidationReporterTest#'supports an alias for the static Groovy reporter property import'`.)
+
 The reporter operations are `error`/`errorAt`, `issue`/`issueAt`, `suppressOn`/`suppressAll`, and `getFailLevel`.
 The `*At` operations name a member directly. Current-object operations use the lifecycle member when no member is given;
 explicit-target operations use `<none>` unless an `*At` operation supplies a member. Suppression affects only later
