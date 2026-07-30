@@ -28,6 +28,8 @@ import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.KlumFactory
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import spock.lang.Issue
+import spock.lang.See
+import spock.lang.Tag
 
 @Issue("76")
 class FactoryTest extends AbstractDSLSpec {
@@ -155,6 +157,8 @@ class MyClassFactory<T> extends KlumFactory.Unkeyed<T> {
         instance.job == "baker"
     }
 
+    @Tag("documentary")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Factory-Classes.md#custom-creator-classes")
     def "allow overriding of factory base class with implicit factory"() {
         given:
         createClass '''
@@ -171,7 +175,7 @@ class MyClass {
             super(MyClass)
         }
         
-        public MyClass baker(String name) {
+        public MyClass Baker(String name) {
             return Create.With(name: name, job: "baker")
         }
     }
@@ -182,7 +186,7 @@ class MyClass {
         getClass('MyClass$Factory').isInstance(clazz.Create)
 
         when:
-        instance = clazz.Create.baker("Hans")
+        instance = clazz.Create.Baker("Hans")
 
         then:
         instance.name == "Hans"

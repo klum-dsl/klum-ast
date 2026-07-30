@@ -4,9 +4,24 @@ KlumAST uses the [AnnoDocimal](https://github.com/blackbuild/anno-docimal) libra
 factories and generated Builders. Their base documentation comes from the corresponding classes and methods in
 `klum-ast-runtime`, especially `KlumBuilder`, and is adapted to each generated method.
 
-KlumAST 4.0 RC work uses AnnoDocimal `1.0.0-rc.7` and its supported documentation and source-projection APIs. A property
-comment is projected verbatim to its generated Model and Builder getter and setter; an explicit accessor comment remains
-authoritative. This can make generated wording more faithful to a property comment that is not a noun phrase.
+KlumAST uses AnnoDocimal's supported documentation and source-projection APIs. A property comment is projected verbatim
+to its generated Model and Builder getter and setter; an explicit accessor comment remains authoritative. This can make
+generated wording more faithful to a property comment that is not a noun phrase.
+
+(See: `AnnoDocTest#'generated getters document model and Builder values'`.)
+
+```groovy
+@DSL class Release {
+    /** display name. */
+    String name
+
+    /** active flag. */
+    boolean active
+}
+```
+
+The generated Model and Builder accessors retain these property comments. Add an explicit accessor comment only when it
+needs to replace the property wording.
 
 For schema-defined methods, the Javadoc is taken from the method itself.
 
