@@ -606,17 +606,24 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private void createRelationshipAssignmentHook() {
         MethodBuilder method = createProtectedMethod("$assignRelationships")
                 .returning(VOID_TYPE);
-        if (dslParent != null)
-            method.statement(stmt(callSuperX("$assignRelationships")));
+        if (dslParent != null) {
+            MethodCallExpression parentAssignment = callSuperX("$assignRelationships");
+            parentAssignment.setMethodTarget(MethodAstHelper.findMatchingMethod(
+                    getRwClassOfDslParent(), "$assignRelationships", List.of()));
+            method.statement(stmt(parentAssignment));
+        }
 
         builderFields.forEach((modelField, builderField) -> {
             if (getFieldType(modelField) == FieldType.BUILDER || !isRelationshipField(modelField))
                 return;
-            method.statement(stmt(callX(
+            MethodCallExpression relationshipAssignment = callX(
                     varX("this"),
                     "$assignMaterializedRelationship",
                     args(constX(modelField.getName()))
-            )));
+            );
+            relationshipAssignment.setMethodTarget(MethodAstHelper.findMatchingMethod(
+                    GENERATED_KLUM_BUILDER, "$assignMaterializedRelationship", List.of(STRING_TYPE)));
+            method.statement(stmt(relationshipAssignment));
         });
         method.addTo(rwClass);
     }

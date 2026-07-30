@@ -25,7 +25,10 @@ package com.blackbuild.klum.ast.runtime.generated;
 
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumPhase;
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
 import groovy.lang.Closure;
+
+import java.util.Map;
 
 /**
  * Generated-code linkage base for Builder implementations emitted by the DSL transformation.
@@ -54,6 +57,44 @@ public abstract class GeneratedKlumBuilder<M> extends InternalKlumBuilder<M> {
 
     protected final <T> T $setSingleField(String fieldOrMethodName, T value) {
         return super.setSingleField(fieldOrMethodName, value);
+    }
+
+    protected final <T> T $createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
+                                              Class<T> type, Boolean explicitType, String key, Closure<T> body) {
+        return super.createSingleChild(namedParams, fieldOrMethodName, type, explicitType, key, body);
+    }
+
+    protected final Object $createSingleChild(Map<String, Object> namedParams, String fieldOrMethodName,
+                                              BuilderFactoryProvider<?, ?> factory, String key, Closure<?> body) {
+        return super.createSingleChild(namedParams, fieldOrMethodName, factory, key, body);
+    }
+
+    protected final <T> T $addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
+                                                         Class<? extends T> type, Boolean explicitType, String key,
+                                                         Closure<T> body) {
+        return super.addNewDslElementToCollection(namedParams, collectionName, type, explicitType, key, body);
+    }
+
+    protected final Object $addNewDslElementToCollection(Map<String, Object> namedParams, String collectionName,
+                                                          BuilderFactoryProvider<?, ?> factory, String key,
+                                                          Closure<?> body) {
+        return super.addNewDslElementToCollection(namedParams, collectionName, factory, key, body);
+    }
+
+    protected final <T> T $addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
+                                                  Class<? extends T> type, Boolean explicitType, String key,
+                                                  Closure<T> body) {
+        return super.addNewDslElementToMap(namedParams, mapName, type, explicitType, key, body);
+    }
+
+    protected final Object $addNewDslElementToMap(Map<String, Object> namedParams, String mapName,
+                                                   BuilderFactoryProvider<?, ?> factory, String key,
+                                                   Closure<?> body) {
+        return super.addNewDslElementToMap(namedParams, mapName, factory, key, body);
+    }
+
+    protected final void $assignMaterializedRelationship(String fieldName) {
+        super.$assignMaterializedRelationship(fieldName);
     }
 
     protected final void $scheduleApplyLater(Closure<?> closure) {

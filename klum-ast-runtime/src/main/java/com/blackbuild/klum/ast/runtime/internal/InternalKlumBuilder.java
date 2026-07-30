@@ -195,7 +195,7 @@ public abstract class InternalKlumBuilder<M> extends GroovyObjectSupport impleme
     }
 
     /** Internal Builder hook that assigns one completed relationship without exposing a model mutator. */
-    protected final void $assignMaterializedRelationship(String fieldName) {
+    protected void $assignMaterializedRelationship(String fieldName) {
         Field target = DslHelper.getField(completedModel.getClass(), fieldName)
                 .orElseThrow(() -> new MissingPropertyException(fieldName, completedModel.getClass()));
         setFieldValue(completedModel, target, $materializeRelationship(fieldName));
