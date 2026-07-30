@@ -25,7 +25,6 @@ package com.blackbuild.klum.ast.runtime.validation;
 
 import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.runtime.KlumValidationException;
-import com.blackbuild.klum.ast.runtime.internal.validation.Validator;
 
 import java.io.Serializable;
 import java.util.*;
@@ -35,6 +34,7 @@ import java.util.*;
  */
 public class KlumValidationResult implements Serializable {
     public static final String METADATA_KEY = KlumValidationResult.class.getName();
+    private static final String ANY_MEMBER = "*";
     private final NavigableSet<KlumValidationIssue> issued = new TreeSet<>();
     private final String breadcrumbPath;
     private final Map<String, Validate.Level> suppressedIssues = new HashMap<>();
@@ -62,7 +62,7 @@ public class KlumValidationResult implements Serializable {
     private boolean isSuppressed(String member, Validate.Level level) {
         if (level == Validate.Level.NONE) return true;
         return suppressedIssues.getOrDefault(member, Validate.Level.NONE)
-                .combine(suppressedIssues.getOrDefault(Validator.ANY_MEMBER, Validate.Level.NONE))
+                .combine(suppressedIssues.getOrDefault(ANY_MEMBER, Validate.Level.NONE))
                 .equalOrWorseThen(level);
     }
 

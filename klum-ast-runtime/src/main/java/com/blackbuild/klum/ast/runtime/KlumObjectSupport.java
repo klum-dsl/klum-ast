@@ -30,7 +30,6 @@ import com.blackbuild.klum.ast.runtime.internal.layer3.CompositionTraversal;
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructuralPath;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
-import com.blackbuild.klum.ast.runtime.internal.validation.Validator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -149,7 +148,7 @@ public final class KlumObjectSupport<T> {
 
         /** Verifies stored subtree results using the configured validation failure level. */
         public List<KlumValidationResult> verify() throws KlumValidationException {
-            return verify(Validator.getFailLevel());
+            return verify(KlumSchemaSupport.getKlumValidation().getFailLevel());
         }
 
         /** Verifies stored subtree results using {@code failLevel}. */

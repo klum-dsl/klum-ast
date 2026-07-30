@@ -27,8 +27,9 @@ package com.blackbuild.klum.ast
 
 
 import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport
+import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
-import com.blackbuild.klum.ast.runtime.internal.validation.Validator
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.*
 import uk.org.webcompere.systemstubs.properties.SystemProperties
@@ -46,7 +47,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
     @Override
     String[] getAdditionalImports() {
-        return ["com.blackbuild.klum.ast.runtime.internal.validation.Validator"]
+        return ["com.blackbuild.klum.ast.runtime.KlumSchemaSupport"]
     }
 
     def "validation with Groovy Truth"() {
@@ -1395,7 +1396,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
                 @Validate aCustomIssue() {
                     if (value1.length() > value2.length())
-                        Validator.addError("There has been as disturbance in the force")
+                        KlumSchemaSupport.klumValidation.error("There has been as disturbance in the force")
                 }
 
             }
@@ -1421,19 +1422,18 @@ class ValidationSpec extends AbstractDSLSpec {
         notThrown(KlumValidationException)
     }
 
-    @Issue("415")
+    @Issue("626")
     def "custom issues in validation inner classes"() {
         given:
-        createClass('''import com.blackbuild.klum.ast.runtime.internal.validation.ValidatorBase
-            @DSL
+        createClass('''@DSL
             class Foo {
                 String value1
                 String value2
 
-                @Validate class Validation extends ValidatorBase {
+                @Validate class Validation {
                     def aCustomIssue() {
                         if (value1.length() > value2.length())
-                            addError("There has been as disturbance in the force")
+                            KlumSchemaSupport.klumValidation.error("There has been as disturbance in the force")
                     }
                 }
             }
@@ -1471,7 +1471,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 @Validate aCustomIssue() {
                     for (String value in values) {
                         if (value.length() < 4)
-                            Validator.addErrorToMember("values", "Value '$value' is too short")
+                        KlumSchemaSupport.klumValidation.errorAt("values", "Value '$value' is too short")
                     }
                 }
             }
@@ -1498,7 +1498,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 String value
 
                 @Validate aCustomIssue() {
-                    Validator.addError("There has been as disturbance in the force")
+                    KlumSchemaSupport.klumValidation.error("There has been as disturbance in the force")
                 }
 
             }
@@ -1525,7 +1525,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 String value
 
                 @PostTree aCustomIssue() {
-                    Validator.addError("There has been as disturbance in the force")
+                    KlumSchemaSupport.klumValidation.error("There has been as disturbance in the force")
                 }
 
             }
@@ -1552,7 +1552,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 String value
 
                 void aCustomIssue() {
-                    Validator.addError("There has been as disturbance in the force")
+                    KlumSchemaSupport.klumValidation.error("There has been as disturbance in the force")
                 }
 
             }
@@ -1575,7 +1575,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 String validatedError
 
                 @PostTree suppressWarningforValidateWarning() {
-                    Validator.suppressFurtherIssues("validatedWarning")
+                    KlumSchemaSupport.klumValidation.suppressOn("validatedWarning")
                 }
             }
         ''')
@@ -1670,18 +1670,18 @@ class ValidationSpec extends AbstractDSLSpec {
         then:
         notThrown(KlumValidationException)
         instance.bar != null
-        Validator.getValidationResult(instance).getIssues().size() == 1
-        Validator.getValidationResult(instance.bar).getIssues().size() == 1
+        KlumObjectSupport.of(instance).validation.result.issues.size() == 1
+        KlumObjectSupport.of(instance.bar).validation.result.issues.size() == 1
 
         when:
-        def results = Validator.getValidationResultsFromStructure(instance)
+        def results = KlumObjectSupport.of(instance).validation.subtreeResults
 
         then:
         results.size() == 2
         results.collect { it.getIssues() }.flatten().size() == 2
 
         when:
-        Validator.verifyStructure(instance)
+        KlumObjectSupport.of(instance).validation.verify()
 
         then:
         def e= thrown(KlumValidationException)
@@ -1707,7 +1707,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
                 @PostTree
                 void suppressNotesWarning() {
-                    Validator.suppressFurtherIssues("notes")
+                    KlumSchemaSupport.klumValidation.suppressOn("notes")
                 }
             }
         ''')
@@ -1737,11 +1737,11 @@ class ValidationSpec extends AbstractDSLSpec {
                 String validatedError
 
                 @PostTree suppressWarningforValidateWarning() {
-                    Validator.suppressFurtherIssues("validatedWarning")
+                    KlumSchemaSupport.klumValidation.suppressOn("validatedWarning")
                 }
                 
                 @PostTree suppressDeprecationforValidateDeprecation() {
-                    Validator.suppressFurtherIssues("validatedDeprecation", Validate.Level.DEPRECATION)
+                    KlumSchemaSupport.klumValidation.suppressOn("validatedDeprecation", Validate.Level.DEPRECATION)
                 }
             }
         ''')
@@ -1769,7 +1769,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.One()
 
         then:
-        Validator.getValidationResult(instance).issues.isEmpty()
+        KlumObjectSupport.of(instance).validation.result.issues.isEmpty()
 
         when:
         instance = clazz.Create.With {
@@ -1777,8 +1777,8 @@ class ValidationSpec extends AbstractDSLSpec {
         }
 
         then:
-        Validator.getValidationResult(instance).issues.size() == 1
-        Validator.getValidationResult(instance).getIssues().first().message == "Field 'deprecatedField' is deprecated"
+        KlumObjectSupport.of(instance).validation.result.issues.size() == 1
+        KlumObjectSupport.of(instance).validation.result.issues.first().message == "Field 'deprecatedField' is deprecated"
     }
 
     @Issue("407")
@@ -1799,7 +1799,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             aField "Test"
         }
-        def result = Validator.getValidationResult(instance)
+        def result = KlumObjectSupport.of(instance).validation.result
 
         then:
         result.issues.size() == 2
@@ -1824,7 +1824,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             aField "Test"
         }
-        def result = Validator.getValidationResult(instance)
+        def result = KlumObjectSupport.of(instance).validation.result
 
         then:
         result.issues.size() == 1
@@ -1848,7 +1848,7 @@ class ValidationSpec extends AbstractDSLSpec {
         instance = clazz.Create.With {
             aField "Test"
         }
-        def result = Validator.getValidationResult(instance)
+        def result = KlumObjectSupport.of(instance).validation.result
 
         then:
         result.issues.size() == 0
@@ -1879,7 +1879,7 @@ class ValidationSpec extends AbstractDSLSpec {
                 description "bla"
             }
         }
-        def result = Validator.getValidationResultsFromStructure(instance)
+        def result = KlumObjectSupport.of(instance).validation.subtreeResults
 
         then:
         result.size() == 2
@@ -1891,7 +1891,7 @@ class ValidationSpec extends AbstractDSLSpec {
 
 
     private KlumValidationResult getValidationResult(Object target = instance) {
-        return Validator.getValidationResult(target)
+        return KlumObjectSupport.of(target).validation.result
     }
 
 }

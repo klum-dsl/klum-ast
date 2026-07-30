@@ -30,7 +30,7 @@ import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.internal.FactoryHelper
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
-import com.blackbuild.klum.ast.runtime.internal.validation.Validator
+import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
 import spock.lang.Issue
 
@@ -691,7 +691,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
             package pk
 
             import com.blackbuild.klum.ast.runtime.KlumBuilder
-            import com.blackbuild.klum.ast.runtime.internal.validation.Validator
+            import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
 
             @DSL
             class ValidatedModel {
@@ -703,7 +703,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
                 @PostTree
                 void reportProvisionalIssue() {
-                    Validator.addIssue("reported while building", Validate.Level.WARNING)
+                    KlumSchemaSupport.klumValidation.issue("reported while building", Validate.Level.WARNING)
                 }
 
                 @Validate
@@ -717,7 +717,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
 
         when:
         instance = clazz.Create.With { legacy "used" }
-        def result = Validator.getValidationResult(instance)
+        def result = KlumObjectSupport.of(instance).validation.result
 
         then:
         clazz.validationReceiver == clazz

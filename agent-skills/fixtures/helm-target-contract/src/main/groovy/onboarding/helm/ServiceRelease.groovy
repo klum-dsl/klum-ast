@@ -6,7 +6,7 @@ import com.blackbuild.groovy.configdsl.transform.Key
 import com.blackbuild.groovy.configdsl.transform.Required
 import com.blackbuild.groovy.configdsl.transform.Validate
 import com.blackbuild.klum.ast.util.layer3.annotations.AutoCreate
-import com.blackbuild.klum.ast.validation.Validator
+import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
 
 @DSL
 class ServiceRelease {
@@ -49,16 +49,16 @@ class ServiceRelease {
     @Validate
     void requiresDeployableHelmValues() {
         if (!(imageTag ==~ /\d+\.\d+\.\d+/)) {
-            Validator.addError('imageTag must be a semantic version such as 1.4.0')
+            klumValidation.error('imageTag must be a semantic version such as 1.4.0')
         }
         if (!(containerPort in 1..65535)) {
-            Validator.addError('containerPort must be between 1 and 65535')
+            klumValidation.error('containerPort must be between 1 and 65535')
         }
         if (publiclyReachable && !hostname) {
-            Validator.addError('publicly reachable releases need a hostname')
+            klumValidation.error('publicly reachable releases need a hostname')
         }
         if (!resources) {
-            Validator.addError('resources with requests and limits are required')
+            klumValidation.error('resources with requests and limits are required')
         }
     }
 }
@@ -86,10 +86,10 @@ class ResourceRequirements {
     @Validate
     void validatesRequestsAndLimits() {
         if (!requests) {
-            Validator.addError('resource requests are required')
+            klumValidation.error('resource requests are required')
         }
         if (requests && limits && requests.memory != limits.memory) {
-            Validator.addIssue('memory limit differs from memory request', Validate.Level.WARNING)
+            klumValidation.issue('memory limit differs from memory request', Validate.Level.WARNING)
         }
     }
 }
