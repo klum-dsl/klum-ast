@@ -182,6 +182,42 @@ class ValidationDocumentaryTest extends AbstractDSLSpec {
         release.notes == null
     }
 
+    @Issue("491")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#on-methods")
+    def "reports failed validation-method assertions at their configured levels"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Release {
+                int replicas
+
+                @Validate(level = Validate.Level.WARNING)
+                void replicasShouldBeConfigured() {
+                    assert replicas > 0 : 'Configure at least one replica'
+                }
+
+                @Validate
+                void requiresTwoReplicas() {
+                    assert replicas >= 2
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.With {
+            replicas 0
+        }
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.message.contains('- WARNING #replicasShouldBeConfigured(): java.lang.AssertionError: Configure at least one replica')
+        exception.message.contains('- ERROR #requiresTwoReplicas(): Assertion failed:')
+        exception.message.contains('assert replicas >= 2')
+        exception.message.contains('replicas = 0')
+    }
+
     @Issue("624")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Validation.md#validation-of-nested-objects")
     def "validates a child against parent state configured after the child"() {

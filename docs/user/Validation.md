@@ -162,6 +162,39 @@ class Release {
 
 `@Validate` can also be used on methods. In this case, any method carrying the annotation is executed during the validation phase; private methods work as well, but `static` methods are forbidden at compile time. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.
 
+A failed `assert` becomes a validation issue at the method's configured `level` (`ERROR` by default). An explicit
+assertion message is retained in the issue message. Without one, KlumAST retains Groovy's power-assertion message,
+including the failed expression and its values.
+
+(See: `ValidationDocumentaryTest#'reports failed validation-method assertions at their configured levels'`.)
+
+```groovy
+@DSL
+class Release {
+    int replicas
+
+    @Validate(level = Validate.Level.WARNING)
+    void replicasShouldBeConfigured() {
+        assert replicas > 0 : 'Configure at least one replica'
+    }
+
+    @Validate
+    void requiresTwoReplicas() {
+        assert replicas >= 2
+    }
+}
+```
+
+For `Release.Create.With { replicas 0 }`, the first assertion produces a `WARNING` whose Groovy assertion message includes
+`Configure at least one replica`. The default-level assertion produces an `ERROR` whose message starts with Groovy's power
+assertion:
+
+```text
+assert replicas >= 2
+       |        |
+       0        false
+```
+
 ## Custom Issues
 
 Instead of throwing an exception, report a custom diagnostic through `KlumSchemaSupport`. Its current-object reporter is
