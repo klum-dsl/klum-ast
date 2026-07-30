@@ -463,16 +463,18 @@ When a Model Writer sets `legacyChannel`, the stored result contains the `INFO` 
 
 ## Suppress Further Issues
 
-`Validator.suppressFurtherIssues(Object, String)` and `Validator.suppressFurtherIssues(String)` suppress later issues on
-a specific object or, in the one-argument form, on the current object. By default, issues up to DEPRECATION are
-suppressed—everything except ERROR. Provide a different final level argument to change that threshold.
+`klumValidation.suppressOn(member)` suppresses later issues for a member on the current lifecycle target. Use
+`KlumSchemaSupport.klumValidationForObject(target).suppressOn(member)` for an explicit target. By default, issues up to
+DEPRECATION are suppressed—everything except ERROR. Provide a level argument to change that threshold.
 
-Also, using the `Validator.ANY_MEMBER` as member name, all further issues on the object are suppressed.
+`suppressAll()` applies the same rule to every member; it replaces the former `Validator.ANY_MEMBER` convention.
 
 Suppression has no effect on already reported issues. For example, this Model suppresses the later warning for `notes`
 but preserves the required `owner` error:
 
 ```groovy
+import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
+
 @DSL
 class Release {
     @Required(level = Validate.Level.WARNING)
@@ -483,7 +485,7 @@ class Release {
 
     @PostTree
     void suppressNotesWarning() {
-        Validator.suppressFurtherIssues("notes")
+        klumValidation.suppressOn("notes")
     }
 }
 ```

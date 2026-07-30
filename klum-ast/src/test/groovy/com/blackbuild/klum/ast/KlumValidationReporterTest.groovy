@@ -144,6 +144,30 @@ class KlumValidationReporterTest extends AbstractDSLSpec {
         childResult.message.endsWith('- ERROR #<none>: child needs a release name')
     }
 
+    def "reports through a Java helper reached from a lifecycle callback"() {
+        given:
+        createClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.ValidationReporterJavaHelper
+
+            @DSL
+            class Release {
+                @PostTree
+                void reportFromJavaHelper() {
+                    ValidationReporterJavaHelper.reportMissingReleaseName(this)
+                }
+            }
+        '''
+
+        when:
+        clazz.Create.One()
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.message.endsWith('- ERROR #releaseName: release name is required')
+    }
+
     def "exposes only the reporter facade and rejects preliminary Validator types"() {
         expect:
         KlumSchemaSupport.declaredMethods.findAll { Modifier.isPublic(it.modifiers) }*.name as Set ==
