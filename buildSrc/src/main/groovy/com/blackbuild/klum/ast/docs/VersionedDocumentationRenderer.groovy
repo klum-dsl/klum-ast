@@ -40,6 +40,7 @@ import java.security.MessageDigest
 class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-static-html-v1'
+    private static final String CURRENT_ROUTE_ALIASES = '_Aliases.json'
     static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
             'klum-ast'                : 'com/blackbuild/klum/ast/compiler/internal/ast/DSLASTTransformation.html',
             'klum-ast-runtime'        : 'com/blackbuild/klum/ast/runtime/KlumModelObject.html',
@@ -109,6 +110,7 @@ class VersionedDocumentationRenderer {
             fail('4.x module Javadocs must be generated from the selected checked-out revision.')
 
         String sourceRoot = version.startsWith('4.') ? 'docs/user' : 'wiki'
+        String routeAliasesPath = sourceRoot == 'docs/user' ? "$sourceRoot/$CURRENT_ROUTE_ALIASES" : null
         if (!landingSourcePath && sourceRoot == 'docs/user')
             landingSourcePath = 'Home.md'
         List<String> sourcePaths = git(objectDirectory, ['ls-tree', '-r', '--name-only', revision, '--', sourceRoot])
@@ -127,6 +129,7 @@ class VersionedDocumentationRenderer {
         sourcePaths.each { String sourcePath ->
             String relativePath = sourcePath.substring(sourceRoot.length() + 1)
             requireRelativePath(relativePath, 'source path')
+            if (sourcePath == routeAliasesPath) return
             byte[] content = gitBytes(objectDirectory, ['show', "${revision}:${sourcePath}"])
             if (relativePath.endsWith('.md')) authoredMarkdown[relativePath] = content
             else authoredAssets[relativePath] = content
@@ -155,7 +158,24 @@ class VersionedDocumentationRenderer {
             wikiPages[StaticDocumentationPageRenderer.wikiKey(sourcePath)] = sourcePath
         }
 
+        Map<String, String> routeAliases = routeAliasesPath ? readRouteAliases(objectDirectory, revision, routeAliasesPath) : [:]
+        Map<String, String> aliasOutputs = new TreeMap<>()
+        routeAliases.each { String aliasSource, String targetSource ->
+            requireRelativePath(aliasSource, 'route alias')
+            if (!aliasSource.endsWith('.md'))
+                fail("Route alias must name a Markdown route: $aliasSource")
+            if (pageOutputs.containsKey(aliasSource))
+                fail("Route alias collides with an authored page: $aliasSource")
+            if (!pageOutputs.containsKey(targetSource))
+                fail("Route alias target is not an authored page: $aliasSource -> $targetSource")
+            String aliasOutput = StaticDocumentationPageRenderer.pageOutputPath(aliasSource, landingSourcePath)
+            if (pageOutputs.containsValue(aliasOutput) || aliasOutputs.containsValue(aliasOutput))
+                fail("Route alias collides with a rendered page: $aliasSource -> $aliasOutput")
+            aliasOutputs[aliasSource] = aliasOutput
+        }
+
         Set<String> outputPaths = new TreeSet<>(pageOutputs.values())
+        outputPaths.addAll(aliasOutputs.values())
         authoredAssets.each { String assetPath, byte[] content ->
             if (RESERVED_PATHS.any { assetPath == it || assetPath.startsWith("$it/") } || assetPath == 'api' || assetPath.startsWith('api/'))
                 fail("Authored asset collides with renderer-owned output: $assetPath")
@@ -210,6 +230,11 @@ class VersionedDocumentationRenderer {
                     repositorySourcePath: sourcePath == 'Changelog.md' ? 'CHANGES.md' : "$sourceRoot/$sourcePath",
                     authoringRoot      : sourceRoot)
             write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
+        }
+        routeAliases.each { String aliasSource, String targetSource ->
+            writeGeneratedPage(exactDirectory, aliasOutputs[aliasSource], aliasSource,
+                    routeAliasPage(targetSource), version, status, pageOutputs, wikiPages,
+                    sourceNavigation, sourceFooter, presentation, logoTarget, logoAltText)
         }
 
         javadocInputChecksums.putAll(copyModuleJavadocs(exactDirectory, moduleJavadocs))
@@ -275,6 +300,25 @@ class VersionedDocumentationRenderer {
         if (!(branding.sha256 ==~ /[0-9a-f]{64}/))
             fail("Branding manifest $path has an invalid sha256")
         branding
+    }
+
+    private static Map<String, String> readRouteAliases(File objectDirectory, String revision, String path) {
+        if (!gitObjectExists(objectDirectory, revision, path)) return [:]
+        Object parsed
+        try {
+            parsed = new JsonSlurper().parseText(new String(gitBytes(objectDirectory, ['show', "${revision}:${path}"]), StandardCharsets.UTF_8))
+        } catch (Exception exception) {
+            fail("Route aliases are malformed at $path: ${exception.message}")
+        }
+        if (!(parsed instanceof Map))
+            fail("Route aliases must be an object: $path")
+        Map<String, String> aliases = new TreeMap<>()
+        (parsed as Map).each { key, value ->
+            if (!(key instanceof String) || !(value instanceof String) || key.trim().empty || value.trim().empty)
+                fail("Route aliases must map non-empty route names: $path")
+            aliases[key] = value
+        }
+        aliases
     }
 
     private static Map<String, String> readFinalBrandingApproval(File objectDirectory, String revision, String path, String brandingManifestPath) {
@@ -425,6 +469,11 @@ class VersionedDocumentationRenderer {
                 logoPath          : logoPath,
                 logoAltText       : logoAltText)
         write(exactDirectory, outputPath, html.getBytes(StandardCharsets.UTF_8))
+    }
+
+    private static String routeAliasPage(String targetSource) {
+        String title = targetSource.replaceFirst(/\.md$/, '').replace('-', ' ')
+        "# This page has moved\n\nThe canonical route is [$title]($targetSource). This legacy version-specific URL remains available for existing links.\n"
     }
 
     private static String statusRecord(String version, String status) {

@@ -58,6 +58,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'href="status/"', 'RC status link must remain inside the exact tree')
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
         assertContains(exactLanding.text, 'href="Guide/Nested/"', 'authored Markdown links must resolve to directory URLs')
+        assertContains(exactLanding.text, 'href="Gradle-Onboarding/">Gradle Onboarding</a>',
+                'current navigation must use the canonical Gradle Onboarding route and visible label')
         assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
         assertContains(nestedPage.text, 'href="../../#same-heading"', 'cross-page Markdown fragments must use rendered heading slugs')
@@ -76,6 +78,9 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'season lockup must retain its authored alternate text')
         assertContains(exactLanding.text, '&lt;dependencies&gt;', 'XML code examples must remain escaped code')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Home').exists(), 'the landing source must not produce a second public page')
+        File legacyOnboarding = new File(currentOne, '4.0.0-rc.1/Getting-Started/index.html')
+        assertTrue(legacyOnboarding.file, 'legacy onboarding route must remain available in the exact tree')
+        assertContains(legacyOnboarding.text, 'href="../Gradle-Onboarding/"', 'legacy onboarding route must point to the canonical route')
         assertContains(new File(currentOne, 'index.html').text, 'href="4.0.0-rc.1/"', 'root landing must use a site-relative exact-version link')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Legacy').exists(), '4.x render must not select wiki/')
         assertContains(new File(currentOne, '4.0.0-rc.1/site-manifest.json').text, 'Season 4: The Makeover', 'branding manifest capture')
@@ -391,7 +396,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         new File(repository, '.gitignore').text = '*/build/\n'
         new File(repository, 'docs/user/Home.md').text = '''# Current documentation
 
-[Nested guide](Guide/Nested.md), [same-page heading](#Same%20heading), and [[Changelog]].
+[Nested guide](Guide/Nested.md), [Gradle onboarding](Gradle-Onboarding.md), [same-page heading](#Same%20heading), and [[Changelog]].
 
 ![Local logo](img/klumlogo.png)
 
@@ -414,9 +419,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 ```
 '''
         new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [home heading](../Home.md#Same%20heading), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).\n'
+        new File(repository, 'docs/user/Gradle-Onboarding.md').text = '# Gradle onboarding\n\nCurrent setup guidance.\n'
         new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
-        new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
+        new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Gradle Onboarding]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
+        new File(repository, 'docs/user/_Aliases.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
+                'Getting-Started.md': 'Gradle-Onboarding.md'
+        ])) + '\n'
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes. See [migration](docs/user/Builder-First-Migration.md).\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
