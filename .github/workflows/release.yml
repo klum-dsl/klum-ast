@@ -58,6 +58,7 @@ jobs:
       pages: write
       id-token: write
     uses: ./.github/workflows/publish-pending-documentation.yml
+    secrets: inherit
     with:
       stage: ${{ inputs.stage }}
       version: ${{ inputs.version }}
