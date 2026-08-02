@@ -58,7 +58,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'href="status/"', 'RC status link must remain inside the exact tree')
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
         assertContains(exactLanding.text, 'href="Guide/Nested/"', 'authored Markdown links must resolve to directory URLs')
-        assertContains(exactLanding.text, 'href="Gradle-Onboarding/"', 'current navigation must use the canonical Gradle onboarding route')
+        assertContains(exactLanding.text, 'href="Gradle-Onboarding/">Gradle onboarding</a>',
+                'current navigation must use the canonical Gradle onboarding route and visible label')
         assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
         assertContains(nestedPage.text, 'href="../../#same-heading"', 'cross-page Markdown fragments must use rendered heading slugs')
