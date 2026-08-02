@@ -2,6 +2,13 @@ name: Publish pending documentation
 
 on:
   workflow_call:
+    secrets:
+      PAGES_WRITER_APP_ID:
+        description: Protected GitHub App identifier for immutable gh-pages ledger writes.
+        required: true
+      PAGES_WRITER_APP_PRIVATE_KEY:
+        description: Protected GitHub App private key for immutable gh-pages ledger writes.
+        required: true
     inputs:
       stage:
         description: Exact protected release stage.

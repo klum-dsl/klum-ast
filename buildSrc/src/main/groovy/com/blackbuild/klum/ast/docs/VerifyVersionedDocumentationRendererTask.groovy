@@ -346,6 +346,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(pendingTask.taskDependencies.getDependencies(pendingTask)*.name.contains('verifyRenderedDocumentationSite'),
                 'protected pending preparation must require the HTTP presentation and link crawl')
         String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
+        int workflowCallStart = pagesWorkflow.indexOf('  workflow_call:\n')
+        int workflowCallInputs = pagesWorkflow.indexOf('    inputs:\n', workflowCallStart)
+        assertTrue(workflowCallStart >= 0 && workflowCallInputs > workflowCallStart,
+                'the reusable Pages workflow must declare a workflow_call input contract')
+        String pagesWorkflowSecretContract = pagesWorkflow.substring(workflowCallStart, workflowCallInputs)
         assertContains(pagesWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT/', 'pending Pages path must be version and SHA scoped')
         assertContains(pagesWorkflow, 'test ! -e "pages/$expected_path"', 'existing immutable pending Pages paths must be rejected')
         assertContains(pagesWorkflow, 'DOCUMENTATION_PAGES_READY', 'pending Pages must fail closed before the rehearsal/configuration gate')
@@ -355,6 +360,14 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(pagesWorkflow, 'deployment_commit', 'gh-pages commit identity must remain separate from Pages deployment identity')
         assertContains(pagesWorkflow, 'name: documentation-pages-writer', 'only the protected Pages writer environment may receive writer credentials')
         assertContains(pagesWorkflow, 'name: documentation-pages', 'the Pages deployment environment must remain separate from the writer')
+        assertContains(pagesWorkflowSecretContract, '''    secrets:
+      PAGES_WRITER_APP_ID:
+        description: Protected GitHub App identifier for immutable gh-pages ledger writes.
+        required: true
+      PAGES_WRITER_APP_PRIVATE_KEY:
+        description: Protected GitHub App private key for immutable gh-pages ledger writes.
+        required: true
+''', 'the reusable Pages workflow must declare both required writer secrets')
         assertContains(pagesWorkflow, 'actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547', 'gh-pages writes must use the dedicated Pages writer App')
         assertContains(pagesWorkflow, 'PAGES_WRITER_TOKEN', 'the dedicated App token must be used only for gh-pages writes')
         assertTrue(!pagesWorkflow.contains('git push origin HEAD:gh-pages'), 'the workflow token must not write the Pages ledger directly')
@@ -379,7 +392,15 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the staged manifest must remain available until post-push byte comparison completes')
         assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
-        assertContains(releaseWorkflow, 'stage-pending-documentation', 'artifact workflow must require the pending Pages stage')
+        int pendingStageStart = releaseWorkflow.indexOf('  stage-pending-documentation:\n')
+        int publishStageStart = releaseWorkflow.indexOf('  publish:\n', pendingStageStart)
+        assertTrue(pendingStageStart >= 0 && publishStageStart > pendingStageStart,
+                'artifact workflow must declare a pending documentation stage before publication')
+        String pendingDocumentationStage = releaseWorkflow.substring(pendingStageStart, publishStageStart)
+        assertContains(pendingDocumentationStage, 'uses: ./.github/workflows/publish-pending-documentation.yml',
+                'the pending documentation stage must call the reusable Pages workflow')
+        assertContains(pendingDocumentationStage, 'secrets: inherit',
+                'the pending documentation stage must forward the reusable Pages workflow secret contract')
         assertContains(releaseWorkflow, 'contents: read', 'the reusable Pages workflow caller must not receive ledger-write authority')
         assertContains(releaseWorkflow, 'pages: write', 'reusable Pages workflow caller must grant Pages deployment authority')
         assertContains(releaseWorkflow, 'id-token: write', 'reusable Pages workflow caller must grant OIDC authority')
