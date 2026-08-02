@@ -113,11 +113,14 @@ the printed `http://127.0.0.1:<port>/klum-ast/` URL, and stop the task with Ctrl
 use the same defaults and safe cleanup. The automated check crawls internal pages, assets,
 directory indexes, and heading fragments. Neither task contacts GitHub or publishes anything.
 
-The release workflow calls the separately permissioned **Publish pending documentation** workflow
-before its credential-bearing publication job. It receives the exact `candidate` or `final` stage,
-version, and full source SHA; it configures and verifies that exact protected Gradle version,
-proves the clean SHA is on `master`, and rejects malformed identity or an existing `v<version>` tag. It renders
-only that revision with status `pending`; pending chrome and the `pending/<version>/<sha>/` path
+After validating the stage/version shape, the release workflow queries GitHub's authoritative remote
+tag and release state before it calls the separately permissioned **Publish pending documentation**
+workflow. The reusable workflow repeats that remote check at its own staging boundary, and the
+credential-bearing publication job checks it once more immediately before it receives publication
+credentials. No release decision relies on runner-local Git refs. The workflow receives the exact
+`candidate` or `final` stage, version, and full source SHA; it configures and verifies that exact
+protected Gradle version and proves the clean SHA is on `master`. It renders only that revision with
+status `pending`; pending chrome and the `pending/<version>/<sha>/` path
 state that this is unlisted release-gate evidence, never a public RC, stable page, or alias.
 
 The caller uses `secrets: inherit` to forward its available secret set into the reusable workflow.
@@ -164,7 +167,10 @@ with no persisted GitHub credential, proves it is on `master`, and executes in i
 
 The protected inputs configure the exact Gradle publication version without invoking Nebula's
 tag-producing `candidate` or `final` tasks. `verifyReleaseVersion` rejects a version/stage
-mismatch or an absent matching protected authorization before any publication task executes. Once #456 delivers it, its protected Pages stage independently validates the same
+mismatch or an absent matching protected authorization before any publication task executes. Before
+the Pages stage can create an immutable snapshot, the workflow has already rejected a remotely
+existing tag or GitHub release for that version; the stage and publication job repeat this check to
+fail closed across queue-time races. Once #456 delivers it, its protected Pages stage independently validates the same
 stage/version/master SHA and deploys an immutable unlisted documentation/Javadoc snapshot plus
 manifest before `publishCompleteKlumAstProduct`. That task remains the sole permitted public
 artifact publication entry: it publishes every Maven coordinate to one Sonatype staging
