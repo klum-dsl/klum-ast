@@ -50,9 +50,55 @@ jobs:
             exit 1
           fi
 
+  verify-release-identity-available:
+    name: Verify remote release identity availability
+    needs: validate-release-input
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Reject an already used remote version or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          assert_remote_identity_absent() {
+            local identity="$1"
+            local endpoint="$2"
+            local status
+
+            if ! status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/$endpoint")"; then
+              echo "Could not query the remote $identity state." >&2
+              exit 1
+            fi
+
+            case "$status" in
+              404) ;;
+              200)
+                echo "The remote $identity already exists; published versions are never retried in place." >&2
+                exit 1
+                ;;
+              *)
+                echo "Remote $identity query returned unexpected HTTP status $status." >&2
+                exit 1
+                ;;
+            esac
+          }
+
+          assert_remote_identity_absent 'release tag' "git/ref/tags/v$RELEASE_VERSION"
+          assert_remote_identity_absent 'GitHub release' "releases/tags/v$RELEASE_VERSION"
+
   stage-pending-documentation:
     name: Stage pending documentation for ${{ inputs.version }}
-    needs: validate-release-input
+    needs: [validate-release-input, verify-release-identity-available]
     permissions:
       contents: read
       pages: write
@@ -66,7 +112,7 @@ jobs:
 
   publish:
     name: Publish ${{ inputs.stage }} ${{ inputs.version }}
-    needs: [validate-release-input, stage-pending-documentation]
+    needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment:
@@ -101,20 +147,43 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
-      - name: Reject an already used version or tag
+      - name: Recheck remote release identity availability
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          git show-ref --verify --quiet "refs/tags/v${{ inputs.version }}" && {
-            echo "The release tag already exists; published versions are never retried in place." >&2
-            exit 1
+
+          assert_remote_identity_absent() {
+            local identity="$1"
+            local endpoint="$2"
+            local status
+
+            if ! status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/$endpoint")"; then
+              echo "Could not query the remote $identity state." >&2
+              exit 1
+            fi
+
+            case "$status" in
+              404) ;;
+              200)
+                echo "The remote $identity already exists; published versions are never retried in place." >&2
+                exit 1
+                ;;
+              *)
+                echo "Remote $identity query returned unexpected HTTP status $status." >&2
+                exit 1
+                ;;
+            esac
           }
-          gh release view "v${{ inputs.version }}" >/dev/null 2>&1 && {
-            echo "The GitHub release already exists; published versions are never retried in place." >&2
-            exit 1
-          }
+
+          assert_remote_identity_absent 'release tag' "git/ref/tags/v$RELEASE_VERSION"
+          assert_remote_identity_absent 'GitHub release' "releases/tags/v$RELEASE_VERSION"
       - name: Require every protected credential before publication
         shell: bash
         run: |

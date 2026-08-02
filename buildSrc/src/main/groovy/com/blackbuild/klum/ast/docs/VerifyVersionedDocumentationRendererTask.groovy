@@ -386,14 +386,31 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(pagesWorkflow.indexOf(stagedManifest) < pagesWorkflow.indexOf(manifestComparison),
                 'the staged manifest must remain available until post-push byte comparison completes')
         assertTrue(!pagesWorkflow.contains('publishCompleteKlumAstProduct'), 'Pages workflow must not publish artifacts')
+        assertContains(pagesWorkflow, 'git/ref/tags/v$RELEASE_VERSION',
+                'the pending Pages workflow must check release tags through the authoritative remote API')
+        assertContains(pagesWorkflow, 'releases/tags/v$RELEASE_VERSION',
+                'the pending Pages workflow must check GitHub releases through the authoritative remote API')
+        assertTrue(!pagesWorkflow.contains('git show-ref --verify'),
+                'the pending Pages workflow must not decide release identity from runner-local Git refs')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
+        int identityPreflightStart = releaseWorkflow.indexOf('  verify-release-identity-available:\n')
         int pendingStageStart = releaseWorkflow.indexOf('  stage-pending-documentation:\n')
         int publishStageStart = releaseWorkflow.indexOf('  publish:\n', pendingStageStart)
-        assertTrue(pendingStageStart >= 0 && publishStageStart > pendingStageStart,
-                'artifact workflow must declare a pending documentation stage before publication')
+        assertTrue(identityPreflightStart >= 0 && pendingStageStart > identityPreflightStart && publishStageStart > pendingStageStart,
+                'artifact workflow must preflight remote release identity before pending documentation and publication')
+        String identityPreflight = releaseWorkflow.substring(identityPreflightStart, pendingStageStart)
         String pendingDocumentationStage = releaseWorkflow.substring(pendingStageStart, publishStageStart)
+        String publicationStage = releaseWorkflow.substring(publishStageStart)
+        assertContains(identityPreflight, 'git/ref/tags/v$RELEASE_VERSION',
+                'the preflight must check release tags through the authoritative remote API')
+        assertContains(identityPreflight, 'releases/tags/v$RELEASE_VERSION',
+                'the preflight must check GitHub releases through the authoritative remote API')
+        assertTrue(!identityPreflight.contains('git show-ref --verify'),
+                'the preflight must not decide release identity from runner-local Git refs')
         assertContains(pendingDocumentationStage, 'uses: ./.github/workflows/publish-pending-documentation.yml',
                 'the pending documentation stage must call the reusable Pages workflow')
+        assertContains(pendingDocumentationStage, 'needs: [validate-release-input, verify-release-identity-available]',
+                'the pending documentation stage must remain unreachable before remote identity preflight succeeds')
         assertContains(pendingDocumentationStage, 'secrets: inherit',
                 'the pending documentation stage must forward the reusable Pages workflow secret contract')
         assertContains(releaseWorkflow, 'contents: read', 'the reusable Pages workflow caller must not receive ledger-write authority')
@@ -404,7 +421,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(releaseWorkflow, '-Prelease.version=${{ inputs.version }}', 'artifact publication must configure the exact protected release version')
         assertContains(releaseWorkflow, '-Prelease.stage=${{ inputs.stage }}', 'artifact publication must configure the exact protected release stage')
         assertTrue(!releaseWorkflow.contains('./gradlew ${{ inputs.stage }}'), 'artifact publication must not invoke Nebula tag-producing lifecycle tasks')
-        assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, stage-pending-documentation]') <
+        assertContains(publicationStage, 'git/ref/tags/v$RELEASE_VERSION',
+                'publication must recheck release tags through the authoritative remote API')
+        assertContains(publicationStage, 'releases/tags/v$RELEASE_VERSION',
+                'publication must recheck GitHub releases through the authoritative remote API')
+        assertTrue(!publicationStage.contains('git show-ref --verify'),
+                'publication must not decide release identity from runner-local Git refs')
+        assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
     }
 
