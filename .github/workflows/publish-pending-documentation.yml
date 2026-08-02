@@ -151,7 +151,9 @@ jobs:
           if [[ "$RELEASE_STAGE" == final ]]; then
             arguments+=('-PdocumentationFinalBrandingApproval=docs/branding/final-approval.json')
           fi
-          ./gradlew "$RELEASE_STAGE" preparePendingDocumentationStage "${arguments[@]}"
+          ./gradlew preparePendingDocumentationStage "${arguments[@]}" \
+            "-Prelease.stage=$RELEASE_STAGE" \
+            "-Prelease.version=$RELEASE_VERSION"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: gh-pages

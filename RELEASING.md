@@ -39,10 +39,10 @@ versioned documentation/Javadoc source, hosting, URL, preview, retention, and pr
 stage. The delivered tracer and protected Pages stage are the documentation release gates; the
 mutable wiki remains migration-stub material only and is not a release destination.
 
-The repository currently uses major action tags in its workflows. Maintainers must review
-the resolved action revisions and their update policy before authorizing the first use of the
-new release workflow; this is a release gate, not permission to substitute an arbitrary
-action revision during an incident.
+The protected release, pending-Pages, and public-proof workflows pin every external action to
+a reviewed full commit SHA. Maintainers must review any pin update before authorizing its first
+use; this is a release gate, not permission to substitute an arbitrary action revision during
+an incident.
 
 ## Before approving an RC or final
 
@@ -58,7 +58,7 @@ action revision during an incident.
    may date the exact final heading; any substantive source, dependency, signing, publication,
    or workflow change requires the next RC.
 5. Ensure all 4.0 blockers, documentation/Javadocs, and the normal Java 17 Groovy 3/4/5
-   `check` gate are ready. The workflow runs `check` and requires the computed Nebula version
+   `check` gate are ready. The workflow runs `check` and requires the protected Gradle version
    to equal the approved input before any publication task starts.
 6. Confirm #456 has delivered the ADR 0013 versioned documentation/Javadoc destination and
    that its protected Pages stage has produced the exact unlisted pending snapshot and manifest
@@ -115,8 +115,8 @@ directory indexes, and heading fragments. Neither task contacts GitHub or publis
 
 The release workflow calls the separately permissioned **Publish pending documentation** workflow
 before its credential-bearing publication job. It receives the exact `candidate` or `final` stage,
-version, and full source SHA and independently recomputes the Nebula version, proves the clean
-SHA is on `master`, and rejects malformed identity or an existing `v<version>` tag. It renders
+version, and full source SHA; it configures and verifies that exact protected Gradle version,
+proves the clean SHA is on `master`, and rejects malformed identity or an existing `v<version>` tag. It renders
 only that revision with status `pending`; pending chrome and the `pending/<version>/<sha>/` path
 state that this is unlisted release-gate evidence, never a public RC, stable page, or alias.
 
@@ -152,14 +152,14 @@ shapes before it selects either protected environment. The workflow then checks 
 with no persisted GitHub credential, proves it is on `master`, and executes in its protected job:
 
 ```text
-./gradlew <candidate|final> publishCompleteKlumAstProduct \
-  -PreleaseExpectedVersion=<exact version> \
-  -PreleaseStage=<candidate|final>
+./gradlew publishCompleteKlumAstProduct \
+  -Prelease.version=<exact version> \
+  -Prelease.stage=<candidate|final>
 ```
 
-Nebula selects the candidate/final version during configuration. `verifyReleaseVersion` rejects
-a version/stage mismatch or an absent matching protected authorization before any publication
-task executes. Once #456 delivers it, its protected Pages stage independently validates the same
+The protected inputs configure the exact Gradle publication version without invoking Nebula's
+tag-producing `candidate` or `final` tasks. `verifyReleaseVersion` rejects a version/stage
+mismatch or an absent matching protected authorization before any publication task executes. Once #456 delivers it, its protected Pages stage independently validates the same
 stage/version/master SHA and deploys an immutable unlisted documentation/Javadoc snapshot plus
 manifest before `publishCompleteKlumAstProduct`. That task remains the sole permitted public
 artifact publication entry: it publishes every Maven coordinate to one Sonatype staging

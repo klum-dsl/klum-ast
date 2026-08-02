@@ -154,6 +154,6 @@ jobs:
           [[ "$DOCUMENTATION_PAGE_URL" =~ ^https:// ]]
       - name: Verify, sign, stage, and publish the complete product
         run: >-
-          ./gradlew ${{ inputs.stage }} publishCompleteKlumAstProduct
-          -PreleaseExpectedVersion=${{ inputs.version }}
-          -PreleaseStage=${{ inputs.stage }}
+          ./gradlew publishCompleteKlumAstProduct
+          -Prelease.version=${{ inputs.version }}
+          -Prelease.stage=${{ inputs.stage }}

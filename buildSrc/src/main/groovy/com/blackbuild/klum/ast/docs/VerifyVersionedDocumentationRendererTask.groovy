@@ -358,6 +358,9 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(pagesWorkflow, 'actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547', 'gh-pages writes must use the dedicated Pages writer App')
         assertContains(pagesWorkflow, 'PAGES_WRITER_TOKEN', 'the dedicated App token must be used only for gh-pages writes')
         assertTrue(!pagesWorkflow.contains('git push origin HEAD:gh-pages'), 'the workflow token must not write the Pages ledger directly')
+        assertContains(pagesWorkflow, '"-Prelease.stage=$RELEASE_STAGE"', 'pending documentation must configure its exact protected release stage without Nebula tagging')
+        assertContains(pagesWorkflow, '"-Prelease.version=$RELEASE_VERSION"', 'pending documentation must configure its exact protected release version without Nebula tagging')
+        assertTrue(!pagesWorkflow.contains('./gradlew "$RELEASE_STAGE"'), 'pending documentation must not invoke Nebula tag-producing lifecycle tasks')
         String stagedCopy = 'cp -a "build/pending-documentation/$RELEASE_VERSION/." "pages/$EXACT_PATH"'
         String stagedManifest = 'staged_manifest="build/pending-documentation/$RELEASE_VERSION/site-manifest.json"'
         String fetchedManifest = 'git -C pages show "FETCH_HEAD:${EXACT_PATH}site-manifest.json" > "$written_manifest"'
@@ -381,6 +384,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(releaseWorkflow, 'pages: write', 'reusable Pages workflow caller must grant Pages deployment authority')
         assertContains(releaseWorkflow, 'id-token: write', 'reusable Pages workflow caller must grant OIDC authority')
         assertContains(releaseWorkflow, 'DOCUMENTATION_MANIFEST_SHA256', 'artifact workflow must recheck the pending manifest handoff')
+        assertContains(releaseWorkflow, './gradlew publishCompleteKlumAstProduct', 'artifact publication must use the guarded complete-product task without Nebula tagging')
+        assertContains(releaseWorkflow, '-Prelease.version=${{ inputs.version }}', 'artifact publication must configure the exact protected release version')
+        assertContains(releaseWorkflow, '-Prelease.stage=${{ inputs.stage }}', 'artifact publication must configure the exact protected release stage')
+        assertTrue(!releaseWorkflow.contains('./gradlew ${{ inputs.stage }}'), 'artifact publication must not invoke Nebula tag-producing lifecycle tasks')
         assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
     }
