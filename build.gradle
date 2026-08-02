@@ -212,21 +212,26 @@ tasks.named('verifyVersionedDocumentationRenderer', VerifyVersionedDocumentation
     dependsOn(versionedDocumentationJavadocTasks)
 }
 
-def releaseExpectedVersion = providers.gradleProperty("releaseExpectedVersion")
-def releaseStage = providers.gradleProperty("releaseStage")
+def releaseVersion = providers.gradleProperty("release.version")
+def releaseStage = providers.gradleProperty("release.stage")
 def releaseAuthorization = providers.environmentVariable("KLUM_AST_RELEASE_AUTHORIZED")
+
+allprojects {
+    if (releaseVersion.present)
+        version = releaseVersion.get()
+}
 
 tasks.register("verifyReleaseVersion") {
     group = "verification"
     description = "Verifies the protected release path received the authorized stage and exact version."
 
     doLast {
-        if (!releaseExpectedVersion.present)
-            throw new GradleException("A release requires -PreleaseExpectedVersion=<exact version>.")
+        if (!releaseVersion.present)
+            throw new GradleException("A release requires -Prelease.version=<exact version>.")
         if (!releaseStage.present)
-            throw new GradleException("A release requires -PreleaseStage=candidate|final.")
+            throw new GradleException("A release requires -Prelease.stage=candidate|final.")
 
-        def expected = releaseExpectedVersion.get()
+        def expected = releaseVersion.get()
         def stage = releaseStage.get()
         if (!(stage in ["candidate", "final"]))
             throw new GradleException("Release stage must be candidate or final: $stage")
@@ -235,15 +240,9 @@ tasks.register("verifyReleaseVersion") {
         if (stage == "final" && !(expected ==~ /\d+\.\d+\.\d+/))
             throw new GradleException("Final versions must match X.Y.Z: $expected")
         if (version.toString() != expected)
-            throw new GradleException("Release version $version does not match authorized version $expected.")
+            throw new GradleException("Configured release version $version does not match authorized version $expected.")
         if (releaseAuthorization.orNull != stage)
             throw new GradleException("Protected $stage authorization is required.")
-    }
-}
-
-["candidate", "final"].each { releaseTask ->
-    tasks.named(releaseTask) {
-        dependsOn tasks.named("check"), tasks.named("verifyReleaseVersion")
     }
 }
 
@@ -265,6 +264,7 @@ def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publi
 def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
     group = "publishing"
     description = "Publishes the complete protected KlumAST Maven and Gradle Plugin Portal product."
+    dependsOn tasks.named("check")
     dependsOn closeSonatypeStagingRepository
     dependsOn publishGradlePlugins
 }
