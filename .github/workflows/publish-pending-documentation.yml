@@ -81,7 +81,7 @@ jobs:
             echo 'The requested pending documentation identity is malformed.' >&2
             exit 1
           fi
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -117,16 +117,16 @@ jobs:
       deployment_commit: ${{ steps.pages.outputs.deployment_commit }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ inputs.commit }}
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
       - name: Render and validate the immutable pending snapshot
         env:
           RELEASE_STAGE: ${{ inputs.stage }}
@@ -152,7 +152,7 @@ jobs:
             arguments+=('-PdocumentationFinalBrandingApproval=docs/branding/final-approval.json')
           fi
           ./gradlew "$RELEASE_STAGE" preparePendingDocumentationStage "${arguments[@]}"
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: gh-pages
           path: pages
@@ -213,7 +213,7 @@ jobs:
           test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
       - name: Mint the dedicated Pages writer token
         id: pages-writer-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.PAGES_WRITER_APP_ID }}
           private-key: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
@@ -237,7 +237,7 @@ jobs:
           git -C pages show "FETCH_HEAD:${EXACT_PATH}site-manifest.json" > "$written_manifest"
           cmp -- "$staged_manifest" "$written_manifest"
       - name: Upload the read-back-verified gh-pages ledger
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: pages
 
@@ -258,7 +258,7 @@ jobs:
     steps:
       - id: deployment
         name: Deploy the uploaded static site to GitHub Pages
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
 
   retain-rejected-evidence:
     name: Retain rejected pending-stage evidence
@@ -272,7 +272,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: gh-pages
           path: pages
@@ -313,7 +313,7 @@ jobs:
           test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
       - name: Mint the dedicated Pages writer token
         id: pages-writer-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.PAGES_WRITER_APP_ID }}
           private-key: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
