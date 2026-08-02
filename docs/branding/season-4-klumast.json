@@ -1,7 +1,7 @@
 {
-  "season": "Season 4: The Makeover",
-  "logo": "docs/user/img/klumlogo.png",
-  "altText": "KlumAST logo for Season 4: The Makeover",
-  "sha256": "ba5dda09978a4dabe9f73cdab41a3f462b23b0ed43fc4daaf04f4888d3cf2c6e",
+  "season": "Season 4.0: The Makeover",
+  "logo": "docs/user/img/season-4/klumast-season-4-header.svg",
+  "altText": "KlumAST Season 4.0: The Makeover",
+  "sha256": "43f4299d2f67f49f2db0f320ec856b2c67342cb285808b73741141dd722967c2",
   "approval": "candidate"
 }

@@ -69,6 +69,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'id="überblick"', 'Unicode heading ids')
         assertContains(exactLanding.text, '&lt;unsafe-card&gt;', 'authored raw HTML must be escaped')
         assertContains(exactLanding.text, '<table>', 'GFM tables must render as HTML')
+        assertContains(exactLanding.text, '<picture class="season-lockup">', 'season lockup must use a responsive picture')
+        assertContains(exactLanding.text, 'media="(max-width: 1000px)" srcset="img/klumast-season-4-documentation-compact.svg"',
+                'season lockup must select the compact asset before the desktop content column becomes too narrow')
+        assertContains(exactLanding.text, '<img src="img/klumast-season-4-documentation.svg" alt="Season lockup">',
+                'season lockup must retain its authored alternate text')
         assertContains(exactLanding.text, '&lt;dependencies&gt;', 'XML code examples must remain escaped code')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Home').exists(), 'the landing source must not produce a second public page')
         assertContains(new File(currentOne, 'index.html').text, 'href="4.0.0-rc.1/"', 'root landing must use a site-relative exact-version link')
@@ -249,6 +254,17 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
             VerifyVersionedDocumentationRendererTask.render(malformedBranding, new File(outputs, 'malformed-branding'), malformedRevision, '4.0.0-rc.1', 'public-rc', moduleJavadocs)
         }
 
+        File missingResponsiveAsset = Files.createTempDirectory(temporaryDir.toPath(), 'documentation-missing-responsive-asset-').toFile()
+        initializeFixture(missingResponsiveAsset)
+        new File(missingResponsiveAsset, 'docs/user/img/klumast-season-4-documentation-compact.svg').delete()
+        git(missingResponsiveAsset, ['add', '-u'])
+        git(missingResponsiveAsset, ['commit', '-m', 'fixture missing responsive asset'])
+        String missingResponsiveAssetRevision = git(missingResponsiveAsset, ['rev-parse', 'HEAD']).trim()
+        expectFailure('missing compact Season 4 lockup asset') {
+            VerifyVersionedDocumentationRendererTask.render(missingResponsiveAsset, new File(outputs, 'missing-responsive-asset'),
+                    missingResponsiveAssetRevision, '4.0.0-rc.1', 'public-rc', moduleJavadocs)
+        }
+
         Map<String, File> missingModule = new LinkedHashMap<>(moduleJavadocs)
         missingModule.remove('klum-ast-runtime')
         File failedOutput = new File(outputs, 'missing-module-javadoc')
@@ -379,6 +395,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 
 ![Local logo](img/klumlogo.png)
 
+![Season lockup](img/klumast-season-4-documentation.svg "season-lockup")
+
 | Name | Value |
 | --- | --- |
 | Renderer | static |
@@ -402,6 +420,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes. See [migration](docs/user/Builder-First-Migration.md).\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
+        new File(repository, 'docs/user/img/klumast-season-4-documentation.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
+        new File(repository, 'docs/user/img/klumast-season-4-documentation-compact.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'wiki/Home.md').text = '# Historical home\n\nHistorical landing content.\n'
         new File(repository, 'wiki/Legacy.md').text = '# Legacy documentation\n\nHistorical content.\n'
         new File(repository, 'wiki/_Sidebar.md').text = '* [[Home]]\n* [[Legacy]]\n* [[Changelog]]\n'

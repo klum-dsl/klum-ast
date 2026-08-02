@@ -1,6 +1,7 @@
 KlumAST
 =======
-> **Turn your models into supermodels!**
+
+![KlumAST visual lockup: a stylised fashion figure steps through a luminous portal onto a diagonal catwalk, beside the KlumAST wordmark and 4.0 release identity.](img/season-4/klumast-season-4-documentation.svg "season-lockup")
 
 ## What is KlumAST?
 
@@ -42,9 +43,9 @@ Generated factories configure a mutable Builder graph and return completed, stru
 work through `POST_TREE` runs on Builders; materialization happens before validation. See [[Basics]], [[Model Phases]], and
 the [[Builder First Migration]] guide. [[Exception Handling|Construction paths]] describe model-source locations in detail.
 
-These capabilities make KlumAST especially useful for GitOps and other `*aC` (anything-as-code) workflows. Git can record a
+These capabilities make KlumAST especially useful for GitOps and other *\*aC* (anything-as-code) workflows. Git can record a
 configuration's structure, but a checked-in structure is not necessarily a verified model. Read
-[[Why aC is not enough|why `*aC` needs model-level tests]] before treating configuration in Git as the end of the story.
+[[Why aC is not enough|why *\*aC* needs model-level tests]] before treating configuration in Git as the end of the story.
 
 ## Example
 

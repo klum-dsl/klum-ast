@@ -28,6 +28,7 @@ import groovy.json.JsonSlurper
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.security.MessageDigest
 
 /**
@@ -132,6 +133,7 @@ class VersionedDocumentationRenderer {
         }
         if (!landingSourcePath || !authoredMarkdown.containsKey(landingSourcePath))
             fail("Landing source is absent from the authored tree: $landingSourcePath")
+        validateResponsiveSeasonLockupAssets(authoredMarkdown, authoredAssets)
         Map<String, String> supplementaryInputs = new TreeMap<>()
         if (gitObjectExists(objectDirectory, revision, 'CHANGES.md')) {
             byte[] changelog = gitBytes(objectDirectory, ['show', "${revision}:CHANGES.md"])
@@ -391,6 +393,17 @@ class VersionedDocumentationRenderer {
                 ? 'Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias.'
                 : 'This is an immutable exact-version documentation snapshot.'
         [label: statusLabel, notice: notice]
+    }
+
+    private static void validateResponsiveSeasonLockupAssets(Map<String, byte[]> authoredMarkdown, Map<String, byte[]> authoredAssets) {
+        authoredMarkdown.each { String sourcePath, byte[] bytes ->
+            StaticDocumentationPageRenderer.responsiveSeasonLockupSources(new String(bytes, StandardCharsets.UTF_8)).each { String source ->
+                String fullAsset = (Paths.get(sourcePath).parent ?: Paths.get('')).resolve(source).normalize().toString().replace('\\', '/')
+                String compactAsset = StaticDocumentationPageRenderer.compactSeasonLockupPath(fullAsset)
+                if (!authoredAssets.containsKey(compactAsset))
+                    fail("Responsive Season 4 lockup is missing its compact sibling: $compactAsset (referenced by $sourcePath)")
+            }
+        }
     }
 
     private static void writeGeneratedPage(File exactDirectory, String outputPath, String sourcePath, String markdown,

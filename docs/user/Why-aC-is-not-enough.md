@@ -1,10 +1,10 @@
-# Why `*aC` is not enough
+# Why *\*aC* is not enough
 
-`*aC` means “anything as code”: Infrastructure as Code, Configuration as Code, Policy as Code, and similar practices.
+*\*aC* means “anything as code”: Infrastructure as Code, Configuration as Code, Policy as Code, and similar practices.
 The point of this deliberately provocative title is not that those practices fail. They make important promises; the
 question is whether a configuration stored in Git has earned the same confidence as ordinary software.
 
-## What `*aC` already does well
+## What *\*aC* already does well
 
 When inputs, versions, and the target environment are controlled, the same configuration should produce the same result.
 Version control also gives the configuration a reviewable history and a clear change lifecycle. These are real strengths.
@@ -16,7 +16,7 @@ They can make a structure understandable without proving that it represents a us
 
 ## The testing gap
 
-Many `*aC` workflows make syntax checks and target-environment integration tests straightforward. They do not prevent a
+Many *\*aC* workflows make syntax checks and target-environment integration tests straightforward. They do not prevent a
 team from writing unit tests, but the model often has no natural unit-test seam: important failures are first discovered
 only when a deployment, controller, or remote API receives the configuration.
 
