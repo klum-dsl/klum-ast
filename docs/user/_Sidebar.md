@@ -11,7 +11,7 @@
 * Project setup
   * [[Usage]]
   * [[Gradle Plugins]]
-  * [[Getting Started|Gradle onboarding]]
+  * [[Gradle Onboarding]]
   * [[Domain First Modeling]]
   * [[Target Contract Modeling]]
 * Advanced Features
