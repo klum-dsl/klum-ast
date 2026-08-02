@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convenience factories — KlumAST 4.0.0-rc.2</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.2 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="./">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="./">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="convenience-factories">Convenience factories</h1>
+<p>Convenience factory methods load a configuration directly from scripts, text, files, URLs, maps, or a classpath marker.</p>
+<h2 id="script-classes">Script classes</h2>
+<p><code>MyConfig.Create.From(Class&lt;Script&gt;)</code> runs the given <code>Script</code> and returns the result. The script must return the
+proper type, for example:</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'loads a completed deployment from a script class'</code>.)</p>
+<pre><code class="language-groovy">MyConfig.Create.With {
+  value(&quot;bla&quot;)
+}
+</code></pre>
+<h2 id="delegating-scripts">Delegating Scripts</h2>
+<p>If the target script is a subclass of <code>DelegatingScript</code>, its body is considered the content of the creation closure.
+For keyed classes, the key value is the script class's simple name.</p>
+<p>To create a delegating script, include it explicitly with an annotation:</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'uses a DelegatingScript class as keyed configuration content'</code>.)</p>
+<pre><code class="language-groovy">@BaseScript DelegatingScript base
+
+name 'Klaus'
+...
+</code></pre>
+<p>or configure <code>GroovyClassLoader</code> / <code>GroovyShell</code> with a <code>BaseScript</code> (see the Javadoc of <code>DelegatingScript</code> for details).</p>
+<p>For a <a rel="nofollow" href="../Usage/#schema-model-consumer">Usage#schema---model---consumer</a> setup, the most convenient solution is to configure the Model project with a
+compiler customizer.</p>
+<p>See the example projects for details.</p>
+<h2 id="script-and-delegating-script-for-collections-and-maps">Script and delegating script for collections and maps</h2>
+<p>For DSL element maps and collections, there is also a convenience method for creating multiple elements
+from a couple of scripts, each element in a single script. The generated method has the form
+<code>&lt;fieldName&gt;(Class&lt;? extends Script&gt;...)</code> for both maps and collections.</p>
+<p><code>Element.Create.AsBuilder.From(MyDelegatingScript)</code> now applies a <code>DelegatingScript</code> recipe to an unsealed Builder in the
+active root Construction session. It is intended for owning relationship machinery and does not start or complete a nested
+lifecycle. A regular Script that returns a completed model is an opaque materializing program and remains top-level-only.</p>
+<p>The generated collection/map overloads shown below route <code>DelegatingScript</code> classes through that active-session primitive,
+attach each Builder to the owner, and preserve keyed-map behavior. Regular Scripts that return completed models remain
+opaque and are rejected with migration guidance. See
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md">ADR 0004</a>.</p>
+<p>The intended <code>DelegatingScript</code> behavior allows splitting a bigger model into separate files:</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'applies DelegatingScript recipes to list and map relationship factories'</code>.)</p>
+<p>With the DSL</p>
+<pre><code class="language-groovy">@DSL class Container {
+    List&lt;Element&gt; elements
+}
+
+@DSL class Element { ... }
+</code></pre>
+<p>And the model:</p>
+<pre><code class="language-groovy">Container.Create.With {
+    elements(AScript, AnotherScript, ThirdScript)
+}
+</code></pre>
+<p>Materializing regular Script programs remain deliberately covered by the focused rejection tests in
+<code>ConvenienceFactoriesSpec</code>.</p>
+<h2 id="text">Text</h2>
+<p><code>MyConfig.Create.From(text)</code> or <code>MyConfig.Create.From(key, text)</code> handles the given text as the content of the creation
+closure.</p>
+<p>For example (see: <code>ConvenienceFactoriesDocumentaryTest#'loads keyed configuration from text'</code>):</p>
+<pre><code class="language-groovy">given:
+def content = '''
+    value(&quot;blub&quot;)
+'''
+
+when:
+def config = Config.Create.From(content)
+
+then:
+assert config.value == &quot;blub&quot;
+</code></pre>
+<p><code>Create.From()</code> can also take an optional class loader as its last parameter:</p>
+<pre><code class="language-groovy">Config.Create.From(content, Config.class.classLoader)
+</code></pre>
+<p>If no class loader is given, the current context class loader is used.</p>
+<h2 id="file-or-url">File or URL</h2>
+<p>Instead of text, a <code>File</code> or <code>URL</code> can be given; for a keyed object, the key is derived from the filename
+(the first segment, in the example above, the key would be &quot;bla&quot;). By using a small dsld-snippet in your IDE, you even
+get complete code completion and syntax highlighting an specialized config files.</p>
+<p>This allows splitting configurations into different files, which might be automatically resolved by something like:</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'derives a keyed configuration name from a file or URL'</code>.)</p>
+<pre><code class="language-groovy">Config.Create.With {
+    environments {
+        new File(&quot;envdir&quot;).eachFile { file -&gt; 
+            environment(Environment.Create.From(file)) 
+        }    
+    }
+}
+</code></pre>
+<p><strong>Note</strong>: <code>Create.From</code> does not support polymorphic creation. This might be added later,
+see: (<a rel="nofollow" href="https://github.com/klum-dsl/klum-core/issues/43">#43</a>)</p>
+<p>As with <code>Create.From(text)</code>, <code>Create.From(File|URL)</code> supports an additional class-loader parameter as well.</p>
+<h2 id="classpath">Classpath</h2>
+<p>Classpath discovery instantiates a model automatically from a properties file in the Model library. The Model needs one
+or more single entry points: instances that are usually present only once, such as the encompassing <code>Config</code> object.</p>
+<p>By placing a marker on the classpath, a consumer can instantiate this class without knowing the configuration class name.
+This moves the dependency from code into JAR orchestration or the build script.</p>
+<p>Given the following classes:</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'discovers a deployment entry point from its classpath marker'</code>.)</p>
+<p><code>Model.groovy</code>:</p>
+<pre><code class="language-groovy">package pk
+@DSL class Model {
+    // ... definitions, inner elements etc.
+}
+
+</code></pre>
+<p><code>Configuration.groovy</code>:</p>
+<pre><code class="language-groovy">package impl
+Model.Create.With {
+  // regular dsl code
+}
+</code></pre>
+<p>By including a separate properties file in the JAR of <a rel="nofollow" href="../Usage/#model">Usage#model</a>, this Model can automatically be instantiated. The
+file must be named <code>/META-INF/klum-model/&lt;schema-classname&gt;.properties</code> and contain the single <code>model-class</code> property,
+whose value is the fully qualified class name of the entry-point script (either a regular <code>Script</code> or a
+<code>DelegatingScript</code>):</p>
+<p><code>/META-INF/klum-model/pk.Model.properties</code></p>
+<pre><code class="language-properties">model-class: impl.Configuration
+</code></pre>
+<p>This allows the code consuming the model to simply obtain it via:</p>
+<pre><code class="language-groovy">def model = Model.Create.FromClasspath()
+</code></pre>
+<p>Using this technique, the same consumer can work with different Models (often from different packages) without changing
+or injecting the Model class name.</p>
+<h2 id="map">Map</h2>
+<p>Using <code>FromMap</code>, an object can be created from a <code>Map</code>. This is a form of “poor man's deserialization,” where each entry
+in the <code>Map</code> is mapped to a similarly named field of the new object. The object's class can be overridden with the
+special <code>@type</code> key in the <code>Map</code>, either as a fully qualified class name or as a name relative to the base type's
+package. The type can also use the stripped name defined by <code>@DSL.stripSuffix()</code>.</p>
+<p><code>@Owner</code> and <code>@Role</code> fields are not set during creation. Because <code>FromMap</code> is a regular creator method, objects created
+by it undergo the regular lifecycle phases, including owner, role, and default-value handling.</p>
+<p>Builder-producing extension paths can use <code>Create.AsBuilder.FromMap(map)</code> during an active root Construction session. The
+result must be attached to an owned relationship in that same session; the outer graph performs ownership, materialization,
+and validation.</p>
+<p>Library-specific features such as renamed fields can be simulated by overriding <code>FromMap</code> in a custom factory and
+adjusting the effective <code>Map</code> before calling the superclass method.</p>
+<p>Creation of inner objects delegates to their respective <code>FromMap</code> methods.</p>
+<p>(See: <code>ConvenienceFactoriesDocumentaryTest#'adapts external map keys in a custom factory'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Person {
+    String firstName
+    String lastName
+ 
+    static class Factory extends KlumFactory.Unkeyed&lt;Person&gt; {
+        protected Factory() { super(Person) }
+
+        @Override
+        Person FromMap(Map&lt;String, Object&gt; map) {
+            Map&lt;String, Object&gt; transformedMap = map.collectEntries { k, v -&gt;
+                // transform key from kebap to camel case
+             [(k as String).tokenize('-').collect { it.capitalize() }.join('').uncapitalize(), v]
+            }
+            return super.FromMap(transformedMap)
+        }
+    }
+} 
+
+def person = Person.Create.FromMap(['first-name': 'Klaus', 'last-name': 'Müller'])
+
+assert person.firstName == 'Klaus'
+assert person.lastName == 'Müller'
+</code></pre>
+<p>For String values, some simple transformations are applied:</p>
+<ul>
+<li>enums are resolved by name</li>
+<li>primitive types are converted via <code>asType</code></li>
+<li>existing <a rel="nofollow" href="../Converters/">Converters</a> are used to convert the string to the target type</li>
+</ul>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jackson Integration — KlumAST 4.0.0-rc.2</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.2 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="./">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="./">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="jackson-integration">Jackson Integration</h1>
+<p>The 4.0 Jackson integration is an interoperability boundary, not a persistence format. Its explicit importer API is
+available through <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/klum-ast-jackson/src/main/java/com/blackbuild/klum/ast/jackson/KlumJacksonImporter.java"><code>KlumJacksonImporter</code></a>;
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/464">issue #464</a> supplies the executable asymmetric YAML tracer.</p>
+<p>KlumAST provides optional Jackson integration in the <code>klum-ast-jackson</code> module. Its purpose is interoperability with
+externally owned JSON/YAML formats:</p>
+<ul>
+<li>import foreign structured data into the Klum Builder lifecycle so linkage, defaults, validation, and other phases can
+enrich it;</li>
+<li>serialize a completed DSL Object as the ordinary Jackson POJO projection required by another tool.</li>
+</ul>
+<p>Import and export are intentionally asymmetric. KlumAST does not define a JSON/YAML persistence format, does not promise
+that exported data can be imported again, and does not add format or producer metadata. A Groovy model script remains the
+native durable representation of a Klum model.</p>
+<p><a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md">ADR 0009</a> defines the
+interoperability contract and supersedes ADR 0007's persistence framing. <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/439">Issues #439</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/440">#440</a> provide the existing
+resolved-property, Builder, identity, and customization groundwork.</p>
+<h2 id="responsibilities-by-role">Responsibilities by Role</h2>
+<ul>
+<li>A <strong>Client Developer</strong> supplies a configured mapper, invokes managed import, and writes completed models through normal
+Jackson APIs.</li>
+<li>A <strong>Schema Developer</strong> adapts foreign formats with Jackson annotations, converters, LINK projections, and lifecycle
+behavior.</li>
+<li>A <strong>Model Writer</strong> can combine Groovy-authored and YAML-authored model parts without knowing Jackson or Builder internals.</li>
+<li>In Layer 3, the <strong>Domain API Developer</strong> defines the consumer-facing model contract independently of the concrete Schema.</li>
+</ul>
+<p>See <a rel="nofollow" href="../Terms/">Terms</a> for the project-wide role definitions.</p>
+<h2 id="setup">Setup</h2>
+<h3 id="gradle-with-the-schema-plugin-preferred">Gradle with the Schema Plugin (Preferred)</h3>
+<p>The Schema plugin imports the matching KlumAST BOM. Add the optional Jackson integration without repeating the version:</p>
+<pre><code class="language-groovy">dependencies {
+    implementation 'com.blackbuild.klum.ast:klum-ast-jackson'
+}
+</code></pre>
+<p>See <a rel="nofollow" href="../Usage/#gradle-setup-supported">Usage#gradle-setup-supported</a> for the supported plugin and BOM setup.</p>
+<h3 id="manual-gradle-dependency">Manual Gradle Dependency</h3>
+<p>For a custom build that does not use the plugin, keep the Jackson module on the same KlumAST version as the other modules:</p>
+<pre><code class="language-groovy">dependencies {
+    implementation 'com.blackbuild.klum.ast:klum-ast-jackson:&lt;klum-version&gt;'
+}
+</code></pre>
+<h3 id="maven-auxiliary">Maven (Auxiliary)</h3>
+<pre><code class="language-xml">&lt;dependencies&gt;
+ &lt;dependency&gt;
+  &lt;groupId&gt;com.blackbuild.klum.ast&lt;/groupId&gt;
+  &lt;artifactId&gt;klum-ast-jackson&lt;/artifactId&gt;
+  &lt;version&gt;...&lt;/version&gt;
+ &lt;/dependency&gt;
+&lt;/dependencies&gt;
+</code></pre>
+<h3 id="module-registration">Module Registration</h3>
+<p>Register the module through discovery or explicitly:</p>
+<pre><code class="language-java">ObjectMapper discovered = new ObjectMapper().findAndRegisterModules();
+ObjectMapper explicit = new ObjectMapper().registerModule(new KlumAstModule());
+</code></pre>
+<p>The mapper remains caller-owned. Naming strategies, mixins, views, root wrapping, unknown-property policy, formats,
+modules, and data-format factories stay under the integration's control.</p>
+<h2 id="managed-import">Managed Import</h2>
+<p><code>KlumJacksonImporter</code> resolves Jackson properties and binds them to generated Builders rather than partially initialized
+DSL Objects. Configure the caller-owned mapper with <code>KlumAstModule</code>, then capture one importer and provide one input per
+operation:</p>
+<p>(See: <code>JacksonImporterDocumentaryTest#'imports a completed release through the managed importer'</code>.)</p>
+<pre><code class="language-java">KlumJacksonImporter importer = KlumJacksonImporter.using(mapper);
+Order order = importer.readRoot(Order.class, KlumJacksonInput.parser(parser));
+Order recipe = importer.readTemplate(Order.class, KlumJacksonInput.tree(tree));
+Child_DSL.Builder child = importer.readBuilder(Child.Create.getAsBuilder(), KlumJacksonInput.map(values));
+Child_DSL.Builder sameChild = importer.applyToBuilder(child, KlumJacksonInput.map(overrides));
+</code></pre>
+<p>Groovy may use <code>Child.Create.AsBuilder</code>. The four operations are explicit:</p>
+<ol>
+<li>read a root and run one complete lifecycle;</li>
+<li>read a value-only Template without running lifecycle processing;</li>
+<li>create an imported Builder inside an active Construction session;</li>
+<li>apply an input to an existing unsealed Builder.</li>
+</ol>
+<p>The importer does not register modules or change mapper configuration. Parsers remain open and caller-owned;
+<code>named(&quot;config.yaml&quot;)</code> adds a diagnostic source name. Missing properties retain the current Builder value, while present
+values follow the caller's Jackson null, merge, and replacement configuration. Each operation applies one
+<code>KlumJacksonInput</code>; arrays, Maps, and YAML multi-document streams do not create a shared Klum lifecycle.</p>
+<p>For the importer snapshot, binding order, and Builder-state mechanics, see
+<a rel="nofollow" href="../Behind-the-Curtain/#managed-jackson-import-mechanics">Behind the Curtain#managed-jackson-import-mechanics</a>. Raw <code>ObjectMapper.readValue(DslType)</code> remains a discouraged
+standalone-root compatibility path; do not use it to start a DSL root inside an active Construction session.</p>
+<h2 id="one-foreign-yaml-input-one-enriched-output">One Foreign YAML Input, One Enriched Output</h2>
+<p>This is the deliberately asymmetric workflow. A Client Developer owns the YAML mapper and provides exactly one input;
+the Schema Developer owns foreign names, aliases, relationships, lifecycle enrichment, and the output projection.</p>
+<pre><code class="language-groovy">def mapper = new ObjectMapper(new YAMLFactory()).findAndRegisterModules()
+def deployment = KlumJacksonImporter.using(mapper).readRoot(
+        Deployment,
+        KlumJacksonInput.parser(mapper.factory.createParser('''
+legacy_deployment: storefront
+services: [{ id: api }]
+primary: api
+''')).named(&quot;foreign-deployment.yaml&quot;))
+
+mapper.writeValue(output, deployment) // lifecycle-derived output is an intentional addition
+</code></pre>
+<p>The output is not input for another lifecycle and it need not retain <code>legacy_deployment</code>; it is an ordinary Jackson
+projection of the completed model. This exact contract is exercised by
+<code>JacksonYamlInteroperabilityDocumentaryTest#imports one foreign YAML document through one Builder lifecycle and exports an enriched YAML projection</code>.
+YAML streams, repeated importer calls, and combinations of inputs do not define layering or overwrite policy; the
+source-neutral coordinator remains <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/304">#304</a>.</p>
+<h2 id="mapping-a-foreign-schema">Mapping a Foreign Schema</h2>
+<p>Use ordinary Jackson annotations and configuration to adapt an externally controlled format:</p>
+<pre><code class="language-groovy">import com.fasterxml.jackson.annotation.JsonAlias
+import com.fasterxml.jackson.annotation.JsonProperty
+
+@DSL
+class Policy {
+    @JsonProperty(&quot;public&quot;)
+    boolean publiclyVisible
+
+    @JsonAlias(&quot;legacy_name&quot;)
+    String name
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    String normalizedName
+
+    @PostApply
+    void normalize() {
+        normalizedName = name?.trim()
+    }
+}
+</code></pre>
+<p>Managed import honors property names and aliases, naming strategies, access/ignore rules, mixins, views,
+unknown-property policy, formats, Simple Value codecs, null/content policies, merge configuration, and polymorphic owned
+DSL subtypes.</p>
+<p>KlumAST still owns construction. <code>@JsonCreator</code>, direct completed-model mutation, and
+<code>@JsonDeserialize(builder = ...)</code> cannot replace generated Builder allocation and must fail clearly. An explicit
+type-level custom deserializer is a full opt-out; it receives no additional Klum lifecycle. Prefer a converter or a
+<code>FieldType.BUILDER</code> staging field populated into real fields during <code>PostApply</code> or a later Builder phase.</p>
+<h2 id="link-values"><code>LINK</code> Values</h2>
+<p><code>FieldType.LINK</code> is aggregation rather than owned composition. Import never interprets an inline object at a <code>LINK</code> field
+as an owned child. Use Jackson identity/reference metadata, a property converter, or lifecycle resolution; otherwise the
+input fails.</p>
+<p>The standard identity form is:</p>
+<pre><code class="language-groovy">import com.fasterxml.jackson.annotation.JsonIdentityInfo
+import com.fasterxml.jackson.annotation.JsonIdentityReference
+import com.fasterxml.jackson.annotation.ObjectIdGenerators
+
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator, property = &quot;id&quot;)
+@DSL
+class Service {
+    @Key String id
+}
+
+@DSL
+class Deployment {
+    List&lt;Service&gt; services
+
+    @Field(FieldType.LINK)
+    @JsonIdentityReference(alwaysAsId = true)
+    Service primary
+}
+</code></pre>
+<p>For export, the Schema Developer must choose a representation for every non-null LINK: identity/reference id, omission,
+scalar projection, custom structure, or deliberate inline projection. A custom serializer may therefore inline a value if
+the external format requires it, but owns recursion and cycle safety. Without an explicit choice, KlumAST fails rather than
+inventing a universal representation.</p>
+<h2 id="templates">Templates</h2>
+<p>Managed Template import is value-only and deliberately skips lifecycle processing. Applying that Template later copies its
+values and owned Template composition into fresh Builders and then follows normal Template behavior.</p>
+<p>Normal Jackson serialization rejects a marked Template because values cannot preserve executable recipe actions.
+Materialize a fresh ordinary model through <code>Template.With</code>, <code>copyFrom</code>, or another Template/copy API before serialization.
+An explicit type-level serializer is a deliberate opt-out and owns its output.</p>
+<h2 id="export">Export</h2>
+<p>There is no Klum export facade. Serialize a completed model through ordinary Jackson APIs:</p>
+<pre><code class="language-java">mapper.writeValue(outputStream, completedModel);
+</code></pre>
+<p>Lifecycle-derived and Jackson read-only values may appear even though they were not import inputs. Owner, Role, Builder
+state, and synthetic members remain omitted in 4.0. Explicit type-level serializers may project public model data and
+<code>KlumObjectSupport</code>; internal companion state is not a supported extension seam.</p>
+<h2 id="errors-and-compatibility">Errors and Compatibility</h2>
+<p>The 4.0 importer wraps syntax, mapping, and source-I/O failures in <code>KlumModelException</code>, preserving the original exception
+as the cause and contributing an import source plus Jackson property/index information to the construction path. Raw
+non-DSL Jackson operations retain their normal error behavior.</p>
+<p>KlumAST commits to the public importer API and managed Builder/lifecycle/customization semantics across 4.x. It does not
+commit to byte-for-byte output, property ordering, a universal wire schema, or round trips. External version fields are
+ordinary Schema data; any adapters for old or future variants belong in Schema-owned converters, staging DTOs/Builders, or
+custom deserializers.</p>
+<p><code>Create.FromMap</code> remains a separate value-copy convenience. It does not resolve Jackson property metadata and is not a
+substitute for managed import of a foreign format.</p>
+<h2 id="extend">Extend</h2>
+<p><code>KlumAstModule</code> can be subclassed to customize module registration. Its Builder-backed deserializer remains an internal
+implementation detail. Supported extension seams are normal Jackson property/value configuration, explicit type-level
+serializer/deserializer opt-outs, converters, and the public importer.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

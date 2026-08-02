@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Javadoc for models — KlumAST 4.0.0-rc.2</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.2 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="./">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="./">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="javadoc-for-models">Javadoc for models</h1>
+<p>KlumAST uses the <a rel="nofollow" href="https://github.com/blackbuild/anno-docimal">AnnoDocimal</a> library to generate natural Javadocs for
+factories and generated Builders. Their base documentation comes from the corresponding classes and methods in
+<code>klum-ast-runtime</code>, especially <code>KlumBuilder</code>, and is adapted to each generated method.</p>
+<p>KlumAST uses AnnoDocimal's supported documentation and source-projection APIs. A property comment is projected verbatim
+to its generated Model and Builder getter and setter; an explicit accessor comment remains authoritative. This can make
+generated wording more faithful to a property comment that is not a noun phrase.</p>
+<p>(See: <code>AnnoDocTest#'generated getters document model and Builder values'</code>.)</p>
+<pre><code class="language-groovy">@DSL class Release {
+    /** display name. */
+    String name
+
+    /** active flag. */
+    boolean active
+}
+</code></pre>
+<p>The generated Model and Builder accessors retain these property comments. Add an explicit accessor comment only when it
+needs to replace the property wording.</p>
+<p>For schema-defined methods, the Javadoc is taken from the method itself.</p>
+<h2 id="templating">Templating</h2>
+<p>The Javadocs of Builder base methods use templates to reduce boilerplate and customize the generated overloads.</p>
+<p>Example:</p>
+<p>For example, <code>KlumBuilder.createSingleChild</code> supplies documentation for generated methods that create or configure a
+single child Builder:</p>
+<pre><code class="language-java">    /**
+     * Creates a new '{{fieldName}}' Builder {{param:type?with the given type}} or configures the existing Builder.
+     * The resulting Builder is configured by the optional values and closure.
+     * @param namedParams the optional parameters
+     * @param fieldOrMethodName the name of the field to set or Builder method to call
+     * @param type the model type of the new Builder
+     * @param key the key to use for the new Builder
+     * @param body the closure used to configure the Builder
+     * @param &lt;T&gt; the generated Builder type
+     * @return the newly created or existing Builder
+     */
+public &lt;T&gt; T createSingleChild(Map&lt;String, Object&gt; namedParams, String fieldOrMethodName, Class&lt;T&gt; type,
+                               boolean explicitType, String key, Closure&lt;T&gt; body)
+</code></pre>
+<p>For a single field, more than one method is generated. For example:</p>
+<pre><code class="language-groovy">import java.lang.reflect.Field
+
+@DSL
+class MyModel {
+    @Field(members = &quot;child&quot;)
+    List&lt;Child&gt; children
+}
+</code></pre>
+<p>would create the following adder methods for the child field (provided child is keyless):</p>
+<ul>
+<li><code>child(Map&lt;String, Object&gt; namedParams, Closure body)</code></li>
+<li><code>child(Map&lt;String, Object&gt; namedParams)</code></li>
+<li><code>child(Closure body)</code></li>
+<li><code>child()</code></li>
+<li><code>child(Map&lt;String, Object&gt; namedParams, Class&lt;? extends Child&gt; type, Closure body)</code></li>
+</ul>
+<p>The closure delegate and return type are the generated child Builder. Its public spelling is the generated
+<code>Foo_DSL.Builder</code> interface; <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/394">issue #394</a> establishes this contract.</p>
+<p>AnnoDocimal drops parameter tags for arguments omitted by a generated overload. The main text is a template in which
+<code>{{...}}</code> placeholders are replaced with actual values:</p>
+<ul>
+<li><code>{{fieldName}}</code> is replaced by the field name.</li>
+<li><code>{{param:type?with the given type}}</code> is an optional text block, it will only be set, if the parameter type is present in the actual method.</li>
+</ul>
+<p>Collection and map element methods additionally use <code>{{singleElementName}}</code>, which defaults to the field name with a
+trailing <code>s</code> removed. An explicit <code>Field.members</code> value overrides that default.</p>
+<p>For more details, see the AnnoDocimal documentation.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
