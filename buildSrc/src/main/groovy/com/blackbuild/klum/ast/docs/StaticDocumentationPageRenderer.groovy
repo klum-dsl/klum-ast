@@ -59,35 +59,59 @@ class StaticDocumentationPageRenderer {
     static final String CONTRACT_ID = 'commonmark-java-static-html-v1'
     static final String COMMONMARK_VERSION = '0.28.0'
     static final String SITE_CSS = '''
-:root { color-scheme: light dark; --bg: #fff; --fg: #202124; --muted: #5f6368; --line: #d7dce1; --accent: #5b2ca0; --code: #f3f4f6; }
-@media (prefers-color-scheme: dark) { :root { --bg: #17181a; --fg: #eceff1; --muted: #b0b6bc; --line: #42464b; --accent: #c7a6ff; --code: #25282c; } }
+:root { --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --font-code: ui-monospace, "SFMono-Regular", Consolas, monospace; --klum-ink: #041321; --klum-ink-raised: #071b2c; --portal-blue: #8ec8eb; --season-gold: #a78411; --focus: #c96c4a; --page: #f6f0e8; --surface: #fffdf9; --text: #1c2938; --muted: #485360; --line: #d8d5cd; --link: #155d8b; --link-hover: #0f476c; --code: #edf3f6; color-scheme: light; }
 * { box-sizing: border-box; }
-body { margin: 0; color: var(--fg); background: var(--bg); font: 16px/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-a { color: var(--accent); }
-.site-header { border-bottom: 1px solid var(--line); }
+html { background: var(--page); }
+body { margin: 0; color: var(--text); background: var(--page); font: 400 17px/1.65 var(--font-ui); }
+a { color: var(--link); text-decoration-thickness: .08em; text-underline-offset: .15em; }
+a:hover { color: var(--link-hover); }
+a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.site-header { color: #f9f6f1; background: linear-gradient(112deg, var(--klum-ink), var(--klum-ink-raised)); border-bottom: 2px solid rgb(142 200 235 / .42); }
 .site-header__inner, .layout, .site-footer { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
-.site-header__inner { display: flex; gap: 1rem; align-items: center; justify-content: space-between; padding: .8rem 0; }
-.brand { display: inline-flex; gap: .65rem; align-items: center; color: var(--fg); font-weight: 700; text-decoration: none; }
-.brand img { width: 2rem; height: 2rem; object-fit: contain; }
-.version-badge { color: var(--muted); font-size: .9rem; }
-.layout { display: grid; grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr); gap: 2rem; padding: 1.5rem 0 3rem; }
-.sidebar { border-right: 1px solid var(--line); padding-right: 1rem; }
-.sidebar ul { padding-left: 1.2rem; }
-.content { min-width: 0; }
-.status-banner { border: 1px solid var(--line); border-left: .35rem solid var(--accent); padding: .75rem 1rem; margin-bottom: 1.5rem; }
-pre, code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
-code { background: var(--code); padding: .1em .25em; border-radius: .2rem; }
-pre { overflow: auto; padding: 1rem; background: var(--code); border-radius: .3rem; }
-pre code { padding: 0; }
-table { border-collapse: collapse; display: block; overflow-x: auto; }
-th, td { border: 1px solid var(--line); padding: .4rem .65rem; text-align: left; }
+.site-header__inner { display: flex; gap: 1.25rem; align-items: center; justify-content: space-between; min-height: 6.25rem; }
+.brand { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
+.brand img { width: 12.75rem; height: 4.25rem; object-fit: contain; }
+.version-badge { display: grid; justify-items: end; gap: .05rem; color: #dcebf2; font-size: .84rem; line-height: 1.35; }
+.layout { display: grid; grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr); gap: clamp(1.75rem, 4vw, 3.5rem); align-items: start; padding: clamp(1.75rem, 4vw, 3.5rem) 0 5rem; }
+.skip-link { position: absolute; z-index: 2; top: .5rem; left: .5rem; padding: .35rem .65rem; color: var(--klum-ink); background: var(--surface); transform: translateY(-180%); }
+.skip-link:focus { transform: translateY(0); }
+.sidebar { padding: .25rem 1.25rem .5rem 0; border-right: 1px solid var(--line); font-size: .95rem; }
+.sidebar__compact { display: none; }
+.sidebar__wide > ul, .sidebar__compact nav > ul { display: grid; gap: .8rem; margin: 0; padding: 0; list-style: none; }
+.sidebar__wide > ul > li, .sidebar__compact nav > ul > li { color: var(--muted); font-size: .74rem; font-weight: 750; letter-spacing: .09em; line-height: 1.35; text-transform: uppercase; }
+.sidebar__wide > ul > li > a, .sidebar__compact nav > ul > li > a { display: block; padding: .05rem 0; color: var(--muted); text-decoration: none; }
+.sidebar__wide > ul > li > ul, .sidebar__compact nav > ul > li > ul { display: grid; gap: .22rem; margin: .4rem 0 0; padding: 0 0 0 .75rem; border-left: 1px solid #d9e2e5; list-style: none; }
+.sidebar__wide > ul > li > ul a, .sidebar__compact nav > ul > li > ul a { display: block; padding: .1rem 0; color: var(--muted); font-size: .91rem; font-weight: 400; letter-spacing: normal; line-height: 1.45; text-decoration: none; text-transform: none; }
+.sidebar a:hover { color: var(--link); }
+.sidebar__wide > p, .sidebar__compact nav > p { margin: 1.2rem 0 0; padding-top: .95rem; border-top: 1px solid var(--line); font-size: .85rem; }
+.content { min-width: 0; max-width: 48rem; }
+.content h1, .content h2, .content h3 { color: var(--klum-ink); line-height: 1.18; letter-spacing: -.022em; }
+.content h1 { margin: 0 0 1.1rem; font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 600; }
+.content h2 { margin: 2.5rem 0 .75rem; font-size: 1.52rem; font-weight: 600; }
+.content h3 { margin: 1.75rem 0 .5rem; font-size: 1.12rem; font-weight: 700; }
+.content h1 code, .content h2 code, .content h3 code { padding: 0; color: #12364c; background: transparent; border-radius: 0; font: 650 1em/1 var(--font-code); }
+.content p, .content ul, .content ol { margin: 0 0 1.1rem; }
+.content li + li { margin-top: .25rem; }
+.content code { padding: .12em .3em; color: #12364c; background: var(--code); border-radius: .22rem; font: .88em/1.3 var(--font-code); }
+.content pre { overflow: auto; margin: 1.3rem 0; padding: 1.15rem 1.25rem; color: #173446; background: var(--code); border: 1px solid #d8e1e5; border-radius: .45rem; }
+.content pre code { padding: 0; background: transparent; }
+.content blockquote { margin: 1.5rem 0; padding: .15rem 1rem; color: var(--muted); border-left: .25rem solid var(--portal-blue); }
+.content table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; }
+.content th, .content td { padding: .55rem .65rem; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+.content th { color: var(--klum-ink); background: #f5f3ed; }
 img { max-width: 100%; height: auto; }
-.site-footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--muted); }
-@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 1rem; } }
+.season-lockup { display: block; margin: 0 0 2rem; border: 1px solid #183447; box-shadow: 0 .5rem 1.5rem rgb(4 19 33 / .14); }
+.season-lockup img { display: block; width: 100%; }
+.status-banner { margin-bottom: 2rem; padding: .85rem 1rem; color: #4f4217; background: #fff9e9; border: 1px solid #e4d5a7; border-left: .35rem solid var(--season-gold); }
+.site-footer { padding: 1.25rem 0 2rem; color: var(--muted); border-top: 1px solid var(--line); font-size: .9rem; }
+@media (max-width: 760px) { .site-header__inner { min-height: 5.65rem; } .version-badge { font-size: .76rem; } .layout { grid-template-columns: 1fr; gap: 1.5rem; padding-top: 1.5rem; } .sidebar { padding: 0 0 1rem; border-right: 0; border-bottom: 1px solid var(--line); } .sidebar__wide { display: none; } .sidebar__compact { display: block; } .sidebar__compact summary { cursor: pointer; color: var(--klum-ink); font-size: .78rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; } .sidebar__compact[open] summary { margin-bottom: .9rem; } }
+@media (max-width: 420px) { body { font-size: 16px; } .site-header__inner, .layout, .site-footer { width: min(calc(100% - 1.25rem), 1120px); } .site-header__inner { min-height: 4.9rem; } .brand img { width: 12.75rem; height: 4.25rem; } .version-badge { display: none; } }
 '''.stripIndent().trim() + '\n'
 
     private static final List<Extension> EXTENSIONS = [TablesExtension.create()].asImmutable()
     private static final Pattern WIKI_LINK = Pattern.compile(/\[\[([^\]]+)]]/)
+    private static final Pattern SEASON_LOCKUP_IMAGE = Pattern.compile(/<p><img src="([^"]*klumast-season-4-documentation\.svg)" alt="([^"]*)" title="season-lockup" \/><\/p>/)
+    private static final Pattern SEASON_LOCKUP_MARKDOWN = Pattern.compile(/!\[[^\]]*]\(([^\s)]+klumast-season-4-documentation\.svg)\s+"season-lockup"\)/)
     private static final String WIKI_ROOT = '.klum-wiki-root/'
     private static final Set<String> IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'] as Set
 
@@ -109,7 +133,7 @@ img { max-width: 100%; height: auto; }
         Node document = parser().parse(prepared)
         Map<Node, String> headingIds = assignHeadingIds(document)
         rewriteLinks(document, sourcePath, outputPath, pageOutputs, repositoryRevision, repositorySourcePath, authoringRoot)
-        String content = htmlRenderer(headingIds).render(document)
+        String content = renderResponsiveSeasonLockup(htmlRenderer(headingIds).render(document))
         String navigation = renderFragment(navigationMarkdown, '_Sidebar.md', outputPath, pageOutputs, wikiPages)
         String footer = renderFragment(footerMarkdown, '_Footer.md', outputPath, pageOutputs, wikiPages)
 
@@ -124,6 +148,8 @@ img { max-width: 100%; height: auto; }
         String cssLink = relativeUrl(outputPath, 'assets/site.css')
         String logoPath = inputs.logoPath?.toString()
         String logo = logoPath ? "<img src=\"${escapeAttribute(relativeUrl(outputPath, logoPath))}\" alt=\"${escapeAttribute(inputs.logoAltText?.toString() ?: 'KlumAST')}\">" : ''
+        String sidebarContent = (navigation ?: "<p><a href=\"${escapeAttribute(homeLink)}\">Documentation</a></p>") +
+                "<p><a href=\"${escapeAttribute(apiLink)}\">API reference</a></p>"
 
         """<!doctype html>
 <html lang="en">
@@ -134,13 +160,20 @@ img { max-width: 100%; height: auto; }
   <link rel="stylesheet" href="${escapeAttribute(cssLink)}">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header"><div class="site-header__inner">
-    <a class="brand" href="${escapeAttribute(homeLink)}">${logo}<span>KlumAST</span></a>
+    <a class="brand" href="${escapeAttribute(homeLink)}">${logo}</a>
     <span class="version-badge">${escapeHtml(version)} · ${escapeHtml(statusLabel)}</span>
   </div></header>
   <div class="layout">
-    <nav class="sidebar" aria-label="Documentation">${navigation ?: "<p><a href=\"${escapeAttribute(homeLink)}\">Documentation</a></p>"}<p><a href="${escapeAttribute(apiLink)}">API reference</a></p></nav>
-    <main class="content">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation">${sidebarContent}</nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation">${sidebarContent}</nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
       <aside class="status-banner" data-status="${escapeAttribute(status)}">${escapeHtml(notice)} <a href="${escapeAttribute(statusLink)}">Version status</a>.</aside>
       ${content}
     </main>
@@ -298,6 +331,33 @@ img { max-width: 100%; height: auto; }
         String encoded = suffix.substring(hash + 1).replace('+', '%2B')
         String fragment = URLDecoder.decode(encoded, StandardCharsets.UTF_8)
         suffix.substring(0, hash + 1) + slug(fragment)
+    }
+
+    private static String renderResponsiveSeasonLockup(String html) {
+        Matcher matcher = SEASON_LOCKUP_IMAGE.matcher(html)
+        StringBuffer replaced = new StringBuffer()
+        while (matcher.find()) {
+            String full = matcher.group(1)
+            String compact = compactSeasonLockupPath(full)
+            String replacement = """<picture class="season-lockup">
+  <source media="(max-width: 1000px)" srcset="${compact}">
+  <img src="${full}" alt="${matcher.group(2)}">
+</picture>"""
+            matcher.appendReplacement(replaced, Matcher.quoteReplacement(replacement))
+        }
+        matcher.appendTail(replaced)
+        replaced.toString()
+    }
+
+    static Set<String> responsiveSeasonLockupSources(String markdown) {
+        Matcher matcher = SEASON_LOCKUP_MARKDOWN.matcher(markdown)
+        Set<String> sources = new LinkedHashSet<>()
+        while (matcher.find()) sources.add(matcher.group(1))
+        sources
+    }
+
+    static String compactSeasonLockupPath(String fullPath) {
+        fullPath.replaceFirst(/documentation\.svg$/, 'documentation-compact.svg')
     }
 
     static String relativeUrl(String fromOutputPath, String targetOutputPath) {

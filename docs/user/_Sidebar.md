@@ -1,18 +1,19 @@
-[[img/klumlogo.png]]
 * [[Home]]
-* Overview
-  * [[Why aC is not enough|Why `*aC` is not enough]]
+* Introduction
+  * [[Why aC is not enough|Why *\*aC* is not enough]]
   * [[Terms]]
-  * [[Usage]]
-  * [[Gradle Plugins]]
-  * [[Getting Started|Gradle onboarding]]
-  * [[Domain First Modeling]]
-  * [[Target Contract Modeling]]
+* Fundamentals
   * [[Basics]]
   * [[Model Phases]]
   * [[Exception Handling]]
   * [[Static Models]]
   * [[Javadoc|Javadoc for models]]
+* Project setup
+  * [[Usage]]
+  * [[Gradle Plugins]]
+  * [[Getting Started|Gradle onboarding]]
+  * [[Domain First Modeling]]
+  * [[Target Contract Modeling]]
 * Advanced Features
   * [[Behind the Curtain]]
   * [[Completed Object Support]]
