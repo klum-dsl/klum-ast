@@ -120,10 +120,10 @@ proves the clean SHA is on `master`, and rejects malformed identity or an existi
 only that revision with status `pending`; pending chrome and the `pending/<version>/<sha>/` path
 state that this is unlisted release-gate evidence, never a public RC, stable page, or alias.
 
-The caller uses `secrets: inherit` to forward caller-available secrets into the reusable workflow.
-The called writer job still resolves its Pages-writer credentials only in the protected
-`documentation-pages-writer` environment; it neither targets a release environment nor receives
-publication credentials.
+The caller uses `secrets: inherit` to forward its available secret set into the reusable workflow.
+The called writer job resolves the Pages-writer credentials from the protected
+`documentation-pages-writer` environment instead of requiring them as caller inputs; it neither
+targets a release environment nor receives publication credentials.
 
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
 and a small handoff below the protected `gh-pages` branch. It refuses an existing pending path,
