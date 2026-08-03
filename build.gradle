@@ -246,16 +246,10 @@ tasks.register("verifyReleaseVersion") {
     }
 }
 
-def sonatypePublicationTasks = subprojects.findAll { project ->
-    project.tasks.names.contains("publishToSonatype")
-}.collect { project ->
-    project.tasks.named("publishToSonatype")
-}
 def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatype") {
     group = "publishing"
     description = "Publishes every KlumAST Maven coordinate to one protected Sonatype staging repository."
     dependsOn tasks.named("verifyReleaseVersion")
-    dependsOn sonatypePublicationTasks
 }
 def closeSonatypeRepository = tasks.named("closeSonatypeStagingRepository")
 def releaseSonatypeRepository = tasks.named("releaseSonatypeStagingRepository")
@@ -269,12 +263,27 @@ def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduc
     dependsOn publishGradlePlugins
 }
 
-sonatypePublicationTasks.each { publicationTask ->
-    publicationTask.configure {
-        dependsOn tasks.named("verifyReleaseVersion")
-        doFirst {
-            if (!gradle.taskGraph.hasTask(publishMavenProductToSonatype.get()))
-                throw new GradleException("Use publishCompleteKlumAstProduct; individual Maven publication is forbidden.")
+gradle.projectsEvaluated {
+    def sonatypePublicationTasks = subprojects.findAll { project ->
+        project.tasks.names.contains("publishToSonatype")
+    }.collect { project ->
+        project.tasks.named("publishToSonatype")
+    }
+
+    if (sonatypePublicationTasks.empty)
+        throw new GradleException("No KlumAST Maven publications are configured for the Sonatype staging repository.")
+
+    publishMavenProductToSonatype.configure {
+        dependsOn sonatypePublicationTasks
+    }
+
+    sonatypePublicationTasks.each { publicationTask ->
+        publicationTask.configure {
+            dependsOn tasks.named("verifyReleaseVersion")
+            doFirst {
+                if (!gradle.taskGraph.hasTask(publishMavenProductToSonatype.get()))
+                    throw new GradleException("Use publishCompleteKlumAstProduct; individual Maven publication is forbidden.")
+            }
         }
     }
 }
