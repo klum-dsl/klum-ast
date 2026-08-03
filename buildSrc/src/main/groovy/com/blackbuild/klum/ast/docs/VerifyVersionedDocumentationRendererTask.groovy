@@ -329,6 +329,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         String baseConventions = new File(project.rootDir, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
         assertContains(baseConventions, 'gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")',
                 'protected complete-product publication must require Maven signatures')
+        assertContains(baseConventions, 'useInMemoryPgpKeys(signingKey, signingPassword)',
+                'protected in-memory signing credentials must configure a Gradle signatory')
 
         def localEntryTask = project.tasks.named('renderLocalDocumentation').get()
         def localPreviewTask = project.tasks.named('previewLocalDocumentation').get()
