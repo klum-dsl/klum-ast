@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Migration — KlumAST 4.0.0-rc.6</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.6 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="./">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="./">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="migration">Migration</h1>
+<h2 id="to-40">To 4.0</h2>
+<p>4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated <code>apply</code>, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new <code>INSTANTIATE</code> phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship values or ordinary Jackson export values, and deferred Builder actions cannot be scheduled at phase 40 or later. Jackson is an asymmetric external-format integration rather than Klum persistence and adds no wire metadata.</p>
+<p>See the dedicated <a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a> guide for the complete migration checklist and compatibility breaks, plus
+<a rel="nofollow" href="../Templates/">Templates</a>, <a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a>, and <a rel="nofollow" href="../Model-Phases/">Model Phases</a> for materialization boundaries and <a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a> for
+foreign-data import and ordinary POJO export.</p>
+<p>For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
+and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
+use repeated imports as a Jackson-specific merge/layering mechanism; <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/304">#304</a>
+owns source-neutral composition.</p>
+<h3 id="named-modules-and-groovy">Named modules and Groovy</h3>
+<p>Groovy 3 remains an ordinary-classpath configuration. Do not add a KlumAST
+<code>module-info.java</code> to a Groovy 3 schema or compensate with JVM module flags.</p>
+<p>Groovy 4 and 5 schemas may be named modules and must require
+<code>org.apache.groovy</code>, the annotations/runtime modules, and <code>requires static com.blackbuild.klum.ast.compiler</code>; add adapter modules only when used. A schema
+that uses Jackson and Jakarta Bean Validation has this narrow descriptor shape:</p>
+<pre><code class="language-java">module example.schema {
+    requires com.blackbuild.klum.ast.annotations;
+    requires com.blackbuild.klum.ast.runtime;
+    requires static com.blackbuild.klum.ast.compiler;
+    requires com.blackbuild.klum.ast.jackson;
+    requires com.blackbuild.klum.ast.validation.bean;
+    requires org.apache.groovy;
+
+    exports example.schema;
+    opens example.schema to com.blackbuild.klum.ast.runtime,
+        com.fasterxml.jackson.databind,
+        org.hibernate.validator;
+}
+</code></pre>
+<p>Keep the runtime opening for generated Builder lifecycle/materialization. Add
+the Jackson and Hibernate Validator targets only when those adapters inspect
+the schema; do not substitute <code>--add-reads</code>, <code>--add-exports</code>, or
+<code>--patch-module</code> flags.</p>
+<p>The Schema plugin validates this user-owned descriptor through
+<code>validateKlumSchemaModule</code>, which is part of <code>check</code> and Maven publication. It
+reports copyable missing <code>requires</code> and qualified <code>opens</code> directives but never
+rewrites <code>module-info.java</code>. The generated <code>Foo_DSL</code> mirrors used for IntelliJ
+completion are not module sources, compiler inputs, or publication inputs.</p>
+<p>Recompile schemas and clients for 4.0. Java-serialized 3.x graphs are not 4.0
+migration inputs, and Java serialization is not a cross-version persistence
+format; own external compatibility data and migrations in the Schema.</p>
+<h3 id="custom-validation-reporting">Custom validation reporting</h3>
+<p><code>Validator</code> and <code>ValidatorBase</code> are removed in 4.0; there is no source or binary compatibility adapter. In lifecycle
+methods, lifecycle closures, and validation classes, replace their shortcuts with
+<code>KlumSchemaSupport.getKlumValidation()</code> (Groovy's <code>klumValidation</code> property) and its <code>error</code>, <code>errorAt</code>, <code>issue</code>,
+<code>issueAt</code>, <code>suppressOn</code>, or <code>suppressAll</code> operations. Use
+<code>KlumSchemaSupport.klumValidationForObject(target)</code> only when a lifecycle callback must report an issue on an explicit
+object. It retains that object's construction path and does not alter lifecycle ordering. The separate #406 compiler
+restriction remains a later placement check; it is not a migration fallback.</p>
+<h2 id="klumcast-04-rc-dependencies">KlumCast 0.4 RC dependencies</h2>
+<p>KlumAST 4.0 uses the immutable KlumCast <code>0.4.0-rc.2</code> artifact set: <code>klum-cast-annotations</code>, <code>klum-cast-spi</code>, and
+<code>klum-cast-compile</code>. Its stable automatic module names are <code>com.blackbuild.klum.cast.annotations</code>,
+<code>com.blackbuild.klum.cast.spi</code>, and <code>com.blackbuild.klum.cast.compiler</code>; do not substitute filename-derived names or use
+local module-path flags to compensate for an invalid dependency graph.</p>
+<p>Recompile schemas and custom checks when moving to KlumAST 4.0. KlumAST's built-in name-bound checks use KlumCast's
+durable stateless <code>Check</code> SPI and report structured, source-positioned diagnostics. Custom checks must implement that SPI;
+the deprecated compatibility adapter is only a temporary migration aid for external consumers (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/460">#460</a>).</p>
+<h2 id="to-22">To 2.2</h2>
+<p><code>toString()</code> methods are not automatically generated anymore, to restore the old behavior, add the <code>@ToString</code> annotation to the classes.
+<code>manualValidation</code> has been dropped, as it does not work with stackable issues. This feature can be simulated by either downgrading the issues on the object at hand or skipping the Verify phase and handling errors manually</p>
+<h2 id="to-21">To 2.1</h2>
+<p>It is strongly advised to first update to 2.0 and the to 2.1.</p>
+<p>2.1 drops all deprecated methods of 2.0. Since they are documented, replacing them with their new counterparts should be straightforward.</p>
+<h2 id="to-20">To 2.0</h2>
+<p>The sections below describe historical migration steps and may show APIs, such as completed-model <code>apply</code>, that were
+subsequently removed in 4.0. Apply the historical migration first, then follow <a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a>.</p>
+<h2 id="validation-now-throws-klumvalidationexception">Validation now throws KlumValidationException</h2>
+<p>which wraps <code>KlumValidationResult</code>s for the validated objects, each containing the relevant <code>KlumValidationIssue</code>s. Previously, an AssertionError was thrown, so calling code might need to be adjusted.</p>
+<h2 id="multiple-inner-create-calls-on-the-same-field-or-key-in-a-map-field-now-stack-instead-of-replacing">Multiple Inner Create Calls on the Same Field (or Key in a Map Field) Now Stack Instead of Replacing</h2>
+<p>Previously, multiple calls to the same inner create method would replace the previous value.</p>
+<pre><code class="language-groovy">Foo.Create.With {
+    bar {
+        value = 1
+        anotherValue = 2
+    }
+    bar {
+        anotherValue = 3
+    }
+}
+</code></pre>
+<p>Previously, the second call of &quot;bar&quot; would result in a new object, i.e. the object created by the first call would be
+replaced, resulting in:</p>
+<pre><code class="language-groovy">foo.bar.anotherValue == 3
+foo.bar.value == null
+</code></pre>
+<p>Now those calls stack, so the result would be:</p>
+<pre><code class="language-groovy">foo.bar.anotherValue == 3
+foo.bar.value == 1
+</code></pre>
+<p>This is especially useful for using deep templates to set the first object:</p>
+<pre><code class="language-groovy">def template = Foo.Create.Template {
+    bar {
+        value = 1
+        anotherValue = 2
+    }
+}
+
+Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar {
+          anotherValue = 3
+      }
+  }
+}
+</code></pre>
+<p>If the existing object does not match the new object (either because a different key is provided or specific type is given that is
+different from the existing type), an Exception is thrown. In that case, the behaviour can be explicitly overridden by using
+either apply or a setter (to explicitly merge or replace):</p>
+<pre><code class="language-groovy">Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar.apply { // explicitly force merge
+          anotherValue = 3
+      }
+  }
+}
+</code></pre>
+<p>or</p>
+<pre><code class="language-groovy">Foo.withTemplate(template) {
+  Foo.Create.With {
+      bar = Bar.Create.With { // explicitly force overwrite
+          anotherValue = 3
+      }
+  }
+}
+</code></pre>
+<h2 id="default-values-are-actually-set-not-only-returned">Default Values are actually set, not only returned</h2>
+<p>This makes objects used in copyFrom behave differently. Previously, the copyFrom methode explicitly ignored default values,
+now they would be copied as well if already set. This can lead to different results if the copy source a) is not a template
+object and b) was created outside the current phase run.</p>
+<p>If the object was created outside the phase run, it will most likely be a template, so using the <code>Create.Template()</code>
+creator method (or the deprecated <code>createAsTemplate()</code> method) will lead to the same result as before.</p>
+<h2 id="owners-are-now-set-in-the-owner-phase">Owners are now set in the owner phase</h2>
+<p>Previously, they have been set before apply was called, so <code>apply</code> had already access to the owner, which could be
+used in separate scripts. Any logic accessing the owner must be placed in a later phase (for example AutoLink or PostTree).</p>
+<p>This also holds true for methods using default values populated by the owner.</p>
+<p><code>PostApply</code> methods accessing the owner must also be move to a later phase (or split).</p>
+<h2 id="layer-3-linkto-relationships">Layer 3 <code>@LinkTo</code> relationships</h2>
+<p>In 4.0, <code>@LinkTo</code> is an <code>OPTIONAL_LINK</code> relationship by default. A local Builder created in the current construction
+session remains owned composition; an already owned Builder or a completed DSL Object is an aggregation target. This
+preserves the usual Layer 3 pattern in which a local value overrides an Auto-Link fallback.</p>
+<p>Use <code>@Field(FieldType.LINK) @LinkTo</code> when the field must be aggregation-only. Ordinary relationships remain
+composition-only and reject completed or already claimed Builders. Custom <code>@AutoLink</code> code that previously overwrote a
+configured value must use <code>builder.link(fieldName, target)</code> for an explicit non-destructive fallback instead.</p>
+<h2 id="deprecation-validation-annotation-validate">Deprecation: Validation annotation -&gt; Validate</h2>
+<p><code>@Validation.mode()</code> is replaced by phases and thus ignored. <code>Validation.Option.IGNORE_UNMARKED</code> is default anyway, so
+the only useful variation of the annotation is <code>@Validation(option=VALIDATE_UNMARKED)</code>, which is replaced by <code>@Validate</code>
+on class level.</p>
+<h2 id="deprecation-factory-methods-factory-class">Deprecation: Factory methods -&gt; Factory class</h2>
+<p>All static factory methods on DSL classes are deprecated in favor of a single <code>Create</code> class field which encapsulates all
+relevant factory methods.</p>
+<p>The following factory calls should be renamed:</p>
+<table>
+<thead>
+<tr>
+<th>Old</th>
+<th>New</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Foo.create()</code></td>
+<td><code>Foo.Create.One()</code></td>
+</tr>
+<tr>
+<td><code>Foo.create(...)</code></td>
+<td><code>Foo.Create.With(...)</code></td>
+</tr>
+<tr>
+<td><code>Foo.createFrom(...)</code></td>
+<td><code>Foo.Create.From()</code></td>
+</tr>
+<tr>
+<td><code>Foo.createAsTemplate(...)</code></td>
+<td><code>Foo.Create.Template(...)</code></td>
+</tr>
+<tr>
+<td><code>Foo.createFromClasspath(...)</code></td>
+<td><code>Foo.Create.FromClasspath(...)</code></td>
+</tr>
+</tbody>
+</table>
+<p>NOTE that in addition to <code>.One()</code> for empty factory calls, <code>.With()</code> is also working, but since it makes for a strange
+sounding call is deprecated and only present to allow a simple search and replace.</p>
+<h2 id="dependency-changes">Dependency changes</h2>
+<p>For 2.0, the single klum-ast dependency is replaced by two KlumAST is split into three distinct jars:</p>
+<h3 id="klum-ast-annotations"><code>klum-ast-annotations</code></h3>
+<p>Does not usually need to be addressed directly except in very special cases, since it is a dependency of both of
+the other jars.</p>
+<h3 id="klum-ast"><code>klum-ast</code></h3>
+<p>Contains the actual AST transformations, i.e. the core of KlumAST. These need to be present during compile-time only
+and need not be present on runtime (usually it should be safe if they are).</p>
+<h3 id="klum-ast-runtime"><code>klum-ast-runtime</code></h3>
+<p>Contains classes needed during runtime.</p>
+<h3 id="compileonly-vs-runtime-scope"><code>compileOnly</code> vs. Runtime Scope</h3>
+<p>Since klum-ast now relies on a runtime component, a schema now should have two separate dependencies, <code>klum-ast</code> as
+<code>compileOnly</code> (<code>provided</code> for Maven) and and <code>klum-ast-runtime</code> as <code>api</code>  (<code>runtime</code> for Maven), i.e.:</p>
+<pre><code class="language-groovy">dependencies {
+  compileOnly 'com.blackbuild.klum.ast:klum-ast:&lt;version&gt;'
+  implementation 'com.blackbuild.klum.ast:klum-ast-runtime:&lt;version&gt;'
+}
+</code></pre>
+<p>or</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;com.blackbuild.klum.ast&lt;/groupId&gt;
+    &lt;artifactId&gt;klum-ast&lt;/artifactId&gt;
+    &lt;version&gt;...&lt;/version&gt;
+    &lt;optional&gt;true&lt;/optional&gt;
+  &lt;/dependency&gt;
+  &lt;dependency&gt;
+    &lt;groupId&gt;com.blackbuild.klum.ast&lt;/groupId&gt;
+    &lt;artifactId&gt;klum-ast-runtime&lt;/artifactId&gt;
+    &lt;version&gt;...&lt;/version&gt;
+    &lt;scope&gt;runtime&lt;/scope&gt;
+  &lt;/dependency&gt;
+&lt;/dependencies&gt;
+</code></pre>
+<h2 id="to-12">To 1.2</h2>
+<h2 id="delegateonly-strategy-for-closures">DelegateOnly Strategy for closures</h2>
+<p>Closures are all <code>DelegateOnly</code> instead of the previous <code>DelegateFirst</code>. This means that you cannot access
+methods of an outer object directly (which would not be very intuitive). If you need this functionality,
+you need to access the outer object directly, using the <code>owner</code> property of <code>Closure</code>, an <code>@Owner</code> field
+of the outer instance or a local variable pointing to the targeted instance.</p>
+<p>Instead of:</p>
+<pre><code class="language-groovy">Foo.create {
+    bar {
+        methodInFoo()
+    }
+}
+</code></pre>
+<p>Write instead:</p>
+<pre><code class="language-groovy">Foo.create {
+    bar {
+        owner.methodInFoo() // owner is property of Closure
+    }
+}
+</code></pre>
+<p>Note that naming an <code>@Owner</code> field actually <code>owner</code> leads to the field being overshadowed
+by the owner field of the closure. While this is usually not a problem, it might cause failures
+when used inside a Collection-Factory:</p>
+<pre><code class="language-groovy">@DSL
+class Bar {
+  @Owner
+  Foo owner
+}
+
+Foo.create {
+    bars {
+        bar {
+            // owner points to the owner of the closure, i.e. the collection factory, so this will fail:
+            owner.doSomething()
+        }
+    }
+}
+</code></pre>
+<p>Calling the owner field (or any other field) actually <code>owner</code> leads to a compiler warning (which might
+eventually be replace with a compiler error). Consider using a more domain specific field name like
+<code>graph</code> or <code>parent</code> is advisable.</p>
+<h2 id="breaking-changes-since-098">Breaking changes since 0.98</h2>
+<ul>
+<li>
+<p>Models are now read-only. That means changes to fields can only be done:</p>
+<ul>
+<li>inside an apply or create block</li>
+<li>inside a lifecycle method</li>
+<li>Note that it is still possible to some extend to change code from methods inside the class, however this
+is strongly discouraged. It is planned to include a way to mark mutation methods with an annotation. Such methods
+should be automatically moved to RW as well.
+If you access mutators from outside of these methods, you will get compiler errors upon updating to KlumAST 0.98+. In
+that case, surround the offending code with an apply closure.</li>
+</ul>
+<p>Before:</p>
+<pre><code class="language-groovy">model.value('bla')
+model.name = 'Hans'
+</code></pre>
+<p>After:</p>
+<pre><code class="language-groovy">model.apply {
+  value('bla')
+  name = 'Hans'
+}
+</code></pre>
+</li>
+</ul>
+<h2 id="breaking-changes-since-017">Breaking changes since 0.17</h2>
+<p>the following features were dropped:</p>
+<ul>
+<li>
+<p>pre using existing <code>create</code> and <code>apply</code> methods is no longer supported, this has been replaced by a lifecycle mechanism
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-core/issues/38">#38</a>), see <a rel="nofollow" href="../Basics/#lifecycle-methods">Basics#lifecycle-methods</a></p>
+</li>
+<li>
+<p>named alternatives for dsl collections</p>
+</li>
+<li>
+<p>shortcut named mappings</p>
+</li>
+<li>
+<p>under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)</p>
+</li>
+<li>
+<p>member names must now be unique across hierarchies (i.e. it is illegal to annotate two collections with the same
+members value)</p>
+</li>
+<li>
+<p>the implicit template feature is deprecated and will eventually be dropped (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-core/issues/34">#34</a>),
+it basically uses global variables, which is of course bad design</p>
+<p>The suggested way to use templates would be to explicitly call copyFrom() as first step in a template using configuration
+or using the new named parameters (<code>Model.create(copyFrom: myTemplate) {..}</code>)</p>
+<p>Alternatively, the new <code>withTemplate(s)</code> mechanism can be used (see <a rel="nofollow" href="../Templates/">Template Mechanism</a>)</p>
+</li>
+</ul>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
