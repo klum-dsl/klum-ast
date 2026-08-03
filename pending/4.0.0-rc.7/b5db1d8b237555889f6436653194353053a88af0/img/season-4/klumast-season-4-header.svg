@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1980" height="660" viewBox="300 100 1980 660" role="img" aria-labelledby="title desc">
+  <title id="title">KlumAST Season 4 header lockup</title>
+  <desc id="desc">The KlumAST wordmark sits beside a luminous portal, two unroped graphite stanchions, and a catwalk that softly dissolves before the icon crop.</desc>
+  <defs>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#041321"/>
+      <stop offset="1" stop-color="#071b2c"/>
+    </linearGradient>
+    <radialGradient id="portalLight" cx="44%" cy="42%" r="80%">
+      <stop offset="0" stop-color="#fffdf9"/>
+      <stop offset="0.7" stop-color="#f6f0e8"/>
+      <stop offset="1" stop-color="#ede5dc"/>
+    </radialGradient>
+    <linearGradient id="runway" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#fbf6ef"/>
+      <stop offset="1" stop-color="#eee4d8"/>
+    </linearGradient>
+    <linearGradient id="cone" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9bceea" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#5da4d0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="shadow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#485360" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#27313e" stop-opacity=".12"/>
+    </linearGradient>
+    <filter id="portalGlow" x="-25%" y="-20%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="shadowBlur" x="-20%" y="-20%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="soften" x="-20%" y="-20%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+    <pattern id="runwayPattern" width="30" height="26" patternUnits="userSpaceOnUse" patternTransform="skewX(-29)">
+      <path d="M0 0H30M0 13H30M15 0V26" fill="none" stroke="#cfc5b9" stroke-opacity=".19" stroke-width="1"/>
+    </pattern>
+    <clipPath id="runwayClip">
+      <path d="M340 611H584L1472 945H669Z"/>
+    </clipPath>
+
+    <!-- Restrained atmospheric embellishments; all remain editable vectors. -->
+    <filter id="guide-glow" x="-60%" y="-25%" width="220%" height="150%"><feGaussianBlur stdDeviation="2.4"/></filter>
+    <filter id="frame-glare" x="-17%" y="-17%" width="134%" height="134%"><feGaussianBlur stdDeviation="6.2"/></filter>
+    <filter id="god-ray-soften" x="-20%" y="-20%" width="150%" height="150%"><feGaussianBlur stdDeviation="12"/></filter>
+    <linearGradient id="receding-seam" gradientUnits="userSpaceOnUse" x1="421" y1="611" x2="350" y2="565">
+      <stop offset="0" stop-color="#c9bcae" stop-opacity=".30"/>
+      <stop offset=".68" stop-color="#c9bcae" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#c9bcae" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Approved faceted vector shadow, with a directionally increasing blur. -->
+    <linearGradient id="shadow-vector-tone" gradientUnits="userSpaceOnUse" x1="470" y1="611" x2="1114" y2="945">
+      <stop offset="0" stop-color="#1c2938" stop-opacity=".62"/>
+      <stop offset=".44" stop-color="#1c2938" stop-opacity=".46"/>
+      <stop offset="1" stop-color="#1c2938" stop-opacity=".20"/>
+    </linearGradient>
+    <linearGradient id="crisp-reveal" gradientUnits="userSpaceOnUse" x1="470" y1="611" x2="1114" y2="945">
+      <stop offset="0" stop-color="white"/><stop offset=".42" stop-color="white"/>
+      <stop offset=".80" stop-color="black"/><stop offset="1" stop-color="black"/>
+    </linearGradient>
+    <linearGradient id="soft-reveal" gradientUnits="userSpaceOnUse" x1="470" y1="611" x2="1114" y2="945">
+      <stop offset="0" stop-color="black"/><stop offset=".30" stop-color="black"/>
+      <stop offset=".72" stop-color="white"/><stop offset="1" stop-color="white"/>
+    </linearGradient>
+    <mask id="crisp-shadow"><rect width="1680" height="945" fill="url(#crisp-reveal)"/></mask>
+    <mask id="soft-shadow"><rect width="1680" height="945" fill="url(#soft-reveal)"/></mask>
+    <filter id="far-shadow-soften" x="-12%" y="-25%" width="130%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>
+    <g id="approved-shadow-vector"><!-- Derived from the approved manual PNG; path data is editable vector geometry. -->
+<path d="M 469 607 L 494 621 L 502 628 L 501 633 L 478 620 Z M 521 643 L 597 690 L 733 758 L 747 769 L 870 818 L 961 873 L 1114 945 L 920 942 L 856 903 L 809 885 L 771 860 L 723 838 L 690 797 L 577 710 L 539 687 L 529 679 L 529 670 L 700 784 L 733 792 L 740 798 L 745 797 L 744 792 L 665 738 L 532 661 L 521 652 Z M 738 817 L 760 839 L 784 854 L 834 869 L 823 857 L 784 838 L 765 823 Z M 854 830 L 883 856 L 914 867 L 872 836 Z" fill="url(#shadow-vector-tone)" fill-rule="evenodd"/>
+</g>
+    <linearGradient id="post-shadow-tone" gradientUnits="userSpaceOnUse" x1="410" y1="630" x2="1170" y2="945">
+      <stop offset="0" stop-color="#1c2938" stop-opacity=".50"/>
+      <stop offset=".42" stop-color="#1c2938" stop-opacity=".37"/>
+      <stop offset="1" stop-color="#1c2938" stop-opacity=".045"/>
+    </linearGradient>
+    <filter id="post-shadow-soft" x="-14%" y="-18%" width="130%" height="140%"><feGaussianBlur stdDeviation="7.5"/></filter>
+    <filter id="rope-glow" x="-35%" y="-30%" width="170%" height="160%"><feGaussianBlur stdDeviation="1.8"/></filter>
+    <linearGradient id="lower-edge-dissolve" gradientUnits="userSpaceOnUse" x1="0" y1="730" x2="0" y2="760">
+      <stop offset="0" stop-color="#071b2c" stop-opacity="0"/>
+      <stop offset="1" stop-color="#071b2c" stop-opacity=".92"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="2280" height="945" fill="url(#ink)"/>
+  <path d="M0 0H540L0 470Z" fill="#0a2033" opacity=".26"/>
+  <path d="M0 792L340 610V945H0Z" fill="#082037" opacity=".25"/>
+  <path d="M584 610C700 590 790 590 935 700L660 945H340Z" fill="#0e2a3e" opacity=".14"/>
+
+  <!-- threshold light is deliberately quiet -->
+  <path d="M340 607C430 588 515 591 651 642L522 676C444 630 386 624 332 642Z" fill="#8ec8eb" opacity=".22" filter="url(#portalGlow)"/>
+  <path d="M570 608C685 605 790 625 886 680L685 676C635 642 606 628 567 626Z" fill="url(#cone)" opacity=".38" filter="url(#soften)"/>
+  <path d="M340 610C282 632 246 662 212 710L373 655C429 631 474 625 512 629Z" fill="url(#cone)" opacity=".3" filter="url(#soften)"/>
+
+  <!-- catwalk -->
+  <path d="M340 611H584L1472 945H669Z" fill="url(#runway)"/>
+  <path d="M340 611H584L1472 945H669Z" fill="url(#runwayPattern)" opacity=".74"/>
+  <path d="M340 611H584L1472 945" fill="none" stroke="#fffaf2" stroke-opacity=".65" stroke-width="2"/>
+
+  <!-- Large, sparse tile seams reinforce the catwalk perspective. -->
+  <g clip-path="url(#runwayClip)" fill="none" stroke="#c9bcae" stroke-opacity=".28" stroke-width="1.15">
+    <path d="M421 611L936 945M503 611L1205 945"/>
+    <path d="M378 650H688M438 710H847M497 770H1007M556 830H1166M615 890H1326"/>
+  </g>
+
+
+  <!-- portal: one chamfer, exact threshold end -->
+  <path d="M340 611V167L396 110H584V611Z" fill="url(#portalLight)"/>
+  <!-- I4b refinement: two restrained backstage planes give the aperture depth at small scale. -->
+  <path d="M455 110H584V611H548C547 412 518 223 455 110Z" fill="#d8e8ef" opacity=".19"/>
+  <path d="M396 110H455C518 223 547 412 548 611H519C494 408 454 237 396 110Z" fill="#ffffff" opacity=".20"/>
+
+  <path d="M340 611V167L396 110H584" fill="none" stroke="#fffaf5" stroke-width="2" stroke-opacity=".92"/>
+  <path d="M584 110V611" fill="none" stroke="#e2ddd6" stroke-width="2" stroke-opacity=".55"/>
+
+  <!-- soft glare rides the portal edge without thickening its geometry. -->
+  <path d="M340 611V167L396 110H584V611" fill="none" stroke="#8bc9e9" stroke-width="11" stroke-opacity=".50" filter="url(#frame-glare)"/>
+  <!-- The left tile seam continues straight through the threshold and vanishes. -->
+  <g fill="none" stroke="url(#receding-seam)" stroke-width="1.15">
+    <path d="M421 611L350 565"/>
+  </g>
+  <!-- I4: post bases are on the catwalk immediately in front of the portal. -->
+  <g clip-path="url(#runwayClip)" fill="#1c2938">
+    <!-- Rays from (410,630)–(430,630) and (510,630)–(530,630) through the
+         runway vanishing point (197,466): no field is invented between them. -->
+    <path d="M410 630H430L878 945H820Z" fill="url(#post-shadow-tone)"/>
+    <path d="M510 630H530L1170 945H1112Z" fill="url(#post-shadow-tone)"/>
+    <g filter="url(#post-shadow-soft)" opacity=".30">
+      <path d="M410 630H430L878 945H820Z"/>
+      <path d="M510 630H530L1170 945H1112Z"/>
+    </g>
+  </g>
+  <g stroke-linecap="round" stroke-linejoin="round">
+
+    <g fill="none" stroke="#1c2938">
+      <path d="M420 480V624" stroke-width="8" stroke-opacity=".94"/>
+      <path d="M520 480V624" stroke-width="8" stroke-opacity=".94"/>
+      <path d="M400 630Q420 616 440 630" stroke-width="6.5" stroke-opacity=".88"/>
+      <path d="M500 630Q520 616 540 630" stroke-width="6.5" stroke-opacity=".88"/>
+    </g>
+    <g fill="none" stroke="#cbdde5" stroke-width="1.7" stroke-opacity=".90">
+      <path d="M423 486V619"/><path d="M523 486V619"/>
+    </g>
+    <g fill="#263746" stroke="#d4e4ea" stroke-width="1.4">
+      <circle cx="420" cy="476" r="8.5"/><circle cx="520" cy="476" r="8.5"/>
+    </g>
+
+  </g>
+
+  <!-- Optical crop correction: the runway dissolves before the otherwise invisible canvas edge. -->
+  <rect x="300" y="730" width="1050" height="30" fill="url(#lower-edge-dissolve)"/>
+
+  <!-- Fixed CoreText outline preserves the approved portal-to-wordmark relationship. -->
+  <path id="header-wordmark" d="M 43.160000000000004 398.6 L 43.42 398.6 L 131.04 315.91999999999996 L 157.82 315.91999999999996 L 65.0 399.38 L 163.02 500.0 L 135.46 500.0 L 43.42 401.98 L 43.160000000000004 401.98 L 43.160000000000004 500.0 L 24.44 500.0 L 24.44 315.91999999999996 L 43.160000000000004 315.91999999999996 Z M 207.88 500.0 L 190.2 500.0 L 190.2 303.44 L 207.88 303.44 Z M 346.6 500.0 Q 346.08000000000004 495.06 345.82000000000005 489.08 Q 345.56 483.1 345.56 479.2 L 345.04 479.2 Q 339.84000000000003 489.86 328.14 496.49 Q 316.44 503.12 303.44 503.12 Q 280.3 503.12 268.73 489.34 Q 257.16 475.56 257.16 452.94 L 257.16 378.32 L 274.84000000000003 378.32 L 274.84000000000003 445.65999999999997 Q 274.84000000000003 455.28 276.40000000000003 463.08 Q 277.96000000000004 470.88 281.73 476.47 Q 285.5 482.06 291.87 485.18 Q 298.24 488.3 307.86 488.3 Q 314.88 488.3 321.51 485.44 Q 328.14 482.58 333.34000000000003 476.73 Q 338.54 470.88 341.66 461.90999999999997 Q 344.78000000000003 452.94 344.78000000000003 440.72 L 344.78000000000003 378.32 L 362.46000000000004 378.32 L 362.46000000000004 473.22 Q 362.46000000000004 478.16 362.72 485.96 Q 362.98 493.76 363.5 500.0 Z M 429.68 399.12 Q 434.88 388.46 445.67 381.83 Q 456.46000000000004 375.2 469.72 375.2 Q 474.66 375.2 479.99 376.24 Q 485.32000000000005 377.28 490.39 380.27 Q 495.46000000000004 383.26 499.75 388.2 Q 504.04 393.14 507.16 400.94 Q 513.4 388.46 524.19 381.83 Q 534.98 375.2 549.8 375.2 Q 572.94 375.2 584.51 388.98 Q 596.08 402.76 596.08 425.38 L 596.08 500.0 L 578.4000000000001 500.0 L 578.4000000000001 432.65999999999997 Q 578.4000000000001 413.42 571.25 401.72 Q 564.1 390.02 546.94 390.02 Q 537.32 390.02 530.69 393.92 Q 524.0600000000001 397.82 520.03 404.19 Q 516.0 410.56 514.1800000000001 418.62 Q 512.36 426.68 512.36 435.26 L 512.36 500.0 L 494.68 500.0 L 494.68 429.02 Q 494.68 420.18 493.38 412.9 Q 492.08000000000004 405.62 488.83000000000004 400.55 Q 485.58000000000004 395.48 479.86 392.75 Q 474.14 390.02 465.3 390.02 Q 459.06 390.02 452.69 392.88 Q 446.32 395.74 441.25 401.59000000000003 Q 436.18 407.44 433.06 416.40999999999997 Q 429.94 425.38 429.94 437.6 L 429.94 500.0 L 412.26 500.0 L 412.26 405.1 Q 412.26 400.15999999999997 412.0 392.36 Q 411.74 384.56 411.22 378.32 L 428.12 378.32 Q 428.64 383.26 428.90000000000003 389.24 Q 429.16 395.22 429.16 399.12 Z M 644.58 500.0 L 624.0400000000001 500.0 L 703.6 315.91999999999996 L 721.8000000000001 315.91999999999996 L 800.84 500.0 L 780.0400000000001 500.0 L 759.76 451.64 L 664.6 451.64 Z M 671.62 434.48 L 752.74 434.48 L 712.1800000000001 336.72 Z M 920.0600000000001 345.56 Q 914.08 337.24 904.72 332.16999999999996 Q 895.36 327.1 882.1 327.1 Q 875.34 327.1 868.32 329.18 Q 861.3000000000001 331.26 855.58 335.54999999999995 Q 849.86 339.84000000000003 846.35 346.34000000000003 Q 842.84 352.84000000000003 842.84 361.68 Q 842.84 370.52 846.22 376.24 Q 849.6 381.96 855.19 385.99 Q 860.7800000000001 390.02 867.9300000000001 392.62 Q 875.08 395.22 882.8800000000001 397.82 Q 892.5 400.94 902.25 404.58 Q 912.0 408.22 919.8000000000001 414.07 Q 927.6 419.92 932.5400000000001 428.89 Q 937.48 437.86 937.48 451.64 Q 937.48 465.42 932.1500000000001 475.43 Q 926.82 485.44 918.3700000000001 491.94 Q 909.9200000000001 498.44 899.1300000000001 501.56 Q 888.34 504.68 877.4200000000001 504.68 Q 869.1 504.68 860.7800000000001 502.99 Q 852.46 501.3 844.9200000000001 497.92 Q 837.3800000000001 494.54 830.8800000000001 489.34 Q 824.3800000000001 484.14 819.44 477.38 L 835.5600000000001 465.42 Q 841.5400000000001 475.3 852.33 481.93 Q 863.12 488.56 877.6800000000001 488.56 Q 884.7 488.56 891.98 486.35 Q 899.2600000000001 484.14 905.11 479.59 Q 910.96 475.04 914.73 468.41 Q 918.5 461.78 918.5 452.94 Q 918.5 443.32 914.73 436.95 Q 910.96 430.58 904.72 426.28999999999996 Q 898.48 422.0 890.4200000000001 419.14 Q 882.36 416.28 873.5200000000001 413.42 Q 864.4200000000001 410.56 855.58 406.92 Q 846.74 403.28 839.72 397.43 Q 832.7 391.58 828.4100000000001 383.0 Q 824.12 374.42 824.12 361.94 Q 824.12 348.68 829.45 339.06 Q 834.7800000000001 329.44 843.36 323.2 Q 851.94 316.96 862.34 314.1 Q 872.74 311.24 882.8800000000001 311.24 Q 901.6 311.24 914.86 317.87 Q 928.1200000000001 324.5 934.8800000000001 333.6 Z M 1034.8600000000001 500.0 L 1016.1400000000001 500.0 L 1016.1400000000001 332.56 L 954.5200000000001 332.56 L 954.5200000000001 315.91999999999996 L 1096.48 315.91999999999996 L 1096.48 332.56 L 1034.8600000000001 332.56 Z" transform="translate(765.4 0)" fill="#f9f6f1"/>
+</svg>

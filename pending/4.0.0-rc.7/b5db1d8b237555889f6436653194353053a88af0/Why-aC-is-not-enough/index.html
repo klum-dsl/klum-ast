@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Why *aC is not enough — KlumAST 4.0.0-rc.7</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.7 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="./">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="./">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="why-ac-is-not-enough">Why <em>*aC</em> is not enough</h1>
+<p><em>*aC</em> means “anything as code”: Infrastructure as Code, Configuration as Code, Policy as Code, and similar practices.
+The point of this deliberately provocative title is not that those practices fail. They make important promises; the
+question is whether a configuration stored in Git has earned the same confidence as ordinary software.</p>
+<h2 id="what-ac-already-does-well">What <em>*aC</em> already does well</h2>
+<p>When inputs, versions, and the target environment are controlled, the same configuration should produce the same result.
+Version control also gives the configuration a reviewable history and a clear change lifecycle. These are real strengths.</p>
+<p>Tooling can be strong too: editors can offer completion, schemas can reject malformed documents, and generated or
+handwritten documentation can explain available fields. In many document-oriented systems, however, those helpers are
+separate, domain-specific artifacts. The consumer, its document schema, and its documentation must still evolve together.
+They can make a structure understandable without proving that it represents a useful domain model.</p>
+<h2 id="the-testing-gap">The testing gap</h2>
+<p>Many <em>*aC</em> workflows make syntax checks and target-environment integration tests straightforward. They do not prevent a
+team from writing unit tests, but the model often has no natural unit-test seam: important failures are first discovered
+only when a deployment, controller, or remote API receives the configuration.</p>
+<p>That leaves a costly feedback loop. A change can be syntactically valid and accepted by a document schema while still
+violating a domain rule, selecting incompatible values, or producing the wrong target projection. Integration tests
+remain necessary for the real target, but they are usually slower and depend on more external state than a local model
+test.</p>
+<h2 id="what-klumast-adds">What KlumAST adds</h2>
+<p>A KlumAST Schema is executable model knowledge, not just a description of document shape:</p>
+<ul>
+<li>Schema-specific rules can be declared with <a rel="nofollow" href="../Validation/">validation annotations and methods</a>. A generated root factory
+materializes the model and runs validation, so every ordinary construction is an opportunity to reject an invalid
+model before it reaches a target.</li>
+<li>A Model Writer can construct representative configurations with <code>Create.With</code> and assert the completed model or its
+validation result in an ordinary unit test. These tests run quickly without contacting the target when their assertions
+are model-local.</li>
+<li>The same test suite can run in a pull-request build before a change reaches the main branch. The repository's Gradle
+onboarding starts with exactly this small <code>Create.With</code> test; the GitOps examples add target-contract conformance tests
+where a target projection matters.</li>
+</ul>
+<p>This is not a claim that KlumAST replaces acceptance or integration testing. It moves the domain checks that belong to a
+model into a fast, local layer of the testing pyramid and leaves target behavior to the appropriate outer tests.</p>
+<h2 id="keep-domain-knowledge-with-the-schema">Keep domain knowledge with the Schema</h2>
+<p>The Schema Developer can keep constraints, defaults, relationship rules, and source documentation near the model they
+describe. Generated Builder Javadocs reuse that source documentation; generated IDE mirrors expose the same construction
+surface for completion. This separates concerns cleanly: the schema owns domain rules, Model Writers own concrete
+configuration, and clients consume completed models through their public contract. See <a rel="nofollow" href="../Terms/">Terms</a> and <a rel="nofollow" href="../Javadoc/">Javadoc</a>.</p>
+<p>For a target-contract case such as Helm values, the target remains authoritative. A project can use a validated KlumAST
+authoring model and test an explicit target projection against representative target values. See
+<a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a>.</p>
+<h2 id="current-standalone-script-boundary">Current standalone-script boundary</h2>
+<p>The supported onboarding path is Gradle. A project-less standalone-script route is not an established documented user
+journey. Do not treat this page as an <code>@Grab</code> support promise; the release documentation still needs a maintained example
+and an identified owner before any such route can be recommended.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
