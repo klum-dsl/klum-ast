@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exception handling — KlumAST 4.0.0-rc.5</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.5 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="./">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="./">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="exception-handling">Exception handling</h1>
+<p>KlumAST supports a hierarchy of Exception to signal problems in the various <a rel="nofollow" href="../Model-Phases/">phases of the model lifecycle</a>.
+The hierarchy is as follows:</p>
+<h2 id="klumexception">KlumException</h2>
+<p>The KlumException is the base class for all exceptions thrown by KlumAST. It contains a reference to the phase in which the exception occurred.</p>
+<h2 id="klummodelexception">KlumModelException</h2>
+<p>The KlumModelException is thrown when a problem occurs during the creation of the model. It contains a reference to the
+position in model setup where the exception was thrown: its construction path, a string that mimics methods and closures
+used in the DSL.</p>
+<p>This is NOT the path of the object in the actual model tree, but the path in the DSL script that was used to create the model. This is useful to identify the location of the problem in the script. This also includes objects generated by Templates or nested scripts.</p>
+<p>(See: <code>ExceptionHandlingDocumentaryTest#'reports the DSL location for a model-creation error'</code>.)</p>
+<p>For example, configuring a single nested service twice with different keys reports the second DSL call as the source of
+the model-creation error:</p>
+<pre><code class="language-groovy">try {
+    Deployment.Create.With {
+        service 'blue'
+        service 'green'
+    }
+} catch (KlumModelException error) {
+    assert error.breadCrumbPath.endsWith('/service(green)')
+}
+</code></pre>
+<p>Examples:</p>
+<p>A model created from a script (Using <code>Foo.Create.From(File)</code>) will result in the prefix: <code>$/Foo.From:file(&lt;filename&gt;)</code>. If
+given filename contains a script with the following content, the various construction paths will be created:</p>
+<pre><code class="language-groovy">name &quot;bla&quot;
+
+// $/Foo.From:file(myFile)
+
+bars {
+    // $/Foo.From:file(myFile)/bars
+    bar {
+        // $/Foo.From:file(myFile)/bars/bar
+        name &quot;bar1&quot;
+    }
+    bar {
+        // $/Foo.From:file(myFile)/bars/bar[2]
+        name &quot;bar2&quot;
+    }
+}
+</code></pre>
+<p>Besides being part of the exception, the construction path is transferred from the Builder into the completed object's
+serializable Model companion. The runtime's <code>BreadcrumbCollector</code> remains the internal mechanism that assembles it. A
+construction path is not a structural model path, traversal path, import source, validation location, or provenance/lineage
+record. Use public exception and path utilities rather than <code>KlumInstanceProxy</code>, which is now a Builder-only compatibility
+adapter.</p>
+<h2 id="klumschemaexception">KlumSchemaException</h2>
+<p>The KlumSchemaException is thrown when a problem occurs during realization of a model, but likely to be originated in the schema, as opposed to the actual model. Misplaced annotations or wrong types are the most common causes for this exception.</p>
+<h2 id="klumvisitorexception">KlumVisitorException</h2>
+<p>The KlumVisitorException is thrown when a problem occurs during the traversal of the model tree, usually as part of the execution of a phase. It contains a reference to the object in the model tree that caused the exception.</p>
+<h2 id="klumvalidationexception">KlumValidationException</h2>
+<p>A <code>KlumValidationException</code> is thrown when a validation fails. It contains a list of <code>KlumValidationResult</code>s, each holding the <code>KlumValidationIssue</code>s for a single object, sorted by their occurring object.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Domain-first modeling (4.0 preview) — KlumAST 4.0.0-rc.5</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.5 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="./">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="./">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="domain-first-modeling-40-preview">Domain-first modeling (4.0 preview)</h1>
+<blockquote>
+<p>This is a 4.0 preview pending field testing. Use the documentation that matches the KlumAST version you adopt; <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/456">#456</a> owns versioned documentation and Javadocs.</p>
+</blockquote>
+<p>Domain-first modeling starts from the domain a completed model must represent. The model is the canonical abstraction, and
+adapters translate it for a dashboard, automation hub, report, or other target. That differs from <a rel="nofollow" href="../Target-Contract-Modeling/">target-contract modeling</a>, where an existing technical contract remains authoritative.</p>
+<h2 id="choose-the-consumer-boundary">Choose the consumer boundary</h2>
+<p>Choose this independently from domain-first versus target-contract:</p>
+<ul>
+<li><strong><a rel="nofollow" href="../Layer3/">Layer 3</a></strong> fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.</li>
+<li><strong>Direct-schema</strong> fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.</li>
+</ul>
+<p>Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should not depend on concrete Schema types; it is not a requirement for every domain-first project. The wider terminology, variants, and policy remain under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/454">#454</a>, so this guide does not treat an example as a new contract.</p>
+<h2 id="smart-home-journey">Smart-home journey</h2>
+<p>The executable fixture at <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/bc087b4c0ed49286e1ecd3644198634c0acae2ce/agent-skills/fixtures/domain-first-smart-home"><code>agent-skills/fixtures/domain-first-smart-home</code></a> follows one complete journey:</p>
+<ol>
+<li>The Domain API Developer defines generic <code>Home</code>, <code>Room</code>, <code>Window</code>, and device/provider types. Cluster projections make the fixed floorplan available without exposing its Schema classes.</li>
+<li>The Schema Developer realizes one CityFlat floorplan with named Kitchen, LivingRoom, MainBedroom, and garden/street Window fields. <code>@DefaultValues</code> supplies the Schema-owned visible labels; validation distinguishes mandatory installed-device categories from optional sensors.</li>
+<li>The Model Writer configures installed devices in a separate registered Model script through <code>CityFlat.Create.With</code>, selecting provider-specific Builder types such as <code>TadoThermostat</code> and <code>HomematicThermostat</code>.</li>
+<li>The Client Developer's <code>client-demo</code> accepts only generic <code>Home</code>, walks the Cluster projections, and asks a speculative service for Window state.</li>
+</ol>
+<p>The fixture's <code>SmartHomeJourneyDocumentaryTest</code> is the documentary test of that complete path. Its <code>loads a floorplan-specific Model and lets a generic client inspect every window</code> feature loads the registered Model and exercises the API-only client. Run it from this repository checkout:</p>
+<pre><code class="language-shell">./gradlew -p agent-skills/fixtures/domain-first-smart-home test
+</code></pre>
+<p>The fixture stops at durable Model configuration and an API-only client boundary. A later showcase could compose provider classes with live readings, or generate OpenHAB Things/devices without a backchannel to the Model. Neither runtime behavior nor OpenHAB integration is a contract of this Layer 3 journey.</p>
+<h2 id="agentic-use">Agentic use</h2>
+<p>Use the portable <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/bc087b4c0ed49286e1ecd3644198634c0acae2ce/agent-skills/build-domain-first-schema/SKILL.md"><code>build-domain-first-schema</code></a> skill to adapt the workflow. It points to the fixture rather than copying its large example. <code>author-klum-model</code> remains the shared Model Writer workflow; use it when creating the separate registered Model script and its executable test.</p>
+<h3 id="field-test">Field test</h3>
+<p>For a real-project evaluation, begin with the fixture's <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/bc087b4c0ed49286e1ecd3644198634c0acae2ce/agent-skills/fixtures/domain-first-smart-home/field-test/SMART-HOME-BRIEF.md">field-test brief</a> and use its <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/bc087b4c0ed49286e1ecd3644198634c0acae2ce/agent-skills/fixtures/domain-first-smart-home/FIELD-TEST.md">prompt</a>. Record the project’s two architectural choices, its completed-model and API-only client evidence, and one concrete friction point. A newly exposed Layer 3 behavior or vocabulary question belongs in a focused maintainer decision, not in an accidental extension of this journey.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
