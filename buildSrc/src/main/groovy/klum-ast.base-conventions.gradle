@@ -43,6 +43,10 @@ publishing.publications.configureEach {
 
 afterEvaluate {
     signing {
+        def signingKey = findProperty("signingKey")
+        def signingPassword = findProperty("signingPassword")
+        if (signingKey)
+            useInMemoryPgpKeys(signingKey, signingPassword)
         required = {
             gradle.taskGraph.hasTask("publish") ||
                     gradle.taskGraph.hasTask("publishToMavenLocal") ||
