@@ -254,6 +254,7 @@ def publishMavenProductToSonatype = tasks.register("publishMavenProductToSonatyp
 def closeSonatypeRepository = tasks.named("closeSonatypeStagingRepository")
 def releaseSonatypeRepository = tasks.named("releaseSonatypeStagingRepository")
 def closeSonatypeStagingRepository = tasks.named("closeAndReleaseSonatypeStagingRepository")
+def assembleGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("assemble")
 def publishGradlePlugins = project(":klum-ast-gradle-plugin").tasks.named("publishPlugins")
 def publishCompleteKlumAstProduct = tasks.register("publishCompleteKlumAstProduct") {
     group = "publishing"
@@ -274,6 +275,7 @@ gradle.projectsEvaluated {
         throw new GradleException("No KlumAST Maven publications are configured for the Sonatype staging repository.")
 
     publishMavenProductToSonatype.configure {
+        dependsOn assembleGradlePlugins
         dependsOn sonatypePublicationTasks
     }
 

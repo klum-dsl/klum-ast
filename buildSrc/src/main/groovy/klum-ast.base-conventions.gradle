@@ -43,7 +43,11 @@ publishing.publications.configureEach {
 
 afterEvaluate {
     signing {
-        required = { gradle.taskGraph.hasTask("publish") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+        required = {
+            gradle.taskGraph.hasTask("publish") ||
+                    gradle.taskGraph.hasTask("publishToMavenLocal") ||
+                    gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")
+        }
         publishing.publications.configureEach {
             sign it
         }
@@ -58,4 +62,3 @@ license {
     exclude("mockup/**")
     strictCheck = true
 }
-
