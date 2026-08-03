@@ -305,6 +305,22 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         if (!directDependencies.containsAll(expectedDependencies))
             throw new GradleException("Exact-version rendering must depend on every allowed module Javadoc task; actual direct dependencies: $directDependencies")
         assertTrue(!directDependencies.contains(':klum-ast-bom:javadoc'), 'BOM must not be wired into exact-version API rendering')
+
+        def mavenPublicationTask = project.tasks.named('publishMavenProductToSonatype').get()
+        Set<String> mavenPublicationDependencies = mavenPublicationTask.taskDependencies.getDependencies(mavenPublicationTask)*.path as Set
+        Set<String> expectedMavenPublicationDependencies = project.subprojects.findAll { subproject ->
+            subproject.tasks.findByName('publishToSonatype') != null
+        }.collect { subproject ->
+            ":${subproject.name}:publishToSonatype".toString()
+        } as Set
+        assertTrue(!expectedMavenPublicationDependencies.empty,
+                'the protected Maven publication aggregate must discover at least one Sonatype publication task')
+        assertTrue(mavenPublicationDependencies.containsAll(expectedMavenPublicationDependencies),
+                "the protected Maven publication aggregate must depend on every Sonatype publication task; actual direct dependencies: $mavenPublicationDependencies")
+        def closeStagingTask = project.tasks.named('closeSonatypeStagingRepository').get()
+        assertTrue(closeStagingTask.taskDependencies.getDependencies(closeStagingTask).contains(mavenPublicationTask),
+                'closing the protected Sonatype staging repository must require Maven publication first')
+
         def localEntryTask = project.tasks.named('renderLocalDocumentation').get()
         def localPreviewTask = project.tasks.named('previewLocalDocumentation').get()
         def localVerifyTask = project.tasks.named('verifyLocalDocumentationSite').get()
