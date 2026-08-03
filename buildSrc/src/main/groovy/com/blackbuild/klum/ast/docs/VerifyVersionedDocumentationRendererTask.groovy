@@ -320,6 +320,9 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         def closeStagingTask = project.tasks.named('closeSonatypeStagingRepository').get()
         assertTrue(closeStagingTask.taskDependencies.getDependencies(closeStagingTask).contains(mavenPublicationTask),
                 'closing the protected Sonatype staging repository must require Maven publication first')
+        String baseConventions = new File(project.rootDir, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
+        assertContains(baseConventions, 'gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")',
+                'protected complete-product publication must require Maven signatures')
 
         def localEntryTask = project.tasks.named('renderLocalDocumentation').get()
         def localPreviewTask = project.tasks.named('previewLocalDocumentation').get()
