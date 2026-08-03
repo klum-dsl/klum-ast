@@ -317,9 +317,15 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the protected Maven publication aggregate must discover at least one Sonatype publication task')
         assertTrue(mavenPublicationDependencies.containsAll(expectedMavenPublicationDependencies),
                 "the protected Maven publication aggregate must depend on every Sonatype publication task; actual direct dependencies: $mavenPublicationDependencies")
+        def pluginAssemblyTask = project.project(':klum-ast-gradle-plugin').tasks.named('assemble').get()
+        assertTrue(mavenPublicationDependencies.contains(pluginAssemblyTask.path),
+                'the protected Maven publication aggregate must assemble Gradle plugins before staging')
         def closeStagingTask = project.tasks.named('closeSonatypeStagingRepository').get()
         assertTrue(closeStagingTask.taskDependencies.getDependencies(closeStagingTask).contains(mavenPublicationTask),
                 'closing the protected Sonatype staging repository must require Maven publication first')
+        String rootBuild = new File(project.rootDir, 'build.gradle').text
+        assertContains(rootBuild, 'mustRunAfter closeSonatypeStagingRepository',
+                'Gradle Plugin Portal publication must run after Sonatype release')
         String baseConventions = new File(project.rootDir, 'buildSrc/src/main/groovy/klum-ast.base-conventions.gradle').text
         assertContains(baseConventions, 'gradle.taskGraph.hasTask(":publishCompleteKlumAstProduct")',
                 'protected complete-product publication must require Maven signatures')
