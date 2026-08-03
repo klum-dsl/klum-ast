@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gradle plugins — KlumAST 4.0.0-rc.4</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.4 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="./">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="./">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="gradle-plugins">Gradle plugins</h1>
+<p>KlumAST provides some Gradle plugins to make the setup of a Klum project easier. They consist of the following plugins:</p>
+<h2 id="comblackbuildconventiongroovy"><code>com.blackbuild.convention.groovy</code></h2>
+<p>This plugin is not specific to Klum and might be extracted to a separate project in the future. It basically sets the necessary dependencies for Groovy as well as a matching version of the Spock Framework.</p>
+<p>The version can be set directly via a String or int property:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.convention.groovy' version '&lt;version&gt;'
+    id 'groovy'
+}
+
+groovyDependencies {
+    groovyVersion = 3 // or &quot;5.0.5&quot;
+}
+</code></pre>
+<p>Note that the plugin does <strong>not</strong> apply the groovy plugin; it only reacts to its presence.</p>
+<p>Applying the plugin (provided the Groovy plugin is also applied) does the following thing:</p>
+<ul>
+<li>Create two additional configurations, <code>groovy</code> and <code>spock</code>, which are used to declare the dependencies on Groovy and Spock, linking those configurations to the <code>compileOnly</code> and <code>testImplementation</code> configurations</li>
+<li>Setting the matching Groovy BOM as 'platform' as well as the main Groovy module as dependencies in <code>groovy</code> and the matching spock dependency in <code>spock</code></li>
+<li>Configure all test tasks with <code>useJunitPlatform()</code></li>
+<li>Spock dependencies can be skipped with &quot;skipSpock = true&quot;</li>
+</ul>
+<p>If the plugin is applied to a child project, it will inherit the configured Groovy versions from the root project, if applicable (even if the Groovy plugin is not applied to the root project). That way, the Groovy version can be set in a single place. In a klum project, this is usually the only situation where the convention plugin needs to be used directly, as the other two plugins will apply it automatically.</p>
+<h2 id="comblackbuildklum-ast-schema"><code>com.blackbuild.klum-ast-schema</code></h2>
+<p>This plugin is used in schema projects (as well as <code>api</code> as defined by [Layer3]). It does the following things:</p>
+<ul>
+<li>applies AnnoDocimal's Groovy plugin for generating documentation</li>
+<li>applies Groovy and JavaLibrary plugins</li>
+<li>activates source code and javadoc jars</li>
+<li>registers <code>createKlumDslSourceMirrors</code> to refresh AnnoDocimal source mirrors for generated <code>Foo_DSL</code> support
+namespaces through AnnoDocimal's cacheable, configuration-cache-safe projection task. Run this task after schema changes in a single-project build. In a multi-project build, use the root
+<code>./gradlew generateKlumDslSourceMirrors</code> aggregate instead; it lazily runs each participating Schema project's task,
+including <code>api</code> and <code>schema</code> in a Layer 3 layout. It compiles the real generated interfaces first when necessary and
+exposes the mirror directory to IntelliJ as a generated source root. The aggregate has no payload of its own and the mirrors are IDE metadata;
+they are not compiled, packaged, published, or added to downstream classpaths.</li>
+<li>if <code>maven-publish</code> plugin is applied, configures the publication</li>
+<li>adds the <code>com.blackbuild.convention.groovy</code> plugin, which configures Groovy and spock dependencies, version can be set via the <code>klumSchema</code> extension (defaulting to Groovy 3). If the configured project is not the root project <strong>and</strong> the root project has the <code>com.blackbuild.convention.groovy</code> plugin applied, the version will be inherited from the root project instead.</li>
+<li>adds the necessary dependencies for KlumAST itself:
+<ul>
+<li><code>klum-ast</code> as compileOnly dependency</li>
+<li><code>klum-ast-runtime</code> as api dependency</li>
+<li>both dependencies are added without explicit versions; the version is enforced by importing the <code>klum-ast-bom</code> platform at the plugin's version</li>
+</ul>
+</li>
+</ul>
+<h3 id="named-schema-modules">Named Schema modules</h3>
+<p>The Schema plugin validates a user-owned <code>src/main/java/module-info.java</code> through
+<code>validateKlumSchemaModule</code>. It is included in <code>check</code> and, when <code>maven-publish</code>
+is applied, before Maven publication. The task never edits the descriptor.</p>
+<p>Groovy 4 and 5 may use a named Schema module. Its descriptor requires the
+annotations and runtime modules, <code>requires static com.blackbuild.klum.ast.compiler</code>,
+and <code>org.apache.groovy</code>; when the project declares the Jackson or Bean Validation
+adapter, it must also require that adapter and open each Schema package to its
+reflection target. See <a rel="nofollow" href="../Migration/#named-modules-and-groovy">Migration#named-modules-and-groovy</a> for a complete
+descriptor example.</p>
+<p>Groovy 3 is classpath-only for KlumAST Schema projects. If it finds a descriptor,
+the validation task fails with a copyable remediation: remove <code>module-info.java</code>
+and use the ordinary classpath, or move the Schema to Groovy 4 or 5. Do not add
+<code>--add-reads</code>, <code>--add-exports</code>, <code>--patch-module</code>, or similar workaround flags.
+Generated <code>Foo_DSL</code> mirrors remain IntelliJ metadata, never module sources.</p>
+<p>This means that a fully working schema project can be set up with the following minimal build.gradle:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema' version '&lt;matching-klum-version&gt;'
+    id &quot;maven-publish&quot;
+}
+
+publishing {
+    repositories {...}
+}
+</code></pre>
+<h2 id="comblackbuildklum-ast-model"><code>com.blackbuild.klum-ast-model</code></h2>
+<p>This plugin is used in model projects. It does the following things:</p>
+<ul>
+<li>applies Groovy and JavaLibrary plugins</li>
+<li>activates source code jars (no javadoc, since this would make no sense)</li>
+<li>if <code>maven-publish</code> plugin is applied, configures the publication</li>
+<li>adds the <code>com.blackbuild.convention.groovy</code> plugin, which configures Groovy and spock dependencies, version can be set via the <code>klumModel</code> extension (defaulting to Groovy 3). If the configured project is not the root project <strong>and</strong> the root project has the <code>com.blackbuild.convention.groovy</code> plugin applied, the version will be inherited from the root project instead.</li>
+<li>Adds a <code>schemas</code> configuration, inherited by the api configuration, that can be use to declare dependencies on schema projects.</li>
+<li>Creates a model descriptor for every entry in klumModel.topLevelScripts to be consumed by Create.FromClasspath.</li>
+</ul>
+<p>A simple model project can look like:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-model' version '&lt;matching-klum-version&gt;'
+    id &quot;maven-publish&quot;
+}
+
+klumModel {
+    groovyVersion = &quot;3&quot; // default
+    schemas {
+        schema &quot;my-group:my-schema:1.0&quot;
+    }
+    topLevelScript &quot;my.group.schema.Configuration&quot;, &quot;model.Configuration&quot;
+    topLevelScript &quot;my.group.schema.server.Target&quot;, &quot;model.server.Targets&quot;
+}
+</code></pre>
+<h2 id="multi-module">Multi module</h2>
+<p>Schema and model can be combined in a multimodule project (with the pre mentioned problem of missing IDE support):
+Because the root project applies the shared convention plugin at the matching KlumAST version, its child Schema and
+Model projects can use the packaged plugin IDs without repeating that version.</p>
+<p>Root:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.convention.groovy' version '&lt;matching-klum-version&gt;'
+}
+
+groovyDependencies {
+    groovyVersion = &quot;3&quot;
+}
+</code></pre>
+<p>Schema:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema'
+}
+</code></pre>
+<p>Model:</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-model'
+}
+
+klumModel {
+    schemas {
+        schema project(&quot;:schema&quot;)
+    }
+    topLevelScript &quot;my.group.schema.Configuration&quot;, &quot;model.Configuration&quot;
+    topLevelScript &quot;my.group.schema.server.Target&quot;, &quot;model.server.Targets&quot;
+}
+</code></pre>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
