@@ -28,6 +28,7 @@ use this guide for Builder-first diagnostics:
 | A client-facing signature refers to `$_RW`, `KlumRwObject`, or an RW delegate | Those types are generated implementation details. | Use the generated `Foo_DSL.Builder` interface and `@DelegatesToBuilder`, or let the generated relationship method supply the delegate type. |
 | A model collection declaration is rejected | Completed collections are read-only snapshots and require a supported declaration. | Declare `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, or `EnumSet`; remove unsupported concrete/custom declarations. |
 | A `KlumBuilder` result is raw, wildcarded, or unresolved | KlumAST cannot determine which public Builder interface to expose. | Declare the concrete model type, for example `KlumBuilder<Child>` or `List<KlumBuilder<Child>>`. |
+| A statically checked Builder lifecycle method sees an ordinary collection or map value as `Object` | An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields. | Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
@@ -72,6 +73,29 @@ assert deployment.service.image == 'catalog:1.0'
 Pay particular attention to lifecycle callbacks, validation, ownership and construction paths, sorted collection comparators,
 Templates, serialization, and Jackson inputs. These areas intentionally distinguish between the construction-time Builder
 graph and the completed model graph.
+
+## Builder Lifecycle Field Types
+
+Builder lifecycle code preserves ordinary declared collection and map element types. A statically checked `@Default` or
+`@AutoCreate` method can use the inferred type directly; no source-side cast is required:
+
+(See: `ModelPhasesDocumentaryTest#'preserves simple collection types in Builder lifecycle code'`.)
+
+```groovy
+@DSL
+class CustomerRoster {
+    List<String> customers = ['central:primary']
+    String primaryCustomer
+
+    @Default
+    @CompileStatic
+    void selectPrimaryCustomer() {
+        customers.each { String customer ->
+            primaryCustomer = customer.split(':', 2)[0]
+        }
+    }
+}
+```
 
 ## Detailed Migration Rules
 

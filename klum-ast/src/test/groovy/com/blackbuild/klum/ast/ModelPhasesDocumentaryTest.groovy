@@ -199,4 +199,35 @@ class ModelPhasesDocumentaryTest extends AbstractDSLSpec {
         deployment.environment == 'production'
         clazz.lifecycle == ['post-create:null', 'auto-create:production']
     }
+
+    @Issue("646")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Builder-First-Migration.md#builder-lifecycle-field-types")
+    def "preserves simple collection types in Builder lifecycle code"() {
+        given:
+        createClass '''
+            package pk
+
+            import groovy.transform.CompileStatic
+
+            @DSL
+            class CustomerRoster {
+                List<String> customers = ['central:primary']
+                String primaryCustomer
+
+                @Default
+                @CompileStatic
+                void selectPrimaryCustomer() {
+                    customers.each { String customer ->
+                        primaryCustomer = customer.split(':', 2)[0]
+                    }
+                }
+            }
+        '''
+
+        when:
+        def roster = clazz.Create.With {}
+
+        then:
+        roster.primaryCustomer == 'central'
+    }
 }
