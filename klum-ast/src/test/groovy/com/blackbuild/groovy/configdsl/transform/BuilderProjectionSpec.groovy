@@ -29,8 +29,82 @@ import com.blackbuild.annodocimal.generator.SourceProjector
 import com.blackbuild.klum.ast.runtime.internal.DslHelper
 import com.blackbuild.klum.ast.runtime.KlumModelException
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 class BuilderProjectionSpec extends AbstractDSLSpec {
+
+    @Issue("642")
+    def "unqualified static recursive converters project relationship overloads"() {
+        given:
+        createClass '''
+            import java.io.File
+            import java.net.URL
+
+            @DSL class Root {
+                Customer singleCustomer
+                List<Customer> listCustomers
+                Map<String, Customer> mapCustomers
+            }
+
+            @DSL class Customer {
+                @Key String name
+                String source
+
+                static Customer fromFile(File file) {
+                    return fromYaml(file)
+                }
+
+                static Customer fromUrl(URL source) {
+                    return fromYaml(source)
+                }
+
+                static Customer fromYaml(URL source) {
+                    return Customer.Create.With(source.file, source: "url:${source.file}")
+                }
+
+                static Customer fromYaml(File file) {
+                    return Customer.Create.With(file.name, source: file.name)
+                }
+            }
+        '''
+
+        expect: 'the public Builder surface has the same source-visible converter on every relationship shape'
+        getClass('Root_DSL$Builder').getMethod('singleCustomer', File).returnType == getClass('Customer_DSL$Builder')
+        getClass('Root_DSL$Builder').getMethod('singleCustomer', URL).returnType == getClass('Customer_DSL$Builder')
+        getClass('Root_DSL$Builder').getMethod('listCustomer', File).returnType == getClass('Customer_DSL$Builder')
+        getClass('Root_DSL$Builder').getMethod('mapCustomer', File).returnType == getClass('Customer_DSL$Builder')
+
+        and: 'the IDE mirror exposes the projected overloads without synthetic twins'
+        File mirrorRoot = new File(tempFolder.root, 'mirrors')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(
+                new File(compilerConfiguration.targetDirectory, 'Root_DSL.class').toPath(), mirrorRoot.toPath())
+        String mirror = new File(mirrorRoot, 'Root_DSL.java').text
+        mirror.contains('singleCustomer(File file)')
+        mirror.contains('singleCustomer(URL source)')
+        mirror.contains('listCustomer(File file)')
+        mirror.contains('mapCustomer(File file)')
+        !mirror.contains('$klum$asBuilder$')
+
+        when:
+        instance = clazz.Create.With {
+            singleCustomer new File('single.yaml')
+            listCustomer new File('list.yaml')
+            mapCustomer new File('map.yaml')
+        }
+
+        then:
+        instance.singleCustomer.source == 'single.yaml'
+        instance.listCustomers*.source == ['list.yaml']
+        instance.mapCustomers['map.yaml'].source == 'map.yaml'
+
+        when: 'the later overload is selected for another recursive static call'
+        instance = clazz.Create.With {
+            singleCustomer new URL('file:/url.yaml')
+        }
+
+        then:
+        instance.singleCustomer.source == 'url:/url.yaml'
+    }
 
     def "declared KlumBuilder generic projects to the concrete public Builder interface"() {
         given:

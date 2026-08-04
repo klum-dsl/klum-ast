@@ -30,7 +30,7 @@ use this guide for Builder-first diagnostics:
 | A `KlumBuilder` result is raw, wildcarded, or unresolved | KlumAST cannot determine which public Builder interface to expose. | Declare the concrete model type, for example `KlumBuilder<Child>` or `List<KlumBuilder<Child>>`. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
-| A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
+| A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
 
 ### 2. Compile and Run a Representative Model
 

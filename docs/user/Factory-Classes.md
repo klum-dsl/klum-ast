@@ -60,6 +60,21 @@ methods without an explicit `KlumBuilder<Foo>` contract are omitted from relatio
 when a matching dynamic call is attempted. See
 [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
+An unqualified static call to another source-visible converter is projected recursively, including overload selection. For
+example, a relationship can use `fromFile` without inlining the final factory call:
+
+(See: `BuilderProjectionDocumentaryTest#'uses an unqualified static converter chain in an owned relationship'`.)
+
+```groovy
+static Customer fromFile(File file) {
+    fromYaml(file)
+}
+
+static Customer fromYaml(File file) {
+    Customer.Create.With(file.name, source: file.name)
+}
+```
+
 
 ```groovy
 @DSL class Foo {
