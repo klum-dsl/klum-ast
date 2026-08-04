@@ -67,6 +67,10 @@ assert deployment.service.image == 'catalog:1.0'
 | A generated `apply` method is missing on a completed model | Move the changes into the original `Create.With` callback, a Template, or another factory input. |
 | Completed-model proxy access fails | Stop calling `KlumInstanceProxy.getProxyFor(model)`; use `KlumObjectSupport.of(model)` and its supported completed-object utilities. Use `getConstructionPath()` for the Builder/factory invocation path and `getModelPath()` for the object's structural location. |
 
+The generated `Foo_DSL.Builder<Foo>` interface now types `copyFrom` for an active Builder of the same model. In a
+`@Default`, `@AutoCreate`, or `Create.AsBuilder.With` callback, use that public Builder type instead of suppressing
+static checking. Runtime still rejects sealed and cross-session Builder sources.
+
 ### 3. Run the Full Model Test Suite
 
 Pay particular attention to lifecycle callbacks, validation, ownership and construction paths, sorted collection comparators,

@@ -396,6 +396,34 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         noExceptionThrown()
     }
 
+    @Issue('644')
+    def "public Builder contracts expose typed same-model copy sources"() {
+        given:
+        Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
+
+        expect:
+        fooBuilder.getMethod('copyFrom', fooBuilder).with {
+            parameterTypes == [fooBuilder]
+            getAnnotation(AnnoDoc).value().contains('active Builder of the same model')
+        }
+
+        when: 'Java consumes the generated public Builder type without an implementation leak'
+        compileJavaConsumer('''
+            package sample;
+
+            public final class JavaDslConsumer {
+                public static void copyFromSameModel(
+                        Foo_DSL.Builder<Foo> target,
+                        Foo_DSL.Builder<Foo> source) {
+                    target.copyFrom(source);
+                }
+            }
+        ''')
+
+        then:
+        noExceptionThrown()
+    }
+
     @Issue('620')
     def "typed relationship factories select the public Builder delegate without a root lifecycle"() {
         given:
@@ -532,6 +560,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         mirror.contains('interface Builder')
         mirror.contains('interface CollectionFactory_kids')
         mirror.contains('interface ClusterFactory_services')
+        mirror.contains('void copyFrom(Builder<Foo> source)')
         mirror.contains('The generated DSL support namespace for sample.Foo.')
         mirror.contains('Creates a new')
         getClass('sample.Foo_DSL$Builder').getAnnotation(AnnoDoc).value().contains('public Builder contract')
