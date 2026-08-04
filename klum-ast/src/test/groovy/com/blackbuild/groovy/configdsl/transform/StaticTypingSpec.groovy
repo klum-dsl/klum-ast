@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException
+import spock.lang.Issue
 
 @SuppressWarnings("GroovyAssignabilityCheck")
 class StaticTypingSpec extends AbstractDSLSpec {
@@ -103,5 +104,95 @@ class StaticTypingSpec extends AbstractDSLSpec {
 
         then:
         notThrown(MultipleCompilationErrorsException)
+    }
+
+    @Issue('644')
+    def "static type checking accepts same-session Builder copies in Builder lifecycle code"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class ProductSource {
+                String name
+            }
+        ''')
+
+        and:
+        createClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL
+            class ProductCatalog {
+                @Default
+                void mergeDefaultSource() {
+                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder.With(name: 'default source')
+                    ProductSource.Create.AsBuilder.With {
+                        copyFrom source
+                        name 'default recipient'
+                    }
+                }
+
+                @AutoCreate
+                void mergeAutoCreatedSource() {
+                    ProductSource_DSL.Builder<ProductSource> source = ProductSource.Create.AsBuilder.With(name: 'auto-created source')
+                    ProductSource.Create.AsBuilder.With {
+                        copyFrom source
+                        name 'auto-created recipient'
+                    }
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+
+        when:
+        clazz.Create.One()
+
+        then:
+        noExceptionThrown()
+    }
+
+    @Issue('644')
+    def "static type checking rejects a Builder from another model as a copy source"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class ProductSource { }
+        ''')
+
+        and:
+        createClass('''
+            package pk
+
+            @DSL
+            class OtherSource { }
+        ''')
+
+        and:
+        createClass('''
+            package pk
+
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL
+            class ProductCatalog {
+                @AutoCreate
+                void attemptsCrossModelCopy() {
+                    ProductSource_DSL.Builder<ProductSource> target = ProductSource.Create.AsBuilder.One()
+                    OtherSource_DSL.Builder<OtherSource> source = OtherSource.Create.AsBuilder.One()
+                    target.copyFrom(source)
+                }
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains('copyFrom')
     }
 }

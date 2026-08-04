@@ -94,6 +94,8 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 - Defined copy-source behavior: ordinary completed models and Maps are value-only; marked Templates add immutable recipe
   replay; same-session unsealed Builders add an ephemeral dehydrated snapshot of pending actions without identity
   conversion. Sealed and cross-session Builders are rejected.
+- Generated public Builder contracts now expose the same-model active-Builder `copyFrom` overload, so Builder lifecycle
+  merges are statically checked without exposing internal Builder implementations ([#644](https://github.com/klum-dsl/klum-ast/issues/644)).
 - `applyLater`/`scheduleApplyLater` now reject every phase at or after `INSTANTIATE` (40) immediately and direct
   completed-model work to `ModelVisitingPhaseAction`.
 

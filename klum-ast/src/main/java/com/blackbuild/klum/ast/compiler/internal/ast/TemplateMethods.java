@@ -179,6 +179,11 @@ class TemplateMethods {
     private void copyFromMethods() {
         createProxyMethod(COPY_FROM, "copyFromRecipe")
                 .mod(ACC_PUBLIC)
+                .documentationTitle("Copies all non-null/non-empty recipe values from an active Builder of the same model.")
+                .param(GeneratedDslSupport.builderTypeFor(annotatedClass), "source", "the active Builder source to copy")
+                .addTo(rwClass);
+        createProxyMethod(COPY_FROM, "copyFromRecipe")
+                .mod(ACC_PUBLIC)
                 .documentationTitle("Copies all non-null/non-empty recipe values from the template to this Builder.")
                 .param(newClass(dslAncestor), "template", "the recipe to apply")
                 .addTo(rwClass);
