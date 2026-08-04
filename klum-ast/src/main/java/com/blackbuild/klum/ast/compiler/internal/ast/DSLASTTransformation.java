@@ -485,7 +485,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                         new GenericsType(getKeyTypeForMap(type)),
                         new GenericsType(getRwClassOf(effectiveValueType).getPlainNodeReference())
                 );
-        return type.getPlainNodeReference();
+        return type;
     }
 
     private ClassNode getEffectiveFieldValueType(FieldNode field) {
