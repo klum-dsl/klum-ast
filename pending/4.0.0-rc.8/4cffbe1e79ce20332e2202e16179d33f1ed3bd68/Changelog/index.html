@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4.0.0 (unreleased) — KlumAST 4.0.0-rc.8</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.8 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="./">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="./">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="400-unreleased">4.0.0 (unreleased)</h1>
+<p>This is a breaking release. See the <a rel="nofollow" href="../Builder-First-Migration/">Builder-first construction migration</a> for required client and extension changes.</p>
+<h2 id="documentation-infrastructure">Documentation infrastructure</h2>
+<ul>
+<li>Current 4.x user documentation is authored in <code>docs/user/</code> and rendered locally from an explicit Git revision into an immutable exact-version static HTML tree. The renderer captures a deterministic site manifest and versioned Season/logo input, while the former mutable wiki publisher fails closed (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/456">#456</a>).</li>
+<li>Exact 4.x documentation renders six isolated module-Javadoc trees below <code>/&amp;lt;version&amp;gt;/api/</code> for <code>klum-ast</code>, runtime, annotations, Jackson, Bean Validation, and the Gradle plugin. The BOM and IDE-only source mirrors are not public API inputs (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/456">#456</a>).</li>
+<li>Protected release orchestration now requires #456's separately permissioned, immutable, unlisted pending documentation/Javadoc stage on <code>gh-pages</code> before artifact publication. It validates the exact stage/version/master SHA and returns only a manifest-bound evidence handoff; it neither publishes artifacts nor advances aliases (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/456">#456</a>).</li>
+</ul>
+<h2 id="dependency-compatibility">Dependency compatibility</h2>
+<ul>
+<li>Migrated to released <a rel="nofollow" href="https://github.com/blackbuild/anno-docimal/releases/tag/v1.0.0-rc.7">AnnoDocimal 1.0.0-rc.7</a>
+(<code>11324cfea7d8b8ea27d13c6f2ffaeb370f3ef466</code>). KlumAST now uses its supported documentation-authoring and source-projection
+APIs. The schema plugin retains its IDEA-only mirror policy while using the configuration-cache-safe projection task;
+property documentation is projected verbatim to generated Model and Builder accessors unless an accessor supplies its
+own documentation (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/461">#461</a>). Final AnnoDocimal 1.0 remains a KlumAST
+final-release prerequisite; this change validates the immutable RC train only.</li>
+<li>Upgraded to the immutable <a rel="nofollow" href="https://github.com/klum-dsl/klum-cast/releases/tag/v0.4.0-rc.2">KlumCast 0.4.0-rc.2</a> artifact set: <code>klum-cast-annotations</code>, <code>klum-cast-spi</code>, and <code>klum-cast-compile</code>. The artifacts have stable automatic module names (<code>com.blackbuild.klum.cast.annotations</code>, <code>.spi</code>, and <code>.compiler</code>) and no split KlumCast packages. Recompile schemas and custom checks for 4.0.</li>
+<li>Migrated KlumAST's eight name-bound compiler checks to KlumCast's stateless <code>Check</code> SPI. Their expected violations now emit source-positioned structured diagnostics; diagnostic codes are the check implementation names, while unexpected failures remain technical errors with their causes. Invalid <code>@Overwrite.Single(MERGE)</code> strategies on non-DSL fields are rejected during compilation (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/460">#460</a>).</li>
+</ul>
+<h2 id="java-modules">Java modules</h2>
+<ul>
+<li>Named schema modules are supported with Groovy 4 and 5; Groovy 3 remains supported on the ordinary classpath. The Schema plugin validates the user-owned descriptor as part of <code>check</code> and Maven publication, reporting copyable missing directives without editing it. A named schema requires the documented <code>org.apache.groovy</code> dependency and a qualified <code>opens</code> directive to KlumAST runtime, Jackson when used, and Hibernate Validator when Bean Validation is used. No JVM module-path workaround flags are required (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/391">#391</a>).</li>
+<li>Fixed Groovy 4/5 named-schema materialization for owned direct, collection, and keyed relationships without changing the approved module descriptors or requiring consumer flags (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/622">#622</a>).</li>
+</ul>
+<h2 id="validation">Validation</h2>
+<ul>
+<li>Added the supported <code>KlumSchemaSupport</code>/<code>KlumValidationReporter</code> facade for custom lifecycle diagnostics, including
+explicit target reporting, suppression, and configured fail-level access. The preliminary <code>Validator</code> and
+<code>ValidatorBase</code> types are removed with direct 4.0 migration guidance; #406 remains the separate compile-time
+placement rule (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/626">#626</a>).</li>
+</ul>
+<h2 id="builder-first-construction">Builder-first construction</h2>
+<ul>
+<li>
+<p>Added the portable <code>build-domain-first-schema</code> skill, task-oriented domain-first guidance, and an executable Layer 3 smart-home journey. The fixture separates generic API, fixed floorplan Schema, registered Model script, and API-only <code>client-demo</code>; it covers Cluster projection, provider-polymorphic Builder calls, <code>@DefaultValues</code> labels, and a bounded field-test artifact (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/471">#471</a>).</p>
+</li>
+<li>
+<p>Added a task-oriented Gradle onboarding preview, portable <code>start-klum-project</code>, <code>author-klum-model</code>, and <code>feature-advisor</code> Agent Skills, plus an executable minimal fixture. <code>feature-advisor</code> also assesses whether KlumAST or its skill distribution needs an update (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/470">#470</a>).</p>
+</li>
+<li>
+<p>Added the portable <code>build-target-contract-schema</code> skill and an executable direct-schema Helm journey. It renders two validated service models as human-readable values files with semantic golden-contract evidence, makes the Layer 3 decision explicit, and keeps resource-backed defaults and ordered configuration composition with #79 and #304 (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/472">#472</a>).</p>
+</li>
+<li>
+<p>Replaced mutable generated RW objects with generated Builders inheriting from <code>KlumBuilder</code>, while preserving DSL inheritance. Builders own field initializers, relationship state, mutators, and lifecycle work through <code>POST_TREE</code> (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/416">#416</a>, <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/266">#266</a>).</p>
+</li>
+<li>
+<p>Fixed generated Builder fields and accessors to retain declared simple collection and map generic types for lifecycle static checking, including inherited fields, while relationship collections retain their generated Builder element types (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/646">#646</a>).</p>
+</li>
+<li>
+<p>Added the <code>INSTANTIATE</code> phase at ordinal 40. It materializes the complete graph before validation, including cycles and self-links, then runs validation against completed DSL Objects.</p>
+</li>
+<li>
+<p>Completed DSL Objects no longer expose generated <code>apply</code> or construction-path members directly. Non-transient simple fields are final; <code>FieldType.TRANSIENT</code> remains mutable (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/323">#323</a>).</p>
+</li>
+<li>
+<p>Relationship fields hold Builders during construction. <code>OPTIONAL_LINK</code> preserves Layer 3 <code>@LinkTo</code> overrides per single, List, and Map entry: a fresh same-session Builder is owned composition, while an already claimed Builder or completed model is aggregation. <code>LINK</code> remains aggregation-only and rejects fresh Builders; <code>KlumBuilder.link(fieldName, target)</code> provides non-destructive custom Auto-Link fallback (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/474">#474</a>).</p>
+</li>
+<li>
+<p>Completed collections are independent read-only snapshots. Supported declarations are <code>List</code>, <code>Set</code>, <code>SortedSet</code>/<code>NavigableSet</code>, <code>Map</code>, <code>SortedMap</code>/<code>NavigableMap</code>, and <code>EnumSet</code>; unsupported concrete or custom declarations now fail schema compilation.</p>
+</li>
+<li>
+<p>Split construction and completed-model state between <code>KlumBuilder</code> and <code>KlumModelProxy</code>. <code>KlumInstanceProxy</code> is now a deprecated Builder-only compatibility adapter, and <code>VisitingPhaseAction</code> is replaced by state-specific Builder and Model variants.</p>
+</li>
+<li>
+<p>Replaced the legacy <code>$_RW</code>/<code>KlumRwObject</code> Builder implementation contract with generated, self-typed
+<code>Foo_DSL.Builder&lt;SELF extends Foo&gt; extends KlumBuilder&lt;SELF&gt;</code> capabilities. Inherited Builder interfaces retain their
+parent interface and thread the same leaf <code>SELF</code>; factories expose the concrete <code>Foo_DSL.Builder&lt;Foo&gt;</code>. Runtime operations
+are internal; use generated Builder/factory
+interfaces and <code>@DelegatesToBuilder</code>. <code>@DelegatesToRW</code> remains a deprecated source alias
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/394">#394</a>).</p>
+</li>
+<li>
+<p>Added <code>createKlumDslSourceMirrors</code> to the schema Gradle plugin. Run it after schema changes to compile the real
+<code>Foo_DSL</code> interfaces and refresh their AnnoDocimal IDE source mirrors without compiling, packaging, publishing, or
+propagating the mirrors themselves (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/434">#434</a>).</p>
+</li>
+<li>
+<p>Added <code>generateKlumDslSourceMirrors</code> as the root Gradle entry point for multi-project builds. It lazily refreshes each
+participating Schema project's IDE-only mirror task, including Layer 3 <code>api</code>/<code>schema</code> layouts, without generating or
+exposing a root payload (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/559">#559</a>).</p>
+</li>
+<li>
+<p>Generated completed-model and Builder getters now carry field-derived AnnoDoc documentation, including deprecation
+reasons (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/383">#383</a>).</p>
+</li>
+<li>
+<p>Provisional Builder validation issues transfer to the completed-model companion, and each <code>InstanceValidator</code> is memoized once per completed model.</p>
+</li>
+<li>
+<p>Added active-session <code>Create.AsBuilder.With</code>, <code>One</code>, <code>FromMap</code>, and <code>From(DelegatingScript)</code> operations. They create an
+unsealed owned Builder in the current root Construction session, apply active Templates, and run <code>PostCreate</code>, explicit
+configuration, and <code>PostApply</code> once without starting a nested lifecycle. Calls outside the session, across root sessions,
+or after lifecycle completion fail with migration guidance; ordinary materializing Scripts remain root-only
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/436">#436</a>).</p>
+</li>
+<li>
+<p>Added statically precise polymorphic relationship selection with <code>child(ConcreteChild.Create) { ... }</code>. Generated
+factories expose the exact public <code>ConcreteChild_DSL.Builder&lt;ConcreteChild&gt;</code> through a public provider contract, while
+single, collection, map, named-parameter, and keyed child creation stays in the current parent session. The dynamic
+<code>child(ConcreteChild) { ... }</code> Class selector remains supported and unchanged
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/620">#620</a>).</p>
+</li>
+<li>
+<p>Restored Builder-first collection, map, Cluster, direct <code>DelegatingScript</code>, converter, alternative, and custom-factory
+composition. Source-visible model-producing methods receive synthetic <code>$klum$asBuilder$...</code> twins linked through AST
+metadata; generated public contracts expose concrete <code>Foo_DSL.Builder</code> results while direct root factory behavior remains
+completed-model-oriented. Multi-result projections retain their original container, iteration order, comparator,
+duplicates, and map keys. Opaque or precompiled model producers are omitted from generated APIs and matching dynamic calls
+fail with targeted migration guidance (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/437">#437</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md">ADR 0004</a>).</p>
+</li>
+<li>
+<p>Fixed Builder-producing projection for source-visible recursive unqualified static factory and converter calls, including
+overload selection. The generated relationship APIs and IDE mirrors now expose the matching public Builder overloads for
+single, List, and Map relationships without changing direct root-factory behavior (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/642">#642</a>).</p>
+</li>
+<li>
+<p>Added the Java-first <code>KlumObjectSupport.of(completedObject)</code> facade for a completed DSL Object root or subtree. Its
+construction-path getter and composition-only <code>Structure</code> helper expose paths, direct ownership, relative paths, and
+cycle-safe typed traversal. Its <code>Validation</code> helper exposes <code>getResult()</code> for the target and <code>getSubtreeResults()</code> for
+the target plus owned subtree, and verifies stored results without rerunning validators. Subtree result lists include
+every stored result, including results without issues; the deprecated
+<code>Validator.getValidationResultsFromStructure</code> and <code>verifyStructure</code> adapters now inherit that broader list contract.
+The Model companion and generic metadata access are now internal (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/435">#435</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/390">#390</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md">ADR 0006</a>). Its sole
+public construction-string getter is <code>getConstructionPath()</code>; no <code>getBreadcrumbPath()</code> facade alias remains
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/390">#390</a>, <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/549">#549</a>).</p>
+</li>
+<li>
+<p>Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred
+actions; every owned Template node carries persistent recipe identity and paths, while pre-existing ordinary <code>LINK</code>
+targets retain their identity. Direct Template relationship assignment, including <code>LINK</code>, is rejected with rehydration
+guidance (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/438">#438</a>).</p>
+</li>
+<li>
+<p>Defined copy-source behavior: ordinary completed models and Maps are value-only; marked Templates add immutable recipe
+replay; same-session unsealed Builders add an ephemeral dehydrated snapshot of pending actions without identity
+conversion. Sealed and cross-session Builders are rejected.</p>
+</li>
+<li>
+<p>Generated public Builder contracts now expose the same-model active-Builder <code>copyFrom</code> overload, so Builder lifecycle
+merges are statically checked without exposing internal Builder implementations (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/644">#644</a>).</p>
+</li>
+<li>
+<p><code>applyLater</code>/<code>scheduleApplyLater</code> now reject every phase at or after <code>INSTANTIATE</code> (40) immediately and direct
+completed-model work to <code>ModelVisitingPhaseAction</code>.</p>
+</li>
+</ul>
+<h2 id="templates-serialization-and-jackson">Templates, serialization, and Jackson</h2>
+<ul>
+<li>Templates remain DSL Object recipes and rehydrate into fresh Builder graphs on every application. Template <code>applyLater</code>
+recipes are stored in immutable serializable recipe state, cloned on replay, and validated when the Template
+materializes. Captured values must be serializable and captured Builders are rejected. Java serialization preserves
+graph-wide Template identity without serializing Builders, Construction sessions, scopes, or mutable recipe collections.</li>
+<li>Completed-model companion state is serializable. Technical metadata rejects non-serializable values immediately.</li>
+<li>Defined Jackson as asymmetric external-format interoperability rather than Klum persistence: managed import binds foreign
+data through Builders, completed models export through ordinary Jackson APIs, and KlumAST adds no wire-format or producer
+metadata. External version fields and migration adapters remain Schema-owned
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/447">#447</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md">ADR 0009</a>).</li>
+<li>Jackson serialization rejects marked Templates, including nested values, so JSON cannot silently discard recipe actions.</li>
+<li>Jackson import now binds resolved public configuration properties into root and owned child Builders between <code>PostCreate</code> and
+<code>PostApply</code>, then runs one normal lifecycle, materialization, validation, and verification pipeline. Missing input keeps
+initializer/default behavior; present values, <code>null</code>, and containers replace authoritatively. Resolved <code>@JsonProperty</code>,
+<code>@JsonAlias</code>, naming strategies, mixins, access/ignore rules, and unknown-property policy are honored without ambient
+Templates or copy/overwrite semantics (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/439">#439</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/251">#251</a>,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md">ADR 0009</a>).
+Explicit type-level custom deserializers remain the opt-out.</li>
+<li>Added <code>KlumJacksonImporter</code> and <code>KlumJacksonInput</code> as the explicit Jackson 2 import seam. Caller-owned mapper/reader
+configuration is captured without mutation; root, value-only Template, active-session Builder, and existing-Builder
+application modes each consume one parser/tree/Map input (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/463">#463</a>).</li>
+<li>Added executable asymmetric YAML interoperability evidence: one foreign input is imported through one Builder lifecycle
+and ordinary Jackson export emits an intentionally enriched, separately owned projection. Import/export fixtures cover
+foreign aliases, composition, polymorphism, null and unknown-field policy, <code>LINK</code>, Templates, diagnostics, custom
+serializers, and the absence of Klum wire metadata; no round-trip or Jackson-owned layering contract is introduced
+(<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/464">#464</a>).</li>
+<li>Jackson <code>LINK</code> import is reference-only. Explicit Jackson identities with <code>alwaysAsId</code>, custom property codecs, and
+custom <code>ObjectIdResolver</code>s preserve completed targets and same-session Builder identity across backward and forward
+references, including Collection and Map <code>LINK</code>s. Inline input fails with focused mapping errors. Export requires an
+explicit projection and may use identity, omission, scalar/custom structure, or a deliberate inline serializer; Owner and
+Role remain framework-managed (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/440">#440</a>).</li>
+<li>Jackson views, inclusion, formats, Simple Value codecs, mixins, and polymorphic owned DSL subtypes work without replacing
+Klum construction. <code>@JsonCreator</code>, direct model mutators, foreign Jackson Builders, completed-model owned deserializers,
+and managed/back references cannot take over Builder allocation. The former public <code>KlumValueInstantiator</code> and
+<code>SettableKlumBeanProperty</code> extension classes remain removed.</li>
+</ul>
+<h1 id="301">3.0.1</h1>
+<ul>
+<li>New annodocimal version, ignores irrelevant inner class entries in class files</li>
+</ul>
+<h1 id="300">3.0.0</h1>
+<ul>
+<li>Support for Groovy 2 has been dropped, support for Groovy 5 has been added</li>
+<li>Minimum Java version is now 17</li>
+<li>Only include base groovy module instead of groovy-all in gradle plugins</li>
+<li>Gradle plugins now support versions as strings (&quot;5&quot;, &quot;5.0&quot; or &quot;5.0.5&quot;) or int (5) instead of the GroovyVersion enum, which is deprecated.</li>
+</ul>
+<h1 id="220">2.2.0</h1>
+<ul>
+<li>Breaking change: Dropped manualValidation() support</li>
+<li>Minor Breaking change: <code>toString()</code> methods are not created anymore. If needed, they can still be generated using the default Groovy <code>@ToString</code> annotation.</li>
+<li>Validation improvements (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Validation">Validation</a> <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/395">#395</a>)
+<ul>
+<li>Validation-phase is split into validation and verify phases.</li>
+<li>Provided new (preliminary) methods to explicitly create validation issues. This allows validation issues to be created in earlier phases, as well as multiple issues in a single validation/lifecycle method.</li>
+<li>further validation issues can explicitly be suppressed for specific fields and specific maximum levels</li>
+<li>New annotation <code>@Optional</code> as alias for <code>@Validate(Validate.Ignore)</code></li>
+<li>VerifyPhase can now be skipped using system property <code>klum.validation.skipVerify</code></li>
+<li>Results of a complete structure can be retrieved using <code>Validator.getValidationResultsFromStructure(Object)</code> or verified later using <code>Validator.verifyStructure(Object)</code></li>
+<li>Deprecation checks now run in the new early validation phase and check only for manually set values, not values created by later phases</li>
+<li>new annotation <code>@Notify</code> to raise issues if a field is set or unset in the early validation phase.</li>
+<li>new module: klum-ast-bean-validation to provide Bean Validation integration (JSR380). (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Validation#Validation-levels-and-JSR380">Validation</a> <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/395">#395</a>)</li>
+<li>Validation methods can be collected into inner classes annotated with <code>@Validate</code> (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Validation#on-in-inner-classes">Validation</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/415">#415</a>)</li>
+</ul>
+</li>
+<li>Added a bom with all module versions (<code>com.blackbuild.klum.ast:klum-ast-bom</code>) for easier dependency management. Note that this BOM is already applied by the gradle plugins</li>
+</ul>
+<h2 id="bugfixes">Bugfixes</h2>
+<ul>
+<li><code>StructureUtil.getPathOfFieldContaining()</code> and therefore <code>@Role</code> fields ignored fields where the value was actually a subclass of the field type.</li>
+<li>CopyFrom and templating failed on primitive values. See <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/400">#400</a></li>
+<li>modelPath / Validation path was off if using various complex inner factories or AutoCreates</li>
+</ul>
+<h1 id="214215">2.1.4/2.1.5</h1>
+<ul>
+<li>Prevent ConcurrentModificationExceptions when calling <code>applyLater</code> from a lifecycle method</li>
+</ul>
+<h1 id="213">2.1.3</h1>
+<ul>
+<li><code>StructureUtil.visit()</code> and <code>StructureUtil.deepFind()</code> should ignore <code>Owner</code> and <code>Link</code> fields (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/396">#396</a>)</li>
+<li>internal: <code>StructureUtil.deepFind()</code> should internally use a visitor instead of duplicating logic (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/397">#397</a>)</li>
+</ul>
+<h1 id="212">2.1.2</h1>
+<ul>
+<li>Validate problems should include the structure path along with the breadcrumb path</li>
+</ul>
+<h1 id="211">2.1.1</h1>
+<ul>
+<li>KlumValidationException should omit empty KlumValidationResult instances.</li>
+</ul>
+<h1 id="210">2.1.0</h1>
+<p>No new features, but all deprecated features from 2.0.0 have been removed. All dropped methods are correctly declared in 2.0.0,
+along with their migration paths.</p>
+<h2 id="dropped-methods-and-features-see-migration">Dropped methods and features (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Migration</a>):</h2>
+<ul>
+<li>The <code>@Validation</code> annotation. Use <code>@Validate</code> on class level instead.</li>
+<li>Creator methods on the model class have been dropped
+<ul>
+<li><code>X.create*()</code> -&gt; <code>X.Create.*()</code></li>
+</ul>
+</li>
+<li>The generated <code>validate()</code> method. Use <code>Validator.validate()</code> instead. This means that creating own <code>validate()</code> methods is legal again.</li>
+<li>Template-specific methods are now pooled in a new <code>BoundTemplateHandler</code> class, which is accessible for as static Field Template.
+<ul>
+<li><code>X.withTemplate()</code> -&gt; <code>X.Template.With()</code></li>
+<li><code>X.withTemplates()</code> -&gt; <code>X.Template.WithAll()</code></li>
+<li><code>X.Create.TemplateFrom()</code> -&gt; <code>X.Template.CreateFrom()</code></li>
+<li><code>X.Create.AsTemplate()</code> -&gt; <code>X.Template.Create()</code></li>
+<li><code>withTemplate()</code> and <code>withTemplates()</code> are now deprecated, use the new methods instead.</li>
+</ul>
+</li>
+</ul>
+<h1 id="200">2.0.0</h1>
+<h2 id="new-features">New Features</h2>
+<ul>
+<li>New Field Type: BUILDER: Getters are protected or private in model, but dsl methods are public</li>
+<li>Compatibility with Groovy 3 and 4. KlumAST is currently still built with Groovy 2.4 (for compatibility with Jenkins). Tests are run with Groovy 3 and 4 as well.</li>
+<li>Replace basic jackson transformation with a dedicated (beta) JacksonModule (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Jackson Integration</a>)).</li>
+<li>First steps for Layer3 models. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Layer3">Layer3</a>)</li>
+<li>Split model creation into distinct phases (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/156">#156</a>, <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/155">#155</a>,<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/187">#187</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Model-Phases">Model Phases</a>)</li>
+<li>New Phases:
+<ul>
+<li>PostTree: is run after the model is completely realized (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/280">#280</a></li>
+<li>AutoCreate: automatic creation of null fields (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/275">#275</a></li>
+<li>Owner: Sets owners and calls owner methods (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/284">#284</a>)</li>
+<li>AutoLink: Links fields to other fields in the model (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/275">#275</a></li>
+<li>Defaults: sets default values (<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/196">#196</a></li>
+<li>Validate: Validation of the model</li>
+</ul>
+</li>
+<li>In addition to lifecycle methods, fields of type <code>Closure</code> can now be used to define model provided (instead of schema provided) lifecycle methods. These closures will be executed in their respective Lifecycle phases.</li>
+<li>default implementation: by providing the attribute <code>defaultImpl</code> on either <code>@DSL</code> or <code>@Field</code>, one can allow the creation of non-polymorphic field methods even for interfaces and abstract types. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Basics#default-implementations">Default Implementations</a>)</li>
+<li>Creator methods have been moved to a separate creator class (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/76">#76</a>), creator methods on the model class have been deprecated (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Migration</a>).</li>
+<li>Custom creator classes can be provided (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes">Factory Classes</a>)</li>
+<li>Methods of creator classes (including custom creators) are included in collection factories (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/300">#300</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Factory-Classes#Creator-methods-and-collection-factories">Factory Classes</a>)</li>
+<li>Creator class also supports creating templates from scripts (files or URLS) (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Templates">Templates</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/322">#322</a>)</li>
+<li>Switch annotation validation to <a rel="nofollow" href="https://github.com/klum-dsl/klum-cast">KlumCast</a> Framework (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/312">#312</a>))</li>
+<li>Generate Documentation for almost all generated methods via <a rel="nofollow" href="https://github.com/blackbuild/anno-docimal">AnnoDocimal</a> (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/197">#197</a>))</li>
+<li><a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Gradle-Plugins">Gradle Plugin</a> for easier project setup</li>
+<li>Various owner improvements:
+<ul>
+<li>Owner targets now can be transitive, i.e. be filled with the value of an ancestor of the specified type (instead of the direct owner) (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Basics#transitive-owners">Transitive Owners</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/49">#49</a>)</li>
+<li>Ower fields can be filled with the actual root of the model. This works even if no explicit owner field is present (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Basics#root-owners">Root Owner</a>)</li>
+<li>Owner objects can be converted before handing them to owner fields or methods (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Basics#owner-converters">Owner Converters</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/189">#189</a>)</li>
+<li>New <code>@Role</code> annotation to infer the name of the owner field containing an object (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Layer3#role-fields">Role fields</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/86">#86</a>)</li>
+</ul>
+</li>
+<li>Overwrite strategies for <code>copyFrom</code> and templates (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Copy-Strategies">Copy Strategies</a>, <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/309">#309</a>, <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/348">#348</a>)</li>
+<li>Multiple calls to a single object closure now configure the same object instead of completely overriding the previous field, the same for map entries using the same key. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/325">#325</a>). While this is a more natural behaviour, it might break existing code in some corner cases, see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Migration</a>).</li>
+<li>Breadcrumbs: each Method or closures encountered while creating model is used to setup a breadcrumb path. This path is used in exceptions to identify the location of the problem in the scripts, which is especially handy when the model is split over various scripts. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling">Exception Handling</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/264">#264</a>)</li>
+<li>Rework exception handling as a whole, this includes a new hierarchy of exceptions (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Exception-Handling">Exception Handling</a>) which contain relevant information about the phase in which the exception occured as well as the object which caused the exception. This is especially useful for validation exceptions. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/149">#149</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/288">#288</a>)</li>
+<li>Validations are now all executed, even if exceptions are encountered. All violations are aggregated into a single <code>KlumValidationException</code> which is thrown at the end of the phase (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/146">#146</a>)</li>
+<li>New <code>FromMap</code> factory to allow a &quot;poor man's deserialization&quot; (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Convenience-Factories#Map">Convenience Factories</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/359">#359</a>)</li>
+<li>DefaultValues annotations provide an annotation based way to set default values in Layer3 scenarios (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation">Default Values</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/361">#361</a>)</li>
+<li><code>@Cluster</code>-Fields create now a factory closure for that field, containing only the cluster members (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/365">#365</a>)</li>
+<li><code>applyLater</code> methods for all objects that can be used to hook closures to be applied in later phases (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Model-Phases">Model Phases</a>)</li>
+<li>Validations have additional levels (WARNING, DEPRECATION and INFO) that can be set for each individual validation. Non error validations to lead to failure in the model (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/145">#145</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Validation">Validation</a>)</li>
+</ul>
+<h2 id="improvements">Improvements</h2>
+<ul>
+<li>Creator classes also support methods creating multiple instances at once (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/319">#319</a>)</li>
+<li>CopyFrom now creates deep clones (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/36">#36</a>)</li>
+<li><code>boolean</code> fields are never validated (makes no sense), <code>Boolean</code> fields are evaluated against not null, not against Groovy Truth (i.e. the field must have an explicit value assigned) (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/223">#223</a>)</li>
+<li>Provide <code>@Required</code> as an alternative to an empty <code>@Validate</code> annotation (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/221">#221</a>)</li>
+<li><code>EnumSet</code> fields are now supported. Note that for enum sets a copy of the underlying set is returned as opposed to a readonly instance. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/249">#249</a>)</li>
+<li>Converter methods are now honored for Alternatives methods as well. (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/270">#270</a>)</li>
+<li><code>@Validate</code> now can be placed on classes. This effectively replaces <code>@Validate(option=Validation.Option.VALIDATE_UNMARKED)</code>, which is internally converted to the new format (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/276">#276</a>). The <code>@Validation</code> annotation is deprecated.</li>
+<li>Sanity check: Key Fields must not have <code>@Owner</code> or <code>@Field</code> annotations.</li>
+<li>Selector members for <code>@LinkTo</code> annotations allows to determine the link source from the provider based on the value of another field (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/302">#302</a>)</li>
+<li>@LinkTo now correctly handles empty collections/maps as target</li>
+<li>Allow a custom key-provider function for <code>createFrom(URL)</code> and <code>createFrom(File)</code></li>
+<li><code>@Cluster</code> can also be placed on fields, which will be converted into a getter method (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/366">#366</a>)</li>
+<li><code>@Cluster</code> can be combined with <code>@AutoCreate</code> to auto create all members of the annotated cluster (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/363">#363</a>)</li>
+<li>Templates that where active during an object's creation are now stored in the proxy of that object and will be applied to any object created by that object in later phases (usually AutoCreate) (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/377">#377</a>)</li>
+<li><code>@DefaultValues</code> has a <code>valueTarget</code> member that is used to remap the <code>value</code> member of the targeted annotation to a specific field (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/370">#370</a>)</li>
+<li>new Layer3 <code>@DefaultApply</code> annotation that can be used for complex, schema-controlled default values (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/370">#370</a> and <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Default-Values#DefaultValues-annotation">Default Values</a>)</li>
+</ul>
+<h2 id="deprecations-see-migration">Deprecations (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Migration</a>):</h2>
+<ul>
+<li>The <code>@Validation</code> annotation is deprecated. Use <code>@Validate</code> on class level instead.</li>
+<li>creator methods on the model class have been deprecated.</li>
+<li>The generated <code>validate()</code> method is now deprecated, use <code>KlumInstanceProxy.validate()</code> instead. This means that creating own <code>validate()</code> methods is legal again.</li>
+<li>Template-specific methods are now pooled in a new <code>BoundTemplateHandler</code> class, which is accessible for as static Field Template.
+<ul>
+<li><code>X.withTemplate()</code> -&gt; <code>X.Template.With()</code></li>
+<li><code>X.withTemplates()</code> -&gt; <code>X.Template.WithAll()</code></li>
+<li><code>X.Create.TemplateFrom()</code> -&gt; <code>X.Template.CreateFrom()</code></li>
+<li><code>X.Create.AsTemplate()</code> -&gt; <code>X.Template.Create()</code></li>
+<li><code>withTemplate()</code> and <code>withTemplates()</code> are now deprecated, use the new methods instead.</li>
+</ul>
+</li>
+</ul>
+<h2 id="breaking-changes-see-migration">Breaking changes (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Migration">Migration</a>)</h2>
+<ul>
+<li>it is a compile error to place the <code>@Validate</code> annotation on a boolean field.</li>
+<li>KlumAST is split into different modules, klum-ast-compile is compile-time only,
+klum-ast-runtime is needed for runtime as well. This completes
+the changes started in 1.2.0</li>
+<li>In order for the serialization in jackson to work, the new klum-ast-jackson module needs to be included in the project (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/wiki/Jackson-Integration">Jackson Integration</a>)</li>
+<li>The naming of virtual fields is changed, now the virtual field
+is identical to the method name (previously, the first element of the camel
+cased method name was removed).</li>
+<li>methods named <code>doValidate</code> are no longer considered Validate methods by default.</li>
+<li>Static Type Checking for Configuration Scripts does not (yet) work under Groovy 3</li>
+<li>Previously, only public methods were checked for illegal write access. This has been changed to include all visibilities. Protected methods that are conceptually write access methods must now also be annotated with @Mutator, otherwise a compile error is thrown.</li>
+<li>Owner fields are now set in a later phase, meaning that they are not yet set when apply closures are resolved. This logic must be moved to a later phase (postTree), for example using lifecycle closures.</li>
+<li>Default values are no longer a modification of the getter but rather explicitly set during the 'default' phase. This might result in subtle differences in the behavior, especially when using a non-template as template / target for
+<code>copyFrom</code>. Make sure to create template instances with <code>Create.Template</code> if you want to use them as templates.</li>
+<li><code>withTemplates(Map, Closure)</code> now only accepts anonymous templates, i.e. the signature changed from <code>withTemplates(Map&lt;Class, Object&gt;, Closure)</code> to <code>withTemplates(Map&lt;Class, Map&lt;String, Object&gt;, Closure)</code>. Calls using concrete templates now must use <code>withTemplates(List&lt;Object&gt;, Closure)</code> instead.</li>
+</ul>
+<h2 id="fixes">Fixes</h2>
+<ul>
+<li><code>Required.value()</code> is correctly translated to <code>Validate.message()</code> (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/373">#373</a>).</li>
+<li><code>CopyHandler</code> ignores the <code>IGNORED</code> field type (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/374">#374</a>).</li>
+<li>Root objects of the wrong type are ignored, allowing partial Models for testing.</li>
+<li>Unqualified links in <code>KlumFactory</code> Javadoc no longer cause Javadoc failures.</li>
+<li>The Gradle model plugin uses the script class rather than the model class in its model descriptor.</li>
+<li><code>ClusterModel</code> annotation filtering retrieves the actual <code>Field</code> object.</li>
+<li>Script names are determined correctly when a filename contains multiple dots (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/328">#328</a>).</li>
+<li>Generated RW classes are public, so static type checking works when owner and child are in different packages.</li>
+<li>The AnnoDocimal inner-enum final-modifier fix is included.</li>
+<li><code>@Overrides</code> is not copied to RW delegation methods (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/340">#340</a>).</li>
+<li>Polymorphic virtual setters work correctly (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/250">#250</a>).</li>
+<li>Converter methods honor default values (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/268">#268</a>).</li>
+<li>Nested generic types work correctly (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/248">#248</a>).</li>
+<li>Converter methods work for maps of DSL Objects (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/242">#242</a>).</li>
+<li>Generated classes with generic field types and generic factories such as <code>List.of</code> are valid (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/243">#243</a>).</li>
+<li>A default delegate may be a getter rather than a field (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/244">#244</a>).</li>
+<li><code>apply</code> accepts a Map-only call (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/241">#241</a>).</li>
+<li>Key fields work correctly in hierarchies (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/238">#238</a>).</li>
+<li>Creator-method visibility is correct (see <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/232">#232</a>).</li>
+</ul>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
