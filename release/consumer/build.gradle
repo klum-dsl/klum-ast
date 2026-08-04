@@ -22,7 +22,7 @@ dependencies {
 tasks.register("verifyPublicProduct") {
     group = "verification"
     description = "Resolves every published Maven module and all declared Gradle plugin markers from public repositories."
-    def evidenceFile = layout.buildDirectory.file("verification/public-product-$releaseVersion.txt")
+    def evidenceFile = layout.buildDirectory.file("verification/public-product-${releaseVersion}.txt")
     dependsOn subprojects.collect { it.tasks.named("verifyPluginMarker") }
     outputs.file(evidenceFile)
 
