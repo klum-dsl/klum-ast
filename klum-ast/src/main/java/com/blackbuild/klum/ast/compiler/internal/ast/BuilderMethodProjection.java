@@ -48,6 +48,7 @@ import org.codehaus.groovy.ast.expr.ExpressionTransformer;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
 import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
+import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
 import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
 import org.codehaus.groovy.ast.stmt.EmptyStatement;
@@ -495,6 +496,8 @@ final class BuilderMethodProjection {
                 result.copyNodeMetaData(source);
                 return result;
             }
+            if (expression instanceof StaticMethodCallExpression source)
+                return transformStaticMethodCall(source);
             if (!(expression instanceof MethodCallExpression source))
                 return expression.transformExpression(this);
 
@@ -534,6 +537,23 @@ final class BuilderMethodProjection {
             return result;
         }
 
+        private Expression transformStaticMethodCall(StaticMethodCallExpression source) {
+            StaticMethodCallExpression result = (StaticMethodCallExpression) source.transformExpression(this);
+
+            Candidate dependency = findDependency(source);
+            if (dependency == null) return result;
+
+            candidate.dependencies.add(dependency);
+            StaticMethodCallExpression projected = new StaticMethodCallExpression(
+                    source.getOwnerType(),
+                    dependency.twin.getName(),
+                    result.getArguments()
+            );
+            projected.setSourcePosition(source);
+            projected.copyNodeMetaData(source);
+            return projected;
+        }
+
         private Candidate findDependency(MethodCallExpression call) {
             MethodNode target = call.getMethodTarget();
             if (target != null) {
@@ -549,22 +569,32 @@ final class BuilderMethodProjection {
             return state.candidateFor(resolvedOriginal);
         }
 
+        private Candidate findDependency(StaticMethodCallExpression call) {
+            if (!call.getOwnerType().redirect().equals(candidate.original.getDeclaringClass().redirect())) return null;
+            MethodNode resolvedOriginal = resolveOriginalSourceTarget(call.getMethod(), call.getArguments());
+            return resolvedOriginal == null ? null : state.candidateFor(resolvedOriginal);
+        }
+
         /**
          * Dynamic Groovy source calls do not always have a MethodNode target yet. Resolve only the original
          * source overload here; the hidden twin is then obtained exclusively from that MethodNode's metadata.
          */
         private MethodNode resolveOriginalSourceTarget(MethodCallExpression call) {
             if (!call.isImplicitThis()) return null;
-            int argumentCount = argumentCount(call.getArguments());
+            return resolveOriginalSourceTarget(call.getMethodAsString(), call.getArguments());
+        }
+
+        private MethodNode resolveOriginalSourceTarget(String methodName, Expression arguments) {
+            int argumentCount = argumentCount(arguments);
             List<MethodNode> byArity = state.candidates.values().stream()
                     .map(value -> value.original)
-                    .filter(method -> method.getName().equals(call.getMethodAsString()))
+                    .filter(method -> method.getName().equals(methodName))
                     .filter(method -> acceptsArgumentCount(method, argumentCount))
                     .toList();
             if (byArity.size() == 1) return byArity.get(0);
 
             List<MethodNode> compatible = byArity.stream()
-                    .filter(method -> argumentsMatch(method.getParameters(), call.getArguments()))
+                    .filter(method -> argumentsMatch(method.getParameters(), arguments))
                     .toList();
             return compatible.size() == 1 ? compatible.get(0) : null;
         }
@@ -650,6 +680,11 @@ final class BuilderMethodProjection {
                     return false;
                 if (expression instanceof ClosureExpression
                         && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
+                    return false;
+                ClassNode expressionType = expression.getType();
+                if (expressionType != null
+                        && !expressionType.equals(ClassHelper.OBJECT_TYPE)
+                        && !isAssignableTo(expressionType, parameters[index].getOriginType()))
                     return false;
             }
             return true;
