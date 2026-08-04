@@ -76,6 +76,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   duplicates, and map keys. Opaque or precompiled model producers are omitted from generated APIs and matching dynamic calls
   fail with targeted migration guidance ([#437](https://github.com/klum-dsl/klum-ast/issues/437),
   [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md)).
+- Fixed Builder-producing projection for source-visible recursive unqualified static factory and converter calls, including
+  overload selection. The generated relationship APIs and IDE mirrors now expose the matching public Builder overloads for
+  single, List, and Map relationships without changing direct root-factory behavior ([#642](https://github.com/klum-dsl/klum-ast/issues/642)).
 - Added the Java-first `KlumObjectSupport.of(completedObject)` facade for a completed DSL Object root or subtree. Its
   construction-path getter and composition-only `Structure` helper expose paths, direct ownership, relative paths, and
   cycle-safe typed traversal. Its `Validation` helper exposes `getResult()` for the target and `getSubtreeResults()` for
