@@ -8,6 +8,11 @@ See the dedicated [[Builder First Migration]] guide for the complete migration c
 [[Templates]], [[Copy Strategies]], and [[Model Phases]] for materialization boundaries and [[Jackson Integration]] for
 foreign-data import and ordinary POJO export.
 
+Validation callers must import and catch
+`com.blackbuild.klum.ast.runtime.validation.KlumValidationException`. The former
+`com.blackbuild.klum.ast.runtime.KlumValidationException` type has been removed; this is an intentional 4.0 source and
+binary compatibility break.
+
 For a foreign YAML/JSON migration, configure one caller-owned Jackson mapper, import one input into one Builder lifecycle,
 and treat the completed-model export as a separately owned external projection. Do not feed it back as Klum persistence or
 use repeated imports as a Jackson-specific merge/layering mechanism; [#304](https://github.com/klum-dsl/klum-ast/issues/304)

@@ -29,6 +29,7 @@ import com.blackbuild.klum.ast.runtime.internal.InternalKlumObjectSupport;
 import com.blackbuild.klum.ast.runtime.internal.layer3.CompositionTraversal;
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructuralPath;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
 
 import java.util.ArrayList;

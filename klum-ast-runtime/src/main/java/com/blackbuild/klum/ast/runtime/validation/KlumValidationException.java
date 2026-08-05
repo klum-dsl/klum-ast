@@ -23,9 +23,14 @@
  */
 package com.blackbuild.klum.ast.runtime.validation;
 
+import com.blackbuild.klum.ast.Validate;
+import com.blackbuild.klum.ast.runtime.KlumException;
 import com.blackbuild.klum.ast.runtime.KlumModelException;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * Denotes an exception that means a validation error occurred in the model.
@@ -35,8 +40,27 @@ import java.util.List;
  *     points to a specific model element that is invalid, while this exception collects multiple validation errors.
  * </p>
  */
-public class KlumValidationException extends com.blackbuild.klum.ast.runtime.KlumValidationException {
+public class KlumValidationException extends KlumException {
+
+    private final List<KlumValidationResult> validationResults;
+
     public KlumValidationException(List<KlumValidationResult> validationResults) {
-        super(validationResults);
+        this.validationResults = new ArrayList<>(validationResults);
+    }
+
+    @Override
+    public String getMessage() {
+        return getMessage(Validate.Level.INFO);
+    }
+
+    public String getMessage(Validate.Level minimumLevel) {
+        return validationResults.stream()
+                .filter(klumValidationResult -> klumValidationResult.has(minimumLevel))
+                .map(klumValidationResult -> klumValidationResult.getMessage(minimumLevel))
+                .collect(joining("\n"));
+    }
+
+    public List<KlumValidationResult> getValidationResults() {
+        return validationResults;
     }
 }

@@ -558,6 +558,8 @@ later to apply the configured failure level without rerunning validators.
 (See: `ValidationDocumentaryTest#'verifies stored results without rerunning validators'`.)
 
 ```groovy
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
+
 System.setProperty('klum.validation.skipVerify', 'true')
 
 def model = Release.Create.One()

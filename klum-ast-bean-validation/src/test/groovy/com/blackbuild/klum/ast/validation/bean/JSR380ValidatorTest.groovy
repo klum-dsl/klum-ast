@@ -26,7 +26,7 @@ package com.blackbuild.klum.ast.runtime.internal.validation.bean
 import com.blackbuild.klum.ast.Validate
 import com.blackbuild.klum.ast.validation.bean.Level
 import com.blackbuild.klum.ast.runtime.internal.AbstractRuntimeTest
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
 import com.blackbuild.klum.ast.runtime.internal.validation.SingleObjectValidationHandler
 import spock.lang.Issue

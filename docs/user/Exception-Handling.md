@@ -71,4 +71,7 @@ The KlumVisitorException is thrown when a problem occurs during the traversal of
 
 ## KlumValidationException
 
-A `KlumValidationException` is thrown when a validation fails. It contains a list of `KlumValidationResult`s, each holding the `KlumValidationIssue`s for a single object, sorted by their occurring object.
+A `KlumValidationException` is thrown when a validation fails. Import
+`com.blackbuild.klum.ast.runtime.validation.KlumValidationException`; the former
+`com.blackbuild.klum.ast.runtime.KlumValidationException` no longer exists in 4.0. The exception contains a list of
+`KlumValidationResult`s, each holding the `KlumValidationIssue`s for a single object, sorted by their occurring object.

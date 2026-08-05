@@ -24,8 +24,10 @@
 package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.Validate
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationIssue
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
+import spock.lang.Issue
 import spock.lang.Specification
 
 
@@ -96,5 +98,27 @@ ERROR path#method2(): Error message 4
 WARNING path#method2(): Warning message 2"""
     }
 
+    @Issue("657")
+    def "public validation APIs declare and throw the canonical exception"() {
+        given:
+        def result = new KlumValidationResult("path")
+        result.addIssue(new KlumValidationIssue("path", "field", "Error", null, Validate.Level.ERROR))
+
+        when:
+        result.throwOn(Validate.Level.ERROR)
+
+        then:
+        def exception = thrown(KlumValidationException)
+        exception.class == KlumValidationException
+        KlumValidationResult.getMethod("throwOn", Validate.Level).exceptionTypes == [KlumValidationException] as Class[]
+        KlumValidationResult.getMethod("throwOn", List, Validate.Level).exceptionTypes == [KlumValidationException] as Class[]
+
+        when:
+        KlumValidationResult.throwOn([result], Validate.Level.ERROR)
+
+        then:
+        def aggregateException = thrown(KlumValidationException)
+        aggregateException.class == KlumValidationException
+    }
 
 }

@@ -25,7 +25,7 @@ package com.blackbuild.klum.ast.runtime.internal
 
 import com.blackbuild.klum.ast.Validate
 import com.blackbuild.klum.ast.runtime.internal.validation.SingleObjectValidationHandler
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 
 @SuppressWarnings("GrPackage")

@@ -26,7 +26,7 @@
 package com.blackbuild.klum.ast
 
 
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumSchemaSupport
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult

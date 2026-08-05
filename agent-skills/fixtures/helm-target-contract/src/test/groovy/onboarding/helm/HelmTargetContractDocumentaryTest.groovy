@@ -1,6 +1,6 @@
 package onboarding.helm
 
-import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import com.blackbuild.klum.ast.util.KlumObjectSupport
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory

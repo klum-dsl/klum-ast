@@ -26,6 +26,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Validation
 
+- `KlumValidationException` is now solely `com.blackbuild.klum.ast.runtime.validation.KlumValidationException`; update
+  imports and caught types. The former runtime-package class has been removed as an intentional 4.0 source and binary
+  compatibility break ([#657](https://github.com/klum-dsl/klum-ast/issues/657)).
 - Added the supported `KlumSchemaSupport`/`KlumValidationReporter` facade for custom lifecycle diagnostics, including
   explicit target reporting, suppression, and configured fail-level access. The preliminary `Validator` and
   `ValidatorBase` types are removed with direct 4.0 migration guidance; #406 remains the separate compile-time

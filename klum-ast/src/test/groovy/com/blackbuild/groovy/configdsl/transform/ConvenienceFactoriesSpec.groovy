@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.KlumModelException
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Issue
