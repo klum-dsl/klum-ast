@@ -88,6 +88,109 @@ class StaticTypingSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    @Issue('654')
+    def "static type checking rejects completed-model instanceof checks on Builder relationship values"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class Parent {
+                Child child
+
+                @Mutator
+                void classifyChild() {
+                    assert child instanceof Child
+                }
+            }
+        ''')
+
+        then:
+        def failure = thrown(MultipleCompilationErrorsException)
+        failure.message.contains('relationship value is a Builder before materialization')
+        failure.message.contains('Child_DSL$Builder')
+        failure.message.contains('Builder-First-Migration.md')
+    }
+
+    @Issue('654')
+    def "static type checking rejects completed-model instanceof checks in Builder lifecycle and annotation closures"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class LifecycleParent {
+                Child child
+
+                @PostTree
+                void classifyChild() {
+                    assert child instanceof Child
+                }
+            }
+        ''')
+
+        then:
+        def lifecycleFailure = thrown(MultipleCompilationErrorsException)
+        lifecycleFailure.message.contains('relationship value is a Builder before materialization')
+
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class AnnotationParent {
+                Child child
+
+                @Default(code = { child instanceof Child ? 'builder' : 'model' })
+                String lifecycleState
+            }
+        ''')
+
+        then:
+        def annotationFailure = thrown(MultipleCompilationErrorsException)
+        annotationFailure.message.contains('relationship value is a Builder before materialization')
+    }
+
+    @Issue('654')
+    def "static type checking permits completed-model, ordinary, and Object instanceof checks"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class Parent {
+                Child child
+                String name
+
+                @Mutator
+                void classifySafely(Object unknown) {
+                    assert unknown instanceof Child
+                    assert name instanceof String
+                }
+
+                @Validate
+                void validateCompletedChild() {
+                    assert child instanceof Child
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     def "def typed methods are allowed"() {
         when:
         createClass('''

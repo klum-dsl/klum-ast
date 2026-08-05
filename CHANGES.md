@@ -33,6 +33,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Statically checked Builder-phase code now rejects `instanceof SomeDslModel` when a relationship value is known to be a
+  Builder before materialization. The diagnostic reports the inferred Builder type and points to the Builder-first
+  migration guide; completed-model validation, ordinary non-model checks, and operands known only as `Object` remain
+  valid ([#654](https://github.com/klum-dsl/klum-ast/issues/654)).
 - Added a deliberately incomplete, best-effort 3.x-to-4.0 migration starter script for known annotation,
   `KlumModelException`, and copy-annotation import moves plus current-target validation-reporter edits. It runs from a
   schema module in a clean disposable Git worktree and requires diff review, normal compilation, and the Builder-first

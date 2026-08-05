@@ -61,4 +61,34 @@ class BuilderFirstMigrationDocumentaryTest extends AbstractDSLSpec {
         deployment.environment == 'production'
         deployment.service.image == 'catalog:1.0'
     }
+
+    @Issue("654")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Builder-First-Migration.md#builder-phase-type-checks")
+    def "keeps completed-model type checks in validation"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Service { }
+
+            @DSL
+            class Deployment {
+                Service service
+
+                @Validate
+                void validateCompletedService() {
+                    assert service instanceof Service
+                }
+            }
+        '''
+
+        when:
+        def deployment = getClass("Deployment").Create.With {
+            service {}
+        }
+
+        then:
+        deployment.service.class == getClass("Service")
+    }
 }
