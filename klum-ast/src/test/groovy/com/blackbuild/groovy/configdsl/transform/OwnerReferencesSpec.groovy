@@ -36,6 +36,120 @@ import spock.lang.Issue
 @SuppressWarnings("GroovyAssignabilityCheck")
 class OwnerReferencesSpec extends AbstractDSLSpec {
 
+    @Issue("666")
+    def "polymorphic owner references retain their declared Builder type while creation uses defaultImpl"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Catalog {
+                Product product
+            }
+
+            @DSL(defaultImpl = SingleProduct)
+            abstract class Product {
+            }
+
+            @DSL
+            class SingleProduct extends Product {
+            }
+
+            @DSL
+            class SubProduct extends Product {
+                Mapping mapping
+            }
+
+            @DSL
+            class Mapping {
+                @Owner Product product
+                @Role(Product) String role
+            }
+        '''
+
+        when:
+        def catalog = create("pk.Catalog") {
+            product {}
+        }
+        def subProduct = create("pk.SubProduct") {
+            mapping {}
+        }
+
+        then:
+        def productBuilder = getClass("pk.Product_DSL\$Builder")
+        catalog.product.class == getClass("pk.SingleProduct")
+        subProduct.mapping.product.is(subProduct)
+        subProduct.mapping.role == "mapping"
+        getClass("pk.Mapping\$Builder").getDeclaredField("product").type == productBuilder
+    }
+
+    @Issue("666")
+    def "declared DSL relationship fields retain their public Builder type despite defaultImpl"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Catalog {
+                Product product
+                List<Product> products
+                Map<String, Product> productsByName
+            }
+
+            @DSL(defaultImpl = SingleProduct)
+            abstract class Product {
+                @Key String name
+            }
+
+            @DSL
+            class SingleProduct extends Product {
+            }
+        '''
+
+        when:
+        def catalogBuilder = getClass("pk.Catalog\$Builder")
+        def productBuilder = getClass("pk.Product_DSL\$Builder")
+
+        then:
+        catalogBuilder.getDeclaredField("product").type == productBuilder
+        catalogBuilder.getDeclaredField("products").genericType.actualTypeArguments[0].rawType == productBuilder
+        catalogBuilder.getDeclaredField("productsByName").genericType.actualTypeArguments[1].rawType == productBuilder
+    }
+
+    @Issue("666")
+    def "inherited AutoCreate children receive their polymorphic subtype owner"() {
+        given:
+        createClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL(defaultImpl = SingleProduct)
+            abstract class Product {
+                @AutoCreate Mapping mapping
+            }
+
+            @DSL
+            class SingleProduct extends Product {
+            }
+
+            @DSL
+            class SubProduct extends Product {
+            }
+
+            @DSL
+            class Mapping {
+                @Owner Product product
+            }
+        '''
+
+        when:
+        def subProduct = create("pk.SubProduct")
+
+        then:
+        subProduct.mapping.product.is(subProduct)
+    }
+
     def "if owners is specified, no owner accessor is created"() {
         when:
         createClass('''

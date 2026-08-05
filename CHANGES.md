@@ -36,6 +36,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Fixed declared DSL relationship fields, including direct, collection, map, and `@Owner` fields, to retain their declared
+  public Builder type when a `defaultImpl` exists; ordinary relationship creation continues to select the default
+  implementation ([#666](https://github.com/klum-dsl/klum-ast/issues/666)).
 - Uninitialized `SortedSet`/`NavigableSet` and `SortedMap`/`NavigableMap` fields now receive their
   natural-order sorted defaults before Builder-first materialization. Their completed views remain
   sorted and immutable, while explicit `TreeSet`/`TreeMap` comparators continue to be preserved
