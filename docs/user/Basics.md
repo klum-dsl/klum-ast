@@ -453,8 +453,9 @@ might be some corner cases where it is useful.
 
 `defaultImpl` can also be used on collections, maps and virtual fields.
 
-It selects the concrete type used for creation, but does not narrow `@Owner` matching: an owner declared with a polymorphic
-base type accepts matching subtype Builders.
+It selects the concrete type used for creation, but does not narrow Builder storage for a field declared as a DSL Object.
+Such a field, including collection and map values, retains its declared polymorphic Builder type for ownership and other
+Builder-time relationship handling.
 
 
 ### Collections of DSL Objects

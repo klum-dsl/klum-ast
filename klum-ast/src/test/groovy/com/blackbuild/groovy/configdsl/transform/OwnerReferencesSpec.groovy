@@ -45,10 +45,13 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Catalog {
                 Product product
+                List<Product> products
+                Map<String, Product> productsByName
             }
 
             @DSL(defaultImpl = SingleProduct)
             abstract class Product {
+                @Key String name
             }
 
             @DSL
@@ -69,17 +72,22 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def catalog = create("pk.Catalog") {
-            product {}
+            product("single") {}
         }
-        def subProduct = create("pk.SubProduct") {
+        def subProduct = create("pk.SubProduct", "sub") {
             mapping {}
         }
 
         then:
+        def productBuilder = getClass("pk.Product_DSL\$Builder")
+        def catalogBuilder = getClass("pk.Catalog\$Builder")
         catalog.product.class == getClass("pk.SingleProduct")
         subProduct.mapping.product.is(subProduct)
         subProduct.mapping.role == "mapping"
-        getClass("pk.Mapping\$Builder").getDeclaredField("product").type == getClass("pk.Product_DSL\$Builder")
+        getClass("pk.Mapping\$Builder").getDeclaredField("product").type == productBuilder
+        catalogBuilder.getDeclaredField("product").type == productBuilder
+        catalogBuilder.getDeclaredField("products").genericType.actualTypeArguments[0].rawType == productBuilder
+        catalogBuilder.getDeclaredField("productsByName").genericType.actualTypeArguments[1].rawType == productBuilder
     }
 
     @Issue("666")
