@@ -138,6 +138,7 @@ class ConverterBuilder {
     }
 
     private void closureToStaticConverterMethod(ClassNode converterClass, ClosureExpression converter) {
+        converter.putNodeMetaData(DSLASTTransformation.MODEL_RESULT_ANNOTATION_CLOSURE_METADATA_KEY, Boolean.TRUE);
         Parameter[] parameters = rescopeParameters(converter.getParameters());
         String name = stream(parameters)
                 .map(Parameter::getOriginType)
