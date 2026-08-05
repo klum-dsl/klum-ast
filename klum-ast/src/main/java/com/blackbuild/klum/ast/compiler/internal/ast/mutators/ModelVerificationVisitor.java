@@ -35,6 +35,7 @@ import org.codehaus.groovy.transform.stc.StaticTypeCheckingVisitor;
 import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.codehaus.groovy.syntax.Types.*;
 import static org.codehaus.groovy.ast.ClassHelper.make;
@@ -46,7 +47,9 @@ import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.i
 public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
 
     private static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
+    private static final Set<String> ROOT_FACTORY_METHODS = Set.of("With", "One", "From");
     private int builderAnnotationClosureDepth;
+    private int modelResultAnnotationClosureDepth;
 
     public ModelVerificationVisitor(SourceUnit unit, ClassNode node) {
         super(unit, node);
@@ -57,12 +60,18 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     public void visitClosureExpression(ClosureExpression expression) {
         boolean builderAnnotationClosure = Boolean.TRUE.equals(expression.getNodeMetaData(
                 DSLASTTransformation.BUILDER_ANNOTATION_CLOSURE_METADATA_KEY));
+        boolean modelResultAnnotationClosure = Boolean.TRUE.equals(expression.getNodeMetaData(
+                DSLASTTransformation.MODEL_RESULT_ANNOTATION_CLOSURE_METADATA_KEY));
         if (builderAnnotationClosure)
             builderAnnotationClosureDepth++;
+        if (modelResultAnnotationClosure)
+            modelResultAnnotationClosureDepth++;
 
         try {
             super.visitClosureExpression(expression);
         } finally {
+            if (modelResultAnnotationClosure)
+                modelResultAnnotationClosureDepth--;
             if (builderAnnotationClosure)
                 builderAnnotationClosureDepth--;
         }
@@ -106,6 +115,31 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
         checkForCompletedModelInstanceofOnBuilder(expression);
     }
 
+    @Override
+    public void visitMethodCallExpression(MethodCallExpression expression) {
+        super.visitMethodCallExpression(expression);
+        checkForNestedRootFactory(expression);
+    }
+
+    private void checkForNestedRootFactory(MethodCallExpression expression) {
+        String factoryMethod = expression.getMethodAsString();
+        if (!isBuilderPhaseCode() || isInModelResultAnnotationClosure() || isInStaticMethod()
+                || factoryMethod == null || !ROOT_FACTORY_METHODS.contains(factoryMethod))
+            return;
+
+        if (!(expression.getObjectExpression() instanceof PropertyExpression factoryExpression)
+                || !DSLASTTransformation.FACTORY_FIELD_NAME.equals(factoryExpression.getPropertyAsString())
+                || !(factoryExpression.getObjectExpression() instanceof ClassExpression modelExpression)
+                || !DslAstHelper.isDSLObject(modelExpression.getType()))
+            return;
+
+        String modelName = modelExpression.getType().getNameWithoutPackage();
+        addError(String.format(
+                "%1$s.Create.%2$s starts a completed-model root factory. In Builder-phase code use %1$s.Create.AsBuilder.%2$s and attach the returned Builder to an owned relationship.",
+                modelName,
+                factoryMethod), expression);
+    }
+
     private void checkForCompletedModelInstanceofOnBuilder(BinaryExpression expression) {
         if (!isBuilderPhaseCode() || expression.getOperation().getType() != KEYWORD_INSTANCEOF)
             return;
@@ -126,6 +160,15 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
 
     private boolean isBuilderPhaseCode() {
         return inRwClass() || builderAnnotationClosureDepth > 0;
+    }
+
+    private boolean isInStaticMethod() {
+        MethodNode currentMethod = typeCheckingContext.getEnclosingMethod();
+        return currentMethod != null && currentMethod.isStatic();
+    }
+
+    private boolean isInModelResultAnnotationClosure() {
+        return modelResultAnnotationClosureDepth > 0;
     }
 
     private void checkForIllegalAssignment(BinaryExpression expression) {

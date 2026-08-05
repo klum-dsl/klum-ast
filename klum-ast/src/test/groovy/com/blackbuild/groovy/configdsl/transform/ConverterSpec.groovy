@@ -105,6 +105,7 @@ class ConverterSpec extends AbstractDSLSpec {
         TimeCategory.minus(instance.date, new Date()).days == 0
     }
 
+    @Issue('656')
     def "generated converter for dsl field"() {
         when:
         createClass '''
@@ -131,6 +132,7 @@ class ConverterSpec extends AbstractDSLSpec {
         instance.bar.value.time == 123L
     }
 
+    @Issue('656')
     def "generated converter for keyed dsl field"() {
         when:
         createClass '''

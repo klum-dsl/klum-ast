@@ -136,6 +136,8 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     public static final String RWCLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".rwclass";
     public static final String BUILDER_ANNOTATION_CLOSURE_METADATA_KEY =
             DSLASTTransformation.class.getName() + ".builderAnnotationClosure";
+    public static final String MODEL_RESULT_ANNOTATION_CLOSURE_METADATA_KEY =
+            DSLASTTransformation.class.getName() + ".modelResultAnnotationClosure";
     public static final ClassNode INVOKER_HELPER_CLASS = ClassHelper.make(InvokerHelper.class);
     public static final String FACTORY_FIELD_NAME = "Create";
     private static final String RESERVED_KLUM_NAMESPACE = "$klum$";

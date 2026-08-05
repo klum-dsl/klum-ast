@@ -33,6 +33,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Statically checked Builder-phase code now identifies source-visible `Child.Create.With`, `One`, and `From` root
+  factories, explains that they return a completed model, and directs nested composition to `Child.Create.AsBuilder.*`
+  attached to an owned relationship. Completed-model validation, ordinary static source factories, non-DSL `Create`, and
+  valid Builder composition remain valid ([#656](https://github.com/klum-dsl/klum-ast/issues/656)).
 - Statically checked Builder-phase code now rejects `instanceof SomeDslModel` when a relationship value is known to be a
   Builder before materialization. The diagnostic reports the inferred Builder type and points to the Builder-first
   migration guide; completed-model validation, ordinary non-model checks, and operands known only as `Object` remain

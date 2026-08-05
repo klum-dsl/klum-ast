@@ -31,6 +31,7 @@ use this guide for Builder-first diagnostics:
 | A statically checked Builder lifecycle method sees an ordinary collection or map value as `Object` | An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields. | Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
 | `instanceof SomeDslModel` is rejected in a Builder-phase callback | The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available. | Do not use a completed-model type check in a mutator, mutating lifecycle method, or Builder-retargeted annotation closure. Move a completed-model invariant to `@Validate`; ordinary checks and operands known only as `Object` remain valid. |
+| `Child.Create.With`, `One`, or `From` is rejected in Builder-phase code | That call starts an independent root lifecycle and returns a completed model, which cannot become owned composition in the active Builder graph. | Use `Child.Create.AsBuilder.With`, `One`, or `From`, then attach the returned Builder to an owned relationship. Root factories remain valid in `@Validate` and ordinary static source factory methods. |
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
 
@@ -46,6 +47,22 @@ void validateCompletedService() {
     assert service instanceof Service
 }
 ```
+
+### Builder-phase Factories
+
+`Create.With`, `Create.One`, and `Create.From` are root factories: they return a completed model and own a complete
+Construction session. In a mutator, mutating lifecycle method, or Builder-retargeted annotation closure, create the
+owned child in the active session instead:
+
+```groovy
+@Mutator
+void supplySource() {
+    source = ProductSource.Create.AsBuilder.With(name: 'default source')
+}
+```
+
+The returned Builder must be attached to an owned relationship. Do not use `Create.AsBuilder` for an independent root
+model; use the ordinary root factory outside Builder-phase code instead.
 
 ### 2. Compile and Run a Representative Model
 

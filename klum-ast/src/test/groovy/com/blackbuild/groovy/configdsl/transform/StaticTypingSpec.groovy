@@ -209,6 +209,152 @@ class StaticTypingSpec extends AbstractDSLSpec {
         notThrown(MultipleCompilationErrorsException)
     }
 
+    @Issue('656')
+    def "static type checking identifies nested root factories in Builder-phase methods"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class Parent {
+                Child child
+
+                @Mutator
+                void configureChild() {
+                    child = Child.Create.With()
+                }
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains('Child.Create.With starts a completed-model root factory')
+        error.message.contains('Child.Create.AsBuilder.With')
+        error.message.contains('attach the returned Builder to an owned relationship')
+    }
+
+    @Issue('656')
+    def "static type checking identifies nested root factories in Builder lifecycle and annotation closures"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class LifecycleParent {
+                Child child
+
+                @PostTree
+                void configureChild() {
+                    child = Child.Create.One()
+                }
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException lifecycleError = thrown()
+        lifecycleError.message.contains('Child.Create.One starts a completed-model root factory')
+
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class AnnotationParent {
+                @Default(code = { Child.Create.With() })
+                Child child
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException annotationError = thrown()
+        annotationError.message.contains('Child.Create.With starts a completed-model root factory')
+    }
+
+    @Issue('656')
+    def "static type checking identifies nested From root factories in Builder-phase code"() {
+        when:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child { }
+
+            @DSL
+            class Parent {
+                Child child
+
+                @Mutator
+                void configureChild() {
+                    child = Child.Create.From('')
+                }
+            }
+        ''')
+
+        then:
+        MultipleCompilationErrorsException error = thrown()
+        error.message.contains('Child.Create.From starts a completed-model root factory')
+        error.message.contains('Child.Create.AsBuilder.From')
+    }
+
+    @Issue('656')
+    def "static type checking permits Builder composition, validation root factories, static factories, and non-DSL Create"() {
+        when:
+        createSecondaryClass('''
+            package pk
+
+            class External {
+                static final Creator Create = new Creator()
+
+                static class Creator {
+                    String One() { 'external' }
+                }
+            }
+        ''')
+
+        and:
+        createClass('''
+            package pk
+
+            @DSL
+            class Child {
+                String name
+            }
+
+            @DSL
+            class Parent {
+                Child child
+
+                @Mutator
+                void configureChild() {
+                    child = Child.Create.AsBuilder.With(name: 'child')
+                    assert External.Create.One() == 'external'
+                }
+
+                @Validate
+                void validateCompletedChild() {
+                    Child completedChild = Child.Create.One()
+                    assert completedChild instanceof Child
+                }
+
+                static Child createStandaloneChild() {
+                    Child.Create.With()
+                }
+            }
+        ''')
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     @Issue('644')
     def "static type checking accepts same-session Builder copies in Builder lifecycle code"() {
         when:
