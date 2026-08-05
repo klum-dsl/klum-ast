@@ -78,13 +78,15 @@ class MapConfiguratorOverrideDiagnosticsTest extends AbstractDSLSpec {
     def "Builder return for a relationship override warns"() {
         when:
         def unit = compile('''
+            import com.blackbuild.klum.ast.runtime.KlumBuilder
+
             @DSL class Child { String name }
 
             @DSL class Parent {
                 Child child
 
                 @Mutator
-                com.blackbuild.klum.ast.runtime.KlumBuilder<Child> child(Child value) {
+                KlumBuilder<Child> child(Child value) {
                     null
                 }
             }
@@ -135,6 +137,23 @@ class MapConfiguratorOverrideDiagnosticsTest extends AbstractDSLSpec {
         then:
         !unit.errorCollector.warnings
         mailbox.configuredBy == 'mutator:https://example.invalid'
+    }
+
+    def "other manual write-access methods do not receive the mutator diagnostic"() {
+        when:
+        def unit = compile('''
+            @DSL class Mailbox {
+                String role
+
+                @Role
+                String role(String value) {
+                    value
+                }
+            }
+        ''')
+
+        then:
+        !unit.errorCollector.warnings
     }
 
     private CompilationUnit compile(String source) {

@@ -26,7 +26,6 @@ package com.blackbuild.klum.ast.compiler.internal.ast;
 import com.blackbuild.annodocimal.ast.AstDocumentation;
 import com.blackbuild.klum.ast.*;
 import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessMethodsMover;
-import com.blackbuild.klum.ast.compiler.internal.ast.mutators.WriteAccessHelper;
 import com.blackbuild.klum.ast.runtime.KlumKeyedModelObject;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumModelObject;
@@ -845,16 +844,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private void diagnoseNonSetterConfiguratorOverrides() {
         annotatedClass.getMethods().stream()
-                .filter(this::isManualMutator)
+                .filter(this::isExplicitMutator)
                 .forEach(method -> builderFields.forEach((field, builderField) ->
                         diagnoseNonSetterConfiguratorOverride(method, field, builderField)
                 ));
     }
 
-    private boolean isManualMutator(MethodNode method) {
-        return WriteAccessHelper.getWriteAccessTypeForMethodOrField(method)
-                .filter(type -> type == WriteAccess.Type.MANUAL)
-                .isPresent();
+    private boolean isExplicitMutator(MethodNode method) {
+        return !method.getAnnotations(make(Mutator.class)).isEmpty();
     }
 
     private void diagnoseNonSetterConfiguratorOverride(MethodNode method, FieldNode field, FieldNode builderField) {
