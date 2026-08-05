@@ -36,6 +36,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Factory maps continue to prefer an explicit same-named Builder mutator over direct field storage. KlumAST now warns
+  when an exact single-argument `@Mutator` override returns the field value or compatible Builder, points direct
+  assignment to `setX`, and rejects other non-void return types as likely helper-method collisions. `void` overrides and
+  no-field map-method fallback remain valid ([#661](https://github.com/klum-dsl/klum-ast/issues/661)).
 - Statically checked Builder-phase code now identifies source-visible `Child.Create.With`, `One`, and `From` root
   factories, explains that they return a completed model, and directs nested composition to `Child.Create.AsBuilder.*`
   attached to an owned relationship. Completed-model validation, ordinary static source factories, non-DSL `Create`, and

@@ -28,6 +28,7 @@ use this guide for Builder-first diagnostics:
 | A client-facing signature refers to `$_RW`, `KlumRwObject`, or an RW delegate | Those types are generated implementation details. | Use the generated `Foo_DSL.Builder` interface and `@DelegatesToBuilder`, or let the generated relationship method supply the delegate type. |
 | A model collection declaration is rejected | Completed collections are read-only snapshots and require a supported declaration. | Declare `List`, `Set`, `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, or `EnumSet`; remove unsupported concrete/custom declarations. |
 | A `KlumBuilder` result is raw, wildcarded, or unresolved | KlumAST cannot determine which public Builder interface to expose. | Declare the concrete model type, for example `KlumBuilder<Child>` or `List<KlumBuilder<Child>>`. |
+| A manual configurator shadows a field in a factory map | Map keys intentionally call the same-named Builder method before considering storage. A non-void override can be mistaken for an ordinary helper. | A `void` `@Mutator` remains silent. A return of the field value or its Builder receives a warning; rename the helper if that is not intended. Use `setX` in the map for direct field assignment. An incompatible non-void return is a compilation error. |
 | A statically checked Builder lifecycle method sees an ordinary collection or map value as `Object` | An earlier 4.0 release candidate emitted a raw Builder accessor for simple collection and map fields. | Recompile the Schema with the correction. Declared element and map value types are preserved, so a compensating local generic cast is no longer needed. |
 | A polymorphic relationship closure cannot see members of the selected subtype under static compilation | A dynamic `ChildType` Class selector retains the declared base Builder delegate. | Pass the generated factory, for example `child(ConcreteChild.Create) { concreteProperty 'value' }`, to select the exact public `ConcreteChild_DSL.Builder<ConcreteChild>` delegate. |
 | `instanceof SomeDslModel` is rejected in a Builder-phase callback | The relationship value is a Builder before materialization, not the completed DSL Object. The diagnostic names the inferred Builder type when available. | Do not use a completed-model type check in a mutator, mutating lifecycle method, or Builder-retargeted annotation closure. Move a completed-model invariant to `@Validate`; ordinary checks and operands known only as `Object` remain valid. |
@@ -63,6 +64,33 @@ void supplySource() {
 
 The returned Builder must be attached to an owned relationship. Do not use `Create.AsBuilder` for an independent root
 model; use the ordinary root factory outside Builder-phase code instead.
+
+### Map Configurator Overrides
+
+Factory maps preserve method-first configuration. When a Builder has both a writable `outboxUrl` field and an explicit
+`outboxUrl(String)` mutator, `Create.With(outboxUrl: value)` calls the mutator. This makes intentional overrides work
+consistently across `Create.With`, `Create.AsBuilder.With`, Templates, and automatic creation.
+
+```groovy
+@DSL
+class Mailbox {
+    String outboxUrl
+
+    @Mutator
+    String outboxUrl(String value) {
+        // Normalize, validate, or coordinate related Builder state.
+        value
+    }
+}
+
+Mailbox.Create.With(outboxUrl: 'https://example.invalid')
+Mailbox.Create.With(setOutboxUrl: 'https://example.invalid') // explicit direct field assignment
+```
+
+KlumAST warns when this exact one-argument `@Mutator` override returns the field value or its Builder, because map
+configuration will choose the method. A `void` mutator is unambiguous and remains silent. A non-void return unrelated
+to the field or its Builder is rejected at the mutator declaration; rename it or make it setter-like. Methods without a
+same-named writable field retain their existing map-method fallback without a diagnostic.
 
 ### 2. Compile and Run a Representative Model
 

@@ -53,6 +53,7 @@ import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
 import org.codehaus.groovy.ast.tools.GenericsUtils;
+import org.codehaus.groovy.classgen.Verifier;
 import org.codehaus.groovy.classgen.VariableScopeVisitor;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
@@ -183,6 +184,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         createRWClass();
         moveSourceStateToBuilder();
         createFieldDSLMethods();
+        diagnoseNonSetterConfiguratorOverrides();
         setPropertyAccessors();
         createApplyMethods();
         createTemplateMethods();
@@ -838,6 +840,59 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 createSingleDSLObjectFieldCreationMethods(fieldNode, fieldNode.getName());
             createSingleFieldSetterMethod(fieldNode);
         }
+    }
+
+    private void diagnoseNonSetterConfiguratorOverrides() {
+        annotatedClass.getMethods().stream()
+                .filter(this::isExplicitMutator)
+                .forEach(method -> builderFields.forEach((field, builderField) ->
+                        diagnoseNonSetterConfiguratorOverride(method, field, builderField)
+                ));
+    }
+
+    private boolean isExplicitMutator(MethodNode method) {
+        return !method.getAnnotations(make(Mutator.class)).isEmpty();
+    }
+
+    private void diagnoseNonSetterConfiguratorOverride(MethodNode method, FieldNode field, FieldNode builderField) {
+        if (!isGeneratedSingleFieldConfiguratorOverride(method, field)) return;
+        if (method.getReturnType().equals(VOID_TYPE)) return;
+
+        String message = "Manual configurator '" + method.getName() + "' shadows map configuration for field '"
+                + field.getName() + "'. Map configuration calls this method; use 'set"
+                + Verifier.capitalize(field.getName()) + "' for direct field assignment.";
+
+        if (hasSetterLikeReturnType(method, field, builderField))
+            addCompileWarning(sourceUnit, message, method);
+        else
+            addCompileError(sourceUnit, message + " It must return void, '" + field.getType().getNameWithoutPackage()
+                    + "', or its Builder type, but returns '" + method.getReturnType().getNameWithoutPackage() + "'.", method);
+    }
+
+    private boolean isGeneratedSingleFieldConfiguratorOverride(MethodNode method, FieldNode field) {
+        if (shouldFieldBeIgnored(field) || getFieldType(field) == FieldType.IGNORED) return false;
+        if (isMap(field.getType()) || isCollection(field.getType())) return false;
+        if (!method.getName().equals(field.getName())) return false;
+        if (method.getParameters().length != 1) return false;
+        return sameType(method.getParameters()[0].getType(), field.getType());
+    }
+
+    private boolean hasSetterLikeReturnType(MethodNode method, FieldNode field, FieldNode builderField) {
+        ClassNode returnType = method.getReturnType();
+        return sameType(returnType, field.getType())
+                || sameType(returnType, builderField.getType())
+                || sameType(returnType, GeneratedDslSupport.builderTypeFor(field.getType()))
+                || isKlumBuilderFor(returnType, field.getType());
+    }
+
+    private static boolean isKlumBuilderFor(ClassNode type, ClassNode modelType) {
+        if (!sameType(type, PUBLIC_KLUM_BUILDER)) return false;
+        GenericsType[] generics = type.getGenericsTypes();
+        return generics != null && generics.length == 1 && sameType(generics[0].getType(), modelType);
+    }
+
+    private static boolean sameType(ClassNode left, ClassNode right) {
+        return left.redirect().getName().equals(right.redirect().getName());
     }
 
     @SuppressWarnings({"RedundantIfStatement", "java:S1126"})
