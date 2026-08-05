@@ -478,7 +478,9 @@ public class DSLASTTransformation extends AbstractASTTransformation {
 
     private ClassNode getBuilderFieldType(FieldNode field) {
         ClassNode type = field.getType();
-        ClassNode effectiveValueType = getEffectiveFieldValueType(field);
+        ClassNode effectiveValueType = isOwnerField(field)
+                ? getDeclaredFieldValueType(field)
+                : getEffectiveFieldValueType(field);
         if (!isCollection(type) && !isMap(type) && isDSLObject(effectiveValueType))
             return getRwClassOf(effectiveValueType).getPlainNodeReference();
         if (isCollection(type) && isDSLObject(effectiveValueType))
@@ -493,6 +495,10 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     }
 
     private ClassNode getEffectiveFieldValueType(FieldNode field) {
+        return getDefaultImplOfFieldOrMethod(field, getDeclaredFieldValueType(field));
+    }
+
+    private ClassNode getDeclaredFieldValueType(FieldNode field) {
         ClassNode declaredValueType;
         if (isCollection(field.getType()))
             declaredValueType = getElementTypeForCollection(field.getType());
@@ -500,7 +506,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             declaredValueType = getElementTypeForMap(field.getType());
         else
             declaredValueType = field.getType();
-        return getDefaultImplOfFieldOrMethod(field, declaredValueType);
+        return declaredValueType;
     }
 
     FieldNode getBuilderField(FieldNode modelField) {
