@@ -57,7 +57,10 @@ public class CommonAstHelper {
     public static final ClassNode[] NO_EXCEPTIONS = ClassNode.EMPTY_ARRAY;
     public static final FieldNode NO_SUCH_FIELD = new FieldNode(null, 0, null, null, null);
     public static final ClassNode COLLECTION_TYPE = makeWithoutCaching(Collection.class);
+    public static final ClassNode SORTED_SET_TYPE = makeWithoutCaching(SortedSet.class);
+    public static final ClassNode NAVIGABLE_SET_TYPE = makeWithoutCaching(NavigableSet.class);
     public static final ClassNode SORTED_MAP_TYPE = makeWithoutCaching(SortedMap.class);
+    public static final ClassNode NAVIGABLE_MAP_TYPE = makeWithoutCaching(NavigableMap.class);
     public static final ClassNode ENUM_SET_TYPE = makeWithoutCaching(EnumSet.class);
 
     public static AnnotationNode getAnnotation(AnnotatedNode target, ClassNode type) {
@@ -379,9 +382,11 @@ public class CommonAstHelper {
         ClassNode fieldType = fieldNode.getType();
         if (fieldType.equals(ENUM_SET_TYPE))
             initializeField(fieldNode, callX(ENUM_SET_TYPE, "noneOf", classX(getElementTypeForCollection(fieldType))));
+        else if (fieldType.equals(SORTED_SET_TYPE) || fieldType.equals(NAVIGABLE_SET_TYPE))
+            initializeField(fieldNode, ctorX(makeClassSafe(TreeSet.class)));
         else if (isCollection(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new ListExpression()));
-        else if (fieldType.equals(SORTED_MAP_TYPE))
+        else if (fieldType.equals(SORTED_MAP_TYPE) || fieldType.equals(NAVIGABLE_MAP_TYPE))
             initializeField(fieldNode, ctorX(makeClassSafe(TreeMap.class)));
         else if (isMap(fieldType))
             initializeField(fieldNode, asExpression(fieldType, new MapExpression()));

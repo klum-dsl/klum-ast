@@ -400,6 +400,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         childBuilder.completedModel.is(instance.child)
     }
 
+    @Issue('664')
     def "materialization publishes independent read only collection snapshots"() {
         given:
         createClass '''
@@ -442,7 +443,9 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         instance.sortedMap.keySet().toList() == ["second", "first"]
         instance.navigableMap.keySet().toList() == ["second", "first"]
         instance.sortedSet.comparator().compare("first", "second") > 0
+        instance.navigableSet.comparator().compare("first", "second") > 0
         instance.sortedMap.comparator().compare("first", "second") > 0
+        instance.navigableMap.comparator().compare("first", "second") > 0
 
         and: "the snapshot no longer shares storage with its Builder"
         builder.list.add("builder-only")
@@ -467,6 +470,60 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         ["list", "set", "sortedSet", "navigableSet", "map", "sortedMap", "navigableMap", "tones"].every {
             Modifier.isFinal(clazz.getDeclaredField(it).modifiers)
         }
+    }
+
+    @Issue('664')
+    def "implicit sorted collection defaults materialize as natural-order immutable views"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class ReleaseCatalog {
+                NavigableSet<String> validReleases
+                SortedSet<String> retiredReleases
+                SortedMap<String, String> compatibility
+                NavigableMap<String, String> releaseNotes
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            validReleases "4.0", "3.0"
+            retiredReleases "2.0", "1.0"
+            compatibility "4.0", "current"
+            compatibility "3.0", "legacy"
+            releaseNote "4.0", "current"
+            releaseNote "3.0", "legacy"
+        }
+
+        then:
+        instance.validReleases instanceof NavigableSet
+        instance.retiredReleases instanceof SortedSet
+        instance.compatibility instanceof SortedMap
+        instance.releaseNotes instanceof NavigableMap
+
+        and: "the concrete defaults retain natural ordering through materialization"
+        instance.validReleases.toList() == ["3.0", "4.0"]
+        instance.retiredReleases.toList() == ["1.0", "2.0"]
+        instance.compatibility.keySet().toList() == ["3.0", "4.0"]
+        instance.releaseNotes.keySet().toList() == ["3.0", "4.0"]
+        instance.validReleases.comparator() == null
+        instance.retiredReleases.comparator() == null
+        instance.compatibility.comparator() == null
+        instance.releaseNotes.comparator() == null
+
+        when: "a completed sorted collection view is mutated"
+        instance.validReleases.add("5.0")
+
+        then:
+        thrown(UnsupportedOperationException)
+
+        when: "a completed sorted map view is mutated"
+        instance.releaseNotes.put("5.0", "future")
+
+        then:
+        thrown(UnsupportedOperationException)
     }
 
     def "unsupported concrete collection declarations fail schema compilation"() {
