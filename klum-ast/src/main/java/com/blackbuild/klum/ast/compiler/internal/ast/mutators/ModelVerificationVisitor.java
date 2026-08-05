@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation;
 import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
+import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.*;
 import org.codehaus.groovy.ast.expr.*;
@@ -36,11 +37,16 @@ import org.codehaus.groovy.transform.stc.StaticTypesMarker;
 import java.util.List;
 
 import static org.codehaus.groovy.syntax.Types.*;
+import static org.codehaus.groovy.ast.ClassHelper.make;
+import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.isAssignableTo;
 
 /**
  * Created by stephan on 12.04.2017.
  */
 public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
+
+    private static final ClassNode KLUM_BUILDER = make(KlumBuilder.class);
+    private int builderAnnotationClosureDepth;
 
     public ModelVerificationVisitor(SourceUnit unit, ClassNode node) {
         super(unit, node);
@@ -49,10 +55,19 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
 
     @Override
     public void visitClosureExpression(ClosureExpression expression) {
-        super.visitClosureExpression(expression);
+        boolean builderAnnotationClosure = Boolean.TRUE.equals(expression.getNodeMetaData(
+                DSLASTTransformation.BUILDER_ANNOTATION_CLOSURE_METADATA_KEY));
+        if (builderAnnotationClosure)
+            builderAnnotationClosureDepth++;
 
-        if (!Boolean.TRUE.equals(expression.getNodeMetaData(
-                DSLASTTransformation.BUILDER_ANNOTATION_CLOSURE_METADATA_KEY)))
+        try {
+            super.visitClosureExpression(expression);
+        } finally {
+            if (builderAnnotationClosure)
+                builderAnnotationClosureDepth--;
+        }
+
+        if (!builderAnnotationClosure)
             return;
 
         ClassNode inferredReturnType = expression.getNodeMetaData(StaticTypesMarker.INFERRED_RETURN_TYPE);
@@ -88,6 +103,29 @@ public class ModelVerificationVisitor extends StaticTypeCheckingVisitor {
     public void visitBinaryExpression(BinaryExpression expression) {
         super.visitBinaryExpression(expression);
         checkForIllegalAssignment(expression);
+        checkForCompletedModelInstanceofOnBuilder(expression);
+    }
+
+    private void checkForCompletedModelInstanceofOnBuilder(BinaryExpression expression) {
+        if (!isBuilderPhaseCode() || expression.getOperation().getType() != KEYWORD_INSTANCEOF)
+            return;
+        if (!(expression.getRightExpression() instanceof ClassExpression modelTypeExpression)
+                || !DslAstHelper.isDSLObject(modelTypeExpression.getType()))
+            return;
+
+        ClassNode inferredType = getType(expression.getLeftExpression());
+        if (!isAssignableTo(inferredType, KLUM_BUILDER))
+            return;
+
+        addError(String.format(
+                "Cannot use 'instanceof %s' on '%s' in Builder-phase code: the relationship value is a Builder before materialization (inferred Builder type: %s), not a completed DSL Object. See the Builder-first migration guidance: docs/user/Builder-First-Migration.md.",
+                modelTypeExpression.getType().getNameWithoutPackage(),
+                expression.getLeftExpression().getText(),
+                inferredType.getName()), expression);
+    }
+
+    private boolean isBuilderPhaseCode() {
+        return inRwClass() || builderAnnotationClosureDepth > 0;
     }
 
     private void checkForIllegalAssignment(BinaryExpression expression) {
