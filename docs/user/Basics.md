@@ -203,7 +203,10 @@ Config.Create.With {
 }
 ```
 
-If the collection has no initial value, it is automatically initialized.
+If the collection has no initial value, it is automatically initialized. `SortedSet` and `NavigableSet`
+use natural-order sorted storage by default, as do `SortedMap` and `NavigableMap`. Supply an explicit
+`TreeSet` or `TreeMap` initializer when the Schema needs a custom comparator; the completed model keeps
+that ordering in its read-only collection view.
 
 ### `keyMapping` for Simple Maps
 
