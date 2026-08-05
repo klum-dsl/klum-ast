@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model phases — KlumAST 4.0.0-rc.9</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.9 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="./">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="./">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="model-phases">Model phases</h1>
+<p>Model creation goes through several phases in one Builder lifecycle. The phases are local to the current Thread. Owned
+submodels are created through the root's generated Builder methods and share that lifecycle; a nested root factory starts
+an independent lifecycle and cannot be adopted as composition.</p>
+<p>This page is an explicit documentary-test exception: rather than repeat an abbreviated lifecycle example at every heading,
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/tree/23158177957329098d51baf7aa334d2e5bac7fec/klum-ast/src/test/groovy/com/blackbuild/klum/ast/ModelPhasesDocumentaryTest.groovy"><code>ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'</code></a>
+is one end-to-end example for the lifecycle headings. The test retains exact links to each heading; its abbreviated form is
+shown in <a rel="nofollow" href="#complete-lifecycle-example">Complete lifecycle example</a>.</p>
+<h2 id="lifecycle-annotations">Lifecycle annotations</h2>
+<p>Many lifecycle phases have a designated annotation. Methods and/or fields annotated with these annotations are handled in the
+corresponding phase. Lifecycle annotations are annotations marked with the meta annotation <code>@WriteAccess(LIFECYCLE)</code>. Those
+methods must be parameterless and not be private. Their visibility is downgraded to <code>protected</code> and mutating lifecycle
+methods are moved to the generated Builder.</p>
+<p>In addition to methods, fields of type <code>Closure</code> can also be annotated with lifecycle annotations (including <code>@Owner</code>).
+Before <code>INSTANTIATE</code>, these closures execute with the Builder as their delegate.</p>
+<p>The lifecycle annotations <code>@PostCreate</code> and <code>@PostApply</code> are special cases. These are not run as separate phases, but
+instead are part of the creation phase, and run for each object separately.</p>
+<p>Note that lifecycle methods and closures are called unconditionally, regardless of the state of the object (for example,
+a <code>@Default</code> field will only be handled if the field is not set yet, while a <code>@Default</code> method or Closure will always be called). Thus those methods need to check for themselves if they should do anything.</p>
+<h2 id="creation">Creation</h2>
+<p>The creation phase starts with the first factory call in a thread. It creates and configures the root Builder and its owned
+Builder graph. Creating a Builder includes applying <a rel="nofollow" href="../Templates/">Templates</a>, then calling <code>@PostCreate</code>, explicit configuration, and
+<code>@PostApply</code> methods and closures. No completed DSL Object exists yet.</p>
+<p>Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
+later phases.</p>
+<h2 id="phaseactions">PhaseActions</h2>
+<p>PhaseActions are the main execution point for phases. Actions before materialization use
+<code>BuilderVisitingPhaseAction</code>; actions after materialization use <code>ModelVisitingPhaseAction</code>. The deprecated untyped
+<code>VisitingPhaseAction</code> must not be used across the boundary.</p>
+<p>PhaseActions are usually registered by using the Java ServiceLoader mechanism, so plugins can extend the functionality.</p>
+<p>Each phase has an ordinal defining the execution order of those phases. Main phases are defined in the <code>DefaultKlumPhase</code> enum, but
+there ordinals are spaced to allow for plugins to insert phases in between.</p>
+<h2 id="phase-details">Phase Details</h2>
+<h2 id="applylater-1">ApplyLater (1)</h2>
+<p>The ApplyLater phase is the first phase after the initial creation of the model. It executes all closures registered using the <code>applyLater</code> method without a phase argument outside of any running phase.</p>
+<p>(See: <code>ModelPhasesDocumentaryTest#'applies a deferred deployment setting before automatic lifecycle work'</code>.)</p>
+<pre><code class="language-groovy">def deployment = Deployment.Create.With {
+    applyLater {
+        environment 'production'
+    }
+}
+
+assert deployment.environment == 'production'
+</code></pre>
+<h2 id="early-validation-5">Early Validation (5)</h2>
+<p>The early validation phase is used to validate everything model supplied (as opposed to auto created, which are supplied by the schema),
+i.e., everything provided by a user-provided script or code. This includes checks for deprecated fields or explicit notifications using the <code>@Notify</code> annotation.</p>
+<h2 id="autocreate-10">AutoCreate (10)</h2>
+<p>The AutoCreate phase will create objects that are marked with <code>@AutoCreate</code> and have not been created yet. It also runs
+any lifecycle methods and Closures that are marked with <code>@AutoCreate</code>.</p>
+<h2 id="owner-15">Owner (15)</h2>
+<p>The Owner phase is a special variant of the AutoLink phase in that it links objects together, in that case fields
+annotated with the <code>@Owner</code> annotation. This is done before the AutoLink phase since AutoLink makes usually makes
+heavy use of the owner field.</p>
+<p>Also resolves <code>@Role</code> fields and methods, which are technically special case <code>@Owner</code> elements.</p>
+<h2 id="autolink-20">AutoLink (20)</h2>
+<p>The AutoLink phase is bound to set field with references to existing objects somewhere in the model tree. This is done
+by annotating fields with <code>@LinkTo</code>. Also, regular lifecycle methods and Closure fields can be annotated with <code>@AutoLink</code> to be executed.</p>
+<h2 id="default-25">Default (25)</h2>
+<p>The Default phase is used to set default values. See <a rel="nofollow" href="../Default-Values/">Default Values</a> for details. This includes <code>@DefaultValues</code> as well as <code>@Default</code> field, delegate and code defaults. As with all lifecycle annotations, methods and Closure fields annotated with <code>@Default</code> will also be executed during this phase.</p>
+<h2 id="posttree-30">PostTree (30)</h2>
+<p>The PostTree phase allows executing actions on a completely configured Builder tree. This can be used
+to create interlinking between objects that are too complex for AutoLink/AutoCreate.</p>
+<h2 id="instantiate-40">Instantiate (40)</h2>
+<p>The Instantiate phase materializes the complete composition graph. It first allocates every completed DSL Object and then
+assigns relationship fields, preserving cycles and self-links. Non-relationship state is copied as immutable model state;
+Collections become independent read-only snapshots. After this phase, the PhaseDriver root is the completed DSL Object.</p>
+<p>(See: <code>ModelPhasesDocumentaryTest#'materializes a release plan into an independent completed snapshot'</code>.)</p>
+<h2 id="validation-50">Validation (50)</h2>
+<p>Validates the correctness of completed DSL Objects according to the presence of the <code>@Validate</code> annotation. See
+<a rel="nofollow" href="../Validation/">Validation</a> for details. Validation must not mutate the model. Provisional issues collected from Builders
+are transferred during materialization, and each <code>InstanceValidator</code> runs at most once per completed object. The validation
+phase and custom validation phases only collect problems; the Verify phase throws. The ordinal band 51-60 is free for
+plugin-provided validation phases.</p>
+<h2 id="verify-80">Verify (80)</h2>
+<p>Verifies that previous phases have raised no validation problems of the fail level or higher (ERROR by default). Throws an exception otherwise.</p>
+<h2 id="completion-100">Completion (100)</h2>
+<p>Deletes registered template objects.</p>
+<p>Plugins can register actions to be executed after the model has been created and validated.
+This could, for example, be used for logging purpose or to register the model in some kind of external registry.</p>
+<p>Note that the lifecycle methods for AutoCreate, AutoLink and PostTree are technically identical, the difference being
+more of a semantic nature. So AutoCreate methods should actually create objects, AutoLink methods should link existing objects.</p>
+<h2 id="error-handling">Error handling</h2>
+<p>Exceptions during a phase are wrapped in <code>KlumException</code> or a subclass and retain the relevant phase and, where
+available, a construction path. See <a rel="nofollow" href="../Exception-Handling/">Exception Handling</a> for the hierarchy and path details.</p>
+<h2 id="applylater-methods"><code>applyLater</code> Methods</h2>
+<p>Builders provide <code>applyLater</code> methods that register deferred construction actions. If no phase is specified,
+the action is executed directly after the current phase if called from within a phase; otherwise it is executed in the <code>ApplyLater</code> phase.</p>
+<p>ApplyLater closures on Templates are not executed on the Template. They are detached as recipe state and replayed against
+each fresh recipient Builder. Captured Builders are rejected, and other captured values must be serializable.</p>
+<p>Every <code>applyLater</code> and <code>scheduleApplyLater</code> overload rejects phase 40 or later immediately. Deferred actions mutate
+Builders, so they must run before <code>INSTANTIATE</code>. Move the action to a phase below 40, or implement completed-model work as
+a <code>ModelVisitingPhaseAction</code>. For example, phase 40 fails with:</p>
+<pre><code class="language-text">Cannot schedule applyLater for phase 'instantiate' (40): deferred Builder actions must run before materialization at phase 40. Use a phase below 40, or a ModelVisitingPhaseAction for completed-model work.
+</code></pre>
+<p>This guard is the materialization boundary. It does not add the broader past/current-phase checks tracked separately.
+This is especially useful for test cases, where the model needs specific, non-trivial values to be set (e.g., for validation), but these values are irrelevant for the actual test.</p>
+<pre><code class="language-groovy">class PersonText extends Specification {
+
+    def template = Person.Create.Template {
+        applyLater {
+            // this closure will be executed for all objects created from this template
+            street &quot;Main Street &quot; + name
+            city &quot;City of &quot; + name
+        }
+    }
+
+    def &quot;a testcase with person objects&quot;() {
+        given:
+        def person = Person.Template.With(template) {
+            PersonText.Create.With(name: &quot;Hans&quot;)
+        }
+
+        when:
+        def result = service.doSomething(person)
+
+        then:
+        //... check something
+    }
+}
+</code></pre>
+<h2 id="methods-that-modify-datastructures">Methods that modify datastructures</h2>
+<p>In some (usually migration related) cases, a lifecycle methods trying to modify the list or map containing itself. This would
+lead to a concurrent modification exception. To avoid this, the code of the lifecycle method can be wrapped in an applyLater closure,
+causing it to run directly after the current phase has finished.</p>
+<pre><code class="language-groovy">@AutoLink moveLegacySiblings() {
+    if (this.hasLegacySiblings()) {
+        // this closure will be executed after the current phase has finished
+        applyLater {
+            this.legacySiblings.each {
+                parent.removeChild(it)
+                this.addLegacy(it)
+            }
+        }
+    }
+}
+</code></pre>
+<p>Note that this example could have been better realized in a parent's autolink method, removing the need for the applyLater closure.</p>
+<h2 id="complete-lifecycle-example">Complete lifecycle example</h2>
+<p>(See: <code>ModelPhasesDocumentaryTest#'runs a deployment lifecycle on Builders before completing its model'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Deployment {
+    String environment
+    Component component
+
+    @PostCreate
+    void beginConfiguration() {
+        // Builder-specific initialization
+    }
+
+    @PostApply
+    void finishConfiguration() {
+        // explicit DSL configuration is now available
+    }
+
+    @AutoCreate
+    void chooseEnvironment() {
+        environment ?= 'production'
+    }
+
+    @PostTree
+    void finishTree() {
+        // every owned Builder is configured
+    }
+
+    @Validate
+    void validateCompletedModel() {
+        assert component.environment == environment
+    }
+}
+
+@DSL
+class Component {
+    @Owner Deployment deployment
+    String environment
+
+    @AutoLink
+    void inheritEnvironment() {
+        environment = deployment.environment
+    }
+
+    @Default
+    void useInheritedEnvironment() {
+        environment ?= deployment.environment
+    }
+}
+
+def deployment = Deployment.Create.With {
+    component {}
+}
+
+assert deployment.component.deployment.is(deployment)
+assert deployment.component.environment == 'production'
+</code></pre>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
