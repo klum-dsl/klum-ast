@@ -24,7 +24,7 @@
 package com.blackbuild.klum.ast
 
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.AutoCleanup
 import spock.lang.Issue
 import spock.lang.See

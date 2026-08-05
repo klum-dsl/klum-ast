@@ -1,6 +1,6 @@
 package onboarding
 
-import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import spock.lang.Issue
 import spock.lang.Specification
 

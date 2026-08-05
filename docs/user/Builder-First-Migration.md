@@ -89,7 +89,7 @@ remaining compiler errors with this guide.
 
 It rewrites public schema-annotation imports, changes the deprecated `@DelegatesToRW` spelling to
 `@DelegatesToBuilder`, migrates Layer 3 annotation imports such as `@AutoCreate`, copy annotations such as `@Overwrite`,
-and `KlumModelException` imports. It also converts only current-target Groovy `Validator` reporting/suppression calls. It
+and `KlumModelException`/`KlumValidationException` imports. It also converts only current-target Groovy `Validator` reporting/suppression calls. It
 intentionally does **not** rewrite internal packages, `ValidatorBase`, validation result readers, explicit-target
 `Validator` calls, fully qualified type references, Builders, factories, relationships, lifecycle structure, or any other
 semantic migration.
@@ -119,13 +119,15 @@ done
   exit 1
 }
 
-# Known public annotation moves, exception import, and canonical deprecated annotation spelling.
+# Known public annotation moves, exception imports, and canonical deprecated annotation spelling.
 while IFS= read -r -d '' file; do
   perl -0pi -e '
     s{^(\s*import\s+(?:static\s+)?)(com\.blackbuild\.groovy\.configdsl\.transform\.)}{$1com.blackbuild.klum.ast.}mg;
     s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.util\.layer3\.annotations\.)}{$1com.blackbuild.klum.ast.layer3.}mg;
     s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.util\.copy\.)}{$1com.blackbuild.klum.ast.copy.}mg;
     s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.util\.KlumModelException\b)}{$1com.blackbuild.klum.ast.runtime.KlumModelException}mg;
+    s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.util\.KlumValidationException\b)}{$1com.blackbuild.klum.ast.runtime.validation.KlumValidationException}mg;
+    s{^(\s*import\s+)(com\.blackbuild\.klum\.ast\.runtime\.KlumValidationException\b)}{$1com.blackbuild.klum.ast.runtime.validation.KlumValidationException}mg;
     s{\bDelegatesToRW\b}{DelegatesToBuilder}g;
   ' "$file"
 done < <(find "${roots[@]}" -type f \( -name '*.groovy' -o -name '*.java' \) -print0)

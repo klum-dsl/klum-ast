@@ -24,7 +24,6 @@
 package com.blackbuild.klum.ast.runtime.validation;
 
 import com.blackbuild.klum.ast.Validate;
-import com.blackbuild.klum.ast.runtime.KlumValidationException;
 
 import java.io.Serializable;
 import java.util.*;
@@ -39,7 +38,7 @@ public class KlumValidationResult implements Serializable {
     private final String breadcrumbPath;
     private final Map<String, Validate.Level> suppressedIssues = new HashMap<>();
 
-    public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) {
+    public static void throwOn(List<KlumValidationResult> results, Validate.Level failLevel) throws KlumValidationException {
         boolean failuresEncountered = results.stream().flatMap(r -> r.getIssues().stream())
                 .anyMatch(kvi -> kvi.getLevel().equalOrWorseThen(failLevel));
         if (failuresEncountered)

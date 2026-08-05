@@ -27,7 +27,7 @@ import com.blackbuild.klum.ast.runtime.KlumBuilder
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumException
-import com.blackbuild.klum.ast.runtime.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructureUtil
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
@@ -143,7 +143,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         ''', 'cannot find symbol')
     }
 
-    @Issue("549")
+    @Issue(["549", "657"])
     def "validation support distinguishes its result from subtree results without rerunning validation"() {
         given:
         createClass '''
@@ -203,6 +203,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         compileJavaConsumer('''
             import com.blackbuild.klum.ast.Validate;
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+            import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
             import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
             import java.util.List;
 
@@ -211,8 +212,12 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                     KlumObjectSupport.Validation<Root> validation = KlumObjectSupport.of(root).getValidation();
                     KlumValidationResult result = validation.getResult();
                     List<KlumValidationResult> subtreeResults = validation.getSubtreeResults();
-                    List<KlumValidationResult> verified = validation.verify();
-                    validation.verify(Validate.Level.WARNING);
+                    try {
+                        List<KlumValidationResult> verified = validation.verify();
+                        validation.verify(Validate.Level.WARNING);
+                    } catch (KlumValidationException ignored) {
+                        // Validation declares the canonical public exception type.
+                    }
                 }
             }
         ''')
@@ -237,6 +242,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         then:
         def error = thrown(KlumValidationException)
         error.validationResults == subtreeResults
+        KlumObjectSupport.Validation.getMethod('verify').exceptionTypes == [KlumValidationException] as Class[]
+        KlumObjectSupport.Validation.getMethod('verify', Validate.Level).exceptionTypes == [KlumValidationException] as Class[]
         Root.validationCalls == 1
         Child.validationCalls == 1
         CleanChild.validationCalls == 1

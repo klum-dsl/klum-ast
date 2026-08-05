@@ -1,6 +1,6 @@
 package onboarding.smarthome.model
 
-import com.blackbuild.klum.ast.util.KlumValidationException
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
 import onboarding.smarthome.api.HomematicThermostat
 import onboarding.smarthome.api.HomematicWindowSensor
 import onboarding.smarthome.api.TadoThermostat
