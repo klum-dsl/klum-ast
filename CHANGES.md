@@ -33,6 +33,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Added a deliberately incomplete, best-effort 3.x-to-4.0 migration starter script for known annotation,
+  `KlumModelException`, and copy-annotation import moves plus current-target validation-reporter edits. It runs from a
+  schema module in a clean disposable Git worktree and requires diff review, normal compilation, and the Builder-first
+  migration checklist; it is not an automatic migration tool ([#652](https://github.com/klum-dsl/klum-ast/issues/652)).
 - Added the portable `build-domain-first-schema` skill, task-oriented domain-first guidance, and an executable Layer 3 smart-home journey. The fixture separates generic API, fixed floorplan Schema, registered Model script, and API-only `client-demo`; it covers Cluster projection, provider-polymorphic Builder calls, `@DefaultValues` labels, and a bounded field-test artifact ([#471](https://github.com/klum-dsl/klum-ast/issues/471)).
 
 - Added a task-oriented Gradle onboarding preview, portable `start-klum-project`, `author-klum-model`, and `feature-advisor` Agent Skills, plus an executable minimal fixture. `feature-advisor` also assesses whether KlumAST or its skill distribution needs an update ([#470](https://github.com/klum-dsl/klum-ast/issues/470)).
