@@ -36,6 +36,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Uninitialized `SortedSet`/`NavigableSet` and `SortedMap`/`NavigableMap` fields now receive their
+  natural-order sorted defaults before Builder-first materialization. Their completed views remain
+  sorted and immutable, while explicit `TreeSet`/`TreeMap` comparators continue to be preserved
+  ([#664](https://github.com/klum-dsl/klum-ast/issues/664)).
 - Factory maps continue to prefer an explicit same-named Builder mutator over direct field storage. KlumAST now warns
   when an exact single-argument `@Mutator` override returns the field value or compatible Builder, points direct
   assignment to `setX`, and rejects other non-void return types as likely helper-method collisions. `void` overrides and
