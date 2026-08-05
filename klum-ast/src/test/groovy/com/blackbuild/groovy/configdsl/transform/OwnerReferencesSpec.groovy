@@ -45,13 +45,10 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             @DSL
             class Catalog {
                 Product product
-                List<Product> products
-                Map<String, Product> productsByName
             }
 
             @DSL(defaultImpl = SingleProduct)
             abstract class Product {
-                @Key String name
             }
 
             @DSL
@@ -72,19 +69,48 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         when:
         def catalog = create("pk.Catalog") {
-            product("single") {}
+            product {}
         }
-        def subProduct = create("pk.SubProduct", "sub") {
+        def subProduct = create("pk.SubProduct") {
             mapping {}
         }
 
         then:
         def productBuilder = getClass("pk.Product_DSL\$Builder")
-        def catalogBuilder = getClass("pk.Catalog\$Builder")
         catalog.product.class == getClass("pk.SingleProduct")
         subProduct.mapping.product.is(subProduct)
         subProduct.mapping.role == "mapping"
         getClass("pk.Mapping\$Builder").getDeclaredField("product").type == productBuilder
+    }
+
+    @Issue("666")
+    def "declared DSL relationship fields retain their public Builder type despite defaultImpl"() {
+        given:
+        createClass '''
+            package pk
+
+            @DSL
+            class Catalog {
+                Product product
+                List<Product> products
+                Map<String, Product> productsByName
+            }
+
+            @DSL(defaultImpl = SingleProduct)
+            abstract class Product {
+                @Key String name
+            }
+
+            @DSL
+            class SingleProduct extends Product {
+            }
+        '''
+
+        when:
+        def catalogBuilder = getClass("pk.Catalog\$Builder")
+        def productBuilder = getClass("pk.Product_DSL\$Builder")
+
+        then:
         catalogBuilder.getDeclaredField("product").type == productBuilder
         catalogBuilder.getDeclaredField("products").genericType.actualTypeArguments[0].rawType == productBuilder
         catalogBuilder.getDeclaredField("productsByName").genericType.actualTypeArguments[1].rawType == productBuilder
