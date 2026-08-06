@@ -200,6 +200,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                 Registry doWhileDocs
                 Registry switchDocs
                 Registry synchronizedDocs
+                Registry assertionDocs
                 Registry closureDocs
 
                 @AutoCreate
@@ -231,7 +232,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                     synchronized (this) {
                         synchronizedDocs Registry.fromString('synchronized')
                     }
-                    assert defaults.source == 'while'
+                    assert assertionDocs(Registry.fromString('assert'))
                     def configure = {
                         closureDocs Registry.fromString('closure')
                     }
@@ -258,6 +259,7 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.doWhileDocs.source == 'do-while'
         instance.switchDocs.source == 'switch'
         instance.synchronizedDocs.source == 'synchronized'
+        instance.assertionDocs.source == 'assert'
         instance.closureDocs.source == 'closure'
     }
 
