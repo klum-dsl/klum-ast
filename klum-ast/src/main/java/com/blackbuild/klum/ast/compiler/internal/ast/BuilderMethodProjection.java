@@ -35,6 +35,8 @@ import groovyjarjarasm.asm.Opcodes;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassHelper;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.CodeVisitorSupport;
+import org.codehaus.groovy.ast.DynamicVariable;
 import org.codehaus.groovy.ast.GenericsType;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
@@ -50,14 +52,23 @@ import org.codehaus.groovy.ast.expr.MapExpression;
 import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
 import org.codehaus.groovy.ast.expr.TupleExpression;
+import org.codehaus.groovy.ast.expr.VariableExpression;
+import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.CaseStatement;
+import org.codehaus.groovy.ast.stmt.CatchStatement;
+import org.codehaus.groovy.ast.stmt.DoWhileStatement;
 import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.IfStatement;
 import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.SwitchStatement;
+import org.codehaus.groovy.ast.stmt.SynchronizedStatement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.stmt.TryCatchStatement;
+import org.codehaus.groovy.ast.stmt.WhileStatement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,6 +85,7 @@ import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createG
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.getKeyField;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.addDelayedAction;
 import static com.blackbuild.klum.ast.compiler.internal.reflect.AstReflectionBridge.cloneParamsWithAdjustedNames;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForCollection;
 import static com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper.getElementTypeForMap;
@@ -86,7 +98,7 @@ import static org.codehaus.groovy.ast.tools.GeneralUtils.propX;
 import static org.codehaus.groovy.ast.tools.GeneralUtils.varX;
 
 /** Generates and links source-visible Builder-producing method twins for ADR 0004. */
-final class BuilderMethodProjection {
+public final class BuilderMethodProjection {
 
     static final String TWIN_METADATA_KEY = BuilderMethodProjection.class.getName() + ".twin";
     static final String ORIGINAL_METADATA_KEY = BuilderMethodProjection.class.getName() + ".original";
@@ -195,7 +207,7 @@ final class BuilderMethodProjection {
     }
 
     static void ensureProjectedMethods(ClassNode sourceClass, ClassNode expectedModel) {
-        if (sourceClass == null || sourceClass.isResolved()) return;
+        if (sourceClass == null || (sourceClass.isResolved() && sourceClass.getModule() == null)) return;
 
         ProjectionState existing = sourceClass.redirect().getNodeMetaData(PROJECTION_STATE_METADATA_KEY);
         if (existing != null) return;
@@ -248,6 +260,292 @@ final class BuilderMethodProjection {
                     candidate.original.removeNodeMetaData(TWIN_METADATA_KEY);
                     candidate.twin.removeNodeMetaData(ORIGINAL_METADATA_KEY);
                 });
+    }
+
+    /**
+     * Rewrites qualified calls to source-visible static model converters after a method has moved to Builder code.
+     * The original source method is no longer callable in that phase because its completed-model result cannot be
+     * attached as owned composition.
+     */
+    public static void projectQualifiedStaticCallsInBuilderMethod(MethodNode method) {
+        if (method.getCode() == null) return;
+        ensureQualifiedStaticCallOwners(method);
+        scheduleProjectionAfterSourceTypeTransformation(method);
+        method.setCode(new BuilderPhaseProjectionTransformer(method.getDeclaringClass()).cloneStatement(method.getCode()));
+    }
+
+    private static void ensureQualifiedStaticCallOwners(MethodNode method) {
+        method.getCode().visit(new CodeVisitorSupport() {
+            @Override
+            public void visitMethodCallExpression(MethodCallExpression call) {
+                super.visitMethodCallExpression(call);
+                ClassNode owner = sourceClassFor(call.getObjectExpression(), method.getDeclaringClass());
+                if (owner != null)
+                    ensureProjectedMethods(owner, owner);
+            }
+
+            @Override
+            public void visitStaticMethodCallExpression(StaticMethodCallExpression call) {
+                super.visitStaticMethodCallExpression(call);
+                ensureProjectedMethods(sourceClassFor(call.getOwnerType(), method.getDeclaringClass()), call.getOwnerType());
+            }
+        });
+    }
+
+    private static void scheduleProjectionAfterSourceTypeTransformation(MethodNode method) {
+        Set<ClassNode> pendingOwners = Collections.newSetFromMap(new IdentityHashMap<>());
+        method.getCode().visit(new CodeVisitorSupport() {
+            @Override
+            public void visitMethodCallExpression(MethodCallExpression call) {
+                super.visitMethodCallExpression(call);
+                ClassNode owner = sourceClassFor(call.getObjectExpression(), method.getDeclaringClass());
+                if (owner != null && builderTwinFor(call.getMethodTarget(), owner,
+                        call.getMethodAsString(), call.getArguments()) == null)
+                    pendingOwners.add(owner.redirect());
+            }
+
+            @Override
+            public void visitStaticMethodCallExpression(StaticMethodCallExpression call) {
+                super.visitStaticMethodCallExpression(call);
+                ClassNode owner = sourceClassFor(call.getOwnerType(), method.getDeclaringClass());
+                if (builderTwinFor(null, owner, call.getMethod(), call.getArguments()) == null)
+                    pendingOwners.add(owner.redirect());
+            }
+        });
+        pendingOwners.forEach(owner -> addDelayedAction(owner, () ->
+                method.setCode(new BuilderPhaseProjectionTransformer(method.getDeclaringClass()).cloneStatement(method.getCode()))));
+    }
+
+    private static ClassNode sourceClassFor(ClassNode owner, ClassNode context) {
+        if (owner == null || context == null || context.getModule() == null) return owner;
+        return context.getModule().getClasses().stream()
+                .filter(candidate -> candidate.getName().equals(owner.getName()))
+                .findFirst()
+                .orElse(owner);
+    }
+
+    private static ClassNode sourceClassFor(Expression receiver, ClassNode context) {
+        if (receiver instanceof ClassExpression owner)
+            return sourceClassFor(owner.getType(), context);
+        if (!(receiver instanceof VariableExpression variable)
+                || !(variable.getAccessedVariable() instanceof DynamicVariable)
+                || context == null
+                || context.getModule() == null)
+            return null;
+        return context.getModule().getClasses().stream()
+                .filter(candidate -> candidate.getNameWithoutPackage().equals(variable.getName()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static MethodNode builderTwinFor(MethodNode target, ClassNode owner, String name, Expression arguments) {
+        if (target != null) {
+            MethodNode twin = target.getNodeMetaData(TWIN_METADATA_KEY);
+            if (twin != null) return twin;
+        }
+        if (owner == null) return null;
+
+        List<MethodNode> candidates = owner.getMethods(name).stream()
+                .filter(MethodNode::isStatic)
+                .filter(method -> method.getDeclaringClass().redirect().equals(owner.redirect()))
+                .filter(method -> method.getNodeMetaData(TWIN_METADATA_KEY) != null)
+                .filter(method -> acceptsArgumentCount(method, argumentCount(arguments)))
+                .toList();
+        if (candidates.size() == 1) return candidates.get(0).getNodeMetaData(TWIN_METADATA_KEY);
+
+        return candidates.stream()
+                .filter(method -> argumentsMatch(method.getParameters(), arguments))
+                .map(method -> (MethodNode) method.getNodeMetaData(TWIN_METADATA_KEY))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static boolean acceptsArgumentCount(MethodNode method, int argumentCount) {
+        int required = (int) Arrays.stream(method.getParameters())
+                .filter(parameter -> !parameter.hasInitialExpression())
+                .count();
+        return argumentCount >= required && argumentCount <= method.getParameters().length;
+    }
+
+    private static int argumentCount(Expression arguments) {
+        return arguments instanceof TupleExpression tupleExpression ? tupleExpression.getExpressions().size() : 1;
+    }
+
+    private static boolean argumentsMatch(Parameter[] parameters, Expression arguments) {
+        if (!(arguments instanceof TupleExpression tupleExpression)) return parameters.length == 1;
+        List<Expression> expressions = tupleExpression.getExpressions();
+        if (parameters.length != expressions.size()) return false;
+        for (int index = 0; index < parameters.length; index++) {
+            Expression expression = expressions.get(index);
+            if (expression instanceof MapExpression
+                    && !isAssignableTo(ClassHelper.MAP_TYPE, parameters[index].getType()))
+                return false;
+            if (expression instanceof ClosureExpression
+                    && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
+                return false;
+            ClassNode expressionType = expression.getType();
+            if (expressionType != null
+                    && !expressionType.equals(ClassHelper.OBJECT_TYPE)
+                    && !isAssignableTo(expressionType, parameters[index].getOriginType()))
+                return false;
+        }
+        return true;
+    }
+
+    private abstract static class StatementCloner implements ExpressionTransformer {
+
+        protected final Statement cloneStatement(Statement source) {
+            if (source == null) return null;
+            Statement result;
+            if (source instanceof BlockStatement block) {
+                List<Statement> statements = new ArrayList<>();
+                block.getStatements().forEach(statement -> statements.add(cloneStatement(statement)));
+                result = new BlockStatement(statements, block.getVariableScope());
+            } else if (source instanceof ReturnStatement returnStatement) {
+                result = new ReturnStatement(transform(returnStatement.getExpression()));
+            } else if (source instanceof ExpressionStatement expressionStatement) {
+                result = new ExpressionStatement(transform(expressionStatement.getExpression()));
+            } else if (source instanceof IfStatement ifStatement) {
+                result = new IfStatement(
+                        (BooleanExpression) transform(ifStatement.getBooleanExpression()),
+                        cloneStatement(ifStatement.getIfBlock()),
+                        cloneStatement(ifStatement.getElseBlock())
+                );
+            } else if (source instanceof ForStatement forStatement) {
+                ForStatement copy = new ForStatement(
+                        forStatement.getVariable(),
+                        transform(forStatement.getCollectionExpression()),
+                        cloneStatement(forStatement.getLoopBlock())
+                );
+                copy.setVariableScope(forStatement.getVariableScope());
+                result = copy;
+            } else if (source instanceof WhileStatement whileStatement) {
+                result = new WhileStatement(
+                        (BooleanExpression) transform(whileStatement.getBooleanExpression()),
+                        cloneStatement(whileStatement.getLoopBlock())
+                );
+            } else if (source instanceof DoWhileStatement doWhileStatement) {
+                result = new DoWhileStatement(
+                        (BooleanExpression) transform(doWhileStatement.getBooleanExpression()),
+                        cloneStatement(doWhileStatement.getLoopBlock())
+                );
+            } else if (source instanceof TryCatchStatement tryCatchStatement) {
+                TryCatchStatement copy = new TryCatchStatement(
+                        cloneStatement(tryCatchStatement.getTryStatement()),
+                        cloneStatement(tryCatchStatement.getFinallyStatement())
+                );
+                tryCatchStatement.getResourceStatements().forEach(resource ->
+                        copy.addResource((ExpressionStatement) cloneStatement(resource)));
+                tryCatchStatement.getCatchStatements().forEach(catchStatement ->
+                        copy.addCatch(cloneCatchStatement(catchStatement)));
+                result = copy;
+            } else if (source instanceof SwitchStatement switchStatement) {
+                List<CaseStatement> cases = switchStatement.getCaseStatements().stream()
+                        .map(this::cloneCaseStatement)
+                        .toList();
+                result = new SwitchStatement(
+                        transform(switchStatement.getExpression()),
+                        cases,
+                        cloneStatement(switchStatement.getDefaultStatement())
+                );
+            } else if (source instanceof SynchronizedStatement synchronizedStatement) {
+                result = new SynchronizedStatement(
+                        transform(synchronizedStatement.getExpression()),
+                        cloneStatement(synchronizedStatement.getCode())
+                );
+            } else if (source instanceof AssertStatement assertStatement) {
+                result = new AssertStatement(
+                        (BooleanExpression) transform(assertStatement.getBooleanExpression()),
+                        transform(assertStatement.getMessageExpression())
+                );
+            } else if (source instanceof ThrowStatement throwStatement) {
+                result = new ThrowStatement(transform(throwStatement.getExpression()));
+            } else if (source instanceof EmptyStatement) {
+                return source;
+            } else {
+                return handleUnsupportedStatement(source);
+            }
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            result.copyStatementLabels(source);
+            return result;
+        }
+
+        protected abstract Statement handleUnsupportedStatement(Statement source);
+
+        protected final ClosureExpression cloneClosure(ClosureExpression source) {
+            ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
+            result.setVariableScope(source.getVariableScope());
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            return result;
+        }
+
+        private CatchStatement cloneCatchStatement(CatchStatement source) {
+            CatchStatement result = new CatchStatement(source.getVariable(), cloneStatement(source.getCode()));
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            result.copyStatementLabels(source);
+            return result;
+        }
+
+        private CaseStatement cloneCaseStatement(CaseStatement source) {
+            CaseStatement result = new CaseStatement(transform(source.getExpression()), cloneStatement(source.getCode()));
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            result.copyStatementLabels(source);
+            return result;
+        }
+    }
+
+    private static final class BuilderPhaseProjectionTransformer extends StatementCloner {
+        private final ClassNode context;
+
+        private BuilderPhaseProjectionTransformer(ClassNode context) {
+            this.context = context;
+        }
+
+        @Override
+        protected Statement handleUnsupportedStatement(Statement source) {
+            return source;
+        }
+
+        @Override
+        public Expression transform(Expression expression) {
+            if (expression == null) return null;
+            if (expression instanceof ClosureExpression source) {
+                return cloneClosure(source);
+            }
+            if (expression instanceof StaticMethodCallExpression source) {
+                Expression arguments = transform(source.getArguments());
+                MethodNode twin = builderTwinFor(null, sourceClassFor(source.getOwnerType(), context), source.getMethod(), source.getArguments());
+                if (twin == null) {
+                    StaticMethodCallExpression result = new StaticMethodCallExpression(
+                            source.getOwnerType(), source.getMethod(), arguments);
+                    result.setSourcePosition(source);
+                    result.copyNodeMetaData(source);
+                    return result;
+                }
+                MethodCallExpression result = new MethodCallExpression(
+                        classX(source.getOwnerType()), new ConstantExpression(twin.getName()), arguments);
+                result.setImplicitThis(false);
+                result.setType(source.getType());
+                result.setSourcePosition(source);
+                result.copyNodeMetaData(source);
+                return result;
+            }
+            if (expression instanceof MethodCallExpression source) {
+                MethodCallExpression result = (MethodCallExpression) source.transformExpression(this);
+                ClassNode owner = sourceClassFor(source.getObjectExpression(), context);
+                MethodNode twin = owner == null ? null
+                        : builderTwinFor(source.getMethodTarget(), owner, source.getMethodAsString(), source.getArguments());
+                if (twin == null) return result;
+                result.setMethod(new ConstantExpression(twin.getName()));
+                result.setType(source.getType());
+                return result;
+            }
+            return expression.transformExpression(this);
+        }
     }
 
     private static MethodNode createTwinShell(MethodNode source, ClassNode expectedModel) {
@@ -438,7 +736,7 @@ final class BuilderMethodProjection {
         }
     }
 
-    private static final class ProjectionTransformer implements ExpressionTransformer {
+    private static final class ProjectionTransformer extends StatementCloner {
         private final ProjectionState state;
         private final Candidate candidate;
 
@@ -447,54 +745,17 @@ final class BuilderMethodProjection {
             this.candidate = candidate;
         }
 
-        private Statement cloneStatement(Statement source) {
-            if (source == null) return null;
-            Statement result;
-            if (source instanceof BlockStatement block) {
-                List<Statement> statements = new ArrayList<>();
-                block.getStatements().forEach(statement -> statements.add(cloneStatement(statement)));
-                result = new BlockStatement(statements, block.getVariableScope());
-            } else if (source instanceof ReturnStatement returnStatement) {
-                result = new ReturnStatement(transform(returnStatement.getExpression()));
-            } else if (source instanceof ExpressionStatement expressionStatement) {
-                result = new ExpressionStatement(transform(expressionStatement.getExpression()));
-            } else if (source instanceof IfStatement ifStatement) {
-                result = new IfStatement(
-                        (BooleanExpression) transform(ifStatement.getBooleanExpression()),
-                        cloneStatement(ifStatement.getIfBlock()),
-                        cloneStatement(ifStatement.getElseBlock())
-                );
-            } else if (source instanceof ForStatement forStatement) {
-                ForStatement copy = new ForStatement(
-                        forStatement.getVariable(),
-                        transform(forStatement.getCollectionExpression()),
-                        cloneStatement(forStatement.getLoopBlock())
-                );
-                copy.setVariableScope(forStatement.getVariableScope());
-                result = copy;
-            } else if (source instanceof ThrowStatement throwStatement) {
-                result = new ThrowStatement(transform(throwStatement.getExpression()));
-            } else if (source instanceof EmptyStatement) {
-                return source;
-            } else {
-                candidate.opaque = true;
-                return source;
-            }
-            result.setSourcePosition(source);
-            result.copyNodeMetaData(source);
-            result.copyStatementLabels(source);
-            return result;
+        @Override
+        protected Statement handleUnsupportedStatement(Statement source) {
+            candidate.opaque = true;
+            return source;
         }
 
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
             if (expression instanceof ClosureExpression source) {
-                ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
-                result.setVariableScope(source.getVariableScope());
-                result.setSourcePosition(source);
-                result.copyNodeMetaData(source);
-                return result;
+                return cloneClosure(source);
             }
             if (expression instanceof StaticMethodCallExpression source)
                 return transformStaticMethodCall(source);
@@ -508,6 +769,14 @@ final class BuilderMethodProjection {
                 candidate.dependencies.add(dependency);
                 result.setMethod(new ConstantExpression(dependency.twin.getName()));
                 result.setMethodTarget(dependency.twin);
+                return result;
+            }
+
+            MethodNode externalTwin = findQualifiedBuilderTwin(source);
+            if (externalTwin != null) {
+                candidate.directBuilderCall = true;
+                result.setMethod(new ConstantExpression(externalTwin.getName()));
+                result.setMethodTarget(externalTwin);
                 return result;
             }
 
@@ -541,7 +810,16 @@ final class BuilderMethodProjection {
             StaticMethodCallExpression result = (StaticMethodCallExpression) source.transformExpression(this);
 
             Candidate dependency = findDependency(source);
-            if (dependency == null) return result;
+            if (dependency == null) {
+                MethodNode externalTwin = findQualifiedBuilderTwin(source);
+                if (externalTwin == null) return result;
+                candidate.directBuilderCall = true;
+                StaticMethodCallExpression projected = new StaticMethodCallExpression(
+                        source.getOwnerType(), externalTwin.getName(), result.getArguments());
+                projected.setSourcePosition(source);
+                projected.copyNodeMetaData(source);
+                return projected;
+            }
 
             candidate.dependencies.add(dependency);
             StaticMethodCallExpression projected = new StaticMethodCallExpression(
@@ -575,12 +853,28 @@ final class BuilderMethodProjection {
             return resolvedOriginal == null ? null : state.candidateFor(resolvedOriginal);
         }
 
+        private MethodNode findQualifiedBuilderTwin(MethodCallExpression call) {
+            if (!(call.getObjectExpression() instanceof ClassExpression owner)) return null;
+            ClassNode sourceOwner = sourceClassFor(owner.getType(), candidate.original.getDeclaringClass());
+            ensureProjectedMethods(sourceOwner, sourceOwner);
+            return builderTwinFor(call.getMethodTarget(), sourceOwner, call.getMethodAsString(), call.getArguments());
+        }
+
+        private MethodNode findQualifiedBuilderTwin(StaticMethodCallExpression call) {
+            ClassNode sourceOwner = sourceClassFor(call.getOwnerType(), candidate.original.getDeclaringClass());
+            ensureProjectedMethods(sourceOwner, sourceOwner);
+            return builderTwinFor(null, sourceOwner, call.getMethod(), call.getArguments());
+        }
+
         /**
          * Dynamic Groovy source calls do not always have a MethodNode target yet. Resolve only the original
          * source overload here; the hidden twin is then obtained exclusively from that MethodNode's metadata.
          */
         private MethodNode resolveOriginalSourceTarget(MethodCallExpression call) {
-            if (!call.isImplicitThis()) return null;
+            if (!call.isImplicitThis()
+                    && (!(call.getObjectExpression() instanceof ClassExpression owner)
+                    || !owner.getType().redirect().equals(candidate.original.getDeclaringClass().redirect())))
+                return null;
             return resolveOriginalSourceTarget(call.getMethodAsString(), call.getArguments());
         }
 
@@ -658,37 +952,6 @@ final class BuilderMethodProjection {
             return true;
         }
 
-        private static boolean acceptsArgumentCount(MethodNode method, int argumentCount) {
-            int required = (int) Arrays.stream(method.getParameters())
-                    .filter(parameter -> !parameter.hasInitialExpression())
-                    .count();
-            return argumentCount >= required && argumentCount <= method.getParameters().length;
-        }
-
-        private static int argumentCount(Expression arguments) {
-            return arguments instanceof TupleExpression tupleExpression ? tupleExpression.getExpressions().size() : 1;
-        }
-
-        private static boolean argumentsMatch(Parameter[] parameters, Expression arguments) {
-            if (!(arguments instanceof TupleExpression tupleExpression)) return parameters.length == 1;
-            List<Expression> expressions = tupleExpression.getExpressions();
-            if (parameters.length != expressions.size()) return false;
-            for (int index = 0; index < parameters.length; index++) {
-                Expression expression = expressions.get(index);
-                if (expression instanceof MapExpression
-                        && !isAssignableTo(ClassHelper.MAP_TYPE, parameters[index].getType()))
-                    return false;
-                if (expression instanceof ClosureExpression
-                        && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
-                    return false;
-                ClassNode expressionType = expression.getType();
-                if (expressionType != null
-                        && !expressionType.equals(ClassHelper.OBJECT_TYPE)
-                        && !isAssignableTo(expressionType, parameters[index].getOriginType()))
-                    return false;
-            }
-            return true;
-        }
     }
 
     private static final class RootFactoryCall {

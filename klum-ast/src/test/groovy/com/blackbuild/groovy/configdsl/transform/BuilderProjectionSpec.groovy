@@ -33,6 +33,236 @@ import spock.lang.Issue
 
 class BuilderProjectionSpec extends AbstractDSLSpec {
 
+    @Issue("662")
+    def "qualified static recursive converters project scalar relationship overloads"() {
+        given:
+        createClass '''
+            import java.net.URL
+
+            @DSL class Root {
+                Registry registry
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(String value) {
+                    return Registry.Create.With(source: "string:${value}")
+                }
+
+                static Registry fromString(URL value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(URL value) {
+                    return Registry.Create.With(source: "url:${value}")
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            registry 'one'
+        }
+
+        then:
+        instance.registry.source == 'string:one'
+
+        when:
+        instance = clazz.Create.With {
+            registry new URL('https://example.test/two')
+        }
+
+        then:
+        instance.registry.source == 'url:https://example.test/two'
+
+        and: 'direct root calls retain their completed-model contract'
+        getClass('Registry').fromString('root').source == 'string:root'
+    }
+
+    @Issue("662")
+    def "nested qualified converters preserve keyed single collection and map relationships"() {
+        given:
+        createClass '''
+            import java.net.URI
+
+            @DSL class Root {
+                Storage primary
+                List<Storage> secondaryStorages
+                Map<String, Storage> storages
+            }
+
+            @DSL class Registry {
+                URI uri
+
+                static Registry fromString(String value) {
+                    return Registry.Create.With(uri: new URI(value))
+                }
+            }
+
+            @DSL class Storage {
+                @Key String name
+                Registry source
+                Registry target
+
+                static Storage fromStrings(String name, String source, String target) {
+                    return Storage.Create.With(
+                            name,
+                            source: Registry.fromString(source),
+                            target: Registry.fromString(target)
+                    )
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            primary 'primary', 'uri://primary/source', 'uri://primary/target'
+            secondaryStorage 'secondary', 'uri://secondary/source', 'uri://secondary/target'
+            storage 'named', 'uri://named/source', 'uri://named/target'
+        }
+
+        then:
+        instance.primary.name == 'primary'
+        instance.primary.source.uri == new URI('uri://primary/source')
+        instance.secondaryStorages*.name == ['secondary']
+        instance.secondaryStorages*.target.uri == [new URI('uri://secondary/target')]
+        instance.storages.keySet() == ['named'] as Set
+        instance.storages['named'].name == 'named'
+        instance.storages['named'].source.uri == new URI('uri://named/source')
+    }
+
+    @Issue("662")
+    def "qualified static converters project into relocated Builder methods"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Registry docs
+                Registry defaults
+                Registry mutations
+
+                @AutoCreate
+                void createDocs() {
+                    docs Registry.fromString('auto')
+                }
+
+                @Default
+                void createDefaults() {
+                    defaults Registry.fromString('default')
+                }
+
+                @Mutator
+                void setMutation(String value) {
+                    mutations Registry.fromString(value)
+                }
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(String value) {
+                    return Registry.Create.With(source: value)
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            setMutation 'mutator'
+        }
+
+        then:
+        instance.docs.source == 'auto'
+        instance.defaults.source == 'default'
+        instance.mutations.source == 'mutator'
+    }
+
+    @Issue("662")
+    def "qualified static converters project through Builder method control flow"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Registry docs
+                Registry defaults
+                Registry finallyDocs
+                Registry doWhileDocs
+                Registry switchDocs
+                Registry synchronizedDocs
+                Registry assertionDocs
+                Registry closureDocs
+
+                @AutoCreate
+                void createDocs() {
+                    try {
+                        docs Registry.fromString('try')
+                    } catch (RuntimeException ignored) {
+                        docs Registry.fromString('catch')
+                    } finally {
+                        finallyDocs Registry.fromString('finally')
+                    }
+                }
+
+                @Default
+                void createDefaults() {
+                    while (!defaults) {
+                        defaults Registry.fromString('while')
+                    }
+                    do {
+                        doWhileDocs Registry.fromString('do-while')
+                    } while (false)
+                    switch (defaults.source) {
+                        case 'while':
+                            switchDocs Registry.fromString('switch')
+                            break
+                        default:
+                            switchDocs Registry.fromString('default')
+                    }
+                    synchronized (this) {
+                        synchronizedDocs Registry.fromString('synchronized')
+                    }
+                    assert assertionDocs(Registry.fromString('assert'))
+                    def configure = {
+                        closureDocs Registry.fromString('closure')
+                    }
+                    configure()
+                }
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.Create.With(source: value)
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With()
+
+        then:
+        instance.docs.source == 'try'
+        instance.defaults.source == 'while'
+        instance.finallyDocs.source == 'finally'
+        instance.doWhileDocs.source == 'do-while'
+        instance.switchDocs.source == 'switch'
+        instance.synchronizedDocs.source == 'synchronized'
+        instance.assertionDocs.source == 'assert'
+        instance.closureDocs.source == 'closure'
+    }
+
     @Issue("642")
     def "unqualified static recursive converters project relationship overloads"() {
         given:
@@ -393,6 +623,86 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         def error = thrown(KlumModelException)
         error.message.contains('omitted Builder-producing projection child(java.lang.String)')
         error.message.contains('active-session Create.AsBuilder')
+    }
+
+    @Issue("662")
+    def "qualified opaque converter calls in Builder methods retain the root factory rejection"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Child child
+
+                @AutoCreate
+                void createChild() {
+                    child Child.fromString('nested')
+                }
+            }
+
+            @DSL class Child {
+                String value
+
+                static Child fromString(String value) {
+                    return materialize(value)
+                }
+
+                private static Child materialize(String value) {
+                    return Child.Create.With(value: value)
+                }
+            }
+        '''
+
+        expect: 'the opaque source converter remains a completed-model factory at the root'
+        getClass('Child').fromString('root').value == 'root'
+
+        when:
+        clazz.Create.With()
+
+        then: 'the unavailable twin cannot start an independent model factory during Builder execution'
+        def error = thrown(RuntimeException)
+        error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
+    }
+
+    @Issue("662")
+    def "qualified precompiled converter calls in Builder methods retain the root factory rejection"() {
+        given: 'the converter type is already compiled and has no active-session AST twin'
+        createSecondaryClass '''
+            package external
+
+            @DSL class PrecompiledChild {
+                String value
+
+                static PrecompiledChild fromString(String value) {
+                    return PrecompiledChild.Create.With(value: value)
+                }
+            }
+        '''
+
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            import groovy.transform.TypeChecked
+            import groovy.transform.TypeCheckingMode
+            import external.PrecompiledChild
+
+            @DSL class Root {
+                @AutoCreate
+                @TypeChecked(TypeCheckingMode.SKIP)
+                void createChild() {
+                    PrecompiledChild.fromString('nested')
+                }
+            }
+        '''
+
+        expect: 'the precompiled converter remains an ordinary completed-model factory at the root'
+        getClass('external.PrecompiledChild').fromString('root').value == 'root'
+
+        when:
+        clazz.Create.With()
+
+        then: 'the unavailable precompiled twin cannot start an independent factory during Builder execution'
+        def error = thrown(RuntimeException)
+        error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
     }
 
     def "unrelated unknown dynamic name remains an ordinary MissingMethodException"() {

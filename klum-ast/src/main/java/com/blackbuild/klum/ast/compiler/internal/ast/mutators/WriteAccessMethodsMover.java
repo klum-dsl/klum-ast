@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast.mutators;
 import com.blackbuild.klum.ast.FieldType;
 import com.blackbuild.klum.ast.Owner;
 import com.blackbuild.klum.ast.WriteAccess;
+import com.blackbuild.klum.ast.compiler.internal.ast.BuilderMethodProjection;
 import com.blackbuild.klum.ast.compiler.internal.ast.DSLASTTransformation;
 import com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
@@ -70,6 +71,7 @@ public class WriteAccessMethodsMover {
     static void moveMethodFromModelToRWClass(MethodNode method) {
         ClassNode declaringClass = method.getDeclaringClass();
         ClassNode rwClass = declaringClass.getNodeMetaData(DSLASTTransformation.RWCLASS_METADATA_KEY);
+        BuilderMethodProjection.projectQualifiedStaticCallsInBuilderMethod(method);
         retargetOwnerParameters(method);
         retargetVirtualFieldParameter(method);
         retargetFieldVariables(method, rwClass);

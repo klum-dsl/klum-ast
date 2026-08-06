@@ -93,6 +93,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String ADD_ELEMENT_TO_COLLECTION = "addElementToCollection";
     private static final String ADD_ELEMENT_TO_MAP = "addElementToMap";
     private static final String ADD_NEW_DSL_ELEMENT_TO_MAP = "addNewDslElementToMap";
+    private static final String SET_SINGLE_FIELD = "setSingleField";
     private static final String CREATE_SINGLE_CHILD = "createSingleChild";
     private static final String FACTORY_NAME = "factory";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
@@ -928,7 +929,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         int visibility = DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC;
         String fieldName = fieldNode.getName();
 
-        createProxyMethod(fieldName, "setSingleField")
+        createProxyMethod(fieldName, SET_SINGLE_FIELD)
                 .optional()
                 .returning(fieldNode.getType(), "The set value")
                 .mod(visibility)
@@ -938,8 +939,19 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .decoratedParam(fieldNode, "value", "the value to set")
                 .addTo(rwClass);
 
+        if (isDSLObject(fieldNode.getType())) {
+            createProxyMethod(fieldName, SET_SINGLE_FIELD)
+                    .optional()
+                    .returning(makeClassSafeWithGenerics(KlumBuilder.class, fieldNode.getType()), "The set Builder value")
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .constantParam(fieldName)
+                    .param(makeClassSafeWithGenerics(KlumBuilder.class, fieldNode.getType()), "value", "the Builder value to set")
+                    .addTo(rwClass);
+        }
+
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
-            createProxyMethod(fieldName, "setSingleField")
+            createProxyMethod(fieldName, SET_SINGLE_FIELD)
                     .optional()
                     .returning(Boolean_TYPE, "always true")
                     .mod(visibility)

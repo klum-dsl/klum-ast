@@ -93,6 +93,13 @@ assert server.endpoint.port == 8443
 For the Builder-projection rules, source-visibility boundary, and diagnostics for opaque producers, see
 [[Behind the Curtain#builder-projection-for-custom-producers]].
 
+Source-visible same-compilation converters also work in Builder lifecycle methods and in nested converter bodies. For
+example, `storage('uri://bla/blub', 'uri://bli/blu')` can select `Storage.fromStrings`, whose implementation calls
+qualified `Registry.fromString(...)` converters for its owned children. Builder-phase calls use active-session Builder
+twins; the same `Registry.fromString(...)` call outside Builder construction remains a completed-model factory.
+
+(See: `ConvertersDocumentaryTest#'uses fluent scalar converter syntax for an owned relationship'`.)
+
 A factory method is named `from*`, `of*`, or `parse*`; a non-DSL factory may also be named `create*`. Alternatively,
 annotate the method with `@Converter`.
 
