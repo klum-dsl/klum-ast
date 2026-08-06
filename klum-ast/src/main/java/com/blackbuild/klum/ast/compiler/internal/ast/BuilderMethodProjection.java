@@ -911,37 +911,6 @@ public final class BuilderMethodProjection {
             return true;
         }
 
-        private static boolean acceptsArgumentCount(MethodNode method, int argumentCount) {
-            int required = (int) Arrays.stream(method.getParameters())
-                    .filter(parameter -> !parameter.hasInitialExpression())
-                    .count();
-            return argumentCount >= required && argumentCount <= method.getParameters().length;
-        }
-
-        private static int argumentCount(Expression arguments) {
-            return arguments instanceof TupleExpression tupleExpression ? tupleExpression.getExpressions().size() : 1;
-        }
-
-        private static boolean argumentsMatch(Parameter[] parameters, Expression arguments) {
-            if (!(arguments instanceof TupleExpression tupleExpression)) return parameters.length == 1;
-            List<Expression> expressions = tupleExpression.getExpressions();
-            if (parameters.length != expressions.size()) return false;
-            for (int index = 0; index < parameters.length; index++) {
-                Expression expression = expressions.get(index);
-                if (expression instanceof MapExpression
-                        && !isAssignableTo(ClassHelper.MAP_TYPE, parameters[index].getType()))
-                    return false;
-                if (expression instanceof ClosureExpression
-                        && !parameters[index].getType().equals(ClassHelper.CLOSURE_TYPE))
-                    return false;
-                ClassNode expressionType = expression.getType();
-                if (expressionType != null
-                        && !expressionType.equals(ClassHelper.OBJECT_TYPE)
-                        && !isAssignableTo(expressionType, parameters[index].getOriginType()))
-                    return false;
-            }
-            return true;
-        }
     }
 
     private static final class RootFactoryCall {
