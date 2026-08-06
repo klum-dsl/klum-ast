@@ -187,6 +187,50 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         instance.mutations.source == 'mutator'
     }
 
+    @Issue("662")
+    def "qualified static converters project through Builder method control flow"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Registry docs
+                Registry defaults
+
+                @AutoCreate
+                void createDocs() {
+                    try {
+                        docs Registry.fromString('try')
+                    } catch (RuntimeException ignored) {
+                        docs Registry.fromString('catch')
+                    }
+                }
+
+                @Default
+                void createDefaults() {
+                    while (!defaults) {
+                        defaults Registry.fromString('while')
+                    }
+                }
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.Create.With(source: value)
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With()
+
+        then:
+        instance.docs.source == 'try'
+        instance.defaults.source == 'while'
+    }
+
     @Issue("642")
     def "unqualified static recursive converters project relationship overloads"() {
         given:
@@ -544,6 +588,89 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         clazz.Create.With { child 'nested' }
 
         then:
+        def error = thrown(KlumModelException)
+        error.message.contains('omitted Builder-producing projection child(java.lang.String)')
+        error.message.contains('active-session Create.AsBuilder')
+    }
+
+    @Issue("662")
+    def "qualified opaque converter calls in Builder methods retain the root factory rejection"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Child child
+
+                @AutoCreate
+                void createChild() {
+                    child Child.fromString('nested')
+                }
+            }
+
+            @DSL class Child {
+                String value
+
+                static Child fromString(String value) {
+                    return materialize(value)
+                }
+
+                private static Child materialize(String value) {
+                    return Child.Create.With(value: value)
+                }
+            }
+        '''
+
+        expect: 'the opaque source converter remains a completed-model factory at the root'
+        getClass('Child').fromString('root').value == 'root'
+
+        when:
+        clazz.Create.With()
+
+        then: 'the unavailable twin cannot start an independent model factory during Builder execution'
+        def error = thrown(RuntimeException)
+        error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
+    }
+
+    @Issue("662")
+    def "qualified precompiled converter calls are omitted from Builder projection"() {
+        given: 'the converter type is already compiled and has no active-session AST twin'
+        createSecondaryClass '''
+            package external
+
+            class Converters {
+                static Object fromString(String value) {
+                    return Class.forName('Child').Create.With(value: value)
+                }
+            }
+        '''
+
+        createClass '''
+            import external.Converters
+
+            @DSL class Root {
+                Child child
+            }
+
+            @DSL class Child {
+                String value
+
+                static Child fromString(String value) {
+                    return (Child) Converters.fromString(value)
+                }
+            }
+        '''
+
+        expect: 'the precompiled converter remains an ordinary completed-model factory'
+        getClass('Child').fromString('root').value == 'root'
+
+        and: 'the relationship surface does not advertise an unavailable Builder-producing twin'
+        !rwClazz.methods.any { it.name == 'child' && it.parameterTypes.toList() == [String] }
+
+        when:
+        clazz.Create.With { child 'nested' }
+
+        then: 'the dynamic relationship call retains the established projection guidance'
         def error = thrown(KlumModelException)
         error.message.contains('omitted Builder-producing projection child(java.lang.String)')
         error.message.contains('active-session Create.AsBuilder')

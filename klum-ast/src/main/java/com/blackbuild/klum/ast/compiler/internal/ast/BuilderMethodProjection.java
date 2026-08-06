@@ -53,14 +53,22 @@ import org.codehaus.groovy.ast.expr.PropertyExpression;
 import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
 import org.codehaus.groovy.ast.expr.TupleExpression;
 import org.codehaus.groovy.ast.expr.VariableExpression;
+import org.codehaus.groovy.ast.stmt.AssertStatement;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.CaseStatement;
+import org.codehaus.groovy.ast.stmt.CatchStatement;
+import org.codehaus.groovy.ast.stmt.DoWhileStatement;
 import org.codehaus.groovy.ast.stmt.EmptyStatement;
 import org.codehaus.groovy.ast.stmt.ExpressionStatement;
 import org.codehaus.groovy.ast.stmt.ForStatement;
 import org.codehaus.groovy.ast.stmt.IfStatement;
 import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.ast.stmt.Statement;
+import org.codehaus.groovy.ast.stmt.SwitchStatement;
+import org.codehaus.groovy.ast.stmt.SynchronizedStatement;
 import org.codehaus.groovy.ast.stmt.ThrowStatement;
+import org.codehaus.groovy.ast.stmt.TryCatchStatement;
+import org.codehaus.groovy.ast.stmt.WhileStatement;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -421,6 +429,45 @@ public final class BuilderMethodProjection {
                 );
                 copy.setVariableScope(forStatement.getVariableScope());
                 result = copy;
+            } else if (source instanceof WhileStatement whileStatement) {
+                result = new WhileStatement(
+                        (BooleanExpression) transform(whileStatement.getBooleanExpression()),
+                        cloneStatement(whileStatement.getLoopBlock())
+                );
+            } else if (source instanceof DoWhileStatement doWhileStatement) {
+                result = new DoWhileStatement(
+                        (BooleanExpression) transform(doWhileStatement.getBooleanExpression()),
+                        cloneStatement(doWhileStatement.getLoopBlock())
+                );
+            } else if (source instanceof TryCatchStatement tryCatchStatement) {
+                TryCatchStatement copy = new TryCatchStatement(
+                        cloneStatement(tryCatchStatement.getTryStatement()),
+                        cloneStatement(tryCatchStatement.getFinallyStatement())
+                );
+                tryCatchStatement.getResourceStatements().forEach(resource ->
+                        copy.addResource((ExpressionStatement) cloneStatement(resource)));
+                tryCatchStatement.getCatchStatements().forEach(catchStatement ->
+                        copy.addCatch(cloneCatchStatement(catchStatement)));
+                result = copy;
+            } else if (source instanceof SwitchStatement switchStatement) {
+                List<CaseStatement> cases = switchStatement.getCaseStatements().stream()
+                        .map(this::cloneCaseStatement)
+                        .toList();
+                result = new SwitchStatement(
+                        transform(switchStatement.getExpression()),
+                        cases,
+                        cloneStatement(switchStatement.getDefaultStatement())
+                );
+            } else if (source instanceof SynchronizedStatement synchronizedStatement) {
+                result = new SynchronizedStatement(
+                        transform(synchronizedStatement.getExpression()),
+                        cloneStatement(synchronizedStatement.getCode())
+                );
+            } else if (source instanceof AssertStatement assertStatement) {
+                result = new AssertStatement(
+                        (BooleanExpression) transform(assertStatement.getBooleanExpression()),
+                        transform(assertStatement.getMessageExpression())
+                );
             } else if (source instanceof ThrowStatement throwStatement) {
                 result = new ThrowStatement(transform(throwStatement.getExpression()));
             } else if (source instanceof EmptyStatement) {
@@ -434,9 +481,32 @@ public final class BuilderMethodProjection {
             return result;
         }
 
+        private CatchStatement cloneCatchStatement(CatchStatement source) {
+            CatchStatement result = new CatchStatement(source.getVariable(), cloneStatement(source.getCode()));
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            result.copyStatementLabels(source);
+            return result;
+        }
+
+        private CaseStatement cloneCaseStatement(CaseStatement source) {
+            CaseStatement result = new CaseStatement(transform(source.getExpression()), cloneStatement(source.getCode()));
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
+            result.copyStatementLabels(source);
+            return result;
+        }
+
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
+            if (expression instanceof ClosureExpression source) {
+                ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
+                result.setVariableScope(source.getVariableScope());
+                result.setSourcePosition(source);
+                result.copyNodeMetaData(source);
+                return result;
+            }
             if (expression instanceof StaticMethodCallExpression source) {
                 Expression arguments = transform(source.getArguments());
                 MethodNode twin = builderTwinFor(null, sourceClassFor(source.getOwnerType(), context), source.getMethod(), source.getArguments());
