@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer 3 — KlumAST 4.0.0-rc.10</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.10 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="./">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="./">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="layer-3">Layer 3</h1>
+<p>A Layer3 structure separates responsibilities that are often combined in a simpler Schema/Model design:</p>
+<ul>
+<li>The Domain API Developer defines an API layer of abstract consumer-facing model contracts. These usually expose the
+relevant values through Maps and collections and are technical rather than deployment-specific.</li>
+<li>The Schema Developer provides the actual Schema classes, usually specific subclasses of API-layer types. They add named
+fields, lifecycle behavior, and validation so concrete modeling is expressive and domain-specific.</li>
+<li>The Model Writer creates configured Model instances through scripts or structured inputs and connects them.</li>
+<li>The Client Developer consumes the API layer without depending on the concrete Schema layer.</li>
+</ul>
+<p>The role boundaries and variants of this approach need a dedicated design pass under <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/454">issue #454</a>. The established
+definition is the API–Schema–Model dependency pattern; it is not a package or Java-module boundary.</p>
+<h2 id="example-structure">Example structure</h2>
+<p>Let's consider an infrastructure model. We have an application that consists of a database, and a number of microservices. This application will be deployed in a number of environments. An environment is thus a collection of related applications that are deployed together. Actual instances of an environment represent different stages for deployment, e.g. dev, test, prod.</p>
+<p>In this structure, the API layer will provide the following classes:</p>
+<ul>
+<li><code>Environment</code></li>
+<li><code>Application</code></li>
+<li><code>Database</code></li>
+<li><code>Microservice</code></li>
+</ul>
+<p>These are the classes that will be consumed by our Consumer application (for example, a deployment pipeline).</p>
+<p>The schema layer contains classes modeling the actual applications, i.e., if we have two applications, each application will consist of a database class and several microservice classes.</p>
+<pre><code class="language-groovy">@DSL class CustomerServiceEnvironment extends Environment {
+    Shipping shipping
+    Billing billing
+}
+
+// First Application: Shipping
+@DSL class Shipping extends Application {
+    ShippingDatabase database
+    ShippingFrontend frontend
+    ShippingBackend backend
+    ShippingWorker worker 
+}
+
+@DSL class ShippingDatabase extends Database {
+    @Required DbUser ddl
+    @Required DbUser dml
+    DbUser monitoring
+}
+
+// Second Application: Billing
+@DSL class Billing extends Application {
+    BillingDatabase database
+    BillingService service
+}
+</code></pre>
+<p>Now without going into much detail, a dsl-model (using KlumAST) could be something like this:</p>
+<pre><code class="language-groovy">environment(&quot;dev&quot;) {
+    shipping {
+        database {
+            ddl &quot;admin&quot;
+            dml &quot;shipping_user&quot;
+            monitoring &quot;monitoring&quot;
+        }
+        frontend {
+            replicas 1
+            ssl false
+            //...
+        }
+        // ...
+    }
+    billing {
+        database {
+            ddl &quot;admin&quot;
+            dml &quot;billing_user&quot;
+        }
+        service {
+            //...
+        }
+    }
+}
+environment(&quot;prod&quot;) {
+    shipping {
+        database {
+            ddl &quot;xcvzh&quot;
+            dml &quot;abcde&quot;
+            monitoring &quot;mon_x&quot;
+        }
+        frontend {
+            replicas 3
+            ssl true
+            //...
+        }
+        // ...
+    }
+    //...
+}
+</code></pre>
+<p>From the modeling perspective, this is a lot more expressive than using generic microservice or database classes. However, the API layer is still very simple and can be used by the consumer application without having to know about the actual structure of the application.</p>
+<p>For each Cluster-Field of a class, a cluster factory named like the field is created, which only contains the matching fields of the cluster. This is especially useful if the name of the field lacks context:</p>
+<pre><code class="language-groovy">environment(&quot;dev&quot;) {
+  applications { // cluster factory for field &quot;Environment.applications&quot; 
+      shipping {
+          database {
+              users { // cluster factory for field &quot;Database.users&quot;
+                  ddl &quot;admin&quot;
+                  dml &quot;shipping_user&quot;
+                  monitoring &quot;monitoring&quot;
+              }
+          }
+          frontend {
+              replicas 1
+              ssl false
+              //...
+          }
+          // ...
+      }
+      billing {
+          database {
+            users { // cluster factory for field &quot;Database.users&quot;
+                ddl &quot;admin&quot;
+                dml &quot;billing_user&quot;
+            }
+          }
+          service {
+              //...
+          }
+      }
+  }
+}
+</code></pre>
+<p>By default, these factories are entirely optional (like collection factories). Using
+<code>@Cluster.bounded</code>, which can also be placed on a class, one of its superclasses, or a package, makes the cluster
+field methods on the generated Builder construction API <code>protected</code>. They are then reachable only inside the factory;
+for example, code completion presents <code>users</code> on a <code>Database</code> Builder rather than its <code>ddl</code> or <code>dml</code> members.</p>
+<p>The Environment base class contains method to access the actual applications as a Map:</p>
+<pre><code class="language-groovy">@DSL
+abstract class Environment {
+    @Key String name
+    
+    @Cluster Map&lt;String, Application&gt; applications 
+}
+</code></pre>
+<p>That way a deployer service can simply iterate over the applications of our CustomerServiceEnvironment and deploy them.</p>
+<pre><code class="language-groovy">def deploy(Environment env) {
+    env.applications.each { name, app -&gt;
+        log.info &quot;Deploying $name&quot;
+        deployApplication(app)
+    }
+}
+</code></pre>
+<p><code>@Cluster</code> can also be placed on a getter method (for example, <code>getApplications()</code>), which can be abstract or have an
+empty/<code>null</code> body to satisfy an IDE. Prefer the field form for new Schemas. The roles, dependency direction, and
+variants of Layer 3 remain under the explicit terminology review in <a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/454">#454</a>.</p>
+<p>Validations in our ShippingApplication can also be done specifically for that application:</p>
+<pre><code class="language-groovy">@Validate void SslNeedsValidationServer() {
+    if (frontend.ssl &amp;&amp; backend.validationServer == null)
+        error &quot;Backend must define validation server if SSL is enabled&quot;
+}
+</code></pre>
+<h2 id="implementation">Implementation</h2>
+<p>Using the <code>@Cluster</code> annotation, this method will automatically be implemented using the respective methods of the ClusterModel helper class.</p>
+<p>For example, the <code>getApplications</code> method is implemented like this:</p>
+<pre><code class="language-groovy">Map&lt;String, Application&gt; getApplications() {
+    ClusterModel.getPropertiesOfType(this, Application)
+}
+</code></pre>
+<p>If the annotated method return <code>Map&lt;String, Collection&lt;X&gt;&gt;</code>, <code>ClusterModel.getCollectionsOfType</code> will be used instead.</p>
+<p>Most ClusterModel methods have an additional parameter to filter the return values, which is usually one of the following:</p>
+<ul>
+<li>A <code>Predicate&lt;AnnotatedElement&gt;</code></li>
+<li>A <code>Closure&lt;Boolean&gt;</code>, which accepts an AnnotatedElement as parameter</li>
+<li>An Annotation class (which is a shortcut for <code>it -&gt; it.isAnnotationPresent(filter)</code>)</li>
+</ul>
+<p>The most common usage is the last one, simply filtering on the presence of an annotation on the fields. This can also be implemented using the <code>value</code> field of the <code>@Cluster</code> annotation:</p>
+<pre><code class="language-groovy">@Cluster(Important) Map&lt;String, Application&gt; applications
+</code></pre>
+<p>will be converted to</p>
+<pre><code class="language-groovy">Map&lt;String, Application&gt; getApplications() {
+    return ClusterModel.getPropertiesOfType(this, Application, Important)
+}
+</code></pre>
+<h2 id="autocreate">AutoCreate</h2>
+<p>Any <code>AutoCreate</code> annotation placed on the cluster field will be used to automatically create all targeted field's objects during the auto-create phase, thus effectively working as if the annotation was placed on all fields of the cluster.</p>
+<h2 id="benefits-of-a-layer3-model">Benefits of a Layer3 model</h2>
+<p>There are various major benefits of using a Layer3 model vs. a generic schema/model approach:</p>
+<h3 id="editing-and-code-completion">Editing and code completion</h3>
+<p>With each application being a specific subclass of Application, the actual model gets more concise, and more domain specific. Consider the (partial) example above being modeled using a generic schema/model approach:</p>
+<pre><code class="language-groovy">environment(&quot;dev&quot;) {
+    application(&quot;shipping&quot;) {
+        database {
+            user(&quot;ddl&quot;) { &quot;admin&quot; }
+            user(&quot;dml&quot;) { &quot;shipping_user&quot; }
+            user(&quot;monitoring&quot;) { &quot;monitoring&quot; }
+        }
+        service(&quot;frontend&quot;) {
+            replicas 1
+            ssl false
+            //...
+        }
+        // ...
+    }
+    application(&quot;billing&quot;) { 
+    // ...
+</code></pre>
+<p>Besides being harder to read there is neither code completion help nor any protection against typos. The developer needs to know exactly which microservices the application consists of and which database users are needed.</p>
+<p>In contrast, by using a specific <code>ShippingApplication</code> class, there is exactly one field for each microservice, and the developer can use code completion to see which fields are available. Also, typos like using the wrong user will be detected by the compiler and the IDE immediately.</p>
+<p>Using a specific subclass also allows properly commenting the domain-specific fields (what is the use of the monitoring db user?), which is not possible with a generic schema/model approach.</p>
+<h3 id="domain-consumers">Domain consumers</h3>
+<p>Since we are building an environment model in this example, there are two distinct types of consumers:</p>
+<ul>
+<li>Generic consumers, like a deployment pipeline or a test framework, only use the generic methods of the API layer (behaving exactly like in the generic schema/model approach)</li>
+<li>Specific consumers know the actual ShippingApplication and can access its various fields directly. Specific consumers can be, for example:
+<ul>
+<li>The application itself, for example, in reading the jdbc url for the actual database directly from the model (instead of an application.yaml or such)</li>
+<li>A post-deployment test that runs against a specific environment and needs to know the actual database users and passwords can obtain them directly from the model. Combined with password retrieving techniques like an Hashicorp Vault accessor, this can be a very powerful approach. Since the tests are identical for every stage, they can be effectively reused. A developer can use the same tests against a local virtual machine as against the actual approval environment. The only difference being that the developer would not have the rights to access the actual passwords of the approval environment.</li>
+</ul>
+</li>
+</ul>
+<h3 id="validation">Validation</h3>
+<p>With ShipmentApplication being a class with domain knowledge, it can also contain domain-specific validations. For example:</p>
+<ul>
+<li>if ssl is enabled in the frontend, the backend must have a configured validation server</li>
+<li>if a monitoring service is defined, the monitoring database user must be defined</li>
+</ul>
+<p>Making these validations with a domain schema is trivial.</p>
+<h3 id="automatic-creation-and-linking">Automatic creation and linking</h3>
+<p>Let's say that a monitoring microservice is used by multiple applications in the environment. In the generic schema/model approach, the monitoring service would be defined multiple times, once for each application. This is not only redundant but also error-prone, since the monitoring service might be configured differently for each application.</p>
+<p>Using the schema layer with <code>@AutoCreate</code>, the monitoring service could automatically be created.</p>
+<pre><code class="language-groovy">@DSL
+abstract class MonitoredApplication extends Application {
+  @AutoCreate
+  MonitoringService monitoring
+}
+</code></pre>
+<p>Now, our monitoring service needs access to a database, but we want to reuse the database for the application. So we link
+the database field of the monitoring service to the database of its owner:</p>
+<pre><code class="language-groovy">class MonitoringService extends Microservice {
+  @Owner MonitoredApplication application
+  @LinkTo Database database
+}
+</code></pre>
+<p>During the instantiation of the model, the database field will be automatically filled but can still be overwritten
+on instance level. <code>@LinkTo</code> now selects <code>FieldType.OPTIONAL_LINK</code>: a locally created same-session value is owned
+composition, while the Auto-Link fallback and any completed value are aggregation references. For an aggregation-only
+relationship, declare <code>@Field(FieldType.LINK) @LinkTo</code>; a normal unannotated relationship remains composition-only.
+See <code>OptionalLinkRelationshipTest.optional relationships retain local composition and aggregation identity for single List and Map entries</code>
+for the executable example.</p>
+<h3 id="role-fields">Role fields</h3>
+<p>Fields can be annotated with <code>@Role</code> to indicate that they are used for a specific role as seen from their owner.
+Consider a Database class that has various users. Each user object has access to its owning database object, but it
+might be necessary for the User object to know how it is used in their database. Rather than forcing the modeler to
+set the role manually, it can simply be inferred from the field name of the Database that points to the user:</p>
+<pre><code class="language-groovy">@DSL
+class MyDatabase extends Database {
+  String url
+
+  DbUser ddl
+  DbUser dml
+  DbUser monitoring
+}
+
+@DSL
+class DbUser {
+  @Owner Database database
+  @Role String role
+  @Key String id
+}
+
+def db = MyDatabase.Create.With {
+  url &quot;jdbc:...&quot;
+  ddl(&quot;user1&quot;)
+  dml(&quot;user2&quot;)
+  monitoring(&quot;user3&quot;)
+}
+
+assert db.ddl.role == &quot;ddl&quot;
+assert db.dml.role == &quot;dml&quot;
+assert db.monitoring.role == &quot;monitoring&quot;
+</code></pre>
+<p>That way some kind of environment checker can, for example, use <a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a> to validate that all non
+ddl users have the correct privileges:</p>
+<pre><code class="language-groovy">KlumObjectSupport.of(model).getStructure().findAll(DbUser).each { path, user -&gt;
+    if (user.role != &quot;ddl&quot;)
+      assertNoDdlPrivileges(user, path)
+
+}
+</code></pre>
+<p>Note that this check should not be done during standard model validation because it requires access to the actual database.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
