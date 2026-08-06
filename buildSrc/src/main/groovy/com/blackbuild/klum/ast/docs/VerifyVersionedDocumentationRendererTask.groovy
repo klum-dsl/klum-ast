@@ -419,6 +419,33 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the pending Pages workflow must check GitHub releases through the authoritative remote API')
         assertTrue(!pagesWorkflow.contains('git show-ref --verify'),
                 'the pending Pages workflow must not decide release identity from runner-local Git refs')
+        String pagesProbeWorkflow = new File(project.rootDir, '.github/workflows/probe-pages-deployment.yml').text
+        assertContains(pagesProbeWorkflow, 'workflow_dispatch:',
+                'the Pages probe must require an explicit manual dispatch')
+        assertContains(pagesProbeWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
+                'the Pages probe must reject dispatches outside master')
+        assertContains(pagesProbeWorkflow, 'test "$(git rev-parse origin/master)" = "$EXPECTED_SOURCE_COMMIT"',
+                'the Pages probe must require the current trusted master commit')
+        assertContains(pagesProbeWorkflow, 'name: documentation-pages',
+                'the Pages probe must use the protected Pages deployment environment')
+        assertContains(pagesProbeWorkflow, 'pages-deployment-probe-${{ github.run_id }}-${{ github.run_attempt }}',
+                'the Pages probe artifact must be unambiguously diagnostic')
+        assertContains(pagesProbeWorkflow, 'actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b',
+                'the Pages probe must upload through the pinned official Pages artifact action')
+        assertContains(pagesProbeWorkflow, 'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128',
+                'the Pages probe must deploy through the pinned official Pages action')
+        assertContains(pagesProbeWorkflow, 'test "$(git -C pages rev-parse FETCH_HEAD)" = "$EXPECTED_LEDGER_COMMIT"',
+                'the Pages probe must prove the remote ledger stays at its snapshot')
+        assertContains(pagesProbeWorkflow, 'One probe is diagnostic evidence only',
+                'the Pages probe must not overstate one deployment result as a root-cause finding')
+        assertTrue(!pagesProbeWorkflow.contains('PAGES_WRITER_'),
+                'the Pages probe must not receive gh-pages writer credentials')
+        assertTrue(!pagesProbeWorkflow.contains('publishCompleteKlumAstProduct'),
+                'the Pages probe must not publish artifacts')
+        assertTrue(!pagesProbeWorkflow.contains('pending-rejected/'),
+                'the Pages probe must not create rejected release paths')
+        assertTrue(!pagesProbeWorkflow.contains('timeout:'),
+                'the Pages probe must not override the Pages action polling ceiling')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         int identityPreflightStart = releaseWorkflow.indexOf('  verify-release-identity-available:\n')
         int pendingStageStart = releaseWorkflow.indexOf('  stage-pending-documentation:\n')
