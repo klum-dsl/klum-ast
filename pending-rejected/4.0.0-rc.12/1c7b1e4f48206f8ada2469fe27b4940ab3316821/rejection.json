@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "stage": "candidate",
+  "version": "4.0.0-rc.12",
+  "sha": "1c7b1e4f48206f8ada2469fe27b4940ab3316821",
+  "outcome": "rejected-pending-documentation"
+}
