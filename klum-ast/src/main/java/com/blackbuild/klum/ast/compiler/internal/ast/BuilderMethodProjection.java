@@ -397,14 +397,9 @@ public final class BuilderMethodProjection {
         return true;
     }
 
-    private static final class BuilderPhaseProjectionTransformer implements ExpressionTransformer {
-        private final ClassNode context;
+    private abstract static class StatementCloner implements ExpressionTransformer {
 
-        private BuilderPhaseProjectionTransformer(ClassNode context) {
-            this.context = context;
-        }
-
-        private Statement cloneStatement(Statement source) {
+        protected final Statement cloneStatement(Statement source) {
             if (source == null) return null;
             Statement result;
             if (source instanceof BlockStatement block) {
@@ -473,11 +468,21 @@ public final class BuilderMethodProjection {
             } else if (source instanceof EmptyStatement) {
                 return source;
             } else {
-                return source;
+                return handleUnsupportedStatement(source);
             }
             result.setSourcePosition(source);
             result.copyNodeMetaData(source);
             result.copyStatementLabels(source);
+            return result;
+        }
+
+        protected abstract Statement handleUnsupportedStatement(Statement source);
+
+        protected final ClosureExpression cloneClosure(ClosureExpression source) {
+            ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
+            result.setVariableScope(source.getVariableScope());
+            result.setSourcePosition(source);
+            result.copyNodeMetaData(source);
             return result;
         }
 
@@ -496,16 +501,25 @@ public final class BuilderMethodProjection {
             result.copyStatementLabels(source);
             return result;
         }
+    }
+
+    private static final class BuilderPhaseProjectionTransformer extends StatementCloner {
+        private final ClassNode context;
+
+        private BuilderPhaseProjectionTransformer(ClassNode context) {
+            this.context = context;
+        }
+
+        @Override
+        protected Statement handleUnsupportedStatement(Statement source) {
+            return source;
+        }
 
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
             if (expression instanceof ClosureExpression source) {
-                ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
-                result.setVariableScope(source.getVariableScope());
-                result.setSourcePosition(source);
-                result.copyNodeMetaData(source);
-                return result;
+                return cloneClosure(source);
             }
             if (expression instanceof StaticMethodCallExpression source) {
                 Expression arguments = transform(source.getArguments());
@@ -727,7 +741,7 @@ public final class BuilderMethodProjection {
         }
     }
 
-    private static final class ProjectionTransformer implements ExpressionTransformer {
+    private static final class ProjectionTransformer extends StatementCloner {
         private final ProjectionState state;
         private final Candidate candidate;
 
@@ -736,54 +750,17 @@ public final class BuilderMethodProjection {
             this.candidate = candidate;
         }
 
-        private Statement cloneStatement(Statement source) {
-            if (source == null) return null;
-            Statement result;
-            if (source instanceof BlockStatement block) {
-                List<Statement> statements = new ArrayList<>();
-                block.getStatements().forEach(statement -> statements.add(cloneStatement(statement)));
-                result = new BlockStatement(statements, block.getVariableScope());
-            } else if (source instanceof ReturnStatement returnStatement) {
-                result = new ReturnStatement(transform(returnStatement.getExpression()));
-            } else if (source instanceof ExpressionStatement expressionStatement) {
-                result = new ExpressionStatement(transform(expressionStatement.getExpression()));
-            } else if (source instanceof IfStatement ifStatement) {
-                result = new IfStatement(
-                        (BooleanExpression) transform(ifStatement.getBooleanExpression()),
-                        cloneStatement(ifStatement.getIfBlock()),
-                        cloneStatement(ifStatement.getElseBlock())
-                );
-            } else if (source instanceof ForStatement forStatement) {
-                ForStatement copy = new ForStatement(
-                        forStatement.getVariable(),
-                        transform(forStatement.getCollectionExpression()),
-                        cloneStatement(forStatement.getLoopBlock())
-                );
-                copy.setVariableScope(forStatement.getVariableScope());
-                result = copy;
-            } else if (source instanceof ThrowStatement throwStatement) {
-                result = new ThrowStatement(transform(throwStatement.getExpression()));
-            } else if (source instanceof EmptyStatement) {
-                return source;
-            } else {
-                candidate.opaque = true;
-                return source;
-            }
-            result.setSourcePosition(source);
-            result.copyNodeMetaData(source);
-            result.copyStatementLabels(source);
-            return result;
+        @Override
+        protected Statement handleUnsupportedStatement(Statement source) {
+            candidate.opaque = true;
+            return source;
         }
 
         @Override
         public Expression transform(Expression expression) {
             if (expression == null) return null;
             if (expression instanceof ClosureExpression source) {
-                ClosureExpression result = new ClosureExpression(source.getParameters(), cloneStatement(source.getCode()));
-                result.setVariableScope(source.getVariableScope());
-                result.setSourcePosition(source);
-                result.copyNodeMetaData(source);
-                return result;
+                return cloneClosure(source);
             }
             if (expression instanceof StaticMethodCallExpression source)
                 return transformStaticMethodCall(source);

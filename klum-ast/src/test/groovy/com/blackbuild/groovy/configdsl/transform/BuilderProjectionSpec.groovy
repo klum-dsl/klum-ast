@@ -633,47 +633,44 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
     }
 
     @Issue("662")
-    def "qualified precompiled converter calls are omitted from Builder projection"() {
+    def "qualified precompiled converter calls in Builder methods retain the root factory rejection"() {
         given: 'the converter type is already compiled and has no active-session AST twin'
         createSecondaryClass '''
             package external
 
-            class Converters {
-                static Object fromString(String value) {
-                    return Class.forName('Child').Create.With(value: value)
+            @DSL class PrecompiledChild {
+                String value
+
+                static PrecompiledChild fromString(String value) {
+                    return PrecompiledChild.Create.With(value: value)
                 }
             }
         '''
 
         createClass '''
-            import external.Converters
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+            import groovy.transform.TypeChecked
+            import groovy.transform.TypeCheckingMode
+            import external.PrecompiledChild
 
             @DSL class Root {
-                Child child
-            }
-
-            @DSL class Child {
-                String value
-
-                static Child fromString(String value) {
-                    return (Child) Converters.fromString(value)
+                @AutoCreate
+                @TypeChecked(TypeCheckingMode.SKIP)
+                void createChild() {
+                    PrecompiledChild.fromString('nested')
                 }
             }
         '''
 
-        expect: 'the precompiled converter remains an ordinary completed-model factory'
-        getClass('Child').fromString('root').value == 'root'
-
-        and: 'the relationship surface does not advertise an unavailable Builder-producing twin'
-        !rwClazz.methods.any { it.name == 'child' && it.parameterTypes.toList() == [String] }
+        expect: 'the precompiled converter remains an ordinary completed-model factory at the root'
+        getClass('external.PrecompiledChild').fromString('root').value == 'root'
 
         when:
-        clazz.Create.With { child 'nested' }
+        clazz.Create.With()
 
-        then: 'the dynamic relationship call retains the established projection guidance'
-        def error = thrown(KlumModelException)
-        error.message.contains('omitted Builder-producing projection child(java.lang.String)')
-        error.message.contains('active-session Create.AsBuilder')
+        then: 'the unavailable precompiled twin cannot start an independent factory during Builder execution'
+        def error = thrown(RuntimeException)
+        error.message.contains('Cannot start an independent DSL Object factory while a Builder lifecycle is active')
     }
 
     def "unrelated unknown dynamic name remains an ordinary MissingMethodException"() {
