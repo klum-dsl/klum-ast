@@ -196,6 +196,11 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
             @DSL class Root {
                 Registry docs
                 Registry defaults
+                Registry finallyDocs
+                Registry doWhileDocs
+                Registry switchDocs
+                Registry synchronizedDocs
+                Registry closureDocs
 
                 @AutoCreate
                 void createDocs() {
@@ -203,6 +208,8 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                         docs Registry.fromString('try')
                     } catch (RuntimeException ignored) {
                         docs Registry.fromString('catch')
+                    } finally {
+                        finallyDocs Registry.fromString('finally')
                     }
                 }
 
@@ -211,6 +218,24 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
                     while (!defaults) {
                         defaults Registry.fromString('while')
                     }
+                    do {
+                        doWhileDocs Registry.fromString('do-while')
+                    } while (false)
+                    switch (defaults.source) {
+                        case 'while':
+                            switchDocs Registry.fromString('switch')
+                            break
+                        default:
+                            switchDocs Registry.fromString('default')
+                    }
+                    synchronized (this) {
+                        synchronizedDocs Registry.fromString('synchronized')
+                    }
+                    assert defaults.source == 'while'
+                    def configure = {
+                        closureDocs Registry.fromString('closure')
+                    }
+                    configure()
                 }
             }
 
@@ -229,6 +254,11 @@ class BuilderProjectionSpec extends AbstractDSLSpec {
         then:
         instance.docs.source == 'try'
         instance.defaults.source == 'while'
+        instance.finallyDocs.source == 'finally'
+        instance.doWhileDocs.source == 'do-while'
+        instance.switchDocs.source == 'switch'
+        instance.synchronizedDocs.source == 'synchronized'
+        instance.closureDocs.source == 'closure'
     }
 
     @Issue("642")

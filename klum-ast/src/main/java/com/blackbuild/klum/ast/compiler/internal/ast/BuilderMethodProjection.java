@@ -338,11 +338,6 @@ public final class BuilderMethodProjection {
                 .orElse(null);
     }
 
-    private static MethodNode builderTwinFor(MethodCallExpression call) {
-        if (!(call.getObjectExpression() instanceof ClassExpression owner)) return null;
-        return builderTwinFor(call.getMethodTarget(), owner.getType(), call.getMethodAsString(), call.getArguments());
-    }
-
     private static MethodNode builderTwinFor(MethodNode target, ClassNode owner, String name, Expression arguments) {
         if (target != null) {
             MethodNode twin = target.getNodeMetaData(TWIN_METADATA_KEY);
@@ -876,11 +871,10 @@ public final class BuilderMethodProjection {
          * source overload here; the hidden twin is then obtained exclusively from that MethodNode's metadata.
          */
         private MethodNode resolveOriginalSourceTarget(MethodCallExpression call) {
-            if (!call.isImplicitThis()) {
-                if (!(call.getObjectExpression() instanceof ClassExpression owner)
-                        || !owner.getType().redirect().equals(candidate.original.getDeclaringClass().redirect()))
-                    return null;
-            }
+            if (!call.isImplicitThis()
+                    && (!(call.getObjectExpression() instanceof ClassExpression owner)
+                    || !owner.getType().redirect().equals(candidate.original.getDeclaringClass().redirect())))
+                return null;
             return resolveOriginalSourceTarget(call.getMethodAsString(), call.getArguments());
         }
 
