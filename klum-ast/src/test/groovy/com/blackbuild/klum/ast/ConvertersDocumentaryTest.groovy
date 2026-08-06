@@ -30,6 +30,36 @@ import spock.lang.Tag
 @Tag("documentary")
 class ConvertersDocumentaryTest extends AbstractDSLSpec {
 
+    @Issue("662")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Converters.md#factory-method-converters")
+    def "uses fluent scalar converter syntax for an owned relationship"() {
+        given:
+        createClass '''
+            import java.net.URI
+
+            @DSL class Root { Storage storage }
+            @DSL class Registry {
+                URI uri
+                static Registry fromString(String value) { Registry.Create.With(uri: new URI(value)) }
+            }
+            @DSL class Storage {
+                Registry source
+                Registry target
+                static Storage fromStrings(String source, String target) {
+                    Storage.Create.With(
+                        source: Registry.fromString(source),
+                        target: Registry.fromString(target)
+                    )
+                }
+            }
+        '''
+        when:
+        def root = clazz.Create.With { storage('uri://bla/blub', 'uri://bli/blu') }
+        then:
+        root.storage.source.uri == new URI('uri://bla/blub')
+        root.storage.target.uri == new URI('uri://bli/blu')
+    }
+
     @Issue("148")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Converters.md#field-based-converters")
     def "converts timestamp input for a simple field and map entry"() {

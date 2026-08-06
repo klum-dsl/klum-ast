@@ -33,6 +33,160 @@ import spock.lang.Issue
 
 class BuilderProjectionSpec extends AbstractDSLSpec {
 
+    @Issue("662")
+    def "qualified static recursive converters project scalar relationship overloads"() {
+        given:
+        createClass '''
+            import java.net.URL
+
+            @DSL class Root {
+                Registry registry
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(String value) {
+                    return Registry.Create.With(source: "string:${value}")
+                }
+
+                static Registry fromString(URL value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(URL value) {
+                    return Registry.Create.With(source: "url:${value}")
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            registry 'one'
+        }
+
+        then:
+        instance.registry.source == 'string:one'
+
+        when:
+        instance = clazz.Create.With {
+            registry new URL('https://example.test/two')
+        }
+
+        then:
+        instance.registry.source == 'url:https://example.test/two'
+
+        and: 'direct root calls retain their completed-model contract'
+        getClass('Registry').fromString('root').source == 'string:root'
+    }
+
+    @Issue("662")
+    def "nested qualified converters preserve keyed single collection and map relationships"() {
+        given:
+        createClass '''
+            import java.net.URI
+
+            @DSL class Root {
+                Storage primary
+                List<Storage> secondaryStorages
+                Map<String, Storage> storages
+            }
+
+            @DSL class Registry {
+                URI uri
+
+                static Registry fromString(String value) {
+                    return Registry.Create.With(uri: new URI(value))
+                }
+            }
+
+            @DSL class Storage {
+                @Key String name
+                Registry source
+                Registry target
+
+                static Storage fromStrings(String name, String source, String target) {
+                    return Storage.Create.With(
+                            name,
+                            source: Registry.fromString(source),
+                            target: Registry.fromString(target)
+                    )
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            primary 'primary', 'uri://primary/source', 'uri://primary/target'
+            secondaryStorage 'secondary', 'uri://secondary/source', 'uri://secondary/target'
+            storage 'named', 'uri://named/source', 'uri://named/target'
+        }
+
+        then:
+        instance.primary.name == 'primary'
+        instance.primary.source.uri == new URI('uri://primary/source')
+        instance.secondaryStorages*.name == ['secondary']
+        instance.secondaryStorages*.target.uri == [new URI('uri://secondary/target')]
+        instance.storages.keySet() == ['named'] as Set
+        instance.storages['named'].name == 'named'
+        instance.storages['named'].source.uri == new URI('uri://named/source')
+    }
+
+    @Issue("662")
+    def "qualified static converters project into relocated Builder methods"() {
+        given:
+        createClass '''
+            import com.blackbuild.klum.ast.layer3.AutoCreate
+
+            @DSL class Root {
+                Registry docs
+                Registry defaults
+                Registry mutations
+
+                @AutoCreate
+                void createDocs() {
+                    docs Registry.fromString('auto')
+                }
+
+                @Default
+                void createDefaults() {
+                    defaults Registry.fromString('default')
+                }
+
+                @Mutator
+                void setMutation(String value) {
+                    mutations Registry.fromString(value)
+                }
+            }
+
+            @DSL class Registry {
+                String source
+
+                static Registry fromString(String value) {
+                    return Registry.fromStrings(value)
+                }
+
+                static Registry fromStrings(String value) {
+                    return Registry.Create.With(source: value)
+                }
+            }
+        '''
+
+        when:
+        instance = clazz.Create.With {
+            setMutation 'mutator'
+        }
+
+        then:
+        instance.docs.source == 'auto'
+        instance.defaults.source == 'default'
+        instance.mutations.source == 'mutator'
+    }
+
     @Issue("642")
     def "unqualified static recursive converters project relationship overloads"() {
         given:

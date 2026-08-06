@@ -36,6 +36,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Qualified same-source static model converters now project to active-session Builders in relocated lifecycle and
+  mutator code, while ordinary root converter calls retain their completed-model result ([#662](https://github.com/klum-dsl/klum-ast/issues/662)).
+
 - Fixed declared DSL relationship fields, including direct, collection, map, and `@Owner` fields, to retain their declared
   public Builder type when a `defaultImpl` exists; ordinary relationship creation continues to select the default
   implementation ([#666](https://github.com/klum-dsl/klum-ast/issues/666)).

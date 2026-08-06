@@ -938,6 +938,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
                 .decoratedParam(fieldNode, "value", "the value to set")
                 .addTo(rwClass);
 
+        if (isDSLObject(fieldNode.getType())) {
+            createProxyMethod(fieldName, "setSingleField")
+                    .optional()
+                    .returning(makeClassSafeWithGenerics(KlumBuilder.class, fieldNode.getType()), "The set Builder value")
+                    .mod(visibility)
+                    .linkToField(fieldNode)
+                    .constantParam(fieldName)
+                    .param(makeClassSafeWithGenerics(KlumBuilder.class, fieldNode.getType()), "value", "the Builder value to set")
+                    .addTo(rwClass);
+        }
+
         if (fieldNode.getType().equals(ClassHelper.boolean_TYPE)) {
             createProxyMethod(fieldName, "setSingleField")
                     .optional()
