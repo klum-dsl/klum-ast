@@ -60,7 +60,7 @@ Groovy 4 and 5 may use a named Schema module. Its descriptor requires the
 annotations and runtime modules, `requires static com.blackbuild.klum.ast.compiler`,
 and `org.apache.groovy`; when the project declares the Jackson or Bean Validation
 adapter, it must also require that adapter and open each Schema package to its
-reflection target. See [[Migration#named-modules-and-groovy]] for a complete
+reflection target. See [Migration#named-modules-and-groovy](Migration.md#named-modules-and-groovy) for a complete
 descriptor example.
 
 Groovy 3 is classpath-only for KlumAST Schema projects. If it finds a descriptor,

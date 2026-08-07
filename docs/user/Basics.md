@@ -102,7 +102,7 @@ def deployment = Deployment.Create.With('catalog') {
 `deployment` is the completed DSL Object. The same example is executable in
 `FactoryConstructionTest.groovy`, feature `builds a completed deployment configuration with Create.With`.
 
-There are also a couple of [[Convenience Factories]] to load a model into client code.
+There are also a couple of [Convenience Factories](Convenience-Factories.md) to load a model into client code.
 
 ## Lifecycle Methods
 
@@ -121,7 +121,7 @@ Each Builder gets a `copyFrom()` DSL method. This method copies fields from a DS
 excluding key, owner and `@Role` fields, as well as fields marked `FieldType.TRANSIENT`
 or `FieldType.IGNORED`. Copying is further governed by `@Overwrite` / the configured `OverwriteStrategy`. This is done
 recursively: nested Template composition is rehydrated into fresh Builders. Completed ordinary models are not adopted as
-owned composition. [[Copy Strategies]] describes the available merge behavior.
+owned composition. [Copy Strategies](Copy-Strategies.md) describes the available merge behavior.
 
 ## `equals()` Method
 
@@ -583,7 +583,7 @@ assert instance.twobars.bli.key == "bunk"
 As with [Polymorphic DSL members](#polymorphic-dsl-members), members of collections can also be of subclasses of the declared types. The
 same mechanisms for single members can be used for collections, too (with the same caveats as above).
 
-Also, a more powerful approach is available using the [[Alternatives Syntax]].
+Also, a more powerful approach is available using the [Alternatives Syntax](Alternatives-Syntax.md).
 
 ## On collections
 
@@ -830,7 +830,7 @@ is generated on the completed DSL Object. They are intended for construction-onl
 ## TRANSIENT
 `TRANSIENT` fields are similar in that they don't get dsl methods either. However, in contrast
 to all other fields, they retain a public setter in the completed model, taking them effectively
-out of the [[Static Models]] concept. They can be used to add transient data that is not
+out of the [Static Models](Static-Models.md) concept. They can be used to add transient data that is not
 part of the model itself. Transient fields are ignored when checking for equality.
 
 ## IGNORED
@@ -846,7 +846,7 @@ the owner's Builder lifecycle.
 ## OPTIONAL_LINK
 `OPTIONAL_LINK` accepts either a locally created child Builder as owned composition or an existing completed DSL Object
 as an aggregation target. `@LinkTo` selects this mode by default; use `@Field(FieldType.LINK) @LinkTo` when a
-relationship must be aggregation-only. See [[Layer3]] for the relationship boundary.
+relationship must be aggregation-only. See [Layer3](Layer3.md) for the relationship boundary.
 
 ## DSL Interfaces
 Interfaces can be marked with `@DSL`. No transformation will be done for these interfaces; however, a field with an

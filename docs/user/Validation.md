@@ -1,9 +1,9 @@
 # Validation
 
 Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
-to the completed Model companion during [[Model Phases#instantiate-40|`INSTANTIATE`]]; `@Validate` methods and external
+to the completed Model companion during [`INSTANTIATE`](Model-Phases.md#instantiate-40); `@Validate` methods and external
 `InstanceValidator`s then run on the completed object. Each `InstanceValidator` type is memoized once per completed model.
-For reading stored results from a completed model, see [[Completed Object Support]].
+For reading stored results from a completed model, see [Completed Object Support](Completed-Object-Support.md).
 
 ## On Classes
 `@Validate` on classes behaves exactly like `@Validate` on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated

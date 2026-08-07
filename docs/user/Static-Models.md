@@ -18,7 +18,7 @@ KlumAST supports this style with the following techniques:
 
 - Setters, generated DSL methods, and mutating lifecycle methods move to a generated Builder. Builders own mutable
   construction state through `POST_TREE`; `INSTANTIATE` then creates the completed DSL Object graph before validation.
-  See [[Model Phases]] for the lifecycle boundary. DSL features remain available during construction without polluting
+  See [Model Phases](Model-Phases.md) for the lifecycle boundary. DSL features remain available during construction without polluting
   the completed-model interface.
 - Other state-changing methods, such as pseudo-setters, must be marked with an annotation meta-annotated with
   `@WriteAccess`. Those methods also move to the Builder. Built-in write-access annotations include `@Mutator` for

@@ -4,8 +4,8 @@
 
 4.0 replaces the generated mutable RW object with a true Builder and materializes a completed, structurally immutable DSL Object graph before validation. Completed models no longer expose generated `apply`, owned composition cannot adopt already completed objects, lifecycle extensions are split at the new `INSTANTIATE` phase, and collection declarations now have explicit snapshot-safe limits. Templates now have persistent graph-wide recipe identity separate from ordinary models; marked Templates cannot be relationship values or ordinary Jackson export values, and deferred Builder actions cannot be scheduled at phase 40 or later. Jackson is an asymmetric external-format integration rather than Klum persistence and adds no wire metadata.
 
-See the dedicated [[Builder First Migration]] guide for the complete migration checklist and compatibility breaks, plus
-[[Templates]], [[Copy Strategies]], and [[Model Phases]] for materialization boundaries and [[Jackson Integration]] for
+See the dedicated [Builder First Migration](Builder-First-Migration.md) guide for the complete migration checklist and compatibility breaks, plus
+[Templates](Templates.md), [Copy Strategies](Copy-Strategies.md), and [Model Phases](Model-Phases.md) for materialization boundaries and [Jackson Integration](Jackson-Integration.md) for
 foreign-data import and ordinary POJO export.
 
 Validation callers must import and catch
@@ -94,7 +94,7 @@ It is strongly advised to first update to 2.0 and the to 2.1.
 ## To 2.0
 
 The sections below describe historical migration steps and may show APIs, such as completed-model `apply`, that were
-subsequently removed in 4.0. Apply the historical migration first, then follow [[Builder First Migration]].
+subsequently removed in 4.0. Apply the historical migration first, then follow [Builder First Migration](Builder-First-Migration.md).
 
 ## Validation now throws KlumValidationException
 
@@ -362,7 +362,7 @@ eventually be replace with a compiler error). Consider using a more domain speci
 
 the following features were dropped:
 - pre using existing `create` and `apply` methods is no longer supported, this has been replaced by a lifecycle mechanism 
-  ([#38](https://github.com/klum-dsl/klum-core/issues/38)), see [[Basics#lifecycle-methods]]
+  ([#38](https://github.com/klum-dsl/klum-core/issues/38)), see [Basics#lifecycle-methods](Basics.md#lifecycle-methods)
 - named alternatives for dsl collections
 - shortcut named mappings
 - under the hood: the inner class for dsl-collections is now optional (GDSL needs to be adapted)

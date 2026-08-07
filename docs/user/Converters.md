@@ -52,7 +52,7 @@ Date payDay(String $key, int $date, int $month, int $year) {
 The closures must return an instance of the field (or element) type.
 
 For a DSL Object result, a source-visible converter participates in the active Builder construction. Field converters for
-Simple Values are unaffected. See [[Behind the Curtain#builder-projection-for-custom-producers]] when the distinction
+Simple Values are unaffected. See [Behind the Curtain#builder-projection-for-custom-producers](Behind-the-Curtain.md#builder-projection-for-custom-producers) when the distinction
 matters to an integration.
 
 ## Factory Method Converters
@@ -91,7 +91,7 @@ assert server.endpoint.port == 8443
 ```
 
 For the Builder-projection rules, source-visibility boundary, and diagnostics for opaque producers, see
-[[Behind the Curtain#builder-projection-for-custom-producers]].
+[Behind the Curtain#builder-projection-for-custom-producers](Behind-the-Curtain.md#builder-projection-for-custom-producers).
 
 Source-visible same-compilation converters also work in Builder lifecycle methods and in nested converter bodies. For
 example, `storage('uri://bla/blub', 'uri://bli/blu')` can select `Storage.fromStrings`, whose implementation calls

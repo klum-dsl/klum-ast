@@ -1,6 +1,6 @@
 # Exception handling
 
-KlumAST supports a hierarchy of Exception to signal problems in the various [[Model Phases|phases of the model lifecycle]].
+KlumAST supports a hierarchy of Exception to signal problems in the various [phases of the model lifecycle](Model-Phases.md).
 The hierarchy is as follows:
 
 ## KlumException

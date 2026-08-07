@@ -1,7 +1,7 @@
 # Copy strategies
 
 Copy strategies control how `copyFrom` applies a donor recipe to the current mutable Builder. This is mainly used for
-[[Templates]], but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
+[Templates](Templates.md), but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, **target** always
 means the Builder being configured; a completed DSL Object is never mutated.
 
 ## Copy source protocol

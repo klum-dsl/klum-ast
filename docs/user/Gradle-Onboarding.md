@@ -14,10 +14,10 @@ Before creating a Schema, answer two independent questions.
    - **Direct-schema**: Schema types are the consumer-facing API, and the Schema Developer also owns that role.
 
 Record the choices near the project architecture. Layer 3 is a modeling pattern, not a requirement for every Gradle project.
-For route-specific guidance, read [[Domain First Modeling]] or [[Target Contract Modeling]]; the settled Layer 3 pattern
-is explained in [[Layer3]].
+For route-specific guidance, read [Domain First Modeling](Domain-First-Modeling.md) or [Target Contract Modeling](Target-Contract-Modeling.md); the settled Layer 3 pattern
+is explained in [Layer3](Layer3.md).
 
-`author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use `build-domain-first-schema` with the executable [smart-home fixture](Domain-First-Modeling.md#smart-home-journey); this keeps the shared Model Writer workflow intact rather than redefining it. `build-target-contract-schema` is the target-contract Schema Developer route; its [[Target Contract Modeling|executable Helm journey]] demonstrates intentional external mappings without redefining these role boundaries. The [#470](https://github.com/klum-dsl/klum-ast/issues/470) baseline established the common setup.
+`author-klum-model` is the Model Writer workflow: it creates and tests a representative configured model and may adapt the Schema types needed for that model. It is not a dedicated Schema Developer path. `start-klum-project` establishes the Schema project and its selected structure, while `feature-advisor` reviews both Schemas and configured models for supported improvements. For a domain-first Layer 3 journey, use `build-domain-first-schema` with the executable [smart-home fixture](Domain-First-Modeling.md#smart-home-journey); this keeps the shared Model Writer workflow intact rather than redefining it. `build-target-contract-schema` is the target-contract Schema Developer route; its [executable Helm journey](Target-Contract-Modeling.md) demonstrates intentional external mappings without redefining these role boundaries. The [#470](https://github.com/klum-dsl/klum-ast/issues/470) baseline established the common setup.
 
 ## Create the Gradle project
 
@@ -36,13 +36,13 @@ klumSchema {
 For a new project, Groovy 3 is the justified default: it is KlumAST's baseline and keeps the first build small. Keep an existing supported Groovy line instead. Groovy 3 uses `org.codehaus.groovy`; Groovy 4 and 5 use `org.apache.groovy`. The plugin selects matching Groovy and Spock dependencies.
 
 If this Schema must be a Java named module, use Groovy 4 or 5 and add the
-user-owned `src/main/java/module-info.java` described in [[Migration#named-modules-and-groovy]].
+user-owned `src/main/java/module-info.java` described in [Migration#named-modules-and-groovy](Migration.md#named-modules-and-groovy).
 The Schema plugin validates that descriptor as part of
 `check` (and Maven publication) but never writes it. Groovy 3 remains an
 ordinary-classpath setup; do not create a descriptor or add JPMS workaround
 flags for it.
 
-Place Schema classes in `src/main/groovy`, add one root `@DSL` type, and write a test in `src/test/groovy` that constructs a completed model through `Create.With`. Run `./gradlew test` before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see [[Gradle Plugins]].
+Place Schema classes in `src/main/groovy`, add one root `@DSL` type, and write a test in `src/test/groovy` that constructs a completed model through `Create.With`. Run `./gradlew test` before expanding the model. Use the model plugin only when a separate configured-model artifact is needed; see [Gradle Plugins](Gradle-Plugins.md).
 
 ```groovy
 @DSL
@@ -63,7 +63,7 @@ def deployment = Deployment.Create.With('catalog') {
 }
 ```
 
-`deployment` is the completed model. The callback configures its Builder; owned children must be created through the parent callback. See [[Builder First Migration]] for the construction boundary and [[Validation]] for domain invariants.
+`deployment` is the completed model. The callback configures its Builder; owned children must be created through the parent callback. See [Builder First Migration](Builder-First-Migration.md) for the construction boundary and [Validation](Validation.md) for domain invariants.
 
 ## IntelliJ and generated DSL support
 
@@ -91,4 +91,4 @@ The repository's [`agent-skills/`](https://github.com/klum-dsl/klum-ast/tree/mas
 
 The minimal fixture at `agent-skills/fixtures/minimal-gradle-project` exercises the baseline locally against the 4.0 sources. Its `ADOPTER-DRY-RUN.md` captures the setup, Model Writer, and feature-advisor field-test flow, including a deliberately improvable Schema case.
 
-The domain-first smart-home fixture at `agent-skills/fixtures/domain-first-smart-home` proves the separate Layer 3 API–Schema–Model path, its API-only client demo, and a later field-test starting artifact. For an external target such as Helm, start from two representative values files, retain the target contract as authoritative, and use `build-target-contract-schema` to choose intentional mappings. [[Target Contract Modeling]] uses the same `agent-skills/fixtures/helm-target-contract` fixture as the skill, including its direct-schema rationale, golden generated values, and later field-test prompt.
+The domain-first smart-home fixture at `agent-skills/fixtures/domain-first-smart-home` proves the separate Layer 3 API–Schema–Model path, its API-only client demo, and a later field-test starting artifact. For an external target such as Helm, start from two representative values files, retain the target contract as authoritative, and use `build-target-contract-schema` to choose intentional mappings. [Target Contract Modeling](Target-Contract-Modeling.md) uses the same `agent-skills/fixtures/helm-target-contract` fixture as the skill, including its direct-schema rationale, golden generated values, and later field-test prompt.
