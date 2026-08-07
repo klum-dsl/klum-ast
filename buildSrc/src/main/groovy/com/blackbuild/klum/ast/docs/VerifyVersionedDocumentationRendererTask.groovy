@@ -580,8 +580,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'public proof must wait for exact tag and release validation')
         assertContains(publicProofWorkflow, 'select(.object.type == "tag") | .object.sha',
                 'verification must reject lightweight tags')
-        assertContains(publicProofWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
-                'verification must verify the matching GitHub release identity and candidate flag')
+        assertContains(publicProofWorkflow, '.tag_name == $tag and .prerelease == $prerelease and .draft == false',
+                'verification must verify the matching GitHub release name and candidate flag')
+        assertTrue(!publicProofWorkflow.contains('target_commitish'),
+                'the annotated tag, not GitHub\'s display-oriented release target, must bind the release to the commit')
         assertTrue(!publicProofWorkflow.contains('SONATYPE_') && !publicProofWorkflow.contains('SIGNING_') && !publicProofWorkflow.contains('GRADLE_PUBLISH_'),
                 'unified verification must not receive artifact-publishing credentials')
         assertTrue(!publicProofWorkflow.contains('contents: write') && !publicProofWorkflow.contains('git push ') && !publicProofWorkflow.contains('--request POST'),
@@ -625,6 +627,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'recovery must validate, rather than create, the maintainer-created record')
         assertContains(recoveryWorkflow, 'select(.object.type == "tag") | .object.sha',
                 'recovery must reject lightweight tags')
+        assertTrue(!recoveryWorkflow.contains('target_commitish'),
+                'recovery must bind the release to the verified annotated tag rather than GitHub\'s display target')
         assertTrue(!recoveryWorkflow.contains('name: release-record') && !recoveryWorkflow.contains('contents: write') &&
                 !recoveryWorkflow.contains('git push ') && !recoveryWorkflow.contains('--request POST'),
                 'recovery must be read-only and must not require a release-record writer environment')
