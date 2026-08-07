@@ -2,6 +2,8 @@
 
 Date: 2026-07-19
 
+Amended: 2026-08-07 (public release-record ordering)
+
 Status: Accepted
 
 Related work: [#488 — Audit, document, and improve the release and publishing process](https://github.com/klum-dsl/klum-ast/issues/488),
@@ -59,6 +61,26 @@ External consumers pin the exact published version, use clean caches and no comp
 repository, or unpublished included build, and resolve each repository's complete public product from its real consumer
 repositories. KlumCast additionally proves its Groovy 3/4/5, classpath, and JPMS consumer contracts; AnnoDocimal proves
 its six artifacts and two plugin markers; KlumAST proves all Maven artifacts and its three declared plugin markers.
+
+### Public release-record ordering
+
+Every version that reaches Maven Central, the Plugin Portal, or another public product registry must have an immutable
+annotated Git tag and a matching GitHub release record. The record is created only after a credential-free proof has
+resolved the complete public product, never before publication and never after the independent external-consumer check.
+For an RC the GitHub release is a prerelease.
+
+The required order is: protected artifact publication; credential-free public proof; a separately protected manual
+finalization that verifies or creates the exact tag/release record and exposes exact public documentation plus only the
+eligible aliases; then independent external-consumer validation against that normal public surface. The finalization
+authority is distinct from artifact publication: it has no registry, signing, or Pages-writer credentials, but requires
+explicit human approval and narrowly scoped repository-contents authority. A failed proof creates neither a tag, a
+release record, nor public documentation/aliases; it never promotes a candidate to stable.
+
+This amends the earlier local interpretation that placed tag/release creation after the external consumer check. It does
+not weaken immutable versions, burns, rejection records, or final-versus-RC authorization. If finalization is interrupted,
+it may resume only when every pre-existing tag, release, documentation manifest, promotion record, proof identity, and
+alias exactly match the accepted identity; any mismatch fails closed. Existing historical public versions require a
+separate human-reviewed evidence reconciliation before any backfill and are not silently repaired by a release workflow.
 
 ## Ownership
 

@@ -39,7 +39,7 @@ versioned documentation/Javadoc source, hosting, URL, preview, retention, and pr
 stage. The delivered tracer and protected Pages stage are the documentation release gates; the
 mutable wiki remains migration-stub material only and is not a release destination.
 
-The protected release, pending-Pages, and public-proof workflows pin every external action to
+The protected release, pending-Pages, public-proof, and release-record-finalization workflows pin every external action to
 a reviewed full commit SHA. Maintainers must review any pin update before authorizing its first
 use; this is a release gate, not permission to substitute an arbitrary action revision during
 an incident.
@@ -194,37 +194,35 @@ conflicting existing exact path; an identical re-dispatch verifies the existing 
 no mutation. Its Pages writer boundary contains no Maven, Plugin Portal, signing, or release
 credentials.
 
-Only after that workflow and the independent external-consumer check pass, create and push annotated
-tag `v<version>` from the accepted SHA and create the matching GitHub release (`--prerelease` for an
-RC). Record the exact tag, GitHub release, publication workflow, verification workflow, documentation
-promotion workflow, resolved coordinates, and consumer evidence. The RC validates that source commit.
-Do not relabel, replace, or promote it. A final is a new `X.Y.Z` publication from the exact commit
-accepted for the final RC, followed by its own remote verification.
+After public proof, dispatch **Finalize publicly proven release record** from `master` with the exact
+stage, version, source SHA, proof run ID, and proof attempt. Its `release-record` environment requires
+separate maintainer approval and has only repository-contents write authority; it has no Maven,
+Plugin Portal, signing, or Pages-writer credential. It reuses **Promote proven public documentation**
+to validate the immutable proof and pending evidence, exposes the exact public tree and eligible
+aliases, creates/verifies annotated `v<version>` at the accepted SHA, then creates/verifies the
+matching GitHub release (`prerelease` for an RC). It fails closed on a tag, release, manifest,
+promotion, proof, or alias mismatch. An identical re-dispatch is recovery only; it must verify the
+existing records rather than replace them.
 
-The maintainer's post-proof record step is deliberately manual and uses no publication
-credentials. From a clean checkout of the accepted commit, run:
-
-```text
-git fetch origin --tags
-git checkout --detach <accepted commit>
-git tag -a v<version> -m "Release <version>"
-git push origin v<version>
-gh release create v<version> --verify-tag --target <accepted commit> [--prerelease] --generate-notes
-```
-
-Use `--prerelease` only for an RC. Confirm the remote tag targets the accepted commit before
-creating the GitHub release; never use this step to repair a partial publication.
+This is a deliberate correction to the former later-tag rule: finalization happens after public
+artifact proof but **before** the independent external-consumer check. A failed public proof gets no
+tag, GitHub release, public documentation, or alias. Record the exact tag, GitHub release,
+publication workflow, verification workflow, documentation-promotion workflow, finalization
+workflow, resolved coordinates, and consumer evidence. The RC validates that source commit. Do not
+relabel, replace, or promote it. A final is a new `X.Y.Z` publication from the exact commit accepted
+for the final RC, followed by its own remote verification.
 
 ## Public resolve-back evidence
 
-The separately dispatched `Verify public release` workflow uses a fresh GitHub-hosted runner,
-an empty `GRADLE_USER_HOME`, and no release credentials. It executes
+The separately dispatched **Verify public release** workflow is the credential-free public proof. It uses a fresh
+GitHub-hosted runner, an empty `GRADLE_USER_HOME`, and no release credentials. It executes
 [release/consumer](release/consumer), which has no composite build, `mavenLocal`, or local
 repository and resolves all Maven coordinates through Maven Central plus all three declared
 plugin markers through the Plugin Portal. It retains the resolved-coordinate and applied-marker
 evidence plus the immutable release-identity handoff as workflow artifacts. A release is incomplete until this proof and an authorized
 maintainer's equivalent clean external-consumer evidence from a different machine or network
-pass as required by ADR 0012.
+pass as required by ADR 0012. Dispatch that independent check only after release-record finalization has verified the
+public documentation, annotated tag, and GitHub release record.
 
 `com.blackbuild.convention.groovy` is an intentional third public marker. The fixture proves
 it alongside the Schema and Model plugin IDs; this is one complete product validation, not a
@@ -237,7 +235,8 @@ new release channel.
 | Input, clean-checkout, version, tests, or environment approval fails | Fix before publication and obtain authorization again. | The unused version may be reused only if no tag or public artifact exists. |
 | Signing or Sonatype staging fails before release | Abort/drop the staging repository using the registry's protected operation; retain the incident evidence. | Use the next RC number if a tag or any artifact was created. |
 | Maven Central succeeds but Plugin Portal fails | Stop. Do not delete, overwrite, or republish Maven coordinates. Record the partial RC as failed/superseded. | Correct the cause and issue `rc.N+1`; do not repair a different registry under the old version. |
-| Public proof fails or a tag/GitHub release record cannot be created | Stop and record the immutable RC or final incident. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
+| Public proof fails | Stop and record the immutable RC or final incident; do not create a tag, release, exact public documentation, or alias. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
+| Release-record finalization is interrupted | Re-dispatch only with the same proof identity and exact stage/version/SHA. Existing tag, release, promotion, manifest, and alias values must all match or the workflow fails closed. | Never replace or repair a mismatched record; record the incident and follow the next-version rule. |
 | Versioned documentation/Javadoc destination is unavailable or its pending stage rejects a valid identity | Do not authorize artifact publication. Retain the sanitized `pending-rejected` evidence when the protected stage reached an accepted identity. | Correct the cause and follow the immutable next-version rule; never overwrite a pending or rejected Pages path. |
 | RC consumer resolve-back fails | Mark that RC rejected/superseded and preserve the evidence. | Any substantive change requires `rc.N+1`. |
 | Final remote verification fails | Treat the final as an incident; it is not an RC retry. | Do not remove published artifacts. A tag may be deleted only by explicit human decision when no artifact was ever published. |
