@@ -567,6 +567,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'only the promotion call may receive Pages deployment authority')
         assertTrue(!promotionJob.contains('contents: write'),
                 'documentation promotion must not receive repository-record write authority')
+        assertTrue(!promotionJob.contains('secrets: inherit'),
+                'unified verification must not forward repository secrets into the called promotion workflow')
         assertContains(recordJob, 'contents: write',
                 'only the protected release-record job may receive repository-record write authority')
         assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
@@ -582,6 +584,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must reject a dispatch outside master')
         assertContains(promotionWorkflow, 'name: documentation-pages-writer',
                 'only the protected Pages writer environment may receive documentation writer credentials')
+        assertContains(promotionWorkflow, 'secrets.PAGES_WRITER_APP_ID',
+                'the writer app identifier must resolve inside the protected writer job')
+        assertContains(promotionWorkflow, 'secrets.PAGES_WRITER_APP_PRIVATE_KEY',
+                'the writer app private key must resolve inside the protected writer job')
+        assertContains(promotionWorkflow,
+                'Do not pass these credentials through the reusable-workflow caller or add them at repository scope.',
+                'an empty writer secret must fail closed without widening its credential boundary')
         assertContains(promotionWorkflow, 'name: documentation-pages',
                 'public documentation deployment must remain separate from the writer environment')
         assertContains(promotionWorkflow, 'public-release-proof-$PROOF_RUN.$PROOF_ATTEMPT',
