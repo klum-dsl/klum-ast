@@ -602,6 +602,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must require matching immutable pending-stage evidence')
         assertContains(promotionWorkflow, 'documentationStatus=$public_status',
                 'promotion must re-render public status chrome rather than expose pending content')
+        int publicRenderStart = promotionWorkflow.indexOf('      - name: Render and verify the public exact-version tree\n')
+        int pagesCheckout = promotionWorkflow.indexOf('          ref: gh-pages\n')
+        int pendingEvidenceStart = promotionWorkflow.indexOf('      - name: Verify the immutable pending-stage evidence\n')
+        assertTrue(publicRenderStart >= 0 && pagesCheckout > publicRenderStart && pendingEvidenceStart > pagesCheckout,
+                'promotion must render the clean source worktree before checking out and validating the gh-pages ledger')
         assertContains(promotionWorkflow, 'aliases=\'["preview"]\'',
                 'candidate promotion must advance only the preview alias')
         assertContains(promotionWorkflow, 'aliases="[\\"stable\\",\\"$line\\"]"',
