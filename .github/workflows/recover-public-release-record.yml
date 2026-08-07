@@ -229,9 +229,12 @@ jobs:
               exit 1
             }
           release="$(get "releases/tags/$tag")"
-          jq -e --arg tag "$tag" --arg sha "$EXPECTED_COMMIT" --argjson prerelease "$prerelease" \
-            '.tag_name == $tag and .target_commitish == $sha and .prerelease == $prerelease and .draft == false' \
+          # GitHub may report its UI/default-branch target here even when the
+          # release is attached to an existing exact tag. The annotated tag
+          # above is the authoritative binding to EXPECTED_COMMIT.
+          jq -e --arg tag "$tag" --argjson prerelease "$prerelease" \
+            '.tag_name == $tag and .prerelease == $prerelease and .draft == false' \
             <<< "$release" > /dev/null || {
-              echo 'The GitHub release does not exactly match the annotated tag, commit, and stage.' >&2
+              echo 'The GitHub release does not match the annotated tag and stage.' >&2
               exit 1
             }
