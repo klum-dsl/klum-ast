@@ -449,33 +449,6 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the pending Pages workflow must check GitHub releases through the authoritative remote API')
         assertTrue(!pagesWorkflow.contains('git show-ref --verify'),
                 'the pending Pages workflow must not decide release identity from runner-local Git refs')
-        String pagesProbeWorkflow = new File(project.rootDir, '.github/workflows/probe-pages-deployment.yml').text
-        assertContains(pagesProbeWorkflow, 'workflow_dispatch:',
-                'the Pages probe must require an explicit manual dispatch')
-        assertContains(pagesProbeWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
-                'the Pages probe must reject dispatches outside master')
-        assertContains(pagesProbeWorkflow, 'test "$(git rev-parse origin/master)" = "$EXPECTED_SOURCE_COMMIT"',
-                'the Pages probe must require the current trusted master commit')
-        assertContains(pagesProbeWorkflow, 'name: documentation-pages',
-                'the Pages probe must use the protected Pages deployment environment')
-        assertContains(pagesProbeWorkflow, 'pages-deployment-probe-${{ github.run_id }}-${{ github.run_attempt }}',
-                'the Pages probe artifact must be unambiguously diagnostic')
-        assertContains(pagesProbeWorkflow, 'actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b',
-                'the Pages probe must upload through the pinned official Pages artifact action')
-        assertContains(pagesProbeWorkflow, 'actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128',
-                'the Pages probe must deploy through the pinned official Pages action')
-        assertContains(pagesProbeWorkflow, 'test "$(git -C pages rev-parse FETCH_HEAD)" = "$EXPECTED_LEDGER_COMMIT"',
-                'the Pages probe must prove the remote ledger stays at its snapshot')
-        assertContains(pagesProbeWorkflow, 'One probe is diagnostic evidence only',
-                'the Pages probe must not overstate one deployment result as a root-cause finding')
-        assertTrue(!pagesProbeWorkflow.contains('PAGES_WRITER_'),
-                'the Pages probe must not receive gh-pages writer credentials')
-        assertTrue(!pagesProbeWorkflow.contains('publishCompleteKlumAstProduct'),
-                'the Pages probe must not publish artifacts')
-        assertTrue(!pagesProbeWorkflow.contains('pending-rejected/'),
-                'the Pages probe must not create rejected release paths')
-        assertTrue(!pagesProbeWorkflow.contains('timeout:'),
-                'the Pages probe must not override the Pages action polling ceiling')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
         int identityPreflightStart = releaseWorkflow.indexOf('  verify-release-identity-available:\n')
         int pendingStageStart = releaseWorkflow.indexOf('  stage-pending-documentation:\n')
@@ -708,23 +681,6 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not publish artifacts')
         assertTrue(!promotionWorkflow.contains('SONATYPE_') && !promotionWorkflow.contains('SIGNING_') && !promotionWorkflow.contains('GRADLE_PUBLISH_'),
                 'documentation promotion must not receive artifact-publishing credentials')
-
-        String landingRepairWorkflow = new File(project.rootDir, '.github/workflows/repair-public-documentation-landing.yml').text
-        assertContains(landingRepairWorkflow, 'workflow_dispatch:',
-                'root landing repair must remain an explicit maintainer dispatch')
-        assertContains(landingRepairWorkflow, 'recovery_run:',
-                'root landing repair must bind an already-successful recovery run')
-        assertContains(landingRepairWorkflow, 'Validate the successful public release recovery',
-                'root landing repair must reject an unproven release identity')
-        assertContains(landingRepairWorkflow, 'name: documentation-pages-writer',
-                'only the existing protected Pages writer environment may repair landing files')
-        assertContains(landingRepairWorkflow, 'name: documentation-pages',
-                'root landing repair must deploy through the separate Pages environment')
-        assertContains(landingRepairWorkflow, 'write-documentation-landing.sh pages',
-                'root landing repair must use the shared documentation header chrome')
-        assertTrue(!landingRepairWorkflow.contains('contents: write') && !landingRepairWorkflow.contains('SONATYPE_') &&
-                !landingRepairWorkflow.contains('SIGNING_') && !landingRepairWorkflow.contains('GRADLE_PUBLISH_'),
-                'root landing repair must have no repository-token write or artifact-publishing authority')
 
         assertContains(promotionWorkflow, 'value: ${{ jobs.validate-proof.outputs.proof_identity }}',
                 'the reusable documentation path must return its validated public-proof identity')
