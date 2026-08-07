@@ -346,8 +346,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$PAGES_WRITER_APP_ID"
-          test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
+          if [[ -z "$PAGES_WRITER_APP_ID" || -z "$PAGES_WRITER_APP_PRIVATE_KEY" ]]; then
+            echo 'The protected documentation-pages-writer environment must contain non-empty PAGES_WRITER_APP_ID and PAGES_WRITER_APP_PRIVATE_KEY secrets.' >&2
+            echo 'Its reusable-workflow caller must retain secrets: inherit; do not move these environment credentials to repository scope.' >&2
+            exit 1
+          fi
       - name: Mint the dedicated Pages writer token
         if: steps.idempotence.outputs.already_promoted == 'false'
         id: pages-writer-token

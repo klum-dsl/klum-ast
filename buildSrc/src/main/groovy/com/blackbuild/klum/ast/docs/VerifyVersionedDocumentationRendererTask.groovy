@@ -533,6 +533,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the credential-free proof job must expose its retained immutable identity to downstream jobs')
         assertContains(publicProofWorkflow, 'uses: ./.github/workflows/promote-public-documentation.yml',
                 'the unified verification workflow must call proof-gated documentation promotion itself')
+        assertTrue(!publicProofWorkflow.contains('PAGES_WRITER_'),
+                'the unified caller must not name or receive the Pages writer credentials')
         assertContains(publicProofWorkflow, 'proof_run: ${{ needs.resolve.outputs.proof_run }}',
                 'documentation promotion must receive the proof run internally from the completed proof job')
         assertContains(publicProofWorkflow, 'proof_attempt: ${{ needs.resolve.outputs.proof_attempt }}',
@@ -567,6 +569,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'only the promotion call may receive Pages deployment authority')
         assertTrue(!promotionJob.contains('contents: write'),
                 'documentation promotion must not receive repository-record write authority')
+        assertContains(promotionJob, 'secrets: inherit',
+                'the reusable promotion caller must preserve the called writer job\'s environment secret context')
         assertContains(recordJob, 'contents: write',
                 'only the protected release-record job may receive repository-record write authority')
         assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
@@ -582,6 +586,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must reject a dispatch outside master')
         assertContains(promotionWorkflow, 'name: documentation-pages-writer',
                 'only the protected Pages writer environment may receive documentation writer credentials')
+        assertContains(promotionWorkflow, 'secrets.PAGES_WRITER_APP_ID',
+                'the writer app identifier must resolve inside the protected writer job')
+        assertContains(promotionWorkflow, 'secrets.PAGES_WRITER_APP_PRIVATE_KEY',
+                'the writer app private key must resolve inside the protected writer job')
+        assertContains(promotionWorkflow,
+                'Its reusable-workflow caller must retain secrets: inherit; do not move these environment credentials to repository scope.',
+                'an empty writer secret must fail closed while preserving its environment boundary')
         assertContains(promotionWorkflow, 'name: documentation-pages',
                 'public documentation deployment must remain separate from the writer environment')
         assertContains(promotionWorkflow, 'public-release-proof-$PROOF_RUN.$PROOF_ATTEMPT',
