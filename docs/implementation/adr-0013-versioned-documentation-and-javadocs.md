@@ -102,11 +102,11 @@ VD-1 renderer ─┬─> VD-2 historical/stubs
                ├─> VD-3 module Javadocs ─> VD-4 credential-free tracer
                └──────────────────────────> VD-5 pending Pages stage
 
-VD-4 + VD-5 ─> #488 protected artifact publication ─> #488 public proof
-          └──────────────────────────────────────────> #488 release-record finalization (VD-6 aliases + tag/release) ─> independent consumer
+VD-4 + VD-5 ─> #488 protected artifact publication ─> one #488 Verify public release dispatch
+          └──────────────────────────────────────────> credential-free proof ─> #456 promotion (VD-6 aliases) ─> protected tag/release ─> independent consumer
 ```
 
-For a real RC/final, #456 validates the same values and produces only unlisted pending documentation. #488 owns authorization, signing/registry and plugin publication, public resolve-back, release-record finalization, external proof, tag/release record, and incident recovery. The documentation stage receives a proof result, not a licence to infer one. The proof-gated promotion workflow remains #456-owned and is reused by #488's separately protected finalization before the independent consumer check; that finalizer holds neither artifact nor Pages-writer credentials. A documentation-only correction after an accepted RC follows ADR 0012; source, release-configuration, or workflow change needs the next RC.
+For a real RC/final, #456 validates the same values and produces only unlisted pending documentation. #488 owns authorization, signing/registry and plugin publication, public resolve-back, release-record finalization, external proof, tag/release record, and incident recovery. The documentation stage receives the parent workflow's retained proof result, not a licence to infer one or a manually copied run identity. The proof-gated promotion workflow remains #456-owned and is invoked by #488's unified verification workflow before its separately protected finalization job; that finalizer holds neither artifact nor Pages-writer credentials. A documentation-only correction after an accepted RC follows ADR 0012; source, release-configuration, or workflow change needs the next RC.
 
 ## Risks and non-goals
 

@@ -1,31 +1,6 @@
 name: Promote proven public documentation
 
 on:
-  workflow_dispatch:
-    inputs:
-      stage:
-        description: "Exact protected release stage proved publicly"
-        required: true
-        type: choice
-        options:
-          - candidate
-          - final
-      version:
-        description: "Exact public X.Y.Z-rc.N or X.Y.Z version"
-        required: true
-        type: string
-      commit:
-        description: "Full source commit SHA on master"
-        required: true
-        type: string
-      proof_run:
-        description: "Successful Verify public release workflow run ID"
-        required: true
-        type: string
-      proof_attempt:
-        description: "Successful Verify public release workflow attempt"
-        required: true
-        type: string
   workflow_call:
     inputs:
       stage:
@@ -84,7 +59,7 @@ jobs:
       proof_identity: ${{ steps.proof.outputs.proof_identity }}
 
     steps:
-      - name: Require a protected manual dispatch from master
+      - name: Require the protected Verify public release caller from master
         env:
           DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
         shell: bash
@@ -96,7 +71,7 @@ jobs:
             exit 1
           }
       - id: proof
-        name: Download and validate the successful public-proof artifact
+        name: Download and validate the completed public-proof job artifact
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_STAGE: ${{ inputs.stage }}
@@ -124,13 +99,24 @@ jobs:
             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN")"
           jq -e \
             --arg repository "$GITHUB_REPOSITORY" \
-            --argjson attempt "$PROOF_ATTEMPT" \
             '.name == "Verify public release" and .event == "workflow_dispatch" and
-             .conclusion == "success" and .run_attempt == $attempt and
              .head_branch == "master" and .head_repository.full_name == $repository and
              (.path | endswith("/.github/workflows/verify-public-release.yml@refs/heads/master"))' \
             <<< "$run_json" > /dev/null || {
-              echo 'The named proof run is not a successful trusted Verify public release run.' >&2
+              echo 'The named proof run is not a trusted Verify public release run.' >&2
+              exit 1
+            }
+
+          jobs_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN/attempts/$PROOF_ATTEMPT/jobs?per_page=100")"
+          jq -e \
+            '.jobs | any(.[]; .name == "Resolve Maven modules and Gradle plugin markers" and
+             .status == "completed" and .conclusion == "success")' \
+            <<< "$jobs_json" > /dev/null || {
+              echo 'The named proof job is not a completed successful public resolve-back.' >&2
               exit 1
             }
 

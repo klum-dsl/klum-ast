@@ -515,15 +515,67 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
 
         String publicProofWorkflow = new File(project.rootDir, '.github/workflows/verify-public-release.yml').text
+        int proofDispatchStart = publicProofWorkflow.indexOf('  workflow_dispatch:\n')
+        int proofPermissionsStart = publicProofWorkflow.indexOf('permissions:\n')
+        assertTrue(proofDispatchStart >= 0 && proofPermissionsStart > proofDispatchStart,
+                'unified verification must retain one explicit manual-dispatch input contract')
+        String proofDispatch = publicProofWorkflow.substring(proofDispatchStart, proofPermissionsStart)
         assertContains(publicProofWorkflow, 'stage:', 'public proof must bind the protected release stage')
         assertContains(publicProofWorkflow, 'commit:', 'public proof must bind the full source SHA')
+        assertContains(proofDispatch, 'version:', 'unified verification dispatch must bind the exact release version')
+        assertTrue(!proofDispatch.contains('proof_run:') && !proofDispatch.contains('proof_attempt:'),
+                'unified verification dispatch must not ask maintainers to copy a proof identity')
         assertContains(publicProofWorkflow, 'public-release-proof-${{ github.run_id }}.${{ github.run_attempt }}',
                 'public proof must retain its immutable run and attempt identity')
         assertContains(publicProofWorkflow, 'outcome: "publicly-resolved"',
                 'public proof must name its successful public-resolution outcome')
+        assertContains(publicProofWorkflow, 'proof_identity: ${{ steps.proof-handoff.outputs.proof_identity }}',
+                'the credential-free proof job must expose its retained immutable identity to downstream jobs')
+        assertContains(publicProofWorkflow, 'uses: ./.github/workflows/promote-public-documentation.yml',
+                'the unified verification workflow must call proof-gated documentation promotion itself')
+        assertContains(publicProofWorkflow, 'proof_run: ${{ needs.resolve.outputs.proof_run }}',
+                'documentation promotion must receive the proof run internally from the completed proof job')
+        assertContains(publicProofWorkflow, 'proof_attempt: ${{ needs.resolve.outputs.proof_attempt }}',
+                'documentation promotion must receive the proof attempt internally from the completed proof job')
+        assertContains(publicProofWorkflow, 'needs: [resolve, promote-public-documentation]',
+                'release-record finalization must wait for both public proof and documentation promotion')
+        assertContains(publicProofWorkflow, 'name: release-record',
+                'only the dedicated protected release-record environment may receive contents-write authority')
+        assertContains(publicProofWorkflow, 'test "$PROOF_IDENTITY" = "$EXPECTED_PROOF_IDENTITY"',
+                'release-record finalization must bind the promotion to the parent proof identity')
+        assertContains(publicProofWorkflow, 'git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"',
+                'release-record finalization must create an annotated tag at the accepted source SHA')
+        assertContains(publicProofWorkflow, 'A GitHub release exists without its immutable annotated tag.',
+                'release-record finalization must reject a release record that cannot be bound to an immutable tag')
+        assertContains(publicProofWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
+                'release-record finalization must verify the matching GitHub release identity and candidate flag')
+        assertContains(publicProofWorkflow, 'pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
+                'release-record finalization must recheck the immutable documentation promotion record')
+        assertTrue(!publicProofWorkflow.contains('SONATYPE_') && !publicProofWorkflow.contains('SIGNING_') && !publicProofWorkflow.contains('GRADLE_PUBLISH_'),
+                'unified verification and its release-record finalizer must not receive artifact-publishing credentials')
+        int proofJobStart = publicProofWorkflow.indexOf('  resolve:\n')
+        int promotionJobStart = publicProofWorkflow.indexOf('  promote-public-documentation:\n')
+        int recordJobStart = publicProofWorkflow.indexOf('  finalize-release-record:\n')
+        assertTrue(proofJobStart >= 0 && promotionJobStart > proofJobStart && recordJobStart > promotionJobStart,
+                'unified verification must order credential-free proof before documentation promotion and release-record finalization')
+        String proofJob = publicProofWorkflow.substring(proofJobStart, promotionJobStart)
+        String promotionJob = publicProofWorkflow.substring(promotionJobStart, recordJobStart)
+        String recordJob = publicProofWorkflow.substring(recordJobStart)
+        assertTrue(!proofJob.contains('contents: write') && !proofJob.contains('pages: write') && !proofJob.contains('id-token: write'),
+                'the public proof job itself must remain credential-free')
+        assertContains(promotionJob, 'pages: write',
+                'only the promotion call may receive Pages deployment authority')
+        assertTrue(!promotionJob.contains('contents: write'),
+                'documentation promotion must not receive repository-record write authority')
+        assertContains(recordJob, 'contents: write',
+                'only the protected release-record job may receive repository-record write authority')
+        assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
+                'release-record finalization must not receive Pages deployment authority')
 
         String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
-        assertContains(promotionWorkflow, 'workflow_dispatch:', 'documentation promotion must require an explicit manual dispatch')
+        assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
+        assertTrue(!promotionWorkflow.contains('workflow_dispatch:'),
+                'documentation promotion must not expose a second manual dispatch requiring copied proof identity')
         assertContains(promotionWorkflow, 'group: pending-documentation-gh-pages',
                 'promotion must serialize gh-pages mutations with the pending-stage writer')
         assertContains(promotionWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
@@ -534,6 +586,14 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'public documentation deployment must remain separate from the writer environment')
         assertContains(promotionWorkflow, 'public-release-proof-$PROOF_RUN.$PROOF_ATTEMPT',
                 'promotion must consume the exact public-proof run and attempt artifact')
+        assertContains(promotionWorkflow, 'actions/runs/$PROOF_RUN/attempts/$PROOF_ATTEMPT/jobs?per_page=100',
+                'promotion must validate the completed exact proof job rather than wait for its parent workflow to finish')
+        assertContains(promotionWorkflow, '.name == "Resolve Maven modules and Gradle plugin markers" and',
+                'promotion must require the credential-free public resolve-back job')
+        assertContains(promotionWorkflow, '.status == "completed" and .conclusion == "success"',
+                'promotion must require a successful completed exact proof job')
+        assertTrue(!promotionWorkflow.contains('.conclusion == "success" and .run_attempt == $attempt'),
+                'promotion must not reject an in-progress parent workflow or a retained earlier proof attempt on retry')
         assertContains(promotionWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT',
                 'promotion must require matching immutable pending-stage evidence')
         assertContains(promotionWorkflow, 'documentationStatus=$public_status',
@@ -546,6 +606,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must retain an immutable auditable record')
         assertContains(promotionWorkflow, 'already_promoted=true',
                 'an identical completed promotion must be accepted without mutation')
+        assertContains(promotionWorkflow, 'if [[ -e "$promotion" ]]',
+                'a recovery retry must recognize the exact existing promotion record')
+        assertContains(promotionWorkflow, 'test ! -e "pages/$RELEASE_VERSION"',
+                'a new proof identity encountering an existing public tree must fail closed')
         assertTrue(promotionWorkflow.indexOf('already_promoted == \'false\'') <
                 promotionWorkflow.indexOf('Upload the read-back-verified promoted ledger'),
                 'an identical promotion must upload the existing ledger for a safe Pages redeployment')
@@ -556,34 +620,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!promotionWorkflow.contains('SONATYPE_') && !promotionWorkflow.contains('SIGNING_') && !promotionWorkflow.contains('GRADLE_PUBLISH_'),
                 'documentation promotion must not receive artifact-publishing credentials')
 
-        assertContains(promotionWorkflow, 'workflow_call:',
-                'the proven documentation path must be reusable by protected release-record finalization')
         assertContains(promotionWorkflow, 'value: ${{ jobs.validate-proof.outputs.proof_identity }}',
                 'the reusable documentation path must return its validated public-proof identity')
-        String releaseRecordWorkflow = new File(project.rootDir, '.github/workflows/finalize-publicly-proven-release-record.yml').text
-        assertContains(releaseRecordWorkflow, 'workflow_dispatch:',
-                'release-record finalization must require an explicit manual dispatch')
-        assertContains(releaseRecordWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
-                'release-record finalization must reject a dispatch outside master')
-        assertContains(releaseRecordWorkflow, 'uses: ./.github/workflows/promote-public-documentation.yml',
-                'release-record finalization must reuse rather than bypass proof-gated documentation promotion')
-        assertContains(releaseRecordWorkflow, 'name: release-record',
-                'only the dedicated protected release-record environment may receive contents-write authority')
-        assertContains(releaseRecordWorkflow, 'contents: write',
-                'release-record finalization must have narrowly scoped repository-record authority')
-        assertContains(releaseRecordWorkflow, 'git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"',
-                'release-record finalization must create an annotated tag at the accepted source SHA')
-        assertContains(releaseRecordWorkflow, 'A GitHub release exists without its immutable annotated tag.',
-                'release-record finalization must reject a release record that cannot be bound to an immutable tag')
-        assertContains(releaseRecordWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
-                'release-record finalization must verify the matching GitHub release identity and candidate flag')
-        assertContains(releaseRecordWorkflow, 'pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
-                'release-record finalization must recheck the immutable documentation promotion record')
-        assertTrue(!releaseRecordWorkflow.contains('SONATYPE_') && !releaseRecordWorkflow.contains('SIGNING_') && !releaseRecordWorkflow.contains('GRADLE_PUBLISH_'),
-                'release-record finalization must not receive artifact-publishing credentials')
-        assertTrue(releaseRecordWorkflow.indexOf('Promote the proven public release surface') <
-                releaseRecordWorkflow.indexOf('Create or verify the immutable release record'),
-                'documentation promotion must complete before the release record can be created')
     }
 
     private static void initializeFixture(File repository) {
