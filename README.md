@@ -2,14 +2,14 @@
 
 Welcome to KlumAST
 ==================
-Turn your models into supermodels!
+Make Your Models Groovy!
 
 
-[![klum logo](img/klumlogo.png)](https://github.com/klum-dsl/klum-ast)
+![KlumAST visual lockup: a stylised fashion figure steps through a luminous portal onto a diagonal catwalk, beside the KlumAST wordmark and 4.0 release identity.](docs/user/img/season-4/klumast-season-4-documentation.svg "season-lockup")
 
 # Breaking changes and version overview
 
-4.0 is currently in development as a breaking Builder-first release. Generated factories now configure Builders and
+4.0 is currently in the final stages as a breaking Builder-first release. Generated factories now configure Builders and
 materialize structurally immutable completed DSL Objects before validation. See the canonical
 [KlumAST documentation entry point](https://klum-dsl.github.io/klum-ast/); once a final is available, use the
 version selector's labelled stable documentation rather than this repository's authoring files.
