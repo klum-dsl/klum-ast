@@ -228,12 +228,12 @@ jobs:
             "$promotion" > /dev/null
           if [[ "$RELEASE_STAGE" == candidate ]]; then
             test -f pages/preview/index.html
-            rg -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null
+            grep -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null
           else
             line="${RELEASE_VERSION%.*}"
             test -f pages/stable/index.html
             test -f "pages/$line/index.html"
-            rg -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null
+            grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null
           fi
       - name: Create or verify the annotated tag and matching GitHub release
         env:

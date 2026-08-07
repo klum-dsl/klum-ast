@@ -575,6 +575,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'only the protected release-record job may receive repository-record write authority')
         assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
                 'release-record finalization must not receive Pages deployment authority')
+        assertContains(recordJob, 'grep -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null',
+                'candidate release-record recheck must use the standard runner grep tool')
+        assertContains(recordJob, 'grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null',
+                'final release-record recheck must use the standard runner grep tool')
+        assertTrue(!recordJob.contains('rg -F'),
+                'release-record finalization must not depend on non-guaranteed ripgrep')
 
         String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
         assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
