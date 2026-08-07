@@ -2,10 +2,10 @@
 
 KlumAST 4.0 is an unreleased breaking release. Its headline change is Builder-first construction: factories configure
 mutable Builders, materialize a completed structurally immutable DSL Object graph, and then validate it. Read
-[[Builder First Migration]] before moving existing Schema, client, or extension code to 4.0.
+[Builder First Migration](Builder-First-Migration.md) before moving existing Schema, client, or extension code to 4.0.
 
 The current 4.0 documentation set also includes version-matched Gradle onboarding, domain-first and target-contract
-journeys, completed-object support, and the asymmetric Jackson integration. The release notes in [[Changelog]] are the
+journeys, completed-object support, and the asymmetric Jackson integration. The release notes in [Changelog](Changelog.md) are the
 authoritative inventory of delivered user-visible behavior.
 
 ## Content pending maintainer acceptance
@@ -21,7 +21,7 @@ Layer 3 contract.
 ## Historical roadmap
 
 The 2.x and 3.0 roadmap notes were planning material for releases that are now historical. Their migration guidance is
-preserved in [[Migration]]; this page intentionally does not present those earlier plans as current commitments.
+preserved in [Migration](Migration.md); this page intentionally does not present those earlier plans as current commitments.
 
 
 

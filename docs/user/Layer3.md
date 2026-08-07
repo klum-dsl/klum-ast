@@ -328,7 +328,7 @@ assert db.dml.role == "dml"
 assert db.monitoring.role == "monitoring"
 ```
 
-That way some kind of environment checker can, for example, use [[Completed Object Support]] to validate that all non
+That way some kind of environment checker can, for example, use [Completed Object Support](Completed-Object-Support.md) to validate that all non
 ddl users have the correct privileges:
 
 ```groovy

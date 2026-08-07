@@ -5,7 +5,7 @@
 A Schema is annotated Groovy source containing the class definitions for a model's DSL Object types, fields,
 relationships, defaults, lifecycle behavior, and validation rules. It is analogous to an XSD for an XML document or a
 JSON Schema for JSON data, but is also executable source: KlumAST generates the model-construction API from it. See
-[[Basics]] and [[Gradle Onboarding]].
+[Basics](Basics.md) and [Gradle Onboarding](Gradle-Onboarding.md).
 
 ## Model
 
@@ -20,8 +20,8 @@ create Model configuration; clients consume the resulting completed, read-only M
 
 A Client or Consumer uses a completed Model through its public domain API. It may invoke supported construction or
 import operations, handle validation results, and serialize the completed Model for downstream systems; it does not
-depend on generated Builder implementations or Schema-only types in a Layer 3 model. See [[Layer3]] and
-[[Completed Object Support]].
+depend on generated Builder implementations or Schema-only types in a Layer 3 model. See [Layer3](Layer3.md) and
+[Completed Object Support](Completed-Object-Support.md).
 
 # Roles
 
@@ -29,7 +29,7 @@ KlumAST documentation distinguishes four roles. One person can assume several ro
 
 ## Domain API Developer
 
-Defines the stable, consumer-facing model contract. In a [[Layer3|Layer 3 model]], this API is designed before the Schema and is the
+Defines the stable, consumer-facing model contract. In a [Layer 3 model](Layer3.md), this API is designed before the Schema and is the
 only model surface on which generic clients depend.
 
 ## Schema Developer
@@ -44,8 +44,8 @@ validation-result handling, and downstream serialization.
 
 ## Model Writer
 
-Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, [[Templates]], or combinations of those
-authoring forms. A [[Jackson Integration|Jackson import operation]] always consumes one external input; source composition
+Creates concrete configured models using Groovy DSL scripts, YAML/JSON inputs, [Templates](Templates.md), or combinations of those
+authoring forms. A [Jackson import operation](Jackson-Integration.md) always consumes one external input; source composition
 is not a Model Writer promise of the Jackson adapter.
 
 # Construction lifecycle
@@ -54,48 +54,48 @@ is not a Model Writer promise of the Jackson adapter.
 
 A lifecycle phase is a named step in model construction, such as `POST_TREE`, `INSTANTIATE`, `VALIDATE`, or `VERIFY`.
 Builder phases run while configuration remains mutable; `INSTANTIATE` materializes the completed Model, and later phases
-inspect it. See [[Model Phases]].
+inspect it. See [Model Phases](Model-Phases.md).
 
 ## Lifecycle methods and closures
 
 Lifecycle methods and closure fields are Schema members annotated for a lifecycle phase. KlumAST invokes them at that
-phase, giving pre-materialization callbacks a Builder and later callbacks a completed Model. See [[Model Phases]].
+phase, giving pre-materialization callbacks a Builder and later callbacks a completed Model. See [Model Phases](Model-Phases.md).
 
 ## Validation
 
 Validation is the Schema-defined check of a completed Model. It can use field, method, or inner validation-class rules;
 the generated root factory records the result and `VERIFY` rejects errors at the configured failure level. See
-[[Validation]].
+[Validation](Validation.md).
 
 # Values
 In this documentation, we differentiate between these kinds of values:
 
 ## DSL-Objects
-DSL Objects are annotated with [[Basics|`@DSL`]]. These are (potentially complex) objects enhanced by the transformation. They
+DSL Objects are annotated with [`@DSL`](Basics.md). These are (potentially complex) objects enhanced by the transformation. They
 can either be *keyed* or *unkeyed*. Keyed means they have a designated field of type String (currently) decorated with the
  `@Key` annotation, acting as a key for this class. DSL classes are automatically made `Serializable`. Generated factories
 configure Builders and return completed DSL Objects; completed objects expose no generated mutation API.
 
 ## Builders
 Builders are the mutable construction-time counterparts of DSL Objects. They own field initializers, DSL mutators,
-relationship state, and lifecycle work through `POST_TREE`. The [[Model Phases#instantiate-40|`INSTANTIATE` phase]]
-materializes the complete Builder graph before validation. [[Builder First Migration|Builder-first construction]] explains
+relationship state, and lifecycle work through `POST_TREE`. The [`INSTANTIATE` phase](Model-Phases.md#instantiate-40)
+materializes the complete Builder graph before validation. [Builder-first construction](Builder-First-Migration.md) explains
 the supported construction boundary. Builders are generated implementation types and are not a stable client-facing
 naming contract.
 
 ## Templates
 
 A Template is a reusable configuration recipe. Applying it rehydrates fresh Builders with its values and recorded recipe
-actions; it is not an ordinary completed Model or a relationship value. See [[Templates]].
+actions; it is not an ordinary completed Model or a relationship value. See [Templates](Templates.md).
 
 ## Relationships
 
 An owned relationship creates part of a Model's composition graph through the parent Builder. A `LINK` relationship refers
-to an existing completed object instead of adopting it as owned composition. See [[Basics]] and
-[[Builder First Migration]].
+to an existing completed object instead of adopting it as owned composition. See [Basics](Basics.md) and
+[Builder First Migration](Builder-First-Migration.md).
 
 ## Collections
-Supported [[Basics#collections-of-dsl-objects|collection declarations]] are `List`, `Set`,
+Supported [collection declarations](Basics.md#collections-of-dsl-objects) are `List`, `Set`,
 `SortedSet`/`NavigableSet`, `Map`, `SortedMap`/`NavigableMap`, and `EnumSet`.
 Other concrete and custom Collection declarations are rejected during schema compilation. Map keys retain their declared type;
 collection and Map values can be Simple Values or DSL Objects. Collections of Collections are currently not supported.

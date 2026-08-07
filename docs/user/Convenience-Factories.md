@@ -33,7 +33,7 @@ name 'Klaus'
 
 or configure `GroovyClassLoader` / `GroovyShell` with a `BaseScript` (see the Javadoc of `DelegatingScript` for details).
 
-For a [[Usage#schema---model---consumer]] setup, the most convenient solution is to configure the Model project with a
+For a [Usage#schema---model---consumer](Usage.md#schema---model---consumer) setup, the most convenient solution is to configure the Model project with a
 compiler customizer.
 
 See the example projects for details.
@@ -161,7 +161,7 @@ Model.Create.With {
 }
 ```
 
-By including a separate properties file in the JAR of [[Usage#model]], this Model can automatically be instantiated. The
+By including a separate properties file in the JAR of [Usage#model](Usage.md#model), this Model can automatically be instantiated. The
 file must be named `/META-INF/klum-model/<schema-classname>.properties` and contain the single `model-class` property,
 whose value is the fully qualified class name of the entry-point script (either a regular `Script` or a
 `DelegatingScript`):
@@ -230,4 +230,4 @@ For String values, some simple transformations are applied:
 
 - enums are resolved by name
 - primitive types are converted via `asType`
-- existing [[Converters]] are used to convert the string to the target type
+- existing [Converters](Converters.md) are used to convert the string to the target type

@@ -3,13 +3,13 @@
 > This is a 4.0 preview pending field testing. Use the documentation that matches the KlumAST version you adopt; [#456](https://github.com/klum-dsl/klum-ast/issues/456) owns versioned documentation and Javadocs.
 
 Domain-first modeling starts from the domain a completed model must represent. The model is the canonical abstraction, and
-adapters translate it for a dashboard, automation hub, report, or other target. That differs from [[Target Contract Modeling|target-contract modeling]], where an existing technical contract remains authoritative.
+adapters translate it for a dashboard, automation hub, report, or other target. That differs from [target-contract modeling](Target-Contract-Modeling.md), where an existing technical contract remains authoritative.
 
 ## Choose the consumer boundary
 
 Choose this independently from domain-first versus target-contract:
 
-- **[[Layer3|Layer 3]]** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
+- **[Layer 3](Layer3.md)** fits when a Domain API Developer defines a stable consumer-facing contract before a Schema Developer realizes it. Client Developers compile against that API, while Model Writers configure the concrete Model.
 - **Direct-schema** fits when Schema types are the appropriate consumer contract. The Schema Developer also assumes the Domain API Developer role.
 
 Layer 3 is an API–Schema–Model pattern, not a package or Java-module boundary. It is useful when a generic client should not depend on concrete Schema types; it is not a requirement for every domain-first project. The wider terminology, variants, and policy remain under [#454](https://github.com/klum-dsl/klum-ast/issues/454), so this guide does not treat an example as a new contract.

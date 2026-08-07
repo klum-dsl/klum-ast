@@ -92,7 +92,7 @@ def c2 = Config.Create.With(copyFrom: template) {
 
 In both notations, the `copyFrom` entry should be the first, otherwise it might override values set before it. A marked
 Template contributes both values and recipe actions. An ordinary completed model contributes values only. See
-[[Copy Strategies#copy-source-protocol]] for the complete copy-source rules.
+[Copy Strategies#copy-source-protocol](Copy-Strategies.md#copy-source-protocol) for the complete copy-source rules.
 
 ## Template.With()
  
@@ -149,7 +149,7 @@ Config.Template.With(url: "http://x.y") {
 
 ## Templates for Collection Factories
 
-When using the optional collection factory (see [[Basics#collections-of-dsl-objects]]), a template can directly be
+When using the optional collection factory (see [Basics#collections-of-dsl-objects](Basics.md#collections-of-dsl-objects)), a template can directly be
 specified, either explicitly or as an anonymous template. This template is automatically valid for all elements
 that are created inside this collection factory:
 
@@ -334,7 +334,7 @@ Child.Template.WithAll([parentTemplate, childTemplate]) {
 
 ## `applyLater` and Templates
 
-As stated in [[Model Phases]], Templates can contain `applyLater` closures. These actions are not executed on the Template;
+As stated in [Model Phases](Model-Phases.md), Templates can contain `applyLater` closures. These actions are not executed on the Template;
 they are detached as recipe state and cloned into every fresh recipient Builder. The closure must address that fresh
 Builder through its delegate. Capturing any Builder, even through a serializable holder, is rejected. Other captured values
 must be serializable so the Template recipe remains serializable with its companion state.

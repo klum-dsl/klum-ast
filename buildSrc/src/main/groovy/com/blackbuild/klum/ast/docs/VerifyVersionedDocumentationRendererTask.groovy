@@ -42,6 +42,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
     void verifyRendererContract() {
         assertNoAuthoredPresentationHtml(project.rootDir)
         assertNoLegacyKlumVersionPlaceholder(project.rootDir)
+        assertNoWikiStyleLinksOutsideCode(project.rootDir)
         String readme = new File(project.rootDir, 'README.md').text
         assertContains(readme, 'https://klum-dsl.github.io/klum-ast/',
                 'README must use the canonical versioned documentation entry point')
@@ -72,12 +73,14 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'is a prerelease, not stable', 'RC chrome')
         assertContains(exactLanding.text, 'href="status/"', 'RC status link must remain inside the exact tree')
         assertContains(nestedPage.text, 'href="../../status/"', 'nested RC status link must remain inside the exact tree')
-        assertContains(exactLanding.text, 'href="Guide/Nested/"', 'authored Markdown links must resolve to directory URLs')
+        assertContains(exactLanding.text, 'href="Guide/Nested/">Nested guide</a>',
+                'authored labelled Markdown links must resolve to directory URLs')
         assertContains(exactLanding.text, 'href="Gradle-Onboarding/">Gradle Onboarding</a>',
                 'current navigation must use the canonical Gradle Onboarding route and visible label')
         assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
-        assertContains(nestedPage.text, 'href="../../#same-heading"', 'cross-page Markdown fragments must use rendered heading slugs')
+        assertContains(nestedPage.text, 'href="../../#same-heading">Current documentation</a>',
+                'labelled cross-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, "id 'com.blackbuild.klum-ast-schema' version '4.0.0-rc.1'",
                 'public RC rendering must substitute the portable KlumAST plugin version token')
         assertContains(nestedPage.text, 'com.blackbuild.klum.ast:klum-ast-runtime:4.0.0-rc.1',
@@ -86,6 +89,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'public RC rendering must not retain a portable or legacy KlumAST version placeholder')
         assertContains(new File(fixture, 'docs/user/Guide/Nested.md').text, '<klum-version>',
                 'source documentation must remain portable after rendering an exact version')
+        assertContains(new File(project.rootDir, 'docs/user/Builder-First-Migration.md').text, 'if [[ -n',
+                'fenced shell examples must retain literal double-bracket syntax')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
         assertContains(changelog.text, 'href="../Builder-First-Migration/"',
@@ -563,7 +568,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         new File(repository, '.gitignore').text = '*/build/\n'
         new File(repository, 'docs/user/Home.md').text = '''# Current documentation
 
-[Nested guide](Guide/Nested.md), [Gradle onboarding](Gradle-Onboarding.md), [same-page heading](#Same%20heading), and [[Changelog]].
+[Nested guide](Guide/Nested.md), [Gradle onboarding](Gradle-Onboarding.md), [same-page heading](#Same%20heading), and [Changelog](Changelog.md).
 
 ![Local logo](img/klumlogo.png)
 
@@ -587,7 +592,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 '''
         new File(repository, 'docs/user/Guide/Nested.md').text = '''# Nested current documentation
 
-[Home](../Home.md), [home heading](../Home.md#Same%20heading), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).
+[Home](../Home.md), [home heading](../Home.md#Same%20heading), [Current documentation](../Home.md#same-heading), and [source skill](../../../agent-skills/example/SKILL.md).
 
 ```groovy
 plugins {
@@ -601,7 +606,7 @@ dependencies {
 '''
         new File(repository, 'docs/user/Gradle-Onboarding.md').text = '# Gradle onboarding\n\nCurrent setup guidance.\n'
         new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
-        new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Gradle Onboarding]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
+        new File(repository, 'docs/user/_Sidebar.md').text = '* [Home](Home.md)\n* [Gradle Onboarding](Gradle-Onboarding.md)\n* [Nested](Guide/Nested.md)\n* [Changelog](Changelog.md)\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
         new File(repository, 'docs/user/_Aliases.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
                 'Getting-Started.md': 'Gradle-Onboarding.md'
@@ -655,6 +660,23 @@ dependencies {
             }
         })
         found[0]
+    }
+
+    private static void assertNoWikiStyleLinksOutsideCode(File repository) {
+        new File(repository, 'docs/user').eachFileRecurse { File file ->
+            if (!file.file || !file.name.endsWith('.md')) return
+            String fenceDelimiter
+            file.readLines().eachWithIndex { String line, int index ->
+                def fence = line =~ /^ {0,3}(`{3,}|~{3,})/
+                if (fence.find()) {
+                    String delimiter = fence.group(1)
+                    if (!fenceDelimiter) fenceDelimiter = delimiter
+                    else if (delimiter[0] == fenceDelimiter[0] && delimiter.length() >= fenceDelimiter.length()) fenceDelimiter = null
+                } else if (!fenceDelimiter && line.replaceAll(/`+[^`]*`+/, '').contains('[[')) {
+                    throw new GradleException("Current user documentation retains a wiki-style link outside code: ${repository.toPath().relativize(file.toPath())}:${index + 1}")
+                }
+            }
+        }
     }
 
     private static Map<String, File> initializeModuleJavadocs(File repository) {

@@ -281,7 +281,7 @@ class CustomerRoster {
 
 The migration checklist above is sufficient for ordinary Schema and Model work. For the Builder/materialization boundary,
 generated producer projection, lifecycle state, and the public-versus-synthetic generated API, see
-[[Behind the Curtain#builder-first-materialization]].
+[Behind the Curtain#builder-first-materialization](Behind-the-Curtain.md#builder-first-materialization).
 
 ## Templates, Serialization, and Jackson
 
@@ -313,7 +313,7 @@ normal lifecycle rather than rebound.
 
 Rename migrated JSON with `@JsonAlias` while keeping the new `@JsonProperty` name canonical. Configured naming strategies,
 mixins, ignore/access rules, and unknown-property policy are resolved by Jackson. Ambient Templates, `@Overwrite`, and
-`copyFrom` no longer affect JSON input. See [[Jackson Integration]] and
+`copyFrom` no longer affect JSON input. See [Jackson Integration](Jackson-Integration.md) and
 [ADR 0009](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0009-jackson-interoperability.md).
 
 `LINK` import requires an explicit reference schema, property conversion, or lifecycle resolution. Put

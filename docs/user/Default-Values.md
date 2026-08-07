@@ -1,7 +1,7 @@
 # Default Values
 
 Non-DSL fields can be annotated with `@Default` to designate a default value, which is set in the
-[[Model Phases#default-25|Default phase]] when the value is not Groovy Truth. Booleans are the exception: a `false`
+[Default phase](Model-Phases.md#default-25) when the value is not Groovy Truth. Booleans are the exception: a `false`
 boolean is not treated as empty and is therefore not re-defaulted. For DSL-object fields, use `@AutoCreate` to create an
 owned child or `@AutoLink`/`@LinkTo` to resolve an existing target instead. `@Default` supports three mutually exclusive
 members; each produces a value that is coerced to the field's type.
@@ -133,12 +133,12 @@ assert config.lower == 'hans' // defaults to lowercase name
 (See: `DefaultValuesDocumentaryTest#'runs a default lifecycle method when a value is absent'`.)
 
 As with other annotations, `@Default` can also annotate parameterless methods or Closure fields that run in the
-Default phase. See [[Model Phases]] for more information.
+Default phase. See [Model Phases](Model-Phases.md) for more information.
 
 ## `@DefaultValues` Annotation
 
 Another option is an annotation that is itself annotated with `@DefaultValues`. This is primarily useful with inheritance
-and [[Layer3]].
+and [Layer3](Layer3.md).
 
 Use such an annotation either on a class or on a field.
 

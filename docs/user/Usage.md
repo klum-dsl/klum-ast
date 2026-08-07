@@ -2,7 +2,7 @@
 
 KlumAST enhances quasi-static models with DSL methods at Groovy compile time. Annotate Schema classes with `@DSL` and
 the transformation is picked up during compilation. For a new 4.0 project, use the Gradle plugin setup below; it supplies
-the compatible KlumAST, Groovy, and test dependencies. [[Terms]] defines the Schema, Model, and Consumer responsibilities
+the compatible KlumAST, Groovy, and test dependencies. [Terms](Terms.md) defines the Schema, Model, and Consumer responsibilities
 used in the project shapes below.
 
 ## Gradle setup (supported)
@@ -20,8 +20,8 @@ klumSchema {
 }
 ```
 
-For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See [[Gradle Onboarding]] for
-the complete first Schema and test, [[Gradle Plugins]] for plugin details, and the model plugin when a separate configured
+For a new project, Groovy 3 is the baseline. Keep an existing supported Groovy line instead. See [Gradle Onboarding](Gradle-Onboarding.md) for
+the complete first Schema and test, [Gradle Plugins](Gradle-Plugins.md) for plugin details, and the model plugin when a separate configured
 Model artifact is required.
 
 ## Project setup
@@ -48,14 +48,14 @@ supported Gradle workflow for this case.
 #### Model
 
 The schema usually consists of one or more script files containing either a `Model.Create.With` statement or, even more 
- convenient, only the content of the `Create.With` closure (see [[Convenience Factories#delegating-scripts]]).
+ convenient, only the content of the `Create.With` closure (see [Convenience Factories#delegating-scripts](Convenience-Factories.md#delegating-scripts)).
  
 The model is than packed into a jar file (for convenience a shadowed jar containing the schema as well), which can 
  be used as the single dependency for all consumers.
 
 If the model has single entry points, i.e. instances of classes that are only present once in the
 model (which is usually the case), the model can make use of the new `Create.FromClasspath` feature, see
-[[Convenience Factories#classpath]] for details.
+[Convenience Factories#classpath](Convenience-Factories.md#classpath) for details.
 
 (See: `UsageDocumentaryTest#'loads a configured model through its classpath entry point'`.)
 
@@ -117,7 +117,7 @@ support for decorated collections. To allow nicer delegates is the goal of the K
 
 ### Layer3 structure: API - Schema - Model
 
-This approach is similar to the above approach, but adds an additional layer of abstraction. The API layer contains a generic API that is directly consumed, while the Schema makes the modelling easier. See [[Layer3]] for details.
+This approach is similar to the above approach, but adds an additional layer of abstraction. The API layer contains a generic API that is directly consumed, while the Schema makes the modelling easier. See [Layer3](Layer3.md) for details.
 
 ## Manual dependencies
 

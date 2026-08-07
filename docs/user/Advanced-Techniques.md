@@ -30,7 +30,7 @@ class Container {
 
 Here both Mutators execute on the `Container` Builder and delegate `body` to a newly created `Element` Builder.
 `@DelegatesToBuilder` does not add a completed-model `apply` or `configure` path. An API that configures a DSL Object must
-participate in factory/Builder construction; see [[Builder First Migration]] for the lifecycle boundary.
+participate in factory/Builder construction; see [Builder First Migration](Builder-First-Migration.md) for the lifecycle boundary.
 
 ## Behavior Models and Parameter Hints
 
@@ -86,7 +86,7 @@ ValueProvider.Create.With {
 
 The closure has one `Map` parameter and returns `String`, so the compiler can check both parts of the contract.
 
-`DescriptionProvider` could instead be an abstract class, for example to add [[Converters#factory-method-converters]].
+`DescriptionProvider` could instead be an abstract class, for example to add [Converters#factory-method-converters](Converters.md#factory-method-converters).
 
 ### Closure Attributes
 

@@ -1,37 +1,37 @@
-* [[Home]]
+* [Home](Home.md)
 * Introduction
-  * [[Why aC is not enough|Why *\*aC* is not enough]]
-  * [[Terms]]
+  * [Why *\*aC* is not enough](Why-aC-is-not-enough.md)
+  * [Terms](Terms.md)
 * Fundamentals
-  * [[Basics]]
-  * [[Model Phases]]
-  * [[Exception Handling]]
-  * [[Static Models]]
-  * [[Javadoc|Javadoc for models]]
+  * [Basics](Basics.md)
+  * [Model Phases](Model-Phases.md)
+  * [Exception Handling](Exception-Handling.md)
+  * [Static Models](Static-Models.md)
+  * [Javadoc for models](Javadoc.md)
 * Project setup
-  * [[Usage]]
-  * [[Gradle Plugins]]
-  * [[Gradle Onboarding]]
-  * [[Domain First Modeling]]
-  * [[Target Contract Modeling]]
+  * [Usage](Usage.md)
+  * [Gradle Plugins](Gradle-Plugins.md)
+  * [Gradle Onboarding](Gradle-Onboarding.md)
+  * [Domain First Modeling](Domain-First-Modeling.md)
+  * [Target Contract Modeling](Target-Contract-Modeling.md)
 * Advanced Features
-  * [[Behind the Curtain]]
-  * [[Completed Object Support]]
-  * [[Convenience Factories]]
-  * [[Factory Classes]]
-  * [[Templates]]
-  * [[Copy Strategies]]
-  * [[Validation]]
-  * [[Default Values]]
-  * [[Inheritance]]
-  * [[Converters]]
-  * [[Alternatives Syntax]]
-  * [[Advanced Techniques]]
-  * [[Layer3]]
-  * [[Jackson Integration]]
+  * [Behind the Curtain](Behind-the-Curtain.md)
+  * [Completed Object Support](Completed-Object-Support.md)
+  * [Convenience Factories](Convenience-Factories.md)
+  * [Factory Classes](Factory-Classes.md)
+  * [Templates](Templates.md)
+  * [Copy Strategies](Copy-Strategies.md)
+  * [Validation](Validation.md)
+  * [Default Values](Default-Values.md)
+  * [Inheritance](Inheritance.md)
+  * [Converters](Converters.md)
+  * [Alternatives Syntax](Alternatives-Syntax.md)
+  * [Advanced Techniques](Advanced-Techniques.md)
+  * [Layer3](Layer3.md)
+  * [Jackson Integration](Jackson-Integration.md)
 * More
-  * [[FAQ]]
-  * [[Changelog]]
-  * [[Migration]]
-  * [[Builder First Migration]]
-  * [[Roadmap]]
+  * [FAQ](FAQ.md)
+  * [Changelog](Changelog.md)
+  * [Migration](Migration.md)
+  * [Builder First Migration](Builder-First-Migration.md)
+  * [Roadmap](Roadmap.md)

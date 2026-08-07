@@ -17,7 +17,7 @@ an explicit `KlumBuilder<T>` contract cannot safely join the active Construction
 generated relationship API and reports focused migration guidance. Use the generated child method, expose a concrete
 `KlumBuilder<T>` result, or compile the producer source with the Schema.
 
-This protocol is relevant to [[Converters]], [[Factory Classes]], and [[Alternatives Syntax]]. Its architectural boundary
+This protocol is relevant to [Converters](Converters.md), [Factory Classes](Factory-Classes.md), and [Alternatives Syntax](Alternatives-Syntax.md). Its architectural boundary
 is recorded in [ADR 0004](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md).
 
 ## Managed Jackson Import Mechanics
@@ -32,7 +32,7 @@ Each operation consumes one `KlumJacksonInput`; parsers remain caller-owned and 
 `copyFrom` do not participate in Jackson binding. This boundary is why managed import is interoperable with foreign JSON
 and YAML but is not Klum persistence or document layering.
 
-See [[Jackson Integration]] for the supported API and foreign-format workflow.
+See [Jackson Integration](Jackson-Integration.md) for the supported API and foreign-format workflow.
 
 ## Builder-First Materialization
 
@@ -42,6 +42,6 @@ DSL Objects. Builders and completed objects are intentionally different states, 
 active parent lifecycle and a completed object cannot become new owned composition.
 
 Generated `$klum$asBuilder$...` methods are JVM linkage details for projected producers, not a client API. Generated
-`Foo_DSL.Builder` interfaces are the supported public construction capability. See [[Builder First Migration]] for the
+`Foo_DSL.Builder` interfaces are the supported public construction capability. See [Builder First Migration](Builder-First-Migration.md) for the
 actionable migration checklist and [ADR 0003](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0003-builder-first-materialization.md)
 for the design decision.

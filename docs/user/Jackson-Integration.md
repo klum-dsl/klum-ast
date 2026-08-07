@@ -28,7 +28,7 @@ resolved-property, Builder, identity, and customization groundwork.
 - A **Model Writer** can combine Groovy-authored and YAML-authored model parts without knowing Jackson or Builder internals.
 - In Layer 3, the **Domain API Developer** defines the consumer-facing model contract independently of the concrete Schema.
 
-See [[Terms]] for the project-wide role definitions.
+See [Terms](Terms.md) for the project-wide role definitions.
 
 ## Setup
 
@@ -42,7 +42,7 @@ dependencies {
 }
 ```
 
-See [[Usage#gradle-setup-supported]] for the supported plugin and BOM setup.
+See [Usage#gradle-setup-supported](Usage.md#gradle-setup-supported) for the supported plugin and BOM setup.
 
 ### Manual Gradle Dependency
 
@@ -107,7 +107,7 @@ values follow the caller's Jackson null, merge, and replacement configuration. E
 `KlumJacksonInput`; arrays, Maps, and YAML multi-document streams do not create a shared Klum lifecycle.
 
 For the importer snapshot, binding order, and Builder-state mechanics, see
-[[Behind the Curtain#managed-jackson-import-mechanics]]. Raw `ObjectMapper.readValue(DslType)` remains a discouraged
+[Behind the Curtain#managed-jackson-import-mechanics](Behind-the-Curtain.md#managed-jackson-import-mechanics). Raw `ObjectMapper.readValue(DslType)` remains a discouraged
 standalone-root compatibility path; do not use it to start a DSL root inside an active Construction session.
 
 ## One Foreign YAML Input, One Enriched Output

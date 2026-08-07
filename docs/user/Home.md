@@ -9,7 +9,7 @@ KlumAST turns annotated model classes into concise, statically checked Groovy DS
 Schema Developer to describe a model once, a Model Writer to configure it through a readable DSL, and client code to
 consume the completed model without generated mutation methods.
 
-The [[Terms|Terms and role guide]] defines the core terms — especially Schema and Model — along with these responsibilities
+The [Terms and role guide](Terms.md) defines the core terms — especially Schema and Model — along with these responsibilities
 and the value kinds used throughout the documentation.
 
 ## Why models as code?
@@ -40,12 +40,12 @@ example, an illustrative failure from `models/production.groovy` could read:
 ```
 
 Generated factories configure a mutable Builder graph and return completed, structurally immutable DSL Objects. Lifecycle
-work through `POST_TREE` runs on Builders; materialization happens before validation. See [[Basics]], [[Model Phases]], and
-the [[Builder First Migration]] guide. [[Exception Handling|Construction paths]] describe model-source locations in detail.
+work through `POST_TREE` runs on Builders; materialization happens before validation. See [Basics](Basics.md), [Model Phases](Model-Phases.md), and
+the [Builder First Migration](Builder-First-Migration.md) guide. [Construction paths](Exception-Handling.md) describe model-source locations in detail.
 
 These capabilities make KlumAST especially useful for GitOps and other *\*aC* (anything-as-code) workflows. Git can record a
 configuration's structure, but a checked-in structure is not necessarily a verified model. Read
-[[Why aC is not enough|why *\*aC* needs model-level tests]] before treating configuration in Git as the end of the story.
+[why *\*aC* needs model-level tests](Why-aC-is-not-enough.md) before treating configuration in Git as the end of the story.
 
 ## Example
 
@@ -132,4 +132,4 @@ if (projectsWithoutClean) {
 }
 ```
 
-For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with [[Gradle Onboarding]].
+For the recommended 4.0 Gradle setup and generated-source-mirror workflow, start with [Gradle Onboarding](Gradle-Onboarding.md).

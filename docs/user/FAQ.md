@@ -34,7 +34,7 @@ For a current IntelliJ setup, use the Gradle Schema plugin and refresh the gener
 
 The mirrors provide generated declaration metadata for completion; they are not compiled or published source. For Quick
 Documentation on compiled declarations, install [AnnoDoc Support for IntelliJ IDEA](https://github.com/blackbuild/annodoc-intellij)
-according to its release instructions. [[Usage#all-in-one]] describes the complete single-project setup. This is the 4.0
+according to its release instructions. [Usage#all-in-one](Usage.md#all-in-one) describes the complete single-project setup. This is the 4.0
 preview route; [#469](https://github.com/klum-dsl/klum-ast/issues/469) owns the first-RC real-project field test.
 
 For a separate compiled Schema artifact, a Consumer project can also obtain normal IDE assistance from the generated public

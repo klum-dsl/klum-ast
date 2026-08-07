@@ -151,4 +151,4 @@ String pathFromDeployment = support.getStructure().getRelativePath(service);
 supported client extension API.
 
 `Validator` result readers are removed in 4.0 with no compatibility adapter. Completed-object code uses
-`KlumObjectSupport.getValidation()` as described in [[Validation]].
+`KlumObjectSupport.getValidation()` as described in [Validation](Validation.md).

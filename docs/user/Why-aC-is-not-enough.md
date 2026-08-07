@@ -29,7 +29,7 @@ test.
 
 A KlumAST Schema is executable model knowledge, not just a description of document shape:
 
-- Schema-specific rules can be declared with [[Validation|validation annotations and methods]]. A generated root factory
+- Schema-specific rules can be declared with [validation annotations and methods](Validation.md). A generated root factory
   materializes the model and runs validation, so every ordinary construction is an opportunity to reject an invalid
   model before it reaches a target.
 - A Model Writer can construct representative configurations with `Create.With` and assert the completed model or its
@@ -47,11 +47,11 @@ model into a fast, local layer of the testing pyramid and leaves target behavior
 The Schema Developer can keep constraints, defaults, relationship rules, and source documentation near the model they
 describe. Generated Builder Javadocs reuse that source documentation; generated IDE mirrors expose the same construction
 surface for completion. This separates concerns cleanly: the schema owns domain rules, Model Writers own concrete
-configuration, and clients consume completed models through their public contract. See [[Terms]] and [[Javadoc]].
+configuration, and clients consume completed models through their public contract. See [Terms](Terms.md) and [Javadoc](Javadoc.md).
 
 For a target-contract case such as Helm values, the target remains authoritative. A project can use a validated KlumAST
 authoring model and test an explicit target projection against representative target values. See
-[[Target Contract Modeling]].
+[Target Contract Modeling](Target-Contract-Modeling.md).
 
 ## Current standalone-script boundary
 

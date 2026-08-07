@@ -57,10 +57,10 @@ Keep these constraints in mind:
 - Other than with the regular solution, the `elements` closure is no longer optional.
 - The necessary methods are only generated if `Config` and all subclasses of `Element` are compiled in __same compiler run__.
   This means that if you split your schema into different projects, you need to depend on the sources, not on the compiled
-  classes of other schema parts (see [[Usage]] for details).
+  classes of other schema parts (see [Usage](Usage.md) for details).
 - Child classes with the same simple name, even in different packages, are not allowed.
-- [[Convenience Factories]] and source-visible converter methods also work on alternative methods. For the 4.0 Builder
-  boundary and opaque-producer diagnostics, see [[Behind the Curtain#builder-projection-for-custom-producers]].
+- [Convenience Factories](Convenience-Factories.md) and source-visible converter methods also work on alternative methods. For the 4.0 Builder
+  boundary and opaque-producer diagnostics, see [Behind the Curtain#builder-projection-for-custom-producers](Behind-the-Curtain.md#builder-projection-for-custom-producers).
 
 ## Naming Strategies
 
@@ -163,4 +163,4 @@ In any other case, KlumAST lowercases the first character of the subclass name. 
 
 The executable example is `AlternativesDocumentaryTest.groovy`, feature `uses alternative names derived from child class names`.
 
-For more complex cases, custom [[Factory Classes]] can be used.
+For more complex cases, custom [Factory Classes](Factory-Classes.md) can be used.

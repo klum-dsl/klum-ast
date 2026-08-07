@@ -28,7 +28,7 @@ a `@Default` field will only be handled if the field is not set yet, while a `@D
 ## Creation
 
 The creation phase starts with the first factory call in a thread. It creates and configures the root Builder and its owned
-Builder graph. Creating a Builder includes applying [[Templates]], then calling `@PostCreate`, explicit configuration, and
+Builder graph. Creating a Builder includes applying [Templates](Templates.md), then calling `@PostCreate`, explicit configuration, and
 `@PostApply` methods and closures. No completed DSL Object exists yet.
 
 Before the initial create methods return, control is passed to the PhaseDriver that is responsible to execute all
@@ -127,7 +127,7 @@ more of a semantic nature. So AutoCreate methods should actually create objects,
 ## Error handling
 
 Exceptions during a phase are wrapped in `KlumException` or a subclass and retain the relevant phase and, where
-available, a construction path. See [[Exception Handling]] for the hierarchy and path details.
+available, a construction path. See [Exception Handling](Exception-Handling.md) for the hierarchy and path details.
 
 ## `applyLater` Methods
 
