@@ -1,0 +1,15 @@
+plugins {
+    id "com.blackbuild.convention.groovy"
+}
+
+tasks.register("verifyPluginMarker") {
+    def evidenceFile = layout.buildDirectory.file("verification/plugin-marker.txt")
+    outputs.file(evidenceFile)
+
+    doLast {
+        if (!pluginManager.hasPlugin("com.blackbuild.convention.groovy"))
+            throw new GradleException("Groovy convention plugin marker was not resolved and applied.")
+        evidenceFile.get().asFile.parentFile.mkdirs()
+        evidenceFile.get().asFile.text = "com.blackbuild.convention.groovy\n"
+    }
+}

@@ -2,7 +2,7 @@
 
 Date: 2026-07-19
 
-Amended: 2026-08-07 (public release-record ordering)
+Amended: 2026-08-07 (public release-record ordering and availability proof)
 
 Status: Accepted
 
@@ -65,25 +65,24 @@ its six artifacts and two plugin markers; KlumAST proves all Maven artifacts and
 ### Public release-record ordering
 
 Every version that reaches Maven Central, the Plugin Portal, or another public product registry must have an immutable
-annotated Git tag and a matching GitHub release record. The record is created only after a credential-free proof has
-resolved the complete public product, never before publication and never after the independent external-consumer check.
-For an RC the GitHub release is a prerelease.
+annotated Git tag and a matching GitHub release record. The record is created only after public availability proof has
+resolved the complete product, never before publication and never after the independent external-consumer check. For
+an RC the GitHub release is a prerelease.
 
-The required order is: protected artifact publication; one manually dispatched verification workflow whose
-credential-free proof job retains the exact proof identity; downstream protected documentation promotion and
-release-record finalization in that same workflow; then independent external-consumer validation against that normal
-public surface. Maintainers provide only stage, version, and source SHA; they do not copy a proof run identity into a
-second dispatch. The finalization authority is distinct from artifact publication: it has no registry, signing, or
-Pages-writer credentials, but requires explicit human approval and narrowly scoped repository-contents authority. A
-failed proof creates neither a tag, a release record, nor public documentation/aliases; it never promotes a candidate
-to stable.
+The required order is: protected artifact publication; an unprivileged Plugin Portal marker check; bounded
+unprivileged Maven Central resolve-back polling; maintainer creation of the exact annotated tag and matching GitHub
+release; a manually dispatched verification workflow that validates that record before its credential-free proof and
+protected documentation promotion; then independent external-consumer validation against that normal public surface.
+The Portal check is isolated from Maven Central, and the Maven polling has a documented finite timeout. The maintainer
+supplies only stage, version, and source SHA to verification; it does not copy a proof identity into another dispatch.
+The record is deliberately a visible human action, not a hidden obligation inside an environment approval. A failed
+availability proof creates neither a tag, a release record, nor public documentation/aliases; it never promotes a
+candidate to stable.
 
-This amends the earlier local interpretation that placed tag/release creation after the external consumer check. It does
-not weaken immutable versions, burns, rejection records, or final-versus-RC authorization. If finalization is interrupted,
-the same parent run may resume only when every pre-existing tag, release, documentation manifest, promotion record,
-proof identity, and alias exactly match the accepted identity; any mismatch fails closed. Existing historical public
-versions require a separate human-reviewed evidence reconciliation before any backfill and are not silently repaired by
-a release workflow.
+This amends the earlier automated-finalizer design. It does not weaken immutable versions, burns, rejection records,
+or final-versus-RC authorization. Verification rejects a lightweight tag, a tag targeting another commit, or a wrong
+release flag before documentation promotion. Existing historical public versions require a separate human-reviewed
+evidence reconciliation before any backfill and are not silently repaired by a release workflow.
 
 ## Ownership
 

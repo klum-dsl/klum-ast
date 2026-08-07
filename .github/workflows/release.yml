@@ -227,3 +227,83 @@ jobs:
           ./gradlew publishCompleteKlumAstProduct
           -Prelease.version=${{ inputs.version }}
           -Prelease.stage=${{ inputs.stage }}
+
+  verify-public-gradle-plugins:
+    name: Verify Gradle Plugin Portal markers
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+      - name: Resolve every plugin marker from the Plugin Portal
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/gradle-plugin-portal-user-home
+        run: >-
+          ./gradlew --refresh-dependencies -p release/plugin-consumer verifyPublicPlugins
+          -PreleaseVersion=${{ inputs.version }}
+          --no-build-cache
+          --no-daemon
+      - name: Retain Plugin Portal evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-plugin-portal-${{ inputs.version }}
+          path: release/plugin-consumer/build/verification/**
+          if-no-files-found: error
+
+  await-public-maven-product:
+    name: Await Maven Central product availability
+    needs: verify-public-gradle-plugins
+    runs-on: ubuntu-latest
+    # Twelve attempts, ten minutes apart, make Maven Central availability a bounded
+    # release gate while retaining one credential-free runner for the wait.
+    timeout-minutes: 125
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+      - name: Poll Maven Central for the complete public product
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            echo "Maven Central resolve attempt $attempt of 12."
+            if GRADLE_USER_HOME="$RUNNER_TEMP/gradle-maven-central-$attempt" \
+              ./gradlew --refresh-dependencies -p release/maven-consumer verifyPublicMavenProduct \
+              -PreleaseVersion="$RELEASE_VERSION" --no-build-cache --no-daemon; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 12 ]]; then
+              echo 'The complete Maven product is not public yet; retrying in ten minutes.' >&2
+              sleep 600
+            fi
+          done
+          echo 'The complete Maven product did not become publicly resolvable within two hours.' >&2
+          exit 1
+      - name: Retain Maven Central evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-maven-central-${{ inputs.version }}
+          path: release/maven-consumer/build/verification/**
+          if-no-files-found: error

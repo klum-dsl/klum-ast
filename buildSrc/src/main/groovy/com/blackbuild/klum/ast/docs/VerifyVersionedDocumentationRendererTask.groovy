@@ -513,6 +513,41 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'publication must not decide release identity from runner-local Git refs')
         assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
+        int pluginPortalJobStart = releaseWorkflow.indexOf('  verify-public-gradle-plugins:\n')
+        int mavenCentralJobStart = releaseWorkflow.indexOf('  await-public-maven-product:\n')
+        assertTrue(pluginPortalJobStart > publishStageStart && mavenCentralJobStart > pluginPortalJobStart,
+                'public availability proof must follow protected publication, with Plugin Portal before Maven Central')
+        String pluginPortalJob = releaseWorkflow.substring(pluginPortalJobStart, mavenCentralJobStart)
+        String mavenCentralJob = releaseWorkflow.substring(mavenCentralJobStart)
+        assertContains(pluginPortalJob, 'needs: publish',
+                'Plugin Portal proof must remain unreachable until protected publication succeeds')
+        assertContains(pluginPortalJob, '-p release/plugin-consumer verifyPublicPlugins',
+                'Plugin Portal proof must use the isolated plugin-only consumer fixture')
+        assertTrue(!pluginPortalJob.contains('SONATYPE_') && !pluginPortalJob.contains('SIGNING_') && !pluginPortalJob.contains('GRADLE_PUBLISH_'),
+                'Plugin Portal proof must not receive publishing credentials')
+        assertContains(mavenCentralJob, 'needs: verify-public-gradle-plugins',
+                'Maven Central polling must start only after Plugin Portal proof succeeds')
+        assertContains(mavenCentralJob, '-p release/maven-consumer verifyPublicMavenProduct',
+                'Maven Central polling must use the isolated Maven-only consumer fixture')
+        assertContains(mavenCentralJob, 'sleep 600',
+                'Maven Central polling must wait ten minutes between attempts on the same runner')
+        assertContains(mavenCentralJob, 'for attempt in $(seq 1 12)',
+                'Maven Central polling must have a finite number of attempts')
+        assertContains(mavenCentralJob, 'timeout-minutes: 125',
+                'Maven Central polling must have a bounded runner timeout')
+        assertTrue(!mavenCentralJob.contains('SONATYPE_') && !mavenCentralJob.contains('SIGNING_') && !mavenCentralJob.contains('GRADLE_PUBLISH_'),
+                'Maven Central polling must not receive publishing credentials')
+
+        String pluginConsumerSettings = new File(project.rootDir, 'release/plugin-consumer/settings.gradle').text
+        String mavenConsumerSettings = new File(project.rootDir, 'release/maven-consumer/settings.gradle').text
+        assertContains(pluginConsumerSettings, 'gradlePluginPortal()',
+                'the Plugin Portal fixture must resolve plugin markers from the real Plugin Portal')
+        assertTrue(!pluginConsumerSettings.contains('mavenCentral()'),
+                'the Plugin Portal fixture must not permit Maven Central fallback')
+        assertContains(mavenConsumerSettings, 'mavenCentral()',
+                'the Maven fixture must resolve the product from Maven Central')
+        assertTrue(!mavenConsumerSettings.contains('gradlePluginPortal()'),
+                'the Maven fixture must not resolve plugin markers')
 
         String publicProofWorkflow = new File(project.rootDir, '.github/workflows/verify-public-release.yml').text
         int proofDispatchStart = publicProofWorkflow.indexOf('  workflow_dispatch:\n')
@@ -539,30 +574,24 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must receive the proof run internally from the completed proof job')
         assertContains(publicProofWorkflow, 'proof_attempt: ${{ needs.resolve.outputs.proof_attempt }}',
                 'documentation promotion must receive the proof attempt internally from the completed proof job')
-        assertContains(publicProofWorkflow, 'needs: [resolve, promote-public-documentation]',
-                'release-record finalization must wait for both public proof and documentation promotion')
-        assertContains(publicProofWorkflow, 'name: release-record',
-                'only the dedicated protected release-record environment may receive contents-write authority')
-        assertContains(publicProofWorkflow, 'test "$PROOF_IDENTITY" = "$EXPECTED_PROOF_IDENTITY"',
-                'release-record finalization must bind the promotion to the parent proof identity')
-        assertContains(publicProofWorkflow, "git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a \"\$tag\" -m \"Release \$RELEASE_VERSION\" \"\$EXPECTED_COMMIT\"",
-                'release-record finalization must create its annotated tag with an explicit non-human Git identity')
-        assertContains(publicProofWorkflow, 'A GitHub release exists without its immutable annotated tag.',
-                'release-record finalization must reject a release record that cannot be bound to an immutable tag')
+        assertContains(publicProofWorkflow, '  validate-release-record:',
+                'verification must validate the maintainer-created release record before public proof')
+        assertContains(publicProofWorkflow, 'needs: [validate-identity, validate-release-record]',
+                'public proof must wait for exact tag and release validation')
+        assertContains(publicProofWorkflow, 'select(.object.type == "tag") | .object.sha',
+                'verification must reject lightweight tags')
         assertContains(publicProofWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
-                'release-record finalization must verify the matching GitHub release identity and candidate flag')
-        assertContains(publicProofWorkflow, 'pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
-                'release-record finalization must recheck the immutable documentation promotion record')
+                'verification must verify the matching GitHub release identity and candidate flag')
         assertTrue(!publicProofWorkflow.contains('SONATYPE_') && !publicProofWorkflow.contains('SIGNING_') && !publicProofWorkflow.contains('GRADLE_PUBLISH_'),
-                'unified verification and its release-record finalizer must not receive artifact-publishing credentials')
+                'unified verification must not receive artifact-publishing credentials')
+        assertTrue(!publicProofWorkflow.contains('contents: write') && !publicProofWorkflow.contains('git push ') && !publicProofWorkflow.contains('--request POST'),
+                'verification must validate rather than create a tag or GitHub release')
         int proofJobStart = publicProofWorkflow.indexOf('  resolve:\n')
         int promotionJobStart = publicProofWorkflow.indexOf('  promote-public-documentation:\n')
-        int recordJobStart = publicProofWorkflow.indexOf('  finalize-release-record:\n')
-        assertTrue(proofJobStart >= 0 && promotionJobStart > proofJobStart && recordJobStart > promotionJobStart,
-                'unified verification must order credential-free proof before documentation promotion and release-record finalization')
+        assertTrue(proofJobStart >= 0 && promotionJobStart > proofJobStart,
+                'unified verification must order credential-free proof before documentation promotion')
         String proofJob = publicProofWorkflow.substring(proofJobStart, promotionJobStart)
-        String promotionJob = publicProofWorkflow.substring(promotionJobStart, recordJobStart)
-        String recordJob = publicProofWorkflow.substring(recordJobStart)
+        String promotionJob = publicProofWorkflow.substring(promotionJobStart)
         assertTrue(!proofJob.contains('contents: write') && !proofJob.contains('pages: write') && !proofJob.contains('id-token: write'),
                 'the public proof job itself must remain credential-free')
         assertContains(promotionJob, 'pages: write',
@@ -571,16 +600,6 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not receive repository-record write authority')
         assertContains(promotionJob, 'secrets: inherit',
                 'the reusable promotion caller must preserve the called writer job\'s environment secret context')
-        assertContains(recordJob, 'contents: write',
-                'only the protected release-record job may receive repository-record write authority')
-        assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
-                'release-record finalization must not receive Pages deployment authority')
-        assertContains(recordJob, 'grep -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null',
-                'candidate release-record recheck must use the standard runner grep tool')
-        assertContains(recordJob, 'grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null',
-                'final release-record recheck must use the standard runner grep tool')
-        assertTrue(!recordJob.contains('rg -F'),
-                'release-record finalization must not depend on non-guaranteed ripgrep')
 
         String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
         assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
@@ -602,10 +621,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'recovery must require the completed public documentation promotion')
         assertContains(recoveryWorkflow, 'Deploy the promoted public documentation" and .conclusion == "success"',
                 'recovery must require the completed Pages deployment')
-        assertContains(recoveryWorkflow, 'name: release-record',
-                'only the protected release-record environment may authorize recovery writes')
-        assertContains(recoveryWorkflow, "git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a",
-                'recovery must create its annotated tag with an explicit non-human Git identity')
+        assertContains(recoveryWorkflow, 'Validate the manually created release record',
+                'recovery must validate, rather than create, the maintainer-created record')
+        assertContains(recoveryWorkflow, 'select(.object.type == "tag") | .object.sha',
+                'recovery must reject lightweight tags')
+        assertTrue(!recoveryWorkflow.contains('name: release-record') && !recoveryWorkflow.contains('contents: write') &&
+                !recoveryWorkflow.contains('git push ') && !recoveryWorkflow.contains('--request POST'),
+                'recovery must be read-only and must not require a release-record writer environment')
         assertTrue(!recoveryWorkflow.contains('PAGES_WRITER_') && !recoveryWorkflow.contains('pages: write') && !recoveryWorkflow.contains('id-token: write'),
                 'release-record recovery must not receive Pages writer or deployment authority')
         assertTrue(!recoveryWorkflow.contains('SONATYPE_') && !recoveryWorkflow.contains('SIGNING_') && !recoveryWorkflow.contains('GRADLE_PUBLISH_'),
