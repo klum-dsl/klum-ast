@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Factory classes — KlumAST 4.0.0-rc.14</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.14 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="./">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="./">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="factory-classes">Factory classes</h1>
+<p>Creator methods are encapsulated in a generated static inner class of the DSL Object class (named <code>_Factory</code>). A single
+instance is placed on the DSL Object class as the static <code>Create</code> field, enabling the convenient creation syntax.</p>
+<p>This factory is by default a subclass of:</p>
+<ul>
+<li><code>KlumFactory</code> for abstract classes</li>
+<li><code>KlumFactory.Keyed</code> for keyed classes</li>
+<li><code>KlumFactory.Unkeyed</code> for unkeyed classes</li>
+</ul>
+<p>Note that the implementation of these factories only differ from their base classes in the setting of the generic and the adding of <code>@DelegatesTo</code> annotations to the closure parameters. This is necessary for code completion and static type checking (since Groovy does not allow to use a generic parameter of the class in the <code>@DelegatesTo</code> annotation).</p>
+<h2 id="custom-creator-classes">Custom Creator Classes</h2>
+<p>Instead of the default base classes, provide a custom creator class that extends the base class and adds creator methods.
+This class can be generic, in which case it must have a constructor with a single class parameter, or it can explicitly
+assign the base class's type parameter, in which case it must have a no-argument constructor.</p>
+<p>The creator class is either implicitly taken from a static inner class named <code>Factory</code> or explicitly set via the <code>factory</code> member of the <code>@DSL</code> annotation.</p>
+<p>KlumFactory methods use capitalized names. Follow that convention for custom creator methods so they read as factory
+operations alongside <code>Create.With</code>, <code>Create.One</code>, and <code>Create.From</code>.</p>
+<p>(See: <code>FactoryTest#'allow overriding of factory base class with implicit factory'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class MyClass {
+    String name
+    String job
+    
+    static class Factory extends KlumFactory.Unkeyed&lt;MyClass&gt; {
+        Factory() {
+            super(MyClass)
+        }
+        
+        MyClass Baker(String name) {
+            return Create.With(name: name, job: &quot;baker&quot;)
+        }
+    }
+}
+</code></pre>
+<p>This allows creating instances of <code>MyClass</code> via <code>MyClass.Create.Baker(&quot;Klaus&quot;)</code>.</p>
+<h2 id="creator-methods-and-collection-factories">Creator Methods and Collection Factories</h2>
+<p>When using the collection factory closure methods (as opposed to calling the element methods directly), all creator class methods are available as well. This is a more powerful alternative to the regular
+<a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a>, especially when using abstract classes.</p>
+<p>The 4.0 Builder-first runtime projects adaptable source-visible creator methods onto active-session Builder production.
+Inside a relationship factory, single results, Collections, and Maps are attached to the owner without starting a nested
+lifecycle. Recursive creator calls are rebound to their projected twins. The original creator method is unchanged, so a
+direct <code>MyClass.Create.customMethod(...)</code> call still returns a completed root model.</p>
+<p>The generated twins are synthetic implementation details. Public <code>Foo_DSL</code> contracts and IDE mirrors expose concrete
+<code>Foo_DSL.Builder</code> results with composition-specific documentation instead. Opaque or precompiled model-returning creator
+methods without an explicit <code>KlumBuilder&lt;Foo&gt;</code> contract are omitted from relationship APIs and report migration guidance
+when a matching dynamic call is attempted. See
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0004-asbuilder-composition-protocol.md">ADR 0004</a>.</p>
+<p>An unqualified static call to another source-visible converter is projected recursively, including overload selection. For
+example, a relationship can use <code>fromFile</code> without inlining the final factory call:</p>
+<p>(See: <code>BuilderProjectionDocumentaryTest#'uses an unqualified static converter chain in an owned relationship'</code>.)</p>
+<pre><code class="language-groovy">static Customer fromFile(File file) {
+    fromYaml(file)
+}
+
+static Customer fromYaml(File file) {
+    Customer.Create.With(file.name, source: file.name)
+}
+</code></pre>
+<pre><code class="language-groovy">@DSL class Foo {
+    List&lt;Bar&gt; bars
+}
+
+@DSL abstract class Bar {
+    String name
+    
+    static class Factory extends KlumFactory.Unkeyed&lt;Bar&gt; {
+        protected Factory() {super(Bar)}
+
+        Bar aBaz(String name, @DelegatesToBuilder(Baz) Closure body) {
+            return Baz.Create.With(name: name, body)
+        }
+        
+        Bar bazWithNickname(String name) {
+            return Baz.Create.With(name: name, nickname: name)
+        }
+        
+        Bar aBla(String name, @DelegatesToBuilder(Bla) Closure body) {
+            return Bla.Create.With(name: name, body)
+        }
+    }
+}
+
+@DSL class Baz extends Bar {
+    String nickname
+}
+
+@DSL class Bla extends Bar {
+    String sickname
+}
+</code></pre>
+<p>In this case, all the following calls are allowed:</p>
+<pre><code class="language-groovy">Foo.Create.With {
+    bars { // collection factory
+        aBaz(&quot;Baz&quot;) { // factory method
+            nickname &quot;Bazzy&quot;
+        }
+        aBla(&quot;Bla&quot;) { // factory method
+            sickname &quot;Blabby&quot;
+        }
+        bazWithNickname(&quot;Bazzy&quot;) // factory method
+        From(MyScript) // default factory method
+    }
+}
+</code></pre>
+<p>Note that when in conflict, explicit factory methods take precedence over alternatives syntax methods.</p>
+<p>This also works for Factory methods returning a collection or map of the model class:</p>
+<pre><code class="language-groovy">@DSL class Foo {
+    List&lt;Bar&gt; bars
+}
+
+@DSL class Bar {
+    String name
+    String value
+
+    static class Factory extends KlumFactory.Unkeyed&lt;Bar&gt; {
+        protected Factory() { super(Bar) }
+
+        List&lt;Bar&gt; fromProperties(File propsFile) {
+            def props = new Properties()
+            propsFile.withInputStream { props.load(it) }
+            return props.values().collect { k, v -&gt; Create.With(name: k, value: v) }
+        }
+    }
+}
+
+// usage
+
+Foo.Create.With {
+    bars {
+        fromProperties(new File(&quot;my.properties&quot;))
+    }
+}
+</code></pre>
+<p>The projected call returns the producer's original container. For a Map relationship, Map-producing methods retain their
+original keys; Collection-producing methods derive keys from the keyed Builders as usual. For a Collection relationship,
+Map values are attached in Map iteration order. Concrete container subtype, iteration order, comparator, and duplicate
+behavior are preserved.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
