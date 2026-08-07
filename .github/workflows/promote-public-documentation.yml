@@ -182,6 +182,26 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+      - name: Render and verify the public exact-version tree
+        env:
+          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_status=current
+          if [[ "$RELEASE_STAGE" == candidate ]]; then
+            public_status=public-rc
+          fi
+          ./gradlew verifyRenderedDocumentationSite \
+            "-PdocumentationRevision=$EXPECTED_COMMIT" \
+            "-PdocumentationRendererRevision=$EXPECTED_COMMIT" \
+            "-PdocumentationVersion=$RELEASE_VERSION" \
+            "-PdocumentationStatus=$public_status" \
+            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json' \
+            '-PdocumentationObjectDirectory=.' \
+            '-PdocumentationOutputDirectory=build/public-documentation'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: gh-pages
@@ -219,26 +239,6 @@ jobs:
             --arg sha "$EXPECTED_COMMIT" \
             '.schemaVersion == 2 and .documentation == {version: $version, status: "pending"} and .source.revision == $sha' \
             "$manifest" > /dev/null
-      - name: Render and verify the public exact-version tree
-        env:
-          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
-          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
-          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          public_status=current
-          if [[ "$RELEASE_STAGE" == candidate ]]; then
-            public_status=public-rc
-          fi
-          ./gradlew verifyRenderedDocumentationSite \
-            "-PdocumentationRevision=$EXPECTED_COMMIT" \
-            "-PdocumentationRendererRevision=$EXPECTED_COMMIT" \
-            "-PdocumentationVersion=$RELEASE_VERSION" \
-            "-PdocumentationStatus=$public_status" \
-            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json' \
-            '-PdocumentationObjectDirectory=.' \
-            '-PdocumentationOutputDirectory=build/public-documentation'
       - id: idempotence
         name: Reject conflicting state or accept the identical completed promotion
         env:
