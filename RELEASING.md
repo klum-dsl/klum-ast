@@ -182,12 +182,24 @@ cross-registry publication reversible or claim that a final is byte-identical to
 
 After publication, wait for every Maven coordinate and every Plugin Portal marker to be
 publicly resolvable. Then dispatch [Verify public release](.github/workflows/verify-public-release.yml)
-with the exact version. Only after that workflow and the independent external-consumer check pass,
-create and push annotated tag `v<version>` from the accepted SHA and create the matching GitHub
-release (`--prerelease` for an RC). Record the exact tag, GitHub release, publication workflow,
-verification workflow, resolved coordinates, and consumer evidence. The RC validates that source
-commit. Do not relabel, replace, or promote it. A final is a new `X.Y.Z` publication from the
-exact commit accepted for the final RC, followed by its own remote verification.
+with the exact `candidate`/`final` stage, version, and full source SHA. A successful run retains an
+immutable proof artifact binding those values to its run and attempt identity. An authorized
+maintainer must then manually dispatch [Promote proven public documentation](.github/workflows/promote-public-documentation.yml)
+from `master` with that exact identity. The protected workflow downloads and validates the successful
+proof artifact, checks the matching immutable pending-stage manifest on `gh-pages`, and renders a
+separate public exact tree with the correct public status chrome. It never exposes the pending tree.
+For an RC it may advance only `/preview/`; `/stable/` and the maintained-line alias such as `/4.0/`
+advance only for a proven final. The workflow appends an immutable promotion record and rejects any
+conflicting existing exact path; an identical re-dispatch verifies the existing result and performs
+no mutation. Its Pages writer boundary contains no Maven, Plugin Portal, signing, or release
+credentials.
+
+Only after that workflow and the independent external-consumer check pass, create and push annotated
+tag `v<version>` from the accepted SHA and create the matching GitHub release (`--prerelease` for an
+RC). Record the exact tag, GitHub release, publication workflow, verification workflow, documentation
+promotion workflow, resolved coordinates, and consumer evidence. The RC validates that source commit.
+Do not relabel, replace, or promote it. A final is a new `X.Y.Z` publication from the exact commit
+accepted for the final RC, followed by its own remote verification.
 
 The maintainer's post-proof record step is deliberately manual and uses no publication
 credentials. From a clean checkout of the accepted commit, run:
@@ -210,7 +222,7 @@ an empty `GRADLE_USER_HOME`, and no release credentials. It executes
 [release/consumer](release/consumer), which has no composite build, `mavenLocal`, or local
 repository and resolves all Maven coordinates through Maven Central plus all three declared
 plugin markers through the Plugin Portal. It retains the resolved-coordinate and applied-marker
-evidence as a workflow artifact. A release is incomplete until this proof and an authorized
+evidence plus the immutable release-identity handoff as workflow artifacts. A release is incomplete until this proof and an authorized
 maintainer's equivalent clean external-consumer evidence from a different machine or network
 pass as required by ADR 0012.
 

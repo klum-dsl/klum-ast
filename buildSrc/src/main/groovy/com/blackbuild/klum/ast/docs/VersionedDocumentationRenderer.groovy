@@ -41,6 +41,7 @@ class VersionedDocumentationRenderer {
 
     static final String RENDERER_ID = 'klum-ast-buildsrc-static-html-v1'
     private static final String CURRENT_ROUTE_ALIASES = '_Aliases.json'
+    private static final String KLUM_VERSION_PLACEHOLDER = '<klum-version>'
     static final Map<String, String> MODULE_REPRESENTATIVE_JAVADOCS = [
             'klum-ast'                : 'com/blackbuild/klum/ast/compiler/internal/ast/DSLASTTransformation.html',
             'klum-ast-runtime'        : 'com/blackbuild/klum/ast/runtime/KlumModelObject.html',
@@ -209,11 +210,13 @@ class VersionedDocumentationRenderer {
         outputPaths.add('assets/site.css')
         write(exactDirectory, 'assets/site.css', StaticDocumentationPageRenderer.SITE_CSS.getBytes(StandardCharsets.UTF_8))
         String sourceNavigation = navigationMarkdown ?: (authoredMarkdown['_Sidebar.md'] ? new String(authoredMarkdown['_Sidebar.md'], StandardCharsets.UTF_8) : '')
+        sourceNavigation = renderedMarkdown(sourceNavigation, sourceRoot, '_Sidebar.md', version)
         String sourceFooter = authoredMarkdown['_Footer.md'] ? new String(authoredMarkdown['_Footer.md'], StandardCharsets.UTF_8) : ''
+        sourceFooter = renderedMarkdown(sourceFooter, sourceRoot, '_Footer.md', version)
         Map<String, String> presentation = presentation(version, status)
         pageOutputs.each { String sourcePath, String outputPath ->
             String html = StaticDocumentationPageRenderer.render(
-                    markdown          : new String(authoredMarkdown[sourcePath], StandardCharsets.UTF_8),
+                    markdown          : renderedMarkdown(new String(authoredMarkdown[sourcePath], StandardCharsets.UTF_8), sourceRoot, sourcePath, version),
                     sourcePath        : sourcePath,
                     outputPath        : outputPath,
                     pageOutputs       : pageOutputs,
@@ -300,6 +303,13 @@ class VersionedDocumentationRenderer {
         if (!(branding.sha256 ==~ /[0-9a-f]{64}/))
             fail("Branding manifest $path has an invalid sha256")
         branding
+    }
+
+    /** Replaces the portable current-documentation version token only in rendered 4.x user content. */
+    private static String renderedMarkdown(String markdown, String sourceRoot, String sourcePath, String version) {
+        sourceRoot == 'docs/user' && sourcePath != 'Changelog.md'
+                ? markdown.replace(KLUM_VERSION_PLACEHOLDER, version)
+                : markdown
     }
 
     private static Map<String, String> readRouteAliases(File objectDirectory, String revision, String path) {

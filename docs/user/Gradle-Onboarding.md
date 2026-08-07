@@ -25,7 +25,7 @@ Apply the schema plugin to a Schema project. It supplies the KlumAST BOM, compil
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema' version '<matching-klum-version>'
+    id 'com.blackbuild.klum-ast-schema' version '<klum-version>'
 }
 
 klumSchema {

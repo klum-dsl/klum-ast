@@ -73,7 +73,7 @@ This means that a fully working schema project can be set up with the following 
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema' version '<matching-klum-version>'
+    id 'com.blackbuild.klum-ast-schema' version '<klum-version>'
     id "maven-publish"
 }
 
@@ -96,7 +96,7 @@ A simple model project can look like:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-model' version '<matching-klum-version>'
+    id 'com.blackbuild.klum-ast-model' version '<klum-version>'
     id "maven-publish"
 }
 
@@ -120,7 +120,7 @@ Root:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.convention.groovy' version '<matching-klum-version>'
+    id 'com.blackbuild.convention.groovy' version '<klum-version>'
 }
 
 groovyDependencies {

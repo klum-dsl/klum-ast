@@ -1,0 +1,374 @@
+name: Promote proven public documentation
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Exact protected release stage proved publicly"
+        required: true
+        type: choice
+        options:
+          - candidate
+          - final
+      version:
+        description: "Exact public X.Y.Z-rc.N or X.Y.Z version"
+        required: true
+        type: string
+      commit:
+        description: "Full source commit SHA on master"
+        required: true
+        type: string
+      proof_run:
+        description: "Successful Verify public release workflow run ID"
+        required: true
+        type: string
+      proof_attempt:
+        description: "Successful Verify public release workflow attempt"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: pending-documentation-gh-pages
+  cancel-in-progress: false
+
+jobs:
+  validate-proof:
+    name: Validate immutable public-proof handoff
+    runs-on: ubuntu-latest
+    outputs:
+      stage: ${{ inputs.stage }}
+      version: ${{ inputs.version }}
+      commit: ${{ inputs.commit }}
+      proof_identity: ${{ steps.proof.outputs.proof_identity }}
+
+    steps:
+      - name: Require a protected manual dispatch from master
+        env:
+          DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/master
+          test "$DOCUMENTATION_PAGES_READY" = true || {
+            echo 'Protected documentation Pages is not rehearsed and enabled.' >&2
+            exit 1
+          }
+      - id: proof
+        name: Download and validate the successful public-proof artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          PROOF_RUN: ${{ inputs.proof_run }}
+          PROOF_ATTEMPT: ${{ inputs.proof_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_STAGE" == candidate && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$ ]] || \
+             [[ "$RELEASE_STAGE" == final && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          else
+            echo 'The requested documentation-promotion identity is malformed.' >&2
+            exit 1
+          fi
+          [[ "$PROOF_RUN" =~ ^[1-9][0-9]*$ ]]
+          [[ "$PROOF_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+
+          run_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN")"
+          jq -e \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --argjson attempt "$PROOF_ATTEMPT" \
+            '.name == "Verify public release" and .event == "workflow_dispatch" and
+             .conclusion == "success" and .run_attempt == $attempt and
+             .head_branch == "master" and .head_repository.full_name == $repository and
+             (.path | endswith("/.github/workflows/verify-public-release.yml@refs/heads/master"))' \
+            <<< "$run_json" > /dev/null || {
+              echo 'The named proof run is not a successful trusted Verify public release run.' >&2
+              exit 1
+            }
+
+          artifacts_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN/artifacts")"
+          proof_artifact="public-release-proof-$PROOF_RUN.$PROOF_ATTEMPT"
+          artifact_url="$(jq -er --arg name "$proof_artifact" \
+            '.artifacts | map(select(.name == $name and .expired == false)) | if length == 1 then .[0].archive_download_url else empty end' \
+            <<< "$artifacts_json")"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "$artifact_url" --output proof.zip
+          unzip -q proof.zip -d proof
+          proof=proof/public-release-proof.json
+          test -f "$proof"
+          proof_identity="$PROOF_RUN.$PROOF_ATTEMPT"
+          jq -e \
+            --arg stage "$RELEASE_STAGE" \
+            --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" \
+            --arg proofRun "$proof_identity" \
+            '. == {schemaVersion: 1, stage: $stage, version: $version, sha: $sha, proofRun: $proofRun, outcome: "publicly-resolved"}' \
+            "$proof" > /dev/null || {
+              echo 'The public-proof artifact does not bind the requested release identity.' >&2
+              exit 1
+            }
+          echo "proof_identity=$proof_identity" >> "$GITHUB_OUTPUT"
+
+  promote:
+    name: Publish proven public documentation
+    needs: validate-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: documentation-pages-writer
+    permissions:
+      contents: read
+    outputs:
+      ledger_commit: ${{ steps.commit.outputs.ledger_commit }}
+      already_promoted: ${{ steps.idempotence.outputs.already_promoted }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.validate-proof.outputs.commit }}
+      - name: Prove the source revision remains clean and on master
+        env:
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          test -z "$(git status --porcelain=v1)"
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: gh-pages
+          path: pages
+          persist-credentials: false
+      - name: Verify the immutable pending-stage evidence
+        env:
+          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pages/.nojekyll || {
+            echo 'The protected gh-pages ledger is not initialized with .nojekyll.' >&2
+            exit 1
+          }
+          pending_path="pending/$RELEASE_VERSION/$EXPECTED_COMMIT"
+          handoff="pages/$pending_path/pending-documentation-handoff.json"
+          manifest="pages/$pending_path/site-manifest.json"
+          test -f "$handoff"
+          test -f "$manifest"
+          jq -e \
+            --arg stage "$RELEASE_STAGE" \
+            --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" \
+            --arg exactPath "$pending_path/" \
+            '.schemaVersion == 1 and .stage == $stage and .version == $version and .sha == $sha and
+             .exactPath == $exactPath and (.manifestSha256 | test("^[0-9a-f]{64}$"))' \
+            "$handoff" > /dev/null
+          manifest_sha256="$(sha256sum "$manifest" | awk '{print $1}')"
+          test "$(jq -r .manifestSha256 "$handoff")" = "$manifest_sha256"
+          jq -e \
+            --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" \
+            '.schemaVersion == 2 and .documentation == {version: $version, status: "pending"} and .source.revision == $sha' \
+            "$manifest" > /dev/null
+      - name: Render and verify the public exact-version tree
+        env:
+          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_status=current
+          if [[ "$RELEASE_STAGE" == candidate ]]; then
+            public_status=public-rc
+          fi
+          ./gradlew verifyRenderedDocumentationSite \
+            "-PdocumentationRevision=$EXPECTED_COMMIT" \
+            "-PdocumentationRendererRevision=$EXPECTED_COMMIT" \
+            "-PdocumentationVersion=$RELEASE_VERSION" \
+            "-PdocumentationStatus=$public_status" \
+            '-PdocumentationBrandingManifest=docs/branding/season-4-klumast.json' \
+            '-PdocumentationObjectDirectory=.' \
+            '-PdocumentationOutputDirectory=build/public-documentation'
+      - id: idempotence
+        name: Reject conflicting state or accept the identical completed promotion
+        env:
+          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+          PROOF_IDENTITY: ${{ needs.validate-proof.outputs.proof_identity }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          promotion="pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json"
+          public_manifest="build/public-documentation/$RELEASE_VERSION/site-manifest.json"
+          exact_manifest="pages/$RELEASE_VERSION/site-manifest.json"
+          pending_manifest="pages/pending/$RELEASE_VERSION/$EXPECTED_COMMIT/site-manifest.json"
+          pending_manifest_sha256="$(sha256sum "$pending_manifest" | awk '{print $1}')"
+          public_manifest_sha256="$(sha256sum "$public_manifest" | awk '{print $1}')"
+          if [[ -e "$promotion" ]]; then
+            test -f "$exact_manifest" || {
+              echo 'An existing promotion record lacks its immutable public exact tree.' >&2
+              exit 1
+            }
+            cmp -- "$public_manifest" "$exact_manifest"
+            jq -e \
+              --arg stage "$RELEASE_STAGE" \
+              --arg version "$RELEASE_VERSION" \
+              --arg sha "$EXPECTED_COMMIT" \
+              --arg proofRun "$PROOF_IDENTITY" \
+              --arg pendingManifestSha256 "$pending_manifest_sha256" \
+              --arg publicManifestSha256 "$public_manifest_sha256" \
+              '.schemaVersion == 1 and .stage == $stage and .version == $version and .sha == $sha and
+               .proofRun == $proofRun and .pendingManifestSha256 == $pendingManifestSha256 and
+               .publicManifestSha256 == $publicManifestSha256 and .outcome == "promoted-public-documentation"' \
+              "$promotion" > /dev/null
+            echo 'already_promoted=true' >> "$GITHUB_OUTPUT"
+          else
+            test ! -e "pages/$RELEASE_VERSION" || {
+              echo 'The immutable public exact-version path exists without this promotion record.' >&2
+              exit 1
+            }
+            echo 'already_promoted=false' >> "$GITHUB_OUTPUT"
+          fi
+      - id: commit
+        name: Commit the exact tree, allowed aliases, and immutable promotion record
+        if: steps.idempotence.outputs.already_promoted == 'false'
+        env:
+          RELEASE_STAGE: ${{ needs.validate-proof.outputs.stage }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.validate-proof.outputs.commit }}
+          PROOF_IDENTITY: ${{ needs.validate-proof.outputs.proof_identity }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_manifest="build/public-documentation/$RELEASE_VERSION/site-manifest.json"
+          pending_manifest="pages/pending/$RELEASE_VERSION/$EXPECTED_COMMIT/site-manifest.json"
+          pending_manifest_sha256="$(sha256sum "$pending_manifest" | awk '{print $1}')"
+          public_manifest_sha256="$(sha256sum "$public_manifest" | awk '{print $1}')"
+          aliases='["preview"]'
+          line=''
+          if [[ "$RELEASE_STAGE" == final ]]; then
+            line="${RELEASE_VERSION%.*}"
+            aliases="[\"stable\",\"$line\"]"
+          fi
+          write_alias() {
+            local alias="$1"
+            local label="$2"
+            mkdir -p "pages/$alias"
+            printf '%s\n' "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>$label</title></head><body><main><h1>$label</h1><p>This labelled alias currently selects <a href=\"../$RELEASE_VERSION/\">$RELEASE_VERSION</a>.</p></main></body></html>" \
+              > "pages/$alias/index.html"
+          }
+          if [[ "$RELEASE_STAGE" == candidate ]]; then
+            write_alias preview 'Public release candidate preview'
+          else
+            write_alias stable 'Current stable KlumAST documentation'
+            write_alias "$line" "Current maintained $line KlumAST documentation"
+          fi
+          mkdir -p "pages/$RELEASE_VERSION" "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT"
+          cp -a "build/public-documentation/$RELEASE_VERSION/." "pages/$RELEASE_VERSION/"
+          jq -n \
+            --arg stage "$RELEASE_STAGE" \
+            --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" \
+            --arg proofRun "$PROOF_IDENTITY" \
+            --arg pendingManifestSha256 "$pending_manifest_sha256" \
+            --arg publicManifestSha256 "$public_manifest_sha256" \
+            --argjson aliases "$aliases" \
+            '{schemaVersion: 1, stage: $stage, version: $version, sha: $sha, proofRun: $proofRun,
+              pendingManifestSha256: $pendingManifestSha256, publicManifestSha256: $publicManifestSha256,
+              aliases: $aliases, outcome: "promoted-public-documentation"}' \
+            > "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json"
+          cd pages
+          git add -- "$RELEASE_VERSION" promotions
+          if [[ "$RELEASE_STAGE" == candidate ]]; then
+            git add -- preview
+          else
+            git add -- stable "$line"
+          fi
+          git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
+            commit -m "Promote proven documentation for $RELEASE_VERSION"
+          echo "ledger_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Require protected Pages writer credentials
+        if: steps.idempotence.outputs.already_promoted == 'false'
+        env:
+          PAGES_WRITER_APP_ID: ${{ secrets.PAGES_WRITER_APP_ID }}
+          PAGES_WRITER_APP_PRIVATE_KEY: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_APP_ID"
+          test -n "$PAGES_WRITER_APP_PRIVATE_KEY"
+      - name: Mint the dedicated Pages writer token
+        if: steps.idempotence.outputs.already_promoted == 'false'
+        id: pages-writer-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.PAGES_WRITER_APP_ID }}
+          private-key: ${{ secrets.PAGES_WRITER_APP_PRIVATE_KEY }}
+      - name: Write and read back the promoted gh-pages ledger
+        if: steps.idempotence.outputs.already_promoted == 'false'
+        env:
+          LEDGER_COMMIT: ${{ steps.commit.outputs.ledger_commit }}
+          PAGES_WRITER_TOKEN: ${{ steps.pages-writer-token.outputs.token }}
+          RELEASE_VERSION: ${{ needs.validate-proof.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGES_WRITER_TOKEN"
+          git -C pages push "https://x-access-token:${PAGES_WRITER_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
+          git -C pages fetch --no-tags origin gh-pages
+          test "$(git -C pages rev-parse FETCH_HEAD)" = "$LEDGER_COMMIT"
+          git -C pages diff --quiet "$LEDGER_COMMIT" FETCH_HEAD
+          generated_manifest="build/public-documentation/$RELEASE_VERSION/site-manifest.json"
+          written_manifest="$(mktemp)"
+          trap 'rm -f "$written_manifest"' EXIT
+          git -C pages show "FETCH_HEAD:$RELEASE_VERSION/site-manifest.json" > "$written_manifest"
+          cmp -- "$generated_manifest" "$written_manifest"
+      - name: Upload the read-back-verified promoted ledger
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: pages
+
+  deploy-pages:
+    name: Deploy the promoted public documentation
+    needs: promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: documentation-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        name: Deploy the uploaded static site to GitHub Pages
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5
+        with:
+          timeout: 1800000
