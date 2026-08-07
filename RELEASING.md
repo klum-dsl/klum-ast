@@ -180,29 +180,36 @@ The protected immutable proof handoff must bind the release channel, exact versi
 and proof-run identity; a missing or mismatched field rejects promotion. This does not make
 cross-registry publication reversible or claim that a final is byte-identical to its RC.
 
-After publication, wait for every Maven coordinate and every Plugin Portal marker to be
-publicly resolvable. Then dispatch [Verify public release](.github/workflows/verify-public-release.yml)
-with the exact `candidate`/`final` stage, version, and full source SHA. A successful run retains an
-immutable proof artifact binding those values to its run and attempt identity. An authorized
-maintainer must then manually dispatch [Promote proven public documentation](.github/workflows/promote-public-documentation.yml)
-from `master` with that exact identity. The protected workflow downloads and validates the successful
-proof artifact, checks the matching immutable pending-stage manifest on `gh-pages`, and renders a
-separate public exact tree with the correct public status chrome. It never exposes the pending tree.
-For an RC it may advance only `/preview/`; `/stable/` and the maintained-line alias such as `/4.0/`
-advance only for a proven final. The workflow appends an immutable promotion record and rejects any
-conflicting existing exact path; an identical re-dispatch verifies the existing result and performs
-no mutation. Its Pages writer boundary contains no Maven, Plugin Portal, signing, or release
-credentials.
+After publication, wait for every Maven coordinate and every Plugin Portal marker to be publicly
+resolvable. Then dispatch [Verify public release](.github/workflows/verify-public-release.yml) **once**
+from `master`, with only the exact `candidate`/`final` stage, version, and full source SHA. Do not copy
+a proof run ID or attempt into another dispatch. The workflow performs this ordered path:
 
-After public proof, dispatch **Finalize publicly proven release record** from `master` with the exact
-stage, version, source SHA, proof run ID, and proof attempt. Its `release-record` environment requires
-separate maintainer approval and has only repository-contents write authority; it has no Maven,
-Plugin Portal, signing, or Pages-writer credential. It reuses **Promote proven public documentation**
-to validate the immutable proof and pending evidence, exposes the exact public tree and eligible
-aliases, creates/verifies annotated `v<version>` at the accepted SHA, then creates/verifies the
-matching GitHub release (`prerelease` for an RC). It fails closed on a tag, release, manifest,
-promotion, proof, or alias mismatch. An identical re-dispatch is recovery only; it must verify the
-existing records rather than replace them.
+1. Its `resolve` job is the credential-free public proof: a fresh GitHub-hosted runner with an empty
+   `GRADLE_USER_HOME` resolves the complete public product and first retains an immutable proof artifact
+   bound to this parent run and attempt.
+2. The parent passes that retained proof identity internally to the protected #456 documentation-promotion
+   job. It validates the proof and matching immutable pending-stage manifest, renders a separate public
+   exact tree, and exposes only eligible aliases: `/preview/` for an RC, or `/stable/` and its maintained
+   line for a final. Its Pages writer/deployment authority contains no Maven, Plugin Portal, signing, or
+   release-record credentials.
+3. The downstream `release-record` job waits for that promotion, requires its separate maintainer
+   approval, and has `contents: write` only there. It rechecks the proof, pending/public manifests,
+   promotion record, and aliases, then creates or verifies annotated `v<version>` at the accepted SHA and
+   the matching GitHub release (`prerelease` for an RC). It has no Maven, Plugin Portal, signing, or
+   Pages-writer credentials.
+4. Only after the run reports the exact public documentation, tag, and release record may the maintainer
+   run the independent external-consumer check.
+
+The workflow as a whole is not credential-free: its **proof job** is credential-free, while its
+downstream documentation and release-record jobs independently enter their protected environments.
+A failed proof therefore reaches neither protected downstream job, so it creates no tag, GitHub release,
+public exact documentation, or alias.
+
+For recovery, use **Re-run failed jobs** on the same parent run only when GitHub retains the already successful
+`resolve` job and its proof artifact. Promotion verifies that exact proof-job attempt, not a concluded parent
+workflow, so the retained proof can still bind a later documentation/tag/release retry. Re-running the proof job
+creates a new proof identity and therefore cannot repair an earlier partial promotion.
 
 This is a deliberate correction to the former later-tag rule: finalization happens after public
 artifact proof but **before** the independent external-consumer check. A failed public proof gets no
@@ -214,8 +221,8 @@ for the final RC, followed by its own remote verification.
 
 ## Public resolve-back evidence
 
-The separately dispatched **Verify public release** workflow is the credential-free public proof. It uses a fresh
-GitHub-hosted runner, an empty `GRADLE_USER_HOME`, and no release credentials. It executes
+The `resolve` job in the manually dispatched **Verify public release** workflow is the credential-free public proof. It
+uses a fresh GitHub-hosted runner, an empty `GRADLE_USER_HOME`, and no release credentials. It executes
 [release/consumer](release/consumer), which has no composite build, `mavenLocal`, or local
 repository and resolves all Maven coordinates through Maven Central plus all three declared
 plugin markers through the Plugin Portal. It retains the resolved-coordinate and applied-marker
@@ -236,7 +243,7 @@ new release channel.
 | Signing or Sonatype staging fails before release | Abort/drop the staging repository using the registry's protected operation; retain the incident evidence. | Use the next RC number if a tag or any artifact was created. |
 | Maven Central succeeds but Plugin Portal fails | Stop. Do not delete, overwrite, or republish Maven coordinates. Record the partial RC as failed/superseded. | Correct the cause and issue `rc.N+1`; do not repair a different registry under the old version. |
 | Public proof fails | Stop and record the immutable RC or final incident; do not create a tag, release, exact public documentation, or alias. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
-| Release-record finalization is interrupted | Re-dispatch only with the same proof identity and exact stage/version/SHA. Existing tag, release, promotion, manifest, and alias values must all match or the workflow fails closed. | Never replace or repair a mismatched record; record the incident and follow the next-version rule. |
+| Documentation promotion, tag, or release-record finalization is interrupted | Use GitHub's retry for the same **Verify public release** run only when it retains the same successful proof identity and exact stage/version/SHA. Existing tag, release, promotion, manifest, and alias values must all match or the workflow fails closed. | Never replace or repair a mismatched record; a newly dispatched proof is a different immutable identity and cannot repair the old record. |
 | Versioned documentation/Javadoc destination is unavailable or its pending stage rejects a valid identity | Do not authorize artifact publication. Retain the sanitized `pending-rejected` evidence when the protected stage reached an accepted identity. | Correct the cause and follow the immutable next-version rule; never overwrite a pending or rejected Pages path. |
 | RC consumer resolve-back fails | Mark that RC rejected/superseded and preserve the evidence. | Any substantive change requires `rc.N+1`. |
 | Final remote verification fails | Treat the final as an incident; it is not an RC retry. | Do not remove published artifacts. A tag may be deleted only by explicit human decision when no artifact was ever published. |
