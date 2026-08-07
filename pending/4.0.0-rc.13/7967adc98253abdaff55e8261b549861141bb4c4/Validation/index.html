@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validation — KlumAST 4.0.0-rc.13</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.13 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="./">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="../Copy-Strategies/">Copy Strategies</a></li>
+<li><a rel="nofollow" href="./">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="validation">Validation</h1>
+<p>Completed DSL Objects can be validated automatically. Builder phases may record provisional issues, which are transferred
+to the completed Model companion during <a rel="nofollow" href="../Model-Phases/#instantiate-40"><code>INSTANTIATE</code></a>; <code>@Validate</code> methods and external
+<code>InstanceValidator</code>s then run on the completed object. Each <code>InstanceValidator</code> type is memoized once per completed model.
+For reading stored results from a completed model, see <a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a>.</p>
+<h2 id="on-classes">On Classes</h2>
+<p><code>@Validate</code> on classes behaves exactly like <code>@Validate</code> on fields, but is applied to all fields of the class not yet having an annotation, i.e., all not explicitly marked fields are validated
+against Groovy truth (i.e., numbers must be non-zero, collections and Strings non-empty, and other objects not null).</p>
+<p>(See: <code>ValidationDocumentaryTest#'validates unannotated fields when a class is marked for validation'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+@Validate
+class Release {
+    String name
+
+    @Optional
+    String notes
+}
+</code></pre>
+<p><code>Release.Create.One()</code> reports that <code>name</code> must be set, while <code>Release.Create.With { name &quot;spring-catalog&quot; }</code>
+accepts the omitted optional <code>notes</code> field.</p>
+<h2 id="on-fields">On Fields</h2>
+<p>The <code>@Validate</code> annotation controls validation of a single field. If the annotation is not present, the presence on the class<br />
+controls whether this field will be evaluated. If present, the <code>value</code> field contains the actual validation criteria.
+This can be one of the following:</p>
+<ul>
+<li><code>Validate.GroovyTruth</code> (default), to validate this field against Groovy Truth</li>
+<li><code>Validate.Ignore</code> excludes this field from validation, this only makes sense when the class itself is marked with <code>@Validate</code></li>
+<li>A closure that takes a single argument, the value of the field. This closure must either be a single expression that
+is evaluated against Groovy Truth or else an <code>assert</code> statement itself.</li>
+</ul>
+<p>(See: <code>ValidationDocumentaryTest#'validates a numeric field with a closure'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Figure {
+    @Validate({ it &gt; 2 })
+    int edges
+}
+</code></pre>
+<p>The annotation can also contain an additional <code>message</code> value further describing the constraint; this is included in
+the error message. For a field rule with an explicit message, the validation result identifies the field and gives the
+reader a direct next step:</p>
+<p>(See: <code>ValidationDocumentaryTest#'reports an explicit validation message for a field'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Release {
+ @Validate(message = &quot;A release name is required&quot;)
+ String name
+}
+</code></pre>
+<p><code>Release.Create.One()</code> reports:</p>
+<pre><code class="language-text">&lt;root&gt;($/Release.One):
+- ERROR #name: A release name is required
+</code></pre>
+<p>For validation closures, it is advisable to use the message feature of the <code>assert</code> keyword instead:</p>
+<pre><code class="language-groovy">@DSL
+class Figure {
+ @Validate({ assert it &gt; 2 : &quot;need more than 2 edges, but got only $it&quot;})
+ int edges
+}
+</code></pre>
+<p>For validation closures, take care to account for <code>null</code> values, for example, by using the groovy
+safe operator or short circuit operators:</p>
+<pre><code class="language-groovy">@DSL
+class MyModel {
+
+ @Validate({ it?.job == &quot;manager&quot;})
+ Person administrator
+
+ @Validate({ it &amp;&amp; it.age &lt; 65 })
+ Person person
+
+ @Validate({ !it || it.age &lt; 65 })
+ Person optionalPerson
+}
+</code></pre>
+<p>Any failed validation is represented by a <code>KlumValidationIssue</code>, all
+issues of a single object are collected in a <code>KlumValidationResult</code>. The result is stored in the completed object's Model
+companion and is accessed through <code>KlumObjectSupport.of(object).getValidation().getResult()</code> rather than through a proxy.</p>
+<h2 id="required-and-optional"><code>@Required</code> and <code>@Optional</code></h2>
+<p><code>@Required</code> is a convenient alias for <code>@Validate</code> with an empty value (i.e., default validation), also with an optional message and level.</p>
+<p>(See: <code>ValidationDocumentaryTest#'uses Required as the concise Groovy-truth field rule'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class MyModel {
+
+    @Required
+    Person administrator
+
+    @Required(&quot;We really need another person (4-eyes principle)&quot;)
+    Person person
+
+    /**
+     * @deprecated Use person instead
+     */
+    @Required(level = Validate.Level.DEPRECATION)
+    Person manager
+}
+</code></pre>
+<p>Is the same as</p>
+<pre><code class="language-groovy">@DSL
+class MyModel {
+
+ @Validate
+ Person administrator
+
+ @Validate(message=&quot;We really need another person (4-eyes principle)&quot;)
+ Person person
+
+ /**
+  * @deprecated Use person instead
+  */
+ @Validate(level = Validate.Level.DEPRECATION)
+ Person manager
+}
+</code></pre>
+<p>Likewise, <code>@Optional</code> is a convenient alias for <code>@Validate(Validate.Ignore)</code>, to explicitly ignore a field from validation
+when <code>Validate</code> is used on a class.</p>
+<p>(See: <code>ValidationDocumentaryTest#'excludes an optional field from class-wide validation'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+@Validate
+class Release {
+    String name
+
+    @Optional
+    String notes
+}
+</code></pre>
+<h2 id="on-methods">On Methods</h2>
+<p><code>@Validate</code> can also be used on methods. In this case, any method carrying the annotation is executed during the validation phase; private methods work as well, but <code>static</code> methods are forbidden at compile time. If it successfully returns, the validation is considered successful. If it throws an exception, the validation fails.</p>
+<p>A failed <code>assert</code> becomes a validation issue at the method's configured <code>level</code> (<code>ERROR</code> by default). An explicit
+assertion message is retained in the issue message. Without one, KlumAST retains Groovy's power-assertion message,
+including the failed expression and its values.</p>
+<p>(See: <code>ValidationDocumentaryTest#'reports failed validation-method assertions at their configured levels'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Release {
+    int replicas
+
+    @Validate(level = Validate.Level.WARNING)
+    void replicasShouldBeConfigured() {
+        assert replicas &gt; 0 : 'Configure at least one replica'
+    }
+
+    @Validate
+    void requiresTwoReplicas() {
+        assert replicas &gt;= 2
+    }
+}
+</code></pre>
+<p>For <code>Release.Create.With { replicas 0 }</code>, the first assertion produces a <code>WARNING</code> whose Groovy assertion message includes
+<code>Configure at least one replica</code>. The default-level assertion produces an <code>ERROR</code> whose message starts with Groovy's power
+assertion:</p>
+<pre><code class="language-text">assert replicas &gt;= 2
+       |        |
+       0        false
+</code></pre>
+<h2 id="custom-issues">Custom Issues</h2>
+<p>Instead of throwing an exception, report a custom diagnostic through <code>KlumSchemaSupport</code>. Its current-object reporter is
+available in every framework-managed lifecycle callback and closure, including early Builder phases and completed-model
+validation. It preserves the callback's target and member; it does not create a lifecycle or change validation timing.</p>
+<p>For Java helpers, obtain the reporter through the gateway:</p>
+<pre><code class="language-java">KlumSchemaSupport.klumValidationForObject(child)
+    .error(&quot;child needs a release name&quot;);
+</code></pre>
+<p>In Groovy, statically import the <code>klumValidation</code> property for the current lifecycle target:</p>
+<pre><code class="language-groovy">import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
+
+@DSL
+class Release {
+    List&lt;String&gt; values
+
+    @Validate
+    void validateValues() {
+        if (values.size() &lt; 2)
+            klumValidation.error(&quot;Need at least two values&quot;)
+        values.each {
+            if (it.size() &lt; 3)
+                klumValidation.errorAt(&quot;values&quot;, &quot;$it: Need at least three characters&quot;)
+        }
+    }
+}
+</code></pre>
+<p>Groovy also supports an alias for this static property import when a shorter local name reads better:</p>
+<pre><code class="language-groovy">import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation as report
+
+@Validate
+void validateRelease() {
+    report.error(&quot;Mööp&quot;)
+}
+</code></pre>
+<p>(See: <code>KlumValidationReporterTest#'supports an alias for the static Groovy reporter property import'</code>.)</p>
+<p>The reporter operations are <code>error</code>/<code>errorAt</code>, <code>issue</code>/<code>issueAt</code>, <code>suppressOn</code>/<code>suppressAll</code>, and <code>getFailLevel</code>.
+The <code>*At</code> operations name a member directly. Current-object operations use the lifecycle member when no member is given;
+explicit-target operations use <code>&lt;none&gt;</code> unless an <code>*At</code> operation supplies a member. Suppression affects only later
+issues, as before.</p>
+<p>Use <code>KlumSchemaSupport.klumValidationForObject(target)</code> when a callback needs to report a diagnostic on another object
+in the same construction graph. That object's own construction path is retained in the diagnostic. The reporter can be
+called by helpers reached from a lifecycle callback, but it is not a general out-of-lifecycle validation API; issue
+<a rel="nofollow" href="https://github.com/klum-dsl/klum-ast/issues/406">#406</a> separately owns compile-time placement enforcement.</p>
+<p>(See: <code>KlumValidationReporterTest#'reports a current validation-method issue through the static Groovy property'</code>.)</p>
+<h2 id="on-inner-classes-validation-classes">On Inner Classes (Validation Classes)</h2>
+<p><code>@Validate</code> can also be placed on a public, non-static inner class, making it a <strong>validation class</strong>. A concrete
+validation class may declare at most one no-argument constructor; omit it unless initialization is needed. Parameterized
+constructors are not allowed. All public, non-static, parameterless methods in the class are considered validation
+methods, like above. Groovy methods are public by default unless their visibility is explicitly restricted.</p>
+<p>Validation classes keep validation logic out of the main model declaration and can cluster rules by topic. Their class name
+is preserved in the emitted issue target, so <code>ConnectivityChecks.portMustBeInRange()</code> identifies both the topic and the
+failing rule.</p>
+<p>During actual validation, each public, non-abstract validation class is instantiated and its validation methods are
+executed.</p>
+<p>There can be an unlimited number of validation classes, and validation classes of parent model classes are also
+instantiated during validation if they are not overridden by a child's validation class.</p>
+<pre><code class="language-groovy">import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
+
+@DSL
+class Server {
+    String host
+    int port
+
+    @Validate
+    class ConnectivityChecks {
+        void hostMustBeSet() {
+            if (!host) klumValidation.error(&quot;host must be set&quot;)
+        }
+
+        void portMustBeInRange() {
+            if (!(port in 1..65535)) klumValidation.error(&quot;port must be between 1 and 65535&quot;)
+        }
+    }
+}
+</code></pre>
+<p>For example, <code>Server.Create.One()</code> reports both failures as one validation result:</p>
+<pre><code class="language-text">&lt;root&gt;($/Server.One):
+- ERROR #ConnectivityChecks.hostMustBeSet(): host must be set
+- ERROR #ConnectivityChecks.portMustBeInRange(): port must be between 1 and 65535
+</code></pre>
+<p>Use distinct validation classes when a model has independent concerns. This keeps each group readable and makes the
+emitting class visible in the validation output:</p>
+<pre><code class="language-groovy">@DSL
+class Deployment {
+    String image
+    int replicas
+
+    @Validate
+    class ImageChecks {
+        void imageMustBeSet() {
+            assert image
+        }
+    }
+
+    @Validate
+    class CapacityChecks {
+        void replicasMustBePositive() {
+            assert replicas &gt; 0
+        }
+    }
+}
+</code></pre>
+<p>The inner class can also define a shared validation level for all methods, which can be overridden by the method level:</p>
+<pre><code class="language-groovy">@DSL
+class Job {
+    String owner
+    String ticket
+
+    @Validate(level = Validate.Level.WARNING)
+    class Warnings {
+        void ownerShouldBeSet() {
+            assert owner
+        }
+
+        @Validate(level = Validate.Level.ERROR)
+        void ticketShouldBeSet() {
+            assert ticket
+        }
+    }
+}
+</code></pre>
+<p>Validation inheritance also works with inner validation classes. In this case, the validation methods of the parent class are executed by the child validation class (unless overridden by the child class):</p>
+<pre><code class="language-groovy">@DSL
+class BaseComponent {
+    String id
+
+    @Validate
+    class Checks {
+        void idMustBeSet() {
+            assert id
+        }
+    }
+}
+
+@DSL
+class WebComponent extends BaseComponent {
+    String endpoint
+
+    @Validate
+    class Checks extends BaseComponent.Checks {
+        void endpointMustBeSet() {
+            assert endpoint
+        }
+    }
+}
+</code></pre>
+<h2 id="custom-issues-on-inner-classes">Custom Issues on Inner Classes</h2>
+<p>Validation classes use the same <code>klumValidation</code> reporter as validation methods. They no longer extend <code>ValidatorBase</code>:
+that preliminary base type and <code>Validator</code> are not part of the 4.0 API and have no compatibility bridge. Replace their
+shortcut methods with the reporter operations shown above.</p>
+<h2 id="validation-of-nested-objects">Validation of Nested Objects</h2>
+<p>Validation is done in a separate <a rel="nofollow" href="../Model-Phases/">phase</a> after all child objects are created and other relevant
+phases are run (postApply, postCreate, and future phases like auto link or auto create). I.e., validation for
+the complete model tree runs immediately before the initial create method returns.</p>
+<p>This means that nested objects can make use of the complete model tree (provided they have an owner field).</p>
+<p>(See: <code>ValidationDocumentaryTest#'validates a child against parent state configured after the child'</code>.)</p>
+<pre><code class="language-groovy">@DSL class ReleasePlan {
+    String releaseName
+    ReleaseCheck check
+}
+
+@DSL class ReleaseCheck {
+    @Owner ReleasePlan releasePlan
+
+    @Validate
+    void releaseNameWasConfigured() {
+        assert releasePlan.releaseName == '2026.2'
+    }
+}
+
+def releasePlan = ReleasePlan.Create.With {
+    check {}
+    releaseName '2026.2'
+}
+</code></pre>
+<p>The child check succeeds although <code>releaseName</code> is configured after <code>check {}</code>: validation waits until the complete
+owned tree is materialized.</p>
+<p>Validation failures do not stop at the first error, rather all errors are collected and thrown at once, wrapped in a <code>KlumValidationException</code>. That exception contains a <code>List&lt;KlumValidationResult&gt;</code>, each of which contains the <code>KlumValidationIssue</code>s for a single object.</p>
+<h2 id="validation-levels">Validation Levels</h2>
+<p>There are different levels for validation problems: INFO, WARNING, DEPRECATION, and ERROR.</p>
+<p>Usually, validation problems are considered errors, but you can use the <code>level</code> parameter of the <code>@Validate</code> (or <code>@Required</code>) annotation to change this.</p>
+<p>In the normal case, only errors lead to a <code>KlumValidationException</code> being thrown, but all validation problems are collected
+in <code>KlumValidationResult</code> objects. Use <code>KlumObjectSupport.of(object).getValidation().getResult()</code> for one object or
+<code>getSubtreeResults()</code> for that object and its owned subtree.</p>
+<p>(See: <code>ValidationPolicyDocumentaryTest#'records a warning-level validation result without failing construction'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Release {
+    @Required(level = Validate.Level.WARNING)
+    String releaseNotes
+}
+</code></pre>
+<p><code>Release.Create.One()</code> succeeds and retains a <code>WARNING</code> issue for <code>releaseNotes</code> in its stored validation result.</p>
+<p>The level on which the validation causes an exception can be overridden by the <code>klum.validation.failOnLevel</code> system property.</p>
+<h2 id="deprecations">Deprecations</h2>
+<p>If a field is marked as deprecated, it is automatically validated against Groovy False, i.e., if the value is not null or empty, a validation problem of level DEPRECATION is reported.</p>
+<p>This happens in the early validation phase and therefore considers only values supplied by the Model Writer's initial
+configuration. The issue is not raised if a later phase, such as Default, AutoCreate, or AutoLink, sets the field.</p>
+<p>The warning message for a deprecated field is taken from the <code>@deprecated</code> javadoc annotation, if present.</p>
+<p>If a <code>@Notify</code> annotation is present alongside the <code>@Deprecated</code> annotation, the <code>@Notify</code> is used to determine the warning behavior.</p>
+<p>(See: <code>ValidationPolicyDocumentaryTest#'reports a documented deprecation only for a manually configured legacy field'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Release {
+    /**
+     * @deprecated Use releaseChannel instead.
+     */
+    @Deprecated
+    String legacyChannel
+}
+</code></pre>
+<p>When a Model Writer sets <code>legacyChannel</code>, the stored result records a <code>DEPRECATION</code> issue with the documented replacement.</p>
+<h2 id="notify"><code>@Notify</code></h2>
+<p>The <code>@Notify</code> annotation can be placed on any field to raise an issue if the field is set or unset after the apply phase. This is especially useful in combination with <code>@Default</code> and layer3 annotations <code>@AutoCreate</code> and <code>@LinkTo</code>.</p>
+<p>(See: <code>ValidationPolicyDocumentaryTest#'reports a missing manually configured field'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class MyModel {
+    @AutoCreate
+    @Notify(ifUnset = &quot;Value will be autocreated, which might lead to unexpected behavior&quot;)
+    String shouldBeSetManually
+}
+@DSL
+class AnotherModel {
+    @LinkTo
+    @Notify(ifSet = &quot;This value will usually be linked automatically, and should only be set manually if you know what you are doing&quot;, level = Validate.Level.INFO)
+    String autoLinked
+}
+</code></pre>
+<p>As with most issue-related annotations, the issue level can be set via the <code>level</code> parameter. The default is WARNING.</p>
+<p><code>@Notify</code> can deliberately replace the default <code>@Deprecated</code> behavior for the same field:</p>
+<p>(See: <code>ValidationPolicyDocumentaryTest#'uses Notify to replace the default deprecated-field policy'</code>.)</p>
+<pre><code class="language-groovy">@DSL
+class Release {
+    @Notify(ifSet = &quot;Use releaseChannel instead.&quot;, level = Validate.Level.INFO)
+    @Deprecated
+    String legacyChannel
+}
+</code></pre>
+<p>When a Model Writer sets <code>legacyChannel</code>, the stored result contains the <code>INFO</code> issue from <code>@Notify</code>, rather than a
+<code>DEPRECATION</code> issue.</p>
+<h2 id="suppress-further-issues">Suppress Further Issues</h2>
+<p><code>klumValidation.suppressOn(member)</code> suppresses later issues for a member on the current lifecycle target. Use
+<code>KlumSchemaSupport.klumValidationForObject(target).suppressOn(member)</code> for an explicit target. By default, issues up to
+DEPRECATION are suppressed—everything except ERROR. Provide a level argument to change that threshold.</p>
+<p><code>suppressAll()</code> applies the same rule to every member; it replaces the former <code>Validator.ANY_MEMBER</code> convention.</p>
+<p>Suppression has no effect on already reported issues. For example, this Model suppresses the later warning for <code>notes</code>
+but preserves the required <code>owner</code> error:</p>
+<pre><code class="language-groovy">import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
+
+@DSL
+class Release {
+    @Required(level = Validate.Level.WARNING)
+    String notes
+
+    @Required
+    String owner
+
+    @PostTree
+    void suppressNotesWarning() {
+        klumValidation.suppressOn(&quot;notes&quot;)
+    }
+}
+</code></pre>
+<p><code>Release.Create.One()</code> reports only:</p>
+<pre><code class="language-text">&lt;root&gt;($/Release.One):
+- ERROR #owner: Field 'owner' must be set
+</code></pre>
+<p>The executable example is <code>ValidationSpec.groovy</code>, feature <code>suppresses a later non-error issue for one member</code>.</p>
+<h2 id="validation-and-verify">Validation and Verify</h2>
+<p>The collection of validation problems and the actual throwing of the KlumValidationException is done in two separate phases.</p>
+<p>The actual check against the fail level is done in the Verify phase. This allows for custom validations provided by plugins
+(like the bean validation framework) to add their own checks.</p>
+<h2 id="skipping-verification">Skipping Verification</h2>
+<p>By setting the system property <code>klum.validation.skipVerify</code> to <code>true</code>, the verify phase is skipped. Validation is still
+executed. Read the stored results through <code>KlumObjectSupport.of(object).getValidation().getSubtreeResults()</code>, or call <code>verify()</code>
+later to apply the configured failure level without rerunning validators.</p>
+<p>(See: <code>ValidationDocumentaryTest#'verifies stored results without rerunning validators'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
+
+System.setProperty('klum.validation.skipVerify', 'true')
+
+def model = Release.Create.One()
+def validation = KlumObjectSupport.of(model).validation
+assert validation.result.issues.size() == 1
+
+try {
+    validation.verify()
+    assert false: 'the stored error should fail verification'
+} catch (KlumValidationException ignored) {
+    // verify() inspected the stored result; it did not rerun validation methods
+}
+</code></pre>
+<h2 id="jsr380-validation">JSR380 Validation</h2>
+<p>The optional <code>klum-ast-bean-validation</code> module adds Jakarta Bean Validation support. It exposes the Jakarta Validation API and includes Hibernate Validator as its implementation.</p>
+<p>With the module on the classpath, Jakarta constraint annotations are evaluated during the validation phase in addition to standard Klum validation.</p>
+<p>(See: <code>BeanValidationDocumentaryTest#'accepts a release with a satisfied Jakarta validation constraint'</code>.)</p>
+<pre><code class="language-groovy">import jakarta.validation.constraints.Size
+
+@DSL class Release {
+    @Size(min = 2, max = 4, message = &quot;Choose between two and four approvers&quot;)
+    List&lt;String&gt; approvers
+}
+</code></pre>
+<h3 id="validation-levels-and-jsr380">Validation Levels and JSR380</h3>
+<p>Levels are provided using the <code>jakarta.validation.Payload</code> interface. The class <code>com.blackbuild.klum.ast.validation.bean.Level</code> provides inner classes for each value of <code>Validate.Level</code>. When set on a constraint, a violation is recorded at that level.</p>
+<p>(See: <code>BeanValidationDocumentaryTest#'records a Jakarta constraint violation at its payload-selected level'</code>.)</p>
+<pre><code class="language-groovy">import jakarta.validation.constraints.Size
+import com.blackbuild.klum.ast.validation.bean.Level
+
+@DSL class Release {
+    @Size(min = 2, payload = Level.WARNING, message = &quot;Choose at least two approvers&quot;)
+    List&lt;String&gt; approvers
+}
+</code></pre>
+<p>The resulting issue names the constrained member and retains the constraint message.</p>
+<h3 id="using-the-gradle-plugin">Using the Gradle Plugin</h3>
+<p>When using the <a rel="nofollow" href="../Gradle-Plugins/">gradle plugin</a>, the dependency version can be omitted:</p>
+<p>(See: <code>BeanValidationGradleDocumentaryTest#'schema plugin aligns an optional Bean Validation module to its BOM'</code>.)</p>
+<pre><code class="language-groovy">plugins {
+    id 'com.blackbuild.klum-ast-schema'
+}
+
+dependencies {
+    api 'com.blackbuild.klum.ast:klum-ast-bean-validation'
+}
+</code></pre>
+<p>The schema plugin imports the matching <code>klum-ast-bom</code>, which supplies the optional module version.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
