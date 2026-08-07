@@ -1,4 +1,4 @@
-name: Verify public release
+name: "REL-2: Verify public release"
 
 on:
   workflow_dispatch:

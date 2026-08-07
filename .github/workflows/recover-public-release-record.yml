@@ -1,10 +1,10 @@
-name: Recover incomplete public release record
+name: "REL-3: Recover incomplete public release record"
 
 on:
   workflow_dispatch:
     inputs:
       stage:
-        description: "Exact protected release stage from the failed Verify public release run"
+        description: "Exact protected release stage from the failed REL-2 run"
         required: true
         type: choice
         options: [candidate, final]
@@ -13,11 +13,11 @@ on:
         required: true
         type: string
       commit:
-        description: "Full source commit SHA from the failed Verify public release run"
+        description: "Full source commit SHA from the failed REL-2 run"
         required: true
         type: string
       verification_run:
-        description: "Failed Verify public release workflow run ID"
+        description: "Failed REL-2 workflow run ID"
         required: true
         type: string
       verification_attempt:
@@ -75,11 +75,11 @@ jobs:
             --header 'X-GitHub-Api-Version: 2022-11-28' \
             "$api/actions/runs/$VERIFICATION_RUN")"
           jq -e --arg repository "$GITHUB_REPOSITORY" \
-            '.name == "Verify public release" and .event == "workflow_dispatch" and
+            '.name == "REL-2: Verify public release" and .event == "workflow_dispatch" and
              .head_branch == "master" and .head_repository.full_name == $repository and
              .path == ".github/workflows/verify-public-release.yml" and
              .conclusion == "failure"' <<< "$run_json" > /dev/null || {
-              echo 'The named run is not a failed protected Verify public release run for this source.' >&2
+              echo 'The named run is not a failed protected REL-2 run for this source.' >&2
               exit 1
             }
           jobs_json="$(curl --fail-with-body --silent --show-error \
