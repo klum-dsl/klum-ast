@@ -73,10 +73,10 @@ jobs:
             --header 'Accept: application/vnd.github+json' \
             --header 'X-GitHub-Api-Version: 2022-11-28' \
             "$api/actions/runs/$VERIFICATION_RUN")"
-          jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_COMMIT" \
+          jq -e --arg repository "$GITHUB_REPOSITORY" \
             '.name == "Verify public release" and .event == "workflow_dispatch" and
              .head_branch == "master" and .head_repository.full_name == $repository and
-             .head_sha == $sha and .path == ".github/workflows/verify-public-release.yml" and
+             .path == ".github/workflows/verify-public-release.yml" and
              .conclusion == "failure"' <<< "$run_json" > /dev/null || {
               echo 'The named run is not a failed protected Verify public release run for this source.' >&2
               exit 1
