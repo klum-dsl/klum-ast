@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+
+    def releaseVersion = providers.gradleProperty("releaseVersion").orNull
+    if (releaseVersion == null)
+        throw new GradleException("Pass -PreleaseVersion=<published version> to resolve the public plugin markers.")
+
+    plugins {
+        id "com.blackbuild.klum-ast-schema" version releaseVersion
+        id "com.blackbuild.klum-ast-model" version releaseVersion
+        id "com.blackbuild.convention.groovy" version releaseVersion
+    }
+}
+
+rootProject.name = "klum-ast-plugin-portal-consumer"
+include "schema-plugin-consumer", "model-plugin-consumer", "groovy-convention-consumer"

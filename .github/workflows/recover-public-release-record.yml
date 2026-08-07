@@ -27,9 +27,10 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
-# This is exceptional recovery only. Normal releases use Verify public release,
-# which creates the proof and release record in one dispatch.
+# This is exceptional validation only. A maintainer must create the exact
+# annotated tag and GitHub release before dispatching it; it never writes either.
 concurrency:
   group: release-record-${{ inputs.version }}
   cancel-in-progress: false
@@ -132,15 +133,10 @@ jobs:
             }
           echo "proof_identity=$proof_identity" >> "$GITHUB_OUTPUT"
 
-  finalize-release-record:
-    name: Recover the immutable release record
+  validate-release-record:
+    name: Validate the manually created release record
     needs: validate-recovery
     runs-on: ubuntu-latest
-    environment:
-      name: release-record
-    permissions:
-      contents: write
-      actions: read
 
     steps:
       - name: Require the protected recovery dispatch from master
@@ -201,7 +197,7 @@ jobs:
             test -f "pages/$line/index.html"
             grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null
           fi
-      - name: Create or verify the annotated tag and matching GitHub release
+      - name: Require the exact annotated tag and matching GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_STAGE: ${{ inputs.stage }}
@@ -212,42 +208,30 @@ jobs:
           set -euo pipefail
           tag="v$RELEASE_VERSION"
           api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
-          get_status() {
-            curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
-              --header "Authorization: Bearer $GH_TOKEN" --header 'Accept: application/vnd.github+json' \
-              --header 'X-GitHub-Api-Version: 2022-11-28' "$api/$1"
-          }
-          verify_tag() {
-            ref="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
-              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/git/ref/tags/$tag")"
-            tag_object="$(jq -er 'select(.object.type == "tag") | .object.sha' <<< "$ref")"
-            annotated="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
-              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/git/tags/$tag_object")"
-            jq -e --arg sha "$EXPECTED_COMMIT" '.object.type == "commit" and .object.sha == $sha' <<< "$annotated" > /dev/null
-          }
-          tag_status="$(get_status "git/ref/tags/$tag")"
-          release_status="$(get_status "releases/tags/$tag")"
-          case "$tag_status:$release_status" in
-            404:404) git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"; git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$tag" ;;
-            200:404|200:200) verify_tag ;;
-            404:200) echo 'A GitHub release exists without its immutable annotated tag.' >&2; exit 1 ;;
-            *) echo 'Could not determine the remote release-record state.' >&2; exit 1 ;;
-          esac
-          release_status="$(get_status "releases/tags/$tag")"
-          if [[ "$release_status" == 404 ]]; then
-            prerelease=false
-            [[ "$RELEASE_STAGE" == candidate ]] && prerelease=true
-            curl --fail-with-body --silent --show-error --request POST --header "Authorization: Bearer $GH_TOKEN" \
-              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/releases" \
-              --data "$(jq -n --arg tag "$tag" --arg sha "$EXPECTED_COMMIT" --argjson prerelease "$prerelease" '{tag_name: $tag, target_commitish: $sha, prerelease: $prerelease, generate_release_notes: true}')" > /dev/null
-          elif [[ "$release_status" != 200 ]]; then
-            echo 'Could not determine whether the matching GitHub release exists.' >&2
-            exit 1
-          fi
-          verify_tag
-          release="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
-            --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/releases/tags/$tag")"
           prerelease=false
           [[ "$RELEASE_STAGE" == candidate ]] && prerelease=true
+          get() {
+            curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              "$api/$1"
+          }
+          ref="$(get "git/ref/tags/$tag")"
+          tag_object="$(jq -er 'select(.object.type == "tag") | .object.sha' <<< "$ref")" || {
+            echo 'The release tag must be an annotated tag, not a lightweight tag.' >&2
+            exit 1
+          }
+          annotated="$(get "git/tags/$tag_object")"
+          jq -e --arg sha "$EXPECTED_COMMIT" \
+            '.object.type == "commit" and .object.sha == $sha' <<< "$annotated" > /dev/null || {
+              echo 'The annotated release tag does not point to the protected release commit.' >&2
+              exit 1
+            }
+          release="$(get "releases/tags/$tag")"
           jq -e --arg tag "$tag" --arg sha "$EXPECTED_COMMIT" --argjson prerelease "$prerelease" \
-            '.tag_name == $tag and .target_commitish == $sha and .prerelease == $prerelease and .draft == false' <<< "$release" > /dev/null
+            '.tag_name == $tag and .target_commitish == $sha and .prerelease == $prerelease and .draft == false' \
+            <<< "$release" > /dev/null || {
+              echo 'The GitHub release does not exactly match the annotated tag, commit, and stage.' >&2
+              exit 1
+            }

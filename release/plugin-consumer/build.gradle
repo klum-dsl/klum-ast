@@ -1,0 +1,16 @@
+def releaseVersion = providers.gradleProperty("releaseVersion").orNull
+if (releaseVersion == null)
+    throw new GradleException("Pass -PreleaseVersion=<published version> to resolve the public plugin markers.")
+
+tasks.register("verifyPublicPlugins") {
+    group = "verification"
+    description = "Resolves every declared Gradle plugin marker from the Plugin Portal only."
+    def evidenceFile = layout.buildDirectory.file("verification/public-plugins-${releaseVersion}.txt")
+    dependsOn subprojects.collect { it.tasks.named("verifyPluginMarker") }
+    outputs.file(evidenceFile)
+
+    doLast {
+        evidenceFile.get().asFile.parentFile.mkdirs()
+        evidenceFile.get().asFile.text = subprojects.collect { it.name }.sort().join("\n") + "\n"
+    }
+}
