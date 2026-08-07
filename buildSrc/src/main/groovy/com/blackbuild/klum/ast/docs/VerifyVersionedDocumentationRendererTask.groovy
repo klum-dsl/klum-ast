@@ -588,6 +588,26 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not expose a second manual dispatch requiring copied proof identity')
         assertContains(promotionWorkflow, 'group: pending-documentation-gh-pages',
                 'promotion must serialize gh-pages mutations with the pending-stage writer')
+
+        String recoveryWorkflow = new File(project.rootDir, '.github/workflows/recover-public-release-record.yml').text
+        assertContains(recoveryWorkflow, 'workflow_dispatch:',
+                'exceptional release-record recovery must retain its explicit manual dispatch contract')
+        assertContains(recoveryWorkflow, 'verification_run:',
+                'recovery must bind the exact failed Verify public release run')
+        assertContains(recoveryWorkflow, 'verification_attempt:',
+                'recovery must bind the exact successful proof attempt')
+        assertContains(recoveryWorkflow, '.conclusion == "failure"',
+                'recovery must accept only a failed parent verification run')
+        assertContains(recoveryWorkflow, 'Publish proven public documentation" and .conclusion == "success"',
+                'recovery must require the completed public documentation promotion')
+        assertContains(recoveryWorkflow, 'Deploy the promoted public documentation" and .conclusion == "success"',
+                'recovery must require the completed Pages deployment')
+        assertContains(recoveryWorkflow, 'name: release-record',
+                'only the protected release-record environment may authorize recovery writes')
+        assertTrue(!recoveryWorkflow.contains('PAGES_WRITER_') && !recoveryWorkflow.contains('pages: write') && !recoveryWorkflow.contains('id-token: write'),
+                'release-record recovery must not receive Pages writer or deployment authority')
+        assertTrue(!recoveryWorkflow.contains('SONATYPE_') && !recoveryWorkflow.contains('SIGNING_') && !recoveryWorkflow.contains('GRADLE_PUBLISH_'),
+                'release-record recovery must not receive artifact-publishing credentials')
         assertContains(promotionWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
                 'documentation promotion must reject a dispatch outside master')
         assertContains(promotionWorkflow, 'name: documentation-pages-writer',
