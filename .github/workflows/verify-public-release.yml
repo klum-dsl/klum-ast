@@ -275,7 +275,7 @@ jobs:
           release_status="$(get_status "releases/tags/$tag")"
           case "$tag_status:$release_status" in
             404:404)
-              git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"
+              git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"
               git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$tag"
               ;;
             200:404)
