@@ -545,8 +545,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'only the dedicated protected release-record environment may receive contents-write authority')
         assertContains(publicProofWorkflow, 'test "$PROOF_IDENTITY" = "$EXPECTED_PROOF_IDENTITY"',
                 'release-record finalization must bind the promotion to the parent proof identity')
-        assertContains(publicProofWorkflow, 'git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"',
-                'release-record finalization must create an annotated tag at the accepted source SHA')
+        assertContains(publicProofWorkflow, "git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a \"\$tag\" -m \"Release \$RELEASE_VERSION\" \"\$EXPECTED_COMMIT\"",
+                'release-record finalization must create its annotated tag with an explicit non-human Git identity')
         assertContains(publicProofWorkflow, 'A GitHub release exists without its immutable annotated tag.',
                 'release-record finalization must reject a release record that cannot be bound to an immutable tag')
         assertContains(publicProofWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
@@ -604,6 +604,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'recovery must require the completed Pages deployment')
         assertContains(recoveryWorkflow, 'name: release-record',
                 'only the protected release-record environment may authorize recovery writes')
+        assertContains(recoveryWorkflow, "git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a",
+                'recovery must create its annotated tag with an explicit non-human Git identity')
         assertTrue(!recoveryWorkflow.contains('PAGES_WRITER_') && !recoveryWorkflow.contains('pages: write') && !recoveryWorkflow.contains('id-token: write'),
                 'release-record recovery must not receive Pages writer or deployment authority')
         assertTrue(!recoveryWorkflow.contains('SONATYPE_') && !recoveryWorkflow.contains('SIGNING_') && !recoveryWorkflow.contains('GRADLE_PUBLISH_'),
