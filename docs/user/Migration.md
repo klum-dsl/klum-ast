@@ -253,8 +253,8 @@ Since klum-ast now relies on a runtime component, a schema now should have two s
 
 ```groovy
 dependencies {
-  compileOnly 'com.blackbuild.klum.ast:klum-ast:<version>'
-  implementation 'com.blackbuild.klum.ast:klum-ast-runtime:<version>'
+  compileOnly 'com.blackbuild.klum.ast:klum-ast:<klum-version>'
+  implementation 'com.blackbuild.klum.ast:klum-ast-runtime:<klum-version>'
 }
 ```
 

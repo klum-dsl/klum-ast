@@ -10,15 +10,16 @@ Turn your models into supermodels!
 # Breaking changes and version overview
 
 4.0 is currently in development as a breaking Builder-first release. Generated factories now configure Builders and
-materialize structurally immutable completed DSL Objects before validation. See the
-[Builder-first migration guide](docs/user/Builder-First-Migration.md).
+materialize structurally immutable completed DSL Objects before validation. See the canonical
+[KlumAST documentation entry point](https://klum-dsl.github.io/klum-ast/); once a final is available, use the
+version selector's labelled stable documentation rather than this repository's authoring files.
 
 3.0 dropped support for Groovy 2.x and Java 11; the minimum Java version is 17, with Groovy 3, 4, and 5 supported.
 
 For 4.0 Schema projects, Groovy 4/5 support named Java modules while Groovy 3
 remains classpath-only. The Gradle Schema plugin validates a user-owned
-`module-info.java`; see the [Gradle plugin guide](docs/user/Gradle-Plugins.md)
-and [migration guidance](docs/user/Migration.md).
+`module-info.java`; see the [canonical KlumAST documentation](https://klum-dsl.github.io/klum-ast/)
+for the Gradle plugin guide and migration guidance.
 
 Users of 1.2.0 (or lower) should take a look at the historical [Migration](https://klum-dsl.github.io/klum-ast/3.0.1/Migration/) guidance.
 
@@ -57,8 +58,8 @@ example, an illustrative failure from `models/production.groovy` could read:
 ```
 
 These capabilities make KlumAST especially useful for GitOps and other `*aC` (anything-as-code) workflows. Git can record a
-configuration's structure, but a checked-in structure is not necessarily a verified model. Read
-[why `*aC` needs model-level tests](docs/user/Why-aC-is-not-enough.md) for the rationale.
+configuration's structure, but a checked-in structure is not necessarily a verified model. Read the
+[canonical KlumAST documentation](https://klum-dsl.github.io/klum-ast/) for the model-level testing rationale.
 
 ## Example
 
@@ -124,4 +125,4 @@ def config = Config.Create.With {
 }
 ```
 
-Find more details in the current [user documentation](docs/user/Home.md).
+Find more details at the [KlumAST documentation entry point](https://klum-dsl.github.io/klum-ast/).

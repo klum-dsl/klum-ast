@@ -12,7 +12,7 @@ dependencies and Groovy convention:
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema' version '<matching-klum-version>'
+    id 'com.blackbuild.klum-ast-schema' version '<klum-version>'
 }
 
 klumSchema {
@@ -86,7 +86,7 @@ IntelliJ project, apply the Schema plugin and keep the Schema and consumer sourc
 
 ```groovy
 plugins {
-    id 'com.blackbuild.klum-ast-schema' version '<matching-klum-version>'
+    id 'com.blackbuild.klum-ast-schema' version '<klum-version>'
 }
 
 klumSchema {

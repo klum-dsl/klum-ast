@@ -38,6 +38,14 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
     @TaskAction
     void verifyRendererContract() {
         assertNoAuthoredPresentationHtml(project.rootDir)
+        assertNoLegacyKlumVersionPlaceholder(project.rootDir)
+        String readme = new File(project.rootDir, 'README.md').text
+        assertContains(readme, 'https://klum-dsl.github.io/klum-ast/',
+                'README must use the canonical versioned documentation entry point')
+        assertTrue(!readme.contains('](docs/user/'),
+                'README must not present repository authoring files as current public documentation')
+        assertContains(readme, 'https://klum-dsl.github.io/klum-ast/3.0.1/',
+                'README must retain intentional exact historical documentation links')
         File fixture = Files.createTempDirectory(temporaryDir.toPath(), 'documentation-renderer-').toFile()
         File outputs = new File(temporaryDir, 'outputs')
         project.delete(outputs)
@@ -63,6 +71,14 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertContains(exactLanding.text, 'href="#same-heading"', 'same-page Markdown fragments must use rendered heading slugs')
         assertContains(nestedPage.text, 'href="../../"', 'nested pages must link relatively to the exact landing')
         assertContains(nestedPage.text, 'href="../../#same-heading"', 'cross-page Markdown fragments must use rendered heading slugs')
+        assertContains(nestedPage.text, "id 'com.blackbuild.klum-ast-schema' version '4.0.0-rc.1'",
+                'public RC rendering must substitute the portable KlumAST plugin version token')
+        assertContains(nestedPage.text, 'com.blackbuild.klum.ast:klum-ast-runtime:4.0.0-rc.1',
+                'public RC rendering must substitute the portable KlumAST dependency version token')
+        assertTrue(!nestedPage.text.contains('&lt;klum-version&gt;') && !nestedPage.text.contains('&lt;matching-klum-version&gt;'),
+                'public RC rendering must not retain a portable or legacy KlumAST version placeholder')
+        assertContains(new File(fixture, 'docs/user/Guide/Nested.md').text, '<klum-version>',
+                'source documentation must remain portable after rendering an exact version')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
         assertContains(changelog.text, 'href="../Builder-First-Migration/"',
@@ -197,6 +213,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         File historical = new File(outputs, 'historical')
         render(fixture, historical, revision, '3.0.1', 'archived', moduleJavadocs, '/archive/', '', 'Home.md')
         assertContains(new File(historical, '3.0.1/Legacy/index.html').text, 'Archived (legacy)', 'archived chrome')
+        assertContains(new File(historical, '3.0.1/Legacy/index.html').text, '&lt;klum-version&gt;',
+                'historical wiki content must retain its portable text without current-documentation substitution')
         assertContains(new File(historical, '3.0.1/Legacy/index.html').text, 'href="../"', 'historical navigation must use extensionless relative links')
         assertTrue(new File(historical, '3.0.1/index.html').file, 'exact version must expose its authoritative landing page')
         assertContains(new File(historical, '3.0.1/site-manifest.json').text, 'not-applicable', 'historical branding exclusion')
@@ -483,6 +501,48 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'publication must not decide release identity from runner-local Git refs')
         assertTrue(releaseWorkflow.indexOf('needs: [validate-release-input, verify-release-identity-available, stage-pending-documentation]') <
                 releaseWorkflow.indexOf('publishCompleteKlumAstProduct'), 'artifact publication must remain unreachable before pending documentation success')
+
+        String publicProofWorkflow = new File(project.rootDir, '.github/workflows/verify-public-release.yml').text
+        assertContains(publicProofWorkflow, 'stage:', 'public proof must bind the protected release stage')
+        assertContains(publicProofWorkflow, 'commit:', 'public proof must bind the full source SHA')
+        assertContains(publicProofWorkflow, 'public-release-proof-${{ github.run_id }}.${{ github.run_attempt }}',
+                'public proof must retain its immutable run and attempt identity')
+        assertContains(publicProofWorkflow, 'outcome: "publicly-resolved"',
+                'public proof must name its successful public-resolution outcome')
+
+        String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
+        assertContains(promotionWorkflow, 'workflow_dispatch:', 'documentation promotion must require an explicit manual dispatch')
+        assertContains(promotionWorkflow, 'group: pending-documentation-gh-pages',
+                'promotion must serialize gh-pages mutations with the pending-stage writer')
+        assertContains(promotionWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
+                'documentation promotion must reject a dispatch outside master')
+        assertContains(promotionWorkflow, 'name: documentation-pages-writer',
+                'only the protected Pages writer environment may receive documentation writer credentials')
+        assertContains(promotionWorkflow, 'name: documentation-pages',
+                'public documentation deployment must remain separate from the writer environment')
+        assertContains(promotionWorkflow, 'public-release-proof-$PROOF_RUN.$PROOF_ATTEMPT',
+                'promotion must consume the exact public-proof run and attempt artifact')
+        assertContains(promotionWorkflow, 'pending/$RELEASE_VERSION/$EXPECTED_COMMIT',
+                'promotion must require matching immutable pending-stage evidence')
+        assertContains(promotionWorkflow, 'documentationStatus=$public_status',
+                'promotion must re-render public status chrome rather than expose pending content')
+        assertContains(promotionWorkflow, 'aliases=\'["preview"]\'',
+                'candidate promotion must advance only the preview alias')
+        assertContains(promotionWorkflow, 'aliases="[\\"stable\\",\\"$line\\"]"',
+                'final promotion must advance stable and its maintained-line alias')
+        assertContains(promotionWorkflow, 'promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
+                'promotion must retain an immutable auditable record')
+        assertContains(promotionWorkflow, 'already_promoted=true',
+                'an identical completed promotion must be accepted without mutation')
+        assertTrue(promotionWorkflow.indexOf('already_promoted == \'false\'') <
+                promotionWorkflow.indexOf('Upload the read-back-verified promoted ledger'),
+                'an identical promotion must upload the existing ledger for a safe Pages redeployment')
+        assertContains(promotionWorkflow, 'test ! -e "pages/$RELEASE_VERSION"',
+                'an existing public exact tree without a matching record must fail closed')
+        assertTrue(!promotionWorkflow.contains('publishCompleteKlumAstProduct'),
+                'documentation promotion must not publish artifacts')
+        assertTrue(!promotionWorkflow.contains('SONATYPE_') && !promotionWorkflow.contains('SIGNING_') && !promotionWorkflow.contains('GRADLE_PUBLISH_'),
+                'documentation promotion must not receive artifact-publishing credentials')
     }
 
     private static void initializeFixture(File repository) {
@@ -518,7 +578,20 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
 <dependencies><dependency /></dependencies>
 ```
 '''
-        new File(repository, 'docs/user/Guide/Nested.md').text = '# Nested current documentation\n\n[Home](../Home.md), [home heading](../Home.md#Same%20heading), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).\n'
+        new File(repository, 'docs/user/Guide/Nested.md').text = '''# Nested current documentation
+
+[Home](../Home.md), [home heading](../Home.md#Same%20heading), [[Home#same-heading|Current documentation]], and [source skill](../../../agent-skills/example/SKILL.md).
+
+```groovy
+plugins {
+    id 'com.blackbuild.klum-ast-schema' version '<klum-version>'
+}
+
+dependencies {
+    api 'com.blackbuild.klum.ast:klum-ast-runtime:<klum-version>'
+}
+```
+'''
         new File(repository, 'docs/user/Gradle-Onboarding.md').text = '# Gradle onboarding\n\nCurrent setup guidance.\n'
         new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
         new File(repository, 'docs/user/_Sidebar.md').text = '* [[Home]]\n* [[Gradle Onboarding]]\n* [[Guide/Nested|Nested]]\n* [[Changelog]]\n'
@@ -532,7 +605,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         new File(repository, 'docs/user/img/klumast-season-4-documentation.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'docs/user/img/klumast-season-4-documentation-compact.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'wiki/Home.md').text = '# Historical home\n\nHistorical landing content.\n'
-        new File(repository, 'wiki/Legacy.md').text = '# Legacy documentation\n\nHistorical content.\n'
+        new File(repository, 'wiki/Legacy.md').text = '# Legacy documentation\n\nHistorical content for <klum-version>.\n'
         new File(repository, 'wiki/_Sidebar.md').text = '* [[Home]]\n* [[Legacy]]\n* [[Changelog]]\n'
         new File(repository, 'docs/branding/season-4-klumast.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
                 season  : 'Season 4: The Makeover',
@@ -555,6 +628,13 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
             List<String> html = StaticDocumentationPageRenderer.authoredHtmlLiterals(content)
             if (html.any { !(it ==~ /<[A-Z][A-Za-z0-9]*>/) })
                 throw new GradleException("v3.0.1 documentation contains authored presentation HTML beyond generic type notation: $path")
+        }
+    }
+
+    private static void assertNoLegacyKlumVersionPlaceholder(File repository) {
+        new File(repository, 'docs/user').eachFileRecurse { File file ->
+            if (file.file && file.name.endsWith('.md') && file.text.contains('<matching-klum-version>'))
+                throw new GradleException("Current user documentation retains the legacy KlumAST version token: ${repository.toPath().relativize(file.toPath())}")
         }
     }
 
