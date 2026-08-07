@@ -128,6 +128,16 @@ The called writer job resolves the Pages-writer credentials from the protected
 `documentation-pages-writer` environment instead of requiring them as caller inputs; it neither
 targets a release environment nor receives publication credentials.
 
+For **Verify public release**, the nested promotion call deliberately does *not* use
+`secrets: inherit`. Its `promote` job names `documentation-pages-writer` directly, so GitHub
+releases that environment's two writer secrets only after its required approval. Keep
+`PAGES_WRITER_APP_ID` and `PAGES_WRITER_APP_PRIVATE_KEY` as non-empty environment secrets there;
+their names appearing in `gh secret list --env documentation-pages-writer` verifies only that
+records exist, not that their stored values are usable. If the protected credential check reports
+an empty value, restore both values in that environment and re-run the failed job from the same
+Verify public release run. Do not move the secrets to repository scope, add them to the caller,
+or create a new dispatch with a copied proof identity.
+
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
 and a small handoff below the protected `gh-pages` branch. It refuses an existing pending path,
 commits the new tree, and reads the pushed commit back. The staged render remains available until its
