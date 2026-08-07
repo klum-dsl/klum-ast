@@ -26,6 +26,44 @@ on:
         description: "Successful Verify public release workflow attempt"
         required: true
         type: string
+  workflow_call:
+    inputs:
+      stage:
+        description: "Exact protected release stage proved publicly"
+        required: true
+        type: string
+      version:
+        description: "Exact public X.Y.Z-rc.N or X.Y.Z version"
+        required: true
+        type: string
+      commit:
+        description: "Full source commit SHA on master"
+        required: true
+        type: string
+      proof_run:
+        description: "Successful Verify public release workflow run ID"
+        required: true
+        type: string
+      proof_attempt:
+        description: "Successful Verify public release workflow attempt"
+        required: true
+        type: string
+    outputs:
+      stage:
+        description: "Validated protected release stage"
+        value: ${{ jobs.validate-proof.outputs.stage }}
+      version:
+        description: "Validated exact release version"
+        value: ${{ jobs.validate-proof.outputs.version }}
+      commit:
+        description: "Validated exact source SHA"
+        value: ${{ jobs.validate-proof.outputs.commit }}
+      proof_identity:
+        description: "Validated immutable public-proof run and attempt"
+        value: ${{ jobs.validate-proof.outputs.proof_identity }}
+      ledger_commit:
+        description: "Current gh-pages ledger commit containing the verified promotion"
+        value: ${{ jobs.promote.outputs.ledger_commit }}
 
 permissions:
   contents: read
@@ -135,7 +173,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      ledger_commit: ${{ steps.commit.outputs.ledger_commit }}
+      ledger_commit: ${{ steps.ledger.outputs.ledger_commit }}
       already_promoted: ${{ steps.idempotence.outputs.already_promoted }}
 
     steps:
@@ -350,6 +388,19 @@ jobs:
           trap 'rm -f "$written_manifest"' EXIT
           git -C pages show "FETCH_HEAD:$RELEASE_VERSION/site-manifest.json" > "$written_manifest"
           cmp -- "$generated_manifest" "$written_manifest"
+      - id: ledger
+        name: Record the ledger identity for an identical or new promotion
+        env:
+          NEW_LEDGER_COMMIT: ${{ steps.commit.outputs.ledger_commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ledger_commit="$NEW_LEDGER_COMMIT"
+          if [[ -z "$ledger_commit" ]]; then
+            ledger_commit="$(git -C pages rev-parse HEAD)"
+          fi
+          [[ "$ledger_commit" =~ ^[0-9a-f]{40}$ ]]
+          echo "ledger_commit=$ledger_commit" >> "$GITHUB_OUTPUT"
       - name: Upload the read-back-verified promoted ledger
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:

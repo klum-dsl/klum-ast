@@ -555,6 +555,35 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not publish artifacts')
         assertTrue(!promotionWorkflow.contains('SONATYPE_') && !promotionWorkflow.contains('SIGNING_') && !promotionWorkflow.contains('GRADLE_PUBLISH_'),
                 'documentation promotion must not receive artifact-publishing credentials')
+
+        assertContains(promotionWorkflow, 'workflow_call:',
+                'the proven documentation path must be reusable by protected release-record finalization')
+        assertContains(promotionWorkflow, 'value: ${{ jobs.validate-proof.outputs.proof_identity }}',
+                'the reusable documentation path must return its validated public-proof identity')
+        String releaseRecordWorkflow = new File(project.rootDir, '.github/workflows/finalize-publicly-proven-release-record.yml').text
+        assertContains(releaseRecordWorkflow, 'workflow_dispatch:',
+                'release-record finalization must require an explicit manual dispatch')
+        assertContains(releaseRecordWorkflow, 'test "$GITHUB_REF" = refs/heads/master',
+                'release-record finalization must reject a dispatch outside master')
+        assertContains(releaseRecordWorkflow, 'uses: ./.github/workflows/promote-public-documentation.yml',
+                'release-record finalization must reuse rather than bypass proof-gated documentation promotion')
+        assertContains(releaseRecordWorkflow, 'name: release-record',
+                'only the dedicated protected release-record environment may receive contents-write authority')
+        assertContains(releaseRecordWorkflow, 'contents: write',
+                'release-record finalization must have narrowly scoped repository-record authority')
+        assertContains(releaseRecordWorkflow, 'git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"',
+                'release-record finalization must create an annotated tag at the accepted source SHA')
+        assertContains(releaseRecordWorkflow, 'A GitHub release exists without its immutable annotated tag.',
+                'release-record finalization must reject a release record that cannot be bound to an immutable tag')
+        assertContains(releaseRecordWorkflow, '.target_commitish == $sha and .prerelease == $prerelease and .draft == false',
+                'release-record finalization must verify the matching GitHub release identity and candidate flag')
+        assertContains(releaseRecordWorkflow, 'pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
+                'release-record finalization must recheck the immutable documentation promotion record')
+        assertTrue(!releaseRecordWorkflow.contains('SONATYPE_') && !releaseRecordWorkflow.contains('SIGNING_') && !releaseRecordWorkflow.contains('GRADLE_PUBLISH_'),
+                'release-record finalization must not receive artifact-publishing credentials')
+        assertTrue(releaseRecordWorkflow.indexOf('Promote the proven public release surface') <
+                releaseRecordWorkflow.indexOf('Create or verify the immutable release record'),
+                'documentation promotion must complete before the release record can be created')
     }
 
     private static void initializeFixture(File repository) {
