@@ -588,6 +588,10 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must consume the exact public-proof run and attempt artifact')
         assertContains(promotionWorkflow, 'actions/runs/$PROOF_RUN/attempts/$PROOF_ATTEMPT/jobs?per_page=100',
                 'promotion must validate the completed exact proof job rather than wait for its parent workflow to finish')
+        assertContains(promotionWorkflow, '.path == ".github/workflows/verify-public-release.yml"',
+                'promotion must accept the documented API path of its manually dispatched parent run')
+        assertTrue(!promotionWorkflow.contains('endswith("/.github/workflows/verify-public-release.yml@refs/heads/master")'),
+                'promotion must not confuse its parent run API path with a reusable-workflow ref')
         assertContains(promotionWorkflow, '.name == "Resolve Maven modules and Gradle plugin markers" and',
                 'promotion must require the credential-free public resolve-back job')
         assertContains(promotionWorkflow, '.status == "completed" and .conclusion == "success"',

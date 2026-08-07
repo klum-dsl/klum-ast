@@ -101,7 +101,7 @@ jobs:
             --arg repository "$GITHUB_REPOSITORY" \
             '.name == "Verify public release" and .event == "workflow_dispatch" and
              .head_branch == "master" and .head_repository.full_name == $repository and
-             (.path | endswith("/.github/workflows/verify-public-release.yml@refs/heads/master"))' \
+             .path == ".github/workflows/verify-public-release.yml"' \
             <<< "$run_json" > /dev/null || {
               echo 'The named proof run is not a trusted Verify public release run.' >&2
               exit 1
