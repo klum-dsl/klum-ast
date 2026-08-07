@@ -27,6 +27,9 @@ import groovy.json.JsonOutput
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
+import org.commonmark.node.AbstractVisitor
+import org.commonmark.node.Link
+import org.commonmark.parser.Parser
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -42,8 +45,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         String readme = new File(project.rootDir, 'README.md').text
         assertContains(readme, 'https://klum-dsl.github.io/klum-ast/',
                 'README must use the canonical versioned documentation entry point')
-        assertTrue(!readme.contains('](docs/user/'),
+        assertTrue(!containsCurrentAuthoringDocumentationLink(readme),
                 'README must not present repository authoring files as current public documentation')
+        assertTrue(!containsCurrentAuthoringDocumentationLink('![Season lockup](docs/user/img/season-4/klumast-season-4-documentation.svg)'),
+                'README protection must allow local Markdown images from the authoring tree')
+        assertTrue(containsCurrentAuthoringDocumentationLink('[Current documentation](docs/user/Home.md)'),
+                'README protection must reject ordinary Markdown links to current authoring documentation')
         assertContains(readme, 'https://klum-dsl.github.io/klum-ast/3.0.1/',
                 'README must retain intentional exact historical documentation links')
         File fixture = Files.createTempDirectory(temporaryDir.toPath(), 'documentation-renderer-').toFile()
@@ -636,6 +643,18 @@ dependencies {
             if (file.file && file.name.endsWith('.md') && file.text.contains('<matching-klum-version>'))
                 throw new GradleException("Current user documentation retains the legacy KlumAST version token: ${repository.toPath().relativize(file.toPath())}")
         }
+    }
+
+    private static boolean containsCurrentAuthoringDocumentationLink(String markdown) {
+        boolean[] found = [false]
+        Parser.builder().build().parse(markdown).accept(new AbstractVisitor() {
+            @Override
+            void visit(Link link) {
+                found[0] = found[0] || (link.destination?.startsWith('docs/user/') ?: false)
+                visitChildren(link)
+            }
+        })
+        found[0]
     }
 
     private static Map<String, File> initializeModuleJavadocs(File repository) {
