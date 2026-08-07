@@ -144,6 +144,10 @@ jobs:
       commit: ${{ inputs.commit }}
       proof_run: ${{ needs.resolve.outputs.proof_run }}
       proof_attempt: ${{ needs.resolve.outputs.proof_attempt }}
+    # The called writer job still resolves its App credentials only from its own
+    # approved environment. GitHub requires this reusable-workflow secret context
+    # for those environment expressions to be populated.
+    secrets: inherit
 
   finalize-release-record:
     name: Create or verify the immutable release record
