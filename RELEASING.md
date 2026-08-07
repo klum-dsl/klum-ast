@@ -142,6 +142,14 @@ the correction is merged *before any public exact tree, promotion record, tag, o
 dispatch **Verify public release** once again from `master` with the same stage/version/SHA. It
 creates a new proof identity internally; never copy the old proof identity into a dispatch.
 
+The separately protected `release-record` environment holds only
+`RELEASE_RECORD_WRITER_APP_ID` and `RELEASE_RECORD_WRITER_APP_PRIVATE_KEY`. They identify a dedicated
+GitHub App installed only for this repository with **Contents: write** and **Workflows: write**. The
+finalizer first completes its immutable proof and `gh-pages` rechecks with a read-only `GITHUB_TOKEN`,
+then mints that App token only after the `release-record` approval to create the annotated tag and
+matching release. The App's Workflows permission is required when the accepted source commit includes
+workflow files; do not use the Pages writer App, repository-wide secrets, or a maintainer token for this.
+
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
 and a small handoff below the protected `gh-pages` branch. It refuses an existing pending path,
 commits the new tree, and reads the pushed commit back. The staged render remains available until its
@@ -207,11 +215,11 @@ a proof run ID or attempt into another dispatch. The workflow performs this orde
    exact tree, and exposes only eligible aliases: `/preview/` for an RC, or `/stable/` and its maintained
    line for a final. Its Pages writer/deployment authority contains no Maven, Plugin Portal, signing, or
    release-record credentials.
-3. The downstream `release-record` job waits for that promotion, requires its separate maintainer
-   approval, and has `contents: write` only there. It rechecks the proof, pending/public manifests,
-   promotion record, and aliases, then creates or verifies annotated `v<version>` at the accepted SHA and
-   the matching GitHub release (`prerelease` for an RC). It has no Maven, Plugin Portal, signing, or
-   Pages-writer credentials.
+3. The downstream `release-record` job waits for that promotion and requires its separate maintainer
+   approval. It rechecks the proof, pending/public manifests, promotion record, and aliases with its
+   read-only workflow token, then mints its dedicated release-record App token to create or verify
+   annotated `v<version>` at the accepted SHA and the matching GitHub release (`prerelease` for an RC).
+   It has no Maven, Plugin Portal, signing, or Pages-writer credentials.
 4. Only after the run reports the exact public documentation, tag, and release record may the maintainer
    run the independent external-consumer check.
 
@@ -233,8 +241,8 @@ matching public exact tree and promotion record exist but no tag or GitHub relea
 **Recover incomplete public release record** workflow. Enter the original stage, version, source SHA, verification
 run ID, and successful proof attempt; it accepts only a failed protected **Verify public release** run whose proof,
 promotion, deployment, and immutable `gh-pages` record all match exactly. Its sole protected job uses the existing
-`release-record` approval and `contents: write` authority to create or verify only the tag and release. It has no
-Pages writer, deployment, or publishing credentials. This exception completes an already-proven partial run; normal
+`release-record` approval and its dedicated release-record App token to create or verify only the tag and release. It
+has no Pages writer, deployment, or publishing credentials. This exception completes an already-proven partial run; normal
 releases remain the single-dispatch **Verify public release** sequence.
 
 This is a deliberate correction to the former later-tag rule: finalization happens after public

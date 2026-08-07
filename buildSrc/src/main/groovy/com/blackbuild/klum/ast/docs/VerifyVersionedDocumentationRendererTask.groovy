@@ -571,8 +571,16 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not receive repository-record write authority')
         assertContains(promotionJob, 'secrets: inherit',
                 'the reusable promotion caller must preserve the called writer job\'s environment secret context')
-        assertContains(recordJob, 'contents: write',
-                'only the protected release-record job may receive repository-record write authority')
+        assertTrue(!recordJob.contains('contents: write'),
+                'release-record finalization must not grant write authority to the ambient GITHUB_TOKEN')
+        assertContains(recordJob, 'secrets.RELEASE_RECORD_WRITER_APP_ID',
+                'release-record finalization must obtain its workflow-capable writer identity only from its protected environment')
+        assertContains(recordJob, 'secrets.RELEASE_RECORD_WRITER_APP_PRIVATE_KEY',
+                'release-record finalization must obtain its workflow-capable writer key only from its protected environment')
+        assertContains(recordJob, 'id: release-record-writer-token',
+                'release-record finalization must mint a dedicated writer token after environment approval')
+        assertContains(recordJob, 'steps.release-record-writer-token.outputs.token',
+                'release-record finalization must use the dedicated writer token for tag and release mutation')
         assertTrue(!recordJob.contains('pages: write') && !recordJob.contains('id-token: write'),
                 'release-record finalization must not receive Pages deployment authority')
         assertContains(recordJob, 'grep -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null',
@@ -606,8 +614,16 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'only the protected release-record environment may authorize recovery writes')
         assertContains(recoveryWorkflow, "git -c user.name='klum-ast release bot' -c user.email='noreply@users.noreply.github.com' tag -a",
                 'recovery must create its annotated tag with an explicit non-human Git identity')
-        assertTrue(!recoveryWorkflow.contains('PAGES_WRITER_') && !recoveryWorkflow.contains('pages: write') && !recoveryWorkflow.contains('id-token: write'),
-                'release-record recovery must not receive Pages writer or deployment authority')
+        assertContains(recoveryWorkflow, 'secrets.RELEASE_RECORD_WRITER_APP_ID',
+                'recovery must obtain its workflow-capable writer identity only from the protected release-record environment')
+        assertContains(recoveryWorkflow, 'secrets.RELEASE_RECORD_WRITER_APP_PRIVATE_KEY',
+                'recovery must obtain its workflow-capable writer key only from the protected release-record environment')
+        assertContains(recoveryWorkflow, 'id: release-record-writer-token',
+                'recovery must mint a dedicated writer token after environment approval')
+        assertContains(recoveryWorkflow, 'steps.release-record-writer-token.outputs.token',
+                'recovery must use the dedicated writer token for tag and release mutation')
+        assertTrue(!recoveryWorkflow.contains('contents: write') && !recoveryWorkflow.contains('PAGES_WRITER_') && !recoveryWorkflow.contains('pages: write') && !recoveryWorkflow.contains('id-token: write'),
+                'release-record recovery must not receive ambient GitHub, Pages writer, or deployment write authority')
         assertTrue(!recoveryWorkflow.contains('SONATYPE_') && !recoveryWorkflow.contains('SIGNING_') && !recoveryWorkflow.contains('GRADLE_PUBLISH_'),
                 'release-record recovery must not receive artifact-publishing credentials')
         assertContains(promotionWorkflow, 'test "$GITHUB_REF" = refs/heads/master',

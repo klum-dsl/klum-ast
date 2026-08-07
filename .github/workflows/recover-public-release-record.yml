@@ -139,7 +139,7 @@ jobs:
     environment:
       name: release-record
     permissions:
-      contents: write
+      contents: read
       actions: read
 
     steps:
@@ -201,9 +201,27 @@ jobs:
             test -f "pages/$line/index.html"
             grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null
           fi
+      - name: Require protected release-record writer credentials
+        env:
+          RELEASE_RECORD_WRITER_APP_ID: ${{ secrets.RELEASE_RECORD_WRITER_APP_ID }}
+          RELEASE_RECORD_WRITER_APP_PRIVATE_KEY: ${{ secrets.RELEASE_RECORD_WRITER_APP_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$RELEASE_RECORD_WRITER_APP_ID" || -z "$RELEASE_RECORD_WRITER_APP_PRIVATE_KEY" ]]; then
+            echo 'The protected release-record environment must contain non-empty RELEASE_RECORD_WRITER_APP_ID and RELEASE_RECORD_WRITER_APP_PRIVATE_KEY secrets.' >&2
+            echo 'The App must be installed for this repository with Contents: write and Workflows: write; do not move these environment credentials to repository scope.' >&2
+            exit 1
+          fi
+      - name: Mint the dedicated release-record writer token
+        id: release-record-writer-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.RELEASE_RECORD_WRITER_APP_ID }}
+          private-key: ${{ secrets.RELEASE_RECORD_WRITER_APP_PRIVATE_KEY }}
       - name: Create or verify the annotated tag and matching GitHub release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.release-record-writer-token.outputs.token }}
           RELEASE_STAGE: ${{ inputs.stage }}
           RELEASE_VERSION: ${{ inputs.version }}
           EXPECTED_COMMIT: ${{ inputs.commit }}
