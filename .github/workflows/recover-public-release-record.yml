@@ -1,0 +1,253 @@
+name: Recover incomplete public release record
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Exact protected release stage from the failed Verify public release run"
+        required: true
+        type: choice
+        options: [candidate, final]
+      version:
+        description: "Exact public X.Y.Z-rc.N or X.Y.Z version"
+        required: true
+        type: string
+      commit:
+        description: "Full source commit SHA from the failed Verify public release run"
+        required: true
+        type: string
+      verification_run:
+        description: "Failed Verify public release workflow run ID"
+        required: true
+        type: string
+      verification_attempt:
+        description: "Successful proof attempt in that failed workflow run"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# This is exceptional recovery only. Normal releases use Verify public release,
+# which creates the proof and release record in one dispatch.
+concurrency:
+  group: release-record-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  validate-recovery:
+    name: Validate the failed public-release finalization
+    runs-on: ubuntu-latest
+    outputs:
+      proof_identity: ${{ steps.proof.outputs.proof_identity }}
+
+    steps:
+      - name: Require a protected recovery dispatch from master
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/master
+      - name: Validate the requested recovery identity and failed run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          VERIFICATION_RUN: ${{ inputs.verification_run }}
+          VERIFICATION_ATTEMPT: ${{ inputs.verification_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_STAGE" == candidate && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[1-9][0-9]*$ ]] || \
+             [[ "$RELEASE_STAGE" == final && "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$VERIFICATION_RUN" =~ ^[1-9][0-9]*$ ]]
+            [[ "$VERIFICATION_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          else
+            echo 'The release-record recovery identity is malformed.' >&2
+            exit 1
+          fi
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
+          run_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$api/actions/runs/$VERIFICATION_RUN")"
+          jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_COMMIT" \
+            '.name == "Verify public release" and .event == "workflow_dispatch" and
+             .head_branch == "master" and .head_repository.full_name == $repository and
+             .head_sha == $sha and .path == ".github/workflows/verify-public-release.yml" and
+             .conclusion == "failure"' <<< "$run_json" > /dev/null || {
+              echo 'The named run is not a failed protected Verify public release run for this source.' >&2
+              exit 1
+            }
+          jobs_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$api/actions/runs/$VERIFICATION_RUN/attempts/$VERIFICATION_ATTEMPT/jobs?per_page=100")"
+          jq -e '.jobs | any(.[]; .name == "Resolve Maven modules and Gradle plugin markers" and .conclusion == "success") and
+            any(.[]; .name == "Promote the proven public release surface / Publish proven public documentation" and .conclusion == "success") and
+            any(.[]; .name == "Promote the proven public release surface / Deploy the promoted public documentation" and .conclusion == "success") and
+            any(.[]; .name == "Create or verify the immutable release record" and .conclusion == "failure")' \
+            <<< "$jobs_json" > /dev/null || {
+              echo 'The named run did not fail only after its proof and public documentation promotion succeeded.' >&2
+              exit 1
+            }
+      - id: proof
+        name: Download and validate the retained public proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          VERIFICATION_RUN: ${{ inputs.verification_run }}
+          VERIFICATION_ATTEMPT: ${{ inputs.verification_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
+          artifacts_json="$(curl --fail-with-body --silent --show-error \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$api/actions/runs/$VERIFICATION_RUN/artifacts")"
+          artifact_name="public-release-proof-$VERIFICATION_RUN.$VERIFICATION_ATTEMPT"
+          artifact_url="$(jq -er --arg name "$artifact_name" \
+            '.artifacts | map(select(.name == $name and .expired == false)) | if length == 1 then .[0].archive_download_url else empty end' \
+            <<< "$artifacts_json")"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' "$artifact_url" --output proof.zip
+          unzip -q proof.zip -d proof
+          proof=proof/public-release-proof.json
+          test -f "$proof"
+          proof_identity="$VERIFICATION_RUN.$VERIFICATION_ATTEMPT"
+          jq -e --arg stage "$RELEASE_STAGE" --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" --arg proofRun "$proof_identity" \
+            '. == {schemaVersion: 1, stage: $stage, version: $version, sha: $sha, proofRun: $proofRun, outcome: "publicly-resolved"}' \
+            "$proof" > /dev/null || {
+              echo 'The retained public proof does not bind the requested recovery identity.' >&2
+              exit 1
+            }
+          echo "proof_identity=$proof_identity" >> "$GITHUB_OUTPUT"
+
+  finalize-release-record:
+    name: Recover the immutable release record
+    needs: validate-recovery
+    runs-on: ubuntu-latest
+    environment:
+      name: release-record
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Require the protected recovery dispatch from master
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.commit }}
+      - name: Prove the selected release source remains clean and on master
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" origin/master
+          test -z "$(git status --porcelain=v1)"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: gh-pages
+          path: pages
+          persist-credentials: false
+      - name: Recheck the immutable public documentation promotion
+        env:
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+          PROOF_IDENTITY: ${{ needs.validate-recovery.outputs.proof_identity }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pages/.nojekyll
+          pending_manifest="pages/pending/$RELEASE_VERSION/$EXPECTED_COMMIT/site-manifest.json"
+          exact_manifest="pages/$RELEASE_VERSION/site-manifest.json"
+          promotion="pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json"
+          test -f "$pending_manifest"
+          test -f "$exact_manifest"
+          test -f "$promotion"
+          pending_manifest_sha256="$(sha256sum "$pending_manifest" | awk '{print $1}')"
+          exact_manifest_sha256="$(sha256sum "$exact_manifest" | awk '{print $1}')"
+          jq -e --arg stage "$RELEASE_STAGE" --arg version "$RELEASE_VERSION" \
+            --arg sha "$EXPECTED_COMMIT" --arg proofRun "$PROOF_IDENTITY" \
+            --arg pendingManifestSha256 "$pending_manifest_sha256" --arg publicManifestSha256 "$exact_manifest_sha256" \
+            '.schemaVersion == 1 and .stage == $stage and .version == $version and .sha == $sha and
+             .proofRun == $proofRun and .pendingManifestSha256 == $pendingManifestSha256 and
+             .publicManifestSha256 == $publicManifestSha256 and .outcome == "promoted-public-documentation"' \
+            "$promotion" > /dev/null
+          if [[ "$RELEASE_STAGE" == candidate ]]; then
+            test -f pages/preview/index.html
+            grep -F "../$RELEASE_VERSION/" pages/preview/index.html > /dev/null
+          else
+            line="${RELEASE_VERSION%.*}"
+            test -f pages/stable/index.html
+            test -f "pages/$line/index.html"
+            grep -F "../$RELEASE_VERSION/" pages/stable/index.html "pages/$line/index.html" > /dev/null
+          fi
+      - name: Create or verify the annotated tag and matching GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_STAGE: ${{ inputs.stage }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          EXPECTED_COMMIT: ${{ inputs.commit }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v$RELEASE_VERSION"
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY"
+          get_status() {
+            curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --header "Authorization: Bearer $GH_TOKEN" --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' "$api/$1"
+          }
+          verify_tag() {
+            ref="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/git/ref/tags/$tag")"
+            tag_object="$(jq -er 'select(.object.type == "tag") | .object.sha' <<< "$ref")"
+            annotated="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/git/tags/$tag_object")"
+            jq -e --arg sha "$EXPECTED_COMMIT" '.object.type == "commit" and .object.sha == $sha' <<< "$annotated" > /dev/null
+          }
+          tag_status="$(get_status "git/ref/tags/$tag")"
+          release_status="$(get_status "releases/tags/$tag")"
+          case "$tag_status:$release_status" in
+            404:404) git tag -a "$tag" -m "Release $RELEASE_VERSION" "$EXPECTED_COMMIT"; git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/tags/$tag" ;;
+            200:404|200:200) verify_tag ;;
+            404:200) echo 'A GitHub release exists without its immutable annotated tag.' >&2; exit 1 ;;
+            *) echo 'Could not determine the remote release-record state.' >&2; exit 1 ;;
+          esac
+          release_status="$(get_status "releases/tags/$tag")"
+          if [[ "$release_status" == 404 ]]; then
+            prerelease=false
+            [[ "$RELEASE_STAGE" == candidate ]] && prerelease=true
+            curl --fail-with-body --silent --show-error --request POST --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/releases" \
+              --data "$(jq -n --arg tag "$tag" --arg sha "$EXPECTED_COMMIT" --argjson prerelease "$prerelease" '{tag_name: $tag, target_commitish: $sha, prerelease: $prerelease, generate_release_notes: true}')" > /dev/null
+          elif [[ "$release_status" != 200 ]]; then
+            echo 'Could not determine whether the matching GitHub release exists.' >&2
+            exit 1
+          fi
+          verify_tag
+          release="$(curl --fail-with-body --silent --show-error --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' "$api/releases/tags/$tag")"
+          prerelease=false
+          [[ "$RELEASE_STAGE" == candidate ]] && prerelease=true
+          jq -e --arg tag "$tag" --arg sha "$EXPECTED_COMMIT" --argjson prerelease "$prerelease" \
+            '.tag_name == $tag and .target_commitish == $sha and .prerelease == $prerelease and .draft == false' <<< "$release" > /dev/null

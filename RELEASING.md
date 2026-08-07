@@ -226,8 +226,16 @@ not a concluded parent workflow, so the retained proof can still bind a later do
 GitHub pins a failed-job retry's reusable workflow to its original revision: if a caller or called-workflow
 correction is required, merge it first and start a new input-only **Verify public release** dispatch only when
 no public exact tree, promotion record, tag, or release exists. That new public proof has its own identity; it
-does not repair an earlier partial promotion. Once any of those immutable records exists, use only the retained
-same-run recovery path and fail closed on a mismatch.
+does not repair an earlier partial promotion.
+
+If the failed code is in the parent release-record finalizer itself, no rerun can load its correction. Once a
+matching public exact tree and promotion record exist but no tag or GitHub release exists, use the exceptional
+**Recover incomplete public release record** workflow. Enter the original stage, version, source SHA, verification
+run ID, and successful proof attempt; it accepts only a failed protected **Verify public release** run whose proof,
+promotion, deployment, and immutable `gh-pages` record all match exactly. Its sole protected job uses the existing
+`release-record` approval and `contents: write` authority to create or verify only the tag and release. It has no
+Pages writer, deployment, or publishing credentials. This exception completes an already-proven partial run; normal
+releases remain the single-dispatch **Verify public release** sequence.
 
 This is a deliberate correction to the former later-tag rule: finalization happens after public
 artifact proof but **before** the independent external-consumer check. A failed public proof gets no
