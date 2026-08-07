@@ -165,6 +165,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          ref: ${{ github.sha }}
+          path: landing-writer
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ needs.validate-proof.outputs.commit }}
@@ -301,21 +306,9 @@ jobs:
             line="${RELEASE_VERSION%.*}"
             aliases="[\"stable\",\"$line\"]"
           fi
-          write_alias() {
-            local alias="$1"
-            local label="$2"
-            mkdir -p "pages/$alias"
-            printf '%s\n' "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>$label</title></head><body><main><h1>$label</h1><p>This labelled alias currently selects <a href=\"../$RELEASE_VERSION/\">$RELEASE_VERSION</a>.</p></main></body></html>" \
-              > "pages/$alias/index.html"
-          }
-          if [[ "$RELEASE_STAGE" == candidate ]]; then
-            write_alias preview 'Public release candidate preview'
-          else
-            write_alias stable 'Current stable KlumAST documentation'
-            write_alias "$line" "Current maintained $line KlumAST documentation"
-          fi
           mkdir -p "pages/$RELEASE_VERSION" "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT"
           cp -a "build/public-documentation/$RELEASE_VERSION/." "pages/$RELEASE_VERSION/"
+          bash landing-writer/.github/scripts/write-documentation-landing.sh pages "$RELEASE_VERSION" "$RELEASE_STAGE"
           jq -n \
             --arg stage "$RELEASE_STAGE" \
             --arg version "$RELEASE_VERSION" \
@@ -329,11 +322,11 @@ jobs:
               aliases: $aliases, outcome: "promoted-public-documentation"}' \
             > "pages/promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json"
           cd pages
-          git add -- "$RELEASE_VERSION" promotions
+          git add -- "$RELEASE_VERSION" promotions index.html
           if [[ "$RELEASE_STAGE" == candidate ]]; then
-            git add -- preview
+            git add -- preview/index.html
           else
-            git add -- stable "$line"
+            git add -- stable/index.html "$line/index.html"
           fi
           git -c user.name='klum-ast documentation bot' -c user.email='noreply@users.noreply.github.com' \
             commit -m "Promote proven documentation for $RELEASE_VERSION"

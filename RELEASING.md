@@ -216,6 +216,15 @@ job, which validates the matching immutable pending-stage manifest, creates the 
 exposes only `/preview/` for an RC or `/stable/` and its maintained line for a final. Its Pages writer and
 deployment authority contains no Maven, Plugin Portal, signing, or release-record credentials.
 
+The canonical Pages root is a mutable landing page, not an immutable release tree. Promotion writes it and
+each eligible alias with the selected exact version's verified local CSS and branding logo: the root selects
+`/preview/` while an RC is current, and `/stable/` after a final. If a historical promotion completed before
+this landing contract, use **Repair public documentation landing** from `master` with the stage, version,
+source SHA, and successful **Recover incomplete public release record** run ID. It validates that recovery
+and the existing immutable promotion, then uses only `documentation-pages-writer` to repair root/eligible
+alias HTML and redeploy Pages; it cannot render or alter an exact version tree, publish artifacts, tag, or
+create a GitHub release.
+
 For a transient documentation failure, use **Re-run failed jobs** on the same parent run only when GitHub
 retains the already successful `resolve` job and its proof artifact. GitHub pins a failed-job retry's
 reusable workflow to its original revision; if a caller or called-workflow correction is required, merge

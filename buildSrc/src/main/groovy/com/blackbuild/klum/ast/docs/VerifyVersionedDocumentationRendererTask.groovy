@@ -676,6 +676,21 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'candidate promotion must advance only the preview alias')
         assertContains(promotionWorkflow, 'aliases="[\\"stable\\",\\"$line\\"]"',
                 'final promotion must advance stable and its maintained-line alias')
+        assertContains(promotionWorkflow, 'path: landing-writer',
+                'promotion must retain the reviewed landing writer even while it renders an older exact source')
+        assertContains(promotionWorkflow, 'bash landing-writer/.github/scripts/write-documentation-landing.sh pages',
+                'promotion must render the mutable root and alias landings through one canonical shell')
+        String landingScript = new File(project.rootDir, '.github/scripts/write-documentation-landing.sh').text
+        assertContains(landingScript, 'write_landing_page()',
+                'root and alias landings must be rendered through one canonical shell')
+        assertContains(landingScript, '"$pages_directory/index.html"',
+                'promotion must publish a root Pages landing rather than leave the canonical URL at 404')
+        assertContains(landingScript, '<header class=\\"site-header\\">',
+                'root and alias landings must use the documentation header chrome')
+        assertContains(landingScript, 'assets/site.css',
+                'root and alias landings must use the exact version CSS')
+        assertContains(landingScript, '.branding.outputAsset',
+                'root and alias landings must use the verified exact version logo asset')
         assertContains(promotionWorkflow, 'promotions/$RELEASE_VERSION/$EXPECTED_COMMIT/$PROOF_IDENTITY.json',
                 'promotion must retain an immutable auditable record')
         assertContains(promotionWorkflow, 'already_promoted=true',
@@ -693,6 +708,23 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'documentation promotion must not publish artifacts')
         assertTrue(!promotionWorkflow.contains('SONATYPE_') && !promotionWorkflow.contains('SIGNING_') && !promotionWorkflow.contains('GRADLE_PUBLISH_'),
                 'documentation promotion must not receive artifact-publishing credentials')
+
+        String landingRepairWorkflow = new File(project.rootDir, '.github/workflows/repair-public-documentation-landing.yml').text
+        assertContains(landingRepairWorkflow, 'workflow_dispatch:',
+                'root landing repair must remain an explicit maintainer dispatch')
+        assertContains(landingRepairWorkflow, 'recovery_run:',
+                'root landing repair must bind an already-successful recovery run')
+        assertContains(landingRepairWorkflow, 'Validate the successful public release recovery',
+                'root landing repair must reject an unproven release identity')
+        assertContains(landingRepairWorkflow, 'name: documentation-pages-writer',
+                'only the existing protected Pages writer environment may repair landing files')
+        assertContains(landingRepairWorkflow, 'name: documentation-pages',
+                'root landing repair must deploy through the separate Pages environment')
+        assertContains(landingRepairWorkflow, 'write-documentation-landing.sh pages',
+                'root landing repair must use the shared documentation header chrome')
+        assertTrue(!landingRepairWorkflow.contains('contents: write') && !landingRepairWorkflow.contains('SONATYPE_') &&
+                !landingRepairWorkflow.contains('SIGNING_') && !landingRepairWorkflow.contains('GRADLE_PUBLISH_'),
+                'root landing repair must have no repository-token write or artifact-publishing authority')
 
         assertContains(promotionWorkflow, 'value: ${{ jobs.validate-proof.outputs.proof_identity }}',
                 'the reusable documentation path must return its validated public-proof identity')
