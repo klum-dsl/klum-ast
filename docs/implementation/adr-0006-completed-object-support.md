@@ -39,6 +39,13 @@ and validation location; provenance/lineage remains richer future #402 work. `Br
 generated/runtime vocabulary and existing exception/helper descriptors remain compatible. The migration, release notes,
 and runtime serialization coverage record the final boundary.
 
+### Public Structure visitor correction — Implemented in [#693](https://github.com/klum-dsl/klum-ast/issues/693)
+
+Removed the public `Structure` overloads that accepted internal `ModelVisitor`. Public completed-model traversal remains
+the typed `visit(Class<R>, BiConsumer<String, R>)` and `findAll(Class<R>)` surface. Phase code and internal adapters call
+the internal composition walker directly, preserving traversal behavior without exporting an internal visitor or creating
+a general visitor SPI.
+
 ## Compatibility
 
 Direct `KlumModelProxy` and metadata use is intentionally unsupported in 4.0. Static structure utilities may remain as

@@ -7,8 +7,8 @@ Java-first entry point for those operations without exposing the object's intern
 The facade accepts either a completed root object or any completed DSL Object in its subtree:
 
 ```java
-import com.blackbuild.klum.ast.util.KlumObjectSupport;
-import com.blackbuild.klum.ast.validation.KlumValidationResult;
+import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
+import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
 import java.util.List;
 import java.util.Map;
 
@@ -73,7 +73,8 @@ validation location. Neither is a substitute for the construction or structural 
 
 - direct and single-owner lookup, owner hierarchy, and nearest ancestors by type;
 - full paths from the composition root and relative paths from one object to an owned descendant; and
-- typed `findAll` and `visit` traversal.
+- typed `findAll` and `visit` traversal. The public traversal signatures are
+  `visit(Class<R>, BiConsumer<String, R>)` and `findAll(Class<R>)`; the runtime traversal visitor is internal.
 
 Traversal follows composed DSL values only. Owner and `LINK` edges are not followed, and identity-based cycle protection
 ensures that object graphs remain safe even when DSL types override `equals`.

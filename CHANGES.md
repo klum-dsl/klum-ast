@@ -123,6 +123,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   [ADR 0006](https://github.com/klum-dsl/klum-ast/blob/master/docs/adr/0006-completed-object-support.md)). Its sole
   public construction-string getter is `getConstructionPath()`; no `getBreadcrumbPath()` facade alias remains
   ([#390](https://github.com/klum-dsl/klum-ast/issues/390), [#549](https://github.com/klum-dsl/klum-ast/issues/549)).
+- Corrected the public `KlumObjectSupport.Structure` traversal boundary: `ModelVisitor` remains runtime-internal, while
+  typed `visit(Class<R>, BiConsumer<String, R>)` and `findAll(Class<R>)` remain the completed-model client API
+  ([#693](https://github.com/klum-dsl/klum-ast/issues/693)).
 - Split the generated internal companion into sealed Model and Template variants. Ordinary models retain no deferred
   actions; every owned Template node carries persistent recipe identity and paths, while pre-existing ordinary `LINK`
   targets retain their identity. Direct Template relationship assignment, including `LINK`, is rejected with rehydration
