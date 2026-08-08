@@ -144,10 +144,10 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
     @Issue('559')
     def "root aggregate refreshes one Schema mirror without producing a payload"() {
         when: 'the root entry point refreshes the Schema-owned mirror'
-        BuildResult generated = run('generateKlumDslSourceMirrors', '--configuration-cache')
+        BuildResult generated = run('generateAllKlumDslSourceMirrors', '--configuration-cache')
 
         then:
-        generated.task(':generateKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':generateAllKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         !generated.output.contains('problems were found storing the configuration cache')
         new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java').file
@@ -158,11 +158,12 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         then:
         inspected.output.contains('aggregate.actions=true')
         inspected.output.contains('aggregate.outputs=true')
+        inspected.output.contains('aggregate.name=generateAllKlumDslSourceMirrors')
         inspected.output.contains('aggregate.dependencies=:schema:createKlumDslSourceMirrors')
         inspected.output.readLines().findAll { it.startsWith('isolation.') }.every { it.endsWith('=false') }
 
         when: 'the aggregate configuration cache is reused'
-        BuildResult reused = run('generateKlumDslSourceMirrors', '--configuration-cache')
+        BuildResult reused = run('generateAllKlumDslSourceMirrors', '--configuration-cache')
 
         then:
         reused.output.contains('Configuration cache entry reused.')
@@ -171,7 +172,7 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         BuildResult production = run(':schema:classes', ':schema:jar', ':schema:sourcesJar', ':schema:javadocJar')
 
         then:
-        production.task(':generateKlumDslSourceMirrors') == null
+        production.task(':generateAllKlumDslSourceMirrors') == null
         production.task(':schema:createKlumDslSourceMirrors') == null
     }
 
@@ -181,10 +182,10 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         addLayer3ApiProject()
 
         when: 'the root entry point runs once for the Layer 3 build'
-        BuildResult generated = run('generateKlumDslSourceMirrors', '--configuration-cache')
+        BuildResult generated = run('generateAllKlumDslSourceMirrors', '--configuration-cache')
 
         then:
-        generated.task(':generateKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':generateAllKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         generated.task(':api:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         !generated.output.contains('problems were found storing the configuration cache')
@@ -199,11 +200,12 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         then:
         inspected.output.contains('aggregate.actions=true')
         inspected.output.contains('aggregate.outputs=true')
+        inspected.output.contains('aggregate.name=generateAllKlumDslSourceMirrors')
         inspected.output.contains('aggregate.dependencies=:api:createKlumDslSourceMirrors,:schema:createKlumDslSourceMirrors')
         inspected.output.readLines().findAll { it.startsWith('downstream.') }.every { it.endsWith('=false') }
 
         when: 'the Layer 3 aggregate is run again with the configuration cache'
-        BuildResult reused = run('generateKlumDslSourceMirrors', '--configuration-cache')
+        BuildResult reused = run('generateAllKlumDslSourceMirrors', '--configuration-cache')
 
         then:
         reused.output.contains('Configuration cache entry reused.')

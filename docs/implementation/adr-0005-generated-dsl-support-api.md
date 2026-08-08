@@ -119,7 +119,7 @@ DSL-G selects a compiled-contract-to-IDE-mirror lifecycle:
 ### [DSL-G aggregation — root multi-Schema refresh](https://github.com/klum-dsl/klum-ast/issues/559)
 
 The Schema plugin applies one internal root-project coordination plugin. That plugin registers the no-action
-`generateKlumDslSourceMirrors` aggregate once; every participating Schema project contributes its lazily registered
+`generateAllKlumDslSourceMirrors` aggregate once; every participating Schema project contributes its lazily registered
 `createKlumDslSourceMirrors` task provider. The aggregate is therefore one explicit command for direct Schema and Layer 3
 `api`/`schema` layouts while producer ownership, cacheability, and the IDEA-only boundary remain local to each Schema
 project. It is not a general `generateSources` lifecycle and does not introduce outputs or build-input edges of its own.

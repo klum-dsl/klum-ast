@@ -39,7 +39,7 @@ This plugin is used in schema projects (as well as `api` as defined by [Layer3])
 - activates source code and javadoc jars
 - registers `createKlumDslSourceMirrors` to refresh AnnoDocimal source mirrors for generated `Foo_DSL` support
   namespaces through AnnoDocimal's cacheable, configuration-cache-safe projection task. Run this task after schema changes in a single-project build. In a multi-project build, use the root
-  `./gradlew generateKlumDslSourceMirrors` aggregate instead; it lazily runs each participating Schema project's task,
+  `./gradlew generateAllKlumDslSourceMirrors` aggregate instead; it lazily runs each participating Schema project's task,
   including `api` and `schema` in a Layer 3 layout. It compiles the real generated interfaces first when necessary and
   exposes the mirror directory to IntelliJ as a generated source root. The aggregate has no payload of its own and the mirrors are IDE metadata;
   they are not compiled, packaged, published, or added to downstream classpaths.

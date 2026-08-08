@@ -28,7 +28,7 @@ import org.gradle.api.Project;
 
 public class KlumDslSourceMirrorsAggregationPlugin implements Plugin<Project> {
 
-    public static final String TASK_NAME = "generateKlumDslSourceMirrors";
+    public static final String TASK_NAME = "generateAllKlumDslSourceMirrors";
 
     @Override
     public void apply(Project project) {
@@ -38,7 +38,7 @@ public class KlumDslSourceMirrorsAggregationPlugin implements Plugin<Project> {
 
         project.getTasks().register(TASK_NAME, task -> {
             task.setGroup("klum");
-            task.setDescription("Refreshes IDE-only Klum DSL source mirrors for every Schema project.");
+            task.setDescription("Refreshes IDE-only Klum DSL source mirrors for all Schema projects.");
         });
     }
 }
