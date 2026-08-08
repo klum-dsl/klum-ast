@@ -140,7 +140,13 @@ Default phase. See [Model Phases](Model-Phases.md) for more information.
 Another option is an annotation that is itself annotated with `@DefaultValues`. This is primarily useful with inheritance
 and [Layer3](Layer3.md).
 
-Use such an annotation either on a class or on a field.
+## Supported Targets
+
+Use such an annotation only on a `@DSL` class or on a field declared by a `@DSL` class. KlumAST validates each
+application at compilation time and reports the default-value annotation together with these allowed contexts when it is
+misplaced.
+
+(See: `DefaultValuesDocumentaryTest#'uses default-values annotations on DSL classes and DSL fields'`.)
 
 ### Class Annotation
 

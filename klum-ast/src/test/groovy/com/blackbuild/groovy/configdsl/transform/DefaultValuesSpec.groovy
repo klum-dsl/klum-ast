@@ -760,6 +760,80 @@ import java.lang.annotation.*
         notThrown(MultipleCompilationErrorsException)
     }
 
+    @Issue("697")
+    def "default-values annotations can only be applied to DSL classes or fields declared by DSL classes"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.layer3.DefaultValues
+
+            import java.lang.annotation.*
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface DisplayDefaults {
+                String displayName() default ""
+            }
+        '''
+
+        when: "the annotation is applied to a non-DSL class"
+        createNonDslClass '''
+            package pk
+
+            @DisplayDefaults(displayName = "Plain")
+            class PlainType {
+                String displayName
+            }
+        '''
+
+        then:
+        def classError = thrown(MultipleCompilationErrorsException)
+        classError.errorCollector.errors.size() == 1
+        classError.message.contains("Default-values annotation pk.DisplayDefaults can only be applied to a @DSL class or a field declared by a @DSL class")
+
+        when: "the annotation is applied to a field outside a DSL class"
+        createNonDslClass '''
+            package pk
+
+            class PlainContainer {
+                @DisplayDefaults(displayName = "Plain")
+                String displayName
+            }
+        '''
+
+        then:
+        def fieldError = thrown(MultipleCompilationErrorsException)
+        fieldError.errorCollector.errors.size() == 1
+        fieldError.message.contains("Default-values annotation pk.DisplayDefaults can only be applied to a @DSL class or a field declared by a @DSL class")
+
+        when: "the annotation is applied to a DSL class or field"
+        createClass '''
+            package pk
+
+            @DisplayDefaults(displayName = "Configured")
+            @DSL
+            class ConfiguredType {
+                String displayName
+            }
+
+            @DSL
+            class ConfiguredContainer {
+                @DisplayDefaults(displayName = "Child")
+                ConfiguredChild child
+            }
+
+            @DSL
+            class ConfiguredChild {
+                String displayName
+            }
+        '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
+    }
+
     @Issue("370")
     def "values member of defaultValues annotation can be remapped"() {
         given:

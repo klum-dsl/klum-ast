@@ -34,6 +34,7 @@ import java.lang.annotation.Target;
  * Marker interface to designate an annotation as a default value provider.
  * The attributes of the annotated annotation type will be used as default values for the annotated dsl object,
  * either as is, or, in the case of a closure member, the result of the closure.
+ * The resulting default-value annotation can only be used on a {@code @DSL} class or a field declared by one.
  */
 @Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
