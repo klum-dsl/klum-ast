@@ -41,7 +41,7 @@ class KlumDslSourceMirrorsAggregationPluginTest extends Specification {
 
         then:
         aggregate.group == 'klum'
-        aggregate.description == 'Refreshes IDE-only Klum DSL source mirrors for every Schema project.'
+        aggregate.description == 'Refreshes IDE-only Klum DSL source mirrors for all Schema projects.'
         aggregate.actions.empty
         aggregate.outputs.files.files.empty
     }

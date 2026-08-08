@@ -10,14 +10,16 @@ allprojects {
 
 tasks.register('assertKlumDslSourceMirrorAggregate') {
     doLast {
-        def aggregate = tasks.named('generateKlumDslSourceMirrors').get()
+        def aggregate = tasks.named('generateAllKlumDslSourceMirrors').get()
         def expected = providers.gradleProperty('expectedKlumDslSourceMirrorProjects').orElse(':schema').get()
                 .split(',')
                 .collect { "$it:createKlumDslSourceMirrors" } as Set
         def actual = aggregate.taskDependencies.getDependencies(aggregate)*.path as Set
+        println "aggregate.name=${aggregate.name}"
         println "aggregate.actions=${aggregate.actions.empty}"
         println "aggregate.outputs=${aggregate.outputs.files.files.empty}"
         println "aggregate.dependencies=${actual.sort().join(',')}"
+        assert aggregate.name == 'generateAllKlumDslSourceMirrors'
         assert aggregate.actions.empty
         assert aggregate.outputs.files.files.empty
         assert actual == expected

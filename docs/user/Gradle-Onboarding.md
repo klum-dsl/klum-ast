@@ -76,7 +76,7 @@ Import the project as a Gradle project. After changing a Schema, run the explici
 In a multi-project build, use the root aggregate instead:
 
 ```shell
-./gradlew generateKlumDslSourceMirrors
+./gradlew generateAllKlumDslSourceMirrors
 ```
 
 It refreshes every project that applies the Schema plugin, including both `api` and `schema` projects in a Layer 3 layout. The generated `Foo_DSL` mirrors provide IntelliJ completion only. They are not compiled, packaged, published, or added to downstream classpaths. The aggregate has no generated payload of its own; each Schema project remains the owner of its mirror task.
