@@ -4,7 +4,7 @@ This is the KlumAST-local procedure for release candidates (RCs) and finals. It 
 [ADR 0012](docs/adr/0012-shared-prerelease-channel-policy.md); that ADR is the authority for
 the shared channel vocabulary and immutability rules. This file does not authorize a release.
 Only an explicitly authorized maintainer may approve the protected `release-candidate` or
-`final-release` environment and dispatch [Publish protected release](.github/workflows/release.yml).
+`final-release` environment and dispatch [REL-1: Publish protected release](.github/workflows/release.yml).
 
 ## Product and trust map
 
@@ -114,7 +114,7 @@ use the same defaults and safe cleanup. The automated check crawls internal page
 directory indexes, and heading fragments. Neither task contacts GitHub or publishes anything.
 
 After validating the stage/version shape, the release workflow queries GitHub's authoritative remote
-tag and release state before it calls the separately permissioned **Publish pending documentation**
+tag and release state before it calls the separately permissioned **_REL-1a: Stage pending documentation (reusable)**
 workflow. The reusable workflow repeats that remote check at its own staging boundary, and the
 credential-bearing publication job checks it once more immediately before it receives publication
 credentials. No release decision relies on runner-local Git refs. The workflow receives the exact
@@ -128,7 +128,7 @@ The called writer job resolves the Pages-writer credentials from the protected
 `documentation-pages-writer` environment instead of requiring them as caller inputs; it neither
 targets a release environment nor receives publication credentials.
 
-For **Verify public release**, the nested promotion call must use `secrets: inherit`. GitHub's
+For **REL-2: Verify public release**, the nested promotion call must use `secrets: inherit`. GitHub's
 reusable-workflow secret-context handling otherwise leaves the called job's environment expressions
 empty, as RC.14 demonstrated. This does not pass the Pages-writer environment secrets through the
 caller: the caller cannot name that environment, and the called `promote` job still resolves
@@ -139,7 +139,7 @@ check reports an empty value, first verify that the unified caller retains `secr
 distinguish a transient failure from a workflow correction. GitHub's **Re-run failed jobs** reuses
 the original reusable-workflow revision, so it cannot test a changed caller or called workflow. If
 the correction is merged *before any public exact tree, promotion record, tag, or release exists*,
-dispatch **Verify public release** once again from `master` with the same stage/version/SHA. It
+dispatch **REL-2: Verify public release** once again from `master` with the same stage/version/SHA. It
 creates a new proof identity internally; never copy the old proof identity into a dispatch.
 
 The Pages job writes the rendered static HTML, local assets, exact Javadocs, `site-manifest.json`,
@@ -167,7 +167,7 @@ off-master, or already tagged request does not create a pending or rejected Page
 
 ## Protected publication path
 
-Dispatch **Publish protected release**, select `candidate` or `final`, and enter the exact
+Dispatch **REL-1: Publish protected release**, select `candidate` or `final`, and enter the exact
 version and full `master` commit SHA. The matching environment approval is the irreversible-
 operation checkpoint. An unprivileged preflight accepts only valid candidate/final version
 shapes before it selects either protected environment. The workflow then checks out that SHA
@@ -207,7 +207,7 @@ that same SHA (`prerelease` for an RC). This is deliberately outside a waiting e
 every environment approval remains an approval only, and the record step cannot silently require extra
 work halfway through a running workflow.
 
-Then dispatch [Verify public release](.github/workflows/verify-public-release.yml) from `master`, with
+Then dispatch [REL-2: Verify public release](.github/workflows/verify-public-release.yml) from `master`, with
 only the exact `candidate`/`final` stage, version, and full source SHA. It first rejects a missing,
 lightweight, or wrongly targeted tag and any mismatched/draft/wrong-stage GitHub release. Only then does
 its credential-free `resolve` job re-prove the complete product from clean caches and retain an immutable
@@ -225,12 +225,12 @@ version tree.
 For a transient documentation failure, use **Re-run failed jobs** on the same parent run only when GitHub
 retains the already successful `resolve` job and its proof artifact. GitHub pins a failed-job retry's
 reusable workflow to its original revision; if a caller or called-workflow correction is required, merge
-it first and start a new input-only **Verify public release** dispatch only while no public exact tree,
+it first and start a new input-only **REL-2: Verify public release** dispatch only while no public exact tree,
 promotion record, tag, or release exists. That new proof has its own identity; it never repairs an earlier
 partial promotion.
 
 If the previous finalizer failed after promotion (as for RC.14), manually create the exact annotated tag
-and matching GitHub release first, then use **Recover incomplete public release record** with the original
+and matching GitHub release first, then use **REC-1: Recover incomplete public release record** with the original
 stage, version, source SHA, verification run ID, and successful proof attempt. The recovery workflow is
 read-only: it accepts only the failed parent whose proof, promotion, deployment, and immutable `gh-pages`
 record match exactly, then validates the manually created tag/release. It has no protected writer,
@@ -263,7 +263,7 @@ new release channel.
 | Maven Central succeeds but Plugin Portal fails | Stop. Do not delete, overwrite, or republish Maven coordinates. Record the partial RC as failed/superseded. | Correct the cause and issue `rc.N+1`; do not repair a different registry under the old version. |
 | Plugin Portal proof fails or Maven Central polling expires | Stop and record the immutable RC or final incident; do not create a tag, release, exact public documentation, or alias. | For an RC, correct the cause and use `rc.N+1`; do not repair the old version in place. |
 | Manual tag or GitHub release validation fails | Stop before dispatching, correct it only if no public artifact identity has been misrepresented, and revalidate the exact annotated tag, SHA, and stage flag. | Never substitute a lightweight tag, a branch name, or a mismatched release record. |
-| Documentation promotion is interrupted | For a transient failure, use GitHub's retry for the same **Verify public release** run only when it retains the same successful proof identity and exact stage/version/SHA. | Never replace or repair a mismatched promotion record. A new proof is a different immutable identity and may start only an unrecorded promotion. |
+| Documentation promotion is interrupted | For a transient failure, use GitHub's retry for the same **REL-2: Verify public release** run only when it retains the same successful proof identity and exact stage/version/SHA. | Never replace or repair a mismatched promotion record. A new proof is a different immutable identity and may start only an unrecorded promotion. |
 | Versioned documentation/Javadoc destination is unavailable or its pending stage rejects a valid identity | Do not authorize artifact publication. Retain the sanitized `pending-rejected` evidence when the protected stage reached an accepted identity. | Correct the cause and follow the immutable next-version rule; never overwrite a pending or rejected Pages path. |
 | RC consumer resolve-back fails | Mark that RC rejected/superseded and preserve the evidence. | Any substantive change requires `rc.N+1`. |
 | Final remote verification fails | Treat the final as an incident; it is not an RC retry. | Do not remove published artifacts. A tag may be deleted only by explicit human decision when no artifact was ever published. |

@@ -1,4 +1,4 @@
-name: Publish protected release
+name: "REL-1: Publish protected release"
 
 on:
   workflow_dispatch:

@@ -403,6 +403,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(pendingTask.taskDependencies.getDependencies(pendingTask)*.name.contains('verifyRenderedDocumentationSite'),
                 'protected pending preparation must require the HTTP presentation and link crawl')
         String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
+        assertContains(pagesWorkflow, 'name: "_REL-1a: Stage pending documentation (reusable)"',
+                'the pending Pages workflow must remain visibly distinct as the reusable REL-1 stage')
         int workflowCallStart = pagesWorkflow.indexOf('  workflow_call:\n')
         int workflowCallInputs = pagesWorkflow.indexOf('    inputs:\n', workflowCallStart)
         assertTrue(workflowCallStart >= 0 && workflowCallInputs > workflowCallStart,
@@ -450,6 +452,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(!pagesWorkflow.contains('git show-ref --verify'),
                 'the pending Pages workflow must not decide release identity from runner-local Git refs')
         String releaseWorkflow = new File(project.rootDir, '.github/workflows/release.yml').text
+        assertContains(releaseWorkflow, 'name: "REL-1: Publish protected release"',
+                'protected publication must retain the manually dispatched REL-1 display name')
         int identityPreflightStart = releaseWorkflow.indexOf('  verify-release-identity-available:\n')
         int pendingStageStart = releaseWorkflow.indexOf('  stage-pending-documentation:\n')
         int publishStageStart = releaseWorkflow.indexOf('  publish:\n', pendingStageStart)
@@ -523,6 +527,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the Maven fixture must not resolve plugin markers')
 
         String publicProofWorkflow = new File(project.rootDir, '.github/workflows/verify-public-release.yml').text
+        assertContains(publicProofWorkflow, 'name: "REL-2: Verify public release"',
+                'public proof must retain the manually dispatched REL-2 display name')
         int proofDispatchStart = publicProofWorkflow.indexOf('  workflow_dispatch:\n')
         int proofPermissionsStart = publicProofWorkflow.indexOf('permissions:\n')
         assertTrue(proofDispatchStart >= 0 && proofPermissionsStart > proofDispatchStart,
@@ -577,6 +583,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the reusable promotion caller must preserve the called writer job\'s environment secret context')
 
         String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
+        assertContains(promotionWorkflow, 'name: "_REL-2a: Promote proven public documentation (reusable)"',
+                'documentation promotion must remain visibly distinct as the reusable REL-2 stage')
         assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
         assertTrue(!promotionWorkflow.contains('workflow_dispatch:'),
                 'documentation promotion must not expose a second manual dispatch requiring copied proof identity')
@@ -584,10 +592,12 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must serialize gh-pages mutations with the pending-stage writer')
 
         String recoveryWorkflow = new File(project.rootDir, '.github/workflows/recover-public-release-record.yml').text
+        assertContains(recoveryWorkflow, 'name: "REC-1: Recover incomplete public release record"',
+                'exceptional record recovery must retain the manually dispatched REC-1 display name')
         assertContains(recoveryWorkflow, 'workflow_dispatch:',
                 'exceptional release-record recovery must retain its explicit manual dispatch contract')
         assertContains(recoveryWorkflow, 'verification_run:',
-                'recovery must bind the exact failed Verify public release run')
+                'recovery must bind the exact failed REL-2 run')
         assertContains(recoveryWorkflow, 'verification_attempt:',
                 'recovery must bind the exact successful proof attempt')
         assertContains(recoveryWorkflow, '.conclusion == "failure"',

@@ -1,4 +1,4 @@
-name: Promote proven public documentation
+name: "_REL-2a: Promote proven public documentation (reusable)"
 
 on:
   workflow_call:
@@ -16,11 +16,11 @@ on:
         required: true
         type: string
       proof_run:
-        description: "Successful Verify public release workflow run ID"
+        description: "Successful REL-2 workflow run ID"
         required: true
         type: string
       proof_attempt:
-        description: "Successful Verify public release workflow attempt"
+        description: "Successful REL-2 workflow attempt"
         required: true
         type: string
     outputs:
@@ -59,7 +59,7 @@ jobs:
       proof_identity: ${{ steps.proof.outputs.proof_identity }}
 
     steps:
-      - name: Require the protected Verify public release caller from master
+      - name: Require the protected REL-2 caller from master
         env:
           DOCUMENTATION_PAGES_READY: ${{ vars.DOCUMENTATION_PAGES_READY }}
         shell: bash
@@ -99,11 +99,11 @@ jobs:
             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$PROOF_RUN")"
           jq -e \
             --arg repository "$GITHUB_REPOSITORY" \
-            '.name == "Verify public release" and .event == "workflow_dispatch" and
+            '.name == "REL-2: Verify public release" and .event == "workflow_dispatch" and
              .head_branch == "master" and .head_repository.full_name == $repository and
              .path == ".github/workflows/verify-public-release.yml"' \
             <<< "$run_json" > /dev/null || {
-              echo 'The named proof run is not a trusted Verify public release run.' >&2
+              echo 'The named proof run is not a trusted REL-2 run.' >&2
               exit 1
             }
 

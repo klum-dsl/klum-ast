@@ -1,4 +1,4 @@
-name: Publish pending documentation
+name: "_REL-1a: Stage pending documentation (reusable)"
 
 on:
   workflow_call:
