@@ -222,6 +222,53 @@ class DefaultValuesDocumentaryTest extends AbstractDSLSpec {
         floorPlan.north.shortLabel == 'N'
     }
 
+    @Issue("697")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Default-Values.md#supported-targets")
+    def "uses default-values annotations on DSL classes and DSL fields"() {
+        given:
+        createSecondaryClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.layer3.DefaultValues
+
+            import java.lang.annotation.ElementType
+            import java.lang.annotation.Retention
+            import java.lang.annotation.RetentionPolicy
+            import java.lang.annotation.Target
+
+            @Retention(RetentionPolicy.RUNTIME)
+            @Target([ElementType.TYPE, ElementType.FIELD])
+            @DefaultValues
+            @interface DisplayDefaults {
+                String displayName() default ''
+            }
+        '''
+        createClass '''
+            package pk
+
+            @DisplayDefaults(displayName = 'Spring Catalog')
+            @DSL
+            class Release {
+                String displayName
+            }
+
+            @DSL
+            class Catalog {
+                @DisplayDefaults(displayName = 'Featured Release')
+                Release release
+            }
+        '''
+
+        when:
+        def catalog = getClass('pk.Catalog').Create.With {
+            release {}
+        }
+
+        then:
+        getClass('pk.Release').Create.One().displayName == 'Spring Catalog'
+        catalog.release.displayName == 'Featured Release'
+    }
+
     @Issue("361")
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Default-Values.md#closure-and-coercion")
     def "evaluates a default-values closure and coerces its result"() {

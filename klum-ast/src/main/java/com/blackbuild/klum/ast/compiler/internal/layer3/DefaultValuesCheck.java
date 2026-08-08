@@ -27,10 +27,14 @@ import com.blackbuild.klum.ast.layer3.DefaultValues;
 import com.blackbuild.klum.cast.spi.Check;
 import com.blackbuild.klum.cast.spi.CheckContext;
 import com.blackbuild.klum.cast.spi.Diagnostic;
+import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
 import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.FieldNode;
 
 import java.util.List;
+
+import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.isDSLObject;
 
 public class DefaultValuesCheck implements Check {
     @Override
@@ -41,6 +45,11 @@ public class DefaultValuesCheck implements Check {
                 .isPresent();
         AnnotationNode annotationToCheck = context.getValidatedAnnotation();
         ClassNode targetAnnotation = annotationToCheck.getClassNode();
+        if (!isDslTarget(context.getTarget()))
+            return List.of(new Diagnostic(getClass().getName(), String.format(
+                    "Default-values annotation %s can only be applied to a @DSL class or a field declared by a @DSL class",
+                    targetAnnotation.getName()), annotationToCheck));
+
         boolean targetAnnotationHasValueMember = !targetAnnotation.getMethods("value").isEmpty();
 
         if (controlAnnotationHasValuesMapping && !targetAnnotationHasValueMember)
@@ -52,5 +61,13 @@ public class DefaultValuesCheck implements Check {
                 String.format("Target annotation %s does have a 'value' member, but DefaultValues does not have a 'valueTarget' member", targetAnnotation.getName()), context.getTarget()));
 
         return List.of();
+    }
+
+    private boolean isDslTarget(AnnotatedNode target) {
+        if (target instanceof ClassNode classNode)
+            return isDSLObject(classNode);
+        if (target instanceof FieldNode fieldNode)
+            return isDSLObject(fieldNode.getOwner());
+        return false;
     }
 }
