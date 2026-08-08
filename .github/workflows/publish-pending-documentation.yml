@@ -1,4 +1,4 @@
-name: "REL-1a: Stage pending documentation (reusable)"
+name: "_REL-1a: Stage pending documentation (reusable)"
 
 on:
   workflow_call:

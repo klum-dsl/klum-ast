@@ -1,4 +1,4 @@
-name: "REL-2a: Promote proven public documentation (reusable)"
+name: "_REL-2a: Promote proven public documentation (reusable)"
 
 on:
   workflow_call:

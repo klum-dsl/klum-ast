@@ -403,7 +403,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
         assertTrue(pendingTask.taskDependencies.getDependencies(pendingTask)*.name.contains('verifyRenderedDocumentationSite'),
                 'protected pending preparation must require the HTTP presentation and link crawl')
         String pagesWorkflow = new File(project.rootDir, '.github/workflows/publish-pending-documentation.yml').text
-        assertContains(pagesWorkflow, 'name: "REL-1a: Stage pending documentation (reusable)"',
+        assertContains(pagesWorkflow, 'name: "_REL-1a: Stage pending documentation (reusable)"',
                 'the pending Pages workflow must remain visibly distinct as the reusable REL-1 stage')
         int workflowCallStart = pagesWorkflow.indexOf('  workflow_call:\n')
         int workflowCallInputs = pagesWorkflow.indexOf('    inputs:\n', workflowCallStart)
@@ -583,7 +583,7 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'the reusable promotion caller must preserve the called writer job\'s environment secret context')
 
         String promotionWorkflow = new File(project.rootDir, '.github/workflows/promote-public-documentation.yml').text
-        assertContains(promotionWorkflow, 'name: "REL-2a: Promote proven public documentation (reusable)"',
+        assertContains(promotionWorkflow, 'name: "_REL-2a: Promote proven public documentation (reusable)"',
                 'documentation promotion must remain visibly distinct as the reusable REL-2 stage')
         assertContains(promotionWorkflow, 'workflow_call:', 'documentation promotion must be callable only from the unified verification workflow')
         assertTrue(!promotionWorkflow.contains('workflow_dispatch:'),
@@ -592,8 +592,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must serialize gh-pages mutations with the pending-stage writer')
 
         String recoveryWorkflow = new File(project.rootDir, '.github/workflows/recover-public-release-record.yml').text
-        assertContains(recoveryWorkflow, 'name: "REL-3: Recover incomplete public release record"',
-                'exceptional record recovery must retain the manually dispatched REL-3 display name')
+        assertContains(recoveryWorkflow, 'name: "REC-1: Recover incomplete public release record"',
+                'exceptional record recovery must retain the manually dispatched REC-1 display name')
         assertContains(recoveryWorkflow, 'workflow_dispatch:',
                 'exceptional release-record recovery must retain its explicit manual dispatch contract')
         assertContains(recoveryWorkflow, 'verification_run:',

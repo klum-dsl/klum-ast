@@ -1,4 +1,4 @@
-name: "REL-3: Recover incomplete public release record"
+name: "REC-1: Recover incomplete public release record"
 
 on:
   workflow_dispatch:

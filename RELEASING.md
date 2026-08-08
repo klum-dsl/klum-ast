@@ -114,7 +114,7 @@ use the same defaults and safe cleanup. The automated check crawls internal page
 directory indexes, and heading fragments. Neither task contacts GitHub or publishes anything.
 
 After validating the stage/version shape, the release workflow queries GitHub's authoritative remote
-tag and release state before it calls the separately permissioned **REL-1a: Stage pending documentation (reusable)**
+tag and release state before it calls the separately permissioned **_REL-1a: Stage pending documentation (reusable)**
 workflow. The reusable workflow repeats that remote check at its own staging boundary, and the
 credential-bearing publication job checks it once more immediately before it receives publication
 credentials. No release decision relies on runner-local Git refs. The workflow receives the exact
@@ -230,7 +230,7 @@ promotion record, tag, or release exists. That new proof has its own identity; i
 partial promotion.
 
 If the previous finalizer failed after promotion (as for RC.14), manually create the exact annotated tag
-and matching GitHub release first, then use **REL-3: Recover incomplete public release record** with the original
+and matching GitHub release first, then use **REC-1: Recover incomplete public release record** with the original
 stage, version, source SHA, verification run ID, and successful proof attempt. The recovery workflow is
 read-only: it accepts only the failed parent whose proof, promotion, deployment, and immutable `gh-pages`
 record match exactly, then validates the manually created tag/release. It has no protected writer,
