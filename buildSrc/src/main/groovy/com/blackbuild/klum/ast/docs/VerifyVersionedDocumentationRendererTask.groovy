@@ -89,8 +89,8 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'public RC rendering must not retain a portable or legacy KlumAST version placeholder')
         assertContains(new File(fixture, 'docs/user/Guide/Nested.md').text, '<klum-version>',
                 'source documentation must remain portable after rendering an exact version')
-        assertContains(new File(project.rootDir, 'docs/user/Builder-First-Migration.md').text, 'if [[ -n',
-                'fenced shell examples must retain literal double-bracket syntax')
+        assertContains(new File(project.rootDir, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').text, 'if [[ -n',
+                'the migration script must retain literal double-bracket syntax')
         assertContains(nestedPage.text, "github.com/klum-dsl/klum-ast/blob/$revision/agent-skills/example/SKILL.md",
                 'authoring-root escapes must become immutable repository-source links')
         assertContains(changelog.text, 'href="../Builder-First-Migration/"',
@@ -106,6 +106,11 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'season lockup must retain its authored alternate text')
         assertContains(exactLanding.text, '&lt;dependencies&gt;', 'XML code examples must remain escaped code')
         assertTrue(!new File(currentOne, '4.0.0-rc.1/Home').exists(), 'the landing source must not produce a second public page')
+        File migrationPage = new File(currentOne, '4.0.0-rc.1/Builder-First-Migration/index.html')
+        assertContains(migrationPage.text, 'href="../assets/migrate-3x-to-4x-builder-first.sh"',
+                'the migration page must link to the exact-tree migration script')
+        assertTrue(new File(currentOne, '4.0.0-rc.1/assets/migrate-3x-to-4x-builder-first.sh').file,
+                'the exact tree must contain the migration script asset')
         File legacyOnboarding = new File(currentOne, '4.0.0-rc.1/Getting-Started/index.html')
         assertTrue(legacyOnboarding.file, 'legacy onboarding route must remain available in the exact tree')
         assertContains(legacyOnboarding.text, 'href="../Gradle-Onboarding/"', 'legacy onboarding route must point to the canonical route')
@@ -744,7 +749,7 @@ dependencies {
 ```
 '''
         new File(repository, 'docs/user/Gradle-Onboarding.md').text = '# Gradle onboarding\n\nCurrent setup guidance.\n'
-        new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\nFixture migration.\n'
+        new File(repository, 'docs/user/Builder-First-Migration.md').text = '# Builder-first migration\n\n[Migration starter](assets/migrate-3x-to-4x-builder-first.sh).\n'
         new File(repository, 'docs/user/_Sidebar.md').text = '* [Home](Home.md)\n* [Gradle Onboarding](Gradle-Onboarding.md)\n* [Nested](Guide/Nested.md)\n* [Changelog](Changelog.md)\n'
         new File(repository, 'docs/user/_Footer.md').text = '*KlumAST* — fixture footer\n'
         new File(repository, 'docs/user/_Aliases.json').text = JsonOutput.prettyPrint(JsonOutput.toJson([
@@ -753,6 +758,10 @@ dependencies {
         new File(repository, 'CHANGES.md').text = '# Changelog\n\nFixture changes. See [migration](docs/user/Builder-First-Migration.md).\n'
         byte[] logo = 'fixture-logo'.getBytes(StandardCharsets.UTF_8)
         new File(repository, 'docs/user/img/klumlogo.png').bytes = logo
+        new File(repository, 'docs/user/assets/migrate-3x-to-4x-builder-first.sh').with {
+            parentFile.mkdirs()
+            text = '#!/usr/bin/env bash\n# fixture migration starter\n'
+        }
         new File(repository, 'docs/user/img/klumast-season-4-documentation.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'docs/user/img/klumast-season-4-documentation-compact.svg').text = '<svg xmlns="http://www.w3.org/2000/svg"/>'
         new File(repository, 'wiki/Home.md').text = '# Historical home\n\nHistorical landing content.\n'
