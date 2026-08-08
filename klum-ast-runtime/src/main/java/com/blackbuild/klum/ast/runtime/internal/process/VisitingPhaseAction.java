@@ -28,8 +28,8 @@ import com.blackbuild.klum.ast.runtime.BuilderVisitingPhaseAction;
 
 import com.blackbuild.klum.ast.runtime.KlumModelObject;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder;
-import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
 import com.blackbuild.klum.ast.runtime.internal.layer3.BuilderStructureSupport;
+import com.blackbuild.klum.ast.runtime.internal.layer3.CompositionTraversal;
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,7 +59,7 @@ public abstract class VisitingPhaseAction extends AbstractPhaseAction implements
         if (root instanceof InternalKlumBuilder<?> builder)
             BuilderStructureSupport.visit(builder, this);
         else if (root instanceof KlumModelObject)
-            KlumObjectSupport.of(root).getStructure().visit(this);
+            CompositionTraversal.visit(root, this, "<root>");
         else
             throw new IllegalStateException("Visiting phase received an unsupported root object");
     }

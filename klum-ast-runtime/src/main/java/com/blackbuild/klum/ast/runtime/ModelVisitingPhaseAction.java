@@ -23,6 +23,7 @@
  */
 package com.blackbuild.klum.ast.runtime;
 
+import com.blackbuild.klum.ast.runtime.internal.layer3.CompositionTraversal;
 import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.runtime.internal.process.AbstractPhaseAction;
 import com.blackbuild.klum.ast.runtime.internal.process.PhaseDriver;
@@ -43,7 +44,7 @@ public abstract class ModelVisitingPhaseAction extends AbstractPhaseAction imple
         Object root = PhaseDriver.getInstance().getRootObject();
         if (!(root instanceof KlumModelObject))
             throw new IllegalStateException("Model phase " + getPhase().getDisplayName() + " received a Builder");
-        KlumObjectSupport.of(root).getStructure().visit(this);
+        CompositionTraversal.visit(root, this, "<root>");
     }
 
     @Override

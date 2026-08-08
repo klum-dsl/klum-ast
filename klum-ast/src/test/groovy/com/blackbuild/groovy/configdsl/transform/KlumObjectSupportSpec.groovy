@@ -28,10 +28,8 @@ import com.blackbuild.klum.ast.runtime.internal.InternalKlumBuilder
 import com.blackbuild.klum.ast.runtime.KlumObjectSupport
 import com.blackbuild.klum.ast.runtime.KlumException
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException
-import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructureUtil
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult
-import org.jetbrains.annotations.NotNull
 import spock.lang.Issue
 
 import javax.tools.ToolProvider
@@ -294,10 +292,13 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
 
             @CompileStatic
             class StaticObjectSupportConsumer {
-                static String inspect(Root root, Child child) {
+                static int inspect(Root root, Child child) {
                     KlumObjectSupport<Root> rootSupport = KlumObjectSupport.of(root)
                     KlumObjectSupport<Child> childSupport = KlumObjectSupport.of(child)
-                    rootSupport.getConstructionPath() + '|' + childSupport.getConstructionPath()
+                    Map<String, Child> descendants = rootSupport.getStructure().findAll(Child)
+                    List<String> paths = []
+                    rootSupport.getStructure().visit(Child) { String path, Child value -> paths.add(path) }
+                    descendants.size() + paths.size()
                 }
             }
         ''')
@@ -311,7 +312,7 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         childSupport.getModelPath() == '<root>.child'
         rootSupport.getConstructionPath() != rootSupport.getModelPath()
         childSupport.getConstructionPath() != childSupport.getModelPath()
-        staticConsumer.inspect(instance, instance.child) == '$/Root.With|$/Root.With/child'
+        staticConsumer.inspect(instance, instance.child) == 2
         rootSupport.structure.directOwners.empty
         rootSupport.structure.singleOwner.empty
 
@@ -341,7 +342,8 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         companionError.message.contains('not a completed DSL Object')
     }
 
-    def "structure support exposes composition owners, relative paths, and typed traversal"() {
+    @Issue("693")
+    def "structure support exposes composition owners, relative paths, and typed traversal without internal visitors"() {
         given:
         createClass '''
             import com.blackbuild.klum.ast.FieldType
@@ -374,18 +376,11 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         }
         def support = KlumObjectSupport.of(instance)
         def primarySupport = KlumObjectSupport.of(instance.primary)
-        def visited = [:]
-        support.structure.visit(new ModelVisitor() {
-            @Override
-            void visit(@NotNull String path, @NotNull Object element, Object container, String nameOfFieldInContainer) {
-                visited[path] = element
-            }
-        })
+        def visited = support.structure.findAll(Object)
         def typedPaths = []
         support.structure.visit(Child) { path, child -> typedPaths << path }
         compileJavaConsumer('''
             import com.blackbuild.klum.ast.runtime.KlumObjectSupport;
-            import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
             import java.util.List;
             import java.util.Map;
             import java.util.Optional;
@@ -400,10 +395,6 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
                     List<Object> hierarchy = KlumObjectSupport.of(child).getStructure().getOwnerHierarchy();
                     Optional<Root> ancestor = KlumObjectSupport.of(child).getStructure().getAncestorOfType(Root.class);
                     String relativePath = structure.getRelativePath(child);
-                    structure.visit(new ModelVisitor() {
-                        @Override
-                        public void visit(String path, Object element, Object container, String field) { }
-                    });
                     structure.visit(Child.class, (String path, Child value) -> { });
                     Map<String, Child> children = structure.findAll(Child.class);
                 }
@@ -443,6 +434,14 @@ class KlumObjectSupportSpec extends AbstractDSLSpec {
         and: 'the compatibility utility preserves its established completed-model behavior through the facade'
         StructureUtil.getRelativePath(instance, instance.childrenByName['map-key']) == "childrenByName.'map-key'"
         StructureUtil.getAncestorOfType(instance.primary, instance.class).get().is(instance)
+
+        and: 'public Structure descriptors do not expose the internal traversal visitor'
+        KlumObjectSupport.Structure.methods
+                .findAll { Modifier.isPublic(it.modifiers) }
+                .every {
+                    it.returnType.name != 'com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor' &&
+                            !it.parameterTypes*.name.contains('com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor')
+                }
     }
 
     def "structure support separates direct and transitive owners"() {

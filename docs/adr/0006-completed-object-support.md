@@ -48,8 +48,8 @@ their current JVM names under their separate compatibility policy.
 
 `getStructure()` returns the public nested helper `KlumObjectSupport.Structure<T>`. Its contract is composition-only and
 cycle-safe: direct owners and optional single owner, owner hierarchy/ancestors, typed visit and find-all operations, and
-relative structural paths. Java overloads include the existing four-argument `ModelVisitor`,
-`visit(Class<R>, BiConsumer<String,R>)`, and typed `findAll`. Client examples use explicit Java access such as
+relative structural paths. Its public traversal surface is `visit(Class<R>, BiConsumer<String,R>)` and typed `findAll`;
+the four-argument `ModelVisitor` remains an internal traversal implementation detail. Client examples use explicit Java access such as
 `support.getStructure().getDirectOwners()`. Existing `StructureUtil` methods may delegate and be deprecated; internal
 Builder traversal remains separate.
 

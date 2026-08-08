@@ -347,7 +347,7 @@ class JpmsPackageBoundaryTest extends Specification {
         }
     }
 
-    @Issue(["620", "622", "626"])
+    @Issue(["620", "622", "626", "693"])
     def "a real schema and consumer prove the classpath and named-module contracts"() {
         given:
         boolean namedGroovy = GroovySystem.version.startsWith('4.') || GroovySystem.version.startsWith('5.')
@@ -788,9 +788,11 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.Station;
             import fixture.schema.Station_DSL;
 
+            import java.util.ArrayList;
             import java.util.List;
             import java.util.Map;
             import java.util.ServiceLoader;
+            import java.util.Set;
 
             public class Main {
                 public static void main(String[] arguments) throws Exception {
@@ -816,6 +818,12 @@ class JpmsPackageBoundaryTest extends Specification {
                             !"https://list.example.test".equals(deployment.getRoutes().get(0).getUrl()) ||
                             !"named".equals(deployment.getKeyedEndpoints().get("named").getName()))
                         throw new AssertionError("Owned relationships did not materialize");
+                    List<String> endpointPaths = new ArrayList<>();
+                    KlumObjectSupport.of(deployment).getStructure().visit(HttpEndpoint.class,
+                            (path, endpoint) -> endpointPaths.add(path));
+                    if (!KlumObjectSupport.of(deployment).getStructure().findAll(HttpEndpoint.class).keySet()
+                            .equals(Set.copyOf(endpointPaths)))
+                        throw new AssertionError("Named Java consumer could not use typed Structure traversal");
                     Deployment dynamicDeployment = DynamicSchemaConsumer.create();
                     if (!"https://class-direct.example.test".equals(((DynamicHttpEndpoint) dynamicDeployment.getClassEndpoint()).getUrl()) ||
                             !"https://class-list.example.test".equals(((DynamicHttpEndpoint) dynamicDeployment.getClassRoutes().get(0)).getUrl()) ||
@@ -849,7 +857,10 @@ class JpmsPackageBoundaryTest extends Specification {
             import fixture.schema.HttpEndpoint_DSL
             import fixture.schema.Station
             import com.blackbuild.klum.ast.Validate
+            import com.blackbuild.klum.ast.runtime.KlumObjectSupport
             import groovy.transform.CompileStatic
+            import java.util.Map
+            import java.util.Set
             import static com.blackbuild.klum.ast.runtime.KlumSchemaSupport.klumValidation
 
             @CompileStatic
@@ -868,6 +879,9 @@ class JpmsPackageBoundaryTest extends Specification {
                     assert station.name == 'North'
                     assert station.capacity == 4
                     assert klumValidation.failLevel == Validate.Level.ERROR
+                    Deployment deployment = Deployment.Create.One()
+                    Map<String, HttpEndpoint> endpoints = KlumObjectSupport.of(deployment).structure.findAll(HttpEndpoint)
+                    assert endpoints.keySet() == ['<root>.endpoint', '<root>.routes[0]'] as Set<String>
                     println 'static=true'
                 }
             }

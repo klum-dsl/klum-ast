@@ -27,7 +27,6 @@ import com.blackbuild.klum.ast.Validate;
 import com.blackbuild.klum.ast.runtime.internal.DslHelper;
 import com.blackbuild.klum.ast.runtime.internal.InternalKlumObjectSupport;
 import com.blackbuild.klum.ast.runtime.internal.layer3.CompositionTraversal;
-import com.blackbuild.klum.ast.runtime.internal.layer3.ModelVisitor;
 import com.blackbuild.klum.ast.runtime.internal.layer3.StructuralPath;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationException;
 import com.blackbuild.klum.ast.runtime.validation.KlumValidationResult;
@@ -139,11 +138,11 @@ public final class KlumObjectSupport<T> {
          */
         public List<KlumValidationResult> getSubtreeResults() {
             List<KlumValidationResult> results = new ArrayList<>();
-            KlumObjectSupport.of(object).getStructure().visit((path, element, container, nameOfFieldInContainer) -> {
+            CompositionTraversal.visit(object, (path, element, container, nameOfFieldInContainer) -> {
                 KlumValidationResult result = InternalKlumObjectSupport.getValidationResult(element);
                 if (result != null)
                     results.add(result);
-            });
+            }, "<root>");
             return List.copyOf(results);
         }
 
@@ -235,31 +234,18 @@ public final class KlumObjectSupport<T> {
             return createPath(object, null, rootPath);
         }
 
-        /**
-         * Visits this completed-object composition graph using the established four-argument visitor contract.
-         * Owner and {@code LINK} fields are not followed.
-         */
-        public void visit(ModelVisitor visitor) {
-            visit(visitor, "<root>");
-        }
-
-        /**
-         * Visits this completed-object composition graph using the established four-argument visitor contract.
-         * Owner and {@code LINK} fields are not followed.
-         */
-        public void visit(ModelVisitor visitor, String rootPath) {
-            Objects.requireNonNull(visitor, "visitor");
-            CompositionTraversal.visit(object, visitor, rootPath);
-        }
-
         /** Visits every composed object assignable to {@code type}. */
         public <R> void visit(Class<R> type, BiConsumer<String, R> visitor) {
             Objects.requireNonNull(type, "type");
             Objects.requireNonNull(visitor, "visitor");
-            visit((path, element, container, nameOfFieldInContainer) -> {
+            visit(type, visitor, "<root>");
+        }
+
+        private <R> void visit(Class<R> type, BiConsumer<String, R> visitor, String rootPath) {
+            CompositionTraversal.visit(object, (path, element, container, nameOfFieldInContainer) -> {
                 if (type.isInstance(element))
                     visitor.accept(path, type.cast(element));
-            });
+            }, rootPath);
         }
 
         /** Returns every composed object assignable to {@code type}, indexed by its path from this structure root. */
@@ -274,10 +260,7 @@ public final class KlumObjectSupport<T> {
         public <R> Map<String, R> findAll(Class<R> type, String rootPath) {
             Map<String, R> result = new LinkedHashMap<>();
             Objects.requireNonNull(type, "type");
-            visit((path, element, container, nameOfFieldInContainer) -> {
-                if (type.isInstance(element))
-                    result.put(path, type.cast(element));
-            }, rootPath);
+            visit(type, result::put, rootPath);
             return result;
         }
 

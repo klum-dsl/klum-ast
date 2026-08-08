@@ -86,7 +86,7 @@ public class StructureUtil {
      */
     public static void visit(Object root, ModelVisitor visitor) {
         if (isCompletedDslObject(root)) {
-            KlumObjectSupport.of(root).getStructure().visit(visitor);
+            CompositionTraversal.visit(root, visitor, "<root>");
             return;
         }
         if (root instanceof InternalKlumBuilder<?> builder) {
@@ -113,7 +113,7 @@ public class StructureUtil {
      */
     public static void visit(Object root, ModelVisitor visitor, String path) {
         if (isCompletedDslObject(root)) {
-            KlumObjectSupport.of(root).getStructure().visit(visitor, path);
+            CompositionTraversal.visit(root, visitor, path);
             return;
         }
         if (root instanceof InternalKlumBuilder<?> builder) {
