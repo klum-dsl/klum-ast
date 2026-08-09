@@ -1,10 +1,18 @@
 package example
 
 import com.blackbuild.annodocimal.annotations.AnnoDoc
+import com.blackbuild.klum.ast.runtime.KlumBuilder
+import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider
+
+interface Recipient {
+}
 
 @AnnoDoc('Documentation for Foo_DSL')
 interface Foo_DSL {
     @AnnoDoc('Documentation for Builder')
-    interface Builder {
+    interface Builder<T extends Recipient> extends KlumBuilder<T> {
+        BuilderFactoryProvider<T, ? extends KlumBuilder<T>> recipient(
+                BuilderFactoryProvider<T, ? extends KlumBuilder<T>> factory,
+                Closure<?> body)
     }
 }

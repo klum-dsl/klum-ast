@@ -6,9 +6,13 @@ plugins {
     id 'maven-publish'
 }
 
-// The fixture supplies a synthetic AST output and does not need unpublished Klum artifacts on its compiler classpath.
+// The fixture supplies a synthetic AST output and resolves its generated public descriptor from Maven Central.
 configurations.api.dependencies.clear()
 configurations.compileOnly.dependencies.clear()
+
+dependencies {
+    compileOnly 'com.blackbuild.klum.ast:klum-ast-runtime:4.0.0-rc.14'
+}
 
 tasks.named('compileJava') {
     classpath = files()
@@ -16,8 +20,13 @@ tasks.named('compileJava') {
 
 tasks.named('compileGroovy') {
     source(fileTree('compiler-input'))
-    classpath = files()
+    classpath = configurations.compileClasspath
     groovyClasspath = configurations.groovy
+}
+
+// The generic fixture input is also visible to AnnoDocimal's Javadoc stub task, which is not KlumAST-created.
+tasks.named('createClassStubs') {
+    referencedClassesClasspath.from(configurations.compileClasspath)
 }
 
 publishing {
@@ -74,6 +83,20 @@ tasks.register('assertKlumDslIsolation') {
         checks.each { name, consumed ->
             println "isolation.${name}=${consumed}"
             assert !consumed
+        }
+    }
+}
+
+tasks.register('assertKlumDslReferencedClassesClasspath') {
+    doLast {
+        def mirrorTask = tasks.named('createKlumDslSourceMirrors').get()
+        def nestedFactoryProvider = 'com.blackbuild.klum.ast.runtime.KlumFactory$BuilderFactoryProvider'
+        assert mirrorTask.referencedClassesClasspath.files == configurations.compileClasspath.files
+        try {
+            mirrorTask.class.classLoader.loadClass(nestedFactoryProvider)
+            assert false: "The plugin classloader unexpectedly contains ${nestedFactoryProvider}"
+        } catch (ClassNotFoundException ignored) {
+            println 'projection.pluginLoaderContainsFactoryProvider=false'
         }
     }
 }
