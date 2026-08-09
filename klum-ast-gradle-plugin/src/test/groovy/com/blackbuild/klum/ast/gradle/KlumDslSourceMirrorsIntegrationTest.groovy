@@ -29,6 +29,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Issue
+import spock.lang.Unroll
 
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -139,6 +140,31 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         updated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         sha256(mirror) != firstHash
         mirror.text.contains('Updated documentation for Foo_DSL')
+    }
+
+    @Issue('700')
+    @Unroll
+    def "source mirrors resolve polymorphic factory providers from the Schema compile classpath with Groovy #groovyVersion"() {
+        when: 'the external Schema project projects a generated signature that names a nested runtime type'
+        BuildResult generated = run(
+                ':schema:createKlumDslSourceMirrors', ':schema:assertKlumDslReferencedClassesClasspath',
+                "-PfixtureGroovyVersion=$groovyVersion")
+
+        then: 'the dependency is supplied to projection but remains absent from the plugin loader'
+        generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.output.contains('projection.pluginLoaderContainsFactoryProvider=false')
+
+        and: 'the IDE-only mirror retains the nested public factory-provider reference'
+        File mirror = new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java')
+        mirror.text.contains('KlumFactory.BuilderFactoryProvider')
+        mirror.text.contains('recipient(')
+
+        and: 'the mirror does not become a compilation input'
+        BuildResult isolation = run(':schema:assertKlumDslIsolation', "-PfixtureGroovyVersion=$groovyVersion")
+        isolation.output.readLines().findAll { it.startsWith('isolation.') }.every { it.endsWith('=false') }
+
+        where:
+        groovyVersion << [3, 4, 5]
     }
 
     @Issue('559')

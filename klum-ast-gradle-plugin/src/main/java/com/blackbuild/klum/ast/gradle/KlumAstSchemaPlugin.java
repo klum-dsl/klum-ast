@@ -96,6 +96,7 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                     task.setGroup("klum");
                     task.setDescription("Refreshes IDE-only AnnoDocimal source mirrors for generated Foo_DSL namespaces.");
                     task.getClassesDirectories().from(main.getOutput().getClassesDirs());
+                    task.getReferencedClassesClasspath().from(main.getCompileClasspath());
                     task.getIncludes().set(Set.of("**/*_DSL.class"));
                     task.getExcludes().set(Set.of("**/*$*"));
                     task.getOutputDirectory().convention(mirrorDirectory);

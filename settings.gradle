@@ -63,7 +63,7 @@ dependencyResolutionManagement {
 
             bundle "spockRuntime", ["bytebuddy", "objenesis"]
 
-            version("annodocimal", "1.0.0-rc.7")
+            version("annodocimal", "1.0.0-rc.8")
             library("annodocimal-annotations", "com.blackbuild.annodocimal", "anno-docimal-annotations").versionRef("annodocimal")
             library("annodocimal-global-ast", "com.blackbuild.annodocimal", "anno-docimal-global-ast").versionRef("annodocimal")
             library("annodocimal-gradle-plugin", "com.blackbuild.annodocimal", "anno-docimal-gradle-plugin").versionRef("annodocimal")
