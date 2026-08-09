@@ -34,6 +34,20 @@ Typical commands are:
 ./gradlew check
 ```
 
+## Compiler-test success controls
+
+In a Spock compiler test, do not use a bare `expect:` block that contains only a side-effecting `createClass(...)` call.
+That form does not make the compile-success intent evident. Express successful compilation explicitly, normally as:
+
+```groovy
+when:
+createClass(...)
+then:
+notThrown(MultipleCompilationErrorsException)
+```
+
+An equally explicit success assertion is acceptable when it makes the tested compiler contract materially clearer.
+
 ## Issue traceability
 
 Every newly added test must carry Spock's `@Issue` annotation with the number of its driving GitHub issue. When a complete
