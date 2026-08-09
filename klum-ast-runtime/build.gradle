@@ -19,6 +19,8 @@ configurations {
     gdsl
     compileOnly.extendsFrom gdsl
     testRuntimeOnly.extendsFrom gdsl
+    groovy4TestsRuntimeOnly.extendsFrom gdsl
+    groovy5TestsRuntimeOnly.extendsFrom gdsl
 }
 
 dependencies {
