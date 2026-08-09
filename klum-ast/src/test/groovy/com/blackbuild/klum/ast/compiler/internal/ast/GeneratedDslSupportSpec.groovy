@@ -333,8 +333,10 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         templateFactory.getMethod('From', URL)
         templateFactory.getMethod('From', URL, ClassLoader)
 
-        and: 'the generated adapter names only the reviewed generated-runtime bridge'
-        classFileConstants(adapter).every { !it.contains('com/blackbuild/klum/ast/runtime/internal') }
+        and: 'public Factory descriptors and their adapter name only the reviewed generated-runtime bridge'
+        [factory, templateFactory, adapter].every { type ->
+            classFileConstants(type).every { !it.contains('com/blackbuild/klum/ast/runtime/internal') }
+        }
         classFileConstants(adapter).contains('com/blackbuild/klum/ast/runtime/generated/GeneratedTemplateFactorySupport')
 
         when:
@@ -347,12 +349,14 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         TemplateManager.isTemplate(template)
     }
 
+    @Issue('710')
     def "Java and statically compiled Groovy consume only the public namespace"() {
         when:
         compileJavaConsumer('''
             package sample;
 
             import groovy.lang.Closure;
+            import java.io.File;
             import java.util.Map;
 
             public final class JavaDslConsumer {
@@ -368,7 +372,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                     return Foo.Create.Template.With(Map.of("label", "java template"));
                 }
 
-                public static Foo templateFrom(java.io.File source) {
+                public static Foo templateFrom(File source) {
                     return Foo.Create.Template.From(source);
                 }
 
@@ -420,12 +424,25 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
                 }
             }
         ''', 'sample/StaticDslConsumer.groovy')
+        File templateSource = new File(tempFolder.root, 'template.groovy')
+        templateSource.text = 'label "file template"'
+
+        def javaTemplate
+        def javaTemplateFrom
+        new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader).withCloseable {
+            Class<?> javaConsumer = it.loadClass('sample.JavaDslConsumer')
+            javaTemplate = javaConsumer.template()
+            javaTemplateFrom = javaConsumer.templateFrom(templateSource)
+        }
+        def staticTemplate = consumer.template()
+        def staticTemplateFrom = consumer.templateFrom(templateSource)
 
         then:
         consumer.create().kids*.name == ['list child']
         consumer.create().primary.name == 'cluster child'
-        consumer.template().label == 'template'
-        TemplateManager.isTemplate(consumer.template())
+        [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom]*.label ==
+                ['java template', 'file template', 'template', 'file template']
+        [javaTemplate, javaTemplateFrom, staticTemplate, staticTemplateFrom].every { TemplateManager.isTemplate(it) }
     }
 
     def "AsBuilder projects the concrete public Builder return and closure delegate types"() {
