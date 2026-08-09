@@ -61,16 +61,17 @@ ServiceConfiguration.Template.With(template) {
 }
 ```
 
-`Create.Template` is a generated final Factory property, not a method inherited from `KlumFactory`. Its generated,
-nameable type is `ServiceConfiguration_DSL.Factory.Template`; Java reaches the same property through
-`ServiceConfiguration.Create.getTemplate()`.
+`Create.Template` is a generated public static final Factory field, not a method inherited from `KlumFactory`. Its
+generated, nameable type is `ServiceConfiguration_DSL.Factory.Template`. Java and Groovy both retain the DSL spelling:
+`ServiceConfiguration.Create.Template.From(...)`. This deliberately follows the existing `Create` field's upper-case
+language rather than introducing a JavaBean-style lower-case `template` property.
 
 The nested Template-creation interface has the same root input families as the current Template creation methods:
 
 ```java
 interface ServiceConfiguration_DSL {
     interface Factory {
-        Template getTemplate();
+        Template Template = /* generated model-specific Template factory */;
 
         interface Template {
             ServiceConfiguration With();
@@ -103,9 +104,11 @@ canonical way to create a reusable Template.
 ### Compatibility disposition
 
 The inherited `KlumFactory.Template(...)` and `TemplateFrom(...)` methods are removed. Generated Factory
-implementations must not override or reintroduce them. Therefore the current `Foo.Create.Template(...)` and
-`Foo.Create.TemplateFrom(...)` routes disappear before the `Foo.Create.Template` property is generated; source and
-binary compatibility for those methods cannot be retained without reintroducing the ambiguity this decision removes.
+implementations must not override or reintroduce them. The model-specific `Foo_DSL.Factory` interface instead defines
+the public static final `Template` field, initialized by a generated-only bridge bound to `Foo`. Therefore the current
+`Foo.Create.Template(...)` and `Foo.Create.TemplateFrom(...)` routes disappear before the `Foo.Create.Template` field is
+generated; source and binary compatibility for those methods cannot be retained without reintroducing the ambiguity this
+decision removes.
 
 `Foo.Template.Create(...)` and `CreateFrom(...)` remain on `Foo_DSL.Template` and its generated adapter as deprecated,
 forwarding 4.x aliases. They retain all current overloads and semantics, and their deprecation text names the matching
@@ -161,7 +164,8 @@ aliases concentrates compatibility in one small adapter while new callers learn 
 
 - Schema Developers see one canonical root-creation tree and one application tree, with clear IDE completion from their
   first segment.
-- Java and static Groovy can name truthful nested generated types; the closure delegate remains a concrete public Builder.
+- Java and static Groovy can name truthful nested generated types and use the same `Foo.Create.Template` field chain; the
+  closure delegate remains a concrete public Builder.
 - 4.0 RC users of `Foo.Create.Template(...)` migrate to `Foo.Create.Template.With(...)`; users of the documented
   `Foo.Template.Create(...)` spelling receive a deprecation path rather than an immediate rewrite requirement.
 - `Foo_DSL.Template` remains a supported generated type but has a deliberately narrow canonical role. Its deprecated

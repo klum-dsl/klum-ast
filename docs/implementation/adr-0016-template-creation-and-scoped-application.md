@@ -44,7 +44,8 @@ The exact public descriptor intent is:
 
 ```text
 ServiceConfiguration.Create                        : ServiceConfiguration_DSL.Factory
-ServiceConfiguration.Create.getTemplate()          : ServiceConfiguration_DSL.Factory.Template
+ServiceConfiguration_DSL.Factory.Template          : public static final ServiceConfiguration_DSL.Factory.Template field
+ServiceConfiguration.Create.Template                : same generated field, selected through the Factory contract
 ServiceConfiguration_DSL.Factory.Template.With(...) : ServiceConfiguration
 ServiceConfiguration_DSL.Factory.Template.From(...) : ServiceConfiguration
 ServiceConfiguration.Template                      : ServiceConfiguration_DSL.Template
@@ -54,8 +55,9 @@ ServiceConfiguration_DSL.Template.Create/CreateFrom: deprecated compatibility al
 
 The Template-creation `With` closure carries `@DelegatesTo(ServiceConfiguration_DSL.Builder)` and
 `Closure.DELEGATE_ONLY`. The scoped `With` closure preserves its existing generic body result and does not gain a Builder
-delegate. For Java, the canonical call is `ServiceConfiguration.Create.getTemplate().With(...)`; for `@CompileStatic`
-Groovy 3, 4, and 5 it is `ServiceConfiguration.Create.Template.With { ... }`.
+delegate. For Java and `@CompileStatic` Groovy 3, 4, and 5, the canonical chain is
+`ServiceConfiguration.Create.Template.With(...)`. The upper-case spelling is intentional: it is a generated public
+static final field on each model-specific Factory interface, matching `Foo.Create`, not a JavaBean getter.
 
 `Foo.Create.Template(...)` and `Foo.Create.TemplateFrom(...)` must be absent—not merely deprecated—so the Factory
 property cannot be shadowed. `Foo.Template.From` is not a current member and must not be invented as an alias.
@@ -106,23 +108,25 @@ guidance and the new Template documentary example.
 | --- | --- | --- |
 | Root creation | `klum-ast-runtime`: `KlumFactory`, `FactoryHelper` | Remove public `Template*` root methods from `KlumFactory`; retain the internal/root `createAsTemplate` mechanics. Add or extract a narrow generated-only Template-creation adapter rather than exposing `FactoryHelper`. |
 | Scoped application and aliases | `klum-ast-runtime`: `BoundTemplateHandler`, `GeneratedTemplateSupport` | Keep `With`/`WithAll`; make `Create`/`CreateFrom` deprecated forwarders to the one root creation implementation. Keep no raw `TemplateManager` public seam. |
-| Generated Factory property | `klum-ast`: `TemplateMethods`, factory-generation seam, `GeneratedDslSupport` | Generate a final `Template` field/getter on the hidden factory implementation, link it to a new nested public `Foo_DSL.Factory.Template` interface, and project only truthful public members. |
+| Generated Factory property | `klum-ast`: `TemplateMethods`, factory-generation seam, `GeneratedDslSupport` | Generate a model-specific public static final `Template` field on `Foo_DSL.Factory`, initialized through a generated-only bridge and typed as new nested public `Foo_DSL.Factory.Template`. Do not add a JavaBean getter or hide the field on the implementation. |
 | Existing Template handler | `klum-ast`: `TemplateMethods` | Keep the static `Foo.Template` field and `Foo_DSL.Template` scope methods; retain creation members only as explicitly deprecated aliases. |
 | Generated linkage | `runtime.generated` under ADR 0015 | If a runtime bridge is needed, keep it generated-only and descriptor-minimal. No schema descriptor names `BoundTemplateHandler`, `FactoryHelper`, or `TemplateManager`. |
-| IDE surfaces | source-mirror task, AnnoDocimal projection, #703 GDSL work | Mirrors must include `Factory.Template`, `getTemplate`, `With`, and `From` with the real nested type; GDSL must expose the property consistently with bytecode. Do not duplicate the mirror into compilation. |
+| IDE surfaces | source-mirror task, AnnoDocimal projection, #703 GDSL work | Mirrors must include the static `Factory.Template` field plus `With` and `From` with the real nested type; GDSL must expose the property consistently with bytecode. Do not duplicate the mirror into compilation. |
 | Contract inventory | #468 public inventory | Refresh the generated factory/template row and artifact comparison; classify nested `Factory.Template` as generated hook and aliases as deprecated compatibility members. |
 
 ## Thin vertical slices and commit boundaries
 
 ### TC-1 — Establish the generated Factory Template type and property
 
-Add `Foo_DSL.Factory.Template`, create a final generated Factory field/getter typed to it, and supply the narrow bridge
-that exposes the current Template root creation inputs. Remove `Template*` from the inherited/projected Factory surface
-in the same commit; do not rely on Groovy dispatch to choose between a field and a method.
+Add `Foo_DSL.Factory.Template`, create the model-specific public static final `Foo_DSL.Factory.Template` field, and
+supply the narrow bridge that exposes the current Template root creation inputs. Remove `Template*` from the
+inherited/projected Factory surface in the same commit; do not rely on Groovy dispatch to choose between a field and a
+method.
 
-**Acceptance:** reflection sees `Foo.Create.getTemplate()` returning `Foo_DSL.Factory.Template`; Java and static Groovy
-call `With` and `From`; no public Factory `Template(...)` or `TemplateFrom(...)` method exists; closure delegate metadata
-is the concrete public Builder; all produced objects are `TemplateManager.isTemplate`-true.
+**Acceptance:** reflection sees a public static final `Foo_DSL.Factory.Template` field of the nested public type; Java
+and static Groovy call `Foo.Create.Template.With/From`; no `getTemplate()` compatibility getter or public Factory
+`Template(...)`/`TemplateFrom(...)` method exists; closure delegate metadata is the concrete public Builder; all produced
+objects are `TemplateManager.isTemplate`-true.
 
 **Commit boundary:** runtime adapter plus AST/property generation plus one focused descriptor/behavior test are one vertical
 commit. Do not move scope behavior or unrelated Template semantics in this slice.
@@ -147,9 +151,10 @@ Add Java and `@CompileStatic` Groovy consumer fixtures, then run the existing fi
 IDE source mirror assertion and the GDSL contributor/fixture if #703 has landed; otherwise state and coordinate that
 dependency rather than duplicating its work.
 
-**Acceptance:** Java names `Foo_DSL.Factory.Template` and uses `Foo.Create.getTemplate()`; static Groovy uses property
-syntax and catches a deliberate old Factory-method compile failure; mirrors contain the nested type and neither source
-mirror nor GDSL advertises the removed methods. The public-inventory comparison records no internal runtime descriptor.
+**Acceptance:** Java names `Foo_DSL.Factory.Template` and uses `Foo.Create.Template`; static Groovy uses the same
+upper-case property syntax and catches a deliberate old Factory-method compile failure; mirrors contain the nested type
+and static field, and neither source mirror nor GDSL advertises the removed methods. The public-inventory comparison
+records no internal runtime descriptor.
 
 **Commit boundary:** public-surface fixture/inventory assertion first; source-mirror/GDSL parity in a dependent commit only
 when its implementation owner permits it.
@@ -172,8 +177,8 @@ retrofit unrelated Template examples beyond the entrypoint spelling.
 
 | Contract | Primary seam | Required proof |
 | --- | --- | --- |
-| Generated descriptor/property | `GeneratedDslSupportSpec` or a new focused `TemplateEntrypointTest` | reflection for `getTemplate`, nested `Factory.Template`, final generated field, and absence of Factory `Template*` methods |
-| Java/static Groovy language | generated consumer compilation helpers | Java `getTemplate().With/From`; `@CompileStatic` Groovy 3/4/5 property access and Builder closure delegation |
+| Generated descriptor/property | `GeneratedDslSupportSpec` or a new focused `TemplateEntrypointTest` | reflection for the public static final `Factory.Template` field, nested `Factory.Template` type, and absence of a `getTemplate` compatibility getter or Factory `Template*` methods |
+| Java/static Groovy language | generated consumer compilation helpers | Java and `@CompileStatic` Groovy 3/4/5 `Create.Template.With/From`, plus Builder closure delegation |
 | Deprecated compatibility | Template adapter/handler tests | each `Template.Create*` overload remains callable and annotated `@Deprecated` |
 | Root Template semantics | `TemplatesSpec`, `TemplateCompanionSpec`, `TemplatesDocumentaryTest` | marked identity, abstract synthetic implementation, lifecycle omissions, recipe replay, copy/serialization/ownership boundaries unchanged |
 | Scoped application | `BoundTemplatesSpec` | single/map/list scopes, nesting/restoration, body result and anonymous map behavior unchanged |
@@ -188,7 +193,7 @@ links back to the final Templates page as required by `docs/agents/testing.md`.
 | Risk or question | Control |
 | --- | --- |
 | A Factory method survives through inheritance and shadows the property. | Remove the `KlumFactory.Template*` family before generating the property; assert absence by reflection and negative static compilation. |
-| A nested type collides with `Foo_DSL.Template`. | Use the distinct binary names `Foo_DSL$Factory$Template` and `Foo_DSL$Template`; assert both in bytecode and mirrors. |
+| A nested type or static field collides with `Foo_DSL.Template`. | Use the distinct binary names `Foo_DSL$Factory$Template` and `Foo_DSL$Template`; assert both fields/types in bytecode and mirrors. |
 | Aliases become a permanent second documented route. | Deprecate every creation alias, keep `Foo.Template` application-only in user docs, and prohibit new creation methods on the handler in review. |
 | Moving adapters changes recipe/materialization behavior. | Delegate every route to existing `FactoryHelper.createAsTemplate`; retain ADR 0004 behavioral suite before refactoring implementation. |
 | Generated bridge expands into a handwritten runtime API. | Use only generated-runtime linkage permitted by ADR 0015 and inspect public descriptors/inventory. |
