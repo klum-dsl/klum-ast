@@ -36,6 +36,9 @@ Typical commands are:
 
 ## Compiler-test success controls
 
+Use Spock's `expect:` only for a simple one-line statement whose method names or operators make its meaning
+self-explanatory.
+
 In a Spock compiler test, do not use a bare `expect:` block that contains only a side-effecting `createClass(...)` call.
 That form does not make the compile-success intent evident. Express successful compilation explicitly, normally as:
 
