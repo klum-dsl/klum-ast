@@ -18,6 +18,7 @@ sourceSets {
 configurations {
     gdsl
     compileOnly.extendsFrom gdsl
+    testRuntimeOnly.extendsFrom gdsl
 }
 
 dependencies {

@@ -62,19 +62,19 @@ contributor(ctx) {
         delegatesTo(builderClass)
 }
 
-private PsiType getActualClassValueOf(GrReferenceExpression classArgument) {
+PsiType getActualClassValueOf(GrReferenceExpression classArgument) {
     // This is rather complicated, but seems to be the only way
     PsiImmediateClassType argumentType = classArgument.type as PsiImmediateClassType
     return (argumentType.resolveGenerics().substitutor.substitutionMap.values() ?: null)?.first()
 }
 
-private GrReferenceExpression findFirstClassArgumentOf(GrMethodCallExpression method) {
+GrReferenceExpression findFirstClassArgumentOf(GrMethodCallExpression method) {
     return method.argumentList.allArguments.find {
         it instanceof GrReferenceExpression && it.type instanceof PsiImmediateClassType
     }
 }
 
-private GrMethodCallExpression findContainingClosureMethod(PsiElement candidate) {
+GrMethodCallExpression findContainingClosureMethod(PsiElement candidate) {
     while (candidate != null) {
         if (candidate instanceof GrClosableBlock && candidate.context instanceof GrMethodCallExpression)
             return candidate.context as GrMethodCallExpression

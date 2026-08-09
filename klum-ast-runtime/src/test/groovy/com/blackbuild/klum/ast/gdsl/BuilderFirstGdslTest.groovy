@@ -42,6 +42,7 @@ class BuilderFirstGdslTest extends Specification {
 
         then: 'Foo.Create starts the truthful public Factory chain as a static read-only property'
         delegate.methods == [[name: 'getCreate', type: 'fixture.Foo_DSL.Factory', isStatic: true]]
+        !delegate.methods*.name.contains('setCreate')
     }
 
     def "Create completion fails closed without a DSL annotation or public Factory mirror"() {
@@ -59,14 +60,16 @@ class BuilderFirstGdslTest extends Specification {
     }
 
     def "the distinct polymorphic closure contributor delegates only to the public Builder contract"() {
-        expect: 'the Create contributor is executable and the retained closure resource has a distinct responsibility'
+        expect: 'both packaged resources register successfully as GDSL contributors'
         contributor('CreateProperties.gdsl')
+        contributor('PolymorphicMethods.gdsl')
 
         and: 'Create completion has no closure-delegate inference, so the closure resource retains a distinct use case'
         gdsl('CreateProperties.gdsl').contains('getCreate')
         !gdsl('CreateProperties.gdsl').contains('delegatesTo')
 
-        and: 'the retained closure contributor names no legacy RW implementation type'
+        and: 'the retained contributor remains closure-scoped and names no legacy RW implementation type'
+        gdsl('PolymorphicMethods.gdsl').contains('context(scope:closureScope())')
         gdsl('PolymorphicMethods.gdsl').contains("_DSL.Builder")
         gdsl('PolymorphicMethods.gdsl').contains('delegatesTo(builderClass)')
         !gdsl('PolymorphicMethods.gdsl').contains('$_RW')
