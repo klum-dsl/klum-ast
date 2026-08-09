@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation project(':schema')
+    testImplementation 'org.codehaus.groovy:groovy:3.0.25'
 }
 
 tasks.register('assertKlumDslDownstreamIsolation') {

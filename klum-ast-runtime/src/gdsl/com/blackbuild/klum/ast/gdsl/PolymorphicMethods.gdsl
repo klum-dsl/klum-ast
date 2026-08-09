@@ -40,7 +40,8 @@ import org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.path.GrM
  * }
  *
  * Normally, it can't be resolved, since DelegatesTo can only point to the Class of
- * argument, but we need a delegation to the XyComponent._RW in this case.
+ * argument, but we need a delegation to the public XyComponent_DSL.Builder
+ * contract in this case.
  */
 
 def ctx = context(scope:closureScope())
@@ -55,10 +56,10 @@ contributor(ctx) {
     PsiType type = getActualClassValueOf(classArgument)
     if (!type) return
 
-    PsiClass rwClass = findClass(type.resolve().qualName + '._RW')
+    PsiClass builderClass = findClass(type.resolve().qualName + '_DSL.Builder')
 
-    if (rwClass)
-        delegatesTo(rwClass)
+    if (builderClass)
+        delegatesTo(builderClass)
 }
 
 private PsiType getActualClassValueOf(GrReferenceExpression classArgument) {
@@ -86,4 +87,3 @@ private GrMethodCallExpression findContainingClosureMethod(PsiElement candidate)
     }
     return null
 }
-
