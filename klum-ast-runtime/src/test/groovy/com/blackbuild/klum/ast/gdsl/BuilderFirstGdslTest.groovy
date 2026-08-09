@@ -31,21 +31,29 @@ import spock.lang.Specification
 @Issue('703')
 class BuilderFirstGdslTest extends Specification {
 
-    def "Create completion contributes the mirrored public Factory getter for DSL source PSI"() {
-        given: 'a DSL source class and its refreshed Foo_DSL.Factory source mirror'
+    def "static model completion contributes the mirrored public support getters for DSL source PSI"() {
+        given: 'a DSL source class and its refreshed public support source mirror'
         GdslClass factory = new GdslClass('fixture.Foo_DSL.Factory')
+        GdslClass template = new GdslClass('fixture.Foo_DSL.Template')
         GdslClass model = dslClass('fixture.Foo')
-        GdslDelegate delegate = new GdslDelegate(model, ['fixture.Foo_DSL.Factory': factory])
+        GdslDelegate delegate = new GdslDelegate(model, [
+                'fixture.Foo_DSL.Factory': factory,
+                'fixture.Foo_DSL.Template': template
+        ])
 
         when:
         execute('CreateProperties.gdsl', delegate)
 
-        then: 'Foo.Create starts the truthful public Factory chain as a static read-only property'
-        delegate.methods == [[name: 'getCreate', type: 'fixture.Foo_DSL.Factory', isStatic: true]]
+        then: 'Foo.Create and Foo.Template start their truthful public chains as static read-only properties'
+        delegate.methods == [
+                [name: 'getCreate', type: 'fixture.Foo_DSL.Factory', isStatic: true],
+                [name: 'getTemplate', type: 'fixture.Foo_DSL.Template', isStatic: true]
+        ]
         !delegate.methods*.name.contains('setCreate')
+        !delegate.methods*.name.contains('setTemplate')
     }
 
-    def "Create completion fails closed without a DSL annotation or public Factory mirror"() {
+    def "static model completion fails closed without a DSL annotation or public support mirror"() {
         when: 'a normal source class is inspected'
         GdslDelegate ordinary = new GdslDelegate(new GdslClass('fixture.Ordinary'), [:])
         execute('CreateProperties.gdsl', ordinary)
@@ -54,9 +62,15 @@ class BuilderFirstGdslTest extends Specification {
         GdslDelegate withoutMirror = new GdslDelegate(dslClass('fixture.Missing'), [:])
         execute('CreateProperties.gdsl', withoutMirror)
 
+        and: 'an incomplete support namespace contributes only its independently resolvable property'
+        GdslDelegate factoryOnly = new GdslDelegate(dslClass('fixture.FactoryOnly'),
+                ['fixture.FactoryOnly_DSL.Factory': new GdslClass('fixture.FactoryOnly_DSL.Factory')])
+        execute('CreateProperties.gdsl', factoryOnly)
+
         then:
         ordinary.methods.empty
         withoutMirror.methods.empty
+        factoryOnly.methods == [[name: 'getCreate', type: 'fixture.FactoryOnly_DSL.Factory', isStatic: true]]
     }
 
     def "the distinct polymorphic closure contributor delegates only to the public Builder contract"() {
@@ -64,8 +78,8 @@ class BuilderFirstGdslTest extends Specification {
         contributor('CreateProperties.gdsl')
         contributor('PolymorphicMethods.gdsl')
 
-        and: 'Create completion has no closure-delegate inference, so the closure resource retains a distinct use case'
-        gdsl('CreateProperties.gdsl').contains('getCreate')
+        and: 'static property completion has no closure-delegate inference, so the closure resource retains a distinct use case'
+        gdsl('CreateProperties.gdsl').contains("[Create: 'Factory', Template: 'Template']")
         !gdsl('CreateProperties.gdsl').contains('delegatesTo')
 
         and: 'the retained contributor remains closure-scoped and names no legacy RW implementation type'

@@ -143,16 +143,18 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
     }
 
     @Issue('703')
-    def "refreshed source mirrors retain the Create Factory contract for client test sources"() {
+    def "refreshed source mirrors retain the public static support contracts for client test sources"() {
         when: 'the schema compiles its public contract and refreshes its IDEA-only source mirror'
         BuildResult generated = run(':schema:createKlumDslSourceMirrors', ':consumer:test')
         File mirror = new File(testProject, 'schema/build/generated/sources/klum-dsl-ide/main/example/Foo_DSL.java')
 
-        then: 'the mirror describes Factory and a client test source can begin the public Foo.Create chain'
+        then: 'the mirror describes Factory and Template and a client test source can begin both public chains'
         generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
         generated.task(':consumer:compileTestJava').outcome == TaskOutcome.SUCCESS
         mirror.text.contains('interface Factory')
         mirror.text.contains('Recipient With(Map<String, ?> values)')
+        mirror.text.contains('interface Template')
+        mirror.text.contains('Recipient Create(Map<String, ?> values)')
 
         and: 'the mirror remains IDEA metadata, not a test compilation input'
         generated.task(':schema:compileGroovy').outcome == TaskOutcome.SUCCESS

@@ -45,7 +45,8 @@ applies when two source files compile together and an `@Owner(root = true)` targ
 
 For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
 the Gradle project. The packaged contributor then supplies source-level `Foo.Create` as its truthful read-only
-`Foo_DSL.Factory` type, without exposing the hidden Builder implementation. This is IDE metadata only: the mirrors do not
+`Foo_DSL.Factory` type and `Foo.Template` as its truthful read-only `Foo_DSL.Template` type, without exposing hidden
+implementation classes. This is IDE metadata only: the mirrors do not
 become compiler, package, or downstream inputs. See [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support).
 
 ```groovy

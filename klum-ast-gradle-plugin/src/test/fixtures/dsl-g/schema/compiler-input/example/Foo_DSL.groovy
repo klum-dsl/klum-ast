@@ -13,6 +13,10 @@ interface Foo_DSL {
         Recipient With(Map<String, ?> values)
     }
 
+    interface Template {
+        Recipient Create(Map<String, ?> values)
+    }
+
     @AnnoDoc('Documentation for Builder')
     interface Builder<T extends Recipient> extends KlumBuilder<T> {
         BuilderFactoryProvider<T, ? extends KlumBuilder<T>> recipient(
@@ -23,4 +27,5 @@ interface Foo_DSL {
 
 class Foo {
     public static final Foo_DSL.Factory Create = null
+    public static final Foo_DSL.Template Template = null
 }

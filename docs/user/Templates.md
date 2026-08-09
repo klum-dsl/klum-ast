@@ -46,9 +46,10 @@ Templates are also correctly applied when using inheritance: a template defined 
 creating child-class instances, and child template values can override parent templates. The focused regression coverage
 is in `BoundTemplatesSpec.groovy`.
 
-`Template` is the scoped-application handler. It does not create a retained recipe: `Template.With` and `Template.WithAll`
-apply one or more recipes while the supplied body creates ordinary models. The deprecated 4.x compatibility aliases
-`Template.Create` and `Template.CreateFrom` still forward to the canonical creation operations, but new code must use
+Template-specific methods are pooled in the static `Template` field of each DSL class. Its public generated contract is
+`Foo_DSL.Template`. `Template` is the scoped-application handler: `Template.With` and `Template.WithAll` apply one or
+more recipes while the supplied body creates ordinary models. The deprecated 4.x compatibility aliases `Template.Create`
+and `Template.CreateFrom` still forward to the canonical creation operations, but new code must use
 `Create.Template.With` and `Create.Template.From`.
 
 (See: `TemplatesDocumentaryTest#'creates a template from a DelegatingScript file'`.)

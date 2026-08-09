@@ -24,8 +24,8 @@
 package com.blackbuild.klum.ast.gdsl
 
 /**
- * Contributes the AST-generated static Create property that source PSI cannot
- * otherwise see. The generated Foo_DSL.Factory interface remains its public type.
+ * Contributes the AST-generated static construction properties that source PSI cannot
+ * otherwise see. The generated Foo_DSL contracts remain their public types.
  */
 def dslAnnotation = 'com.blackbuild.klum.ast.DSL'
 
@@ -36,9 +36,11 @@ contributor(context([:])) {
     String qualifiedName = model.qualifiedName
     if (!qualifiedName) return
 
-    def factory = findClass("${qualifiedName}_DSL.Factory")
-    if (!factory) return
+    [Create: 'Factory', Template: 'Template'].each { propertyName, contractName ->
+        def contract = findClass("${qualifiedName}_DSL.${contractName}")
+        if (!contract) return
 
-    // A getter, rather than property(), keeps the contributed Create contract read-only.
-    method name: 'getCreate', type: factory.qualifiedName, isStatic: true
+        // A getter, rather than property(), keeps the contributed contract read-only.
+        method name: "get${propertyName}", type: contract.qualifiedName, isStatic: true
+    }
 }

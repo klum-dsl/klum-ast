@@ -30,4 +30,9 @@ class CreateFactoryClientTest {
         Foo_DSL.Factory factory = Foo.Create;
         return Foo.Create.With(Map.of()) == null ? factory : Foo.Create;
     }
+
+    Foo_DSL.Template beginPublicTemplateChain() {
+        Foo_DSL.Template template = Foo.Template;
+        return Foo.Template.Create(Map.of()) == null ? template : Foo.Template;
+    }
 }
