@@ -96,6 +96,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
     private static final String SET_SINGLE_FIELD = "setSingleField";
     private static final String CREATE_SINGLE_CHILD = "createSingleChild";
     private static final String FACTORY_NAME = "factory";
+    private static final String STATIC_FACTORY_METHOD_MESSAGE = "Public methods declared on a DSL Factory are exposed through Create and must be instance methods. Remove static, or move a model-level static converter out of Factory.";
     private static final String SCHEDULE_APPLY_LATER = "scheduleApplyLater";
     private static final String OPTIONAL_PARAMETERS_DOCUMENTATION = "the optional parameters";
     private static final String CONFIGURATION_CLOSURE_DOCUMENTATION = "the closure to configure the new element";
@@ -1611,6 +1612,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode defaultImpl = getNullSafeClassMember(getAnnotation(annotatedClass, DSL_CONFIG_ANNOTATION), "defaultImpl", annotatedClass);
         ClassNode factoryType = getFactoryBase(defaultImpl);
         rejectReservedKlumNamespace(factoryType);
+        rejectPublicStaticFactoryMethods(factoryType);
         BuilderMethodProjection.ensureProjectedMethods(factoryType, defaultImpl);
 
         boolean factoryIsGeneric = factoryType.redirect().getGenericsTypes() != null;
@@ -1650,6 +1652,17 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         GeneratedDslSupport.linkFactory(annotatedClass, factoryClass);
         factoryField.setType(GeneratedDslSupport.of(annotatedClass).getFactoryInterface().getPlainNodeReference());
         annotatedClass.addField(factoryField);
+    }
+
+    private void rejectPublicStaticFactoryMethods(ClassNode factoryType) {
+        if (factoryType.equals(KLUM_FACTORY) || factoryType.equals(KEYED_FACTORY) || factoryType.equals(UNKEYED_FACTORY))
+            return;
+
+        factoryType.getMethods().stream()
+                .filter(method -> method.getDeclaringClass().redirect().equals(factoryType.redirect()))
+                .filter(MethodNode::isPublic)
+                .filter(MethodNode::isStatic)
+                .forEach(method -> addError(STATIC_FACTORY_METHOD_MESSAGE, method));
     }
 
     private ClassNode getFactoryBase(ClassNode defaultImpl) {
