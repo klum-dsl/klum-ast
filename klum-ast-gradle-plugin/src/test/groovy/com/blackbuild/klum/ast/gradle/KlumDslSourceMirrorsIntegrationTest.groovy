@@ -160,7 +160,7 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         mirror.text.contains('recipient(')
 
         and: 'the mirror does not become a compilation input'
-        BuildResult isolation = run(':schema:assertKlumDslIsolation')
+        BuildResult isolation = run(':schema:assertKlumDslIsolation', "-PfixtureGroovyVersion=$groovyVersion")
         isolation.output.readLines().findAll { it.startsWith('isolation.') }.every { it.endsWith('=false') }
 
         where:
