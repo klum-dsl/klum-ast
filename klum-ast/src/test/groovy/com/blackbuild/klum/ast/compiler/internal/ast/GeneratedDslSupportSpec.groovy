@@ -42,12 +42,16 @@ import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import groovy.lang.DelegatesTo
 import groovy.transform.CompileStatic
 import org.intellij.lang.annotations.Language
+import org.codehaus.groovy.control.CompilationUnit
 import spock.lang.Issue
+import spock.lang.See
+import spock.lang.Tag
 
 import javax.tools.ToolProvider
 import java.io.DataInputStream
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.net.URLClassLoader
 
 class GeneratedDslSupportSpec extends AbstractDSLSpec {
 
@@ -564,6 +568,55 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         mirror.contains('The generated DSL support namespace for sample.Foo.')
         mirror.contains('Creates a new')
         getClass('sample.Foo_DSL$Builder').getAnnotation(AnnoDoc).value().contains('public Builder contract')
+    }
+
+    @Issue('702')
+    @Tag('documentary')
+    @See('https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Builder-First-Migration.md#public-builder-contracts')
+    def "projects an unresolved cross-source owner Builder into the public namespace"() {
+        given: 'Child is transformed before the Root source is resolved'
+        def unit = new CompilationUnit(compilerConfiguration, null, loader)
+        unit.addSource('Child.groovy', '''
+            package crosssource
+
+            import com.blackbuild.klum.ast.DSL
+            import com.blackbuild.klum.ast.Owner
+
+            @DSL class Child {
+                @Owner(root = true) Root root
+            }
+        ''')
+        unit.addSource('Root.groovy', '''
+            package crosssource
+
+            import com.blackbuild.klum.ast.DSL
+
+            @DSL class Root {
+            }
+        ''')
+
+        when:
+        unit.compile()
+        def crossSourceLoader = new URLClassLoader([compilerConfiguration.targetDirectory.toURI().toURL()] as URL[], loader)
+        Class<?> childBuilder = crossSourceLoader.loadClass('crosssource.Child_DSL$Builder')
+        Class<?> rootBuilder = crossSourceLoader.loadClass('crosssource.Root_DSL$Builder')
+
+        and: 'the AnnoDocimal mirror is projected from the generated public namespace'
+        File mirrorRoot = new File(tempFolder.root, 'cross-source-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'crosssource/Child_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        String mirror = new File(mirrorRoot, 'crosssource/Child_DSL.java').text
+
+        then: 'the public descriptors retain the Root model identity instead of leaking Root$Builder'
+        childBuilder.getMethod('getRoot').returnType == rootBuilder
+        childBuilder.getMethod('setRoot', rootBuilder)
+        childBuilder.declaredMethods.findAll { it.name in ['getRoot', 'setRoot'] }.every { method ->
+            !method.toGenericString().contains('Root$Builder')
+        }
+
+        and: 'the IDE-only source mirror names the same public Builder contract'
+        mirror.contains('Root_DSL.Builder<Root>')
+        !mirror.contains('Root.Builder')
     }
 
     private void createRepresentativeSchema() {

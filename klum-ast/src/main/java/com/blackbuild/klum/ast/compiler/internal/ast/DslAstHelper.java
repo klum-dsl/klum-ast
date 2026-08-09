@@ -55,6 +55,7 @@ public class DslAstHelper {
     private static final String KEY_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".keyfield";
     private static final String OWNER_FIELD_METADATA_KEY = DSLASTTransformation.class.getName() + ".ownerfield";
     private static final String ELEMENT_NAME_METADATA_KEY = DSLASTTransformation.class.getName() + ".elementName";
+    private static final String MODEL_CLASS_METADATA_KEY = DSLASTTransformation.class.getName() + ".modelclass";
     public static final ClassNode KLUM_GENERATED_CLASSNODE = ClassHelper.make(KlumGenerated.class);
 
     private static final String DELAYED_ACTIONS_METADATA_KEY = DSLASTTransformation.class.getName() + ".delayedActions";
@@ -126,9 +127,26 @@ public class DslAstHelper {
         return result;
     }
 
+    /**
+     * Returns a Builder type for a field that may be projected into another source's public contract.
+     * Cross-source unresolved placeholders have no {@linkplain ClassNode#getOuterClass() outer class}, so retain
+     * their model identity explicitly for {@link GeneratedDslSupport#publicType(ClassNode)}.
+     */
+    public static ClassNode getRwClassOf(ClassNode classNode, ClassNode projectionConsumer) {
+        ClassNode result = getRwClassOf(classNode);
+        if (result != null && !classNode.isResolved() && classNode.getModule() != projectionConsumer.getModule()
+                && result.redirect().getNodeMetaData(MODEL_CLASS_METADATA_KEY) == null)
+            result.redirect().setNodeMetaData(MODEL_CLASS_METADATA_KEY, classNode.redirect());
+        return result;
+    }
+
     public static ClassNode getModelClassFor(ClassNode classNode) {
         if (!classNode.getName().endsWith(DSLASTTransformation.RW_CLASS_SUFFIX))
             return null;
+
+        ClassNode modelClass = classNode.redirect().getNodeMetaData(MODEL_CLASS_METADATA_KEY);
+        if (modelClass != null)
+            return modelClass;
 
         ClassNode outerClass = classNode.getOuterClass();
 

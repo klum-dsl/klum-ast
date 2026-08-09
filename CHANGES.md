@@ -43,6 +43,9 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Fixed cross-source `@Owner(root = true)` public Builder accessors to expose the target model's
+  `Root_DSL.Builder<Root>` contract instead of the hidden `Root$Builder` implementation. Generated
+  AnnoDocimal source mirrors now preserve that same public type ([#702](https://github.com/klum-dsl/klum-ast/issues/702)).
 - Qualified same-source static model converters now project to active-session Builders in relocated lifecycle and
   mutator code, while ordinary root converter calls retain their completed-model result ([#662](https://github.com/klum-dsl/klum-ast/issues/662)).
 
