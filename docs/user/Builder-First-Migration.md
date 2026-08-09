@@ -43,6 +43,11 @@ Generated accessors always expose `Foo_DSL.Builder<Foo>`, never the hidden `Foo$
 applies when two source files compile together and an `@Owner(root = true)` target has not yet been resolved. (See:
 `GeneratedDslSupportSpec#'projects an unresolved cross-source owner Builder into the public namespace'`.)
 
+For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
+the Gradle project. The packaged contributor then supplies source-level `Foo.Create` as its truthful read-only
+`Foo_DSL.Factory` type, without exposing the hidden Builder implementation. This is IDE metadata only: the mirrors do not
+become compiler, package, or downstream inputs. See [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support).
+
 ```groovy
 // Child.groovy
 @DSL

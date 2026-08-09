@@ -48,6 +48,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   removed. The documented `Foo.Template.Create(...)` and `CreateFrom(...)` calls remain deprecated forwarding aliases
   throughout 4.x. The Builder-first migration helper provides only direct, type-qualified starting rewrites; review its
   diff and complete the migration checklist ([#710](https://github.com/klum-dsl/klum-ast/issues/710)).
+- IntelliJ source completion now contributes an annotated DSL class's static read-only `Foo.Create` property as the
+  generated public `Foo_DSL.Factory` contract after its IDEA-only source mirror is refreshed. Ordinary classes and
+  unresolved support namespaces receive no synthetic property; the retained polymorphic closure contributor now delegates
+  through the public `Foo_DSL.Builder` contract ([#703](https://github.com/klum-dsl/klum-ast/issues/703)).
 - Fixed cross-source `@Owner(root = true)` public Builder accessors to expose the target model's
   `Root_DSL.Builder<Root>` contract instead of the hidden `Root$Builder` implementation. Generated
   AnnoDocimal source mirrors now preserve that same public type ([#702](https://github.com/klum-dsl/klum-ast/issues/702)).
