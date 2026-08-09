@@ -91,4 +91,31 @@ class BuilderFirstMigrationDocumentaryTest extends AbstractDSLSpec {
         then:
         deployment.service.class == getClass("Service")
     }
+
+    @Issue("706")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Builder-First-Migration.md#factory-methods-exposed-through-create")
+    def "exposes an instance Factory method through Create"() {
+        given:
+        createClass '''
+            package pk
+
+            import com.blackbuild.klum.ast.runtime.KlumFactory
+
+            @DSL
+            class ServicePlan {
+                String name
+
+                static class Factory extends KlumFactory.Unkeyed<ServicePlan> {
+                    protected Factory() { super(ServicePlan) }
+
+                    ServicePlan standard(String name) {
+                        ServicePlan.Create.With(name: name)
+                    }
+                }
+            }
+        '''
+
+        expect:
+        clazz.Create.standard('catalog').name == 'catalog'
+    }
 }
