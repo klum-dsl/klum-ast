@@ -70,6 +70,10 @@ class BuilderFirstGdslTest extends Specification {
 
         and: 'the retained contributor remains closure-scoped and names no legacy RW implementation type'
         gdsl('PolymorphicMethods.gdsl').contains('context(scope:closureScope())')
+        gdsl('PolymorphicMethods.gdsl').contains('findContainingClosureMethod(place)')
+        gdsl('PolymorphicMethods.gdsl').contains('findFirstClassArgumentOf(method)')
+        gdsl('PolymorphicMethods.gdsl').contains('getActualClassValueOf(classArgument)')
+        gdsl('PolymorphicMethods.gdsl').contains("findClass(type.resolve().qualName + '_DSL.Builder')")
         gdsl('PolymorphicMethods.gdsl').contains("_DSL.Builder")
         gdsl('PolymorphicMethods.gdsl').contains('delegatesTo(builderClass)')
         !gdsl('PolymorphicMethods.gdsl').contains('$_RW')
