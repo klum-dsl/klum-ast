@@ -26,6 +26,7 @@ package com.blackbuild.klum.ast.compiler.internal.ast.process
 import com.blackbuild.klum.ast.AbstractDSLSpec
 import com.blackbuild.klum.ast.runtime.internal.process.BreadcrumbCollector
 import com.blackbuild.klum.ast.runtime.KlumModelException
+import spock.lang.Issue
 
 import static com.blackbuild.klum.ast.runtime.internal.DslHelper.getBreadcrumbPath
 
@@ -308,6 +309,7 @@ value "bla"
         breadCrumbFor(instance) == "\$/p.Foo.From:url($scriptUrl)"
     }
 
+    @Issue('710')
     def "breadcrumbs in templates"() {
         given:
         createClass '''
@@ -333,7 +335,7 @@ class Inner {
 
         when:
         Class<?> Middle = getClass("pk.Middle")
-        def template = clazz.Create.Template {
+        def template = clazz.Create.Template.With {
 
             singleMiddle("adder") {}
             mapMiddles {

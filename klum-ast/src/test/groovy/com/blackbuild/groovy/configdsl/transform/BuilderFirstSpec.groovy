@@ -294,7 +294,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         when:
-        clazz.Create.Template {
+        clazz.Create.Template.With {
             def capturedBuilder = delegate
             applyLater {
                 value capturedBuilder.modelType.simpleName
@@ -319,7 +319,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         when:
-        clazz.Create.Template {
+        clazz.Create.Template.With {
             def capturedBuilder = new java.util.concurrent.atomic.AtomicReference(delegate)
             applyLater {
                 value capturedBuilder.get().modelType.simpleName
@@ -343,7 +343,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         '''
 
         when:
-        clazz.Create.Template {
+        clazz.Create.Template.With {
             BuilderHolder.INSTANCE.value = delegate
             def capturedHolder = BuilderHolder.INSTANCE
             applyLater {
@@ -821,7 +821,7 @@ class BuilderFirstSpec extends AbstractDSLSpec {
         def RecipeRoot = clazz
 
         and: "template construction records values without running lifecycle callbacks"
-        def recipe = RecipeRoot.Create.Template {
+        def recipe = RecipeRoot.Create.Template.With {
             child { name "single" }
             item { name "listed" }
         }

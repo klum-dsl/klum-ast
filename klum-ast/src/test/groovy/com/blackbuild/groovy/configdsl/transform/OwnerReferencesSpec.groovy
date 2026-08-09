@@ -247,7 +247,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
 
         and:
         def Bar = getClass("pk.Bar")
-        def recipe = Bar.Create.Template {}
+        def recipe = Bar.Create.Template.With {}
 
         when:
         Bar.Template.With(recipe) {
@@ -277,7 +277,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             }
         ''')
         def Bar = getClass("pk.Bar")
-        def recipe = Bar.Create.Template {}
+        def recipe = Bar.Create.Template.With {}
 
         when:
         Bar.Template.With(recipe) {
@@ -388,7 +388,7 @@ class OwnerReferencesSpec extends AbstractDSLSpec {
             }
         ''')
         def Bar = getClass("pk.Bar")
-        def recipe = Bar.Create.Template {}
+        def recipe = Bar.Create.Template.With {}
 
         when:
         Bar.Template.With(recipe) {

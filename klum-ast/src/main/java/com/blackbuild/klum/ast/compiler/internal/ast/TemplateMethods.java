@@ -24,6 +24,7 @@
 package com.blackbuild.klum.ast.compiler.internal.ast;
 
 import com.blackbuild.annodocimal.ast.AstDocumentation;
+import com.blackbuild.klum.ast.runtime.generated.GeneratedTemplateFactorySupport;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedTemplateSupport;
 import com.blackbuild.klum.ast.compiler.internal.common.CommonAstHelper;
 import org.codehaus.groovy.ast.*;
@@ -52,11 +53,13 @@ import static org.codehaus.groovy.ast.tools.GenericsUtils.*;
 class TemplateMethods {
     public static final String TEMPLATE_FIELD_NAME = "Template";
     public static final ClassNode TEMPLATE_SUPPORT_TYPE = make(GeneratedTemplateSupport.class);
+    public static final ClassNode TEMPLATE_FACTORY_SUPPORT_TYPE = make(GeneratedTemplateFactorySupport.class);
 
     public static final String COPY_FROM = "copyFrom";
     private final ClassNode annotatedClass;
     private ClassNode templateClass;
     private InnerClassNode templateAdapter;
+    private InnerClassNode templateFactoryAdapter;
     private final ClassNode dslAncestor;
     private final InnerClassNode rwClass;
 
@@ -70,6 +73,7 @@ class TemplateMethods {
         createImplementationForAbstractClassIfNecessary();
         copyFromMethods();
         createTemplateField();
+        createTemplateFactory();
         return templateClass;
     }
 
@@ -125,6 +129,51 @@ class TemplateMethods {
         addTemplateMethod("CreateFrom", params(param(make(URL.class), "scriptUrl"), param(CLASSLOADER_TYPE, "loader")), support);
     }
 
+    private void createTemplateFactory() {
+        createTemplateFactoryAdapter();
+        FieldNode templateFactory = new FieldNode(
+                TEMPLATE_FIELD_NAME,
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL,
+                GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface(),
+                GeneratedDslSupport.of(annotatedClass).getFactoryInterface(),
+                ctorX(templateFactoryAdapter)
+        );
+        AstDocumentation.attachText(templateFactory, "The factory for creating Template instances of " + annotatedClass.getName() + ".");
+        templateFactory.addAnnotation(createGeneratedAnnotation(TemplateMethods.class));
+        GeneratedDslSupport.of(annotatedClass).getFactoryInterface().addField(templateFactory);
+    }
+
+    private void createTemplateFactoryAdapter() {
+        templateFactoryAdapter = new InnerClassNode(
+                annotatedClass,
+                annotatedClass.getName() + "$_TemplateFactory",
+                ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC,
+                OBJECT_TYPE,
+                new ClassNode[] { GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface() },
+                MixinNode.EMPTY_ARRAY
+        );
+        FieldNode support = templateFactoryAdapter.addField(
+                "$support",
+                ACC_PRIVATE | ACC_FINAL | ACC_SYNTHETIC,
+                makeClassSafeWithGenerics(TEMPLATE_FACTORY_SUPPORT_TYPE, new GenericsType(annotatedClass)),
+                ctorX(TEMPLATE_FACTORY_SUPPORT_TYPE, args(classX(annotatedClass)))
+        );
+        templateFactoryAdapter.addConstructor(ACC_PUBLIC, Parameter.EMPTY_ARRAY, CommonAstHelper.NO_EXCEPTIONS, block());
+        DslAstHelper.registerAsVerbProvider(templateFactoryAdapter);
+        templateFactoryAdapter.addAnnotation(createGeneratedAnnotation(TemplateMethods.class));
+        annotatedClass.getModule().addClass(templateFactoryAdapter);
+
+        ClassNode mapOfStringsAndObjects = makeClassSafeWithGenerics(MAP_TYPE, new GenericsType(STRING_TYPE), new GenericsType(OBJECT_TYPE));
+        addTemplateFactoryMethod("With", Parameter.EMPTY_ARRAY, support);
+        addTemplateFactoryMethod("With", params(param(mapOfStringsAndObjects, "configMap"), configurationParameter()), support);
+        addTemplateFactoryMethod("With", params(configurationParameter()), support);
+        addTemplateFactoryMethod("With", params(param(mapOfStringsAndObjects, "configMap")), support);
+        addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile")), support);
+        addTemplateFactoryMethod("From", params(param(make(File.class), "scriptFile"), param(CLASSLOADER_TYPE, "loader")), support);
+        addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl")), support);
+        addTemplateFactoryMethod("From", params(param(make(URL.class), "scriptUrl"), param(CLASSLOADER_TYPE, "loader")), support);
+    }
+
     private Parameter configurationParameter() {
         Parameter configuration = param(CLOSURE_TYPE, "configuration");
         AnnotationNode delegatesTo = new AnnotationNode(make(groovy.lang.DelegatesTo.class));
@@ -159,6 +208,29 @@ class TemplateMethods {
         bridgeCall.setMethodTarget(bridgeMethod);
         adapterMethod.setCode(returnS(bridgeCall));
         templateAdapter.addMethod(adapterMethod);
+    }
+
+    private void addTemplateFactoryMethod(String name, Parameter[] parameters, FieldNode support) {
+        MethodNode bridgeMethod = TEMPLATE_FACTORY_SUPPORT_TYPE.getMethods(name).stream()
+                .filter(candidate -> candidate.getParameters().length == parameters.length)
+                .filter(candidate -> hasSameBridgeArguments(candidate, parameters))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No generated Template Factory bridge method for " + name));
+        MethodNode publicMethod = correctToGenericsSpec(Collections.singletonMap("T", annotatedClass), bridgeMethod);
+        publicMethod.setModifiers(ACC_PUBLIC | ACC_ABSTRACT);
+        publicMethod.setCode(EmptyStatement.INSTANCE);
+        for (int index = 0; index < parameters.length; index++)
+            copyAnnotationsFromSourceToTarget(parameters[index], publicMethod.getParameters()[index], Collections.emptyList());
+        GeneratedDslSupport.of(annotatedClass).getTemplateFactoryInterface().addMethod(publicMethod);
+        MethodNode adapterMethod = correctToGenericsSpec(Collections.singletonMap("T", annotatedClass), bridgeMethod);
+        adapterMethod.setModifiers(ACC_PUBLIC);
+        Expression[] arguments = Arrays.stream(adapterMethod.getParameters())
+                .map(parameter -> (Expression) varX(parameter))
+                .toArray(Expression[]::new);
+        MethodCallExpression bridgeCall = callX(varX(support), name, args(arguments));
+        bridgeCall.setMethodTarget(bridgeMethod);
+        adapterMethod.setCode(returnS(bridgeCall));
+        templateFactoryAdapter.addMethod(adapterMethod);
     }
 
     private static boolean hasSameBridgeArguments(MethodNode candidate, Parameter[] arguments) {
