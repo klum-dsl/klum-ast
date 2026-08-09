@@ -6,6 +6,10 @@ plugins {
     id 'maven-publish'
 }
 
+klumSchema {
+    groovyVersion = providers.gradleProperty('fixtureGroovyVersion').orElse('3').get()
+}
+
 // The fixture supplies a synthetic AST output and resolves its generated public descriptor from Maven Central.
 configurations.api.dependencies.clear()
 configurations.compileOnly.dependencies.clear()

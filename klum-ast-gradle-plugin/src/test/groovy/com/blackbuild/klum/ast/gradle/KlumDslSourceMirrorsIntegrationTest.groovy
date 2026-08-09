@@ -29,6 +29,7 @@ import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Issue
+import spock.lang.Unroll
 
 import java.nio.file.Files
 import java.security.MessageDigest
@@ -142,9 +143,12 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
     }
 
     @Issue('700')
-    def "source mirrors resolve polymorphic factory providers from the Schema compile classpath"() {
+    @Unroll
+    def "source mirrors resolve polymorphic factory providers from the Schema compile classpath with Groovy #groovyVersion"() {
         when: 'the external Schema project projects a generated signature that names a nested runtime type'
-        BuildResult generated = run(':schema:createKlumDslSourceMirrors', ':schema:assertKlumDslReferencedClassesClasspath')
+        BuildResult generated = run(
+                ':schema:createKlumDslSourceMirrors', ':schema:assertKlumDslReferencedClassesClasspath',
+                "-PfixtureGroovyVersion=$groovyVersion")
 
         then: 'the dependency is supplied to projection but remains absent from the plugin loader'
         generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
@@ -158,6 +162,9 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         and: 'the mirror does not become a compilation input'
         BuildResult isolation = run(':schema:assertKlumDslIsolation')
         isolation.output.readLines().findAll { it.startsWith('isolation.') }.every { it.endsWith('=false') }
+
+        where:
+        groovyVersion << [3, 4, 5]
     }
 
     @Issue('559')
