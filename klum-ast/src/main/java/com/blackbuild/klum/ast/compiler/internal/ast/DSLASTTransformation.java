@@ -481,14 +481,14 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         ClassNode type = field.getType();
         ClassNode storageValueType = getBuilderStorageValueType(field);
         if (!isCollection(type) && !isMap(type) && isDSLObject(storageValueType))
-            return getRwClassOf(storageValueType).getPlainNodeReference();
+            return getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference();
         if (isCollection(type) && isDSLObject(storageValueType))
-            return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(storageValueType).getPlainNodeReference()));
+            return makeClassSafeWithGenerics(type, new GenericsType(getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference()));
         if (isMap(type) && isDSLObject(storageValueType))
                 return makeClassSafeWithGenerics(
                         type,
                         new GenericsType(getKeyTypeForMap(type)),
-                        new GenericsType(getRwClassOf(storageValueType).getPlainNodeReference())
+                        new GenericsType(getRwClassOf(storageValueType, field.getOwner()).getPlainNodeReference())
                 );
         return type;
     }

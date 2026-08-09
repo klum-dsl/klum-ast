@@ -36,6 +36,26 @@ use this guide for Builder-first diagnostics:
 | A member beginning with `$klum$` is rejected | The namespace is reserved for generated implementation members. | Rename the source member. |
 | A custom creator or converter is absent from `Foo_DSL` or its IDE mirror | Its model-producing path is opaque or precompiled, so KlumAST cannot safely adapt it to the active session. Source-visible recursive calls, including unqualified static calls to same-source converters, are projected. | Use the generated child method, return an explicit `KlumBuilder<Foo>`, or compile the producer source together with the schema. |
 
+### Public Builder Contracts
+
+Generated accessors always expose `Foo_DSL.Builder<Foo>`, never the hidden `Foo$Builder` implementation. This also
+applies when two source files compile together and an `@Owner(root = true)` target has not yet been resolved. (See:
+`GeneratedDslSupportSpec#'projects an unresolved cross-source owner Builder into the public namespace'`.)
+
+```groovy
+// Child.groovy
+@DSL
+class Child {
+    @Owner(root = true) Root root
+}
+
+// Root.groovy
+@DSL
+class Root {}
+```
+
+In generated signatures and IDE source mirrors, `Child_DSL.Builder` uses `Root_DSL.Builder<Root>` for `root`.
+
 ### Builder-phase Type Checks
 
 Relationships are Builders until the graph materializes. A completed-model `instanceof` check therefore belongs in a
