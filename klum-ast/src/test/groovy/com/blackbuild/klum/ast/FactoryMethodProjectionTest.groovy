@@ -80,7 +80,7 @@ class FactoryMethodProjectionTest extends AbstractDSLSpec {
     }
 
     def "allows non-public static Factory helpers"() {
-        expect:
+        when:
         createClass '''
             import com.blackbuild.klum.ast.runtime.KlumFactory
             import groovy.transform.PackageScope
@@ -96,10 +96,13 @@ class FactoryMethodProjectionTest extends AbstractDSLSpec {
                 }
             }
         '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
     }
 
     def "allows model-level static converters"() {
-        expect:
+        when:
         createClass '''
             @DSL
             class Product {
@@ -110,5 +113,8 @@ class FactoryMethodProjectionTest extends AbstractDSLSpec {
                 }
             }
         '''
+
+        then:
+        notThrown(MultipleCompilationErrorsException)
     }
 }
