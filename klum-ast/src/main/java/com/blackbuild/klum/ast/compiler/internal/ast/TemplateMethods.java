@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
@@ -87,7 +88,7 @@ class TemplateMethods {
                 ctorX(templateAdapter)
         );
 
-        AstDocumentation.attachText(templateField, "Assign templates to new objects.");
+        AstDocumentation.attachText(templateField, "Apply Templates while creating new objects.");
         templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         annotatedClass.addField(templateField);
     }
@@ -196,11 +197,15 @@ class TemplateMethods {
         MethodNode publicMethod = correctToGenericsSpec(Collections.singletonMap("T", bridgeModelType), bridgeMethod);
         publicMethod.setModifiers(ACC_PUBLIC | ACC_ABSTRACT);
         publicMethod.setCode(EmptyStatement.INSTANCE);
+        if (name.startsWith("Create"))
+            markAsDeprecatedTemplateCreationAlias(publicMethod, name);
         for (int index = 0; index < parameters.length; index++)
             copyAnnotationsFromSourceToTarget(parameters[index], publicMethod.getParameters()[index], Collections.emptyList());
         GeneratedDslSupport.of(annotatedClass).getTemplateInterface().addMethod(publicMethod);
         MethodNode adapterMethod = correctToGenericsSpec(Collections.singletonMap("T", bridgeModelType), bridgeMethod);
         adapterMethod.setModifiers(ACC_PUBLIC);
+        if (name.startsWith("Create"))
+            markAsDeprecatedTemplateCreationAlias(adapterMethod, name);
         Expression[] arguments = Arrays.stream(adapterMethod.getParameters())
                 .map(parameter -> (Expression) varX(parameter))
                 .toArray(Expression[]::new);
@@ -208,6 +213,18 @@ class TemplateMethods {
         bridgeCall.setMethodTarget(bridgeMethod);
         adapterMethod.setCode(returnS(bridgeCall));
         templateAdapter.addMethod(adapterMethod);
+    }
+
+    private void markAsDeprecatedTemplateCreationAlias(MethodNode method, String name) {
+        AnnotationNode deprecated = new AnnotationNode(make(Deprecated.class));
+        deprecated.setMember("since", constX("4.0"));
+        method.addAnnotation(deprecated);
+        String operation = name.equals("Create") ? "With" : "From";
+        String arguments = Arrays.stream(method.getParameters())
+                .map(Parameter::getName)
+                .collect(Collectors.joining(", "));
+        String replacement = annotatedClass.getNameWithoutPackage() + ".Create.Template." + operation + "(" + arguments + ")";
+        AstDocumentation.attachText(method, "Deprecated Template creation alias.\n\n@deprecated Use {@code " + replacement + "} instead.");
     }
 
     private void addTemplateFactoryMethod(String name, Parameter[] parameters, FieldNode support) {

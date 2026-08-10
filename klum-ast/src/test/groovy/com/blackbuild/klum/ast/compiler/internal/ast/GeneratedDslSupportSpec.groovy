@@ -350,6 +350,41 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
     }
 
     @Issue('710')
+    def "Template handler retains deprecated creation aliases that forward to the Factory property"() {
+        given:
+        Class<?> foo = getClass('sample.Foo')
+        Class<?> template = getClass('sample.Foo_DSL$Template')
+
+        when: 'the documented compatibility spelling is used'
+        def creationAliases = [
+                template.getMethod('Create'),
+                template.getMethod('Create', Map, Closure),
+                template.getMethod('Create', Closure),
+                template.getMethod('Create', Map),
+                template.getMethod('CreateFrom', File),
+                template.getMethod('CreateFrom', File, ClassLoader),
+                template.getMethod('CreateFrom', URL),
+                template.getMethod('CreateFrom', URL, ClassLoader)
+        ]
+        def legacyTemplate = foo.Template.Create(label: 'legacy')
+
+        then: 'scope application stays on the Template handler while every legacy creator is explicitly deprecated'
+        template.getMethod('With', getClass('sample.Base'), Closure)
+        template.getMethod('WithAll', Map, Closure)
+        template.getMethod('WithAll', List, Closure)
+        template.getAnnotation(AnnoDoc).value().contains('scoped Template application contract')
+        creationAliases.every { it.getAnnotation(Deprecated)?.since() == '4.0' }
+        template.getMethod('Create', Map, Closure).getAnnotation(AnnoDoc).value().contains(
+                '@deprecated Use {@code Foo.Create.Template.With(configMap, configuration)} instead.')
+        template.getMethod('CreateFrom', URL, ClassLoader).getAnnotation(AnnoDoc).value().contains(
+                '@deprecated Use {@code Foo.Create.Template.From(scriptUrl, loader)} instead.')
+
+        and: 'it still creates the same marked root Template as the canonical Factory property'
+        legacyTemplate.label == 'legacy'
+        TemplateManager.isTemplate(legacyTemplate)
+    }
+
+    @Issue('710')
     def "Java and statically compiled Groovy consume only the public namespace"() {
         when:
         compileJavaConsumer('''

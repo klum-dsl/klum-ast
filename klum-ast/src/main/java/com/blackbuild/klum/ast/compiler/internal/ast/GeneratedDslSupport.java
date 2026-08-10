@@ -102,7 +102,8 @@ public final class GeneratedDslSupport {
         templateFactoryInterface = createNestedInterface(factoryInterface, "Template",
                 "The public Template creation contract for " + model.getName() + ".");
         builderInterface = createNestedInterface(namespace, "Builder", "The public Builder contract for " + model.getName() + ".");
-        templateInterface = createNestedInterface(namespace, "Template", "The public Template contract for " + model.getName() + ".");
+        templateInterface = createNestedInterface(namespace, "Template",
+                "The public scoped Template application contract for " + model.getName() + ".");
         ClassNode builderPlaceholder = model.redirect().getNodeMetaData(BUILDER_PLACEHOLDER_METADATA_KEY);
         if (builderPlaceholder != null)
             builderPlaceholder.setRedirect(builderInterface);
