@@ -44,10 +44,11 @@ applies when two source files compile together and an `@Owner(root = true)` targ
 `GeneratedDslSupportSpec#'projects an unresolved cross-source owner Builder into the public namespace'`.)
 
 For same-project IntelliJ source completion, refresh the IDEA-only `Foo_DSL` mirrors through the Schema plugin and reload
-the Gradle project. The packaged contributor then supplies source-level `Foo.Create` as its truthful read-only
-`Foo_DSL.Factory` type and `Foo.Template` as its truthful read-only `Foo_DSL.Template` type, without exposing hidden
-implementation classes. This is IDE metadata only: the mirrors do not
-become compiler, package, or downstream inputs. See [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support).
+the Gradle project. The refresh materializes one root-owned GDSL resource directory and registers it with every Schema
+module; the packaged contributor then supplies source-level static `Foo.Create` as `Foo_DSL.Factory` and `Foo.Template`
+as `Foo_DSL.Template`, without exposing hidden implementation classes. GDSL cannot represent the bytecode properties'
+read-only modifier. This is IDE metadata only: neither the GDSL root nor mirrors become compiler, package, or downstream
+inputs. See [Gradle Onboarding](Gradle-Onboarding.md#intellij-and-generated-dsl-support).
 
 ```groovy
 // Child.groovy
