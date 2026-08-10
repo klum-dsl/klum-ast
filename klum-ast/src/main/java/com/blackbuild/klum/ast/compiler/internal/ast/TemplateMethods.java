@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.createGeneratedAnnotation;
 import static com.blackbuild.klum.ast.compiler.internal.ast.DslAstHelper.copyAnnotationsFromSourceToTarget;
@@ -87,7 +88,7 @@ class TemplateMethods {
                 ctorX(templateAdapter)
         );
 
-        AstDocumentation.attachText(templateField, "Assign templates to new objects.");
+        AstDocumentation.attachText(templateField, "Apply Templates while creating new objects.");
         templateField.addAnnotation(createGeneratedAnnotation(DSLASTTransformation.class));
         annotatedClass.addField(templateField);
     }
@@ -214,12 +215,16 @@ class TemplateMethods {
         templateAdapter.addMethod(adapterMethod);
     }
 
-    private static void markAsDeprecatedTemplateCreationAlias(MethodNode method, String name) {
+    private void markAsDeprecatedTemplateCreationAlias(MethodNode method, String name) {
         AnnotationNode deprecated = new AnnotationNode(make(Deprecated.class));
         deprecated.setMember("since", constX("4.0"));
         method.addAnnotation(deprecated);
-        String replacement = name.equals("Create") ? "Foo.Create.Template.With" : "Foo.Create.Template.From";
-        AstDocumentation.attachText(method, "Deprecated Template creation alias.\n\n@deprecated Use {@code " + replacement + "(...)} instead.");
+        String operation = name.equals("Create") ? "With" : "From";
+        String arguments = Arrays.stream(method.getParameters())
+                .map(Parameter::getName)
+                .collect(Collectors.joining(", "));
+        String replacement = annotatedClass.getNameWithoutPackage() + ".Create.Template." + operation + "(" + arguments + ")";
+        AstDocumentation.attachText(method, "Deprecated Template creation alias.\n\n@deprecated Use {@code " + replacement + "} instead.");
     }
 
     private void addTemplateFactoryMethod(String name, Parameter[] parameters, FieldNode support) {

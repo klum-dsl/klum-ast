@@ -372,7 +372,12 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         template.getMethod('With', getClass('sample.Base'), Closure)
         template.getMethod('WithAll', Map, Closure)
         template.getMethod('WithAll', List, Closure)
+        template.getAnnotation(AnnoDoc).value().contains('scoped Template application contract')
         creationAliases.every { it.getAnnotation(Deprecated)?.since() == '4.0' }
+        template.getMethod('Create', Map, Closure).getAnnotation(AnnoDoc).value().contains(
+                '@deprecated Use {@code Foo.Create.Template.With(configMap, configuration)} instead.')
+        template.getMethod('CreateFrom', URL, ClassLoader).getAnnotation(AnnoDoc).value().contains(
+                '@deprecated Use {@code Foo.Create.Template.From(scriptUrl, loader)} instead.')
 
         and: 'it still creates the same marked root Template as the canonical Factory property'
         legacyTemplate.label == 'legacy'
