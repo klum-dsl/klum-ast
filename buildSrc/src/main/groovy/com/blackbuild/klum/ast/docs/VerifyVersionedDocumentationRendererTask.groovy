@@ -655,6 +655,15 @@ abstract class VerifyVersionedDocumentationRendererTask extends DefaultTask {
                 'promotion must require matching immutable pending-stage evidence')
         assertContains(promotionWorkflow, 'documentationStatus=$public_status',
                 'promotion must re-render public status chrome rather than expose pending content')
+        int releaseSourceCheckout = promotionWorkflow.indexOf('          ref: ${{ needs.validate-proof.outputs.commit }}\n')
+        int landingWriterCheckout = promotionWorkflow.indexOf('          path: landing-writer\n')
+        int cleanSourceCheck = promotionWorkflow.indexOf('          test -z "$(git status --porcelain=v1)"\n')
+        assertTrue(releaseSourceCheckout >= 0 && cleanSourceCheck > releaseSourceCheckout && landingWriterCheckout > cleanSourceCheck,
+                'promotion must cleanly check out and verify the exact release source before the current landing writer')
+        assertContains(promotionWorkflow, 'test "$(git -C landing-writer rev-parse HEAD)" = "$EXPECTED_HELPER_COMMIT"',
+                'promotion must verify that the helper comes from the current trusted workflow revision')
+        assertContains(promotionWorkflow, 'test "$(git status --porcelain=v1)" = \'?? landing-writer/\'',
+                'the helper checkout must be the only source-worktree change allowed after source verification')
         int publicRenderStart = promotionWorkflow.indexOf('      - name: Render and verify the public exact-version tree\n')
         int pagesCheckout = promotionWorkflow.indexOf('          ref: gh-pages\n')
         int pendingEvidenceStart = promotionWorkflow.indexOf('      - name: Verify the immutable pending-stage evidence\n')
