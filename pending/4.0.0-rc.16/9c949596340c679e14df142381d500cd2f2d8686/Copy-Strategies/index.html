@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copy strategies — KlumAST 4.0.0-rc.16</title>
+  <link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header"><div class="site-header__inner">
+    <a class="brand" href="../"><img src="../assets/branding/klumast-season-4-header.svg" alt="KlumAST Season 4.0: The Makeover"></a>
+    <span class="version-badge">4.0.0-rc.16 · Pending release evidence</span>
+  </div></header>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="sidebar__wide" aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="./">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      <details class="sidebar__compact">
+        <summary>Documentation navigation</summary>
+        <nav aria-label="Documentation"><ul>
+<li><a rel="nofollow" href="../">Home</a></li>
+<li>Introduction
+<ul>
+<li><a rel="nofollow" href="../Why-aC-is-not-enough/">Why <em>*aC</em> is not enough</a></li>
+<li><a rel="nofollow" href="../Terms/">Terms</a></li>
+</ul>
+</li>
+<li>Fundamentals
+<ul>
+<li><a rel="nofollow" href="../Basics/">Basics</a></li>
+<li><a rel="nofollow" href="../Model-Phases/">Model Phases</a></li>
+<li><a rel="nofollow" href="../Exception-Handling/">Exception Handling</a></li>
+<li><a rel="nofollow" href="../Static-Models/">Static Models</a></li>
+<li><a rel="nofollow" href="../Javadoc/">Javadoc for models</a></li>
+</ul>
+</li>
+<li>Project setup
+<ul>
+<li><a rel="nofollow" href="../Usage/">Usage</a></li>
+<li><a rel="nofollow" href="../Gradle-Plugins/">Gradle Plugins</a></li>
+<li><a rel="nofollow" href="../Gradle-Onboarding/">Gradle Onboarding</a></li>
+<li><a rel="nofollow" href="../Domain-First-Modeling/">Domain First Modeling</a></li>
+<li><a rel="nofollow" href="../Target-Contract-Modeling/">Target Contract Modeling</a></li>
+</ul>
+</li>
+<li>Advanced Features
+<ul>
+<li><a rel="nofollow" href="../Behind-the-Curtain/">Behind the Curtain</a></li>
+<li><a rel="nofollow" href="../Completed-Object-Support/">Completed Object Support</a></li>
+<li><a rel="nofollow" href="../Convenience-Factories/">Convenience Factories</a></li>
+<li><a rel="nofollow" href="../Factory-Classes/">Factory Classes</a></li>
+<li><a rel="nofollow" href="../Templates/">Templates</a></li>
+<li><a rel="nofollow" href="./">Copy Strategies</a></li>
+<li><a rel="nofollow" href="../Validation/">Validation</a></li>
+<li><a rel="nofollow" href="../Default-Values/">Default Values</a></li>
+<li><a rel="nofollow" href="../Inheritance/">Inheritance</a></li>
+<li><a rel="nofollow" href="../Converters/">Converters</a></li>
+<li><a rel="nofollow" href="../Alternatives-Syntax/">Alternatives Syntax</a></li>
+<li><a rel="nofollow" href="../Advanced-Techniques/">Advanced Techniques</a></li>
+<li><a rel="nofollow" href="../Layer3/">Layer3</a></li>
+<li><a rel="nofollow" href="../Jackson-Integration/">Jackson Integration</a></li>
+</ul>
+</li>
+<li>More
+<ul>
+<li><a rel="nofollow" href="../FAQ/">FAQ</a></li>
+<li><a rel="nofollow" href="../Changelog/">Changelog</a></li>
+<li><a rel="nofollow" href="../Migration/">Migration</a></li>
+<li><a rel="nofollow" href="../Builder-First-Migration/">Builder First Migration</a></li>
+<li><a rel="nofollow" href="../Roadmap/">Roadmap</a></li>
+</ul>
+</li>
+</ul>
+<p><a href="../api/">API reference</a></p></nav>
+      </details>
+    </aside>
+    <main id="main-content" class="content" tabindex="-1">
+      <aside class="status-banner" data-status="pending">Pending release evidence. This unlisted snapshot is a protected publication gate, not a public release or alias. <a href="../status/">Version status</a>.</aside>
+      <h1 id="copy-strategies">Copy strategies</h1>
+<p>Copy strategies control how <code>copyFrom</code> applies a donor recipe to the current mutable Builder. This is mainly used for
+<a rel="nofollow" href="../Templates/">Templates</a>, but can also merge multiple recipe sources in a Helm-like way. In the descriptions below, <strong>target</strong> always
+means the Builder being configured; a completed DSL Object is never mutated.</p>
+<h2 id="copy-source-protocol">Copy source protocol</h2>
+<p>The donor's identity determines whether deferred recipe actions are replayed:</p>
+<ul>
+<li>an ordinary completed model contributes its current values only; actions that built it have already run and are not
+retained by its companion;</li>
+<li>a marked Template contributes values plus its immutable recipe actions;</li>
+<li>an unsealed Builder in the same active Construction session contributes current values plus an ephemeral, dehydrated
+snapshot of actions that have not run yet. Copying does not mark or convert the source Builder or either completed model
+into a Template. The generated <code>Foo_DSL.Builder&lt;Foo&gt;</code> contract accepts that same-model Builder source directly, so
+<code>copyFrom source</code> remains statically checked in Builder lifecycle code and <code>Create.AsBuilder.With</code> callbacks. Because
+this snapshot never leaves the active session, captured values do not need to be serializable;</li>
+<li>a sealed Builder or a Builder from another Construction session is rejected. Use the sealed Builder's completed model
+for a value-only copy, or a marked Template when actions must replay;</li>
+<li>Maps and other data sources remain value-only.</li>
+</ul>
+<p>Each replay clones and schedules its actions against the recipient Builder. Already executed live-Builder actions are not
+copied, and action order is preserved. Fresh owned children run one ordinary lifecycle and receive their final ownership
+and model paths when the recipient graph is materialized.</p>
+<p>When copying an object to another, there are three distinct types of strategies: single object, collections and maps. The strategy can
+be configured on a class for all matching fields at once, or on a per-field basis.</p>
+<p>Fields are marked with one of the following annotations, depending on the type:</p>
+<ul>
+<li><code>@Overwrite.Single</code> for single object fields</li>
+<li><code>@Overwrite.Collection</code> for collection fields</li>
+<li><code>@Overwrite.Map</code> for map fields</li>
+</ul>
+<p>Also, fields, the class or the package can be annotated with <code>@Overwrite</code> to apply the strategy to all fields in the class or package.</p>
+<h2 id="single-object">Single Object</h2>
+<p>Single object strategies handle how a single object field is copied from a donor recipe. The behaviour differs for DSL
+Objects and ordinary values. Ordinary values are retained, so donor and completed model share the same value instance.
+A DSL Object donor is treated as a recipe: its state is rehydrated into a fresh child Builder and copied using that DSL
+Object type's overwrite strategies. The completed donor object itself is never adopted as owned composition.</p>
+<p>The strategy is determined by checking in the following order and using the first match:</p>
+<ul>
+<li>an <code>@Overwrite.Single</code> annotation on the field itself</li>
+<li>a nested annotation on the field (i.e. an annotation that itself is annotated with <code>@Overwrite.Single</code>)</li>
+<li>an <code>@Overwrite</code> annotation (or nested annotation) on the class with the member <code>single</code> set to something other than <code>INHERIT</code></li>
+<li>an <code>@Overwrite</code> annotation (or nested annotation) on the package of the class</li>
+<li>in turn an <code>@Overwrite</code> annotation (or nested annotation) on the class or package of the class' superclass (and up through the hierarchy)</li>
+</ul>
+<p>The strategy can be one of the following:</p>
+<p>(See: <code>CopyStrategiesDocumentaryTest#'merges a nested service configuration from a template'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Endpoint {
+    String host
+    Integer port
+}
+
+@DSL
+class Service {
+    @Overwrite.Single(OverwriteStrategy.Single.MERGE)
+    Endpoint endpoint
+}
+
+when: // Model
+def baseline = Service.Create.Template.With {
+    endpoint { host 'catalog.example.test' }
+}
+def service = Service.Create.With {
+    endpoint { port 8443 }
+    copyFrom baseline
+}
+
+then:
+assert service.endpoint.host == 'catalog.example.test'
+assert service.endpoint.port == 8443
+</code></pre>
+<h3 id="inherit">INHERIT</h3>
+<p>Not a strategy in itself, should no be used directly.</p>
+<h3 id="replace">REPLACE</h3>
+<p>If the donor's field is not null, the field of the target is completely replaced by the donor's field (or a copy of the
+donor's field in case of a DSL object).</p>
+<h3 id="always_replace">ALWAYS_REPLACE</h3>
+<p>The target's field is replaced with the donor's field, even if the donor's field is null. This can be used to clear a field with a default value using a template. This strategy should be used only sparingly, and almost always only on specific fields as opposed to classes or packages.</p>
+<h3 id="set_if_null">SET_IF_NULL</h3>
+<p>The target field is on set if it was null before. This can be used to set default values in the target object if they are not already set. This can be especially useful outside of templates, for example in the Default Phase.</p>
+<h3 id="merge">MERGE</h3>
+<p>Merge is the default strategy. For non-DSL fields, this behaves exactly as <code>REPLACE</code>. For DSL fields, the donor's value is copied into the targets value (or a newly created object if the target's value is null). The nested fields are copied over using the overwrite strategies of the target's field's type.</p>
+<h2 id="collections">Collections</h2>
+<p>Collection strategies handle how a collection field is copied from a donor recipe. The donor collection is never linked
+into the Builder. The Builder's mutable construction collection is reused and may be cleared depending on the strategy;
+materialization later publishes an independent read-only snapshot.</p>
+<p>If the collection contains DSL Objects, each donor value is rehydrated into a fresh child Builder. Simple Values are
+retained. Collections of collections are not supported schema declarations.</p>
+<p>The strategy is determined in exactly the same way as for single object fields, but using the <code>@Overwrite.Collection</code> annotation instead.</p>
+<p>The default strategy is <code>REPLACE</code>.</p>
+<p>The strategy can be one of the following:</p>
+<p>(See: <code>CopyStrategiesDocumentaryTest#'adds template roles to a service configuration'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Service {
+    @Overwrite.Collection(OverwriteStrategy.Collection.ADD)
+    List&lt;String&gt; roles
+}
+
+when: // Model
+def baseline = Service.Create.Template.With {
+    roles 'observer'
+}
+def service = Service.Create.With {
+    roles 'operator'
+    copyFrom baseline
+}
+
+then:
+assert service.roles == ['operator', 'observer']
+</code></pre>
+<h3 id="inherit-1">INHERIT</h3>
+<p>Not a strategy in itself, should no be used directly.</p>
+<h3 id="add">ADD</h3>
+<p>The donor's collection is added to the target's collection. The order is determined by the collection type (e.g. List preserves order, Set does not).</p>
+<h3 id="replace-1">REPLACE</h3>
+<p>The target's collection is replaced by the donor's collection's elements, but only if the donor's collection is not empty.</p>
+<h3 id="set_if_empty">SET_IF_EMPTY</h3>
+<p>The donor's collection is added to the target's collection, but only if the target's collection is empty.</p>
+<h3 id="always_replace-1">ALWAYS_REPLACE</h3>
+<p>The target's collection is replaced by the donor's collection's elements, even if the donor's collection is empty. This can be used to clear a collection with a default value using a template. This strategy should be used only sparingly, and almost always only on specific fields as opposed to classes or packages.</p>
+<p>Note that if the collection field of the donor is <code>null</code> instead of an empty collection, the target's collection is always left untouched. Also note that in order to set a collection to null, the setter syntax must be used instead of the usual methods.</p>
+<pre><code class="language-groovy">MyObject.Create.With {
+    elements = null  // &quot;element null&quot; would add null to the collection 
+}
+</code></pre>
+<h2 id="maps">Maps</h2>
+<p>Map strategies handle how a map field is copied from a donor recipe. The donor map is never linked into the Builder. The
+Builder's mutable map is reused and may be cleared depending on the strategy; materialization later publishes an
+independent read-only snapshot. Maps whose values are maps or collections are not supported schema declarations.</p>
+<p>As with collections, DSL Object values are rehydrated into fresh child Builders and Simple Values are retained.</p>
+<p>The strategies are as follows:</p>
+<p>(See: <code>CopyStrategiesDocumentaryTest#'merges environment map values from a template'</code>.)</p>
+<pre><code class="language-groovy">given: // Schema
+@DSL
+class Environment {
+    @Key String name
+    String region
+    Integer replicas
+}
+
+@DSL
+class Deployment {
+    @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES)
+    Map&lt;String, Environment&gt; environments
+}
+
+when: // Model
+def baseline = Deployment.Create.Template.With {
+    environment('production') { region 'eu-central' }
+}
+def deployment = Deployment.Create.With {
+    environment('production') { replicas 3 }
+    copyFrom baseline
+}
+
+then:
+assert deployment.environments.production.region == 'eu-central'
+assert deployment.environments.production.replicas == 3
+</code></pre>
+<h3 id="inherit-2">INHERIT</h3>
+<p>Not a strategy in itself, should no be used directly.</p>
+<h3 id="full_replace">FULL_REPLACE</h3>
+<p>The target's map is replaced by the donor's map (if not empty). This is the default strategy.</p>
+<h3 id="always_replace-2">ALWAYS_REPLACE</h3>
+<p>The target's map is replaced by the donor's map, even if the donor's map is empty. This can be used to clear a map with a default value using a template. This strategy should be used only sparingly, and almost always only on specific fields as opposed to classes or packages.</p>
+<h3 id="set_if_empty-1">SET_IF_EMPTY</h3>
+<p>The target's map is replaced by the donor's map, but only if the target's map is empty.</p>
+<h3 id="merge_keys">MERGE_KEYS</h3>
+<p>The donor's map is added to the target's, replacing existing values with matching keys.</p>
+<h3 id="merge_values">MERGE_VALUES</h3>
+<p>The donor's map is merged with the target's. New keys are added, but the values of existing keys are merged with the target's values. The merge strategy is determined by the target's field's type's overwrite strategy.</p>
+<p>For non-DSL values, this behaves exactly as 'MERGE_KEYS', i.e. the values are replaced.</p>
+<h3 id="add_missing">ADD_MISSING</h3>
+<p>All entries in the donor's map whose keys are not present in the target's map are added to the target's map.</p>
+<h2 id="nested-annotations">Nested Annotations</h2>
+<p>Nested Annotations can be used to give meaningful names to a couple of strategies. For example, the <code>HelmOverwrite</code> annotation is a nested annotation that sets the strategy to <code>MERGE</code> for single object fields, <code>ALWAYS_REPLACE</code> for collections and <code>MERGE_VALUES</code> for maps, resembling the way helm merges value files.</p>
+<p>(See: <code>CopyStrategiesDocumentaryTest#'applies the packaged Helm copy policy to a deployment'</code>.)</p>
+<pre><code class="language-groovy">import com.blackbuild.klum.ast.copy.HelmOverwrite
+
+given: // Schema
+@DSL
+class Service {
+    @Key String name
+    String host
+    String port
+}
+
+@HelmOverwrite
+@DSL
+class Deployment {
+    String image
+    List&lt;String&gt; arguments
+    Map&lt;String, Service&gt; services
+}
+
+when: // Model
+def baseline = Deployment.Create.Template.With {
+    image 'catalog:2.0'
+    arguments = []
+    service('web') { port '8443' }
+    service('metrics') { host 'metrics.example.test' }
+}
+def deployment = Deployment.Create.With {
+    image 'catalog:1.0'
+    arguments '--verbose'
+    service('web') { host 'catalog.example.test' }
+    copyFrom baseline
+}
+
+then:
+assert deployment.image == 'catalog:2.0'
+assert deployment.arguments == []
+assert deployment.services.web.host == 'catalog.example.test'
+assert deployment.services.web.port == '8443'
+assert deployment.services.metrics.host == 'metrics.example.test'
+</code></pre>
+<p>It is defined as follows:</p>
+<pre><code class="language-java">@Target({ElementType.FIELD, ElementType.TYPE, ElementType.PACKAGE})
+@Retention(RetentionPolicy.RUNTIME)
+@Overwrite(
+        singles = @Overwrite.Single(OverwriteStrategy.Single.MERGE),
+        collections = @Overwrite.Collection(OverwriteStrategy.Collection.ALWAYS_REPLACE),
+        maps = @Overwrite.Map(OverwriteStrategy.Map.MERGE_VALUES)
+)
+public @interface HelmOverwrite {
+}
+</code></pre>
+<p>Note that only one level of nesting is supported, i.e. you cannot nest annotations inside nested annotations.</p>
+<h2 id="missing-field-handling">Missing field handling</h2>
+<p>The <code>@Overwrite</code> annotation as well as nested annotations can contain an additional member named <code>missing</code> of type
+<code>OverwriteStrategy.Missing</code>, which controls the handling of fields in the donor that are not present in the target
+object. This can either be <code>FAIL</code> (the default) or <code>IGNORE</code>.</p>
+<p>Note that <code>Overwrite.Missing</code> itself can only be used on annotation types. Since the missing-strategy is checked on the target class, it is resolved from the target class (including its <code>@Overwrite</code>, package and superclasses), not from a field.</p>
+
+    </main>
+  </div>
+  <footer class="site-footer"><p><em>KlumAST</em> - turn your models into supermodels</p>
+</footer>
+</body>
+</html>
