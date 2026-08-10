@@ -28,6 +28,9 @@ import org.gradle.testfixtures.ProjectBuilder
 import spock.lang.Issue
 import spock.lang.Specification
 
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
+
 @Issue('703')
 class KlumDslGdslMaterializationPluginTest extends Specification {
 
@@ -57,5 +60,51 @@ class KlumDslGdslMaterializationPluginTest extends Specification {
         then:
         IllegalStateException exception = thrown()
         exception.message == 'The Klum DSL GDSL materialization belongs to the root project.'
+    }
+
+    def "materializes packaged GDSL resources from runtime archives and directories only"() {
+        given: 'a root task with one packaged runtime archive and one unpacked runtime directory'
+        File projectDirectory = File.createTempDir('klum-gdsl-materialization-', '')
+        Project root = ProjectBuilder.builder().withProjectDir(projectDirectory).build()
+        root.pluginManager.apply(KlumDslGdslMaterializationPlugin)
+        KlumDslGdslMaterializationTask materialization = root.tasks.named(
+                KlumDslGdslMaterializationPlugin.TASK_NAME, KlumDslGdslMaterializationTask).get()
+        File archive = gdslArchive(projectDirectory)
+        File unpacked = new File(projectDirectory, 'unpacked')
+        source(unpacked, 'com/blackbuild/klum/ast/gdsl/Directory.gdsl', 'directory contributor')
+        source(unpacked, 'com/blackbuild/klum/ast/gdsl/ignored.txt', 'not a contributor')
+        materialization.runtimeClasspath.from(archive, unpacked)
+        materialization.outputDirectory.fileValue(new File(projectDirectory, 'materialized'))
+
+        when:
+        materialization.materialize()
+
+        then: 'both runtime shapes contribute only GDSL resources at their packaged path'
+        File output = materialization.outputDirectory.get().asFile
+        new File(output, 'com/blackbuild/klum/ast/gdsl/Archive.gdsl').text == 'archive contributor'
+        new File(output, 'com/blackbuild/klum/ast/gdsl/Directory.gdsl').text == 'directory contributor'
+        !new File(output, 'com/blackbuild/klum/ast/gdsl/ignored.txt').exists()
+
+        cleanup:
+        projectDirectory.deleteDir()
+    }
+
+    private File gdslArchive(File projectDirectory) {
+        File archive = new File(projectDirectory, 'runtime.jar')
+        new JarOutputStream(archive.newOutputStream()).withCloseable { output ->
+            output.putNextEntry(new JarEntry('com/blackbuild/klum/ast/gdsl/Archive.gdsl'))
+            output << 'archive contributor'
+            output.closeEntry()
+            output.putNextEntry(new JarEntry('com/blackbuild/klum/ast/gdsl/ignored.txt'))
+            output << 'not a contributor'
+            output.closeEntry()
+        }
+        archive
+    }
+
+    private void source(File root, String path, String contents) {
+        File source = new File(root, path)
+        source.parentFile.mkdirs()
+        source.text = contents
     }
 }
