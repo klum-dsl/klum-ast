@@ -28,6 +28,7 @@ import com.blackbuild.klum.ast.KlumGenerated;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
+import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -370,6 +371,40 @@ public final class GeneratedDslSupport {
         copyAnnotationsFromSourceToTarget(implementationMethod, apiMethod, Collections.emptyList());
         publicInterface.addMethod(apiMethod);
         implementationMethod.setNodeMetaData(API_METHOD_METADATA_KEY, apiMethod);
+        addProjectedRelationshipClosureOmission(publicInterface, apiMethod);
+    }
+
+    /**
+     * Groovy synthesizes this overload on the hidden Builder implementation only after this public contract is projected.
+     * Declare the same supported omission explicitly so static clients and AnnoDocimal see the actual relationship API.
+     */
+    private void addProjectedRelationshipClosureOmission(ClassNode publicInterface, MethodNode projectedMethod) {
+        Parameter[] projectedParameters = projectedMethod.getParameters();
+        if (!isBuilderRelationshipContract(publicInterface) || projectedParameters.length == 0) return;
+
+        Parameter closure = projectedParameters[projectedParameters.length - 1];
+        if (!closure.getOriginType().equals(ClassHelper.CLOSURE_TYPE) || !closure.hasInitialExpression()) return;
+
+        Parameter[] parameters = cloneParameters(Arrays.copyOf(projectedParameters, projectedParameters.length - 1));
+        if (publicInterface.getDeclaredMethod(projectedMethod.getName(), parameters) != null) return;
+
+        MethodNode apiMethod = new MethodNode(
+                projectedMethod.getName(),
+                ACC_PUBLIC | ACC_ABSTRACT,
+                projectedMethod.getReturnType(),
+                parameters,
+                projectedMethod.getExceptions(),
+                EmptyStatement.INSTANCE
+        );
+        apiMethod.setGenericsTypes(projectedMethod.getGenericsTypes());
+        copyAnnotationsFromSourceToTarget(projectedMethod, apiMethod, Collections.emptyList());
+        publicInterface.addMethod(apiMethod);
+    }
+
+    private boolean isBuilderRelationshipContract(ClassNode publicInterface) {
+        String builderName = builderInterface.getName();
+        String interfaceName = publicInterface.getName();
+        return interfaceName.equals(builderName) || interfaceName.startsWith(builderName + "$");
     }
 
     private static void projectMethodSignature(MethodNode method) {
