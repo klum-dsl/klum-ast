@@ -102,13 +102,19 @@ public class KlumAstSchemaPlugin extends AbstractKlumPlugin<KlumExtension> {
                     task.getOutputDirectory().convention(mirrorDirectory);
                 });
         project.getRootProject().getPluginManager().apply(KlumDslSourceMirrorsAggregationPlugin.class);
+        project.getRootProject().getPluginManager().apply(KlumDslGdslMaterializationPlugin.class);
+        KlumDslGdslMaterializationPlugin.addRuntimeGdslSource(project, main.getCompileClasspath());
         project.getRootProject().getTasks()
                 .named(KlumDslSourceMirrorsAggregationPlugin.TASK_NAME)
                 .configure(task -> task.dependsOn(createMirrors));
+        createMirrors.configure(task -> task.dependsOn(KlumDslGdslMaterializationPlugin.materializationTask(project)));
 
         IdeaModel moduleIdea = project.getExtensions().getByType(IdeaModel.class);
         moduleIdea.getModule().getSourceDirs().add(mirrorDirectory.get().getAsFile());
         moduleIdea.getModule().getGeneratedSourceDirs().add(mirrorDirectory.get().getAsFile());
+        Provider<Directory> gdslDirectory = KlumDslGdslMaterializationPlugin.outputDirectory(project);
+        moduleIdea.getModule().getResourceDirs().add(gdslDirectory.get().getAsFile());
+        moduleIdea.getModule().getGeneratedSourceDirs().add(gdslDirectory.get().getAsFile());
 
         project.getTasks().named("javadoc", Javadoc.class, task -> task.exclude("**/*_DSL.java"));
     }

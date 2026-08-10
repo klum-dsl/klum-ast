@@ -10,7 +10,9 @@ dependencies {
 tasks.register('assertKlumDslDownstreamIsolation') {
     doLast {
         def mirror = project(':schema').layout.buildDirectory.dir('generated/sources/klum-dsl-ide/main').get().asFile.canonicalFile
+        def gdsl = rootProject.layout.buildDirectory.dir('generated/klum-dsl-ide/gdsl').get().asFile.canonicalFile
         def containsMirror = { files -> files.files*.canonicalFile.contains(mirror) }
+        def containsGdsl = { files -> files.files*.canonicalFile.contains(gdsl) }
         def checks = [
                 'compileClasspath': containsMirror(configurations.compileClasspath),
                 'runtimeClasspath': containsMirror(configurations.runtimeClasspath),
@@ -19,6 +21,15 @@ tasks.register('assertKlumDslDownstreamIsolation') {
         ]
         checks.each { name, consumed ->
             println "downstream.${name}=${consumed}"
+            assert !consumed
+        }
+        checks.collectEntries { name, ignored -> [(name): containsGdsl(
+                name == 'compileClasspath' ? configurations.compileClasspath :
+                name == 'runtimeClasspath' ? configurations.runtimeClasspath :
+                name == 'testCompileClasspath' ? configurations.testCompileClasspath :
+                configurations.testRuntimeClasspath)]
+        }.each { name, consumed ->
+            println "gdsl.downstream.${name}=${consumed}"
             assert !consumed
         }
     }

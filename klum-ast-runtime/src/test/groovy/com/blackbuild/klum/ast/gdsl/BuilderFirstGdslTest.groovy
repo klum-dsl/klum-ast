@@ -31,7 +31,7 @@ import spock.lang.Specification
 @Issue('703')
 class BuilderFirstGdslTest extends Specification {
 
-    def "static model completion contributes the mirrored public support getters for DSL source PSI"() {
+    def "static model completion contributes the mirrored public support properties for DSL source PSI"() {
         given: 'a DSL source class and its refreshed public support source mirror'
         GdslClass factory = new GdslClass('fixture.Foo_DSL.Factory')
         GdslClass template = new GdslClass('fixture.Foo_DSL.Template')
@@ -44,13 +44,11 @@ class BuilderFirstGdslTest extends Specification {
         when:
         execute('CreateProperties.gdsl', delegate)
 
-        then: 'Foo.Create and Foo.Template start their truthful public chains as static read-only properties'
-        delegate.methods == [
-                [name: 'getCreate', type: 'fixture.Foo_DSL.Factory', isStatic: true],
-                [name: 'getTemplate', type: 'fixture.Foo_DSL.Template', isStatic: true]
+        then: 'Foo.Create and Foo.Template start their truthful public chains as static properties'
+        delegate.properties == [
+                [name: 'Create', type: 'fixture.Foo_DSL.Factory', isStatic: true],
+                [name: 'Template', type: 'fixture.Foo_DSL.Template', isStatic: true]
         ]
-        !delegate.methods*.name.contains('setCreate')
-        !delegate.methods*.name.contains('setTemplate')
     }
 
     def "static model completion fails closed without a DSL annotation or public support mirror"() {
@@ -68,9 +66,9 @@ class BuilderFirstGdslTest extends Specification {
         execute('CreateProperties.gdsl', factoryOnly)
 
         then:
-        ordinary.methods.empty
-        withoutMirror.methods.empty
-        factoryOnly.methods == [[name: 'getCreate', type: 'fixture.FactoryOnly_DSL.Factory', isStatic: true]]
+        ordinary.properties.empty
+        withoutMirror.properties.empty
+        factoryOnly.properties == [[name: 'Create', type: 'fixture.FactoryOnly_DSL.Factory', isStatic: true]]
     }
 
     def "the distinct polymorphic closure contributor delegates only to the public Builder contract"() {
@@ -123,7 +121,7 @@ class BuilderFirstGdslTest extends Specification {
     private static class GdslDelegate {
         final GdslClass classType
         final Map<String, GdslClass> classes
-        final List<Map<String, Object>> methods = []
+        final List<Map<String, Object>> properties = []
 
         GdslDelegate(GdslClass classType, Map<String, GdslClass> classes) {
             this.classType = classType
@@ -134,8 +132,8 @@ class BuilderFirstGdslTest extends Specification {
             classes[qualifiedName]
         }
 
-        void method(Map<String, Object> declaration) {
-            methods << declaration
+        void property(Map<String, Object> declaration) {
+            properties << declaration
         }
     }
 

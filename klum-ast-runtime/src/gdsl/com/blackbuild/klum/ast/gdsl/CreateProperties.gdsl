@@ -40,7 +40,6 @@ contributor(context([:])) {
         def contract = findClass("${qualifiedName}_DSL.${contractName}")
         if (!contract) return
 
-        // A getter, rather than property(), keeps the contributed contract read-only.
-        method name: "get${propertyName}", type: contract.qualifiedName, isStatic: true
+        property name: propertyName, type: contract.qualifiedName, isStatic: true
     }
 }

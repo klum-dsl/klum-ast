@@ -33,6 +33,8 @@ import spock.lang.Unroll
 
 import java.nio.file.Files
 import java.security.MessageDigest
+import java.util.jar.JarEntry
+import java.util.jar.JarOutputStream
 import java.util.zip.ZipFile
 
 class KlumDslSourceMirrorsIntegrationTest extends Specification {
@@ -48,6 +50,14 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
                 File target = new File(testProject, fixture.relativePath(source))
                 target.parentFile.mkdirs()
                 target.bytes = source.bytes
+            }
+        }
+        packagedGdslRuntime().withCloseable { output ->
+            ['CreateProperties.gdsl', 'PolymorphicMethods.gdsl'].each { resourceName ->
+                String entryName = "com/blackbuild/klum/ast/gdsl/$resourceName"
+                output.putNextEntry(new JarEntry(entryName))
+                output << getClass().getResource("/com/blackbuild/klum/ast/gdsl/$resourceName").bytes
+                output.closeEntry()
             }
         }
     }
@@ -117,9 +127,15 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         def isolationChecks = production.output.readLines().findAll { it.startsWith('isolation.') }
         isolationChecks.size() == 15
         isolationChecks.every { it.endsWith('=false') }
+        def gdslIsolationChecks = production.output.readLines().findAll { it.startsWith('gdsl.isolation.') }
+        gdslIsolationChecks.size() == 15
+        gdslIsolationChecks.every { it.endsWith('=false') }
         def downstreamChecks = production.output.readLines().findAll { it.startsWith('downstream.') }
         downstreamChecks.size() == 4
         downstreamChecks.every { it.endsWith('=false') }
+        def gdslDownstreamChecks = production.output.readLines().findAll { it.startsWith('gdsl.downstream.') }
+        gdslDownstreamChecks.size() == 4
+        gdslDownstreamChecks.every { it.endsWith('=false') }
         !new File(testProject, 'schema/build/docs/javadoc/example/Foo_DSL.html').exists()
         publishedArchivesContainNoMirror()
     }
@@ -256,6 +272,54 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         reused.output.contains('Configuration cache entry reused.')
     }
 
+    @Issue('703')
+    def "external Layer 3 Schema projects materialize one discoverable GDSL root for IntelliJ"() {
+        given: 'a root convention-only build with separate API and Schema projects and an API-only user client'
+        addLayer3ApiProject()
+
+        when: 'an individual Schema refresh is requested from the external project'
+        BuildResult generated = run(':schema:createKlumDslSourceMirrors')
+        File gdslRoot = new File(testProject, 'build/generated/klum-dsl-ide/gdsl')
+
+        then: 'the root-owned task materializes the packaged contributors before that Schema mirror'
+        generated.task(':materializeKlumDslGdsl').outcome == TaskOutcome.SUCCESS
+        generated.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        generated.task(':api:createKlumDslSourceMirrors') == null
+        new File(gdslRoot, 'com/blackbuild/klum/ast/gdsl/CreateProperties.gdsl').text.contains(
+                'property name: propertyName, type: contract.qualifiedName, isStatic: true')
+        new File(gdslRoot, 'com/blackbuild/klum/ast/gdsl/PolymorphicMethods.gdsl').file
+
+        when: 'the aggregate refreshes both external Schema modules'
+        BuildResult aggregate = run('generateAllKlumDslSourceMirrors')
+
+        then: 'one physical GDSL root is reused while each module registers it as IntelliJ source content'
+        aggregate.task(':materializeKlumDslGdsl').outcome in [TaskOutcome.SUCCESS, TaskOutcome.UP_TO_DATE]
+        aggregate.task(':api:createKlumDslSourceMirrors').outcome == TaskOutcome.SUCCESS
+        aggregate.task(':schema:createKlumDslSourceMirrors').outcome == TaskOutcome.UP_TO_DATE
+        BuildResult idea = run(':assertKlumDslGdslIdeaDiscovery')
+        idea.output.readLines().findAll { it.startsWith('idea.gdsl.') }.every { it.endsWith('=true') }
+        idea.output.readLines().findAll { it.startsWith('gdsl.isolation.') }.every { it.endsWith('=false') }
+
+        when: 'the Gradle IDEA tasks emit the external modules IntelliJ indexes'
+        BuildResult imported = run(':api:ideaModule', ':schema:ideaModule')
+
+        then: 'both real IntelliJ module files classify the shared root as generated resource source content'
+        imported.task(':api:ideaModule').outcome == TaskOutcome.SUCCESS
+        imported.task(':schema:ideaModule').outcome == TaskOutcome.SUCCESS
+        ['api', 'schema'].each { projectName ->
+            File module = new File(testProject, projectName).listFiles().find { it.name.endsWith('.iml') }
+            assert module.readLines().any {
+                it.contains('generated/klum-dsl-ide/gdsl') &&
+                        it.contains('type="java-resource"') && it.contains('generated="true"')
+            }
+        }
+
+        and: 'the materialized GDSL root is absent from Schema and user-client build surfaces'
+        BuildResult isolation = run(':schema:assertKlumDslIsolation', ':consumer:assertKlumDslDownstreamIsolation')
+        isolation.output.readLines().findAll { it.startsWith('gdsl.isolation.') || it.startsWith('gdsl.downstream.') }
+                .every { it.endsWith('=false') }
+    }
+
     private BuildResult run(String... arguments) {
         GradleRunner.create()
                 .withProjectDir(testProject)
@@ -283,6 +347,31 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
                 "dependencies {\n    api project(':api')\n}\n\npublishing {")
         File consumerBuild = new File(testProject, 'consumer/build.gradle')
         consumerBuild.text = consumerBuild.text.replaceAll("':schema'", "':api'")
+        File rootBuild = new File(testProject, 'build.gradle')
+        rootBuild.text += '''
+
+tasks.register('assertKlumDslGdslIdeaDiscovery') {
+    doLast {
+        def gdsl = layout.buildDirectory.dir('generated/klum-dsl-ide/gdsl').get().asFile.canonicalFile
+        [project(':api'), project(':schema')].each { schema ->
+            def idea = schema.extensions.getByType(IdeaModel).module
+            def main = schema.extensions.getByType(JavaPluginExtension).sourceSets.main
+            println "idea.gdsl.${schema.name}.resource=${idea.resourceDirs*.canonicalFile.contains(gdsl)}"
+            println "idea.gdsl.${schema.name}.generated=${idea.generatedSourceDirs*.canonicalFile.contains(gdsl)}"
+            println "gdsl.isolation.${schema.name}.java=${main.java.sourceDirectories.files*.canonicalFile.contains(gdsl)}"
+            println "gdsl.isolation.${schema.name}.groovy=${main.groovy.sourceDirectories.files*.canonicalFile.contains(gdsl)}"
+            assert idea.resourceDirs*.canonicalFile.contains(gdsl)
+            assert idea.generatedSourceDirs*.canonicalFile.contains(gdsl)
+            assert !main.java.sourceDirectories.files*.canonicalFile.contains(gdsl)
+            assert !main.groovy.sourceDirectories.files*.canonicalFile.contains(gdsl)
+        }
+    }
+}
+'''
+    }
+
+    private JarOutputStream packagedGdslRuntime() {
+        new JarOutputStream(new File(testProject, 'klum-gdsl-runtime.jar').newOutputStream())
     }
 
     private boolean publishedArchivesContainNoMirror() {
@@ -293,7 +382,9 @@ class KlumDslSourceMirrorsIntegrationTest extends Specification {
         assert !archives.empty
         archives.each { archive ->
             new ZipFile(archive).withCloseable { zip ->
-                assert !zip.entries().toList()*.name.any { it.endsWith('Foo_DSL.java') || it.endsWith('Foo_DSL.html') }
+                assert !zip.entries().toList()*.name.any {
+                    it.endsWith('Foo_DSL.java') || it.endsWith('Foo_DSL.html') || it.endsWith('.gdsl')
+                }
             }
         }
         true
