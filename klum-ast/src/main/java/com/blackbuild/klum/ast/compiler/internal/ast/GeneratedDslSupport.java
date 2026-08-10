@@ -28,7 +28,6 @@ import com.blackbuild.klum.ast.KlumGenerated;
 import com.blackbuild.klum.ast.runtime.generated.GeneratedKlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumBuilder;
 import com.blackbuild.klum.ast.runtime.KlumFactory.BuilderFactoryProvider;
-import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import org.codehaus.groovy.ast.AnnotatedNode;
 import org.codehaus.groovy.ast.AnnotationNode;
@@ -576,7 +575,7 @@ public final class GeneratedDslSupport {
                     .map(ConstantExpression.class::cast)
                     .map(ConstantExpression::getText)
                     .anyMatch(tag::equals);
-        return tags instanceof ConstantExpression && Objects.equals(((ConstantExpression) tags).getText(), tag);
+        return tags instanceof ConstantExpression constantExpression && Objects.equals(constantExpression.getText(), tag);
     }
 
     private static String generatedLink(ClassNode implementation) {
