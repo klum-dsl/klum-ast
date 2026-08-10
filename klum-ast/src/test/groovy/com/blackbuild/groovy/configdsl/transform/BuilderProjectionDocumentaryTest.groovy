@@ -31,6 +31,41 @@ import spock.lang.Tag
 @Issue("642")
 class BuilderProjectionDocumentaryTest extends AbstractDSLSpec {
 
+    @Issue("719")
+    @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Builder-First-Migration.md#relationship-creator-overloads")
+    def "configures an owned relationship through a public Builder without an empty closure"() {
+        given:
+        createClass '''
+            @DSL class Workspace {
+                Repository repository
+            }
+
+            @DSL class Repository {
+                String url
+            }
+        '''
+
+        Class<?> consumer = createSecondaryClass('''
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class WorkspaceConfigurer {
+                static void configure(Workspace_DSL.Builder<Workspace> workspace) {
+                    workspace.repository([url: 'ssh://git@example.test/catalog.git'])
+                }
+
+                static Workspace create() {
+                    Workspace.Create.With {
+                        WorkspaceConfigurer.configure((Workspace_DSL.Builder<Workspace>) delegate)
+                    }
+                }
+            }
+        ''', 'WorkspaceConfigurer.groovy')
+
+        expect:
+        consumer.create().repository.url == 'ssh://git@example.test/catalog.git'
+    }
+
     @See("https://github.com/klum-dsl/klum-ast/blob/master/docs/user/Factory-Classes.md#creator-methods-and-collection-factories")
     def "uses an unqualified static converter chain in an owned relationship"() {
         given:

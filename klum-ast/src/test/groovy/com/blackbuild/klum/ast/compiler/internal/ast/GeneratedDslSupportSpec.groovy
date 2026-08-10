@@ -693,6 +693,102 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
         !dynamicEndpointMethod.isAnnotationPresent(Deprecated)
     }
 
+    @Issue('719')
+    def "public Builder contracts and source mirrors declare relationship creators without their optional closure"() {
+        given:
+        Class<?> fooBuilder = getClass('sample.Foo_DSL$Builder')
+        Class<?> childBuilder = getClass('sample.Child_DSL$Builder')
+        Class<?> collectionFactory = getClass('sample.Foo_DSL$Builder$CollectionFactory_kids')
+        Class<?> clusterFactory = getClass('sample.Foo_DSL$Builder$ClusterFactory_services')
+        Class<?> deploymentBuilder = getClass('sample.Deployment_DSL$Builder')
+
+        when: 'the generated public contracts are inspected'
+        Method direct = fooBuilder.getMethod('primary', Map)
+        Method collection = collectionFactory.getMethod('kid', Map)
+        Method cluster = clusterFactory.getMethod('primary', Map)
+        Method dynamicWithoutClosure = deploymentBuilder.getMethod('endpoint', Map, Class)
+        Method dynamicWithClosure = deploymentBuilder.getMethod('endpoint', Map, Class, Closure)
+        Method factoryWithoutClosure = deploymentBuilder.getMethod('endpoint', Map, BuilderFactoryProvider)
+        Method factoryWithClosure = deploymentBuilder.getMethod('endpoint', Map, BuilderFactoryProvider, Closure)
+        Method deprecatedWithoutClosure = fooBuilder.getMethod('secondary', Map)
+        Method deprecatedWithClosure = fooBuilder.getMethod('secondary', Map, Closure)
+        List<Method> keyedNoClosureMethods = deploymentBuilder.declaredMethods.findAll {
+            it.name == 'keyedEndpoint' && !it.parameterTypes.contains(Closure)
+        }
+
+        then: 'direct, collection, Cluster, keyed, dynamic-Class, and typed-Factory relationship creators omit only the optional closure'
+        direct.returnType == childBuilder
+        collection.returnType == childBuilder
+        cluster.returnType == childBuilder
+        dynamicWithoutClosure.returnType == dynamicWithClosure.returnType
+        factoryWithoutClosure.genericReturnType.typeName == 'B'
+        factoryWithoutClosure.typeParameters*.bounds*.typeName == factoryWithClosure.typeParameters*.bounds*.typeName
+        factoryWithoutClosure.getAnnotation(AnnoDoc).value() == factoryWithClosure.getAnnotation(AnnoDoc).value()
+        factoryWithoutClosure.parameters[1].isAnnotationPresent(DelegatesTo.Target)
+        Modifier.isPublic(factoryWithoutClosure.modifiers)
+        !factoryWithoutClosure.isAnnotationPresent(Deprecated)
+        deprecatedWithoutClosure.isAnnotationPresent(Deprecated)
+        deprecatedWithClosure.isAnnotationPresent(Deprecated)
+        deprecatedWithoutClosure.getAnnotation(AnnoDoc).value() == deprecatedWithClosure.getAnnotation(AnnoDoc).value()
+        keyedNoClosureMethods.any { it.parameterTypes.contains(String) }
+        keyedNoClosureMethods.any { it.parameterTypes.contains(Class) }
+        keyedNoClosureMethods.any { it.parameterTypes.contains(BuilderFactoryProvider) && it.genericReturnType.typeName == 'B' }
+
+        and: 'the closure-taking Factory form retains its exact generic delegate metadata'
+        factoryWithClosure.typeParameters*.name == ['T', 'B']
+        factoryWithClosure.parameters.last().getAnnotation(DelegatesTo).with {
+            target() == 'factory' && genericTypeIndex() == 1 && strategy() == Closure.DELEGATE_ONLY
+        }
+
+        when: 'a statically compiled extension only knows the public Builder interface'
+        Class<?> consumer = createSecondaryClass('''
+            package sample
+
+            import groovy.transform.CompileStatic
+
+            @CompileStatic
+            class StaticBuilderWithoutClosureConsumer {
+                static void configure(Foo_DSL.Builder<Foo> target) {
+                    target.primary([name: 'from public Builder'])
+                }
+
+                static Foo create() {
+                    Foo.Create.With {
+                        StaticBuilderWithoutClosureConsumer.configure((Foo_DSL.Builder<Foo>) delegate)
+                    }
+                }
+
+                static Foo createWithEmptyClosure() {
+                    Foo.Create.With {
+                        ((Foo_DSL.Builder<Foo>) delegate).primary([name: 'from public Builder']) {}
+                    }
+                }
+            }
+        ''', 'sample/StaticBuilderWithoutClosureConsumer.groovy')
+
+        and: 'AnnoDocimal projects the same explicit public contract'
+        File mirrorRoot = new File(tempFolder.root, 'issue-719-mirrors')
+        File namespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Foo_DSL.class')
+        File deploymentNamespaceClass = new File(compilerConfiguration.targetDirectory, 'sample/Deployment_DSL.class')
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(namespaceClass.toPath(), mirrorRoot.toPath())
+        new SourceProjector(ProjectionPolicy.documentation()).projectToDirectory(deploymentNamespaceClass.toPath(), mirrorRoot.toPath())
+        String mirror = new File(mirrorRoot, 'sample/Foo_DSL.java').text
+        String deploymentMirror = new File(mirrorRoot, 'sample/Deployment_DSL.java').text
+
+        then: 'the runtime behavior remains equivalent to the closure-taking creation form'
+        consumer.create().primary.name == 'from public Builder'
+        consumer.createWithEmptyClosure().primary.name == 'from public Builder'
+
+        and: 'the mirrors list the shorter direct, collection, map, keyed, dynamic-Class, and typed-Factory creator overloads'
+        mirror.contains('Child_DSL.Builder<Child> primary(Map<String, ?> values)')
+        mirror.contains('Child_DSL.Builder<Child> kid(Map<String, ?> values)')
+        mirror.readLines().any { it.contains(' primary(Map<String, ?> values)') && !it.contains('Closure') }
+        (deploymentMirror =~ /(?s)Endpoint\.Builder endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends Endpoint> typeToCreate\);/).find()
+        (deploymentMirror =~ /(?s)B endpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory\);/).find()
+        (deploymentMirror =~ /(?s)KeyedEndpoint\.Builder keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target Class<\? extends KeyedEndpoint> typeToCreate,?\s+String key\);/).find()
+        (deploymentMirror =~ /(?s)B keyedEndpoint\(Map<String, \?> values,\s+@DelegatesTo\.Target\("factory"\) KlumFactory\.BuilderFactoryProvider<T, B> factory,*\s+String key\);/).find()
+    }
+
     @Issue('710')
     def "AnnoDocimal source mirror matches the bytecode namespace and nested Template Factory contract"() {
         given:
@@ -799,7 +895,7 @@ class GeneratedDslSupportSpec extends AbstractDSLSpec {
             @DSL class Foo extends Base {
                 List<Child> kids
                 Child primary
-                Child secondary
+                @Deprecated Child secondary
                 OpaqueChild opaqueChild
                 @Cluster Map<String, Child> services
             }

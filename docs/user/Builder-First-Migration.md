@@ -65,6 +65,25 @@ class Root {}
 
 In generated signatures and IDE source mirrors, `Child_DSL.Builder` uses `Root_DSL.Builder<Root>` for `root`.
 
+#### Relationship creator overloads
+
+Generated owned-relationship creators accept their named-value map without a configuration closure. This applies when a
+Schema Developer or Builder-first extension statically types the receiver as the public `Foo_DSL.Builder` contract; the
+same overloads appear in IDEA-only source mirrors. Keyed, dynamic-`Class`, typed-`Create` Factory, collection, and map
+relationship creators retain their established return types and type metadata.
+
+(See: `BuilderProjectionDocumentaryTest#'configures an owned relationship through a public Builder without an empty closure'`.)
+
+```groovy
+@CompileStatic
+static void configure(Workspace_DSL.Builder<Workspace> workspace) {
+    workspace.repository([url: 'ssh://git@example.test/catalog.git'])
+}
+```
+
+Use the closure-taking form only when further child configuration is needed; omitting it is equivalent to passing an
+empty configuration closure.
+
 ### Builder-phase Type Checks
 
 Relationships are Builders until the graph materializes. A completed-model `instanceof` check therefore belongs in a

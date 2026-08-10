@@ -43,6 +43,10 @@ This is a breaking release. See the [Builder-first construction migration](docs/
 
 ## Builder-first construction
 
+- Public `Foo_DSL.Builder` contracts and their IDEA-only AnnoDocimal mirrors now explicitly expose supported generated
+  relationship-creator overloads that omit the optional trailing configuration closure. This is an additive 4.0 API
+  correction; existing lifecycle, relationship, Factory, and source-DSL behavior is unchanged ([#719](https://github.com/klum-dsl/klum-ast/issues/719)).
+
 - Template root creation now lives below `Foo.Create.Template.With` and `From`; `Foo.Template.With` and `WithAll` are
   reserved for scoped application. The conflicting `Foo.Create.Template(...)` and `TemplateFrom(...)` methods are
   removed. The documented `Foo.Template.Create(...)` and `CreateFrom(...)` calls remain deprecated forwarding aliases

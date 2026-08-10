@@ -1047,6 +1047,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
+                        .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
@@ -1067,6 +1068,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             if (!isFinal(elementType)) {
                 createProxyMethod(methodName, InternalKlumBuilder.ADD_NEW_DSL_ELEMENT_TO_COLLECTION)
                         .optional()
+                        .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
@@ -1252,6 +1254,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             if (isInstantiable(defaultImpl)) {
                 createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
+                        .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
@@ -1272,6 +1275,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
             if (!isFinal(elementType)) {
                 createProxyMethod(methodName, ADD_NEW_DSL_ELEMENT_TO_MAP)
                         .optional()
+                        .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                         .mod(visibility)
                         .linkToField(fieldNode)
                         .returning(elementBuilderType, NEW_BUILDER_RETURN_DOCUMENTATION)
@@ -1387,6 +1391,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (isInstantiable(defaultImpl)) {
             createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
+                    .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetBuilderType)
@@ -1402,6 +1407,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         if (!isFinal(targetFieldType)) {
             createProxyMethod(fieldName, CREATE_SINGLE_CHILD)
                     .optional()
+                    .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                     .mod(visibility)
                     .linkToField(fieldNode)
                     .returning(targetBuilderType)
@@ -1432,6 +1438,7 @@ public class DSLASTTransformation extends AbstractASTTransformation {
         GenericFactoryMethodTypes types = genericFactoryMethodTypes(dslBaseType);
         createProxyMethod(methodName, runtimeMethod)
                 .optional()
+                .tag(GeneratedDslSupport.RELATIONSHIP_CREATOR_TAG)
                 .mod(DslAstHelper.isProtected(fieldNode) ? ACC_PROTECTED : ACC_PUBLIC)
                 .linkToField(fieldNode)
                 .setGenericsTypes(types.methodTypeParameters())
