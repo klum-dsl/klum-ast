@@ -81,6 +81,7 @@ class KlumAstSchemaPluginTest extends Specification {
         then:
         mirrorTaskRealized
         def mirrorDirectory = mirrorTask.outputDirectory.get().asFile
+        def gdslDirectory = KlumDslGdslMaterializationPlugin.outputDirectory(project).get().asFile
         def main = java.sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME)
         def idea = project.extensions.getByType(IdeaModel)
         mirrorTask.group == 'klum'
@@ -88,6 +89,13 @@ class KlumAstSchemaPluginTest extends Specification {
         !main.groovy.sourceDirectories.files.contains(mirrorDirectory)
         idea.module.sourceDirs.contains(mirrorDirectory)
         idea.module.generatedSourceDirs.contains(mirrorDirectory)
+        !main.java.sourceDirectories.files.contains(gdslDirectory)
+        !main.groovy.sourceDirectories.files.contains(gdslDirectory)
+        idea.module.resourceDirs.contains(gdslDirectory)
+        idea.module.generatedSourceDirs.contains(gdslDirectory)
+        mirrorTask.taskDependencies.getDependencies(mirrorTask).any {
+            it.name == KlumDslGdslMaterializationPlugin.TASK_NAME
+        }
     }
 
     def "publications are created if maven publish is applied"() {

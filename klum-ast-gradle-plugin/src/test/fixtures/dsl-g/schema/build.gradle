@@ -16,6 +16,7 @@ configurations.compileOnly.dependencies.clear()
 
 dependencies {
     compileOnly 'com.blackbuild.klum.ast:klum-ast-runtime:4.0.0-rc.14'
+    compileOnly files(rootProject.file('klum-gdsl-runtime.jar'))
 }
 
 tasks.named('compileJava') {
@@ -60,10 +61,17 @@ tasks.register('assertKlumDslIsolation') {
         def java = project.extensions.getByType(JavaPluginExtension)
         def main = java.sourceSets.main
         def mirror = project.layout.buildDirectory.dir('generated/sources/klum-dsl-ide/main').get().asFile.canonicalFile
+        def gdsl = rootProject.layout.buildDirectory.dir('generated/klum-dsl-ide/gdsl').get().asFile.canonicalFile
         def containsMirror = { files ->
             files.files.any {
                 def candidate = it.canonicalFile
                 candidate == mirror || candidate.path.startsWith(mirror.path + File.separator)
+            }
+        }
+        def containsGdsl = { files ->
+            files.files.any {
+                def candidate = it.canonicalFile
+                candidate == gdsl || candidate.path.startsWith(gdsl.path + File.separator)
             }
         }
         def mirrorTask = tasks.named('createKlumDslSourceMirrors').get()
@@ -88,6 +96,27 @@ tasks.register('assertKlumDslIsolation') {
             println "isolation.${name}=${consumed}"
             assert !consumed
         }
+        checks.collectEntries { name, ignored ->
+            [(name): containsGdsl(
+                    name == 'sourceSet.java' ? main.java.sourceDirectories :
+                    name == 'sourceSet.groovy' ? main.groovy.sourceDirectories :
+                    name == 'compileJava.source' ? tasks.compileJava.source :
+                    name == 'compileJava.classpath' ? tasks.compileJava.classpath :
+                    name == 'compileGroovy.source' ? tasks.compileGroovy.source :
+                    name == 'compileGroovy.classpath' ? tasks.compileGroovy.classpath :
+                    name == 'sourcesJar.source' ? tasks.sourcesJar.source :
+                    name == 'javadoc.source' ? tasks.javadoc.source :
+                    name == 'jar.source' ? tasks.jar.source :
+                    name == 'runtimeClasspath' ? main.runtimeClasspath :
+                    name == 'testClasspath' ? java.sourceSets.test.runtimeClasspath :
+                    name == 'publication.artifact' ? project.files(publishing.publications.mavenJava.artifacts*.file) :
+                    name == 'outgoing.artifact' ? project.files(configurations.collectMany { it.outgoing.artifacts.files.files }) : project.files())]
+        }.each { name, consumed ->
+            println "gdsl.isolation.${name}=${consumed}"
+            assert !consumed
+        }
+        assert !tasks.classes.taskDependencies.getDependencies(tasks.classes).contains(mirrorTask)
+        assert !tasks.test.taskDependencies.getDependencies(tasks.test).contains(mirrorTask)
     }
 }
 

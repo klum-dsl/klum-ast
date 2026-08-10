@@ -31,29 +31,26 @@ import spock.lang.Specification
 @Issue('703')
 class BuilderFirstGdslTest extends Specification {
 
-    def "static model completion contributes the mirrored public support getters for DSL source PSI"() {
-        given: 'a DSL source class and its refreshed public support source mirror'
-        GdslClass factory = new GdslClass('fixture.Foo_DSL.Factory')
-        GdslClass template = new GdslClass('fixture.Foo_DSL.Template')
-        GdslClass model = dslClass('fixture.Foo')
-        GdslDelegate delegate = new GdslDelegate(model, [
-                'fixture.Foo_DSL.Factory': factory,
-                'fixture.Foo_DSL.Template': template
-        ])
+    def "static model completion uses an uppercase raw field when GDSL properties normalize JavaBean names"() {
+        when: 'the packaged contributor source is inspected'
+        String createProperties = gdsl('CreateProperties.gdsl')
 
-        when:
-        execute('CreateProperties.gdsl', delegate)
+        then: 'it preserves the literal property spelling and public support types'
+        createProperties.contains('import com.intellij.psi.JavaPsiFacade')
+        createProperties.contains("[Create: 'Factory', Template: 'Template']")
+        createProperties.contains('JavaPsiFacade.getElementFactory(project).createFieldFromText(')
+        createProperties.contains('"public static ${contract.qualifiedName} ${propertyName}"')
+        createProperties.contains('add(field)')
 
-        then: 'Foo.Create and Foo.Template start their truthful public chains as static read-only properties'
-        delegate.methods == [
-                [name: 'getCreate', type: 'fixture.Foo_DSL.Factory', isStatic: true],
-                [name: 'getTemplate', type: 'fixture.Foo_DSL.Template', isStatic: true]
-        ]
-        !delegate.methods*.name.contains('setCreate')
-        !delegate.methods*.name.contains('setTemplate')
+        and: 'the documented JavaBean helper cannot silently restore lowercase completion'
+        !createProperties.contains('property name:')
+
+        and: 'the contributor remains narrow and fails closed before the internal hook is reached'
+        createProperties.contains("model?.modifierList?.findAnnotation(dslAnnotation)")
+        createProperties.contains('findClass("${qualifiedName}_DSL.${contractName}")')
     }
 
-    def "static model completion fails closed without a DSL annotation or public support mirror"() {
+    def "static model completion fails closed before the internal field hook without a DSL annotation or support mirror"() {
         when: 'a normal source class is inspected'
         GdslDelegate ordinary = new GdslDelegate(new GdslClass('fixture.Ordinary'), [:])
         execute('CreateProperties.gdsl', ordinary)
@@ -62,15 +59,30 @@ class BuilderFirstGdslTest extends Specification {
         GdslDelegate withoutMirror = new GdslDelegate(dslClass('fixture.Missing'), [:])
         execute('CreateProperties.gdsl', withoutMirror)
 
-        and: 'an incomplete support namespace contributes only its independently resolvable property'
-        GdslDelegate factoryOnly = new GdslDelegate(dslClass('fixture.FactoryOnly'),
-                ['fixture.FactoryOnly_DSL.Factory': new GdslClass('fixture.FactoryOnly_DSL.Factory')])
-        execute('CreateProperties.gdsl', factoryOnly)
+        then: 'the raw IntelliJ hook is never reached'
+        ordinary.findClassCalls.empty
+        withoutMirror.findClassCalls == ['fixture.Missing_DSL.Factory', 'fixture.Missing_DSL.Template']
+    }
 
-        then:
-        ordinary.methods.empty
-        withoutMirror.methods.empty
-        factoryOnly.methods == [[name: 'getCreate', type: 'fixture.FactoryOnly_DSL.Factory', isStatic: true]]
+    def "static model completion contributes literal uppercase static fields through the GDSL raw-member hook"() {
+        given: 'a DSL source class and its refreshed public support source mirror'
+        GdslClass model = dslClass('fixture.Foo')
+        GdslDelegate delegate = new GdslDelegate(model, [
+                'fixture.Foo_DSL.Factory' : new GdslClass('fixture.Foo_DSL.Factory'),
+                'fixture.Foo_DSL.Template': new GdslClass('fixture.Foo_DSL.Template')
+        ])
+        List<Object> fieldFactoryProjects = []
+
+        when: "the contributor invokes an instrumented equivalent of IntelliJ's raw PSI factory"
+        execute('CreateProperties.gdsl', delegate, fieldFactoryProjects)
+
+        then: 'it contributes uppercase static fields of the public support types through add(field)'
+        delegate.fields*.declaration == [
+                'public static fixture.Foo_DSL.Factory Create',
+                'public static fixture.Foo_DSL.Template Template'
+        ]
+        delegate.fields*.context == [model, model]
+        fieldFactoryProjects == [delegate.project, delegate.project]
     }
 
     def "the distinct polymorphic closure contributor delegates only to the public Builder contract"() {
@@ -94,26 +106,36 @@ class BuilderFirstGdslTest extends Specification {
         !gdsl('PolymorphicMethods.gdsl').contains('KlumRwObject')
     }
 
+    private Closure contributor(String resourceName, List<Object> fieldFactoryProjects = null) {
+        List<Closure> contributors = []
+        String source = gdsl(resourceName)
+        if (fieldFactoryProjects != null) {
+            source = source.replace('import com.intellij.psi.JavaPsiFacade\n', '')
+                    .replace('JavaPsiFacade.getElementFactory(project).createFieldFromText(',
+                            'fieldFactory(project).createFieldFromText(')
+        }
+        Binding binding = new Binding(
+                context: { Map arguments = [:] -> arguments },
+                closureScope: { [:] },
+                contributor: { Object context, Closure body -> contributors << body },
+                fieldFactory: { Object project ->
+                    fieldFactoryProjects << project
+                    new GdslElementFactory(project)
+                })
+        new GroovyShell(getClass().classLoader, binding).evaluate(source)
+        assert contributors.size() == 1
+        contributors[0]
+    }
+
     private GdslClass dslClass(String qualifiedName) {
         new GdslClass(qualifiedName, true)
     }
 
-    private void execute(String resourceName, GdslDelegate delegate) {
-        Closure gdslContributor = contributor(resourceName)
+    private void execute(String resourceName, GdslDelegate delegate, List<Object> fieldFactoryProjects = null) {
+        Closure gdslContributor = contributor(resourceName, fieldFactoryProjects)
         gdslContributor.delegate = delegate
         gdslContributor.resolveStrategy = Closure.DELEGATE_FIRST
         gdslContributor.call()
-    }
-
-    private Closure contributor(String resourceName) {
-        List<Closure> contributors = []
-        Binding binding = new Binding(
-                context: { Map arguments = [:] -> arguments },
-                closureScope: { [:] },
-                contributor: { Object context, Closure body -> contributors << body })
-        new GroovyShell(getClass().classLoader, binding).evaluate(gdsl(resourceName))
-        assert contributors.size() == 1
-        contributors[0]
     }
 
     private String gdsl(String resourceName) {
@@ -123,7 +145,9 @@ class BuilderFirstGdslTest extends Specification {
     private static class GdslDelegate {
         final GdslClass classType
         final Map<String, GdslClass> classes
-        final List<Map<String, Object>> methods = []
+        final List<String> findClassCalls = []
+        final Object project = new Object()
+        final List<GdslField> fields = []
 
         GdslDelegate(GdslClass classType, Map<String, GdslClass> classes) {
             this.classType = classType
@@ -131,11 +155,34 @@ class BuilderFirstGdslTest extends Specification {
         }
 
         GdslClass findClass(String qualifiedName) {
+            findClassCalls << qualifiedName
             classes[qualifiedName]
         }
 
-        void method(Map<String, Object> declaration) {
-            methods << declaration
+        void add(GdslField field) {
+            fields << field
+        }
+    }
+
+    private static class GdslElementFactory {
+        final Object project
+
+        GdslElementFactory(Object project) {
+            this.project = project
+        }
+
+        GdslField createFieldFromText(String declaration, Object context) {
+            new GdslField(declaration, context)
+        }
+    }
+
+    private static class GdslField {
+        final String declaration
+        final Object context
+
+        GdslField(String declaration, Object context) {
+            this.declaration = declaration
+            this.context = context
         }
     }
 

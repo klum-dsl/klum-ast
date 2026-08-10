@@ -44,6 +44,7 @@ dependencies {
     api libs.annodocimal.gradle.plugin
     // all dependencies are compile time dependencies (for AST "runtime" is compile time of a client project")
     testImplementation libs.spock.g3
+    testRuntimeOnly project(':klum-ast-runtime')
 }
 
 tasks.register('generatePluginVersionMarker', WriteProperties) {
@@ -71,4 +72,3 @@ publishing {
         pluginMaven(MavenPublication)
     }
 }
-

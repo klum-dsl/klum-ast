@@ -48,10 +48,15 @@ This is a breaking release. See the [Builder-first construction migration](docs/
   removed. The documented `Foo.Template.Create(...)` and `CreateFrom(...)` calls remain deprecated forwarding aliases
   throughout 4.x. The Builder-first migration helper provides only direct, type-qualified starting rewrites; review its
   diff and complete the migration checklist ([#710](https://github.com/klum-dsl/klum-ast/issues/710)).
-- IntelliJ source completion now contributes an annotated DSL class's static read-only `Foo.Create` and `Foo.Template`
-  properties as the generated public `Foo_DSL.Factory` and `Foo_DSL.Template` contracts after its IDEA-only source mirror
-  is refreshed. Ordinary classes and unresolved support namespaces receive no synthetic property; the retained polymorphic
-  closure contributor now delegates through the public `Foo_DSL.Builder` contract ([#703](https://github.com/klum-dsl/klum-ast/issues/703)).
+- IntelliJ support now materializes the packaged GDSL contributors once in a root-owned, IDE-only directory and registers
+  that single physical resource root with every Schema module. After a mirror refresh, it contributes static `Foo.Create`
+  and `Foo.Template` properties as the public `Foo_DSL.Factory` and `Foo_DSL.Template` contracts. Because IntelliJ's
+  documented GDSL property helper normalizes those names to lowercase JavaBean properties, 4.0 uses a temporary,
+  version-sensitive internal raw-member hook, validated with IntelliJ IDEA 2026.2; [IDEA-392559](https://youtrack.jetbrains.com/issue/IDEA-392559/GDSL-property-cannot-contribute-a-literal-uppercase-static-property-name)
+  tracks the supported IntelliJ API needed to replace it. The bridge changes neither bytecode nor read-only runtime
+  semantics. Ordinary classes and unresolved support namespaces receive no synthetic property, and the retained polymorphic
+  closure contributor delegates through the public `Foo_DSL.Builder` contract. Neither the GDSL root nor the mirrors are
+  compilation, publication, or downstream inputs ([#703](https://github.com/klum-dsl/klum-ast/issues/703)).
 - Fixed cross-source `@Owner(root = true)` public Builder accessors to expose the target model's
   `Root_DSL.Builder<Root>` contract instead of the hidden `Root$Builder` implementation. Generated
   AnnoDocimal source mirrors now preserve that same public type ([#702](https://github.com/klum-dsl/klum-ast/issues/702)).
